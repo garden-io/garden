@@ -14,6 +14,7 @@ import { createGardenPlugin } from "../../plugin/plugin"
 import { containerHelpers, defaultDockerfileName } from "./helpers"
 import {
   ContainerActionConfig,
+  ContainerBuildActionConfig,
   ContainerModule,
   containerModuleOutputsSchema,
   containerModuleSpecSchema,
@@ -26,7 +27,7 @@ import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { GetModuleOutputsParams } from "../../plugin/handlers/module/get-outputs"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
-import { ExecActionConfig } from "../exec/config"
+import { ExecActionConfig, ExecBuildConfig } from "../exec/config"
 import {
   containerBuildOutputsSchema,
   containerDeploySchema,
@@ -55,6 +56,7 @@ import { KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
+
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
 // TODO: remove in 0.14. validation should be in the action validation handler.
@@ -208,6 +210,124 @@ export async function getContainerModuleOutputs({ moduleConfig, version }: GetMo
       "local-image-id": localImageId,
       "deployment-image-name": deploymentImageName,
       "deployment-image-id": deploymentImageId,
+    },
+  }
+}
+
+export function convertContainerModuleRuntimeActions(
+  convertParams: ConvertModuleParams<ContainerModule>,
+  buildAction: ContainerBuildActionConfig | ExecBuildConfig | undefined,
+  needsContainerBuild: boolean
+): ContainerActionConfig[] {
+  const { module, prepareRuntimeDependencies } = convertParams
+  const actions: ContainerActionConfig[] = []
+  for (const service of module.serviceConfigs) {
+    actions.push({
+      kind: "Deploy",
+      type: "container",
+      name: service.name,
+      ...convertParams.baseFields,
+
+      disabled: service.disabled,
+      build: buildAction?.name,
+      dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
+
+      spec: {
+        ...service.spec,
+      },
+    })
+  }
+
+  for (const task of module.taskConfigs) {
+    actions.push({
+      kind: "Run",
+      type: "container",
+      name: task.name,
+      ...convertParams.baseFields,
+
+      disabled: task.disabled,
+      build: buildAction?.name,
+      dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
+      timeout: task.spec.timeout ? task.spec.timeout : undefined,
+
+      spec: {
+        ...task.spec,
+        image: needsContainerBuild ? undefined : module.spec.image,
+      },
+    })
+  }
+
+  for (const test of module.testConfigs) {
+    actions.push({
+      kind: "Test",
+      type: "container",
+      name: module.name + "-" + test.name,
+      ...convertParams.baseFields,
+
+      disabled: test.disabled,
+      build: buildAction?.name,
+      dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
+      timeout: test.spec.timeout ? test.spec.timeout : undefined,
+
+      spec: {
+        ...test.spec,
+        image: needsContainerBuild ? undefined : module.spec.image,
+      },
+    })
+  }
+
+  return actions
+}
+
+export async function convertContainerModule(params: ConvertModuleParams<ContainerModule>) {
+  const { module, convertBuildDependency, dummyBuild } = params
+  const actions: (ContainerActionConfig | ExecActionConfig)[] = []
+
+  let needsContainerBuild = false
+
+  if (containerHelpers.moduleHasDockerfile(module, module.version)) {
+    needsContainerBuild = true
+  }
+
+  let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
+
+  if (needsContainerBuild) {
+    buildAction = {
+      kind: "Build",
+      type: "container",
+      name: module.name,
+      ...params.baseFields,
+
+      copyFrom: dummyBuild?.copyFrom,
+      allowPublish: module.allowPublish,
+      dependencies: module.build.dependencies.map(convertBuildDependency),
+
+      spec: {
+        buildArgs: module.spec.buildArgs,
+        dockerfile: module.spec.dockerfile || defaultDockerfileName,
+        extraFlags: module.spec.extraFlags,
+        localId: module.spec.image,
+        publishId: module.spec.image,
+        targetStage: module.spec.build.targetImage,
+        timeout: module.spec.build.timeout,
+      },
+    }
+    actions.push(buildAction)
+  } else if (dummyBuild) {
+    buildAction = dummyBuild
+    actions.push(buildAction)
+  }
+
+  const runtimeActions = convertContainerModuleRuntimeActions(params, buildAction, needsContainerBuild)
+  actions.push(...runtimeActions)
+
+  return {
+    group: {
+      // This is an annoying TypeScript limitation :P
+      kind: <"Group">"Group",
+      name: module.name,
+      path: module.path,
+      actions,
     },
   }
 }
@@ -389,110 +509,7 @@ export const gardenPlugin = () =>
           configure: configureContainerModule,
           suggestModules,
           getModuleOutputs: getContainerModuleOutputs,
-
-          async convert(params: ConvertModuleParams<ContainerModule>) {
-            const { module, convertBuildDependency, dummyBuild, prepareRuntimeDependencies } = params
-            const actions: (ContainerActionConfig | ExecActionConfig)[] = []
-
-            let needsContainerBuild = false
-
-            if (containerHelpers.moduleHasDockerfile(module, module.version)) {
-              needsContainerBuild = true
-            }
-
-            let buildAction: ContainerActionConfig | ExecActionConfig | undefined = undefined
-
-            if (needsContainerBuild) {
-              buildAction = {
-                kind: "Build",
-                type: "container",
-                name: module.name,
-                ...params.baseFields,
-
-                copyFrom: dummyBuild?.copyFrom,
-                allowPublish: module.allowPublish,
-                dependencies: module.build.dependencies.map(convertBuildDependency),
-
-                spec: {
-                  buildArgs: module.spec.buildArgs,
-                  dockerfile: module.spec.dockerfile || defaultDockerfileName,
-                  extraFlags: module.spec.extraFlags,
-                  localId: module.spec.image,
-                  publishId: module.spec.image,
-                  targetStage: module.spec.build.targetImage,
-                  timeout: module.spec.build.timeout,
-                },
-              }
-              actions.push(buildAction)
-            } else if (dummyBuild) {
-              buildAction = dummyBuild
-              actions.push(buildAction)
-            }
-
-            for (const service of module.serviceConfigs) {
-              actions.push({
-                kind: "Deploy",
-                type: "container",
-                name: service.name,
-                ...params.baseFields,
-
-                disabled: service.disabled,
-                build: buildAction?.name,
-                dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
-
-                spec: {
-                  ...service.spec,
-                },
-              })
-            }
-
-            for (const task of module.taskConfigs) {
-              actions.push({
-                kind: "Run",
-                type: "container",
-                name: task.name,
-                ...params.baseFields,
-
-                disabled: task.disabled,
-                build: buildAction?.name,
-                dependencies: prepareRuntimeDependencies(task.spec.dependencies, buildAction),
-                timeout: task.spec.timeout ? task.spec.timeout : undefined,
-
-                spec: {
-                  ...task.spec,
-                  image: needsContainerBuild ? undefined : module.spec.image,
-                },
-              })
-            }
-
-            for (const test of module.testConfigs) {
-              actions.push({
-                kind: "Test",
-                type: "container",
-                name: module.name + "-" + test.name,
-                ...params.baseFields,
-
-                disabled: test.disabled,
-                build: buildAction?.name,
-                dependencies: prepareRuntimeDependencies(test.spec.dependencies, buildAction),
-                timeout: test.spec.timeout ? test.spec.timeout : undefined,
-
-                spec: {
-                  ...test.spec,
-                  image: needsContainerBuild ? undefined : module.spec.image,
-                },
-              })
-            }
-
-            return {
-              group: {
-                kind: "Group",
-                name: module.name,
-                path: module.path,
-                actions,
-              },
-            }
-          },
+          convert: convertContainerModule,
         },
       },
     ],
