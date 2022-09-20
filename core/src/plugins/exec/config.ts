@@ -44,6 +44,7 @@ export const execBuildActionSchema = () =>
       `
       )
       .example(["npm", "run", "build"]),
+    env: joiEnvVars(),
   })
 
 // DEPLOY //
