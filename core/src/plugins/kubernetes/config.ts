@@ -203,6 +203,7 @@ export interface NamespaceConfig {
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
+    overrideMultiStageCacheSupport?: boolean
     rootless?: boolean
     nodeSelector?: StringMap
   }
@@ -465,6 +466,30 @@ export const kubernetesConfigBase = () =>
     clusterBuildkit: joi
       .object()
       .keys({
+        overrideMultiStageCacheSupport: joi
+          .boolean()
+          .default(null)
+          .description(
+            dedent`
+            Enable the multi-stage cache (\`mode=max\`) buildkit option mode for builds using cluster-buildkit.
+
+            Some registries are known not to support the cache manifests needed for the \`mode=max\` option, so
+            we will avoid using \`mode=max\` with them.
+
+            See the following table for details on our detection mechanism:
+
+            | Registry Name                   | Detection string | Assumed \`mode=max\` support |
+            |---------------------------------|------------------|------------------------------|
+            | AWS Elastic Container Registry  | \`.dkr.ecr.\`    | No                           |
+            | Google Cloud Container Registry | \`gcr.io\`       | No                           |
+            | Any other registry              | -                | Yes                          |
+
+            The \`overrideMultiStageCacheSupport\` option can be used to override the defaults, in case we missed a registry
+            provider or it started / stopped supporting \`mode=max\`.
+
+            If not provided, we automatically decide wether to enable multi-stage caching as described in the table above.
+            `
+          ),
         rootless: joi
           .boolean()
           .default(false)

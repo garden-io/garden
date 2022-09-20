@@ -71,6 +71,31 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   })
 }
 
+export const getMultiStageCacheSupport = (log: LogEntry, provider: KubernetesProvider, deploymentImageName: string) => {
+  const override = provider.config.clusterBuildkit?.overrideMultiStageCacheSupport
+  if (override !== null && override !== undefined) {
+    log.silly(`clusterBuildkit.overrideMultiStageCacheSupport is set to ${override}`)
+    return override
+  }
+
+  // Detect AWS ECR
+  if (deploymentImageName.includes(".dkr.ecr.")) {
+    log.silly(`detected AWS ECR (=> not using mode=max)`)
+    return false
+  }
+
+  // Detect gcr.io
+  if (deploymentImageName.includes("gcr.io")) {
+    log.silly(`detected Google Container Registry (=> not using mode=max)`)
+    return false
+  }
+
+  log.silly("using mode=max")
+
+  // Default to true for all others
+  return true
+}
+
 export const buildkitBuildHandler: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
@@ -89,6 +114,8 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   const deploymentImageName = module.outputs["deployment-image-name"]
   const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
+
+  const useModeMax = getMultiStageCacheSupport(log, provider, deploymentImageName)
 
   const { contextPath } = await syncToBuildSync({
     ...params,
@@ -116,11 +143,29 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   const cacheTag = "_buildcache"
   // Prepare the build command (this thing, while an otherwise excellent piece of software, is clearly is not meant for
   // everyday human usage)
-  let outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
+  let outputSpec: string
+  if (useModeMax) {
+    outputSpec = `type=image,"name=${deploymentImageId}",push=true`
+  } else {
+    // for inline
+    outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
+  }
 
   if (usingInClusterRegistry(provider)) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
     outputSpec += ",registry.insecure=true"
+  }
+
+  let exportSpec: string
+  if (useModeMax) {
+    exportSpec = `type=registry,mode=max,ref=${deploymentImageName}:${cacheTag}`
+
+    if (usingInClusterRegistry(provider)) {
+      // The in-cluster registry is not exposed, so we don't configure TLS on it.
+      exportSpec += ",registry.insecure=true"
+    }
+  } else {
+    exportSpec = "type=inline"
   }
 
   const command = [
@@ -136,7 +181,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "--output",
     outputSpec,
     "--export-cache",
-    "type=inline",
+    exportSpec,
     "--import-cache",
     `type=registry,ref=${deploymentImageName}:${cacheTag}`,
     ...getBuildkitFlags(module),
