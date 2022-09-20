@@ -321,6 +321,7 @@ async function preprocessActionConfig({
       allowPartial: false,
     })
     config = { ...config, ...resolvedBuiltin }
+    const { spec = {}, variables = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
     config = validateWithPath({
@@ -335,6 +336,8 @@ async function preprocessActionConfig({
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
     })
+
+    config = { ...config, variables, spec }
 
     // TODO-G2: handle this
     // if (config.repositoryUrl) {
