@@ -520,9 +520,8 @@ const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (param
   }
 }
 
-export async function convertExecModule(params: ConvertModuleParams<ExecModule>) {
-  const { module, convertBuildDependency, convertRuntimeDependencies, dummyBuild } = params
-  const actions: ExecActionConfig[] = []
+export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>): ExecBuildConfig | undefined {
+  const { module, convertBuildDependency, dummyBuild } = params
 
   const needsBuild =
     !!dummyBuild ||
@@ -550,8 +549,17 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
         env: module.spec.env,
       },
     }
-    actions.push(buildAction)
   }
+
+  return buildAction
+}
+
+export async function convertExecModule(params: ConvertModuleParams<ExecModule>) {
+  const { module, convertBuildDependency, convertRuntimeDependencies } = params
+  const actions: ExecActionConfig[] = []
+
+  const buildAction = prepareExecBuildAction(params)
+  buildAction && actions.push(buildAction)
 
   function prepRuntimeDeps(deps: string[]): string[] {
     if (buildAction) {
