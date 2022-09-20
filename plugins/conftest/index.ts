@@ -202,7 +202,7 @@ export const gardenPlugin = () =>
             helmDeploy: joi
               .actionReference()
               .kind("Deploy")
-              .actionType("helm")
+              .name("helm")
               .required()
               .description("The Helm Deploy action to validate."),
           }),
