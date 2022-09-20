@@ -86,7 +86,7 @@ const actionSourceSpecSchema = () =>
         For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
       `
     )
-    .xor("path", "url")
+    .xor("path", "repository")
     .meta({ advanced: true, templateContext: ActionConfigContext })
 
 export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
