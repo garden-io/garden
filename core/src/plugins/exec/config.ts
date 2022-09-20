@@ -175,7 +175,7 @@ export const execRunActionSchema = () =>
 // TEST //
 
 export interface ExecTestActionSpec extends ExecRunActionSpec {}
-export type ExecTestConfig = TestActionConfig<"exec", ExecRunActionSpec>
+export type ExecTestConfig = TestActionConfig<"exec", ExecTestActionSpec>
 export type ExecTest = TestAction<ExecTestConfig, {}>
 
 export const execTestActionSchema = () =>
