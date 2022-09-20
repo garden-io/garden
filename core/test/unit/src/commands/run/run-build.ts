@@ -32,7 +32,7 @@ describe("RunBuildCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { name: "build-a", arguments: [] },
+      args: { name: "module-a", arguments: [] },
       opts: withDefaultGlobalOpts({
         "command": undefined,
         "interactive": false,
@@ -45,7 +45,7 @@ describe("RunBuildCommand", () => {
       command: [],
       completedAt: testNow,
       log: "",
-      version: graph.getBuild("build-a").versionString(),
+      version: graph.getBuild("module-a").versionString(),
       startedAt: testNow,
       success: true,
     }
@@ -62,7 +62,7 @@ describe("RunBuildCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { name: "build-a", arguments: ["my", "command"] },
+      args: { name: "module-a", arguments: ["my", "command"] },
       opts: withDefaultGlobalOpts({
         "command": undefined,
         "interactive": false,
@@ -75,7 +75,7 @@ describe("RunBuildCommand", () => {
       command: ["my", "command"],
       completedAt: testNow,
       log: "my command",
-      version: graph.getBuild("build-a").versionString(),
+      version: graph.getBuild("module-a").versionString(),
       startedAt: testNow,
       success: true,
     }
@@ -92,7 +92,7 @@ describe("RunBuildCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { name: "build-a", arguments: ["my", "command"] },
+      args: { name: "module-a", arguments: ["my", "command"] },
       opts: withDefaultGlobalOpts({
         "interactive": false,
         "force-build": false,
@@ -105,7 +105,7 @@ describe("RunBuildCommand", () => {
       command: ["/bin/sh", "-c", "my", "command"],
       completedAt: testNow,
       log: "/bin/sh -c my command",
-      version: graph.getBuild("build-a").versionString(),
+      version: graph.getBuild("module-a").versionString(),
       startedAt: testNow,
       success: true,
     }
