@@ -92,7 +92,7 @@ export interface ServiceHealthCheckSpec {
 }
 
 /**
- * DEPRECATED: Use `ContainerResourcesSpec` instead.
+ * DEPRECATED: Use {@link ContainerResourcesSpec} instead.
  */
 export interface ServiceLimitSpec {
   cpu: number
