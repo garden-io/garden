@@ -202,7 +202,7 @@ export interface NamespaceConfig {
 
 export interface ClusterBuildkitCacheConfig {
   type: "registry"
-  mode: "min" | "max" | "auto"
+  mode: "min" | "max" | "inline" | "auto"
   tag: string
   export: boolean
 }
@@ -468,7 +468,7 @@ const buildkitCacheConfigurationSchema = () =>
       ),
     mode: joi
       .string()
-      .allow("auto", "min", "max")
+      .allow("auto", "min", "max", "inline")
       .default("auto")
       .description(
         dedent`
