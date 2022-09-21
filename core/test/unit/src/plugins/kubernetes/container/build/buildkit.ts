@@ -7,10 +7,10 @@
  */
 
 import { expect } from "chai"
-import { getBuildkitFlags } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
+import { getBuildkitModuleFlags } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { getDataDir, makeTestGarden } from "../../../../../../helpers"
 
-describe("getBuildkitFlags", () => {
+describe("getBuildkitModuleFlags", () => {
   it("should correctly format the build target option", async () => {
     const projectRoot = getDataDir("test-project-container")
     const garden = await makeTestGarden(projectRoot)
@@ -19,7 +19,7 @@ describe("getBuildkitFlags", () => {
 
     module.spec.build.targetImage = "foo"
 
-    const flags = getBuildkitFlags(module)
+    const flags = getBuildkitModuleFlags(module)
 
     expect(flags).to.eql([
       "--opt",

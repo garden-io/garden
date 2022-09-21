@@ -15,7 +15,7 @@ import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
 import { waitForResources, compareDeployedResources } from "../../status/status"
-import { KubernetesProvider, KubernetesPluginContext } from "../../config"
+import { KubernetesProvider, KubernetesPluginContext, KubernetesConfig, ClusterBuildkitCacheConfig } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
 import {
   BuildStatusHandler,
@@ -71,31 +71,6 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   })
 }
 
-export const getMultiStageCacheSupport = (log: LogEntry, provider: KubernetesProvider, deploymentImageName: string) => {
-  const override = provider.config.clusterBuildkit?.overrideMultiStageCacheSupport
-  if (override !== null && override !== undefined) {
-    log.silly(`clusterBuildkit.overrideMultiStageCacheSupport is set to ${override}`)
-    return override
-  }
-
-  // Detect AWS ECR
-  if (deploymentImageName.includes(".dkr.ecr.")) {
-    log.silly(`detected AWS ECR (=> not using mode=max)`)
-    return false
-  }
-
-  // Detect gcr.io
-  if (deploymentImageName.includes("gcr.io")) {
-    log.silly(`detected Google Container Registry (=> not using mode=max)`)
-    return false
-  }
-
-  log.silly("using mode=max")
-
-  // Default to true for all others
-  return true
-}
-
 export const buildkitBuildHandler: BuildHandler = async (params) => {
   const { ctx, module, log } = params
   const provider = <KubernetesProvider>ctx.provider
@@ -114,8 +89,6 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   const deploymentImageName = module.outputs["deployment-image-name"]
   const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
-
-  const useModeMax = getMultiStageCacheSupport(log, provider, deploymentImageName)
 
   const { contextPath } = await syncToBuildSync({
     ...params,
@@ -140,29 +113,10 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
-  const cacheTag = "_buildcache"
-
-  let outputSpec: string
-  let exportSpec: string
-  if (useModeMax) {
-    outputSpec = `type=image,"name=${deploymentImageId}",push=true`
-    exportSpec = `type=registry,mode=max,ref=${deploymentImageName}:${cacheTag}`
-
-    if (usingInClusterRegistry(provider)) {
-      // The in-cluster registry is not exposed, so we don't configure TLS on it.
-
-      // TODO(steffen): TEST THIS CASE
-      exportSpec += ",registry.insecure=true"
-    }
-  } else {
-    // for inline
-    outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
-    exportSpec = "type=inline"
-  }
-
+  let registryExtraSpec: string = ""
   if (usingInClusterRegistry(provider)) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
-    outputSpec += ",registry.insecure=true"
+    registryExtraSpec = ",registry.insecure=true"
   }
 
   const command = [
@@ -176,12 +130,9 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "--opt",
     "filename=" + dockerfile,
     "--output",
-    outputSpec,
-    "--export-cache",
-    exportSpec,
-    "--import-cache",
-    `type=registry,ref=${deploymentImageName}:${cacheTag}`,
-    ...getBuildkitFlags(module),
+    `type=image,"name=${deploymentImageId}",push=true${registryExtraSpec}`,
+    ...getBuildkitCacheFlags(provider.config.clusterBuildkit!.cache, deploymentImageName, registryExtraSpec),
+    ...getBuildkitModuleFlags(module),
   ]
 
   // Execute the build
@@ -280,7 +231,7 @@ export async function ensureBuildkit({
   })
 }
 
-export function getBuildkitFlags(module: ContainerModule) {
+export function getBuildkitModuleFlags(module: ContainerModule) {
   const args: string[] = []
 
   for (const arg of getDockerBuildArgs(module)) {
@@ -294,6 +245,56 @@ export function getBuildkitFlags(module: ContainerModule) {
   args.push(...(module.spec.extraFlags || []))
 
   return args
+}
+
+export function getBuildkitCacheFlags(
+  cacheConfig: ClusterBuildkitCacheConfig[],
+  deploymentImageName: string,
+  registryExtraSpec: string
+) {
+  const args: string[] = []
+
+  // add import options
+  for (const cache of cacheConfig) {
+    args.push("--import-cache", `type=registry,ref=${deploymentImageName}:${cache.tag}${registryExtraSpec}`)
+  }
+
+  // add export options
+  for (const cache of cacheConfig) {
+    if (!cache.export) {
+      continue
+    }
+
+    const cacheMode = getSupportedCacheMode(cache, deploymentImageName)
+    args.push(
+      "--export-cache",
+      `type=registry,ref=${deploymentImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
+    )
+  }
+
+  return args
+}
+
+export const getSupportedCacheMode = (
+  cache: ClusterBuildkitCacheConfig,
+  deploymentImageName: string
+): ClusterBuildkitCacheConfig["mode"] => {
+  if (cache.mode !== "auto") {
+    return cache.mode
+  }
+
+  // Detect AWS ECR
+  if (deploymentImageName.includes(".dkr.ecr.")) {
+    return "min"
+  }
+
+  // Detect gcr.io
+  if (deploymentImageName.includes("gcr.io")) {
+    return "min"
+  }
+
+  // Default to true for all others
+  return "max"
 }
 
 export function getBuildkitDeployment(
@@ -356,6 +357,10 @@ export function getBuildkitDeployment(
                   name: buildSyncVolumeName,
                   mountPath: "/garden-build",
                 },
+                {
+                  name: "garden-cache",
+                  mountPath: "/tmp/garden-cache",
+                },
               ],
               env: [
                 {
@@ -383,6 +388,10 @@ export function getBuildkitDeployment(
             },
             {
               name: buildSyncVolumeName,
+              emptyDir: {},
+            },
+            {
+              name: "garden-cache",
               emptyDir: {},
             },
           ],

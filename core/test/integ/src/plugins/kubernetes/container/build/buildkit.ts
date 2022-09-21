@@ -82,7 +82,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
 
       const nodeSelector = { "kubernetes.io/os": "linux" }
 
-      provider.config.clusterBuildkit = { nodeSelector }
+      provider.config.clusterBuildkit = { nodeSelector, cache: [] }
 
       await ensureBuildkit({
         ctx,
@@ -152,7 +152,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
       } catch {}
 
-      provider.config.clusterBuildkit = { rootless: true }
+      provider.config.clusterBuildkit = { rootless: true, cache: [] }
 
       await ensureBuildkit({
         ctx,
@@ -176,7 +176,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
         namespace,
       })
 
-      provider.config.clusterBuildkit = { rootless: true }
+      provider.config.clusterBuildkit = { rootless: true, cache: [] }
 
       const { updated } = await ensureBuildkit({
         ctx,
