@@ -370,10 +370,6 @@ export function getBuildkitDeployment(
                   name: buildSyncVolumeName,
                   mountPath: "/garden-build",
                 },
-                {
-                  name: "garden-cache",
-                  mountPath: "/tmp/garden-cache",
-                },
               ],
               env: [
                 {
@@ -401,10 +397,6 @@ export function getBuildkitDeployment(
             },
             {
               name: buildSyncVolumeName,
-              emptyDir: {},
-            },
-            {
-              name: "garden-cache",
               emptyDir: {},
             },
           ],
