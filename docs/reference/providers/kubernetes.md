@@ -46,7 +46,96 @@ providers:
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
-    clusterBuildkit:
+    clusterBuildkit: {}
+      # Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
+      #
+      # The default value is:
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       mode: auto
+      #
+      # For every build, this will
+      # - import cached layers from a docker image tag named `_buildcache`
+      # - when the build is finished, upload cache information to `_buildcache`
+      #
+      # For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
+      # option.
+      #
+      # Some registries are known not to support the cache manifests needed for the `mode=max` option, so
+      # we will avoid using `mode=max` with them.
+      #
+      # See the following table for details on our detection mechanism:
+      #
+      # | Registry Name                   | Detection string | Assumed `mode=max` support |
+      # |---------------------------------|------------------|------------------------------|
+      # | AWS Elastic Container Registry  | `.dkr.ecr.`    | No                           |
+      # | Google Cloud Container Registry | `gcr.io`       | No                           |
+      # | Any other registry              | -                | Yes                          |
+      #
+      # In case you need to override the defaults for your registry, you can do it like so:
+      #
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       mode: inline
+      #
+      # We also support more advanced cache configurations, like the following:
+      #
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       mode: max
+      #       tag: _buildcache-\${camelCase(git.branch)}
+      #     - type: registry
+      #       mode: max
+      #       tag: _buildcache-main
+      #       export: false
+      #
+      # Using this cache configuration, we every build will first look for a cache specific to your feature branch.
+      # If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
+      # When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main`
+      # branch caches.
+      # A configuration like that may improve your cache hit rate and thus save time.
+      #
+      # If you need to disable caches completely you can achieve that with the following configuration:
+      #
+      # clusterBuildkit:
+      #   cache: []
+      cache:
+        - # Use the Docker registry to retrieve and store buildkit cache information.
+          #
+          # See also the [buildkit registry cache
+          # documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+          type:
+
+          # This is the buildkit cache mode to be used.
+          #
+          # The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache
+          # information will be inlined and co-located with the Docker image itself.
+          #
+          # The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the
+          # buildkit `--export-cache` option. Cache manifests will only be
+          # stored stored in the configured `tag`.
+          #
+          # `auto` is the same as `max` for most registries. Some popular registries do not support `max` and garden
+          # will fall back to `inline` for them.
+          #  See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the
+          # detection mechanism.
+          #
+          # See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+          mode: auto
+
+          # This is the Docker registry tag name buildkit should use for the registry build cache. Default is
+          # `_buildcache`
+          #
+          # **NOTE**: `tag` can only be used together with the `registry` cache type
+          tag: _buildcache
+
+          # If this is false, only pass the `--import-cache` option to buildkit, and not the `--export-cache` option.
+          # Defaults to true.
+          export: true
+
       # Enable rootless mode for the cluster-buildkit daemon, which runs the daemon with decreased privileges.
       # Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when
       # using this mode.
@@ -487,9 +576,134 @@ For more details on all the different options and what makes sense to use for yo
 
 Configuration options for the `cluster-buildkit` build mode.
 
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+### `providers[].clusterBuildkit.cache[]`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > cache
+
+Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
+
+The default value is:
+```
+clusterBuildkit:
+  cache:
+    - type: registry
+      mode: auto
+```
+
+For every build, this will
+- import cached layers from a docker image tag named `_buildcache`
+- when the build is finished, upload cache information to `_buildcache`
+
+For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
+option.
+
+Some registries are known not to support the cache manifests needed for the `mode=max` option, so
+we will avoid using `mode=max` with them.
+
+See the following table for details on our detection mechanism:
+
+| Registry Name                   | Detection string | Assumed `mode=max` support |
+|---------------------------------|------------------|------------------------------|
+| AWS Elastic Container Registry  | `.dkr.ecr.`    | No                           |
+| Google Cloud Container Registry | `gcr.io`       | No                           |
+| Any other registry              | -                | Yes                          |
+
+In case you need to override the defaults for your registry, you can do it like so:
+
+```
+clusterBuildkit:
+  cache:
+    - type: registry
+      mode: inline
+```
+
+We also support more advanced cache configurations, like the following:
+
+```
+clusterBuildkit:
+  cache:
+    - type: registry
+      mode: max
+      tag: _buildcache-\${camelCase(git.branch)}
+    - type: registry
+      mode: max
+      tag: _buildcache-main
+      export: false
+```
+
+Using this cache configuration, we every build will first look for a cache specific to your feature branch.
+If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
+When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main` branch caches.
+A configuration like that may improve your cache hit rate and thus save time.
+
+If you need to disable caches completely you can achieve that with the following configuration:
+
+```
+clusterBuildkit:
+  cache: []
+```
+
+| Type            | Default                                                                 | Required |
+| --------------- | ----------------------------------------------------------------------- | -------- |
+| `array[object]` | `[{"type":"registry","mode":"auto","tag":"_buildcache","export":true}]` | No       |
+
+### `providers[].clusterBuildkit.cache[].type`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > type
+
+Use the Docker registry to retrieve and store buildkit cache information.
+
+See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+
 | Type     | Required |
 | -------- | -------- |
-| `object` | No       |
+| `string` | Yes      |
+
+### `providers[].clusterBuildkit.cache[].mode`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > mode
+
+This is the buildkit cache mode to be used.
+
+The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache information will be inlined and co-located with the Docker image itself.
+
+The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the buildkit `--export-cache` option. Cache manifests will only be
+stored stored in the configured `tag`.
+
+`auto` is the same as `max` for most registries. Some popular registries do not support `max` and garden will fall back to `inline` for them.
+ See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+
+See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+
+| Type     | Default  | Required |
+| -------- | -------- | -------- |
+| `string` | `"auto"` | No       |
+
+### `providers[].clusterBuildkit.cache[].tag`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > tag
+
+This is the Docker registry tag name buildkit should use for the registry build cache. Default is `_buildcache`
+
+**NOTE**: `tag` can only be used together with the `registry` cache type
+
+| Type     | Default         | Required |
+| -------- | --------------- | -------- |
+| `string` | `"_buildcache"` | No       |
+
+### `providers[].clusterBuildkit.cache[].export`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > export
+
+If this is false, only pass the `--import-cache` option to buildkit, and not the `--export-cache` option. Defaults to true.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `providers[].clusterBuildkit.rootless`
 
@@ -534,9 +748,9 @@ providers:
 
 Configuration options for the `cluster-docker` build mode.
 
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 ### `providers[].clusterDocker.enableBuildKit`
 

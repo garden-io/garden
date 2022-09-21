@@ -463,6 +463,8 @@ const buildkitCacheConfigurationSchema = () =>
       .required()
       .description(
         dedent`
+          Use the Docker registry configured at \`deploymentRegistry\` to retrieve and store buildkit cache information.
+
           See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
         `
       ),
@@ -472,6 +474,16 @@ const buildkitCacheConfigurationSchema = () =>
       .default("auto")
       .description(
         dedent`
+        This is the buildkit cache mode to be used.
+
+        The value \`inline\` ensures that garden is using the buildkit option \`--export-cache inline\`. Cache information will be inlined and co-located with the Docker image itself.
+
+        The values \`min\` and \`max\` ensure that garden passes the \`mode=max\` or \`mode=min\` modifiers to the buildkit \`--export-cache\` option. Cache manifests will only be
+        stored stored in the configured \`tag\`.
+
+        \`auto\` is the same as \`max\` for most registries. Some popular registries do not support \`max\` and garden will fall back to \`inline\` for them.
+         See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+
         See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
       `
       ),
@@ -480,9 +492,9 @@ const buildkitCacheConfigurationSchema = () =>
       .default("_buildcache")
       .description(
         dedent`
-        This is the tag name for the registry build cache. Default is \`_buildcache\`
+        This is the Docker registry tag name buildkit should use for the registry build cache. Default is \`_buildcache\`
 
-        **NOTE**: tag can only be used together with the \`registry\` cache type
+        **NOTE**: \`tag\` can only be used together with the \`registry\` cache type
       `
       ),
     export: joi
@@ -490,7 +502,7 @@ const buildkitCacheConfigurationSchema = () =>
       .default(true)
       .description(
         dedent`
-        If this is false, only import cache
+        If this is false, only pass the \`--import-cache\` option to buildkit, and not the \`--export-cache\` option. Defaults to true.
       `
       ),
   })
@@ -520,10 +532,22 @@ export const kubernetesConfigBase = () =>
           .default([{ type: "registry", mode: "auto", tag: "_buildcache", export: true }])
           .description(
             dedent`
+            Use the \`cache\` configuration to customize the default cluster-buildkit cache behaviour.
 
-            TODO!!!!
+            The default value is:
+            \`\`\`
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  mode: auto
+            \`\`\`
 
-            Enable the multi-stage cache (\`mode=max\`) buildkit option mode for builds using cluster-buildkit.
+            For every build, this will
+            - import cached layers from a docker image tag named \`_buildcache\`
+            - when the build is finished, upload cache information to \`_buildcache\`
+
+            For registries that support it, \`mode: auto\` (the default) will enable the buildkit \`mode=max\`
+            option.
 
             Some registries are known not to support the cache manifests needed for the \`mode=max\` option, so
             we will avoid using \`mode=max\` with them.
@@ -536,10 +560,40 @@ export const kubernetesConfigBase = () =>
             | Google Cloud Container Registry | \`gcr.io\`       | No                           |
             | Any other registry              | -                | Yes                          |
 
-            The \`overrideMultiStageCacheSupport\` option can be used to override the defaults, in case we missed a registry
-            provider or it started / stopped supporting \`mode=max\`.
+            In case you need to override the defaults for your registry, you can do it like so:
 
-            If not provided, we automatically decide wether to enable multi-stage caching as described in the table above.
+            \`\`\`
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  mode: inline
+            \`\`\`
+
+            We also support more advanced cache configurations, like the following:
+
+            \`\`\`
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  mode: max
+                  tag: _buildcache-\${camelCase(git.branch)}
+                - type: registry
+                  mode: max
+                  tag: _buildcache-main
+                  export: false
+            \`\`\`
+
+            Using this cache configuration, we every build will first look for a cache specific to your feature branch.
+            If it does not exist yet, it will import caches from the main branch builds (\`_buildcache-main\`).
+            When the build is finished, it will only export caches to your feature branch, and avoid polluting the \`main\` branch caches.
+            A configuration like that may improve your cache hit rate and thus save time.
+
+            If you need to disable caches completely you can achieve that with the following configuration:
+
+            \`\`\`
+            clusterBuildkit:
+              cache: []
+            \`\`\`
             `
           ),
         rootless: joi
