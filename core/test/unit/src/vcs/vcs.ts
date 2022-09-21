@@ -355,6 +355,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
+    // TODO-G2: the assertion below still fails, check if there is something changed in the hash calculation
     const fixedVersionString = "v-2db99eee24"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
