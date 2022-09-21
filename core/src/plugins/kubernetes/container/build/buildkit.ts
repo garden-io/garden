@@ -86,8 +86,6 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   })
 
   const localId = module.outputs["local-image-id"]
-  const deploymentImageName = module.outputs["deployment-image-name"]
-  const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
   const { contextPath } = await syncToBuildSync({
@@ -129,7 +127,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "dockerfile=" + contextPath,
     "--opt",
     "filename=" + dockerfile,
-    ...getBuildkitImageFlags(provider.config.clusterBuildkit!.cache, deploymentImageName, registryExtraSpec),
+    ...getBuildkitImageFlags(provider.config.clusterBuildkit!.cache, module, registryExtraSpec),
     ...getBuildkitModuleFlags(module),
   ]
 
@@ -247,13 +245,16 @@ export function getBuildkitModuleFlags(module: ContainerModule) {
 
 export function getBuildkitImageFlags(
   cacheConfig: ClusterBuildkitCacheConfig[],
-  deploymentImageName: string,
+  module: ContainerModule,
   registryExtraSpec: string
 ) {
+  const deploymentImageName = module.outputs["deployment-image-name"]
+  const deploymentImageId = module.outputs["deployment-image-id"]
+
   const args: string[] = []
 
   const inlineCaches = cacheConfig.filter((config) => getSupportedCacheMode(config, deploymentImageName) === "inline")
-  const imageNames = [deploymentImageName]
+  const imageNames = [deploymentImageId]
 
   if (inlineCaches.length > 0) {
     args.push("--export-cache", "type=inline")
