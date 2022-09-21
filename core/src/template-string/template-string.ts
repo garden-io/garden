@@ -464,9 +464,9 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
 
     let kind: ActionKind
 
-    if (ref[1] === "service") {
+    if (ref[1] === "services") {
       kind = "Deploy"
-    } else if (ref[1] === "task") {
+    } else if (ref[1] === "tasks") {
       kind = "Run"
     } else {
       throw new ConfigurationError(`Found invalid runtime reference (invalid kind '${ref[1]}')`, { config, ref })
