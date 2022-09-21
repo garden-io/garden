@@ -137,7 +137,12 @@ export abstract class TaskNode<T extends Task = Task> {
 
     if (aborted || error) {
       for (const d of Object.values(this.dependants)) {
-        const failureDescription = aborted ? "was aborted" : "failed"
+        // TODO-G2: Replace with commented version once unit tests are passing
+        let failureDescription = aborted ? "was aborted" : "failed"
+        if (error) {
+          failureDescription += ` due to an error: ${chalk.red(error.message)}`
+        }
+        // const failureDescription = aborted ? "was aborted" : "failed"
         d.complete({
           startedAt,
           aborted,
