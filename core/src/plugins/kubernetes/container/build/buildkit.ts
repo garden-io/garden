@@ -129,9 +129,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "dockerfile=" + contextPath,
     "--opt",
     "filename=" + dockerfile,
-    "--output",
-    `type=image,"name=${deploymentImageId}",push=true${registryExtraSpec}`,
-    ...getBuildkitCacheFlags(provider.config.clusterBuildkit!.cache, deploymentImageName, registryExtraSpec),
+    ...getBuildkitImageFlags(provider.config.clusterBuildkit!.cache, deploymentImageName, registryExtraSpec),
     ...getBuildkitModuleFlags(module),
   ]
 
@@ -247,25 +245,40 @@ export function getBuildkitModuleFlags(module: ContainerModule) {
   return args
 }
 
-export function getBuildkitCacheFlags(
+export function getBuildkitImageFlags(
   cacheConfig: ClusterBuildkitCacheConfig[],
   deploymentImageName: string,
   registryExtraSpec: string
 ) {
   const args: string[] = []
 
-  // add import options
-  for (const cache of cacheConfig) {
-    args.push("--import-cache", `type=registry,ref=${deploymentImageName}:${cache.tag}${registryExtraSpec}`)
+  const inlineCaches = cacheConfig.filter((config) => getSupportedCacheMode(config, deploymentImageName) === "inline")
+  const imageNames = [deploymentImageName]
+
+  if (inlineCaches.length > 0) {
+    args.push("--export-cache", "type=inline")
+
+    const inlineCacheTags = inlineCaches.map((cache) => cache.tag)
+    for (const tag of inlineCacheTags) {
+      imageNames.push(`${deploymentImageName}:${tag}`)
+    }
   }
 
-  // add export options
+  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${registryExtraSpec}`)
+
   for (const cache of cacheConfig) {
-    if (!cache.export) {
+    args.push("--import-cache", `type=registry,ref=${deploymentImageName}:${cache.tag}${registryExtraSpec}`)
+
+    if (cache.export === false) {
       continue
     }
 
     const cacheMode = getSupportedCacheMode(cache, deploymentImageName)
+    // we handle inline caches above
+    if (cacheMode === "inline") {
+      continue
+    }
+
     args.push(
       "--export-cache",
       `type=registry,ref=${deploymentImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
@@ -285,12 +298,12 @@ export const getSupportedCacheMode = (
 
   // Detect AWS ECR
   if (deploymentImageName.includes(".dkr.ecr.")) {
-    return "min"
+    return "inline"
   }
 
   // Detect gcr.io
   if (deploymentImageName.includes("gcr.io")) {
-    return "min"
+    return "inline"
   }
 
   // Default to true for all others
