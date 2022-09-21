@@ -19,6 +19,8 @@ import {
   hashModuleVersion,
   NamedModuleVersion,
   NamedTreeVersion,
+  describeConfig,
+  getConfigBasePath,
 } from "../../../../src/vcs/vcs"
 import { makeTestGardenA, makeTestGarden, getDataDir, TestGarden, defaultModuleConfig } from "../../../helpers"
 import { expect } from "chai"
@@ -92,13 +94,15 @@ describe("VcsHandler", () => {
     it("should sort the list of files in the returned version", async () => {
       const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModule("module-a")
+      const path = getConfigBasePath(moduleConfig)
+      const description = describeConfig(moduleConfig)
       td.when(
         getFiles({
           log: gardenA.log,
-          path: moduleConfig.path,
+          path,
           include: undefined,
           exclude: undefined,
-          pathDescription: "module root",
+          pathDescription: description + " root",
         })
       ).thenResolve([
         { path: "c", hash: "c" },
@@ -112,13 +116,15 @@ describe("VcsHandler", () => {
     it("should not include the module config file in the file list", async () => {
       const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModule("module-a")
+      const path = getConfigBasePath(moduleConfig)
+      const description = describeConfig(moduleConfig)
       td.when(
         getFiles({
           log: gardenA.log,
-          path: moduleConfig.path,
+          path,
           include: undefined,
           exclude: undefined,
-          pathDescription: "module root",
+          pathDescription: description + " root",
         })
       ).thenResolve([
         { path: moduleConfig.configPath, hash: "c" },

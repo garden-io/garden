@@ -337,14 +337,14 @@ export function getResourceTreeCacheKey(config: ModuleConfig | BaseActionConfig)
   return cacheKey
 }
 
-function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
+export function getConfigFilePath(config: ModuleConfig | BaseActionConfig) {
   return isActionConfig(config) ? config.internal?.configFilePath : config.configPath
 }
 
-function getConfigBasePath(config: ModuleConfig | BaseActionConfig) {
+export function getConfigBasePath(config: ModuleConfig | BaseActionConfig) {
   return isActionConfig(config) ? config.internal.basePath : config.path
 }
 
-function describeConfig(config: ModuleConfig | BaseActionConfig) {
+export function describeConfig(config: ModuleConfig | BaseActionConfig) {
   return isActionConfig(config) ? `${config.kind} action ${config.name}` : `module ${config.name}`
 }
