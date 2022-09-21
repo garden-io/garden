@@ -200,10 +200,17 @@ export interface NamespaceConfig {
   labels?: StringMap
 }
 
+export interface ClusterBuildkitCacheConfig {
+  type: "registry"
+  mode: "min" | "max" | "auto"
+  tag: string
+  export: boolean
+}
+
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
-    overrideMultiStageCacheSupport?: boolean
+    cache: ClusterBuildkitCacheConfig[]
     rootless?: boolean
     nodeSelector?: StringMap
   }
@@ -448,6 +455,46 @@ const tlsCertificateSchema = () =>
       .example("cert-manager"),
   })
 
+const buildkitCacheConfigurationSchema = () =>
+  joi.object().keys({
+    type: joi
+      .string()
+      .allow("registry")
+      .required()
+      .description(
+        dedent`
+          See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+        `
+      ),
+    mode: joi
+      .string()
+      .allow("auto", "min", "max")
+      .default("auto")
+      .description(
+        dedent`
+        See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+      `
+      ),
+    tag: joi
+      .string()
+      .default("_buildcache")
+      .description(
+        dedent`
+        This is the tag name for the registry build cache. Default is \`_buildcache\`
+
+        **NOTE**: tag can only be used together with the \`registry\` cache type
+      `
+      ),
+    export: joi
+      .boolean()
+      .default(true)
+      .description(
+        dedent`
+        If this is false, only import cache
+      `
+      ),
+  })
+
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
@@ -466,11 +513,16 @@ export const kubernetesConfigBase = () =>
     clusterBuildkit: joi
       .object()
       .keys({
-        overrideMultiStageCacheSupport: joi
-          .boolean()
-          .default(null)
+        cache: joi
+          .array()
+          .items(buildkitCacheConfigurationSchema())
+          // TODO: fix default value, to include defaults automatically
+          .default([{ type: "registry", mode: "auto", tag: "_buildcache", export: true }])
           .description(
             dedent`
+
+            TODO!!!!
+
             Enable the multi-stage cache (\`mode=max\`) buildkit option mode for builds using cluster-buildkit.
 
             Some registries are known not to support the cache manifests needed for the \`mode=max\` option, so
@@ -510,7 +562,7 @@ export const kubernetesConfigBase = () =>
           .example({ disktype: "ssd" })
           .default(() => ({})),
       })
-      .default(() => {})
+      .default(() => ({}))
       .description("Configuration options for the `cluster-buildkit` build mode."),
     clusterDocker: joi
       .object()
@@ -526,7 +578,7 @@ export const kubernetesConfigBase = () =>
           )
           .meta({ deprecated: true }),
       })
-      .default(() => {})
+      .default(() => ({}))
       .description("Configuration options for the `cluster-docker` build mode.")
       .meta({ deprecated: "The cluster-docker build mode has been deprecated." }),
     jib: joi
