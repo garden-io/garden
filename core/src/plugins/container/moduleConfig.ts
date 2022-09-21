@@ -10,7 +10,7 @@ import { GardenModule } from "../../types/module"
 import { PrimitiveMap, joi, joiModuleIncludeDirective, joiSparseArray, joiIdentifier } from "../../config/common"
 import { GardenService } from "../../types/service"
 import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
-import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
+import { CommonServiceSpec, ServiceConfig } from "../../config/service"
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
 import { dedent, deline } from "../../util/string"
@@ -18,7 +18,7 @@ import {
   containerBuildOutputSchemaKeys,
   containerCommonBuildSpecKeys,
   ContainerCommonDeploySpec,
-  containerDeploySchemaKeys,
+  containerDeploySchema,
   ContainerRunActionSpec,
   containerRunSpecKeys,
   ContainerTestActionSpec,
@@ -46,8 +46,6 @@ export type ContainerServiceSpec = CommonServiceSpec &
     volumes: ContainerModuleVolumeSpec[]
   }
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
-
-const containerDeploySchema = () => baseServiceSpecSchema().keys(containerDeploySchemaKeys())
 
 export interface ContainerService extends GardenService<ContainerModule> {}
 
