@@ -21,6 +21,7 @@ import {
   NamedTreeVersion,
   describeConfig,
   getConfigBasePath,
+  getConfigFilePath,
 } from "../../../../src/vcs/vcs"
 import { makeTestGardenA, makeTestGarden, getDataDir, TestGarden, defaultModuleConfig } from "../../../helpers"
 import { expect } from "chai"
@@ -34,6 +35,7 @@ import { realpath, readFile, writeFile } from "fs-extra"
 import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
+import { BaseActionConfig } from "../../../../src/actions/types"
 
 export class TestVcsHandler extends VcsHandler {
   name = "test"
@@ -508,6 +510,67 @@ describe("hashModuleVersion", () => {
         { name: "dep", versionString: "blabalbalba", files: [], dependencyVersions: {} },
       ])
       expect(a).to.not.equal(b)
+    })
+  })
+})
+
+describe("helpers", () => {
+  context("BaseActionConfig", () => {
+    const baseActionConfig: BaseActionConfig = {
+      internal: { basePath: "/path/to/build-action", configFilePath: "/path/to/build-action/garden.yml" },
+      kind: "Build",
+      name: "build-action",
+      spec: {},
+      type: "",
+    }
+
+    it("getConfigFilePath", () => {
+      const configFilePath = getConfigFilePath(baseActionConfig)
+      expect(configFilePath).to.equal(baseActionConfig.internal.configFilePath)
+    })
+
+    it("getConfigBasePath", () => {
+      const configBasePath = getConfigBasePath(baseActionConfig)
+      expect(configBasePath).to.equal(baseActionConfig.internal.basePath)
+    })
+
+    it("describeConfig", () => {
+      const configDescription = describeConfig(baseActionConfig)
+      expect(configDescription).to.equal(`${baseActionConfig.kind} action ${baseActionConfig.name}`)
+    })
+  })
+
+  context("ModuleConfig", () => {
+    const moduleConfig: ModuleConfig = {
+      allowPublish: false,
+      apiVersion: "garden.io/v0",
+      build: {
+        dependencies: [],
+      },
+      disabled: false,
+      name: "module-a",
+      path: "/path/to/module/a",
+      configPath: "/path/to/module/a/garden.yml",
+      serviceConfigs: [],
+      spec: undefined,
+      taskConfigs: [],
+      testConfigs: [],
+      type: "",
+    }
+
+    it("getConfigFilePath", () => {
+      const configFilePath = getConfigFilePath(moduleConfig)
+      expect(configFilePath).to.equal(moduleConfig.configPath)
+    })
+
+    it("getConfigBasePath", () => {
+      const configBasePath = getConfigBasePath(moduleConfig)
+      expect(configBasePath).to.equal(moduleConfig.path)
+    })
+
+    it("describeConfig", () => {
+      const configDescription = describeConfig(moduleConfig)
+      expect(configDescription).to.equal(`module ${moduleConfig.name}`)
     })
   })
 })
