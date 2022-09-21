@@ -31,6 +31,7 @@ import { DeployAction, DeployActionConfig } from "../../actions/deploy"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { RunAction, RunActionConfig } from "../../actions/run"
 import { defaultDockerfileName } from "./helpers"
+import { baseServiceSpecSchema } from "../../config/service"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -709,44 +710,43 @@ const containerCommonRuntimeSchemaKeys = () => ({
     .description("Specifies the container's deployment strategy."),
 })
 
-export const containerDeploySchemaKeys = () => ({
-  ...containerCommonRuntimeSchemaKeys(),
-  annotations: annotationsSchema().description(
-    dedent`
+export const containerDeploySchema = () =>
+  baseServiceSpecSchema().keys({
+    ...containerCommonRuntimeSchemaKeys(),
+    annotations: annotationsSchema().description(
+      dedent`
     Annotations to attach to the service _(note: May not be applicable to all providers)_.
 
     When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can generally specify the annotations intended for both Pods or Services here, and the ones that don't apply on either side will be ignored (i.e. if you put a Service annotation here, it'll also appear on Pod specs but will be safely ignored there, and vice versa).
     `
-  ),
-  daemon: joi.boolean().default(false).description(deline`
+    ),
+    daemon: joi.boolean().default(false).description(deline`
       Whether to run the service as a daemon (to ensure exactly one instance runs per node).
       May not be supported by all providers.
     `),
-  devMode: containerDevModeSchema(),
-  localMode: containerLocalModeSchema(),
-  image: joi.string().allow(false, null).empty([false, null]).description(deline`
+    devMode: containerDevModeSchema(),
+    localMode: containerLocalModeSchema(),
+    image: joi.string().allow(false, null).empty([false, null]).description(deline`
     Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no \`build\` is specified.
   `),
-  ingresses: joiSparseArray(ingressSchema())
-    .description("List of ingress endpoints that the service exposes.")
-    .example([{ path: "/api", port: "http" }]),
-  healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
-  // TODO: remove in 0.14, keeping around to avoid config failures
-  hotReload: joi.any().meta({ internal: true }),
-  timeout: k8sDeploymentTimeoutSchema(),
-  limits: limitsSchema()
-    .description("Specify resource limits for the service.")
-    .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
-  ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
-  replicas: joi.number().integer().description(deline`
+    ingresses: joiSparseArray(ingressSchema())
+      .description("List of ingress endpoints that the service exposes.")
+      .example([{ path: "/api", port: "http" }]),
+    healthCheck: healthCheckSchema().description("Specify how the service's health should be checked after deploying."),
+    // TODO: remove in 0.14, keeping around to avoid config failures
+    hotReload: joi.any().meta({ internal: true }),
+    timeout: k8sDeploymentTimeoutSchema(),
+    limits: limitsSchema()
+      .description("Specify resource limits for the service.")
+      .meta({ deprecated: "Please use the `cpu` and `memory` fields instead." }),
+    ports: joiSparseArray(portSchema()).unique("name").description("List of ports that the service container exposes."),
+    replicas: joi.number().integer().description(deline`
     The number of instances of the service to deploy.
     Defaults to 3 for environments configured with \`production: true\`, otherwise 1.
 
     Note: This setting may be overridden or ignored in some cases. For example, when running with \`daemon: true\` or if the provider doesn't support multiple replicas.
   `),
-})
-
-export const containerDeploySchema = () => joi.object().keys(containerDeploySchemaKeys())
+  })
 
 export interface ContainerRegistryConfig {
   hostname: string
