@@ -129,7 +129,12 @@ export function validateSchema<T>(
     })
 
     const msgPrefix = context ? `Error validating ${context}` : "Validation error"
-    const errorDescription = errorDetails.map((e) => e.message).join(", ")
+    let errorDescription = errorDetails.map((e) => e.message).join(", ")
+
+    if (schema.describe().keys) {
+      // Not the case e.g. for array schemas
+      errorDescription += `. Available keys: ${Object.keys(schema.describe().keys).join(", ")})`
+    }
 
     throw new ErrorClass(`${msgPrefix}: ${errorDescription}`, {
       value,
