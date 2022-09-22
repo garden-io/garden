@@ -16,8 +16,8 @@ import hasAnsi = require("has-ansi")
 import { LogEntry, LogEntryMessage } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, PickFromUnion, safeDumpYaml } from "../util/util"
-import { printEmoji, formatGardenErrorWithDetail, getAllSections } from "./util"
-import { LoggerType, Logger } from "./logger"
+import { printEmoji, getAllSections } from "./util"
+import { LoggerType, Logger, formatGardenErrorWithDetail } from "./logger"
 
 type RenderFn = (entry: LogEntry) => string
 

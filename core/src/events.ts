@@ -15,10 +15,10 @@ import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./cloud/api"
 import { RenderedActionGraph } from "./graph/config-graph"
 import { CommandInfo } from "./plugin-context"
-import { sanitizeObject } from "./logger/util"
 import { BuildState } from "./plugin/handlers/build/get-status"
 import { ActionReference } from "./config/common"
 import { GraphResult } from "./graph/results"
+import { sanitizeObject } from "./logger/logger"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 

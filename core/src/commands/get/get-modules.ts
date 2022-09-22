@@ -12,13 +12,14 @@ import { StringsParameter, BooleanParameter } from "../../cli/params"
 import { moduleSchema, GardenModule } from "../../types/module"
 import { keyBy, omit, sortBy } from "lodash"
 import { joiIdentifierMap, joi, StringMap } from "../../config/common"
-import { printHeader, renderDivider, withoutInternalFields } from "../../logger/util"
+import { printHeader, renderDivider } from "../../logger/util"
 import chalk from "chalk"
 import { renderTable, dedent, deline } from "../../util/string"
 import { relative, sep } from "path"
 import { Garden } from "../.."
 import { LogEntry } from "../../logger/log-entry"
 import { deepMap, highlightYaml, safeDumpYaml } from "../../util/util"
+import { withoutInternalFields } from "../../logger/logger"
 
 const getModulesArgs = {
   modules: new StringsParameter({
