@@ -78,6 +78,8 @@ export const providerSchema = () =>
     config: providerConfigBaseSchema().required(),
     moduleConfigs: joiArray(moduleConfigSchema().optional()),
     status: environmentStatusSchema(),
+    state: joi.string(),
+    outputs: joi.any(),
     dashboardPages: dashboardPagesSchema(),
   })
 
