@@ -146,7 +146,7 @@ export interface PosixPathSchema extends Joi.StringSchema {
 
 interface ActionReferenceSchema extends Joi.AnySchema {
   kind(kind: ActionKind): this
-  actionType(type: string): this
+  name(type: string): this
 }
 
 export interface Schema extends Joi.Root {
@@ -530,7 +530,7 @@ joi = joi.extend({
   type: "actionReference",
   flags: {
     kind: { default: undefined },
-    actionType: { default: undefined },
+    name: { default: undefined },
   },
   messages: {
     validation: "<not used>",
@@ -582,16 +582,16 @@ joi = joi.extend({
         return value
       },
     },
-    actionType: {
+    name: {
       args: [
         {
-          name: "type",
+          name: "name",
           assert: joiIdentifier(),
         },
       ],
       method(value: string) {
         // tslint:disable-next-line: no-invalid-this
-        return this.$_setFlag("actionType", value)
+        return this.$_setFlag("name", value)
       },
       validate(value) {
         // Note: This is currently only advisory, and must be validated elsewhere!
