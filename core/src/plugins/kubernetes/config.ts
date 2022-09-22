@@ -205,6 +205,7 @@ export interface ClusterBuildkitCacheConfig {
   mode: "min" | "max" | "inline" | "auto"
   tag: string
   export: boolean
+  registry?: ContainerRegistryConfig
 }
 
 export interface KubernetesConfig extends BaseProviderConfig {
@@ -468,6 +469,13 @@ const buildkitCacheConfigurationSchema = () =>
           See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
         `
       ),
+    registry: containerRegistryConfigSchema().description(
+      dedent`
+      The registry from which the cache should be imported from, or which it should be exported to.
+
+      Important: You must make sure \`imagePullSecrets\` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+    `
+    ),
     mode: joi
       .string()
       .allow("auto", "min", "max", "inline")
@@ -948,7 +956,15 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema().allow(null),
+      deploymentRegistry: containerRegistryConfigSchema()
+        .description(
+          dedent`
+      The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
+
+      Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+    `
+        )
+        .allow(null),
       ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.

@@ -243,41 +243,52 @@ export function getBuildkitModuleFlags(module: ContainerModule) {
   return args
 }
 
+function getCacheImageName(module: ContainerModule, cacheConfig: ClusterBuildkitCacheConfig): string {
+  if (cacheConfig.registry === undefined) {
+    return module.outputs["deployment-image-name"]
+  }
+
+  const { hostname, port, namespace } = cacheConfig.registry
+  const portPart = port ? `:${port}` : ""
+  return `${hostname}${portPart}/${namespace}/${module.outputs["local-image-name"]}`
+}
+
 export function getBuildkitImageFlags(
   cacheConfig: ClusterBuildkitCacheConfig[],
   module: ContainerModule,
   registryExtraSpec: string
 ) {
-  const deploymentImageName = module.outputs["deployment-image-name"]
-  const deploymentImageId = module.outputs["deployment-image-id"]
-
   const args: string[] = []
 
-  const inlineCaches = cacheConfig.filter((config) => getSupportedCacheMode(config, deploymentImageName) === "inline")
-  const imageNames = [deploymentImageId]
+  const inlineCaches = cacheConfig.filter(
+    (config) => getSupportedCacheMode(config, getCacheImageName(module, config)) === "inline"
+  )
+  const imageNames = [module.outputs["deployment-image-id"]]
 
   if (inlineCaches.length > 0) {
     args.push("--export-cache", "type=inline")
 
-    const inlineCacheTags = inlineCaches.map((cache) => cache.tag)
-    for (const tag of inlineCacheTags) {
-      imageNames.push(`${deploymentImageName}:${tag}`)
+    for (const cache of inlineCaches) {
+      const cacheImageName = getCacheImageName(module, cache)
+      imageNames.push(`${cacheImageName}:${cache.tag}`)
     }
   }
 
   args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${registryExtraSpec}`)
 
   for (const cache of cacheConfig) {
+    const cacheImageName = getCacheImageName(module, cache)
+
     // subtle: it is important that --import-cache arguments are in the same order as the cacheConfigs
     // buildkit will go through them one by one, and use the first that has any cache hit for all following
     // layers, so it will actually never use multiple caches at once
-    args.push("--import-cache", `type=registry,ref=${deploymentImageName}:${cache.tag}${registryExtraSpec}`)
+    args.push("--import-cache", `type=registry,ref=${cacheImageName}:${cache.tag}${registryExtraSpec}`)
 
     if (cache.export === false) {
       continue
     }
 
-    const cacheMode = getSupportedCacheMode(cache, deploymentImageName)
+    const cacheMode = getSupportedCacheMode(cache, cacheImageName)
     // we handle inline caches above
     if (cacheMode === "inline") {
       continue
@@ -285,7 +296,7 @@ export function getBuildkitImageFlags(
 
     args.push(
       "--export-cache",
-      `type=registry,ref=${deploymentImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
+      `type=registry,ref=${cacheImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
     )
   }
 
