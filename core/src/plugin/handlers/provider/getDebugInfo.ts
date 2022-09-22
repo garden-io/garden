@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { actionParamsSchema, PluginActionParamsBase } from "../../base"
+import { projectActionParamsSchema, PluginActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 
@@ -26,7 +26,7 @@ export const getDebugInfo = () => ({
   description: dedent`
     Collects debug info from the provider.
   `,
-  paramsSchema: actionParamsSchema().keys({
+  paramsSchema: projectActionParamsSchema().keys({
     includeProject: joi
       .boolean()
       .description("If set, include project-specific information from configured providers."),

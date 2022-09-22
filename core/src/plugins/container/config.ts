@@ -595,7 +595,7 @@ const volumeSchema = () =>
       action: joi
         .actionReference()
         .kind("Deploy")
-        .actionType("base-volume")
+        .name("base-volume")
         .description(
           dedent`
           The name of a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.

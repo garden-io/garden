@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema, NamespaceStatus, namespaceStatusesSchema } from "../../base"
+import { PluginActionParamsBase, projectActionParamsSchema, NamespaceStatus, namespaceStatusesSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 
@@ -25,6 +25,6 @@ export const cleanupEnvironment = () => ({
 
     Called by the \`garden delete environment\` command.
   `,
-  paramsSchema: actionParamsSchema(),
+  paramsSchema: projectActionParamsSchema(),
   resultSchema: joi.object().keys({ namespaceStatuses: namespaceStatusesSchema().optional() }),
 })
