@@ -82,7 +82,7 @@ providers:
       #   cache:
       #     - type: registry
       #       mode: max
-      #       tag: _buildcache-\${camelCase(git.branch)}
+      #       tag: _buildcache-${camelCase(git.branch)}
       #     - type: registry
       #       mode: max
       #       tag: _buildcache-main
@@ -99,7 +99,8 @@ providers:
       # clusterBuildkit:
       #   cache: []
       cache:
-        - # Use the Docker registry to retrieve and store buildkit cache information.
+        - # Use the Docker registry configured at `deploymentRegistry` to retrieve and store buildkit cache
+          # information.
           #
           # See also the [buildkit registry cache
           # documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
@@ -581,7 +582,7 @@ clusterBuildkit:
   cache:
     - type: registry
       mode: max
-      tag: _buildcache-\${camelCase(git.branch)}
+      tag: _buildcache-${camelCase(git.branch)}
     - type: registry
       mode: max
       tag: _buildcache-main
@@ -608,7 +609,7 @@ clusterBuildkit:
 
 [providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > type
 
-Use the Docker registry to retrieve and store buildkit cache information.
+Use the Docker registry configured at `deploymentRegistry` to retrieve and store buildkit cache information.
 
 See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
 
