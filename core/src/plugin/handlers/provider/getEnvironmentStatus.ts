@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema, NamespaceStatus } from "../../base"
+import { PluginActionParamsBase, projectActionParamsSchema, NamespaceStatus } from "../../base"
 import { dedent } from "../../../util/string"
 import { environmentStatusSchema } from "../../../config/status"
 
@@ -38,6 +38,6 @@ export const getEnvironmentStatus = () => ({
     Called before \`prepareEnvironment\`. If this returns \`ready: true\`, the
     \`prepareEnvironment\` action is not called.
   `,
-  paramsSchema: actionParamsSchema(),
+  paramsSchema: projectActionParamsSchema(),
   resultSchema: environmentStatusSchema(),
 })

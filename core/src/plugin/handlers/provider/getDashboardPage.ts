@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema } from "../../base"
+import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi, joiIdentifier, joiArray } from "../../../config/common"
 
@@ -57,7 +57,7 @@ export const getDashboardPage = () => ({
 
     The API server will call this handler when the page is requested, and then redirect the request to the returned URL after the handler returns.
   `,
-  paramsSchema: actionParamsSchema().keys({
+  paramsSchema: projectActionParamsSchema().keys({
     page: dashboardPageSchema(),
   }),
   resultSchema: joi.object().keys({
