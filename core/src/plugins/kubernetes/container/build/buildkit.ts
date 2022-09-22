@@ -15,7 +15,7 @@ import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
 import { waitForResources, compareDeployedResources } from "../../status/status"
-import { KubernetesProvider, KubernetesPluginContext, KubernetesConfig, ClusterBuildkitCacheConfig } from "../../config"
+import { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
 import {
   BuildStatusHandler,
