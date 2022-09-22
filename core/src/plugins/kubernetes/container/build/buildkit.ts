@@ -268,6 +268,9 @@ export function getBuildkitImageFlags(
   args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${registryExtraSpec}`)
 
   for (const cache of cacheConfig) {
+    // subtle: it is important that --import-cache arguments are in the same order as the cacheConfigs
+    // buildkit will go through them one by one, and use the first that has any cache hit for all following
+    // layers, so it will actually never use multiple caches at once
     args.push("--import-cache", `type=registry,ref=${deploymentImageName}:${cache.tag}${registryExtraSpec}`)
 
     if (cache.export === false) {
