@@ -63,34 +63,33 @@ describe("getBuildkitImageFlags", () => {
     `type=registry,ref=${registry}/namespace/name:_buildcache`,
   ]
 
-  const moduleOutputs = ({ registry = "registry", insecure = false }): ContainerModuleOutputs => ({
+  const moduleOutputs = ({ registry = "registry" }): ContainerModuleOutputs => ({
     "local-image-id": "name:v-xxxxxx",
     "local-image-name": "name",
     "deployment-image-id": `${registry}/namespace/name:v-xxxxxx`,
     "deployment-image-name": `${registry}/namespace/name`,
-    "deployment-registry-insecure": insecure,
   })
 
   it("returns mode=max cache flags with default config by default", async () => {
-    const flags = getBuildkitImageFlags(defaultConfig, moduleOutputs({ registry: "hub.docker.com" }))
+    const flags = getBuildkitImageFlags(defaultConfig, moduleOutputs({ registry: "hub.docker.com" }), false)
 
     expect(flags).to.eql(modeFlags({ mode: "max", registry: "hub.docker.com" }))
   })
 
   it("returns inline cache flags with default config when mode=max is not", async () => {
-    const flags = getBuildkitImageFlags(defaultConfig, moduleOutputs({ registry: "eu.gcr.io" }))
+    const flags = getBuildkitImageFlags(defaultConfig, moduleOutputs({ registry: "eu.gcr.io" }), false)
 
     expect(flags).to.eql(inlineFlags({ registry: "eu.gcr.io" }))
   })
 
   it("returns mode=max cache flags with mode=max config", async () => {
-    const flags = getBuildkitImageFlags([cacheConfig({ mode: "max" })], moduleOutputs({ registry: "eu.gcr.io" }))
+    const flags = getBuildkitImageFlags([cacheConfig({ mode: "max" })], moduleOutputs({ registry: "eu.gcr.io" }), false)
 
     expect(flags).to.eql(modeFlags({ mode: "max", registry: "eu.gcr.io" }))
   })
 
   it("returns mode=min cache flags with mode=min config", async () => {
-    const flags = getBuildkitImageFlags([cacheConfig({ mode: "min" })], moduleOutputs({ registry: "eu.gcr.io" }))
+    const flags = getBuildkitImageFlags([cacheConfig({ mode: "min" })], moduleOutputs({ registry: "eu.gcr.io" }), false)
 
     expect(flags).to.eql(modeFlags({ mode: "min", registry: "eu.gcr.io" }))
   })
@@ -98,7 +97,8 @@ describe("getBuildkitImageFlags", () => {
   it("returns inline cache flags with mode=inline config", async () => {
     const flags = getBuildkitImageFlags(
       [cacheConfig({ mode: "inline" })],
-      moduleOutputs({ registry: "hub.docker.com" })
+      moduleOutputs({ registry: "hub.docker.com" }),
+      false
     )
 
     expect(flags).to.eql(inlineFlags({ registry: "hub.docker.com" }))
@@ -107,7 +107,8 @@ describe("getBuildkitImageFlags", () => {
   it("uses registry.insecure=true with the in-cluster registry", async () => {
     const flags = getBuildkitImageFlags(
       defaultConfig,
-      moduleOutputs({ registry: "in-cluster-registry", insecure: true })
+      moduleOutputs({ registry: "in-cluster-registry" }),
+      true // deploymentRegistryInsecure
     )
 
     expect(flags).to.eql(
@@ -130,7 +131,8 @@ describe("getBuildkitImageFlags", () => {
           export: true,
         },
       ],
-      moduleOutputs({ registry: "deploymentRegistry" })
+      moduleOutputs({ registry: "deploymentRegistry" }),
+      false
     )
 
     expect(flags).to.eql([
@@ -172,7 +174,8 @@ describe("getBuildkitImageFlags", () => {
           export: false,
         },
       ],
-      moduleOutputs({ registry: "deploymentRegistry" })
+      moduleOutputs({ registry: "deploymentRegistry" }),
+      false
     )
 
     expect(flags).to.eql([
