@@ -32,7 +32,7 @@ providers:
     environments:
 
     # The version of pulumi to use. Set to `null` to use whichever version of `pulumi` is on your PATH.
-    version: 3.25.1
+    version: 3.40.0
 
     # Overrides the default plan directory path used when deploying with the `deployFromPreview` option for pulumi
     # modules.
