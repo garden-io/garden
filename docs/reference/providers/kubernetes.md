@@ -126,6 +126,10 @@ providers:
             # <hostname>/<namespace>/<image name>
             namespace: _
 
+            # Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default
+            # (insecure: false)
+            insecure: false
+
           # This is the buildkit cache mode to be used.
           #
           # The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache
@@ -484,6 +488,10 @@ providers:
       # name>
       namespace: _
 
+      # Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default
+      # (insecure: false)
+      insecure: false
+
     # The ingress class to use on configured Ingresses (via the `kubernetes.io/ingress.class` annotation)
     # when deploying `container` services. Use this if you have multiple ingress controllers in your cluster.
     ingressClass:
@@ -746,6 +754,16 @@ providers:
             ...
             namespace: "my-project"
 ```
+
+### `providers[].clusterBuildkit.cache[].registry.insecure`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > insecure
+
+Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default (insecure: false)
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `providers[].clusterBuildkit.cache[].mode`
 
@@ -2332,6 +2350,16 @@ providers:
       ...
       namespace: "my-project"
 ```
+
+### `providers[].deploymentRegistry.insecure`
+
+[providers](#providers) > [deploymentRegistry](#providersdeploymentregistry) > insecure
+
+Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default (insecure: false)
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `providers[].ingressClass`
 

@@ -2903,6 +2903,20 @@ Example:
 my-variable: ${modules.my-module.outputs.deployment-image-id}
 ```
 
+### `${modules.<module-name>.outputs.deployment-registry-insecure}`
+
+wether the registry connection needs to be insecure (not using SSL)
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${modules.my-module.outputs.deployment-registry-insecure}
+```
+
 
 ### Service Outputs
 
