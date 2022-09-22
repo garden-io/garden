@@ -245,7 +245,7 @@ export const baseModuleSpecKeys = () => ({
       ${varfileDescription}
 
       To use different module-level varfiles in different environments, you can template in the environment name
-      to the varfile name, e.g. \`varfile: "my-module.\$\{environment.name\}.env\` (this assumes that the corresponding
+      to the varfile name, e.g. \`varfile: "my-module.\${environment.name}.env\` (this assumes that the corresponding
       varfiles exist).
     `
     )
