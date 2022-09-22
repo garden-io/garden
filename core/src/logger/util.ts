@@ -8,7 +8,6 @@
 
 import nodeEmoji from "node-emoji"
 import chalk, { Chalk } from "chalk"
-import CircularJSON from "circular-json"
 import { LogLevel } from "./logger"
 import { Logger } from "./logger"
 import { LogEntry, LogEntryParams, EmojiName, LogEntryMessage } from "./log-entry"
@@ -243,55 +242,4 @@ export function renderMessageWithDivider(prefix: string, msg: string, isError: b
   ${hasAnsi(msg) ? msg : msgColor(msg)}
   ${msgColor.bold(renderDivider())}
   `
-}
-
-// Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
-export function withoutInternalFields(object: any): any {
-  return deepFilter(sanitizeObject(object), (_val, key: string | number) => {
-    if (typeof key === "string") {
-      return (
-        !key.startsWith("_") &&
-        // FIXME: this a little hacky and should be removable in 0.14 at the latest.
-        // The buildDependencies map on Module objects explodes outputs, as well as the dependencyVersions field on
-        // version objects.
-        key !== "dependencyVersions" &&
-        key !== "buildDependencies"
-      )
-    }
-    return true
-  })
-}
-
-export function formatGardenErrorWithDetail(error: GardenError) {
-  const { detail, message, stack } = error
-  let out = stack || message || ""
-
-  // We recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = withoutInternalFields(detail)
-
-  if (!isEmpty(filteredDetail)) {
-    try {
-      const yamlDetail = safeDumpYaml(filteredDetail, { noRefs: true })
-      out += `\n\nError Details:\n\n${yamlDetail}`
-    } catch (err) {
-      out += `\n\nUnable to render error details:\n${err.message}`
-    }
-  }
-  return out
-}
-
-/**
- * Strips undefined values and circular references from an object.
- */
-export function sanitizeObject(obj: any) {
-  obj = deepMap(obj, (value: any) => {
-    return Buffer.isBuffer(value) ? "<Buffer>" : value
-  })
-
-  const cleanedJson = isPlainObject(obj)
-    ? CircularJSON.stringify(obj)
-    : // Handle classes, e.g. Error objects
-      CircularJSON.stringify(obj, Object.getOwnPropertyNames(obj))
-
-  return JSON.parse(cleanedJson)
 }
