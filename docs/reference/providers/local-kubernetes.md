@@ -106,6 +106,22 @@ providers:
           # documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
           type:
 
+          # The registry from which the cache should be imported from, or which it should be exported to.
+          #
+          # Important: You must make sure `imagePullSecrets` includes authentication with the specified cache
+          # registry, that has the appropriate write privileges (usually full write access to the configured
+          # `deploymentRegistry.namespace`).
+          registry:
+            # The hostname (and optionally port, if not the default port) of the registry.
+            hostname:
+
+            # The port where the registry listens on, if not the default.
+            port:
+
+            # The registry namespace. Will be placed between hostname and image name, like so:
+            # <hostname>/<namespace>/<image name>
+            namespace: _
+
           # This is the buildkit cache mode to be used.
           #
           # The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache
@@ -616,6 +632,72 @@ See also the [buildkit registry cache documentation](https://github.com/moby/bui
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
+
+### `providers[].clusterBuildkit.cache[].registry`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > registry
+
+The registry from which the cache should be imported from, or which it should be exported to.
+
+Important: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `deploymentRegistry.namespace`).
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].clusterBuildkit.cache[].registry.hostname`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > hostname
+
+The hostname (and optionally port, if not the default port) of the registry.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      cache:
+        - registry:
+            ...
+            hostname: "gcr.io"
+```
+
+### `providers[].clusterBuildkit.cache[].registry.port`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > port
+
+The port where the registry listens on, if not the default.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `providers[].clusterBuildkit.cache[].registry.namespace`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > namespace
+
+The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"_"`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      cache:
+        - registry:
+            ...
+            namespace: "my-project"
+```
 
 ### `providers[].clusterBuildkit.cache[].mode`
 
