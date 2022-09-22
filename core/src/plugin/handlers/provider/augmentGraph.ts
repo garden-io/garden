@@ -19,9 +19,11 @@ export interface AugmentGraphParams extends PluginActionParamsBase {
   providers: ProviderMap
 }
 
+type Dependency = { kind: ActionKind; name: string }
+
 interface AddDependency {
-  by: { kind: ActionKind; name: string }
-  on: { kind: ActionKind; name: string }
+  by: Dependency
+  on: Dependency
 }
 
 export interface AugmentGraphResult {
