@@ -38,6 +38,7 @@ const basicConfig: KubernetesConfig = {
     hostname: "foo.garden",
     port: 5000,
     namespace: "boo",
+    insecure: true,
   },
   forceSsl: false,
   gardenSystemNamespace: defaultSystemNamespace,

@@ -31,11 +31,12 @@ import {
 import { getNamespaceStatus } from "../../namespace"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
-import { ContainerModule } from "../../../container/config"
+import { ContainerModule, ContainerRegistryConfig } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString, usingInClusterRegistry } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
+import { ContainerModuleOutputs } from "../../../container/container"
 
 export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"
@@ -111,12 +112,6 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
-  let registryExtraSpec: string = ""
-  if (usingInClusterRegistry(provider)) {
-    // The in-cluster registry is not exposed, so we don't configure TLS on it.
-    registryExtraSpec = ",registry.insecure=true"
-  }
-
   const command = [
     "buildctl",
     "build",
@@ -127,7 +122,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "dockerfile=" + contextPath,
     "--opt",
     "filename=" + dockerfile,
-    ...getBuildkitImageFlags(provider.config.clusterBuildkit!.cache, module, registryExtraSpec),
+    ...getBuildkitImageFlags(provider.config.clusterBuildkit!.cache, module.outputs),
     ...getBuildkitModuleFlags(module),
   ]
 
@@ -243,41 +238,42 @@ export function getBuildkitModuleFlags(module: ContainerModule) {
   return args
 }
 
-function getCacheImageName(module: ContainerModule, cacheConfig: ClusterBuildkitCacheConfig): string {
-  if (cacheConfig.registry === undefined) {
-    return module.outputs["deployment-image-name"]
-  }
-
-  const { hostname, port, namespace } = cacheConfig.registry
-  const portPart = port ? `:${port}` : ""
-  return `${hostname}${portPart}/${namespace}/${module.outputs["local-image-name"]}`
-}
-
 export function getBuildkitImageFlags(
   cacheConfig: ClusterBuildkitCacheConfig[],
-  module: ContainerModule,
-  registryExtraSpec: string
+  moduleOutputs: ContainerModuleOutputs
 ) {
   const args: string[] = []
 
   const inlineCaches = cacheConfig.filter(
-    (config) => getSupportedCacheMode(config, getCacheImageName(module, config)) === "inline"
+    (config) => getSupportedCacheMode(config, getCacheImageName(moduleOutputs, config)) === "inline"
   )
-  const imageNames = [module.outputs["deployment-image-id"]]
+  const imageNames = [moduleOutputs["deployment-image-id"]]
 
   if (inlineCaches.length > 0) {
     args.push("--export-cache", "type=inline")
 
     for (const cache of inlineCaches) {
-      const cacheImageName = getCacheImageName(module, cache)
+      const cacheImageName = getCacheImageName(moduleOutputs, cache)
       imageNames.push(`${cacheImageName}:${cache.tag}`)
     }
   }
 
-  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${registryExtraSpec}`)
+  let deploymentRegistryExtraSpec = ""
+  if (moduleOutputs["deployment-registry-insecure"]) {
+    deploymentRegistryExtraSpec = ",registry.insecure=true"
+  }
+
+  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${deploymentRegistryExtraSpec}`)
 
   for (const cache of cacheConfig) {
-    const cacheImageName = getCacheImageName(module, cache)
+    const cacheImageName = getCacheImageName(moduleOutputs, cache)
+
+    let registryExtraSpec = ""
+    if (cache.registry === undefined) {
+      registryExtraSpec = deploymentRegistryExtraSpec
+    } else if (cache.registry!.insecure === true) {
+      registryExtraSpec = ",registry.insecure=true"
+    }
 
     // subtle: it is important that --import-cache arguments are in the same order as the cacheConfigs
     // buildkit will go through them one by one, and use the first that has any cache hit for all following
@@ -301,6 +297,16 @@ export function getBuildkitImageFlags(
   }
 
   return args
+}
+
+function getCacheImageName(moduleOutputs: ContainerModuleOutputs, cacheConfig: ClusterBuildkitCacheConfig): string {
+  if (cacheConfig.registry === undefined) {
+    return moduleOutputs["deployment-image-name"]
+  }
+
+  const { hostname, port, namespace } = cacheConfig.registry
+  const portPart = port ? `:${port}` : ""
+  return `${hostname}${portPart}/${namespace}/${moduleOutputs["local-image-name"]}`
 }
 
 export const getSupportedCacheMode = (

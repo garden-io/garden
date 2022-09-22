@@ -24,6 +24,7 @@ describe("kubernetes configureProvider", () => {
     deploymentRegistry: {
       hostname: "eu.gcr.io",
       namespace: "garden-ci",
+      insecure: false,
     },
     forceSsl: false,
     gardenSystemNamespace: defaultSystemNamespace,
@@ -127,6 +128,7 @@ describe("kubernetes configureProvider", () => {
     expect(result.config.deploymentRegistry).to.eql({
       hostname: "127.0.0.1:5000",
       namespace: garden.projectName,
+      insecure: true,
     })
   })
 
@@ -137,12 +139,14 @@ describe("kubernetes configureProvider", () => {
       deploymentRegistry: {
         hostname: "127.0.0.1:5000",
         namespace: "my-namespace",
+        insecure: true,
       },
     })
 
     expect(result.config.deploymentRegistry).to.eql({
       hostname: "127.0.0.1:5000",
       namespace: "my-namespace",
+      insecure: true,
     })
   })
 })

@@ -222,8 +222,7 @@ export async function skopeoBuildStatus({
   const remoteId = module.outputs["deployment-image-id"]
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
 
-  if (usingInClusterRegistry(provider)) {
-    // The in-cluster registry is not exposed, so we don't configure TLS on it.
+  if (deploymentRegistry.insecure) {
     skopeoCommand.push("--tls-verify=false")
   }
 

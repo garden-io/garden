@@ -722,6 +722,7 @@ export interface ContainerRegistryConfig {
   hostname: string
   port?: number
   namespace: string
+  insecure: boolean
 }
 
 export const containerRegistryConfigSchema = () =>
@@ -739,6 +740,12 @@ export const containerRegistryConfigSchema = () =>
         "The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>"
       )
       .example("my-project"),
+    insecure: joi
+      .boolean()
+      .default(false)
+      .description(
+        "Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default (insecure: false)"
+      ),
   })
 
 export interface ContainerService extends GardenService<ContainerModule> {}

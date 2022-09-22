@@ -88,6 +88,8 @@ export async function configureProvider({
         // Default to use the project name as the namespace in the in-cluster registry, if none is explicitly
         // configured. This allows users to share builds for a project.
         namespace: config.deploymentRegistry?.namespace || projectName,
+        // The in-cluster registry is not exposed, so we don't configure TLS on it.
+        insecure: true,
       }
       config._systemServices.push("docker-registry", "registry-proxy")
     }
