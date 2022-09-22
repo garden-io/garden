@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema } from "../../base"
+import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema } from "../../../config/module"
 import { providerSchema, ProviderMap } from "../../../config/provider"
 import { BaseAction, baseActionConfigSchema } from "../../../actions/base"
-import { BaseActionConfig } from "../../../actions/types"
+import { ActionKind, BaseActionConfig } from "../../../actions/types"
 
 export interface AugmentGraphParams extends PluginActionParamsBase {
   actions: BaseAction[]
@@ -20,8 +20,8 @@ export interface AugmentGraphParams extends PluginActionParamsBase {
 }
 
 interface AddDependency {
-  by: string
-  on: string
+  by: { kind: ActionKind; name: string }
+  on: { kind: ActionKind; name: string }
 }
 
 export interface AugmentGraphResult {
@@ -44,8 +44,9 @@ export const augmentGraph = () => ({
     Note that this handler is called frequently when resolving action configuration, so it should return quickly
     and avoid any external I/O.
   `,
-  paramsSchema: actionParamsSchema().keys({
-    actions: joiArray(baseActionConfigSchema()).description(
+  paramsSchema: projectActionParamsSchema().keys({
+    // allow unknown because BaseAction-s are passed not BaseActionConfigs
+    actions: joiArray(baseActionConfigSchema().unknown(true)).description(
       dedent`
           A list of all previously defined actions in the project, including all actions added by any \`augmentGraph\`
           handlers defined by other providers that this provider depends on.
@@ -61,8 +62,10 @@ export const augmentGraph = () => ({
           .object()
           .optional()
           .keys({
-            by: joiIdentifier().description("The _dependant_, i.e. the action that should have a dependency on `on`."),
-            on: joiIdentifier().description("The _dependency, i.e. the action that `by` should depend on."),
+            by: joi
+              .actionReference()
+              .description("The _dependant_, i.e. the action that should have a dependency on `on`."),
+            on: joi.actionReference().description("The _dependency, i.e. the action that `by` should depend on."),
           })
       )
       .description(

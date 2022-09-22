@@ -935,14 +935,19 @@ export class Garden {
 
       for (const dependency of addDependencies || []) {
         for (const key of ["by", "on"]) {
-          graph.getActionByRef(dependency[key])
-          throw new PluginError(
-            deline`
-              Provider '${provider.name}' added a dependency by action '${dependency.by}' on '${dependency.on}'
-              but action '${dependency[key]}' could not be found.
-            `,
-            { provider, dependency }
-          )
+          try {
+            graph.getActionByRef(dependency[key])
+          } catch (err) {
+            throw new PluginError(
+              deline`
+                Provider '${provider.name}' added a dependency by action '${actionReferenceToString(
+                dependency.by
+              )}' on '${actionReferenceToString(dependency.on)}'
+                but action '${actionReferenceToString(dependency[key])}' could not be found.
+              `,
+              { provider, dependency }
+            )
+          }
         }
 
         graph.addDependency(dependency.by, dependency.on, {

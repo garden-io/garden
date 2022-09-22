@@ -62,11 +62,16 @@ export const pluginEventBrokerSchema = () =>
     Event broker that the handler can use to emit events that are handled by the action and/or command that called it.
   `)
 
-export const actionParamsSchema = () =>
+// Used by actions that don't belong to a single action config (e.g. environment-, provider- or graph-level actions).
+export const projectActionParamsSchema = () =>
   joi.object().keys({
     ctx: pluginContextSchema().required(),
     log: logEntrySchema(),
     events: pluginEventBrokerSchema(),
+  })
+
+export const actionParamsSchema = () =>
+  projectActionParamsSchema().keys({
     // TODO: specify the action wrapper class further
     action: joi.object().required(),
   })

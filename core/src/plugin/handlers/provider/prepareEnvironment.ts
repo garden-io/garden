@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, actionParamsSchema } from "../../base"
+import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { EnvironmentStatus } from "./getEnvironmentStatus"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
@@ -30,7 +30,7 @@ export const prepareEnvironment = () => ({
     Called ahead of any service runtime actions (such as \`deployService\`,
     \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\`.
   `,
-  paramsSchema: actionParamsSchema().keys({
+  paramsSchema: projectActionParamsSchema().keys({
     force: joi.boolean().description("Force re-configuration of the environment."),
     status: environmentStatusSchema(),
   }),
