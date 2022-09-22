@@ -7,8 +7,9 @@
  */
 
 import { expect } from "chai"
+import { sanitizeObject } from "../../../../src/logger/logger"
 
-import { getChildNodes, sanitizeObject } from "../../../../src/logger/util"
+import { getChildNodes } from "../../../../src/logger/util"
 
 describe("util", () => {
   describe("getChildNodes", () => {
