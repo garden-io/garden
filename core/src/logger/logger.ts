@@ -9,15 +9,16 @@
 import { LogEntry, LogEntryMetadata, LogEntryParams } from "./log-entry"
 import { getChildEntries, findLogEntry } from "./util"
 import { Writer } from "./writers/base"
-import { CommandError, InternalError, ParameterError } from "../exceptions"
+import { CommandError, GardenError, InternalError, ParameterError } from "../exceptions"
 import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
 import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { EventBus } from "../events"
 import { formatLogEntryForEventStream } from "../cloud/buffered-event-stream"
 import { gardenEnv } from "../constants"
-import { getEnumKeys } from "../util/util"
-import { range } from "lodash"
+import CircularJSON from "circular-json"
+import { deepFilter, deepMap, getEnumKeys, safeDumpYaml } from "../util/util"
+import { isEmpty, isPlainObject, range } from "lodash"
 
 export type LoggerType = "quiet" | "basic" | "fancy" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
@@ -52,6 +53,63 @@ export function parseLogLevel(level: string): LogLevel {
     )
   }
   return lvl
+}
+
+// Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
+export function withoutInternalFields(object: any): any {
+  return deepFilter(sanitizeObject(object), (_val, key: string | number) => {
+    if (typeof key === "string") {
+      return (
+        !key.startsWith("_") &&
+        // FIXME: this a little hacky and should be removable in 0.14 at the latest.
+        // The buildDependencies map on Module objects explodes outputs, as well as the dependencyVersions field on
+        // version objects.
+        key !== "dependencyVersions" &&
+        key !== "buildDependencies"
+      )
+    }
+    return true
+  })
+}
+
+export function formatGardenErrorWithDetail(error: GardenError) {
+  const { detail, message, stack } = error
+  let out = stack || message || ""
+
+  // We recursively filter out internal fields (i.e. having names starting with _).
+  const filteredDetail = withoutInternalFields(detail)
+
+  if (!isEmpty(filteredDetail)) {
+    try {
+      const yamlDetail = safeDumpYaml(filteredDetail, { noRefs: true })
+      out += `\n\nError Details:\n\n${yamlDetail}`
+    } catch (err) {
+      out += `\n\nUnable to render error details:\n${err.message}`
+    }
+  }
+  return out
+}
+
+/**
+ * Strips undefined values and circular references from an object.
+ */
+export function sanitizeObject(obj: any) {
+  obj = deepMap(obj, (value: any) => {
+    if (Buffer.isBuffer(value)) {
+      return "<Buffer>"
+    } else if (value instanceof LogEntry) {
+      return "<LogEntry>"
+    } else {
+      return value
+    }
+  })
+
+  const cleanedJson = isPlainObject(obj)
+    ? CircularJSON.stringify(obj)
+    : // Handle classes, e.g. Error objects
+      CircularJSON.stringify(obj, Object.getOwnPropertyNames(obj))
+
+  return JSON.parse(cleanedJson)
 }
 
 export const logLevelMap = {
