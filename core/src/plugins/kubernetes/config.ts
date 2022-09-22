@@ -507,6 +507,9 @@ const buildkitCacheConfigurationSchema = () =>
       ),
   })
 
+// work around docs generator bug #3245
+const camelCaseGitBranch = "${camelCase(git.branch)}"
+
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
@@ -576,7 +579,7 @@ export const kubernetesConfigBase = () =>
               cache:
                 - type: registry
                   mode: max
-                  tag: _buildcache-\${camelCase(git.branch)}
+                  tag: _buildcache-${camelCaseGitBranch}
                 - type: registry
                   mode: max
                   tag: _buildcache-main
