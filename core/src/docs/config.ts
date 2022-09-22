@@ -124,6 +124,8 @@ interface RenderYamlOpts {
   renderValue?: "none" | "default" | "example" | "preferDefault" | "preferExample"
 }
 
+const normalizeTemplateStrings = (s: string | undefined) => (!!s ? s.replace(/\\\$\{/g, "${") : undefined)
+
 export function renderSchemaDescriptionYaml(
   schemaDescriptions: BaseKeyDescription[],
   {
@@ -347,7 +349,9 @@ export function renderConfigReference(
     name: undefined,
     level: 0,
   })
+
   const normalizedDescriptions = flattenSchema(desc, normalizeOpts)
+  normalizedDescriptions.forEach((d) => (d.description = normalizeTemplateStrings(d.description)))
 
   const yaml = renderSchemaDescriptionYaml(
     // Skip deprecated fields in the YAML description
