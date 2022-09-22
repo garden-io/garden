@@ -128,7 +128,7 @@ describe("ActionRouter", () => {
   // Note: The test plugins below implicitly validate input params for each of the tests
   describe("environment actions", () => {
     describe("configureProvider", () => {
-      it.only("should configure the provider", async () => {
+      it("should configure the provider", async () => {
         const config = { name: "test-plugin", foo: "bar", dependencies: [] }
         const result = await actionRouter.provider.configureProvider({
           ctx: await garden.getPluginContext(
