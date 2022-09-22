@@ -33,6 +33,7 @@ export interface ContainerModuleOutputs {
   "local-image-id": string
   "deployment-image-name": string
   "deployment-image-id": string
+  "deployment-registry-insecure": boolean
 }
 
 export const containerModuleOutputsSchema = () =>
@@ -59,6 +60,11 @@ export const containerModuleOutputsSchema = () =>
       .required()
       .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
       .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
+    "deployment-registry-insecure": joi
+      .boolean()
+      .required()
+      .description("wether the registry connection needs to be insecure (not using SSL)")
+      .example(false),
   })
 
 const taskOutputsSchema = joi.object().keys({
@@ -251,6 +257,7 @@ export async function getContainerModuleOutputs({ moduleConfig, version }: GetMo
       "local-image-id": localImageId,
       "deployment-image-name": deploymentImageName,
       "deployment-image-id": deploymentImageId,
+      "deployment-registry-insecure": false,
     },
   }
 }

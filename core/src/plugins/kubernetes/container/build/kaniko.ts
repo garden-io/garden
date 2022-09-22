@@ -150,7 +150,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     ...getKanikoFlags(module.spec.extraFlags, provider.config.kaniko?.extraFlags),
   ]
 
-  if (usingInClusterRegistry(provider)) {
+  if (provider.config.deploymentRegistry!.insecure) {
     // The in-cluster registry is not exposed, so we don't configure TLS on it.
     args.push("--insecure")
   }

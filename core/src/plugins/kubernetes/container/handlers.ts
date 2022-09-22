@@ -68,6 +68,7 @@ export async function k8sGetContainerModuleOutputs(params: GetModuleOutputsParam
     version,
     provider.config.deploymentRegistry
   )
+  outputs["deployment-registry-insecure"] = provider.config.deploymentRegistry!.insecure
 
   return { outputs }
 }
