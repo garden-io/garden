@@ -1474,6 +1474,10 @@ providers:
       # Set to true to disable caching of the status.
       disableCache:
 
+    state:
+
+    outputs:
+
     # A list of pages that the provider adds to the Garden dashboard.
     dashboardPages:
       - # A unique identifier for the page.
