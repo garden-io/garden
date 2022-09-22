@@ -84,7 +84,7 @@ steps:
     # <number of step> is the sequential number of the step (first step being number 1).
     #
     # This identifier is useful when referencing command outputs in following steps. For example, if you set this
-    # to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the `script` or `command`
+    # to "my-step", following steps can reference the ${steps.my-step.outputs.*} key in the `script` or `command`
     # fields.
     name:
 
@@ -389,7 +389,7 @@ An identifier to assign to this step. If none is specified, this defaults to "st
 <number of step> is the sequential number of the step (first step being number 1).
 
 This identifier is useful when referencing command outputs in following steps. For example, if you set this
-to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the `script` or `command`
+to "my-step", following steps can reference the ${steps.my-step.outputs.*} key in the `script` or `command`
 fields.
 
 | Type     | Required |

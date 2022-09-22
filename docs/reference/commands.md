@@ -272,7 +272,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 #### Usage
 
-    garden call <serviceAndPath>
+    garden call <serviceAndPath> 
 
 #### Arguments
 
@@ -302,7 +302,7 @@ Examples:
 
 #### Usage
 
-    garden config analytics-enabled [enable]
+    garden config analytics-enabled [enable] 
 
 #### Arguments
 
@@ -385,7 +385,7 @@ Examples:
 
 #### Usage
 
-    garden delete secret <provider> <key>
+    garden delete secret <provider> <key> 
 
 #### Arguments
 
@@ -1051,7 +1051,7 @@ Examples:
 
 #### Usage
 
-    garden cloud secrets delete [ids]
+    garden cloud secrets delete [ids] 
 
 #### Arguments
 
@@ -1135,7 +1135,7 @@ Examples:
 
 #### Usage
 
-    garden cloud users delete [ids]
+    garden cloud users delete [ids] 
 
 #### Arguments
 
@@ -1174,7 +1174,7 @@ Examples:
 
 #### Usage
 
-    garden get graph
+    garden get graph 
 
 
 
@@ -1265,7 +1265,7 @@ providers:
 
         # Set this to `true` to disable the module. You can use this with conditional template strings to disable
         # modules based on, for example, the current environment or other variables (e.g. `disabled:
-        # \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific
+        # ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific
         # environments, e.g. only for development.
         #
         # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It
@@ -1336,8 +1336,7 @@ providers:
         # nested objects and arrays._
         #
         # To use different module-level varfiles in different environments, you can template in the environment name
-        # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the
-        # corresponding
+        # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
         # varfiles exist).
         varfile:
 
@@ -1370,7 +1369,7 @@ providers:
 
             # Set this to `true` to disable the service. You can use this with conditional template strings to
             # enable/disable services based on, for example, the current environment or other variables (e.g.
-            # `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for
+            # `enabled: ${environment.name != "prod"}`). This can be handy when you only need certain services for
             # specific environments, e.g. only for development.
             #
             # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -1407,7 +1406,7 @@ providers:
 
             # Set this to `true` to disable the task. You can use this with conditional template strings to
             # enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled:
-            # \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific
+            # ${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific
             # environments, e.g. only for development.
             #
             # Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime
@@ -1441,7 +1440,7 @@ providers:
 
             # Set this to `true` to disable the test. You can use this with conditional template strings to
             # enable/disable tests based on, for example, the current environment or other variables (e.g.
-            # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+            # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
             # specific environments, e.g. only during CI.
             disabled:
 
@@ -1564,7 +1563,7 @@ moduleConfigs:
     description:
 
     # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-    # based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name ==
+    # based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name ==
     # "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for
     # development.
     #
@@ -1635,7 +1634,7 @@ moduleConfigs:
     # nested objects and arrays._
     #
     # To use different module-level varfiles in different environments, you can template in the environment name
-    # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+    # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
     # varfiles exist).
     varfile:
 
@@ -1668,7 +1667,7 @@ moduleConfigs:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
         # enable/disable services based on, for example, the current environment or other variables (e.g. `enabled:
-        # \${environment.name != "prod"}`). This can be handy when you only need certain services for specific
+        # ${environment.name != "prod"}`). This can be handy when you only need certain services for specific
         # environments, e.g. only for development.
         #
         # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -1703,7 +1702,7 @@ moduleConfigs:
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-        # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+        # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name
         # != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only
         # for development.
         #
@@ -1738,7 +1737,7 @@ moduleConfigs:
 
         # Set this to `true` to disable the test. You can use this with conditional template strings to
         # enable/disable tests based on, for example, the current environment or other variables (e.g.
-        # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+        # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
         # specific environments, e.g. only during CI.
         disabled:
 
@@ -1851,7 +1850,7 @@ workflowConfigs:
         # <number of step> is the sequential number of the step (first step being number 1).
         #
         # This identifier is useful when referencing command outputs in following steps. For example, if you set this
-        # to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the `script` or `command`
+        # to "my-step", following steps can reference the ${steps.my-step.outputs.*} key in the `script` or `command`
         # fields.
         name:
 
@@ -1965,7 +1964,7 @@ domain:
 
 #### Usage
 
-    garden get linked-repos
+    garden get linked-repos 
 
 
 
@@ -1984,7 +1983,7 @@ Examples:
 
 #### Usage
 
-    garden get outputs
+    garden get outputs 
 
 
 #### Outputs
@@ -2064,7 +2063,7 @@ modules:
     description:
 
     # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-    # based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name ==
+    # based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name ==
     # "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for
     # development.
     #
@@ -2135,7 +2134,7 @@ modules:
     # nested objects and arrays._
     #
     # To use different module-level varfiles in different environments, you can template in the environment name
-    # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+    # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
     # varfiles exist).
     varfile:
 
@@ -2165,7 +2164,7 @@ modules:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
         # enable/disable services based on, for example, the current environment or other variables (e.g. `enabled:
-        # \${environment.name != "prod"}`). This can be handy when you only need certain services for specific
+        # ${environment.name != "prod"}`). This can be handy when you only need certain services for specific
         # environments, e.g. only for development.
         #
         # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -2200,7 +2199,7 @@ modules:
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-        # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+        # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name
         # != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only
         # for development.
         #
@@ -2235,7 +2234,7 @@ modules:
 
         # Set this to `true` to disable the test. You can use this with conditional template strings to
         # enable/disable tests based on, for example, the current environment or other variables (e.g.
-        # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+        # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
         # specific environments, e.g. only during CI.
         disabled:
 
@@ -2331,7 +2330,7 @@ modules:
 
 #### Usage
 
-    garden get status
+    garden get status 
 
 
 #### Outputs
@@ -2480,7 +2479,7 @@ tests:
 
 #### Usage
 
-    garden get tasks [tasks]
+    garden get tasks [tasks] 
 
 #### Arguments
 
@@ -2497,7 +2496,7 @@ tests:
 
 #### Usage
 
-    garden get tests [tests]
+    garden get tests [tests] 
 
 #### Arguments
 
@@ -2514,7 +2513,7 @@ tests:
 
 #### Usage
 
-    garden get task-result <name>
+    garden get task-result <name> 
 
 #### Arguments
 
@@ -2575,7 +2574,7 @@ artifacts:
 
 #### Usage
 
-    garden get test-result <module> <name>
+    garden get test-result <module> <name> 
 
 #### Arguments
 
@@ -2667,7 +2666,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get vaccine
+    garden get vaccine 
 
 
 
@@ -2678,7 +2677,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get workflows [workflows]
+    garden get workflows [workflows] 
 
 #### Arguments
 
@@ -2702,7 +2701,7 @@ Examples:
 
 #### Usage
 
-    garden link source <source> <path>
+    garden link source <source> <path> 
 
 #### Arguments
 
@@ -2738,7 +2737,7 @@ Examples:
 
 #### Usage
 
-    garden link module <module> <path>
+    garden link module <module> <path> 
 
 #### Arguments
 
@@ -2842,7 +2841,7 @@ Prints all global options (options that can be applied to any command).
 
 #### Usage
 
-    garden options
+    garden options 
 
 
 
@@ -2867,7 +2866,7 @@ Examples:
 
 #### Usage
 
-    garden plugins [plugin] [command]
+    garden plugins [plugin] [command] 
 
 #### Arguments
 
@@ -3378,7 +3377,7 @@ Examples:
 
 #### Usage
 
-    garden run workflow <workflow>
+    garden run workflow <workflow> 
 
 #### Arguments
 
@@ -3395,7 +3394,7 @@ Examples:
 
 #### Usage
 
-    garden scan
+    garden scan 
 
 
 
@@ -3800,7 +3799,7 @@ Examples:
 
 #### Usage
 
-    garden update-remote sources [sources]
+    garden update-remote sources [sources] 
 
 #### Arguments
 
@@ -3935,7 +3934,7 @@ Hides the specified warning message. The command and key is generally provided a
 
 #### Usage
 
-    garden util hide-warning <key>
+    garden util hide-warning <key> 
 
 #### Arguments
 
@@ -3953,7 +3952,7 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
 #### Usage
 
-    garden validate
+    garden validate 
 
 
 
