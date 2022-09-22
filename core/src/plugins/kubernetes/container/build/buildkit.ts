@@ -122,7 +122,11 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "dockerfile=" + contextPath,
     "--opt",
     "filename=" + dockerfile,
-    ...getBuildkitImageFlags(provider.config.clusterBuildkit!.cache, module.outputs),
+    ...getBuildkitImageFlags(
+      provider.config.clusterBuildkit!.cache,
+      module.outputs,
+      provider.config.deploymentRegistry!.insecure
+    ),
     ...getBuildkitModuleFlags(module),
   ]
 
@@ -240,7 +244,8 @@ export function getBuildkitModuleFlags(module: ContainerModule) {
 
 export function getBuildkitImageFlags(
   cacheConfig: ClusterBuildkitCacheConfig[],
-  moduleOutputs: ContainerModuleOutputs
+  moduleOutputs: ContainerModuleOutputs,
+  deploymentRegistryInsecure: boolean
 ) {
   const args: string[] = []
 
@@ -259,7 +264,7 @@ export function getBuildkitImageFlags(
   }
 
   let deploymentRegistryExtraSpec = ""
-  if (moduleOutputs["deployment-registry-insecure"]) {
+  if (deploymentRegistryInsecure) {
     deploymentRegistryExtraSpec = ",registry.insecure=true"
   }
 
@@ -271,7 +276,7 @@ export function getBuildkitImageFlags(
     let registryExtraSpec = ""
     if (cache.registry === undefined) {
       registryExtraSpec = deploymentRegistryExtraSpec
-    } else if (cache.registry!.insecure === true) {
+    } else if (cache.registry?.insecure === true) {
       registryExtraSpec = ",registry.insecure=true"
     }
 
