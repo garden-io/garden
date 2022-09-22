@@ -101,6 +101,11 @@
 * [Project Configuration](./reference/project-config.md)
 * [Module Template Configuration](./reference/module-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
+* [Action Types](./reference/action-types/Build)
+  * [Build](./reference/action-types/Build/container.md)
+    * [`container` Build](./reference/action-types/Build/container.md)
+    * [`exec` Build](./reference/action-types/Build/exec.md)
+    * [`jib-container` Build](./reference/action-types/Build/jib-container.md)
 
 ## 🌹 Misc
 
