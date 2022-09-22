@@ -83,7 +83,9 @@ describe("ActionRouter", () => {
     actionRouter = await garden.getActionRouter()
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module-a")
-    const buildAction = graph.getBuild("module-a")
+    // TODO
+    const actions = graph.getActions()
+    const buildAction = graph.getBuild("build.module-a")
     resolvedBuildAction = await garden.resolveAction({
       action: buildAction,
       log: garden.log,
@@ -126,7 +128,7 @@ describe("ActionRouter", () => {
   // Note: The test plugins below implicitly validate input params for each of the tests
   describe("environment actions", () => {
     describe("configureProvider", () => {
-      it("should configure the provider", async () => {
+      it.only("should configure the provider", async () => {
         const config = { name: "test-plugin", foo: "bar", dependencies: [] }
         const result = await actionRouter.provider.configureProvider({
           ctx: await garden.getPluginContext(
@@ -169,20 +171,20 @@ describe("ActionRouter", () => {
         const name = "added-by-test-plugin"
 
         expect(result).to.eql({
-          addRuntimeDependencies: [{ by: name, on: "service-b" }],
-          addModules: [
-            {
-              apiVersion: DEFAULT_API_VERSION,
-              kind: "Module",
-              name,
-              type: "test",
-              path: garden.projectRoot,
-              services: [{ name }],
-              allowPublish: true,
-              build: { dependencies: [] },
-              disabled: false,
-              generateFiles: [],
-            },
+          addDependencies: [{ by: name, on: "service-b" }],
+          addActions: [
+            // {
+            //   apiVersion: DEFAULT_API_VERSION,
+            //   kind: "Module",
+            //   name,
+            //   type: "test",
+            //   path: garden.projectRoot,
+            //   services: [{ name }],
+            //   allowPublish: true,
+            //   build: { dependencies: [] },
+            //   disabled: false,
+            //   generateFiles: [],
+            // },
           ],
         })
       })
@@ -1961,21 +1963,39 @@ const testPlugin = createGardenPlugin({
     augmentGraph: async (params) => {
       validateParams(params, pluginActionDescriptions.augmentGraph.paramsSchema)
 
-      const moduleName = "added-by-" + params.ctx.provider.name
+      const actionName = "added-by-" + params.ctx.provider.name
 
       return {
-        addRuntimeDependencies: [{ by: moduleName, on: "service-b" }],
-        addModules: [
+        addDependencies: [
           {
-            kind: "Module",
-            name: moduleName,
-            type: "test",
-            path: params.ctx.projectRoot,
-            services: [
-              {
-                name: moduleName,
-              },
-            ],
+            by: {
+              kind: "Deploy",
+              name: actionName,
+            },
+            on: {
+              kind: "Build",
+              name: actionName,
+            },
+          },
+        ],
+        addActions: [
+          {
+            kind: "Build",
+            name: actionName,
+            type: "container",
+            internal: {
+              basePath: ".",
+            },
+            spec: {},
+          },
+          {
+            kind: "Deploy",
+            name: actionName,
+            type: "container",
+            internal: {
+              basePath: ".",
+            },
+            spec: {},
           },
         ],
       }
