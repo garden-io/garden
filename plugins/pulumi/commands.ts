@@ -15,6 +15,8 @@ import {
   LogEntry,
   PluginCommand,
   PluginCommandParams,
+  PluginContext,
+  BuildTask,
   PluginTask,
 } from "@garden-io/sdk/types"
 
@@ -36,6 +38,7 @@ import { copy, emptyDir } from "fs-extra"
 import { ModuleConfigContext } from "@garden-io/core/build/src/config/template-contexts/module"
 import { deletePulumiService } from "./handlers"
 import { join } from "path"
+import { flatten } from "lodash"
 
 interface PulumiParamsWithService extends PulumiParams {
   service: GardenService
@@ -46,7 +49,7 @@ type PulumiRunFn = (params: PulumiParamsWithService) => Promise<void>
 interface PulumiCommandSpec {
   name: string
   commandDescription: string
-  beforeFn?: ({ ctx: PluginContext, log: LogEntry }) => Promise<void>
+  beforeFn?: ({ ctx, log }: { ctx: PluginContext; log: LogEntry }) => Promise<void>
   runFn: PulumiRunFn
 }
 
@@ -154,29 +157,43 @@ class PulumiPluginCommandTask extends PluginTask {
     return `running ${chalk.white(this.commandName)} for ${this.service.name}`
   }
 
-  async resolveDependencies(): Promise<PluginTask[]> {
+  async resolveDependencies() {
+    // We process any build dependencies, since by default we don't have a build step for plugin tasks.
+    const buildDeps = flatten(
+      await Bluebird.map(Object.values(this.service.module.buildDependencies), async (depModule) => {
+        return BuildTask.factory({
+          garden: this.garden,
+          graph: this.graph,
+          log: this.log,
+          module: depModule,
+          force: false,
+        })
+      })
+    )
     const pulumiServiceNames = this.graph
       .getModules()
       .filter((m) => m.type === "pulumi")
       .map((m) => m.name) // module names are the same as service names for pulumi modules
-    const deps = this.graph.getDependencies({
-      nodeType: "deploy",
-      name: this.getName(),
-      recursive: false,
-      filter: (depNode) => pulumiServiceNames.includes(depNode.name),
-    })
-    return deps.deploy.map((depService) => {
-      return new PulumiPluginCommandTask({
-        garden: this.garden,
-        graph: this.graph,
-        log: this.log,
-        service: depService,
-        commandName: this.commandName,
-        commandDescription: this.commandDescription,
-        runFn: this.runFn,
-        pulumiParams: { ...this.pulumiParams, module: depService.module },
+    const deployDeps = this.graph
+      .getDependencies({
+        nodeType: "deploy",
+        name: this.getName(),
+        recursive: false,
+        filter: (depNode) => pulumiServiceNames.includes(depNode.name),
       })
-    })
+      .deploy.map((depService) => {
+        return new PulumiPluginCommandTask({
+          garden: this.garden,
+          graph: this.graph,
+          log: this.log,
+          service: depService,
+          commandName: this.commandName,
+          commandDescription: this.commandDescription,
+          runFn: this.runFn,
+          pulumiParams: { ...this.pulumiParams, module: depService.module },
+        })
+      })
+    return [...buildDeps, ...deployDeps]
   }
 
   async process(): Promise<{}> {
