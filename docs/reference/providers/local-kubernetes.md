@@ -86,7 +86,7 @@ providers:
       # clusterBuildkit:
       #   cache:
       #     - type: registry
-      #       tag: _buildcache-\${slice(kebabCase(git.branch), 0, 30)}
+      #       tag: _buildcache-${slice(kebabCase(git.branch), "0", "30")}
       #     - type: registry
       #       tag: _buildcache-main
       #       export: false
@@ -610,7 +610,7 @@ An example for this is the following:
 clusterBuildkit:
   cache:
     - type: registry
-      tag: _buildcache-\${slice(kebabCase(git.branch), 0, 30)}
+      tag: _buildcache-${slice(kebabCase(git.branch), "0", "30")}
     - type: registry
       tag: _buildcache-main
       export: false
