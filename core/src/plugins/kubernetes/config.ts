@@ -594,7 +594,7 @@ export const kubernetesConfigBase = () =>
                   export: false
             \`\`\`
 
-            Using this cache configuration, we every build will first look for a cache specific to your feature branch.
+            Using this cache configuration, every build will first look for a cache specific to your feature branch.
             If it does not exist yet, it will import caches from the main branch builds (\`_buildcache-main\`).
             When the build is finished, it will only export caches to your feature branch, and avoid polluting the \`main\` branch caches.
             A configuration like that may improve your cache hit rate and thus save time.
