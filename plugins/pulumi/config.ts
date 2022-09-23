@@ -63,7 +63,6 @@ export interface PulumiDeploySpec {
   allowDestroy: boolean
   autoApply: boolean
   createStack: boolean
-  dependencies: string[]
   pulumiVariables: DeepPrimitiveMap
   pulumiVarfiles: string[]
   orgName?: string | null
@@ -74,10 +73,14 @@ export interface PulumiDeploySpec {
   stack?: string
 }
 
+interface PulumiServiceSpec extends PulumiDeploySpec {
+  dependencies: string[]
+}
+
 export type PulumiDeployConfig = DeployActionConfig<"pulumi", PulumiDeploySpec>
 export type PulumiDeploy = DeployAction<PulumiDeployConfig, {}>
 
-export interface PulumiModule extends GardenModule<PulumiDeploySpec> {}
+export interface PulumiModule extends GardenModule<PulumiServiceSpec> {}
 
 // Validate that the path ends in .yaml or .yml
 const yamlFileRegex = /(\.yaml)|(\.yml)$/

@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { cloneDeep, isEmpty, partition, uniq } from "lodash"
+import { cloneDeep, isEmpty, omit, partition, uniq } from "lodash"
 import { NamespaceStatus } from "../../../plugin/base"
 import { ModuleActionHandlers } from "../../../plugin/plugin"
 import { serviceStateToActionState, ServiceStatus } from "../../../types/service"
@@ -37,7 +37,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
   configure: configureKubernetesModule,
 
   convert: async (params) => {
-    const { module, services, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
+    const { module, services, tasks, tests, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
     const actions: (ExecBuildConfig | KubernetesActionConfig)[] = []
 
     if (dummyBuild) {
@@ -59,8 +59,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       include: module.spec.files,
 
       spec: {
-        ...module.spec,
-
+        ...omit(module.spec, ["name", "dependencies", "serviceResource", "tasks", "tests"]),
+        files: module.spec.files || [],
+        manifests: module.spec.manifests || [],
         devMode: convertKubernetesDevModeSpec(module, service, serviceResource),
       },
     }
@@ -74,7 +75,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
     actions.push(deployAction)
 
-    for (const task of module.testConfigs) {
+    for (const task of tasks) {
       const resource = convertServiceResource(module, task.spec.resource)
 
       if (!resource) {
@@ -89,16 +90,16 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         disabled: task.disabled,
 
         build: dummyBuild?.name,
-        dependencies: prepareRuntimeDependencies(task.dependencies, dummyBuild),
+        dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
 
         spec: {
-          ...task.spec,
+          ...omit(task.spec, ["name", "dependencies", "disabled"]),
           resource,
         },
       })
     }
 
-    for (const test of module.testConfigs) {
+    for (const test of tests) {
       const resource = convertServiceResource(module, test.spec.resource)
 
       if (!resource) {
@@ -113,10 +114,10 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         disabled: test.disabled,
 
         build: dummyBuild?.name,
-        dependencies: prepareRuntimeDependencies(test.dependencies, dummyBuild),
+        dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
 
         spec: {
-          ...test.spec,
+          ...omit(test.spec, ["name", "dependencies", "disabled"]),
           resource,
         },
       })

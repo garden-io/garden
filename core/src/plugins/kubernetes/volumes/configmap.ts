@@ -18,7 +18,6 @@ import { GardenModule } from "../../../types/module"
 import { KubernetesResource } from "../types"
 import { kubernetesDeploy, getKubernetesDeployStatus } from "../kubernetes-type/handlers"
 import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
-import { omit } from "lodash"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
@@ -137,7 +136,9 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
               spec: {
-                ...omit(module.spec, ["dependencies"]),
+                accessModules: module.spec.accessModes,
+                namespace: module.spec.namespace,
+                data: module.spec.data,
               },
             },
           ],

@@ -19,7 +19,7 @@ import { HelmActionConfig, HelmDeployConfig } from "./config"
 import { KubernetesDeployDevModeSpec } from "../dev-mode"
 import { getServiceResourceSpec } from "../util"
 import { jsonMerge } from "../../../util/util"
-import { cloneDeep } from "lodash"
+import { cloneDeep, omit } from "lodash"
 import { DeepPrimitiveMap } from "../../../config/common"
 import { convertServiceResource } from "../kubernetes-type/common"
 import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
@@ -31,7 +31,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,
 
   convert: async (params: ConvertModuleParams<HelmModule>) => {
-    const { module, services, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
+    const { module, services, tasks, tests, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
     const actions: (ExecBuildConfig | KubernetesActionConfig | HelmActionConfig)[] = []
 
     if (dummyBuild) {
@@ -92,7 +92,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
     actions.push(deployAction)
 
-    for (const task of module.testConfigs) {
+    for (const task of tasks) {
       const resource = convertServiceResource(module, task.spec.resource)
 
       if (!resource) {
@@ -108,16 +108,16 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         disabled: task.disabled,
 
         build: dummyBuild?.name,
-        dependencies: prepareRuntimeDependencies(task.dependencies, dummyBuild),
+        dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
 
         spec: {
-          ...task.spec,
+          ...omit(task.spec, ["name", "dependencies", "disabled"]),
           resource,
         },
       })
     }
 
-    for (const test of module.testConfigs) {
+    for (const test of tests) {
       const resource = convertServiceResource(module, test.spec.resource)
 
       if (!resource) {
@@ -133,10 +133,10 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         disabled: test.disabled,
 
         build: dummyBuild?.name,
-        dependencies: prepareRuntimeDependencies(test.dependencies, dummyBuild),
+        dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
 
         spec: {
-          ...test.spec,
+          ...omit(test.spec, ["name", "dependencies", "disabled"]),
           resource,
         },
       })

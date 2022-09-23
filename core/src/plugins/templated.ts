@@ -65,6 +65,7 @@ export const gardenPlugin = () => {
             moduleConfig.include = []
             return { moduleConfig }
           },
+          // TODO-G2: test for this
         },
       },
     ],

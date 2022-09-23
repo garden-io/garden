@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { mapValues } from "lodash"
+import { mapValues, omit } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
 import { joi, PrimitiveMap, StringMap } from "../../config/common"
@@ -588,7 +588,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       dependencies: prepRuntimeDeps(service.spec.dependencies),
 
       spec: {
-        ...service.spec,
+        ...omit(service.spec, ["name", "dependencies", "disabled"]),
         env: prepareEnv(service.spec.env),
       },
     })
@@ -607,7 +607,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
       spec: {
-        ...task.spec,
+        ...omit(task.spec, ["name", "dependencies", "disabled"]),
         env: prepareEnv(task.spec.env),
       },
     })
@@ -626,7 +626,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
       spec: {
-        ...test.spec,
+        ...omit(test.spec, ["name", "dependencies", "disabled"]),
         env: prepareEnv(test.spec.env),
       },
     })
