@@ -538,7 +538,6 @@ export const kubernetesConfigBase = () =>
         cache: joi
           .array()
           .items(buildkitCacheConfigurationSchema())
-          // TODO: fix default value, to include defaults automatically
           .default([{ type: "registry", mode: "auto", tag: "_buildcache", export: true }])
           .description(
             dedent`
