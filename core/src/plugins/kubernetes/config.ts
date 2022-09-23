@@ -546,7 +546,7 @@ export const kubernetesConfigBase = () =>
             Use the \`cache\` configuration to customize the default cluster-buildkit cache behaviour.
 
             The default value is:
-            \`\`\`
+            \`\`\`yaml
             clusterBuildkit:
               cache:
                 - type: registry
