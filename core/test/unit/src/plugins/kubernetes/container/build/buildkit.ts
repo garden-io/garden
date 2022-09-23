@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import { ContainerModuleOutputs } from "../../../../../../../src/plugins/container/container"
 import { ClusterBuildkitCacheConfig } from "../../../../../../../src/plugins/kubernetes/config"
 import {
   getBuildkitImageFlags,
