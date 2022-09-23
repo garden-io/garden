@@ -14,7 +14,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 import { defaultTerraformVersion, supportedVersions, terraformCliSpecs } from "./cli"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { TerraformBaseSpec, variablesSchema } from "./common"
-import { configureTerraformModule, terraformModuleSchema } from "./module"
+import { configureTerraformModule, TerraformModule, terraformModuleSchema } from "./module"
 import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { listDirectory } from "@garden-io/sdk/util/fs"
 import { getTerraformCommands } from "./commands"
@@ -30,6 +30,7 @@ import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@gard
 import { joi } from "@garden-io/core/build/src/config/common"
 import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
+import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/module/convert"
 
 type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {
@@ -180,7 +181,7 @@ export const gardenPlugin = () =>
         schema: terraformModuleSchema(),
         needsBuild: false,
         handlers: {
-          async convert(params) {
+          async convert(params: ConvertModuleParams<TerraformModule>) {
             const { module, dummyBuild, prepareRuntimeDependencies } = params
             const actions: (ExecBuildConfig | TerraformDeployConfig)[] = []
 

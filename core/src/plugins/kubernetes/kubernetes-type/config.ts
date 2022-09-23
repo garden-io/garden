@@ -7,7 +7,15 @@
  */
 
 import { joi, joiSparseArray } from "../../../config/common"
-import { portForwardsSchema, PortForwardSpec, KubernetesTargetResourceSpec, KubernetesLocalModeSpec } from "../config"
+import {
+  portForwardsSchema,
+  PortForwardSpec,
+  KubernetesTargetResourceSpec,
+  KubernetesLocalModeSpec,
+  kubernetesLocalModeSchema,
+  k8sDeploymentTimeoutSchema,
+  namespaceNameSchema,
+} from "../config"
 import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import type { KubernetesResource } from "../types"
@@ -15,8 +23,6 @@ import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { defaultTargetSchema } from "../helm/config"
 import type { KubernetesRunActionConfig } from "./run"
 import type { KubernetesTestActionConfig } from "./test"
-
-// DEPLOY //
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -52,11 +58,16 @@ const kubernetesResourceSchema = () =>
     .unknown(true)
 
 export const kubernetesCommonDeploySpecKeys = () => ({
+  files: joiSparseArray(joi.posixPath().subPathOnly()).description(
+    "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
+  ),
   kustomize: kustomizeSpecSchema(),
   manifests: joiSparseArray(kubernetesResourceSchema()).description(
     "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
   ),
+  namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
+  timeout: k8sDeploymentTimeoutSchema(),
 })
 
 export const kubernetesDeploySchema = () =>
@@ -64,9 +75,8 @@ export const kubernetesDeploySchema = () =>
     ...kubernetesCommonDeploySpecKeys(),
     defaultTarget: defaultTargetSchema(),
     devMode: kubernetesDeployDevModeSchema(),
+    localMode: kubernetesLocalModeSchema(),
   })
-
-// COMMON //
 
 export type KubernetesActionConfig =
   | KubernetesDeployActionConfig

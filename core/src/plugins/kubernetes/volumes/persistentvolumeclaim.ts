@@ -19,7 +19,6 @@ import { ConfigureModuleParams } from "../../../plugin/handlers/module/configure
 import { GardenModule } from "../../../types/module"
 import { KubernetesResource } from "../types"
 import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
-import { omit } from "lodash"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { DeployActionDefinition } from "../../../plugin/action-types"
@@ -155,7 +154,9 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
               spec: {
-                ...omit(module.spec, ["dependencies"]),
+                accessModules: module.spec.accessModes,
+                namespace: module.spec.namespace,
+                spec: module.spec.spec,
               },
             },
           ],
