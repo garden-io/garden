@@ -88,7 +88,7 @@ providers:
       #       tag: _buildcache-main
       #       export: false
       #
-      # Using this cache configuration, we every build will first look for a cache specific to your feature branch.
+      # Using this cache configuration, every build will first look for a cache specific to your feature branch.
       # If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
       # When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main`
       # branch caches.
@@ -108,9 +108,12 @@ providers:
 
           # The registry from which the cache should be imported from, or which it should be exported to.
           #
+          # If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the
+          # internal in-cluster registry in case `deploymentRegistry` is not set.
+          #
           # Important: You must make sure `imagePullSecrets` includes authentication with the specified cache
           # registry, that has the appropriate write privileges (usually full write access to the configured
-          # `deploymentRegistry.namespace`).
+          # `namespace`).
           registry:
             # The hostname (and optionally port, if not the default port) of the registry.
             hostname:
@@ -122,8 +125,7 @@ providers:
             # <hostname>/<namespace>/<image name>
             namespace: _
 
-            # Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default
-            # (insecure: false)
+            # Set to true to allow insecure connections to the registry (without SSL).
             insecure: false
 
           # This is the buildkit cache mode to be used.
@@ -561,7 +563,7 @@ Configuration options for the `cluster-buildkit` build mode.
 Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
 
 The default value is:
-```
+```yaml
 clusterBuildkit:
   cache:
     - type: registry
@@ -588,7 +590,7 @@ See the following table for details on our detection mechanism:
 
 In case you need to override the defaults for your registry, you can do it like so:
 
-```
+```yaml
 clusterBuildkit:
   cache:
     - type: registry
@@ -597,7 +599,7 @@ clusterBuildkit:
 
 We also support more advanced cache configurations, like the following:
 
-```
+```yaml
 clusterBuildkit:
   cache:
     - type: registry
@@ -609,14 +611,14 @@ clusterBuildkit:
       export: false
 ```
 
-Using this cache configuration, we every build will first look for a cache specific to your feature branch.
+Using this cache configuration, every build will first look for a cache specific to your feature branch.
 If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
 When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main` branch caches.
 A configuration like that may improve your cache hit rate and thus save time.
 
 If you need to disable caches completely you can achieve that with the following configuration:
 
-```
+```yaml
 clusterBuildkit:
   cache: []
 ```
@@ -643,7 +645,9 @@ See also the [buildkit registry cache documentation](https://github.com/moby/bui
 
 The registry from which the cache should be imported from, or which it should be exported to.
 
-Important: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `deploymentRegistry.namespace`).
+If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the internal in-cluster registry in case `deploymentRegistry` is not set.
+
+Important: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `namespace`).
 
 | Type     | Required |
 | -------- | -------- |
@@ -707,7 +711,7 @@ providers:
 
 [providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > insecure
 
-Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default (insecure: false)
+Set to true to allow insecure connections to the registry (without SSL).
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
