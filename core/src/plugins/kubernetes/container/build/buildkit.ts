@@ -332,7 +332,7 @@ export const getSupportedCacheMode = (
     return "inline"
   }
 
-  // Default to true for all others
+  // Default to max for all others
   return "max"
 }
 
