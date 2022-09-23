@@ -593,9 +593,9 @@ For more details on all the different options and what makes sense to use for yo
 
 **Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
 
-| Type     | Default          | Required |
-| -------- | ---------------- | -------- |
-| `string` | `"local-docker"` | No       |
+| Type     | Allowed Values                                                 | Default          | Required |
+| -------- | -------------------------------------------------------------- | ---------------- | -------- |
+| `string` | "local-docker", "cluster-docker", "kaniko", "cluster-buildkit" | `"local-docker"` | Yes      |
 
 ### `providers[].clusterBuildkit`
 
@@ -686,9 +686,9 @@ Use the Docker registry configured at `deploymentRegistry` to retrieve and store
 
 See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
 
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "registry"     | Yes      |
 
 ### `providers[].clusterBuildkit.cache[].registry`
 
@@ -784,9 +784,9 @@ stored stored in the configured `tag`.
 
 See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
 
-| Type     | Default  | Required |
-| -------- | -------- | -------- |
-| `string` | `"auto"` | No       |
+| Type     | Allowed Values                 | Default  | Required |
+| -------- | ------------------------------ | -------- | -------- |
+| `string` | "auto", "min", "max", "inline" | `"auto"` | Yes      |
 
 ### `providers[].clusterBuildkit.cache[].tag`
 
