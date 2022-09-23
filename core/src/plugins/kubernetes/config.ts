@@ -473,7 +473,9 @@ const buildkitCacheConfigurationSchema = () =>
       dedent`
       The registry from which the cache should be imported from, or which it should be exported to.
 
-      Important: You must make sure \`imagePullSecrets\` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+      If not specified, use the configured \`deploymentRegistry\` in your kubernetes provider config, or the internal in-cluster registry in case \`deploymentRegistry\` is not set.
+
+      Important: You must make sure \`imagePullSecrets\` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured \`namespace\`).
     `
     ),
     mode: joi
