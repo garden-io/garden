@@ -744,7 +744,7 @@ export const containerRegistryConfigSchema = () =>
       .boolean()
       .default(false)
       .description(
-        "Wether to use a secure connection (SSL) to connect to the registry. Uses a secure connection by default (insecure: false)"
+        "Set to true to allow insecure connections to the registry (without SSL)."
       ),
   })
 
