@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { keyBy } from "lodash"
+import { keyBy, omit } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
@@ -219,9 +219,9 @@ export function convertContainerModuleRuntimeActions(
   buildAction: ContainerBuildActionConfig | ExecBuildConfig | undefined,
   needsContainerBuild: boolean
 ): ContainerActionConfig[] {
-  const { module, prepareRuntimeDependencies } = convertParams
+  const { module, services, tasks, tests, prepareRuntimeDependencies } = convertParams
   const actions: ContainerActionConfig[] = []
-  for (const service of module.serviceConfigs) {
+  for (const service of services) {
     actions.push({
       kind: "Deploy",
       type: "container",
@@ -233,12 +233,12 @@ export function convertContainerModuleRuntimeActions(
       dependencies: prepareRuntimeDependencies(service.spec.dependencies, buildAction),
 
       spec: {
-        ...service.spec,
+        ...omit(service.spec, ["name", "dependencies", "disabled"]),
       },
     })
   }
 
-  for (const task of module.taskConfigs) {
+  for (const task of tasks) {
     actions.push({
       kind: "Run",
       type: "container",
@@ -251,13 +251,13 @@ export function convertContainerModuleRuntimeActions(
       timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
       spec: {
-        ...task.spec,
+        ...omit(task.spec, ["name", "dependencies", "disabled"]),
         image: needsContainerBuild ? undefined : module.spec.image,
       },
     })
   }
 
-  for (const test of module.testConfigs) {
+  for (const test of tests) {
     actions.push({
       kind: "Test",
       type: "container",
@@ -270,7 +270,7 @@ export function convertContainerModuleRuntimeActions(
       timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
       spec: {
-        ...test.spec,
+        ...omit(test.spec, ["name", "dependencies", "disabled"]),
         image: needsContainerBuild ? undefined : module.spec.image,
       },
     })

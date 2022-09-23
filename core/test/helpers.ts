@@ -284,7 +284,8 @@ export const testPlugin = () =>
         handlers: {
           convert: async (params: ConvertModuleParams) => {
             const module = params.module
-            // We want the build action from the exec conversion, and all the other actions from the container conversion.
+            // We want the build action from the exec conversion,
+            // and all the other actions from the container conversion.
             const execBuildAction = prepareExecBuildAction(params)
             const containerRuntimeActions = convertContainerModuleRuntimeActions(params, execBuildAction, false)
             const actions: (ContainerActionConfig | ExecActionConfig)[] = [
