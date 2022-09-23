@@ -743,9 +743,7 @@ export const containerRegistryConfigSchema = () =>
     insecure: joi
       .boolean()
       .default(false)
-      .description(
-        "Set to true to allow insecure connections to the registry (without SSL)."
-      ),
+      .description("Set to true to allow insecure connections to the registry (without SSL)."),
   })
 
 export interface ContainerService extends GardenService<ContainerModule> {}
