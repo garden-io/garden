@@ -517,9 +517,6 @@ const buildkitCacheConfigurationSchema = () =>
       ),
   })
 
-// work around docs generator bug #3245
-const camelCaseGitBranch = "${camelCase(git.branch)}"
-
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
@@ -582,16 +579,18 @@ export const kubernetesConfigBase = () =>
                   mode: inline
             \`\`\`
 
-            We also support more advanced cache configurations, like the following:
+            When you add multiple caches, we will make sure to pass the \`--import-cache\` options to buildkit in the same
+            order as provided in the cache configuration. This is because buildkit will not actually use all imported caches
+            for every build, but it will stick with the first cache that yields a cache hit for all the following layers.
+
+            An example for this is the following:
 
             \`\`\`yaml
             clusterBuildkit:
               cache:
                 - type: registry
-                  mode: max
-                  tag: _buildcache-${camelCaseGitBranch}
+                  tag: _buildcache-\${slice(kebabCase(git.branch), "0", "30")}
                 - type: registry
-                  mode: max
                   tag: _buildcache-main
                   export: false
             \`\`\`
