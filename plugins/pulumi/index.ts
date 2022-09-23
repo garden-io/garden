@@ -14,11 +14,19 @@ import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
 import { pulumiCliSPecs } from "./cli"
-import { PulumiDeployConfig, pulumiDeploySpecSchema, PulumiProvider, pulumiProviderConfigSchema } from "./config"
+import {
+  PulumiDeployConfig,
+  pulumiDeploySpecSchema,
+  PulumiModule,
+  PulumiProvider,
+  pulumiProviderConfigSchema,
+} from "./config"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
+import { omit } from "lodash"
+import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/module/convert"
 
 // Need to make these variables to avoid escaping issues
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
@@ -104,7 +112,7 @@ export const gardenPlugin = () =>
         handlers: {
           configure: configurePulumiModule,
 
-          async convert(params) {
+          async convert(params: ConvertModuleParams<PulumiModule>) {
             const { module, dummyBuild, prepareRuntimeDependencies } = params
             const actions: (ExecBuildConfig | PulumiDeployConfig)[] = []
 
@@ -122,7 +130,7 @@ export const gardenPlugin = () =>
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
               spec: {
-                ...module.spec,
+                ...omit(module.spec, ["dependencies"]),
               },
             })
 
