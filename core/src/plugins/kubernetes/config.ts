@@ -601,7 +601,7 @@ export const kubernetesConfigBase = () =>
 
             If you need to disable caches completely you can achieve that with the following configuration:
 
-            \`\`\`
+            \`\`\`yaml
             clusterBuildkit:
               cache: []
             \`\`\`
