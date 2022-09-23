@@ -573,7 +573,7 @@ export const kubernetesConfigBase = () =>
 
             In case you need to override the defaults for your registry, you can do it like so:
 
-            \`\`\`
+            \`\`\`yaml
             clusterBuildkit:
               cache:
                 - type: registry
