@@ -460,7 +460,7 @@ const buildkitCacheConfigurationSchema = () =>
   joi.object().keys({
     type: joi
       .string()
-      .allow("registry")
+      .valid("registry")
       .required()
       .description(
         dedent`
@@ -480,7 +480,7 @@ const buildkitCacheConfigurationSchema = () =>
     ),
     mode: joi
       .string()
-      .allow("auto", "min", "max", "inline")
+      .valid("auto", "min", "max", "inline")
       .default("auto")
       .description(
         dedent`
@@ -524,7 +524,7 @@ export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
       .string()
-      .allow("local-docker", "cluster-docker", "kaniko", "cluster-buildkit")
+      .valid("local-docker", "cluster-docker", "kaniko", "cluster-buildkit")
       .default("local-docker")
       .description(
         dedent`
