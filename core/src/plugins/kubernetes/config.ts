@@ -582,7 +582,7 @@ export const kubernetesConfigBase = () =>
 
             We also support more advanced cache configurations, like the following:
 
-            \`\`\`
+            \`\`\`yaml
             clusterBuildkit:
               cache:
                 - type: registry
