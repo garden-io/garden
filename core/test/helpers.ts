@@ -39,7 +39,6 @@ import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
 import { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
-import { assert, expect } from "chai"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
