@@ -55,6 +55,12 @@ If you haven't already, please [install Homebrew](https://docs.brew.sh/Installat
 
 Other platforms need to roll their own for now (contributions welcome!). Please have a look at the script for OSX to see what's installed.
 
+If you have [LinuxBrew](https://docs.brew.sh/Homebrew-on-Linux) installed, [./scripts/install-osx-dependencies.sh](./scripts/install-osx-dependencies.sh) should work if you run it, although you will have to ensure that you've added NPM added to your PATH via `.bashrc` `.zshrc` or other shell run command script.
+
+#### asdf
+
+If you are an [asdf](https://asdf-vm.com/) user, running `./scripts/install-asdf-dependencies.sh` in order to automatically install the correct plugins and versions as defined in `.tool-versions`.
+
 **Note:** We recommend using Node 12 when developing Garden.
 
 ### Step 4: Bootstrap project
