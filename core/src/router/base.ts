@@ -107,12 +107,12 @@ export abstract class BaseRouter {
 
     const base = this.wrapBase(handler.base)
 
-    const wrapped = <T>Object.assign(
+    const wrapped = Object.assign(
       async (params: any) => {
         // Override the base parameter, to recursively allow each base to call its base.
         return handler({ ...params, base })
       },
-      { ...handler, base }
+      { ...handler, base, wrapped: handler }
     )
 
     return wrapped

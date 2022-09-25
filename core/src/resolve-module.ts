@@ -655,7 +655,7 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
     const convertRuntimeDependencies = (deps: string[]): string[] => {
       const resolved: string[] = []
 
-      for (const d of deps) {
+      for (const d of deps || []) {
         if (allServices[d]) {
           resolved.push("deploy." + d)
         } else if (allTasks[d]) {
@@ -690,6 +690,8 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
       }
     }
 
+    log.debug(`Converting ${module.type} module ${module.name} to actions`)
+
     const result = await router.module.convert({
       log,
       module,
@@ -721,6 +723,10 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
         return resolved
       },
     })
+
+    const totalReturned = (result.actions?.length || 0) + (result.group?.actions.length || 0)
+
+    log.debug(`Module ${module.name} converted to ${totalReturned} actions`)
 
     if (result.group) {
       for (const action of result.group.actions) {
