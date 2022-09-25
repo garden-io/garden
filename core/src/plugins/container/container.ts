@@ -251,7 +251,7 @@ export function convertContainerModuleRuntimeActions(
       timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
       spec: {
-        ...omit(task.spec, ["name", "dependencies", "disabled"]),
+        ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
         image: needsContainerBuild ? undefined : module.spec.image,
       },
     })
@@ -270,7 +270,7 @@ export function convertContainerModuleRuntimeActions(
       timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
       spec: {
-        ...omit(test.spec, ["name", "dependencies", "disabled"]),
+        ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
         image: needsContainerBuild ? undefined : module.spec.image,
       },
     })

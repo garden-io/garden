@@ -54,7 +54,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       if (d.needsExecutedOutputs) {
         // Need runtime outputs from dependency
         return [this.getExecuteTask(action)]
-      } else if (d.needsStaticOutputs) {
+      } else if (d.needsStaticOutputs || d.explicit) {
         // Needs a static output from dependency
         return [this.getResolveTask(action)]
       } else {
