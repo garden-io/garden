@@ -34,7 +34,7 @@ import { emptyDir, pathExists, ensureFile, readFile } from "fs-extra"
 import { join } from "path"
 import { DashboardPage } from "../../../src/plugin/handlers/provider/getDashboardPage"
 import { ConfigGraph } from "../../../src/graph/config-graph"
-import { ResolvedBuildAction } from "../../../src/actions/build"
+import { BuildActionConfig, ResolvedBuildAction } from "../../../src/actions/build"
 import {
   execBuildActionSchema,
   execDeployActionSchema,
@@ -48,6 +48,8 @@ import { TestConfig } from "../../../src/config/test"
 import { findByName } from "../../../src/util/util"
 import { ResolvedRunAction } from "../../../src/actions/run"
 import { ResolvedDeployAction } from "../../../src/actions/deploy"
+import { BaseActionConfig } from "../../../src/actions/types"
+import { BaseRuntimeActionConfig } from "../../../src/actions/base"
 
 const now = new Date()
 
@@ -83,9 +85,7 @@ describe("ActionRouter", () => {
     actionRouter = await garden.getActionRouter()
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module-a")
-    // TODO
-    const actions = graph.getActions()
-    const buildAction = graph.getBuild("build.module-a")
+    const buildAction = graph.getBuild("module-a")
     resolvedBuildAction = await garden.resolveAction({
       action: buildAction,
       log: garden.log,
@@ -2086,9 +2086,98 @@ const testPlugin = createGardenPlugin({
         convert: async (params) => {
           validateParams(params, moduleActionDescriptions.convert.paramsSchema)
 
-          // TODO-G2
+          const {
+            module,
+            services,
+            tasks,
+            tests,
+            dummyBuild,
+            convertBuildDependency,
+            convertRuntimeDependencies,
+          } = params
 
-          return {}
+          const actions: (BuildActionConfig | BaseRuntimeActionConfig)[] = []
+
+          const buildAction: BuildActionConfig = {
+            kind: "Build",
+            type: "exec",
+            name: module.name,
+
+            ...params.baseFields,
+            ...dummyBuild,
+
+            dependencies: module.build.dependencies.map(convertBuildDependency),
+
+            spec: {
+              command: module.spec.build?.command,
+              env: module.spec.env,
+            },
+          }
+
+          actions.push(buildAction)
+
+          for (const service of services) {
+            actions.push({
+              kind: "Deploy",
+              type: "test",
+              name: service.name,
+              ...params.baseFields,
+
+              disabled: service.disabled,
+              build: buildAction ? buildAction.name : undefined,
+              dependencies: convertRuntimeDependencies(service.spec.dependencies),
+
+              spec: {
+                ...omit(service.spec, ["name", "dependencies", "disabled"]),
+              },
+            })
+          }
+
+          for (const task of tasks) {
+            actions.push({
+              kind: "Run",
+              type: "exec",
+              name: task.name,
+              ...params.baseFields,
+
+              disabled: task.disabled,
+              build: buildAction ? buildAction.name : undefined,
+              dependencies: convertRuntimeDependencies(task.spec.dependencies),
+
+              spec: {
+                ...omit(task.spec, ["name", "dependencies", "disabled"]),
+              },
+            })
+          }
+
+          for (const test of tests) {
+            actions.push({
+              kind: "Test",
+              type: "exec",
+              name: module.name + "-" + test.name,
+              ...params.baseFields,
+
+              disabled: test.disabled,
+              build: buildAction ? buildAction.name : undefined,
+              dependencies: convertRuntimeDependencies(test.spec.dependencies),
+
+              spec: {
+                ...omit(test.spec, ["name", "dependencies", "disabled"]),
+              },
+            })
+          }
+
+          return {
+            group: {
+              // This is an annoying TypeScript limitation :P
+              kind: <"Group">"Group",
+              name: module.name,
+              path: module.path,
+              actions,
+              variables: module.variables,
+              varfiles: module.varfile ? [module.varfile] : undefined,
+            },
+          }
         },
 
         getModuleOutputs: async (params) => {
@@ -2105,9 +2194,9 @@ const testPlugin = createGardenPlugin({
   createActionTypes: {
     Build: [
       {
-        name: "build",
+        name: "test",
         docs: "Test Build action",
-        schema: execBuildActionSchema(),
+        schema: joi.object(),
         handlers: {
           getStatus: async (_params) => {
             return { state: "ready", detail: {}, outputs: { foo: "bar" } }
@@ -2137,9 +2226,9 @@ const testPlugin = createGardenPlugin({
     ],
     Deploy: [
       {
-        name: "deploy",
+        name: "test",
         docs: "Test Deploy action",
-        schema: execDeployActionSchema(),
+        schema: joi.object(),
         handlers: {
           getStatus: async (_params) => {
             return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: "ok" } }
@@ -2194,9 +2283,9 @@ const testPlugin = createGardenPlugin({
     ],
     Run: [
       {
-        name: "run",
+        name: "test",
         docs: "Test Run action",
-        schema: execRunActionSchema(),
+        schema: joi.object(),
         handlers: {
           getResult: async (params) => {
             return {
@@ -2245,7 +2334,7 @@ const testPlugin = createGardenPlugin({
       {
         name: "test",
         docs: "Test Test action",
-        schema: execTestActionSchema(),
+        schema: joi.object(),
         handlers: {
           run: async (params) => {
             // Create artifacts, to test artifact copying

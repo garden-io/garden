@@ -29,6 +29,7 @@ export type ModuleActionHandler<P extends ActionHandlerParamsBase, O> = ((params
 
 export type WrappedModuleActionHandler<P extends ActionHandlerParamsBase, O> = WrappedActionHandler<P, O> & {
   moduleType: string
+  wrapped: ModuleActionHandler<P, O>
   base?: WrappedModuleActionHandler<P, O>
 }
 
