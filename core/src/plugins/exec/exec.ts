@@ -543,10 +543,8 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
     // (otherwise nothing is created, which would be unexpected for users).
     module.serviceConfigs.length + module.taskConfigs.length + module.testConfigs.length === 0
 
-  let buildAction: ExecBuildConfig | undefined = undefined
-
   if (needsBuild) {
-    buildAction = {
+    return {
       kind: "Build",
       type: "exec",
       name: module.name,
@@ -564,11 +562,12 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
     }
   }
 
-  return buildAction
+  return
 }
 
 export async function convertExecModule(params: ConvertModuleParams<ExecModule>) {
-  const { module, convertBuildDependency, convertRuntimeDependencies } = params
+  const { module, services, tasks, tests, convertBuildDependency, convertRuntimeDependencies } = params
+
   const actions: ExecActionConfig[] = []
 
   const buildAction = prepareExecBuildAction(params)
@@ -589,7 +588,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
     return { ...module.spec.env, ...env }
   }
 
-  for (const service of module.serviceConfigs) {
+  for (const service of services) {
     actions.push({
       kind: "Deploy",
       type: "exec",
@@ -607,7 +606,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
     })
   }
 
-  for (const task of module.taskConfigs) {
+  for (const task of tasks) {
     actions.push({
       kind: "Run",
       type: "exec",
@@ -626,7 +625,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
     })
   }
 
-  for (const test of module.testConfigs) {
+  for (const test of tests) {
     actions.push({
       kind: "Test",
       type: "exec",
@@ -733,8 +732,7 @@ export const execPlugin = () =>
       {
         name: "exec",
         docs: dedent`
-          A simple module for executing commands in your shell. This can be a useful escape hatch if no other module
-          type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
+          A general-purpose module for executing commands in your shell. This can be a useful escape hatch if no other module type fits your needs, and you just need to execute something (as opposed to deploy it, track its status etc.).
 
           By default, the \`exec\` module type executes the commands in the Garden build directory
           (under .garden/build/<module-name>). By setting \`local: true\`, the commands are executed in the module
