@@ -10,16 +10,8 @@ import toposort from "toposort"
 import { flatten, difference, mapValues, cloneDeep } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
-import {
-  Action,
-  ActionDependencyAttributes,
-  ActionKind,
-  Resolved,
-  ResolvedAction,
-} from "../actions/types"
-import {
-  actionReferenceToString,
-} from "../actions/base"
+import { Action, ActionDependencyAttributes, ActionKind, Resolved, ResolvedAction } from "../actions/types"
+import { actionReferenceToString } from "../actions/base"
 import { BuildAction } from "../actions/build"
 import { ActionReference, parseActionReference } from "../config/common"
 import { GardenModule } from "../types/module"

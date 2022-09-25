@@ -131,7 +131,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
           if (throwOnError && result.error) {
             cleanup()
-            reject(new GraphNodeError(`Failed ${result.description}: ${result.error}`, result))
+            reject(new GraphNodeError(`Failed to ${result.description}: ${result.error}`, result))
             return
           }
 
@@ -459,7 +459,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   private logTaskError(node: TaskNode, err: Error) {
-    const prefix = `Failed ${node.describe()}. Here is the output:`
+    const prefix = `Failed to ${node.describe()}. Here is the output:`
     this.logError(node.task.log, err, prefix)
   }
 
