@@ -2100,7 +2100,7 @@ const testPlugin = createGardenPlugin({
 
           const buildAction: BuildActionConfig = {
             kind: "Build",
-            type: "exec",
+            type: "test",
             name: module.name,
 
             ...params.baseFields,
@@ -2136,7 +2136,7 @@ const testPlugin = createGardenPlugin({
           for (const task of tasks) {
             actions.push({
               kind: "Run",
-              type: "exec",
+              type: "test",
               name: task.name,
               ...params.baseFields,
 
@@ -2153,7 +2153,7 @@ const testPlugin = createGardenPlugin({
           for (const test of tests) {
             actions.push({
               kind: "Test",
-              type: "exec",
+              type: "test",
               name: module.name + "-" + test.name,
               ...params.baseFields,
 

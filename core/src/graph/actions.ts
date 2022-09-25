@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { isString, memoize, omit, pick } from "lodash"
+import { isString, mapValues, memoize, omit, pick } from "lodash"
 import type {
   Action,
   ActionConfig,
@@ -204,7 +204,7 @@ export async function resolveAction<T extends Action>({
 
   status.setState({ status: "done" })
 
-  return <Resolved<T>>(<unknown>results.results[task.getBaseKey()]!)
+  return <Resolved<T>>(<unknown>results.results.getResult(task)!.result!.outputs.resolvedAction)
 }
 
 export interface ResolvedActions<T extends Action> {
@@ -243,7 +243,7 @@ export async function resolveActions<T extends Action>({
 
   const results = await garden.processTasks({ tasks, log, throwOnError: true })
 
-  return <ResolvedActions<T>>(<unknown>results.results)
+  return <ResolvedActions<T>>(<unknown>mapValues(results.results.getMap(), (r) => r!.result!.outputs.resolvedAction))
 }
 
 /**
@@ -274,7 +274,7 @@ export async function executeAction<T extends Action>({
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
 
-  return <Executed<T>>(<unknown>results.results[task.getBaseKey()]!)
+  return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.outputs.executedAction)
 }
 
 const getActionConfigContextKeys = memoize(() => {
