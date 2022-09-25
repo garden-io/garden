@@ -183,7 +183,7 @@ export class ModuleRouter extends BaseRouter {
 
     // Wrap the handler with identifying attributes
     const wrapped = Object.assign(
-      <ModuleActionHandlers[T]>(async (...args: any[]) => {
+      <WrappedModuleActionHandlers[T]>(async (...args: any[]) => {
         const result = await handler.apply(plugin, args)
         if (result === undefined) {
           throw new PluginError(
@@ -199,10 +199,11 @@ export class ModuleRouter extends BaseRouter {
           context: `${handlerType} ${moduleType} output from provider ${pluginName}`,
         })
       }),
-      { handlerType, pluginName, moduleType }
+      { handlerType, pluginName, moduleType, wrapped: handler }
     )
 
-    wrapped.base = this.wrapBase(handler.base)
+    // TODO-G2B: fix the any cast
+    wrapped.base = <any>this.wrapBase(handler.base)
 
     if (!this.moduleHandlers[handlerType]) {
       this.moduleHandlers[handlerType] = {}
