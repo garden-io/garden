@@ -117,7 +117,9 @@ services:
   - name: node-service
     args: [ npm, start ]
     localMode:
-      localPort: 8090 # The port of the local app, will be used for port-forward setup.
+      ports:
+        - local: 8090 # The port of the local app, will be used for port-forward setup.
+          remote: 8080 # The port of the remote app, will be used for port-forward setup.
       # Starts the local app which will replace the target one in the k8s cluster.
       # Optional. If not specified, then the local app should be started manually.
       command: [ npm, run, serve ]
@@ -138,7 +140,9 @@ kind: Module
 name: backend
 type: kubernetes # this example looks the same for helm modules (i.e. with `type: helm`)
 localMode:
-  localPort: 8090
+  ports:
+    - local: 8090
+      remote: 8080
   command: [ "../backend-local/main" ]
   containerName: backend
 
