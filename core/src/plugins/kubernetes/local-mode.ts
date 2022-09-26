@@ -633,7 +633,8 @@ async function getReversePortForwardCommand(
   localSshPort: number,
   targetContainer: V1Container
 ): Promise<OsCommand> {
-  const localPort = localModeSpec.localPort
+  const localModePortsSpec = localModeSpec.ports[0]
+  const localPort = localModePortsSpec.local
   const effectiveContainerName = targetContainer.name
 
   // todo: get all forwardable ports and set up ssh tunnels for all
