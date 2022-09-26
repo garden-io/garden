@@ -256,7 +256,6 @@ async function pkgCommon({
 }) {
   const targetPath = resolve(distPath, targetName)
   await remove(targetPath)
-  await mkdirp(targetPath)
 
   console.log(` - ${targetName} -> pkg`)
   await exec(pkgPath, [
