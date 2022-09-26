@@ -419,7 +419,7 @@ ${renderCommands(commands)}
           let namespaceUrl: string | undefined
           if (cloudApi && cloudApi.environmentId && cloudApi.namespaceId) {
             const project = await cloudApi.getProject()
-            const path = `/projects/${project.id}/environments/${cloudApi.environmentId}/namespaces/${cloudApi.namespaceId}/stack`
+            const path = `/projects/${project.id}/commands`
             const url = new URL(path, cloudApi.domain)
             namespaceUrl = url.href
           }
