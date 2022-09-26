@@ -135,7 +135,7 @@ export class ProxySshKeystore {
     }
   }
 
-  private static async generateSshKeys(keyPair: KeyPair, log: LogEntry): Promise<KeyPair> {
+  private static async generateSshKeys(keyPair: KeyPair): Promise<KeyPair> {
     // Empty pass-phrase, explicit filename,
     // and auto-overwrite to rewrite old keys if the cleanup exit-hooks failed for some reason.
     const sshKeyGenCmd = `yes 'y' | ssh-keygen -N "" -f ${keyPair.privateKeyPath}`
@@ -161,7 +161,7 @@ export class ProxySshKeystore {
     }
   }
 
-  public async getKeyPair(gardenDirPath: string, sshKeyName: string, log: LogEntry): Promise<KeyPair> {
+  public async getKeyPair(gardenDirPath: string, sshKeyName: string): Promise<KeyPair> {
     const sshDirPath = ProxySshKeystore.getSshDirPath(gardenDirPath)
 
     if (!this.serviceKeyPairs.has(sshKeyName)) {
@@ -169,7 +169,7 @@ export class ProxySshKeystore {
         if (!this.serviceKeyPairs.has(sshKeyName)) {
           await ensureDir(sshDirPath)
           const keyPair = new KeyPair(sshDirPath, sshKeyName)
-          await ProxySshKeystore.generateSshKeys(keyPair, log)
+          await ProxySshKeystore.generateSshKeys(keyPair)
           this.serviceKeyPairs.set(sshKeyName, keyPair)
         }
       })
@@ -394,7 +394,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
 
   set(targetResource, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
 
-  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, gardenService.name, log)
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, gardenService.name)
   log.debug({
     section: gardenService.name,
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
@@ -654,7 +654,7 @@ async function getReversePortForwardCommand(
     )
   }
   const remoteContainerPort = remoteContainerPortEnvVar.value
-  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, effectiveContainerName, log)
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, effectiveContainerName)
   const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(ctx.gardenDirPath)
 
   const sshCommandName = "ssh"
