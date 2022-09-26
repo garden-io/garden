@@ -268,16 +268,23 @@ export class LocalModeProcessRegistry {
   }
 }
 
-// todo: proxy container should expose all ports instead of a single one
-function findFirstForwardablePort(container: V1Container): V1ContainerPort {
+function validateContainerPorts(container: V1Container, spec: ContainerLocalModeSpec): V1ContainerPort[] {
   if (!container.ports || container.ports.length === 0) {
     throw new ConfigurationError(
       `Cannot configure the local mode for container ${container.name}: it does not expose any ports.`,
       { container }
     )
   }
-  const firstTcpPort = container.ports.find((portSpec) => portSpec.protocol === "TCP")
-  return firstTcpPort || container.ports[0]
+
+  const remotePorts = new Set<number>(spec.ports.map((p) => p.remote))
+  const matchingPorts = container.ports.filter((portSpec) => remotePorts.has(portSpec.containerPort))
+  if (!matchingPorts || matchingPorts.length === 0) {
+    throw new ConfigurationError(
+      `Cannot configure the local mode for container ${container.name}: it does not expose any ports that match local mode port-forward configuration.`,
+      { container, remotePorts }
+    )
+  }
+  return matchingPorts
 }
 
 export namespace LocalModeEnv {
@@ -300,13 +307,11 @@ export namespace LocalModeEnv {
   export const GARDEN_PROXY_CONTAINER_USER_NAME = "USER_NAME"
 }
 
-async function prepareLocalModeEnvVars(targetContainer: V1Container, keyPair: KeyPair): Promise<PrimitiveMap> {
-  // todo: expose all original ports in the proxy container
-  const portSpec = findFirstForwardablePort(targetContainer)
+async function prepareLocalModeEnvVars(portSpecs: V1ContainerPort[], keyPair: KeyPair): Promise<PrimitiveMap> {
   const publicSshKey = await keyPair.readPublicSshKey()
 
   const env = {}
-  env[LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT] = portSpec.containerPort
+  env[LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT] = portSpecs.map((p) => p.containerPort).join(" ")
   env[LocalModeEnv.GARDEN_PROXY_CONTAINER_PUBLIC_KEY] = publicSshKey
   env[LocalModeEnv.GARDEN_PROXY_CONTAINER_USER_NAME] = PROXY_CONTAINER_USER_NAME
   return env
@@ -379,7 +384,7 @@ function patchSyncableManifest(
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { ctx, targetResource, gardenService, log, containerName } = configParams
+  const { ctx, spec, targetResource, gardenService, log, containerName } = configParams
 
   // Logging this on the debug level because it can be displayed multiple times due to getServiceStatus checks
   log.debug({
@@ -398,7 +403,8 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   })
 
   const targetContainer = getResourceContainer(targetResource, containerName)
-  const localModeEnvVars = await prepareLocalModeEnvVars(targetContainer, keyPair)
+  const portSpecs = validateContainerPorts(targetContainer, spec)
+  const localModeEnvVars = await prepareLocalModeEnvVars(portSpecs, keyPair)
   const localModePorts = prepareLocalModePorts()
 
   patchSyncableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
