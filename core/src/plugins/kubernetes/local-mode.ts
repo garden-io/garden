@@ -140,9 +140,7 @@ export class ProxySshKeystore {
     // and auto-overwrite to rewrite old keys if the cleanup exit-hooks failed for some reason.
     const sshKeyGenCmd = `yes 'y' | ssh-keygen -N "" -f ${keyPair.privateKeyPath}`
     // ensure /bin/sh shell to make the command above work properly
-    const sshKeyGenProc = exec(sshKeyGenCmd, [], { shell: "/bin/sh" })
-    const sshKeygenOutput = (await sshKeyGenProc).toString()
-    log.debug(`Executed ssh keys generation command "${sshKeyGenCmd}" with output: ${sshKeygenOutput}`)
+    await exec(sshKeyGenCmd, [], { shell: "/bin/sh" })
     return keyPair
   }
 
