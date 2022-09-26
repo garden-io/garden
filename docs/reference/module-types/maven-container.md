@@ -314,8 +314,13 @@ services:
     # guide](https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md) for more
     # information.
     localMode:
-      # The working port of the local application.
-      localPort:
+      # The reverse port-forwards configuration for the local application.
+      ports:
+        - # The local port to be used for reverse port-forward.
+          local:
+
+          # The remote port to be used for reverse port-forward.
+          remote:
 
       # The command to run the local application. If not present, then the local application should be started
       # manually.
@@ -1425,11 +1430,31 @@ See the [Local Mode guide](https://github.com/garden-io/garden/blob/main/docs/gu
 | -------- | -------- |
 | `object` | No       |
 
-### `services[].localMode.localPort`
+### `services[].localMode.ports[]`
 
-[services](#services) > [localMode](#serviceslocalmode) > localPort
+[services](#services) > [localMode](#serviceslocalmode) > ports
 
-The working port of the local application.
+The reverse port-forwards configuration for the local application.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `services[].localMode.ports[].local`
+
+[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > local
+
+The local port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].localMode.ports[].remote`
+
+[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > remote
+
+The remote port to be used for reverse port-forward.
 
 | Type     | Required |
 | -------- | -------- |
