@@ -528,7 +528,7 @@ async function prepareRemoteGarden({
     const remoteSourceRelPath = getRemoteSourceRelPath({ name, url: testGitUrl, sourceType: type })
     const targetPath = join(garden.projectRoot, ".garden", remoteSourceRelPath)
     await copy(join(extSourcesRoot, name), targetPath)
-    await execa("git", ["init"], { cwd: targetPath })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
   })
 
   return garden

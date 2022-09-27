@@ -894,7 +894,7 @@ describe("GitHandler", () => {
 
       it("should exit on `failOnPrompt` when updating a remote source and prompting for user input", async () => {
         await mkdirp(clonePath)
-        await execa("git", ["init"], { cwd: clonePath })
+        await execa("git", ["init", "--initial-branch=main"], { cwd: clonePath })
         await execa("git", ["commit", "-m", "commit", "--allow-empty"], { cwd: clonePath })
         await execa("git", ["remote", "add", "origin", "https://fake@github.com/private/private.git"], {
           cwd: clonePath,

@@ -29,7 +29,7 @@ describe("ResolveProviderTask", () => {
     tmpDir = await makeTempDir()
     const path = tmpDir.path
 
-    await execa("git", ["init"], { cwd: path })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: path })
   })
 
   after(async () => {

@@ -63,7 +63,7 @@ describe("Garden", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     pathFoo = tmpDir.path
 
-    await execa("git", ["init"], { cwd: pathFoo })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: pathFoo })
 
     projectConfigFoo = {
       apiVersion: DEFAULT_API_VERSION,
