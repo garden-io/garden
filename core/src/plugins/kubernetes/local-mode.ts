@@ -8,7 +8,7 @@
 
 import { ContainerLocalModeSpec, ContainerService } from "../container/config"
 import { gardenAnnotationKey } from "../../util/string"
-import { find, remove, set } from "lodash"
+import { remove, set } from "lodash"
 import { SyncableResource } from "./hot-reload/hot-reload"
 import { PrimitiveMap } from "../../config/common"
 import {
@@ -632,155 +632,144 @@ async function getKubectlPortForwardProcess(
   })
 }
 
-async function getReversePortForwardCommand(
+async function getReversePortForwardCommands(
   { ctx, spec: localModeSpec, log }: StartLocalModeParams,
   localSshPort: number,
   targetContainer: V1Container
-): Promise<OsCommand> {
-  const localModePortsSpec = localModeSpec.ports[0]
-  const localPort = localModePortsSpec.local
+): Promise<OsCommand[]> {
   const effectiveContainerName = targetContainer.name
-
-  // todo: get all forwardable ports and set up ssh tunnels for all
-  const remoteContainerPortEnvVar = find(
-    targetContainer.env,
-    (v) => v.name === LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT
-  )
-  if (!remoteContainerPortEnvVar || !remoteContainerPortEnvVar.value) {
-    // this should never happen, because the manifests must have been patched properly before calling this
-    throw new RuntimeError(
-      `Container ${effectiveContainerName} does not define a mandatory local mode environment variable ${LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT}`,
-      { targetContainer }
-    )
-  }
-  const remoteContainerPort = remoteContainerPortEnvVar.value
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, effectiveContainerName)
   const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(ctx.gardenDirPath)
 
-  const sshCommandName = "ssh"
-  const sshCommandArgs = [
-    /*
-     Always disable pseudo-terminal allocation to avoid warnings like
-     "Pseudo-terminal will not be allocated because stdin is not a terminal".
-     */
-    "-T",
-    "-R",
-    `${remoteContainerPort}:${localhost}:${localPort}`,
-    `${PROXY_CONTAINER_USER_NAME}@${localhost}`,
-    `-p${localSshPort}`,
-    `-i ${keyPair.privateKeyPath}`,
-    "-oStrictHostKeyChecking=accept-new",
-    `-oUserKnownHostsFile=${knownHostsFilePath}`,
-    "-oServerAliveInterval=60",
-  ]
-  return { command: sshCommandName, args: sshCommandArgs }
+  const localModePortsSpecs = localModeSpec.ports
+  return localModePortsSpecs.map((portSpec) => ({
+    command: "ssh",
+    args: [
+      /*
+         Always disable pseudo-terminal allocation to avoid warnings like
+         "Pseudo-terminal will not be allocated because stdin is not a terminal".
+         */
+      "-T",
+      "-R",
+      `${portSpec.remote}:${localhost}:${portSpec.local}`,
+      `${PROXY_CONTAINER_USER_NAME}@${localhost}`,
+      `-p${localSshPort}`,
+      `-i ${keyPair.privateKeyPath}`,
+      "-oStrictHostKeyChecking=accept-new",
+      `-oUserKnownHostsFile=${knownHostsFilePath}`,
+      "-oServerAliveInterval=60",
+    ],
+  }))
 }
 
 const reversePortForwardFailureCounter = new FailureCounter(10)
 
-async function getReversePortForwardProcess(
+async function getReversePortForwardProcesses(
   configParams: StartLocalModeParams,
   localSshPort: number,
   targetContainer: V1Container
-): Promise<RecoverableProcess> {
-  const reversePortForwardingCmd = await getReversePortForwardCommand(configParams, localSshPort, targetContainer)
+): Promise<RecoverableProcess[]> {
+  const reversePortForwardingCmds = await getReversePortForwardCommands(configParams, localSshPort, targetContainer)
   const { ctx, gardenService, log } = configParams
 
-  return new RecoverableProcess({
-    osCommand: reversePortForwardingCmd,
-    retryConfig: {
-      maxRetries: Number.POSITIVE_INFINITY,
-      minTimeoutMs: portForwardRetryTimeoutMs,
-    },
-    log,
-    stderrListener: {
-      catchCriticalErrors: (chunk: any) => {
-        const output = chunk.toString()
-        const lowercaseOutput = output.toLowerCase()
-        if (lowercaseOutput.includes('unsupported option "accept-new"')) {
-          log.error({
-            status: "error",
-            section: gardenService.name,
-            msg: chalk.red(
-              "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
-            ),
-          })
-          return true
-        }
-        const criticalErrorIndicators = [
-          "permission denied",
-          "remote host identification has changed",
-          "bad configuration option",
-        ]
-        const hasCriticalErrors = criticalErrorIndicators.some((indicator) => {
-          lowercaseOutput.includes(indicator)
-        })
-        if (hasCriticalErrors) {
-          log.error({
-            status: "error",
-            section: gardenService.name,
-            msg: chalk.red(output),
-          })
-        }
-        return hasCriticalErrors
-      },
-      hasErrors: (chunk: any) => {
-        const output = chunk.toString()
-        // A message containing "warning: permanently added" is printed by ssh command
-        // when the connection is established and the public key is added to the temporary known hosts file.
-        // This message is printed to stderr, but it should not be considered as an error.
-        // It indicates the successful connection.
-        return !output.toLowerCase().includes("warning: permanently added")
-      },
-      onError: (msg: ProcessMessage) => {
-        log.error({
-          status: "error",
-          section: gardenService.name,
-          msg: chalk.red(composeErrorMessage("Reverse SSH port-forward failed", msg)),
-        })
-        reversePortForwardFailureCounter.addFailure(() => {
-          log.error({
-            status: "warn",
-            symbol: "warning",
-            section: gardenService.name,
-            msg: chalk.yellow(
-              `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
-                ctx
-              )} and consider restarting Garden.`
-            ),
-          })
-        })
-      },
-      onMessage: (msg: ProcessMessage) => {
-        log.info({
-          status: "success",
-          section: gardenService.name,
-          msg: chalk.white(composeMessage("Reverse SSH port-forward is up and running", msg)),
-        })
-      },
-    },
-    stdoutListener: {
-      catchCriticalErrors: (_chunk: any) => false,
-      hasErrors: (_chunk: any) => false,
-      onError: (_msg: ProcessMessage) => {},
-      onMessage: (msg: ProcessMessage) => {
-        log.info({
-          status: "success",
-          section: gardenService.name,
-          msg: chalk.white(composeMessage("Reverse port-forward is up and running", msg)),
-        })
-      },
-    },
-  })
+  return reversePortForwardingCmds.map(
+    (cmd) =>
+      new RecoverableProcess({
+        osCommand: cmd,
+        retryConfig: {
+          maxRetries: Number.POSITIVE_INFINITY,
+          minTimeoutMs: portForwardRetryTimeoutMs,
+        },
+        log,
+        stderrListener: {
+          catchCriticalErrors: (chunk: any) => {
+            const output = chunk.toString()
+            const lowercaseOutput = output.toLowerCase()
+            if (lowercaseOutput.includes('unsupported option "accept-new"')) {
+              log.error({
+                status: "error",
+                section: gardenService.name,
+                msg: chalk.red(
+                  "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
+                ),
+              })
+              return true
+            }
+            const criticalErrorIndicators = [
+              "permission denied",
+              "remote host identification has changed",
+              "bad configuration option",
+            ]
+            const hasCriticalErrors = criticalErrorIndicators.some((indicator) => {
+              lowercaseOutput.includes(indicator)
+            })
+            if (hasCriticalErrors) {
+              log.error({
+                status: "error",
+                section: gardenService.name,
+                msg: chalk.red(output),
+              })
+            }
+            return hasCriticalErrors
+          },
+          hasErrors: (chunk: any) => {
+            const output = chunk.toString()
+            // A message containing "warning: permanently added" is printed by ssh command
+            // when the connection is established and the public key is added to the temporary known hosts file.
+            // This message is printed to stderr, but it should not be considered as an error.
+            // It indicates the successful connection.
+            return !output.toLowerCase().includes("warning: permanently added")
+          },
+          onError: (msg: ProcessMessage) => {
+            log.error({
+              status: "error",
+              section: gardenService.name,
+              msg: chalk.red(composeErrorMessage("Reverse SSH port-forward failed", msg)),
+            })
+            reversePortForwardFailureCounter.addFailure(() => {
+              log.error({
+                status: "warn",
+                symbol: "warning",
+                section: gardenService.name,
+                msg: chalk.yellow(
+                  `Reverse SSH port-forward hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
+                    ctx
+                  )} and consider restarting Garden.`
+                ),
+              })
+            })
+          },
+          onMessage: (msg: ProcessMessage) => {
+            log.info({
+              status: "success",
+              section: gardenService.name,
+              msg: chalk.white(composeMessage("Reverse SSH port-forward is up and running", msg)),
+            })
+          },
+        },
+        stdoutListener: {
+          catchCriticalErrors: (_chunk: any) => false,
+          hasErrors: (_chunk: any) => false,
+          onError: (_msg: ProcessMessage) => {},
+          onMessage: (msg: ProcessMessage) => {
+            log.info({
+              status: "success",
+              section: gardenService.name,
+              msg: chalk.white(composeMessage("Reverse port-forward is up and running", msg)),
+            })
+          },
+        },
+      })
+  )
 }
 
 function composeSshTunnelProcessTree(
   sshTunnel: RecoverableProcess,
-  reversePortForward: RecoverableProcess,
+  reversePortForwards: RecoverableProcess[],
   log: LogEntry
 ): RecoverableProcess {
   const root = sshTunnel
-  root.addDescendants(reversePortForward)
+  root.addDescendants(...reversePortForwards)
   root.setFailureHandler(async () => {
     log.error("Local mode failed, shutting down...")
     await shutdown(1)
@@ -856,9 +845,9 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   )
 
   const targetContainer = getResourceContainer(targetResource, containerName)
-  const reversePortForward = await getReversePortForwardProcess(configParams, localSshPort, targetContainer)
+  const reversePortForwards = await getReversePortForwardProcesses(configParams, localSshPort, targetContainer)
 
-  const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForward, log)
+  const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForwards, log)
   log.info({
     status: "active",
     section: gardenService.name,
