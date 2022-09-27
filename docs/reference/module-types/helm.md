@@ -261,7 +261,7 @@ devMode:
 # Health checks are disabled for services running in local mode.
 #
 # See the [Local Mode
-# guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more
+# guide](https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md) for more
 # information.
 localMode:
   # The working port of the local application.
@@ -755,7 +755,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 ### `include[]`
 
-Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do _not_ match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
 Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
@@ -796,7 +796,7 @@ Example:
 ```yaml
 exclude:
   - tmp/**/*
-  - '*.log'
+  - "*.log"
 ```
 
 ### `repositoryUrl`
@@ -805,9 +805,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | No       |
 
 Example:
 
@@ -889,9 +889,9 @@ module-level `variables` field.
 
 The format of the files is determined by the configured file's extension:
 
-* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
-* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+- `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+- `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+- `.json` - JSON. Must contain a single JSON _object_ (not an array).
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
@@ -1104,9 +1104,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `devMode.sync[].defaultGroup`
 
@@ -1114,9 +1114,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `devMode.containerName`
 
@@ -1145,7 +1145,7 @@ Local mode always takes the precedence over dev mode if there are any conflictin
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more information.
+See the [Local Mode guide](https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1479,7 +1479,7 @@ Example:
 tasks:
   - command:
       - /bin/sh
-      - '-c'
+      - "-c"
 ```
 
 ### `tasks[].args[]`
@@ -1498,7 +1498,7 @@ Example:
 tasks:
   - args:
       - rake
-      - 'db:migrate'
+      - "db:migrate"
 ```
 
 ### `tasks[].env`
@@ -1516,12 +1516,12 @@ Example:
 ```yaml
 tasks:
   - env:
-        - MY_VAR: some-value
-          MY_SECRET_VAR:
-            secretRef:
-              name: my-secret
-              key: some-key
-        - {}
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
 ```
 
 ### `tasks[].artifacts[]`
@@ -1582,34 +1582,35 @@ an error will be thrown.
 This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the task:
-* `affinity`
-* `automountServiceAccountToken`
-* `containers`
-* `dnsConfig`
-* `dnsPolicy`
-* `enableServiceLinks`
-* `hostAliases`
-* `hostIPC`
-* `hostNetwork`
-* `hostPID`
-* `hostname`
-* `imagePullSecrets`
-* `nodeName`
-* `nodeSelector`
-* `overhead`
-* `preemptionPolicy`
-* `priority`
-* `priorityClassName`
-* `runtimeClassName`
-* `schedulerName`
-* `securityContext`
-* `serviceAccount`
-* `serviceAccountName`
-* `shareProcessNamespace`
-* `subdomain`
-* `tolerations`
-* `topologySpreadConstraints`
-* `volumes`
+
+- `affinity`
+- `automountServiceAccountToken`
+- `containers`
+- `dnsConfig`
+- `dnsPolicy`
+- `enableServiceLinks`
+- `hostAliases`
+- `hostIPC`
+- `hostNetwork`
+- `hostPID`
+- `hostname`
+- `imagePullSecrets`
+- `nodeName`
+- `nodeSelector`
+- `overhead`
+- `preemptionPolicy`
+- `priority`
+- `priorityClassName`
+- `runtimeClassName`
+- `schedulerName`
+- `securityContext`
+- `serviceAccount`
+- `serviceAccountName`
+- `shareProcessNamespace`
+- `subdomain`
+- `tolerations`
+- `topologySpreadConstraints`
+- `volumes`
 
 | Type     | Required |
 | -------- | -------- |
@@ -1772,7 +1773,7 @@ Example:
 tests:
   - command:
       - /bin/sh
-      - '-c'
+      - "-c"
 ```
 
 ### `tests[].args[]`
@@ -1809,12 +1810,12 @@ Example:
 ```yaml
 tests:
   - env:
-        - MY_VAR: some-value
-          MY_SECRET_VAR:
-            secretRef:
-              name: my-secret
-              key: some-key
-        - {}
+      - MY_VAR: some-value
+        MY_SECRET_VAR:
+          secretRef:
+            name: my-secret
+            key: some-key
+      - {}
 ```
 
 ### `tests[].artifacts[]`
@@ -1875,34 +1876,35 @@ an error will be thrown.
 This can either reference a workload (i.e. a Deployment, DaemonSet or StatefulSet) via the `kind` and `name` fields, or a Pod via the `podSelector` field.
 
 The following pod spec fields from the service resource will be used (if present) when executing the test suite:
-* `affinity`
-* `automountServiceAccountToken`
-* `containers`
-* `dnsConfig`
-* `dnsPolicy`
-* `enableServiceLinks`
-* `hostAliases`
-* `hostIPC`
-* `hostNetwork`
-* `hostPID`
-* `hostname`
-* `imagePullSecrets`
-* `nodeName`
-* `nodeSelector`
-* `overhead`
-* `preemptionPolicy`
-* `priority`
-* `priorityClassName`
-* `runtimeClassName`
-* `schedulerName`
-* `securityContext`
-* `serviceAccount`
-* `serviceAccountName`
-* `shareProcessNamespace`
-* `subdomain`
-* `tolerations`
-* `topologySpreadConstraints`
-* `volumes`
+
+- `affinity`
+- `automountServiceAccountToken`
+- `containers`
+- `dnsConfig`
+- `dnsPolicy`
+- `enableServiceLinks`
+- `hostAliases`
+- `hostIPC`
+- `hostNetwork`
+- `hostPID`
+- `hostname`
+- `imagePullSecrets`
+- `nodeName`
+- `nodeSelector`
+- `overhead`
+- `preemptionPolicy`
+- `priority`
+- `priorityClassName`
+- `runtimeClassName`
+- `schedulerName`
+- `securityContext`
+- `serviceAccount`
+- `serviceAccountName`
+- `shareProcessNamespace`
+- `subdomain`
+- `tolerations`
+- `topologySpreadConstraints`
+- `volumes`
 
 | Type     | Required |
 | -------- | -------- |
@@ -2038,7 +2040,6 @@ your module directory.
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
 
-
 ## Outputs
 
 ### Module Outputs
@@ -2092,9 +2093,9 @@ A map of all variables defined in the module.
 
 ### `${modules.<module-name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${modules.<module-name>.version}`
 
@@ -2118,7 +2119,6 @@ The Helm release name of the service.
 | -------- |
 | `string` |
 
-
 ### Service Outputs
 
 The following keys are available via the `${runtime.services.<service-name>}` template string key for `helm` module services.
@@ -2138,7 +2138,6 @@ Example:
 my-variable: ${runtime.services.my-service.version}
 ```
 
-
 ### Task Outputs
 
 The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `helm` module tasks.
@@ -2157,4 +2156,3 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
-
