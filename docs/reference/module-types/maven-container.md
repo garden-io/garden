@@ -310,9 +310,7 @@ services:
     #
     # Health checks are disabled for services running in local mode.
     #
-    # See the [Local Mode
-    # guide](https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md) for more
-    # information.
+    # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
     localMode:
       # The reverse port-forwards configuration for the local application.
       ports:
@@ -1424,7 +1422,7 @@ Local mode always takes the precedence over dev mode if there are any conflictin
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md) for more information.
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
 
 | Type     | Required |
 | -------- | -------- |
