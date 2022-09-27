@@ -2347,7 +2347,7 @@ describe("Garden", () => {
         // Create a temporary git repo to clone
         const repoPath = resolve(_tmpDir.path, garden.projectName)
         await copy(localSourcePath, repoPath)
-        await exec("git", ["init"], { cwd: repoPath })
+        await exec("git", ["init", "--initial-branch=main"], { cwd: repoPath })
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
