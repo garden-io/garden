@@ -414,3 +414,4 @@ for its output schema.
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
+

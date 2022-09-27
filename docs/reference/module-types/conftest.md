@@ -319,7 +319,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 ### `include[]`
 
-Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do _not_ match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
 Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
@@ -354,7 +354,7 @@ Example:
 ```yaml
 exclude:
   - tmp/**/*
-  - "*.log"
+  - '*.log'
 ```
 
 ### `repositoryUrl`
@@ -447,9 +447,9 @@ module-level `variables` field.
 
 The format of the files is determined by the configured file's extension:
 
-- `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-- `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
-- `.json` - JSON. Must contain a single JSON _object_ (not an array).
+* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+* `.json` - JSON. Must contain a single JSON _object_ (not an array).
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
@@ -509,6 +509,7 @@ A list of files to test with the given policy. Must be POSIX-style paths, and ma
 | Type               | Required |
 | ------------------ | -------- |
 | `array[posixPath]` | Yes      |
+
 
 ## Outputs
 
@@ -581,6 +582,7 @@ Example:
 my-variable: ${modules.my-module.version}
 ```
 
+
 ### Service Outputs
 
 The following keys are available via the `${runtime.services.<service-name>}` template string key for `conftest` module services.
@@ -600,6 +602,7 @@ Example:
 my-variable: ${runtime.services.my-service.version}
 ```
 
+
 ### Task Outputs
 
 The following keys are available via the `${runtime.tasks.<task-name>}` template string key for `conftest` module tasks.
@@ -618,3 +621,4 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
+

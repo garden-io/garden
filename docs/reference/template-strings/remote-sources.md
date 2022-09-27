@@ -378,3 +378,4 @@ Example:
 ```yaml
 my-variable: ${environment.namespace}
 ```
+

@@ -328,3 +328,4 @@ Number, string or boolean
 | Type                          |
 | ----------------------------- |
 | `string \| number \| boolean` |
+

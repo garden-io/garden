@@ -596,3 +596,4 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.<task-name>.version}
 ```
+

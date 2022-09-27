@@ -686,3 +686,4 @@ Example:
 ```yaml
 my-variable: ${this.path}
 ```
+
