@@ -169,24 +169,28 @@ describe("ActionRouter", () => {
         })
 
         const name = "added-by-test-plugin"
-
-        expect(result).to.eql({
-          addDependencies: [{ by: name, on: "service-b" }],
-          addActions: [
-            // {
-            //   apiVersion: DEFAULT_API_VERSION,
-            //   kind: "Module",
-            //   name,
-            //   type: "test",
-            //   path: garden.projectRoot,
-            //   services: [{ name }],
-            //   allowPublish: true,
-            //   build: { dependencies: [] },
-            //   disabled: false,
-            //   generateFiles: [],
-            // },
-          ],
-        })
+        expect(result.addDependencies).to.eql([
+          {
+            by: {
+              kind: "Deploy",
+              name: "added-by-test-plugin",
+            },
+            on: {
+              kind: "Build",
+              name: "added-by-test-plugin",
+            },
+          },
+        ])
+        expect(result.addActions?.map((a) => ({ name: a.name, kind: a.kind }))).to.eql([
+          {
+            name: "added-by-test-plugin",
+            kind: "Build",
+          },
+          {
+            name: "added-by-test-plugin",
+            kind: "Deploy",
+          },
+        ])
       })
     })
 
