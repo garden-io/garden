@@ -2351,7 +2351,7 @@ describe("Garden", () => {
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables.sourceBranch = "master"
+        garden.variables.sourceBranch = "main"
 
         const _garden = garden as any
         _garden["projectSources"] = [
@@ -3289,7 +3289,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3354,7 +3354,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3421,7 +3421,7 @@ describe("Garden", () => {
             dotIgnoreFiles: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
@@ -3478,7 +3478,7 @@ describe("Garden", () => {
             dotIgnoreFiles: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
