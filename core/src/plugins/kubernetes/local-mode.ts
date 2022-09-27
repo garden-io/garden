@@ -474,16 +474,16 @@ function getLocalAppCommand({ spec: localModeSpec, gardenService }: StartLocalMo
 const localAppFailureCounter = new FailureCounter(10)
 
 function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProcess | undefined {
-  const localServiceCmd = getLocalAppCommand(configParams)
+  const localAppCmd = getLocalAppCommand(configParams)
   const { ctx, gardenService, log } = configParams
 
   // This covers Win \r\n, Linux \n, and MacOS \r line separators.
   const eolRegex = /\r?\n?$/
   const stripEol = (message: string) => message.replace(eolRegex, "")
 
-  return !!localServiceCmd
+  return !!localAppCmd
     ? new RecoverableProcess({
-        osCommand: localServiceCmd,
+        osCommand: localAppCmd,
         retryConfig: {
           maxRetries: configParams.spec.restart.max,
           minTimeoutMs: configParams.spec.restart.delayMsec,
