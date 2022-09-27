@@ -37,9 +37,7 @@ import { HelmService } from "./helm/config"
 import getPort = require("get-port")
 import touch = require("touch")
 
-// export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode.md"
-export const localModeGuideLink =
-  "https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md"
+export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode"
 
 const localhost = "127.0.0.1"
 
