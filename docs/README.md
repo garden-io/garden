@@ -6,6 +6,7 @@
 
 * [How Garden Works](./basics/how-garden-works.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
+* [5 Minute Quickstart](./getting-started/5-min-quickstart.md)
 
 ## 🌻 Getting Started
 
