@@ -40,7 +40,7 @@ async function commit(msg: string, repoPath: string) {
 async function makeTempGitRepo() {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   const tmpPath = await realpath(tmpDir.path)
-  await execa("git", ["init"], { cwd: tmpPath })
+  await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
 
   return tmpDir
 }
