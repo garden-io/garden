@@ -65,8 +65,8 @@ providers:
       #
       # | Registry Name                   | Detection string | Assumed `mode=max` support |
       # |---------------------------------|------------------|------------------------------|
-      # | AWS Elastic Container Registry  | `.dkr.ecr.`    | No                           |
-      # | Google Cloud Container Registry | `gcr.io`       | No                           |
+      # | AWS Elastic Container Registry  | `.dkr.ecr.`      | No                           |
+      # | Google Cloud Container Registry | `gcr.io`         | No                           |
       # | Any other registry              | -                | Yes                          |
       #
       # In case you need to override the defaults for your registry, you can do it like so:
@@ -490,6 +490,7 @@ providers:
     # Set this to null or false to skip installing/enabling the `nginx` ingress controller.
     setupIngressController: nginx
 ```
+
 ## Configuration Keys
 
 ### `providers[]`
@@ -566,6 +567,7 @@ Configuration options for the `cluster-buildkit` build mode.
 Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
 
 The default value is:
+
 ```yaml
 clusterBuildkit:
   cache:
@@ -574,6 +576,7 @@ clusterBuildkit:
 ```
 
 For every build, this will
+
 - import cached layers from a docker image tag named `_buildcache`
 - when the build is finished, upload cache information to `_buildcache`
 
@@ -586,10 +589,10 @@ we will avoid using `mode=max` with them.
 See the following table for details on our detection mechanism:
 
 | Registry Name                   | Detection string | Assumed `mode=max` support |
-|---------------------------------|------------------|------------------------------|
-| AWS Elastic Container Registry  | `.dkr.ecr.`    | No                           |
-| Google Cloud Container Registry | `gcr.io`       | No                           |
-| Any other registry              | -                | Yes                          |
+| ------------------------------- | ---------------- | -------------------------- |
+| AWS Elastic Container Registry  | `.dkr.ecr.`      | No                         |
+| Google Cloud Container Registry | `gcr.io`         | No                         |
+| Any other registry              | -                | Yes                        |
 
 In case you need to override the defaults for your registry, you can do it like so:
 
@@ -734,7 +737,7 @@ The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min
 stored stored in the configured `tag`.
 
 `auto` is the same as `max` for most registries. Some popular registries do not support `max` and garden will fall back to `inline` for them.
- See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
 
 See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
 
@@ -996,7 +999,7 @@ Sets the deployment strategy for `container` services.
 
 The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green deployments (via the `"blue-green"` strategy).
 
-Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm` services).
+Note that this setting only applies to `container` services (and not, for example, `kubernetes` or `helm` services).
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |
@@ -1081,9 +1084,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].devMode.defaults.group`
 
@@ -1091,9 +1094,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].forceSsl`
 
@@ -1968,8 +1971,8 @@ Example:
 providers:
   - tlsCertificates:
       - secretRef:
-            name: my-tls-secret
-            namespace: default
+          name: my-tls-secret
+          namespace: default
 ```
 
 ### `providers[].tlsCertificates[].secretRef.name`
@@ -2139,7 +2142,7 @@ Example:
 ```yaml
 providers:
   - systemNodeSelector:
-        disktype: ssd
+      disktype: ssd
 ```
 
 ### `providers[].registryProxyTolerations[]`
@@ -2254,9 +2257,9 @@ providers:
 
 Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates other namespaces as well with this name as a prefix.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `object | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `object \| string` | No       |
 
 ### `providers[].namespace.name`
 
@@ -2297,4 +2300,3 @@ Set this to null or false to skip installing/enabling the `nginx` ingress contro
 | Type     | Default   | Required |
 | -------- | --------- | -------- |
 | `string` | `"nginx"` | No       |
-

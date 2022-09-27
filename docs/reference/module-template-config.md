@@ -8,8 +8,9 @@ title: Module Template Configuration
 Below is the schema reference for `ModuleTemplate` configuration files. To learn more about module templates, see the [Module Templates guide](../using-garden/module-templates.md).
 
 The reference is divided into two sections:
-* [YAML Schema](#yaml-schema) contains the config YAML schema
-* [Configuration keys](#configuration-keys) describes each individual schema key for the configuration files.
+
+- [YAML Schema](#yaml-schema) contains the config YAML schema
+- [Configuration keys](#configuration-keys) describes each individual schema key for the configuration files.
 
 Also check out the [`templated` module type reference](./module-types/templated.md).
 
@@ -184,7 +185,6 @@ modules:
 
 ## Configuration Keys
 
-
 ### `apiVersion`
 
 The schema version of this config (currently not used).
@@ -219,9 +219,9 @@ Path to a JSON schema file describing the expected inputs for the template. Must
 
 A list of modules this template will output. The schema for each is the same as when you create modules normally in configuration files, with the addition of a `path` field, which allows you to specify a sub-directory to set as the module root.
 
-In addition to any template strings you can normally use for modules (see [the reference](./template-strings/modules.md)), you can reference the inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the `files` key.
+In addition to any template strings you can normally use for modules (see [the reference](./template-strings/modules.md)), you can reference the inputs described by the inputs schema for the template, using ${inputs.\*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the `files` key.
 
-**Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputs.*}, ${parent.name} and ${template.name} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](./template-strings/modules.md)).**
+**Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputs.\*}, ${parent.name} and ${template.name} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](./template-strings/modules.md)).**
 
 | Type            | Required |
 | --------------- | -------- |
@@ -388,7 +388,7 @@ If you disable the module, and its services, tasks or tests are referenced as _r
 
 [modules](#modules) > include
 
-Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do *not* match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
+Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that do _not_ match these paths or globs are excluded when computing the version of the module, when responding to filesystem watch events, and when staging builds.
 
 Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
@@ -427,7 +427,7 @@ Example:
 modules:
   - exclude:
       - tmp/**/*
-      - '*.log'
+      - "*.log"
 ```
 
 ### `modules[].repositoryUrl`
@@ -438,9 +438,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | No       |
 
 Example:
 
@@ -531,9 +531,9 @@ module-level `variables` field.
 
 The format of the files is determined by the configured file's extension:
 
-* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
-* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+- `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+- `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+- `.json` - JSON. Must contain a single JSON _object_ (not an array).
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
@@ -561,4 +561,3 @@ POSIX-style path of a sub-directory to set as the module root. If the directory 
 | Type        | Required |
 | ----------- | -------- |
 | `posixPath` | No       |
-

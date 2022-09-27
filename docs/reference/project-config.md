@@ -8,8 +8,9 @@ title: Project Configuration
 Below is the schema reference for [Project](../using-garden/projects.md) configuration files. For an introduction to configuring a Garden project, please look at our [configuration guide](../using-garden/configuration-overview.md).
 
 The reference is divided into two sections:
-* [YAML Schema](#yaml-schema) contains the Project config YAML schema
-* [Configuration keys](#configuration-keys) describes each individual schema key for Project configuration files.
+
+- [YAML Schema](#yaml-schema) contains the Project config YAML schema
+- [Configuration keys](#configuration-keys) describes each individual schema key for Project configuration files.
 
 Note that individual providers, e.g. `kubernetes`, add their own project level configuration keys. The provider types are listed on the [Providers page](../reference/providers/README.md).
 
@@ -197,7 +198,6 @@ variables: {}
 
 ## Configuration Keys
 
-
 ### `kind`
 
 Indicate what kind of config this is.
@@ -367,9 +367,9 @@ _environment-specific_ `variables` field.
 
 The format of the files is determined by the configured file's extension:
 
-* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
-* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+- `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+- `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+- `.json` - JSON. Must contain a single JSON _object_ (not an array).
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
@@ -591,9 +591,9 @@ outputs:
 The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
 string.
 
-| Type                        | Required |
-| --------------------------- | -------- |
-| `string | number | boolean` | Yes      |
+| Type                          | Required |
+| ----------------------------- | -------- |
+| `string \| number \| boolean` | Yes      |
 
 Example:
 
@@ -633,9 +633,9 @@ sources:
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | Yes      |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | Yes      |
 
 Example:
 
@@ -651,9 +651,9 @@ project-wide `variables` field.
 
 The format of the files is determined by the configured file's extension:
 
-* `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-* `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
-* `.json` - JSON. Must contain a single JSON _object_ (not an array).
+- `.env` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+- `.yaml`/`.yml` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+- `.json` - JSON. Must contain a single JSON _object_ (not an array).
 
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
@@ -680,4 +680,3 @@ Key/value map of variables to configure for all environments. Keys may contain l
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
-
