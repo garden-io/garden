@@ -494,13 +494,13 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
               log.error({
                 status: "error",
                 section: gardenService.name,
-                msg: chalk.red(composeErrorMessage("Local app stopped", msg)),
+                msg: chalk.gray(composeErrorMessage("Local app stopped", msg)),
               })
             } else {
               log.error({
                 status: "error",
                 section: gardenService.name,
-                msg: chalk.red(
+                msg: chalk.gray(
                   composeErrorMessage(
                     `Error running local app, check the local app logs and the Garden logs in ${getLogsPath(ctx)}`,
                     msg
@@ -530,7 +530,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
             log.verbose({
               symbol: "info",
               section: gardenService.name,
-              msg: chalk.grey(composeMessage(msg, stripEol(msg.message))),
+              msg: chalk.gray(composeMessage(msg, stripEol(msg.message))),
             })
           },
         },
@@ -590,7 +590,7 @@ async function getKubectlPortForwardProcess(
         log.error({
           status: "error",
           section: gardenService.name,
-          msg: chalk.red(composeErrorMessage(`${msg.processDescription} failed`, msg)),
+          msg: chalk.gray(composeErrorMessage(`${msg.processDescription} failed`, msg)),
         })
         kubectlPortForwardFailureCounter.addFailure(() => {
           log.error({
@@ -724,7 +724,7 @@ async function getReversePortForwardProcesses(
             log.error({
               status: "error",
               section: gardenService.name,
-              msg: chalk.red(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
+              msg: chalk.gray(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
             })
             reversePortForwardFailureCounter.addFailure(() => {
               log.error({
@@ -798,7 +798,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   log.info({
     status: "active",
     section: gardenService.name,
-    msg: chalk.white("Starting in local mode..."),
+    msg: chalk.gray("Starting in local mode..."),
   })
 
   registerCleanupFunction(`redeploy-alert-for-local-mode-${gardenService.name}`, () => {
@@ -858,7 +858,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   log.verbose({
     status: "active",
     section: gardenService.name,
-    msg: chalk.grey(
+    msg: chalk.gray(
       `Starting the process tree for the local mode ssh tunnels:\n` +
         `${compositeSshTunnel.renderProcessTree(sshTunnelCmdRenderer)}`
     ),
