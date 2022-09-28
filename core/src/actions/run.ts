@@ -22,7 +22,7 @@ export interface RunActionConfig<N extends string = any, S extends object = any>
   timeout?: number
 }
 
-export const runActionConfig = () =>
+export const runActionConfigSchema = () =>
   baseRuntimeActionConfigSchema().keys({
     timeout: joi.number().integer().description("Set a timeout for the run to complete, in seconds."),
   })
