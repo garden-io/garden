@@ -2940,7 +2940,7 @@ actions:
   Build:
     <name>:
       # The state of the action.
-      status:
+      state:
 
       # Optional provider-specific information about the action status or results.
       detail:
@@ -2954,7 +2954,7 @@ actions:
   Deploy:
     <name>:
       # The state of the action.
-      status:
+      state:
 
       detail:
         # When the service was first deployed by the provider.
@@ -3050,7 +3050,7 @@ actions:
   Run:
     <name>:
       # The state of the action.
-      status:
+      state:
 
       detail:
         # Whether the module was successfully run.
@@ -3086,7 +3086,7 @@ actions:
   Test:
     <name>:
       # The state of the action.
-      status:
+      state:
 
       detail:
         # Whether the module was successfully run.
