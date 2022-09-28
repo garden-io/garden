@@ -19,6 +19,7 @@ import { BuildState } from "./plugin/handlers/build/get-status"
 import { ActionReference } from "./config/common"
 import { GraphResult } from "./graph/results"
 import { sanitizeObject } from "./logger/logger"
+import { ModuleVersion } from "./vcs/vcs"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -223,7 +224,7 @@ export interface Events extends LoggerEvents {
 
     // DEPRECATED: remove in 0.14
     moduleName: string
-    moduleVersion: string
+    moduleVersion: ModuleVersion
     /**
      * `actionUid` should only be defined if `state = "building" | "built" | "failed"` (and not if `state = "fetched",
      * since in that case, no build took place and there are no logs/timestamps to view).
@@ -242,7 +243,7 @@ export interface Events extends LoggerEvents {
     // DEPRECATED: remove in 0.14
     taskName: string
     moduleName: string
-    moduleVersion: string
+    moduleVersion: ModuleVersion
     taskVersion: string
     /**
      * `actionUid` should only be defined if the task was run , i.e. if `state = "running" | "succeeded" | "failed"`
@@ -259,7 +260,7 @@ export interface Events extends LoggerEvents {
     // DEPRECATED: remove in 0.14
     testName: string
     moduleName: string
-    moduleVersion: string
+    moduleVersion: ModuleVersion
     testVersion: string
     /**
      * `actionUid` should only be defined if the test was run, i.e. if `state = "running" | "succeeded" | "failed"`
@@ -276,7 +277,7 @@ export interface Events extends LoggerEvents {
     // DEPRECATED: remove in 0.14
     serviceName: string
     moduleName: string
-    moduleVersion: string
+    moduleVersion: ModuleVersion
     serviceVersion: string
     /**
      * `actionUid` should only be defined if a deploy took place (i.e. when emitted from the `deployService` action).

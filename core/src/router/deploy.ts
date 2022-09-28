@@ -25,7 +25,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const actionName = action.name
       const serviceName = actionName
       const actionVersion = action.versionString()
-      const moduleVersion = actionVersion
+      const moduleVersion = action.moduleVersion()
       const serviceVersion = actionVersion
       const moduleName = action.moduleName()
 
@@ -156,7 +156,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         actionName,
         actionVersion,
         serviceName: actionName,
-        moduleVersion: actionVersion,
+        moduleVersion: action.moduleVersion(),
         moduleName: action.moduleName(),
         serviceVersion: actionVersion,
         status: omit(result.detail, "detail"),
