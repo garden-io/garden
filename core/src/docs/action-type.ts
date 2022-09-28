@@ -16,7 +16,7 @@ import { ActionKind, ActionTypeDefinition } from "../plugin/action-types"
 import { buildActionConfigSchema } from "../actions/build"
 import { deployActionConfig } from "../actions/deploy"
 import { runActionConfig } from "../actions/run"
-import { testActionConfig } from "../actions/test"
+import { testActionConfigSchema } from "../actions/test"
 
 /**
  * Generates the action type reference from the action-type.hbs template.
@@ -31,7 +31,7 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
     Build: buildActionConfigSchema(),
     Deploy: deployActionConfig(),
     Run: runActionConfig(),
-    Test: testActionConfig(),
+    Test: testActionConfigSchema(),
   }
 
   const fullSchema = baseSchemas[kind].keys({ spec: schema })

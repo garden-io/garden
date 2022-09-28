@@ -22,7 +22,7 @@ export interface TestActionConfig<N extends string = any, S extends object = any
   timeout?: number
 }
 
-export const testActionConfig = () =>
+export const testActionConfigSchema = () =>
   baseRuntimeActionConfigSchema().keys({
     timeout: joi.number().integer().description("Set a timeout for the test to complete, in seconds."),
   })
