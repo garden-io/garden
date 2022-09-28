@@ -41,6 +41,7 @@ import { expectError } from "../../../../src/util/testing"
 import { GlobalConfigStore, RequirementsCheck } from "../../../../src/config-store"
 import { ExecConfigStore } from "../config-store"
 import tmp from "tmp-promise"
+import { CloudCommand } from "../../../../src/commands/cloud/cloud"
 
 describe("cli", () => {
   let cli: GardenCli
@@ -297,6 +298,38 @@ describe("cli", () => {
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(cmd.renderHelp())
+    })
+
+    it("shows nested subcommand help text if provided subcommand is a group", async () => {
+      const cmd = new CloudCommand()
+      const secrets = new cmd.subCommands[0]()
+      const { code, consoleOutput } = await cli.run({ args: ["cloud", "secrets"], exitOnError: false })
+
+      expect(code).to.equal(0)
+      expect(consoleOutput).to.equal(secrets.renderHelp())
+    })
+
+    it("shows nested subcommand help text if requested", async () => {
+      const cmd = new CloudCommand()
+      const secrets = new cmd.subCommands[0]()
+      const { code, consoleOutput } = await cli.run({ args: ["cloud", "secrets", "--help"], exitOnError: false })
+
+      expect(code).to.equal(0)
+      expect(consoleOutput).to.equal(secrets.renderHelp())
+    })
+
+    it("errors and shows general help if nonexistent command is given", async () => {
+      const { code, consoleOutput } = await cli.run({ args: ["nonexistent"], exitOnError: false })
+
+      expect(code).to.equal(1)
+      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+    })
+
+    it("errors and shows general help if nonexistent command is given with --help", async () => {
+      const { code, consoleOutput } = await cli.run({ args: ["nonexistent", "--help"], exitOnError: false })
+
+      expect(code).to.equal(1)
+      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
     })
 
     it("picks and runs a command", async () => {
