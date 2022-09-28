@@ -16,7 +16,7 @@ import { GroupConfig, groupConfig } from "../../../config/group"
 import { GardenModule, moduleSchema } from "../../../types/module"
 import { baseActionConfigSchema } from "../../../actions/base"
 import { ActionConfig } from "../../../actions/types"
-import { BuildActionConfig, buildActionConfig, BuildCopyFrom } from "../../../actions/build"
+import { BuildActionConfig, buildActionConfigSchema, BuildCopyFrom } from "../../../actions/build"
 import { GardenService, serviceSchema } from "../../../types/service"
 import { GardenTest, testSchema } from "../../../types/test"
 import { GardenTask, taskSchema } from "../../../types/task"
@@ -73,7 +73,7 @@ export const convert = () => ({
     services: joiArray(serviceSchema()).description("Any Services belonging to the Module."),
     tasks: joiArray(taskSchema()).description("Any Tasks belonging to the Module."),
     tests: joiArray(testSchema()).description("Any Tests belonging to the Module."),
-    dummyBuild: buildActionConfig().description(
+    dummyBuild: buildActionConfigSchema().description(
       "If a Build is required (i.e. if the Module uses any features that necessitate a Build action), this dummy exec Build is provided as a convenience. If an actual Build is created based on the Module, this config can be used as a base, since it sets some fields that would be needed on the returned Build, such as `copyFrom`."
     ),
     baseFields: joi

@@ -25,7 +25,7 @@ import {
   describeActionConfig,
   describeActionConfigWithPath,
 } from "../actions/base"
-import { BuildAction, buildActionConfig } from "../actions/build"
+import { BuildAction, buildActionConfigSchema } from "../actions/build"
 import { DeployAction, deployActionConfig } from "../actions/deploy"
 import { RunAction, runActionConfig } from "../actions/run"
 import { TestAction, testActionConfig } from "../actions/test"
@@ -278,7 +278,7 @@ export async function executeAction<T extends Action>({
 }
 
 const getActionConfigContextKeys = memoize(() => {
-  const schema = buildActionConfig()
+  const schema = buildActionConfigSchema()
   const configKeys = schema.describe().keys
   return Object.entries(configKeys)
     .map(([k, v]) => ((<any>v).meta?.templateContext === ProjectConfigContext ? k : null))
@@ -288,7 +288,7 @@ const getActionConfigContextKeys = memoize(() => {
 function getActionSchema(kind: ActionKind) {
   switch (kind) {
     case "Build":
-      return buildActionConfig()
+      return buildActionConfigSchema()
     case "Deploy":
       return deployActionConfig()
     case "Run":
