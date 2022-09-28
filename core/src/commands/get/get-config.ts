@@ -9,13 +9,16 @@
 import { Command, CommandResult, CommandParams } from "../base"
 import { ConfigDump } from "../../garden"
 import { environmentNameSchema } from "../../config/project"
-import { joiIdentifier, joiVariables, joiArray, joi } from "../../config/common"
+import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common"
 import { providerConfigBaseSchema, providerSchema } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
 import { workflowConfigSchema } from "../../config/workflow"
 import { BooleanParameter, ChoicesParameter } from "../../cli/params"
 import { printHeader } from "../../logger/util"
-import { baseActionConfigSchema } from "../../actions/base"
+import { buildActionConfig } from "../../actions/build"
+import { deployActionConfig } from "../../actions/deploy"
+import { runActionConfig } from "../../actions/run"
+import { testActionConfig } from "../../actions/test"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
@@ -45,7 +48,15 @@ export class GetConfigCommand extends Command<{}, Opts> {
         "A list of all configured providers in the environment."
       ),
       variables: joiVariables().description("All configured variables in the environment."),
-      actionConfigs: joiArray(baseActionConfigSchema()).description("All action configs in the project."),
+      actionConfigs: joi
+        .object()
+        .keys({
+          Build: joiStringMap(buildActionConfig()).optional().description("Build action configs in the project."),
+          Deploy: joiStringMap(deployActionConfig()).optional().description("Deploy action configs in the project."),
+          Run: joiStringMap(runActionConfig()).optional().description("Run action configs in the project."),
+          Test: joiStringMap(testActionConfig()).optional().description("Test action configs in the project."),
+        })
+        .description("All action configs in the project."),
       moduleConfigs: joiArray(moduleConfigSchema()).description("All module configs in the project."),
       workflowConfigs: joi.array().items(workflowConfigSchema()).description("All workflow configs in the project."),
       projectName: joi.string().description("The name of the project."),
