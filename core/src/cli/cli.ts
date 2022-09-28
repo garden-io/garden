@@ -606,10 +606,6 @@ ${renderCommands(commands)}
       return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
     }
 
-    if (argv._.length === 0 || argv._[0] === "help") {
-      return done(0, await this.renderHelp(workingDir))
-    }
-
     let projectConfig: ProjectResource | undefined
 
     // First look for native Garden commands
@@ -627,8 +623,9 @@ ${renderCommands(commands)}
       }
     }
 
+    // If we still haven't found a valid command, print help
     if (!command) {
-      const exitCode = argv.h || argv.help ? 0 : 1
+      const exitCode = argv._.length === 0 || argv._[0] === "help" ? 0 : 1
       return done(exitCode, await this.renderHelp(workingDir))
     }
 
