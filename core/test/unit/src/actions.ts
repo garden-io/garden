@@ -332,7 +332,13 @@ describe("ActionRouter", () => {
     describe("build", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
-        expect(result).to.eql({})
+        expect(result).to.eql({
+          detail: {},
+          outputs: {
+            foo: "bar",
+          },
+          state: "ready",
+        })
       })
 
       it("should emit buildStatus events", async () => {
@@ -344,13 +350,13 @@ describe("ActionRouter", () => {
         expect(event1).to.exist
         expect(event1.name).to.eql("buildStatus")
         expect(event1.payload.moduleName).to.eql("module-a")
-        expect(event1.payload.moduleVersion).to.eql(moduleVersion)
+        expect(event1.payload.moduleVersion.versionString).to.eql(moduleVersion)
         expect(event1.payload.status.state).to.eql("building")
         expect(event1.payload.actionUid).to.be.ok
         expect(event2).to.exist
         expect(event2.name).to.eql("buildStatus")
         expect(event2.payload.moduleName).to.eql("module-a")
-        expect(event2.payload.moduleVersion).to.eql(moduleVersion)
+        expect(event2.payload.moduleVersion.versionString).to.eql(moduleVersion)
         expect(event2.payload.status.state).to.eql("built")
         expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
       })
