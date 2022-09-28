@@ -61,7 +61,7 @@ export const copyFromSchema = () =>
     `),
   })
 
-export const buildActionConfig = () =>
+export const buildActionConfigSchema = () =>
   baseActionConfigSchema().keys({
     allowPublish: joi
       .boolean()
