@@ -395,7 +395,7 @@ describe("ActionRouter", () => {
         //   {
         //     name: "test",
         //     dependencies: [],
-        //     disabled: false,module actions
+        //     disabled: false,
         //     timeout: 1234,
         //     spec: {},
         //   },
