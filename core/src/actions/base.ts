@@ -244,7 +244,7 @@ export const baseRuntimeActionConfigSchema = () =>
 
 export const actionStatusSchema = (detailSchema?: Joi.ObjectSchema) =>
   joi.object().keys({
-    status: joi
+    state: joi
       .string()
       .allow(...actionStateTypes)
       .only()
