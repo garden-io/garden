@@ -28,7 +28,7 @@ import {
 import { BuildAction, buildActionConfigSchema } from "../actions/build"
 import { DeployAction, deployActionConfig } from "../actions/deploy"
 import { RunAction, runActionConfig } from "../actions/run"
-import { TestAction, testActionConfig } from "../actions/test"
+import { TestAction, testActionConfigSchema } from "../actions/test"
 import { noTemplateFields } from "../config/base"
 import { ActionReference, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
@@ -294,7 +294,7 @@ function getActionSchema(kind: ActionKind) {
     case "Run":
       return runActionConfig()
     case "Test":
-      return testActionConfig()
+      return testActionConfigSchema()
     default:
       return kind // exhaustive type check, kind must have type 'never' here
   }
