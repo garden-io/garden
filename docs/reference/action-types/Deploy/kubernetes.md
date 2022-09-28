@@ -160,6 +160,10 @@ varfiles: []
 build:
 
 spec:
+  # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
+  # Garden template strings, which will be resolved before applying the manifests.
+  files: []
+
   # Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or
   # `manifests` as well, these are also included.
   kustomize:
@@ -185,6 +189,11 @@ spec:
         # The name of the resource.
         name:
 
+  # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+  # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
+  # characters.
+  namespace:
+
   # Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these
   # override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to
   # create.
@@ -203,6 +212,9 @@ spec:
       # The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is
       # not available, a warning is shown and a random port chosen instead.
       localPort:
+
+  # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+  timeout: 300
 
   # Specify a default resource in the deployment to use for dev mode syncs, `garden exec` and `garden run deploy`
   # commands.
@@ -363,6 +375,59 @@ spec:
 
         # Override the args in the matched container.
         args:
+
+  # Configures the local application which will send and receive network requests instead of the target resource
+  # specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for
+  # the action.
+  #
+  # The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
+  # server to proxy requests.
+  # Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
+  #
+  # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+  # Local mode always takes the precedence over dev mode if there are any conflicting service names.
+  #
+  # Health checks are disabled for services running in local mode.
+  #
+  # See the [Local Mode
+  # guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more
+  # information.
+  localMode:
+    # The working port of the local application.
+    localPort:
+
+    # The command to run the local application. If not present, then the local application should be started manually.
+    command:
+
+    # Specifies restarting policy for the local application. By default, the local application will be restarting
+    # infinitely with 1000ms between attempts.
+    restart:
+      # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+      delayMsec: 1000
+
+      # Max number of the local application restarts. Unlimited by default.
+      max: .inf
+
+    # When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the
+    # default container name to proxy traffic from.
+    containerName:
+
+    # The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+    target:
+      # The kind of Kubernetes resource to find.
+      kind:
+
+      # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+      name:
+
+      # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+      # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+      # type.
+      podSelector:
+
+      # The name of a container in the target. Specify this if the target contains more than one container and the
+      # main container is not the first container in the spec.
+      containerName:
 ```
 
 ## Configuration Keys
@@ -592,6 +657,16 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `object` | No       |
 
+### `spec.files[]`
+
+[spec](#spec) > files
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
 ### `spec.kustomize`
 
 [spec](#spec) > kustomize
@@ -670,6 +745,16 @@ The name of the resource.
 | -------- | -------- |
 | `string` | Yes      |
 
+### `spec.namespace`
+
+[spec](#spec) > namespace
+
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `spec.portForwards[]`
 
 [spec](#spec) > portForwards
@@ -719,6 +804,16 @@ The _preferred_ local port to forward from. If none is set, a random port is cho
 | Type     | Required |
 | -------- | -------- |
 | `number` | No       |
+
+### `spec.timeout`
+
+[spec](#spec) > timeout
+
+The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 ### `spec.defaultTarget`
 
@@ -1139,6 +1234,136 @@ Override the args in the matched container.
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+### `spec.localMode`
+
+[spec](#spec) > localMode
+
+Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
+
+The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
+
+Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+Health checks are disabled for services running in local mode.
+
+See the [Local Mode guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `spec.localMode.localPort`
+
+[spec](#spec) > [localMode](#speclocalmode) > localPort
+
+The working port of the local application.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `spec.localMode.command[]`
+
+[spec](#spec) > [localMode](#speclocalmode) > command
+
+The command to run the local application. If not present, then the local application should be started manually.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `spec.localMode.restart`
+
+[spec](#spec) > [localMode](#speclocalmode) > restart
+
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
+
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `spec.localMode.restart.delayMsec`
+
+[spec](#spec) > [localMode](#speclocalmode) > [restart](#speclocalmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `spec.localMode.restart.max`
+
+[spec](#spec) > [localMode](#speclocalmode) > [restart](#speclocalmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
+
+### `spec.localMode.containerName`
+
+[spec](#spec) > [localMode](#speclocalmode) > containerName
+
+When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the default container name to proxy traffic from.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.localMode.target`
+
+[spec](#spec) > [localMode](#speclocalmode) > target
+
+The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `spec.localMode.target.kind`
+
+[spec](#spec) > [localMode](#speclocalmode) > [target](#speclocalmodetarget) > kind
+
+The kind of Kubernetes resource to find.
+
+| Type     | Allowed Values                           | Required |
+| -------- | ---------------------------------------- | -------- |
+| `string` | "Deployment", "DaemonSet", "StatefulSet" | Yes      |
+
+### `spec.localMode.target.name`
+
+[spec](#spec) > [localMode](#speclocalmode) > [target](#speclocalmodetarget) > name
+
+The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.localMode.target.podSelector`
+
+[spec](#spec) > [localMode](#speclocalmode) > [target](#speclocalmodetarget) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `spec.localMode.target.containerName`
+
+[spec](#spec) > [localMode](#speclocalmode) > [target](#speclocalmodetarget) > containerName
+
+The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 
 ## Outputs

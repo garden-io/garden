@@ -234,6 +234,9 @@ spec:
       # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
       # `.garden/artifacts`.
       target: .
+
+  # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+  image:
 ```
 
 ## Configuration Keys
@@ -756,6 +759,16 @@ spec:
     - source: /report/**/*
     - target: "outputs/foo/"
 ```
+
+### `spec.image`
+
+[spec](#spec) > image
+
+Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 
 ## Outputs
