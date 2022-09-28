@@ -60,12 +60,14 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
     basePath: string
     configFilePath?: string
     groupName?: string
-    moduleName?: string // For backwards-compatibility, applied on actions returned from module conversion handlers
     resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
     // -> set by templates
     inputs?: DeepPrimitiveMap
     parentName?: string
     templateName?: string
+    // For backwards-compatibility, applied on actions returned from module conversion handlers
+    moduleName?: string
+    moduleVersion?: ModuleVersion
   }
 
   // Flow/execution control

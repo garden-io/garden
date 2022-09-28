@@ -323,7 +323,7 @@ describe("ActionRouter", () => {
         expect(event).to.exist
         expect(event.name).to.eql("buildStatus")
         expect(event.payload.moduleName).to.eql("module-a")
-        expect(event.payload.moduleVersion).to.eql(module.version.versionString)
+        expect(event.payload.moduleVersion.versionString).to.eql(module.version.versionString)
         expect(event.payload.actionUid).to.be.undefined
         expect(event.payload.status.state).to.eql("fetched")
       })
@@ -389,7 +389,7 @@ describe("ActionRouter", () => {
         //   {
         //     name: "test",
         //     dependencies: [],
-        //     disabled: false,
+        //     disabled: false,module actions
         //     timeout: 1234,
         //     spec: {},
         //   },
