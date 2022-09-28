@@ -34,7 +34,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
 
         garden.events.emit("buildStatus", {
           moduleName: action.moduleName(),
-          moduleVersion: actionVersion,
+          moduleVersion: action.moduleVersion(),
           actionName: action.name,
           actionVersion,
           status: { state: "fetched" },
@@ -53,7 +53,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
-      const moduleVersion = actionVersion
+      const moduleVersion = action.moduleVersion()
       const moduleName = action.moduleName()
 
       params.events.on("log", ({ timestamp, data }) => {
