@@ -17,7 +17,7 @@ import { BooleanParameter, ChoicesParameter } from "../../cli/params"
 import { printHeader } from "../../logger/util"
 import { buildActionConfigSchema } from "../../actions/build"
 import { deployActionConfig } from "../../actions/deploy"
-import { runActionConfig } from "../../actions/run"
+import { runActionConfigSchema } from "../../actions/run"
 import { testActionConfigSchema } from "../../actions/test"
 
 export const getConfigOptions = {
@@ -53,7 +53,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
         .keys({
           Build: joiStringMap(buildActionConfigSchema()).optional().description("Build action configs in the project."),
           Deploy: joiStringMap(deployActionConfig()).optional().description("Deploy action configs in the project."),
-          Run: joiStringMap(runActionConfig()).optional().description("Run action configs in the project."),
+          Run: joiStringMap(runActionConfigSchema()).optional().description("Run action configs in the project."),
           Test: joiStringMap(testActionConfigSchema()).optional().description("Test action configs in the project."),
         })
         .description("All action configs in the project."),
