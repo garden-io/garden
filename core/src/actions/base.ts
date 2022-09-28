@@ -226,7 +226,7 @@ export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = 
   build?: string
 }
 
-export const baseRuntimeActionConfig = () =>
+export const baseRuntimeActionConfigSchema = () =>
   baseActionConfigSchema().keys({
     build: joiUserIdentifier()
       .description(

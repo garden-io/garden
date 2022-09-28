@@ -9,7 +9,7 @@
 import { joi } from "../config/common"
 import {
   BaseRuntimeActionConfig,
-  baseRuntimeActionConfig,
+  baseRuntimeActionConfigSchema,
   ExecutedRuntimeAction,
   ResolvedRuntimeAction,
   RuntimeAction,
@@ -23,7 +23,7 @@ export interface TestActionConfig<N extends string = any, S extends object = any
 }
 
 export const testActionConfig = () =>
-  baseRuntimeActionConfig().keys({
+  baseRuntimeActionConfigSchema().keys({
     timeout: joi.number().integer().description("Set a timeout for the test to complete, in seconds."),
   })
 
