@@ -730,6 +730,7 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
 
     if (result.group) {
       for (const action of result.group.actions) {
+        action.internal.groupName = result.group.name
         inheritModuleToAction(module, action)
       }
 
