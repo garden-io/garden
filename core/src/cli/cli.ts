@@ -613,7 +613,7 @@ ${renderCommands(commands)}
     let projectConfig: ProjectResource | undefined
 
     // First look for native Garden commands
-    let { command, matchedPath } = pickCommand(Object.values(this.commands), argv._)
+    let { command, rest, matchedPath } = pickCommand(Object.values(this.commands), argv._)
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {
@@ -632,10 +632,6 @@ ${renderCommands(commands)}
       return done(exitCode, await this.renderHelp(workingDir))
     }
 
-    if (command instanceof CommandGroup) {
-      return done(0, command.renderHelp())
-    }
-
     // Parse the arguments again with the Command set, to fully validate, and to ensure boolean options are
     // handled correctly
     argv = parseCliArgs({ stringArgs: args, command, cli: true })
@@ -643,15 +639,19 @@ ${renderCommands(commands)}
     // Slice command name from the positional args
     argv._ = argv._.slice(command.getPath().length)
 
-    // handle -h/--help
-    if (argv.h || argv.help) {
-      if (command) {
-        // Show help for command
-        return done(0, command.renderHelp())
-      } else {
-        // Show general help text
-        return done(0, await this.renderHelp(workingDir))
+    // Handle -h, --help, and subcommand listings
+    if (argv.h || argv.help || command instanceof CommandGroup) {
+      // Try to show specific help for given subcommand
+      if (command instanceof CommandGroup) {
+        for (const subCommand of command.subCommands) {
+          const sub = new subCommand()
+          if (sub.name === rest[0]) {
+            return done(0, sub.renderHelp())
+          }
+        }
+        // If not found, falls through to general command help below
       }
+      return done(0, command.renderHelp())
     }
 
     let parsedArgs: BuiltinArgs & ParameterValues<any>
