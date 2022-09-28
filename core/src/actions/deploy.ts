@@ -8,7 +8,7 @@
 
 import {
   BaseRuntimeActionConfig,
-  baseRuntimeActionConfig,
+  baseRuntimeActionConfigSchema,
   ExecutedRuntimeAction,
   ResolvedRuntimeAction,
   RuntimeAction,
@@ -20,7 +20,7 @@ export interface DeployActionConfig<N extends string = any, S extends object = a
   type: N
 }
 
-export const deployActionConfig = () => baseRuntimeActionConfig()
+export const deployActionConfig = () => baseRuntimeActionConfigSchema()
 
 export class DeployAction<S extends DeployActionConfig = any, O extends {} = any> extends RuntimeAction<S, O> {
   kind: "Deploy"
