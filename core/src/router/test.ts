@@ -30,7 +30,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const testName = actionName
       const testVersion = actionVersion
       const moduleName = action.moduleName()
-      const moduleVersion = action.moduleVersion()
+      const moduleVersion = action.moduleVersion().versionString
 
       garden.events.emit("testStatus", {
         actionName,
@@ -110,7 +110,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         actionVersion,
         testName: actionName,
         moduleName: action.moduleName(),
-        moduleVersion: action.moduleVersion(),
+        moduleVersion: action.moduleVersion().versionString,
         testVersion: actionVersion,
         status: runStatus(result.detail),
       })
