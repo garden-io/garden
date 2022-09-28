@@ -162,6 +162,10 @@ variables:
 # varfiles exist).
 varfile:
 
+# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
+# Garden template strings, which will be resolved before applying the manifests.
+files: []
+
 # Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or
 # `manifests` as well, these are also included.
 kustomize:
@@ -187,6 +191,10 @@ manifests:
       # The name of the resource.
       name:
 
+# A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+# numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
+namespace:
+
 # Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these
 # override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to
 # create.
@@ -205,6 +213,9 @@ portForwards:
     # The _preferred_ local port to forward from. If none is set, a random port is chosen. If the specified port is
     # not available, a warning is shown and a random port chosen instead.
     localPort:
+
+# The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+timeout: 300
 
 # The names of any services that this service depends on at runtime, and the names of any tasks that should be
 # executed before this service is deployed.
@@ -320,10 +331,6 @@ localMode:
     # The name of a container in the target. Specify this if the target contains more than one container and the main
     # container is not the first container in the spec.
     containerName:
-
-# POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
-# Garden template strings, which will be resolved before applying the manifests.
-files: []
 
 # The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module
 # (not to be confused with Kubernetes Service resources).
@@ -554,9 +561,6 @@ tests:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
         # `.garden/artifacts`.
         target: .
-
-# The maximum duration (in seconds) to wait for resources to deploy and become healthy.
-timeout: 300
 ```
 
 ## Configuration Keys
@@ -854,6 +858,14 @@ Example:
 varfile: "my-module.env"
 ```
 
+### `files[]`
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
 ### `kustomize`
 
 Resolve the specified kustomization and include the resulting resources. Note that if you specify `files` or `manifests` as well, these are also included.
@@ -928,6 +940,14 @@ The name of the resource.
 | -------- | -------- |
 | `string` | Yes      |
 
+### `namespace`
+
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `portForwards[]`
 
 Manually specify port forwards that Garden should set up when deploying in dev or watch mode. If specified, these override the auto-detection of forwardable ports, so you'll need to specify the full list of port forwards to create.
@@ -975,6 +995,14 @@ The _preferred_ local port to forward from. If none is set, a random port is cho
 | Type     | Required |
 | -------- | -------- |
 | `number` | No       |
+
+### `timeout`
+
+The maximum duration (in seconds) to wait for resources to deploy and become healthy.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `300`   | No       |
 
 ### `dependencies[]`
 
@@ -1276,14 +1304,6 @@ The name of a container in the target. Specify this if the target contains more 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
-
-### `files[]`
-
-POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests.
-
-| Type               | Default | Required |
-| ------------------ | ------- | -------- |
-| `array[posixPath]` | `[]`    | No       |
 
 ### `serviceResource`
 
@@ -1869,14 +1889,6 @@ tests:
   - artifacts:
       - target: "outputs/foo/"
 ```
-
-### `timeout`
-
-The maximum duration (in seconds) to wait for resources to deploy and become healthy.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `300`   | No       |
 
 
 ## Outputs

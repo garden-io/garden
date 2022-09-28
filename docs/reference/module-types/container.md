@@ -236,6 +236,36 @@ services:
       # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
       max: 90
 
+    # List of volumes that should be mounted when starting the container.
+    #
+    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
+    # deploying the container.
+    volumes:
+      - # The name of the allocated volume.
+        name:
+
+        # The path where the volume should be mounted in the container.
+        containerPath:
+
+        # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
+        # and providers. Some providers may not support it at all._
+        #
+        # A local path or path on the node that's running the container, to mount in the container, relative to the
+        # config source directory (or absolute).
+        hostPath:
+
+        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
+        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
+        # module](./persistentvolumeclaim.md), for example.
+        #
+        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
+        # dependency of this service, as well as a build dependency of this module.
+        #
+        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
+        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
+        # services at the same time. Refer to the documentation of the module type in question to learn more.
+        module:
+
     # If true, run the main container in privileged mode. Processes in privileged containers are essentially
     # equivalent to root on the host. Defaults to false.
     privileged:
@@ -446,36 +476,6 @@ services:
     # if the provider doesn't support multiple replicas.
     replicas:
 
-    # List of volumes that should be mounted when starting the container.
-    #
-    # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-    # deploying the container.
-    volumes:
-      - # The name of the allocated volume.
-        name:
-
-        # The path where the volume should be mounted in the container.
-        containerPath:
-
-        # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-        # and providers. Some providers may not support it at all._
-        #
-        # A local path or path on the node that's running the container, to mount in the container, relative to the
-        # config source directory (or absolute).
-        hostPath:
-
-        # The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will
-        # depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim
-        # module](./persistentvolumeclaim.md), for example.
-        #
-        # When a `module` is specified, the referenced module/volume will be automatically configured as a runtime
-        # dependency of this service, as well as a build dependency of this module.
-        #
-        # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-        # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-        # services at the same time. Refer to the documentation of the module type in question to learn more.
-        module:
-
 # A list of tests to run in the module.
 tests:
   - # The name of the test.
@@ -571,6 +571,9 @@ tests:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
         # `.garden/artifacts`.
         target: .
+
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    image:
 
 # A list of tasks that can be run from this container module. These can be used as dependencies for services (executed
 # before the service is deployed) or for other tasks.
@@ -678,6 +681,9 @@ tasks:
         # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
         # `.garden/artifacts`.
         target: .
+
+    # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+    image:
 
     # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
     # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its
@@ -1186,6 +1192,72 @@ The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `90`    | No       |
+
+### `services[].volumes[]`
+
+[services](#services) > volumes
+
+List of volumes that should be mounted when starting the container.
+
+Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `services[].volumes[].name`
+
+[services](#services) > [volumes](#servicesvolumes) > name
+
+The name of the allocated volume.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `services[].volumes[].containerPath`
+
+[services](#services) > [volumes](#servicesvolumes) > containerPath
+
+The path where the volume should be mounted in the container.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+### `services[].volumes[].hostPath`
+
+[services](#services) > [volumes](#servicesvolumes) > hostPath
+
+_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
+
+A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
+
+Example:
+
+```yaml
+services:
+  - volumes:
+      - hostPath: "/some/dir"
+```
+
+### `services[].volumes[].module`
+
+[services](#services) > [volumes](#servicesvolumes) > module
+
+The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
+
+When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
+
+Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `services[].privileged`
 
@@ -1847,72 +1919,6 @@ Note: This setting may be overridden or ignored in some cases. For example, when
 | -------- | -------- |
 | `number` | No       |
 
-### `services[].volumes[]`
-
-[services](#services) > volumes
-
-List of volumes that should be mounted when starting the container.
-
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `services[].volumes[].name`
-
-[services](#services) > [volumes](#servicesvolumes) > name
-
-The name of the allocated volume.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `services[].volumes[].containerPath`
-
-[services](#services) > [volumes](#servicesvolumes) > containerPath
-
-The path where the volume should be mounted in the container.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `services[].volumes[].hostPath`
-
-[services](#services) > [volumes](#servicesvolumes) > hostPath
-
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
-
-A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-Example:
-
-```yaml
-services:
-  - volumes:
-      - hostPath: "/some/dir"
-```
-
-### `services[].volumes[].module`
-
-[services](#services) > [volumes](#servicesvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
 ### `tests[]`
 
 A list of tests to run in the module.
@@ -2242,6 +2248,16 @@ tests:
       - source: /report/**/*
       - target: "outputs/foo/"
 ```
+
+### `tests[].image`
+
+[tests](#tests) > image
+
+Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tasks[]`
 
@@ -2583,6 +2599,16 @@ tasks:
       - source: /report/**/*
       - target: "outputs/foo/"
 ```
+
+### `tasks[].image`
+
+[tasks](#tasks) > image
+
+Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `tasks[].cacheResult`
 
