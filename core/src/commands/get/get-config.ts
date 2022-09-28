@@ -16,7 +16,7 @@ import { workflowConfigSchema } from "../../config/workflow"
 import { BooleanParameter, ChoicesParameter } from "../../cli/params"
 import { printHeader } from "../../logger/util"
 import { buildActionConfigSchema } from "../../actions/build"
-import { deployActionConfig } from "../../actions/deploy"
+import { deployActionConfigSchema } from "../../actions/deploy"
 import { runActionConfigSchema } from "../../actions/run"
 import { testActionConfigSchema } from "../../actions/test"
 
@@ -52,7 +52,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
         .object()
         .keys({
           Build: joiStringMap(buildActionConfigSchema()).optional().description("Build action configs in the project."),
-          Deploy: joiStringMap(deployActionConfig()).optional().description("Deploy action configs in the project."),
+          Deploy: joiStringMap(deployActionConfigSchema()).optional().description("Deploy action configs in the project."),
           Run: joiStringMap(runActionConfigSchema()).optional().description("Run action configs in the project."),
           Test: joiStringMap(testActionConfigSchema()).optional().description("Test action configs in the project."),
         })
