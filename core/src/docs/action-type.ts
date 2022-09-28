@@ -14,7 +14,7 @@ import { ModuleReferenceContext } from "../config/template-contexts/module"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 import { ActionKind, ActionTypeDefinition } from "../plugin/action-types"
 import { buildActionConfigSchema } from "../actions/build"
-import { deployActionConfig } from "../actions/deploy"
+import { deployActionConfigSchema } from "../actions/deploy"
 import { runActionConfigSchema } from "../actions/run"
 import { testActionConfigSchema } from "../actions/test"
 
@@ -29,7 +29,7 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
 
   const baseSchemas = {
     Build: buildActionConfigSchema(),
-    Deploy: deployActionConfig(),
+    Deploy: deployActionConfigSchema(),
     Run: runActionConfigSchema(),
     Test: testActionConfigSchema(),
   }
