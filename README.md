@@ -8,7 +8,7 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/master/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/main/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -32,7 +32,7 @@ With Garden you can:
 
 This is the repo for the open source Garden Core. To learn more about Garden Cloud [click here](https://cloud.docs.garden.io/).
 
-*If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖*
+_If you’re using Garden or if you like the project, please ★ star this repository to show your support 💖_
 
 ### **Getting started**
 
@@ -70,7 +70,7 @@ With the Stack Graph, each part of your stack describes itself using simple, int
 
 ![Stack Graph](docs/stack-graph-drawing.png)
 
-Garden then leverages your *existing tools and infrastructure* to execute this graph, allowing you to go **from zero to a running system in a single command**. And thanks to smart caching, it’s fast!
+Garden then leverages your _existing tools and infrastructure_ to execute this graph, allowing you to go **from zero to a running system in a single command**. And thanks to smart caching, it’s fast!
 
 For example, to create a preview environment on every pull request, simply add the following to your CI pipeline:
 
@@ -130,7 +130,7 @@ You can also head to our [community forum](https://community.garden.io/) for Qs 
 
 If you find a security issue in Garden, please follow responsible disclosure practices and send information about security issues directly to security@garden.io.
 
-For more details [see here](https://github.com/garden-io/garden/blob/master/SECURITY.md).
+For more details [see here](https://github.com/garden-io/garden/blob/main/SECURITY.md).
 
 ### **Telemetry**
 
@@ -142,4 +142,4 @@ If you are curious to see an example of the data we collect or if you would like
 
 ### **License**
 
-Garden is licensed according to [Mozilla Public License 2.0 (MPL-2.0)](https://github.com/garden-io/garden/blob/master/LICENSE.md).
+Garden is licensed according to [Mozilla Public License 2.0 (MPL-2.0)](https://github.com/garden-io/garden/blob/main/LICENSE.md).

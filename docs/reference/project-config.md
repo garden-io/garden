@@ -591,9 +591,9 @@ outputs:
 The value for the output. Must be a primitive (string, number, boolean or null). May also be any valid template
 string.
 
-| Type                        | Required |
-| --------------------------- | -------- |
-| `string | number | boolean` | Yes      |
+| Type                          | Required |
+| ----------------------------- | -------- |
+| `string \| number \| boolean` | Yes      |
 
 Example:
 
@@ -633,9 +633,9 @@ sources:
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | Yes      |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | Yes      |
 
 Example:
 

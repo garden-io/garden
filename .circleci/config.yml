@@ -16,7 +16,7 @@ orbs:
     GARDEN_LOGGER_TYPE: basic
 
   shared-machine-config: &shared-machine-config
-    image: 'ubuntu-2004:202010-01'
+    image: "ubuntu-2004:202010-01"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
@@ -43,11 +43,11 @@ orbs:
     attach_workspace:
       at: ./
 
-  # Only run jobs on master
-  only-master: &only-master
+  # Only run jobs on main
+  only-main: &only-main
     filters:
       branches:
-        only: master
+        only: main
       tags:
         ignore: /.*/
 
@@ -81,8 +81,8 @@ commands:
     steps:
       - restore_cache:
           keys:
-          - yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
-          - yarn-v4-<<parameters.context>>
+            - yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
+            - yarn-v4-<<parameters.context>>
 
       - run: yarn
 
@@ -99,7 +99,6 @@ commands:
           command: |
             git config --global user.name "Garden CI"
             git config --global user.email "admin@garden.io"
-
 
   install_kubectl:
     description: Install kubectl
@@ -489,8 +488,8 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            # Switches between git tag and master for releases
-            TAG=${CIRCLE_TAG:-master}
+            # Switches between git tag and main for releases
+            TAG=${CIRCLE_TAG:-main}
             # Push the container
             ./scripts/push-containers.sh $TAG
             # Push again with latest tag for non-pre-release tags
@@ -588,7 +587,7 @@ jobs:
       # Restore Maven cache
       - restore_cache:
           keys:
-          - m2-v1
+            - m2-v1
       # Run tests
       - run:
           name: Plugin tests
@@ -1024,18 +1023,18 @@ workflows:
           requires: [build]
           kindNodeImage: kindest/node:v1.21.2
 
-      ### MASTER ONLY ###
+      ### MAIN ONLY ###
 
       # TODO: Re-enable this if we can figure out a way to not spam users who have starred the repo.
       # - build-dist-edge:
-      #     <<: *only-master
+      #     <<: *only-main
       #     requires: [build]
       # - release-service-docker:
-      #     <<: *only-master
+      #     <<: *only-main
       #     context: docker
       #     requires: [build-dist-edge]
       # - release-service-dist-edge:
-      #     <<: *only-master
+      #     <<: *only-main
       #     requires: [build-dist-edge]
 
   tags:

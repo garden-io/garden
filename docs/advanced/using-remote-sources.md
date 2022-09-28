@@ -27,8 +27,8 @@ sources:
   - name: web-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git
   - name: db-services
-  # use #your-branch to specify a branch or #v0.3.0 to configure git version
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#master
+    # use #your-branch to specify a branch or #v0.3.0 to configure git version
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
 ```
 
 Note that the URL must point to a specific branch or tag.
@@ -108,7 +108,7 @@ Notice that it only contains the `garden.yml` file, all the source code is in th
 You can also import sources and modules from your local file system by setting the `repositoryUrl` to a local file path:
 
 ```yaml
-repositoryUrl: file:///my/local/project/path#master
+repositoryUrl: file:///my/local/project/path#main
 ```
 
 As usual, the URL must point to a specific branch or tag.
@@ -137,7 +137,7 @@ garden unlink source web-services
 
 Garden will only update a remote source if explicitly asked to do so via the `update-remote sources|modules` command.
 
-For example, if we had pointed the repository URL of the `web-services` source from above to something like a `master` branch, and we now wanted to pull the latest code from the remote, we would run:
+For example, if we had pointed the repository URL of the `web-services` source from above to something like a `main` branch, and we now wanted to pull the latest code from the remote, we would run:
 
 ```console
 garden update-remote source web-services

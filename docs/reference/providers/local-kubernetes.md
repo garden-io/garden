@@ -1081,9 +1081,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].devMode.defaults.group`
 
@@ -1091,9 +1091,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].forceSsl`
 
@@ -2254,9 +2254,9 @@ providers:
 
 Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates other namespaces as well with this name as a prefix.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `object | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `object \| string` | No       |
 
 ### `providers[].namespace.name`
 

@@ -63,7 +63,7 @@ describe("Garden", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     pathFoo = tmpDir.path
 
-    await execa("git", ["init"], { cwd: pathFoo })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: pathFoo })
 
     projectConfigFoo = {
       apiVersion: DEFAULT_API_VERSION,
@@ -2347,11 +2347,11 @@ describe("Garden", () => {
         // Create a temporary git repo to clone
         const repoPath = resolve(_tmpDir.path, garden.projectName)
         await copy(localSourcePath, repoPath)
-        await exec("git", ["init"], { cwd: repoPath })
+        await exec("git", ["init", "--initial-branch=main"], { cwd: repoPath })
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables.sourceBranch = "master"
+        garden.variables.sourceBranch = "main"
 
         const _garden = garden as any
         _garden["projectSources"] = [
@@ -3289,7 +3289,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3354,7 +3354,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3421,7 +3421,7 @@ describe("Garden", () => {
             dotIgnoreFiles: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
@@ -3478,7 +3478,7 @@ describe("Garden", () => {
             dotIgnoreFiles: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })

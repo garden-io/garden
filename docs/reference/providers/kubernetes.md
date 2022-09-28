@@ -1132,9 +1132,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].devMode.defaults.group`
 
@@ -1142,9 +1142,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].forceSsl`
 
@@ -2434,9 +2434,9 @@ You can specify a string as a shorthand for `name: <name>`. Defaults to `<projec
 
 Note that the framework may generate other namespaces as well with this name as a prefix. Also note that if the namespace previously exists, Garden will attempt to add the specified labels and annotations. If the user does not have permissions to do so, a warning is shown.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `object | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `object \| string` | No       |
 
 ### `providers[].namespace.name`
 

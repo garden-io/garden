@@ -8,7 +8,7 @@ You'll need to have Java and [Maven](https://maven.apache.org/install.html) inst
 
 ## Overview
 
-This project consists of a single module (in the `devtools` directory), which is a minimally modified version of the [Spring Boot devtools sample project found here](https://github.com/spring-projects/spring-boot/tree/master/spring-boot-project/spring-boot-devtools).
+This project consists of a single module (in the `devtools` directory), which is a minimally modified version of the [Spring Boot devtools sample project found here](https://github.com/spring-projects/spring-boot/tree/main/spring-boot-project/spring-boot-devtools).
 
 We've changed the parent pom from `spring-boot-samples` to `spring-boot-starter-parent`, and added a dependency on `spring-boot-starter-actuator` (to enable the health check endpoint for k8s readiness and liveness probes). We've also removed the artificial 5 second delay that was added by the `slowRestart` method in `MyController`.
 
@@ -38,6 +38,7 @@ took 67 sec)
 
 🕑  Waiting for code changes
 ```
+
 Open the ingress URL (http://spring-boot-hot-reload.local.app.garden above) in a web browser.
 
 Now, change the value of the `MESSAGE` constant in `devtools/src/main/java/sample/devtools/Message.java` to something else than `"Message"`, and run `mvn compile` (again in the `devtools` directory).

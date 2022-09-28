@@ -311,7 +311,7 @@ services:
     # Health checks are disabled for services running in local mode.
     #
     # See the [Local Mode
-    # guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more
+    # guide](https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md) for more
     # information.
     localMode:
       # The working port of the local application.
@@ -924,9 +924,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | No       |
 
 Example:
 
@@ -1391,9 +1391,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `services[].devMode.sync[].defaultGroup`
 
@@ -1401,9 +1401,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `services[].localMode`
 
@@ -1419,7 +1419,7 @@ Local mode always takes the precedence over dev mode if there are any conflictin
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more information.
+See the [Local Mode guide](https://github.com/garden-io/garden/blob/main/docs/guides/running-service-in-local-mode.md) for more information.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2829,9 +2829,9 @@ A map of all variables defined in the module.
 
 ### `${modules.<module-name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${modules.<module-name>.version}`
 

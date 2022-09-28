@@ -33,7 +33,7 @@ Both, actually.
 
 We aim to change to this behavior and make it more user-friendly with our next major release.
 
-### When should I use the module-level `include`/`exclude` fields? How are they different from the project-level  `module.include/module.exclude` fields? What about ignore files?
+### When should I use the module-level `include`/`exclude` fields? How are they different from the project-level `module.include/module.exclude` fields? What about ignore files?
 
 Read all about it in [this section](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) of our docs.
 
@@ -69,7 +69,7 @@ See [this example project](https://github.com/garden-io/garden/tree/0.12.44/exam
 
 ### Can I use runtime variables in container builds (e.g. from tasks)?
 
-No, only *modules* can be build dependencies and runtime outputs come from *tasks*, *tests*, and *services*.
+No, only _modules_ can be build dependencies and runtime outputs come from _tasks_, _tests_, and _services_.
 
 ### How do I view container build logs?
 
@@ -103,7 +103,6 @@ dockerfile: dockerfiles/api.Dockerfile
 include: [api/**/*]
 
 ---
-
 kind: Module
 name: frontend
 dockerfile: dockerfiles/frontend.Dockerfile
@@ -120,7 +119,7 @@ See [this example project](https://github.com/garden-io/garden/tree/0.12.44/exam
 
 ### How do I add Docker specific flags to the build command?
 
-Use the module-level  [`extraFlags` field](https://docs.garden.io/module-types/container#extraflags).
+Use the module-level [`extraFlags` field](https://docs.garden.io/module-types/container#extraflags).
 
 ### How do I use different Dockerfiles for different environments?
 
@@ -298,7 +297,7 @@ Garden also optionally installs Nginx. The `local-kubernetes` provider defaults 
 
 Furthermore, the `openfaas` provider installs some components necessary for OpenFaas to work.
 
-Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/master/static) under `kubernetes/system` and `openfaas/system`.
+Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/main/static) under `kubernetes/system` and `openfaas/system`.
 
 ### How does Garden resolve the `*.local.app.garden` domain?
 

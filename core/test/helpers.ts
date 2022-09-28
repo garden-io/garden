@@ -62,7 +62,7 @@ export const testModuleVersion: ModuleVersion = {
 }
 
 // All test projects use this git URL
-export const testGitUrl = "https://my-git-server.com/my-repo.git#master"
+export const testGitUrl = "https://my-git-server.com/my-repo.git#main"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
 
 export function getDataDir(...names: string[]) {
@@ -528,7 +528,7 @@ async function prepareRemoteGarden({
     const remoteSourceRelPath = getRemoteSourceRelPath({ name, url: testGitUrl, sourceType: type })
     const targetPath = join(garden.projectRoot, ".garden", remoteSourceRelPath)
     await copy(join(extSourcesRoot, name), targetPath)
-    await execa("git", ["init"], { cwd: targetPath })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
   })
 
   return garden

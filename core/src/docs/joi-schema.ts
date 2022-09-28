@@ -170,8 +170,8 @@ function formatType(joiDescription: JoiDescription) {
     const arrayType = items[0].type
     return `array[${arrayType}]`
   } else if (type === "alternatives") {
-    // returns e.g. "string|number"
-    return uniq(joiDescription.matches.map(({ schema }) => formatType(schema))).join(" | ")
+    // returns e.g. "string \| number". pipe escaped for semantically-correct markdown tables
+    return uniq(joiDescription.matches.map(({ schema }) => formatType(schema))).join(" \\| ")
   } else {
     return type || ""
   }

@@ -31,7 +31,7 @@ describe("hadolint provider", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     tmpPath = tmpDir.path
 
-    await execa("git", ["init"], { cwd: tmpPath })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
 
     projectConfigFoo = {
       apiVersion: DEFAULT_API_VERSION,

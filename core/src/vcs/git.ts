@@ -53,7 +53,7 @@ export function parseGitUrl(url: string) {
     throw new ConfigurationError(
       deline`
         Repository URLs must contain a hash part pointing to a specific branch or tag
-        (e.g. https://github.com/org/repo.git#master)`,
+        (e.g. https://github.com/org/repo.git#main)`,
       { repositoryUrl: url }
     )
   }

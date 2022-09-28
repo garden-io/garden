@@ -1,6 +1,6 @@
 # Disabled configs example project
 
-A simple variation on the [demo-project](https://github.com/garden-io/garden/blob/master/examples/demo-project/README.md) where the `backend` module, and the `integ` test in the `frontend` module, are disabled for the `local` environment.
+A simple variation on the [demo-project](https://github.com/garden-io/garden/blob/main/examples/demo-project/README.md) where the `backend` module, and the `integ` test in the `frontend` module, are disabled for the `local` environment.
 
 The `backend` config then looks like this:
 
