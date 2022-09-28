@@ -224,7 +224,7 @@ export interface Events extends LoggerEvents {
 
     // DEPRECATED: remove in 0.14
     moduleName: string
-    moduleVersion: ModuleVersion
+    moduleVersion: string
     /**
      * `actionUid` should only be defined if `state = "building" | "built" | "failed"` (and not if `state = "fetched",
      * since in that case, no build took place and there are no logs/timestamps to view).
@@ -243,7 +243,7 @@ export interface Events extends LoggerEvents {
     // DEPRECATED: remove in 0.14
     taskName: string
     moduleName: string
-    moduleVersion: ModuleVersion
+    moduleVersion: string
     taskVersion: string
     /**
      * `actionUid` should only be defined if the task was run , i.e. if `state = "running" | "succeeded" | "failed"`
@@ -260,7 +260,7 @@ export interface Events extends LoggerEvents {
     // DEPRECATED: remove in 0.14
     testName: string
     moduleName: string
-    moduleVersion: ModuleVersion
+    moduleVersion: string
     testVersion: string
     /**
      * `actionUid` should only be defined if the test was run, i.e. if `state = "running" | "succeeded" | "failed"`
@@ -277,7 +277,7 @@ export interface Events extends LoggerEvents {
     // DEPRECATED: remove in 0.14
     serviceName: string
     moduleName: string
-    moduleVersion: ModuleVersion
+    moduleVersion: string
     serviceVersion: string
     /**
      * `actionUid` should only be defined if a deploy took place (i.e. when emitted from the `deployService` action).

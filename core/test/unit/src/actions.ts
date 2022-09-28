@@ -323,7 +323,7 @@ describe("ActionRouter", () => {
         expect(event).to.exist
         expect(event.name).to.eql("buildStatus")
         expect(event.payload.moduleName).to.eql("module-a")
-        expect(event.payload.moduleVersion.versionString).to.eql(module.version.versionString)
+        expect(event.payload.moduleVersion).to.eql(module.version.versionString)
         expect(event.payload.actionUid).to.be.undefined
         expect(event.payload.status.state).to.eql("fetched")
       })
@@ -350,13 +350,13 @@ describe("ActionRouter", () => {
         expect(event1).to.exist
         expect(event1.name).to.eql("buildStatus")
         expect(event1.payload.moduleName).to.eql("module-a")
-        expect(event1.payload.moduleVersion.versionString).to.eql(moduleVersion)
+        expect(event1.payload.moduleVersion).to.eql(moduleVersion)
         expect(event1.payload.status.state).to.eql("building")
         expect(event1.payload.actionUid).to.be.ok
         expect(event2).to.exist
         expect(event2.name).to.eql("buildStatus")
         expect(event2.payload.moduleName).to.eql("module-a")
-        expect(event2.payload.moduleVersion.versionString).to.eql(moduleVersion)
+        expect(event2.payload.moduleVersion).to.eql(moduleVersion)
         expect(event2.payload.status.state).to.eql("built")
         expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
       })
