@@ -27,7 +27,7 @@ import {
 } from "../actions/base"
 import { BuildAction, buildActionConfigSchema } from "../actions/build"
 import { DeployAction, deployActionConfig } from "../actions/deploy"
-import { RunAction, runActionConfig } from "../actions/run"
+import { RunAction, runActionConfigSchema } from "../actions/run"
 import { TestAction, testActionConfigSchema } from "../actions/test"
 import { noTemplateFields } from "../config/base"
 import { ActionReference, parseActionReference } from "../config/common"
@@ -292,7 +292,7 @@ function getActionSchema(kind: ActionKind) {
     case "Deploy":
       return deployActionConfig()
     case "Run":
-      return runActionConfig()
+      return runActionConfigSchema()
     case "Test":
       return testActionConfigSchema()
     default:
