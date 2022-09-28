@@ -13,7 +13,7 @@ import { joi } from "../config/common"
 import { ModuleReferenceContext } from "../config/template-contexts/module"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 import { ActionKind, ActionTypeDefinition } from "../plugin/action-types"
-import { buildActionConfig } from "../actions/build"
+import { buildActionConfigSchema } from "../actions/build"
 import { deployActionConfig } from "../actions/deploy"
 import { runActionConfig } from "../actions/run"
 import { testActionConfig } from "../actions/test"
@@ -28,7 +28,7 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
   const kindLower = kind.toLowerCase()
 
   const baseSchemas = {
-    Build: buildActionConfig(),
+    Build: buildActionConfigSchema(),
     Deploy: deployActionConfig(),
     Run: runActionConfig(),
     Test: testActionConfig(),
