@@ -153,30 +153,7 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
-# The required attributes of a service. This is generally further defined by plugins.
 spec:
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-  # and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63
-  # characters.
-  name:
-
-  # The names of any services that this service depends on at runtime, and the names of any tasks that should be
-  # executed before this service is deployed.
-  dependencies: []
-
-  # Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable
-  # services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name !=
-  # "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
-  # development.
-  #
-  # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime
-  # dependency for another service, test or task.
-  #
-  # Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve
-  # when the service is disabled, so you need to make sure to provide alternate values for those if you're using them,
-  # using conditional expressions.
-  disabled: false
-
   # The command/entrypoint to run the container with.
   command:
 
@@ -659,45 +636,9 @@ This would mean that instead of looking for manifest files relative to this acti
 
 ### `spec`
 
-The required attributes of a service. This is generally further defined by plugins.
-
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
-
-### `spec.name`
-
-[spec](#spec) > name
-
-Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash), cannot contain consecutive dashes or start with `garden`, or be longer than 63 characters.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `spec.dependencies[]`
-
-[spec](#spec) > dependencies
-
-The names of any services that this service depends on at runtime, and the names of any tasks that should be executed before this service is deployed.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[string]` | `[]`    | No       |
-
-### `spec.disabled`
-
-[spec](#spec) > disabled
-
-Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
-
-Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
-
-Note however that template strings referencing the service's outputs (i.e. runtime outputs) will fail to resolve when the service is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
 
 ### `spec.command[]`
 
