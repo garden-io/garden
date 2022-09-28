@@ -308,7 +308,11 @@ describe("ActionRouter", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actionRouter.build.getStatus({ log, action: resolvedBuildAction, graph })
         expect(result).to.eql({
-          ready: true,
+          detail: {},
+          outputs: {
+            foo: "bar",
+          },
+          state: "ready",
         })
       })
 
