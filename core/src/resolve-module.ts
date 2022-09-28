@@ -759,6 +759,8 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   action.internal.resolved = true
 
   // Enforce some inheritance from module
+  action.internal.moduleName = module.name
+  action.internal.moduleVersion = module.version
   if (module.disabled) {
     action.disabled = true
   }

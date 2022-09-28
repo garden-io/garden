@@ -139,6 +139,8 @@ export async function actionFromConfig({
     projectRoot: garden.projectRoot,
     treeVersion,
     variables,
+    moduleName: config.internal.moduleName,
+    moduleVersion: config.internal.moduleVersion,
   }
 
   if (config.kind === "Build") {
