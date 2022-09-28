@@ -18,7 +18,7 @@ import { printHeader } from "../../logger/util"
 import { buildActionConfigSchema } from "../../actions/build"
 import { deployActionConfig } from "../../actions/deploy"
 import { runActionConfig } from "../../actions/run"
-import { testActionConfig } from "../../actions/test"
+import { testActionConfigSchema } from "../../actions/test"
 
 export const getConfigOptions = {
   "exclude-disabled": new BooleanParameter({
@@ -54,7 +54,7 @@ export class GetConfigCommand extends Command<{}, Opts> {
           Build: joiStringMap(buildActionConfigSchema()).optional().description("Build action configs in the project."),
           Deploy: joiStringMap(deployActionConfig()).optional().description("Deploy action configs in the project."),
           Run: joiStringMap(runActionConfig()).optional().description("Run action configs in the project."),
-          Test: joiStringMap(testActionConfig()).optional().description("Test action configs in the project."),
+          Test: joiStringMap(testActionConfigSchema()).optional().description("Test action configs in the project."),
         })
         .description("All action configs in the project."),
       moduleConfigs: joiArray(moduleConfigSchema()).description("All module configs in the project."),
