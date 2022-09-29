@@ -1,4 +1,63 @@
 
+<a name="0.12.45"></a>
+## [0.12.45](https://github.com/garden-io/garden/compare/0.12.44...0.12.45) (2022-09-29)
+
+### Bug Fixes
+
+* make copy target actually default to source ([#3223](https://github.com/garden-io/garden/issues/3223)) ([b8960204c](https://github.com/garden-io/garden/commit/b8960204c))
+* remove unused import ([6e0182f0e](https://github.com/garden-io/garden/commit/6e0182f0e))
+* integration tests ([a4e9b188d](https://github.com/garden-io/garden/commit/a4e9b188d))
+* pulumi ([0eff394fd](https://github.com/garden-io/garden/commit/0eff394fd))
+* use deploymentImageId ([2c6252d0d](https://github.com/garden-io/garden/commit/2c6252d0d))
+* ECR and GCR only work with inline, so adding inline support ([330c3e7d0](https://github.com/garden-io/garden/commit/330c3e7d0))
+* error path did not work ([c0ac65ee3](https://github.com/garden-io/garden/commit/c0ac65ee3))
+* ensure semver format in git/rsync version regex ([81cb0f98f](https://github.com/garden-io/garden/commit/81cb0f98f))
+* subcommand help listing ([#3261](https://github.com/garden-io/garden/issues/3261)) ([5e9593440](https://github.com/garden-io/garden/commit/5e9593440))
+* **cli:** run exec commands from proj root ([5d0cd005c](https://github.com/garden-io/garden/commit/5d0cd005c))
+* **core:** fix Rosetta detection logic for OSX ([ff96b2ff1](https://github.com/garden-io/garden/commit/ff96b2ff1))
+* **core:** fixed concurrency issue with plugin tool downloads ([1c65ac7f5](https://github.com/garden-io/garden/commit/1c65ac7f5))
+* **docs:** fixed template strings rendering in docs generator ([7bc1e602a](https://github.com/garden-io/garden/commit/7bc1e602a))
+* **lint:** remove unused import ([16d79cd56](https://github.com/garden-io/garden/commit/16d79cd56))
+
+### Features
+
+* configurable maven phases in jib modules ([e0b6d0814](https://github.com/garden-io/garden/commit/e0b6d0814))
+* flexible cache configuration ([1bc973bf6](https://github.com/garden-io/garden/commit/1bc973bf6))
+* simple mode=max support with a list of not supported registries ([1a5f407dd](https://github.com/garden-io/garden/commit/1a5f407dd))
+* add option to run git pulls in parallel ([5554a3dc8](https://github.com/garden-io/garden/commit/5554a3dc8))
+* allow module overlap if one or both of them are disabled ([#3222](https://github.com/garden-io/garden/issues/3222)) ([b97678999](https://github.com/garden-io/garden/commit/b97678999))
+* use m1 native tools ([99a2c3c58](https://github.com/garden-io/garden/commit/99a2c3c58))
+* **k8s:** add support for cache registries in addition to deployment registries ([f7cf376bf](https://github.com/garden-io/garden/commit/f7cf376bf))
+
+### Improvements
+
+* configurable maven binary ([dd8396c08](https://github.com/garden-io/garden/commit/dd8396c08))
+* more precise error handling in binary tool version checker ([c102ebae9](https://github.com/garden-io/garden/commit/c102ebae9))
+* upgraded maven version to 3.8.5 ([84bcb67b2](https://github.com/garden-io/garden/commit/84bcb67b2))
+* upgraded default terraform tool version to 1.2.9 ([#3220](https://github.com/garden-io/garden/issues/3220)) ([8f6a3be44](https://github.com/garden-io/garden/commit/8f6a3be44))
+* avoid `!` altogether ([717c167ea](https://github.com/garden-io/garden/commit/717c167ea))
+* simplify by removing darwinPreferredArch. For all the tools we have, it works without ([1fecb18b8](https://github.com/garden-io/garden/commit/1fecb18b8))
+* refactor variable names ([7b76ba0c2](https://github.com/garden-io/garden/commit/7b76ba0c2))
+* support calling rosetta when garden goes native ([945e3005c](https://github.com/garden-io/garden/commit/945e3005c))
+* memoize isRosetta ([57e5f8ed8](https://github.com/garden-io/garden/commit/57e5f8ed8))
+* add available arm64 versions ([b3c7a5df5](https://github.com/garden-io/garden/commit/b3c7a5df5))
+* pairing with Albert is fun ([bad1f8d2b](https://github.com/garden-io/garden/commit/bad1f8d2b))
+* simplify code ([e89ea7aa9](https://github.com/garden-io/garden/commit/e89ea7aa9))
+* allow non-subpaths for dev-mode sync ([2f71ce5d2](https://github.com/garden-io/garden/commit/2f71ce5d2))
+* upgraded gradle version to 7.5.1 ([6a6504e1d](https://github.com/garden-io/garden/commit/6a6504e1d))
+* check for requirements being installed ([#3097](https://github.com/garden-io/garden/issues/3097)) ([63628b13b](https://github.com/garden-io/garden/commit/63628b13b))
+* **jib:** updated lts jdks (8 and 11) to the latest releases ([75ed16436](https://github.com/garden-io/garden/commit/75ed16436))
+* **jib:** supported jdk 17 lts version ([3f3c91f31](https://github.com/garden-io/garden/commit/3f3c91f31))
+* **jib:** configurable jdk path ([3fa1fe45b](https://github.com/garden-io/garden/commit/3fa1fe45b))
+* **jib:** added openjdk 13 ([12ffec527](https://github.com/garden-io/garden/commit/12ffec527))
+* **jib:** stricter validation and better error messages ([203ef357a](https://github.com/garden-io/garden/commit/203ef357a))
+* **local-mode:** allow multiple port-forwards ([a98af5363](https://github.com/garden-io/garden/commit/a98af5363))
+
+### BREAKING CHANGE
+
+
+Change default terraform version from `0.13.3` to `1.2.9`
+
 <a name="0.12.44"></a>
 ## [0.12.44](https://github.com/garden-io/garden/compare/0.12.43...0.12.44) (2022-08-03)
 
