@@ -167,9 +167,9 @@ A map of variables to use when applying Terraform stacks. You can define these h
 
 The version of Terraform to use. Set to `null` to use whichever version of `terraform` that is on your PATH.
 
-| Type     | Default   | Required |
-| -------- | --------- | -------- |
-| `string` | `"1.2.9"` | No       |
+| Type     | Allowed Values                                        | Default   | Required |
+| -------- | ----------------------------------------------------- | --------- | -------- |
+| `string` | "0.12.26", "0.13.3", "0.14.7", "1.0.5", "1.2.9", null | `"1.2.9"` | Yes      |
 
 ### `providers[].workspace`
 
