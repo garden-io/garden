@@ -276,7 +276,7 @@ export async function executeAction<T extends Action>({
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
 
-  return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.outputs.executedAction)
+  return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
 const getActionConfigContextKeys = memoize(() => {
