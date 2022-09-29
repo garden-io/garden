@@ -10,7 +10,11 @@ variables:
 services:
   - name: backend-1
     localMode:
-      localPort: 8090
+      ports:
+        - remote: 8080
+          local: 8090
+        - remote: 8000
+          local: 8001
       # starts the local application
       command: ["../backend-local-1/main"]
     healthCheck:
@@ -22,9 +26,12 @@ services:
         containerPort: 8080
         # Maps service:80 -> container:8080
         servicePort: 80
+      - name: http2
+        containerPort: 8000
+        servicePort: 80
     ingresses:
       - path: ${var.ingressPath}
-        port: http
+        port: http # http2 can be used as an alternative port here
 
 tasks:
   - name: test-1

@@ -10,7 +10,9 @@ variables:
 services:
   - name: backend-2
     localMode:
-      localPort: 8091
+      ports:
+        - remote: 8081
+          local: 8091
       # starts the local application
       command: ["../backend-local-2/main"]
     healthCheck:

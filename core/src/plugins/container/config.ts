@@ -352,15 +352,39 @@ export const localModeRestartSchema = () =>
       `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`
     )
 
+export interface LocalModePortsSpec {
+  local: number
+  remote: number
+}
+
+export const localModePortsSchema = () =>
+  joi.object().keys({
+    local: joi
+      .number()
+      .integer()
+      .greater(0)
+      .optional()
+      .description("The local port to be used for reverse port-forward."),
+    remote: joi
+      .number()
+      .integer()
+      .greater(0)
+      .optional()
+      .description("The remote port to be used for reverse port-forward."),
+  })
+
 export interface ContainerLocalModeSpec {
-  localPort: number
+  ports: LocalModePortsSpec[]
   command?: string[]
   restart: LocalModeRestartSpec
 }
 
 export const containerLocalModeSchema = () =>
   joi.object().keys({
-    localPort: joi.number().description("The working port of the local application."),
+    ports: joi
+      .array()
+      .items(localModePortsSchema())
+      .description("The reverse port-forwards configuration for the local application."),
     command: joi
       .sparseArray()
       .optional()

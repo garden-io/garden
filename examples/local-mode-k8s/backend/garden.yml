@@ -4,7 +4,9 @@ description: Backend service container
 type: kubernetes
 
 localMode:
-  localPort: 8090
+  ports:
+    - local: 8090
+      remote: 8080
   # starts the local application
   command: [ "../backend-local/main" ]
   containerName: backend

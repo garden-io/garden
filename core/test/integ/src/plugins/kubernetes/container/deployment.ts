@@ -99,7 +99,7 @@ describe("kubernetes container deployment handlers", () => {
       const env = appContainerSpec!.env!
 
       const httpPort = appContainerSpec!.ports!.find((p) => p.name === "http")!.containerPort.toString()
-      const appPortEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORT)!.value
+      const appPortEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_REMOTE_CONTAINER_PORTS)!.value
       expect(appPortEnvVar).to.eql(httpPort)
 
       const proxyUserEnvVar = env.find((v) => v.name === LocalModeEnv.GARDEN_PROXY_CONTAINER_USER_NAME)!.value
