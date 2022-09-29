@@ -2368,7 +2368,7 @@ const testPlugin = createGardenPlugin({
                 testName: params.action.name,
                 version: params.action.versionString(),
               },
-              outputs: [],
+              outputs: {},
             }
           },
 
