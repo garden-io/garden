@@ -479,63 +479,65 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
   const eolRegex = /\r?\n?$/
   const stripEol = (message: string) => message.replace(eolRegex, "")
 
-  return !!localAppCmd
-    ? new RecoverableProcess({
-        osCommand: localAppCmd,
-        retryConfig: {
-          maxRetries: configParams.spec.restart.max,
-          minTimeoutMs: configParams.spec.restart.delayMsec,
-        },
-        log,
-        stderrListener: {
-          hasErrors: (_chunk: any) => true,
-          onError: (msg: ProcessMessage) => {
-            if (msg.code || msg.signal) {
-              log.error({
-                status: "error",
-                section: gardenService.name,
-                msg: chalk.gray(composeErrorMessage("Local app stopped", msg)),
-              })
-            } else {
-              log.error({
-                status: "error",
-                section: gardenService.name,
-                msg: chalk.gray(
-                  composeErrorMessage(
-                    `Error running local app, check the local app logs and the Garden logs in ${getLogsPath(ctx)}`,
-                    msg
-                  )
-                ),
-              })
-            }
-            localAppFailureCounter.addFailure(() => {
-              log.error({
-                status: "warn",
-                symbol: "warning",
-                section: gardenService.name,
-                msg: chalk.yellow(
-                  `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
-                    ctx
-                  )} and consider restarting Garden.`
-                ),
-              })
-            })
-          },
-          onMessage: (_msg: ProcessMessage) => {},
-        },
-        stdoutListener: {
-          hasErrors: (_chunk: any) => false,
-          onError: (_msg: ProcessMessage) => {},
-          onMessage: (msg: ProcessMessage) => {
-            log.verbose({
-              symbol: "info",
-              section: gardenService.name,
-              msg: chalk.gray(composeMessage(msg, stripEol(msg.message))),
-            })
-          },
-        },
-      })
-    : undefined
+  if (!localAppCmd) {
+    return undefined
+  }
+
+  return new RecoverableProcess({
+    osCommand: localAppCmd,
+    retryConfig: {
+      maxRetries: configParams.spec.restart.max,
+      minTimeoutMs: configParams.spec.restart.delayMsec,
+    },
+    log,
+    stderrListener: {
+      hasErrors: (_chunk: any) => true,
+      onError: (msg: ProcessMessage) => {
+        if (msg.code || msg.signal) {
+          log.error({
+            status: "error",
+            section: gardenService.name,
+            msg: chalk.gray(composeErrorMessage("Local app stopped", msg)),
+          })
+        } else {
+          log.error({
+            status: "error",
+            section: gardenService.name,
+            msg: chalk.gray(
+              composeErrorMessage(
+                `Error running local app, check the local app logs and the Garden logs in ${getLogsPath(ctx)}`,
+                msg
+              )
+            ),
+          })
+        }
+        localAppFailureCounter.addFailure(() => {
+          log.error({
+            status: "warn",
+            symbol: "warning",
+            section: gardenService.name,
+            msg: chalk.yellow(
+              `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
+                ctx
+              )} and consider restarting Garden.`
+            ),
+          })
+        })
+      },
+      onMessage: (_msg: ProcessMessage) => {},
+    },
+    stdoutListener: {
+      hasErrors: (_chunk: any) => false,
+      onError: (_msg: ProcessMessage) => {},
+      onMessage: (msg: ProcessMessage) => {
+        log.verbose({
+          symbol: "info",
+          section: gardenService.name,
+          msg: chalk.gray(composeMessage(msg, stripEol(msg.message))),
+        })
+      },
+    },
+  })
 }
 
 async function getKubectlPortForwardCommand(
