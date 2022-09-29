@@ -750,10 +750,8 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
 }
 
 function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
-  if (!action.internal) {
-    action.internal = {
-      basePath: module.path,
-    }
+  if (!action.internal.basePath) {
+    action.internal.basePath = module.path
   }
 
   // Converted actions are fully resolved upfront
