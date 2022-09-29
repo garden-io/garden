@@ -262,7 +262,7 @@ export class RecoverableProcess {
   }
 
   public getProcessDescription(): string {
-    return !!this.command.description ? this.command.description : renderOsCommand(this.command)
+    return this.command.description || renderOsCommand(this.command)
   }
 
   public getCurrentState(): RecoverableProcessState {
