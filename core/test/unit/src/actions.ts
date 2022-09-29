@@ -383,7 +383,7 @@ describe("ActionRouter", () => {
           log: "bla bla",
           success: true,
           startedAt: now,
-          version: module.version.versionString,
+          version: resolvedBuildAction.versionString(),
         })
       })
     })
