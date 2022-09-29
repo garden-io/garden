@@ -1258,7 +1258,7 @@ export class Garden {
     this.log.silly(`Load configs from ${configPath}`)
     const resources = await loadConfigResources(this.projectRoot, configPath)
     this.log.silly(`Loaded configs from ${configPath}`)
-    return <GardenResource[]>resources.filter((r) => r.kind && r.kind !== "Project")
+    return resources.filter((r) => r.kind && r.kind !== "Project")
   }
 
   //===========================================================================
