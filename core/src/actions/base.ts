@@ -424,7 +424,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       })
     )
 
-    const versionString = hashStrings([this.configVersion(), this._treeVersion.contentHash])
+    const versionString = versionStringPrefix + hashStrings([this.configVersion(), this._treeVersion.contentHash])
 
     return {
       versionString,
