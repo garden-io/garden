@@ -111,7 +111,7 @@ garden plugins pulumi preview -- my-pulumi-module my-other-pulumi-module
 
 ## Next steps
 
-Check out the [`pulumi` example](https://github.com/garden-io/garden/tree/0.12.44/examples/pulumi) project.
+Check out the [`pulumi` example](https://github.com/garden-io/garden/tree/0.12.45/examples/pulumi) project.
 
 Also take a look at the [pulumi provider reference]() and the [pulumi module type reference] for details on all the configuration parameters.
 
