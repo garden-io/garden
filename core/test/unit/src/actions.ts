@@ -43,7 +43,7 @@ import {
 } from "../../../src/plugins/exec/config"
 import { convertModules } from "../../../src/resolve-module"
 import { actionFromConfig } from "../../../src/graph/actions"
-import { TestAction } from "../../../src/actions/test"
+import { TestAction, TestActionConfig } from "../../../src/actions/test"
 import { TestConfig } from "../../../src/config/test"
 import { findByName } from "../../../src/util/util"
 import { ResolvedRunAction } from "../../../src/actions/run"
@@ -109,20 +109,17 @@ describe("ActionRouter", () => {
     await garden.close()
   })
 
-  async function executeTestAction(targetModule: GardenModule, testConfig: TestConfig) {
-    const testModule = cloneDeep(targetModule)
-    testModule.testConfigs.push(testConfig)
-    const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
+  async function getResolvedAction(testConfig: TestActionConfig<string, any>) {
     const action = (await actionFromConfig({
       garden,
       // rebuild config graph because the module config has been changed
       graph: await garden.getConfigGraph({ emit: false, log: garden.log }),
-      config: actions.filter((a) => a.name === testConfig.name)[0],
+      config: testConfig,
       log: garden.log,
       configsByKey: {},
       router: await garden.getActionRouter(),
     })) as TestAction
-    return await garden.executeAction<TestAction>({ action, log: garden.log })
+    return await garden.resolveAction<TestAction>({ action, log: garden.log })
   }
 
   // Note: The test plugins below implicitly validate input params for each of the tests
