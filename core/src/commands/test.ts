@@ -68,7 +68,7 @@ export const testOpts = {
     dependencies without redeploying any service dependencies that may have changed since you last deployed.
     Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
     your test suites are up to date when this option is used.`,
-    alias: "no-deps",
+    alias: "nodeps",
   }),
   "skip-dependants": new BooleanParameter({
     help: deline`

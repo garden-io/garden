@@ -87,7 +87,7 @@ export const deployOpts = {
     This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in
     dev mode without redeploying any service dependencies that may have changed since you last deployed.
     `,
-    alias: "no-deps",
+    alias: "nodeps",
   }),
   "forward": new BooleanParameter({
     help: deline`Create port forwards and leave process running without watching
