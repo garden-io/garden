@@ -13,13 +13,13 @@ import chalk from "chalk"
 import { Command, CommandResult, CommandParams } from "../base"
 import { SourceConfig, moduleSourceSchema } from "../../config/project"
 import { ParameterError } from "../../exceptions"
-import { pruneRemoteSources } from "./helpers"
+import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers"
 import { hasRemoteSource } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
 import { LogEntry } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
-import { StringsParameter, ParameterValues, BooleanParameter } from "../../cli/params"
+import { StringsParameter, ParameterValues } from "../../cli/params"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
@@ -30,11 +30,7 @@ const updateRemoteModulesArguments = {
 type Args = typeof updateRemoteModulesArguments
 
 const updateRemoteModulesOptions = {
-  parallel: new BooleanParameter({
-    help:
-      "Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password",
-    defaultValue: false,
-  }),
+  ...updateRemoteSharedOptions,
 }
 
 type Opts = typeof updateRemoteModulesOptions
