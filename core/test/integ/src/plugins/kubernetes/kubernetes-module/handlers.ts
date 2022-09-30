@@ -76,7 +76,7 @@ describe("kubernetes-module handlers", () => {
     ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
     api = await KubeApi.factory(log, ctx, ctx.provider)
     tmpDir = await tmp.dir({ unsafeCleanup: true })
-    await execa("git", ["init"], { cwd: tmpDir.path })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
     nsModuleConfig = {
       apiVersion: "garden.io/v0",
       kind: "Module",

@@ -59,7 +59,7 @@ describe("FetchToolsCommand", () => {
 
   before(async () => {
     tmpDir = await makeTempDir()
-    await exec("git", ["init"], { cwd: tmpDir.path })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
   })
 
   it("should fetch tools for configured providers", async () => {

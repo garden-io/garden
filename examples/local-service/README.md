@@ -5,7 +5,7 @@ remotely but frontend services locally.
 
 ## Project Structure
 
-This project is based on the [demo-project](https://github.com/garden-io/garden/tree/master/examples/demo-project) and contains a `backend` module, a
+This project is based on the [demo-project](https://github.com/garden-io/garden/tree/main/examples/demo-project) and contains a `backend` module, a
 `frontend` module and a `frontend-local` module.
 
 Here's an excerpt from the `frontend` config:
@@ -23,7 +23,6 @@ variables:
 # ...
 
 ---
-
 kind: Module
 name: frontend-local
 type: exec # <--- This is a "local exec module"
@@ -65,4 +64,3 @@ You can now stream logs from both the local and remote services with the logs co
 ```console
 garden logs --follow
 ```
-

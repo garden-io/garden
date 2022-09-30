@@ -60,6 +60,7 @@ const configSchema = providerConfigBaseSchema()
     version: joi
       .string()
       .allow(...supportedVersions, null)
+      .only()
       .default(defaultTerraformVersion).description(dedent`
         The version of Terraform to use. Set to \`null\` to use whichever version of \`terraform\` that is on your PATH.
       `),

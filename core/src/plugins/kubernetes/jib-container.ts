@@ -134,6 +134,10 @@ async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 
+    if (provider.config.deploymentRegistry?.insecure === true) {
+      syncCommand.push("--dest-tls-verify=false")
+    }
+
     syncCommand.push("oci:" + dataPath, "docker://" + module.outputs["deployment-image-id"])
 
     log.setState(`Pushing image ${module.outputs["deployment-image-id"]} to registry`)

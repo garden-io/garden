@@ -311,9 +311,9 @@ A map of all variables defined in the project configuration, including environme
 
 ### `${variables.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${var.*}`
 
@@ -327,9 +327,9 @@ Alias for the variables field.
 
 Number, string or boolean
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${environment.*}`
 
@@ -411,7 +411,7 @@ for its output schema.
 
 ### `${steps.<step-name>.outputs.<output-key>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 

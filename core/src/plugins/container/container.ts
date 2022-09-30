@@ -271,6 +271,16 @@ export const gardenPlugin = () =>
             },
           },
           {
+            platform: "darwin",
+            architecture: "arm64",
+            url: "https://download.docker.com/mac/static/stable/aarch64/docker-20.10.9.tgz",
+            sha256: "e41cc3b53b9907ee038c7a1ab82c5961815241180fefb49359d820d629658e6b",
+            extract: {
+              format: "tar",
+              targetPath: "docker/docker",
+            },
+          },
+          {
             platform: "linux",
             architecture: "amd64",
             url: "https://download.docker.com/linux/static/stable/x86_64/docker-20.10.9.tgz",

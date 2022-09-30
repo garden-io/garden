@@ -54,6 +54,7 @@ const basicConfig: PartialConfig = {
     hostname: "foo.garden",
     port: 5000,
     namespace: "boo",
+    insecure: true,
   },
   forceSsl: false,
   gardenSystemNamespace: defaultSystemNamespace,

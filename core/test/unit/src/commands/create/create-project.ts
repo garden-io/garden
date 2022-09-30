@@ -23,7 +23,7 @@ describe("CreateProjectCommand", () => {
 
   beforeEach(async () => {
     tmp = await makeTempDir()
-    await exec("git", ["init"], { cwd: tmp.path })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmp.path })
     garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create project", args: {}, opts: {} } })
   })
 

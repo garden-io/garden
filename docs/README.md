@@ -27,6 +27,7 @@
 * [Workflows](./using-garden/workflows.md)
 * [Variables and templating](./using-garden/variables-and-templating.md)
 * [Module Templates](./using-garden/module-templates.md)
+* [Cloud Permissions for Cluster Access](./using-garden/iam-permissions.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
 ## 🌿 Guides
@@ -40,6 +41,7 @@
 * [Hot Reload](./guides/hot-reload.md)
 * [In-Cluster Building](./guides/in-cluster-building.md)
 * [Local Kubernetes](./guides/local-kubernetes.md)
+* [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Remote Kubernetes](./guides/remote-kubernetes.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 

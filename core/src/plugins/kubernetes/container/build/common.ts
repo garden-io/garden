@@ -218,6 +218,10 @@ export async function skopeoBuildStatus({
   const remoteId = module.outputs["deployment-image-id"]
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
 
+  if (deploymentRegistry?.insecure === true) {
+    skopeoCommand.push("--tls-verify=false")
+  }
+
   skopeoCommand.push(`docker://${remoteId}`)
 
   const podCommand = ["sh", "-c", skopeoCommand.join(" ")]

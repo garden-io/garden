@@ -16,8 +16,11 @@ interface JibModuleBuildSpec extends ContainerBuildSpec {
   dockerBuild?: boolean
   projectType: "gradle" | "maven" | "auto"
   jdkVersion: number
+  jdkPath?: string
   tarOnly?: boolean
   tarFormat: "docker" | "oci"
+  mavenPath?: string
+  mavenPhases: string[]
 }
 
 interface JibModuleSpec extends ContainerModuleSpec {

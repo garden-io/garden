@@ -195,9 +195,18 @@ export interface NamespaceConfig {
   labels?: StringMap
 }
 
+export interface ClusterBuildkitCacheConfig {
+  type: "registry"
+  mode: "min" | "max" | "inline" | "auto"
+  tag: string
+  export: boolean
+  registry?: ContainerRegistryConfig
+}
+
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
+    cache: ClusterBuildkitCacheConfig[]
     rootless?: boolean
     nodeSelector?: StringMap
   }
@@ -392,11 +401,72 @@ const tlsCertificateSchema = () =>
       .example("cert-manager"),
   })
 
+const buildkitCacheConfigurationSchema = () =>
+  joi.object().keys({
+    type: joi
+      .string()
+      .valid("registry")
+      .required()
+      .description(
+        dedent`
+          Use the Docker registry configured at \`deploymentRegistry\` to retrieve and store buildkit cache information.
+
+          See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+        `
+      ),
+    registry: containerRegistryConfigSchema().description(
+      dedent`
+      The registry from which the cache should be imported from, or which it should be exported to.
+
+      If not specified, use the configured \`deploymentRegistry\` in your kubernetes provider config, or the internal in-cluster registry in case \`deploymentRegistry\` is not set.
+
+      Important: You must make sure \`imagePullSecrets\` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured \`namespace\`).
+    `
+    ),
+    mode: joi
+      .string()
+      .valid("auto", "min", "max", "inline")
+      .default("auto")
+      .description(
+        dedent`
+        This is the buildkit cache mode to be used.
+
+        The value \`inline\` ensures that garden is using the buildkit option \`--export-cache inline\`. Cache information will be inlined and co-located with the Docker image itself.
+
+        The values \`min\` and \`max\` ensure that garden passes the \`mode=max\` or \`mode=min\` modifiers to the buildkit \`--export-cache\` option. Cache manifests will only be
+        stored stored in the configured \`tag\`.
+
+        \`auto\` is the same as \`max\` for most registries. Some popular registries do not support \`max\` and garden will fall back to \`inline\` for them.
+         See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+
+        See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+      `
+      ),
+    tag: joi
+      .string()
+      .default("_buildcache")
+      .description(
+        dedent`
+        This is the Docker registry tag name buildkit should use for the registry build cache. Default is \`_buildcache\`
+
+        **NOTE**: \`tag\` can only be used together with the \`registry\` cache type
+      `
+      ),
+    export: joi
+      .boolean()
+      .default(true)
+      .description(
+        dedent`
+        If this is false, only pass the \`--import-cache\` option to buildkit, and not the \`--export-cache\` option. Defaults to true.
+      `
+      ),
+  })
+
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
       .string()
-      .allow("local-docker", "kaniko", "cluster-buildkit")
+      .valid("local-docker", "kaniko", "cluster-buildkit")
       .default("local-docker")
       .description(
         dedent`
@@ -408,6 +478,78 @@ export const kubernetesConfigBase = () =>
     clusterBuildkit: joi
       .object()
       .keys({
+        cache: joi
+          .array()
+          .items(buildkitCacheConfigurationSchema())
+          .default([{ type: "registry", mode: "auto", tag: "_buildcache", export: true }])
+          .description(
+            dedent`
+            Use the \`cache\` configuration to customize the default cluster-buildkit cache behaviour.
+
+            The default value is:
+            \`\`\`yaml
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  mode: auto
+            \`\`\`
+
+            For every build, this will
+            - import cached layers from a docker image tag named \`_buildcache\`
+            - when the build is finished, upload cache information to \`_buildcache\`
+
+            For registries that support it, \`mode: auto\` (the default) will enable the buildkit \`mode=max\`
+            option.
+
+            Some registries are known not to support the cache manifests needed for the \`mode=max\` option, so
+            we will avoid using \`mode=max\` with them.
+
+            See the following table for details on our detection mechanism:
+
+            | Registry Name                   | Detection string | Assumed \`mode=max\` support |
+            |---------------------------------|------------------|------------------------------|
+            | AWS Elastic Container Registry  | \`.dkr.ecr.\`    | No                           |
+            | Google Cloud Container Registry | \`gcr.io\`       | No                           |
+            | Any other registry              | -                | Yes                          |
+
+            In case you need to override the defaults for your registry, you can do it like so:
+
+            \`\`\`yaml
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  mode: inline
+            \`\`\`
+
+            When you add multiple caches, we will make sure to pass the \`--import-cache\` options to buildkit in the same
+            order as provided in the cache configuration. This is because buildkit will not actually use all imported caches
+            for every build, but it will stick with the first cache that yields a cache hit for all the following layers.
+
+            An example for this is the following:
+
+            \`\`\`yaml
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  tag: _buildcache-\${slice(kebabCase(git.branch), "0", "30")}
+                - type: registry
+                  tag: _buildcache-main
+                  export: false
+            \`\`\`
+
+            Using this cache configuration, every build will first look for a cache specific to your feature branch.
+            If it does not exist yet, it will import caches from the main branch builds (\`_buildcache-main\`).
+            When the build is finished, it will only export caches to your feature branch, and avoid polluting the \`main\` branch caches.
+            A configuration like that may improve your cache hit rate and thus save time.
+
+            If you need to disable caches completely you can achieve that with the following configuration:
+
+            \`\`\`yaml
+            clusterBuildkit:
+              cache: []
+            \`\`\`
+            `
+          ),
         rootless: joi
           .boolean()
           .default(false)
@@ -428,7 +570,7 @@ export const kubernetesConfigBase = () =>
           .example({ disktype: "ssd" })
           .default(() => ({})),
       })
-      .default(() => {})
+      .default(() => ({}))
       .description("Configuration options for the `cluster-buildkit` build mode."),
     jib: joi
       .object()
@@ -645,7 +787,14 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema(),
+      deploymentRegistry: containerRegistryConfigSchema()
+        .description(
+          dedent`
+      The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
+
+      Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+    `
+        ),
       ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.

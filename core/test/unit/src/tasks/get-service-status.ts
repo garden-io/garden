@@ -28,7 +28,7 @@ describe("GetServiceStatusTask", () => {
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
 
-    await execa("git", ["init"], { cwd: tmpDir.path })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
     config = {
       apiVersion: DEFAULT_API_VERSION,

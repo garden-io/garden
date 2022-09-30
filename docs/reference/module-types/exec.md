@@ -54,8 +54,8 @@ build:
           source:
 
           # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-          # Defaults to to same as source path.
-          target: ''
+          # Defaults to the same as source path.
+          target:
 
   # Maximum time in seconds to wait for build to finish.
   timeout: 1200
@@ -70,7 +70,7 @@ build:
 description:
 
 # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-# based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`).
+# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
 # This can be handy when you only need certain modules for specific environments, e.g. only for development.
 #
 # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also
@@ -162,7 +162,7 @@ variables:
 # objects and arrays._
 #
 # To use different module-level varfiles in different environments, you can template in the environment name
-# to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+# to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 # varfiles exist).
 varfile:
 
@@ -189,8 +189,8 @@ services:
     dependencies: []
 
     # Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable
-    # services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
-    # != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
+    # services based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name !=
+    # "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
     # development.
     #
     # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime
@@ -268,7 +268,7 @@ tasks:
     dependencies: []
 
     # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-    # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name !=
+    # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name !=
     # "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for
     # development.
     #
@@ -312,7 +312,7 @@ tests:
 
     # Set this to `true` to disable the test. You can use this with conditional template strings to
     # enable/disable tests based on, for example, the current environment or other variables (e.g.
-    # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+    # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
     # specific environments, e.g. only during CI.
     disabled: false
 
@@ -444,11 +444,11 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+Defaults to the same as source path.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `""`    | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `build.timeout`
 
@@ -494,7 +494,7 @@ A description of the module.
 
 ### `disabled`
 
-Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
+Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
 Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
 
@@ -550,9 +550,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | No       |
 
 Example:
 
@@ -641,7 +641,7 @@ The format of the files is determined by the configured file's extension:
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
 To use different module-level varfiles in different environments, you can template in the environment name
-to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 varfiles exist).
 
 | Type        | Required |
@@ -706,7 +706,7 @@ The names of any services that this service depends on at runtime, and the names
 
 [services](#services) > disabled
 
-Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
+Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
 
 Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
@@ -875,7 +875,7 @@ The names of any tasks that must be executed, and the names of any services that
 
 [tasks](#tasks) > disabled
 
-Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
+Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
 
 Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
@@ -982,7 +982,7 @@ The names of any services that must be running, and the names of any tasks that 
 
 Set this to `true` to disable the test. You can use this with conditional template strings to
 enable/disable tests based on, for example, the current environment or other variables (e.g.
-`enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+`enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
 specific environments, e.g. only during CI.
 
 | Type      | Default | Required |
@@ -1106,9 +1106,9 @@ A map of all variables defined in the module.
 
 ### `${modules.<module-name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${modules.<module-name>.version}`
 

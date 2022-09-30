@@ -24,6 +24,7 @@ describe("kubernetes configureProvider", () => {
     deploymentRegistry: {
       hostname: "eu.gcr.io",
       namespace: "garden-ci",
+      insecure: false,
     },
     forceSsl: false,
     gardenSystemNamespace: defaultSystemNamespace,

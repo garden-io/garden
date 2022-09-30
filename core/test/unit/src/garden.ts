@@ -64,7 +64,7 @@ describe("Garden", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     pathFoo = tmpDir.path
 
-    await execa("git", ["init"], { cwd: pathFoo })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: pathFoo })
 
     projectConfigFoo = {
       apiVersion: DEFAULT_API_VERSION,
@@ -2389,11 +2389,11 @@ describe("Garden", () => {
         // Create a temporary git repo to clone
         const repoPath = resolve(_tmpDir.path, garden.projectName)
         await copy(localSourcePath, repoPath)
-        await exec("git", ["init"], { cwd: repoPath })
+        await exec("git", ["init", "--initial-branch=main"], { cwd: repoPath })
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables.sourceBranch = "master"
+        garden.variables.sourceBranch = "main"
 
         const _garden = garden as any
         _garden["projectSources"] = [
@@ -2577,15 +2577,10 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveModules({ log: garden.log }),
         (err) => {
-          expect(stripAnsi(err.message)).to.equal(dedent`
-          Missing include and/or exclude directives on modules with overlapping paths.
-          Setting includes/excludes is required when modules have the same path (i.e. are in the same garden.yml file),
-          or when one module is nested within another.
-
-          Module module-no-include-a overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-b (same path).
-
+          expect(stripAnsi(err.message)).to.include(dedent`
           Module module-no-include-b overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-a (same path).
-          `)
+
+          If this was intentional, there are two options to resolve this error`)
         }
       )
     })
@@ -3367,7 +3362,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3432,7 +3427,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3499,7 +3494,7 @@ describe("Garden", () => {
             dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
@@ -3556,7 +3551,7 @@ describe("Garden", () => {
             dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })

@@ -9,7 +9,7 @@
 import execa = require("execa")
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { createFile, ensureSymlink, lstat, mkdir, realpath, remove, symlink, writeFile } from "fs-extra"
+import { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } from "fs-extra"
 import { basename, join, relative, resolve } from "path"
 
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
@@ -28,7 +28,7 @@ async function getCommitMsg(repoPath: string) {
 }
 
 async function commit(msg: string, repoPath: string) {
-  // Ensure master contains changes when committing
+  // Ensure main contains changes when committing
   const uniqueFilename = `${uuidv4()}.txt`
   const filePath = join(repoPath, uniqueFilename)
   await createFile(filePath)
@@ -40,7 +40,7 @@ async function commit(msg: string, repoPath: string) {
 async function makeTempGitRepo() {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   const tmpPath = await realpath(tmpDir.path)
-  await execa("git", ["init"], { cwd: tmpPath })
+  await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
 
   return tmpDir
 }
@@ -132,7 +132,7 @@ describe("GitHandler", () => {
       const path = tmpPath
       await commit("init", tmpPath)
       const { branch } = await handler.getPathInfo(log, path)
-      expect(branch).to.equal("master")
+      expect(branch).to.equal("main")
     })
 
     it("should return empty strings when given a path outside of a repo", async () => {
@@ -709,7 +709,7 @@ describe("GitHandler", () => {
       tmpRepoPathA = await realpath(tmpRepoA.path)
       await commit("test commit A", tmpRepoPathA)
 
-      repositoryUrlA = `file://${tmpRepoPathA}#master`
+      repositoryUrlA = `file://${tmpRepoPathA}#main`
 
       tmpRepoB = await makeTempGitRepo()
       tmpRepoPathB = await realpath(tmpRepoB.path)
@@ -836,6 +836,30 @@ describe("GitHandler", () => {
 
         expect(await getCommitMsg(clonePath)).to.eql("new commit")
       })
+
+      it("should exit on `failOnPrompt` when updating a remote source and prompting for user input", async () => {
+        await mkdirp(clonePath)
+        await execa("git", ["init", "--initial-branch=main"], { cwd: clonePath })
+        await execa("git", ["commit", "-m", "commit", "--allow-empty"], { cwd: clonePath })
+        await execa("git", ["remote", "add", "origin", "https://fake@github.com/private/private.git"], {
+          cwd: clonePath,
+        })
+        let error: Error | undefined
+        try {
+          await handler.updateRemoteSource({
+            url: repositoryUrlA,
+            name: "foo",
+            sourceType: "module",
+            log,
+            failOnPrompt: true,
+          })
+        } catch (e) {
+          error = e
+        }
+        expect(error).to.be.instanceOf(Error)
+        expect(error?.message).to.contain("Invalid username or password.")
+      })
+
       it("should update submodules", async () => {
         // Add repo B as a submodule to repo A
         await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })
@@ -888,15 +912,15 @@ describe("GitHandler", () => {
 describe("git", () => {
   describe("getCommitIdFromRefList", () => {
     it("should get the commit id from a list of commit ids and refs", () => {
-      const refList = ["abcde	ref/heads/master", "1234	ref/heads/master", "foobar	ref/heads/master"]
+      const refList = ["abcde	ref/heads/main", "1234	ref/heads/main", "foobar	ref/heads/main"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a list of commit ids without refs", () => {
-      const refList = ["abcde", "1234	ref/heads/master", "foobar	ref/heads/master"]
+      const refList = ["abcde", "1234	ref/heads/main", "foobar	ref/heads/main"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a single commit id / ref pair", () => {
-      const refList = ["abcde	ref/heads/master"]
+      const refList = ["abcde	ref/heads/main"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from single commit id without a ref", () => {

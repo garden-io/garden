@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.44/examples/jib-container) to see it in action.
+Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.45/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -57,8 +57,8 @@ build:
           source:
 
           # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-          # Defaults to to same as source path.
-          target: ''
+          # Defaults to the same as source path.
+          target:
 
   # Maximum time in seconds to wait for build to finish.
   timeout: 1200
@@ -68,7 +68,17 @@ build:
   projectType: auto
 
   # The JDK version to use.
+  #
+  # The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and
+  # Maven.
+  #
+  # To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
   jdkVersion: 11
+
+  # The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+  #
+  # The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+  jdkPath:
 
   # Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).
   dockerBuild: false
@@ -79,6 +89,16 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
+  # Defines the location of the custom executable Maven binary.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Maven.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+  mavenPath:
+
+  # Defines the Maven phases to be executed during the Garden build step.
+  mavenPhases:
+
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
 
@@ -86,7 +106,7 @@ build:
 description:
 
 # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-# based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`).
+# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
 # This can be handy when you only need certain modules for specific environments, e.g. only for development.
 #
 # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also
@@ -185,7 +205,7 @@ variables:
 # objects and arrays._
 #
 # To use different module-level varfiles in different environments, you can template in the environment name
-# to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+# to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 # varfiles exist).
 varfile:
 
@@ -218,8 +238,8 @@ services:
     dependencies: []
 
     # Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable
-    # services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
-    # != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
+    # services based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name !=
+    # "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
     # development.
     #
     # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime
@@ -265,11 +285,7 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       sync:
-        - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-          # Must be a relative path. Defaults to the module's top-level directory if no value is provided.
-          source: .
-
-          # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
+        - # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
           # allowed.
           target:
 
@@ -277,6 +293,10 @@ services:
           #
           # `.git` directories and `.garden` directories are always ignored.
           exclude:
+
+          # POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
+          # Defaults to the module's top-level directory if no value is provided.
+          source: .
 
           # The sync mode to use for the given paths. See the [Dev Mode
           # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
@@ -304,7 +324,8 @@ services:
           # information.
           defaultGroup:
 
-    # Configures the local application which will send and receive network requests instead of the target resource.
+    # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the
+    # target resource.
     #
     # The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
     # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
@@ -314,12 +335,18 @@ services:
     #
     # Health checks are disabled for services running in local mode.
     #
-    # See the [Local Mode
-    # guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more
-    # information.
+    # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+    #
+    # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+    # release.
     localMode:
-      # The working port of the local application.
-      localPort:
+      # The reverse port-forwards configuration for the local application.
+      ports:
+        - # The local port to be used for reverse port-forward.
+          local:
+
+          # The remote port to be used for reverse port-forward.
+          remote:
 
       # The command to run the local application. If not present, then the local application should be started
       # manually.
@@ -505,7 +532,7 @@ tests:
 
     # Set this to `true` to disable the test. You can use this with conditional template strings to
     # enable/disable tests based on, for example, the current environment or other variables (e.g.
-    # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+    # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
     # specific environments, e.g. only during CI.
     disabled: false
 
@@ -605,7 +632,7 @@ tasks:
     dependencies: []
 
     # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-    # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name !=
+    # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name !=
     # "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for
     # development.
     #
@@ -811,11 +838,11 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+Defaults to the same as source path.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `""`    | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `build.timeout`
 
@@ -843,9 +870,33 @@ The type of project to build. Defaults to auto-detecting between gradle and mave
 
 The JDK version to use.
 
+The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and Maven.
+
+To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
+
 | Type     | Allowed Values | Default | Required |
 | -------- | -------------- | ------- | -------- |
-| `number` | 8, 11, 13      | `11`    | Yes      |
+| `number` | 8, 11, 13, 17  | `11`    | Yes      |
+
+### `build.jdkPath`
+
+[build](#build) > jdkPath
+
+The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+
+The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+build:
+  ...
+  jdkPath: "${local.env.JAVA_HOME}"
+```
 
 ### `build.dockerBuild`
 
@@ -877,6 +928,29 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | -------- | --------------- | ---------- | -------- |
 | `string` | "docker", "oci" | `"docker"` | Yes      |
 
+### `build.mavenPath`
+
+[build](#build) > mavenPath
+
+Defines the location of the custom executable Maven binary.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `build.mavenPhases[]`
+
+[build](#build) > mavenPhases
+
+Defines the Maven phases to be executed during the Garden build step.
+
+| Type            | Default       | Required |
+| --------------- | ------------- | -------- |
+| `array[string]` | `["compile"]` | No       |
+
 ### `build.extraFlags[]`
 
 [build](#build) > extraFlags
@@ -897,7 +971,7 @@ A description of the module.
 
 ### `disabled`
 
-Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
+Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
 Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
 
@@ -960,9 +1034,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | No       |
 
 Example:
 
@@ -1051,7 +1125,7 @@ The format of the files is determined by the configured file's extension:
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
 To use different module-level varfiles in different environments, you can template in the environment name
-to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 varfiles exist).
 
 | Type        | Required |
@@ -1130,7 +1204,7 @@ The names of any services that this service depends on at runtime, and the names
 
 [services](#services) > disabled
 
-Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
+Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
 
 Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
@@ -1252,26 +1326,6 @@ Specify one or more source files or directories to automatically sync with the r
 | --------------- | -------- |
 | `array[object]` | No       |
 
-### `services[].devMode.sync[].source`
-
-[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > source
-
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-services:
-  - devMode:
-      ...
-      sync:
-        - source: "src"
-```
-
 ### `services[].devMode.sync[].target`
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > target
@@ -1316,6 +1370,26 @@ services:
             - '*.log'
 ```
 
+### `services[].devMode.sync[].source`
+
+[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > source
+
+POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path. Defaults to the module's top-level directory if no value is provided.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+services:
+  - devMode:
+      ...
+      sync:
+        - source: "src"
+```
+
 ### `services[].devMode.sync[].mode`
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > mode
@@ -1352,9 +1426,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `services[].devMode.sync[].defaultGroup`
 
@@ -1362,15 +1436,15 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `services[].localMode`
 
 [services](#services) > localMode
 
-Configures the local application which will send and receive network requests instead of the target resource.
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
 
 The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
 Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
@@ -1380,17 +1454,39 @@ Local mode always takes the precedence over dev mode if there are any conflictin
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more information.
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `services[].localMode.localPort`
+### `services[].localMode.ports[]`
 
-[services](#services) > [localMode](#serviceslocalmode) > localPort
+[services](#services) > [localMode](#serviceslocalmode) > ports
 
-The working port of the local application.
+The reverse port-forwards configuration for the local application.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `services[].localMode.ports[].local`
+
+[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > local
+
+The local port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].localMode.ports[].remote`
+
+[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > remote
+
+The remote port to be used for reverse port-forward.
 
 | Type     | Required |
 | -------- | -------- |
@@ -2009,7 +2105,7 @@ The names of any services that must be running, and the names of any tasks that 
 
 Set this to `true` to disable the test. You can use this with conditional template strings to
 enable/disable tests based on, for example, the current environment or other variables (e.g.
-`enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+`enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
 specific environments, e.g. only during CI.
 
 | Type      | Default | Required |
@@ -2341,7 +2437,7 @@ The names of any tasks that must be executed, and the names of any services that
 
 [tasks](#tasks) > disabled
 
-Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
+Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
 
 Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
@@ -2698,9 +2794,9 @@ A map of all variables defined in the module.
 
 ### `${modules.<module-name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${modules.<module-name>.version}`
 

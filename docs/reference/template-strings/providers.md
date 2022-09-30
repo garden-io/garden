@@ -311,9 +311,9 @@ A map of all variables defined in the project configuration, including environme
 
 ### `${variables.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${var.*}`
 
@@ -327,9 +327,9 @@ Alias for the variables field.
 
 Number, string or boolean
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${environment.*}`
 
@@ -401,9 +401,9 @@ The resolved configuration for the provider.
 
 The provider config key value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -417,7 +417,7 @@ The outputs defined by the provider (see individual plugin docs for details).
 
 The provider output value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 

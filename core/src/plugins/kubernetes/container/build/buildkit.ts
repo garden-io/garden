@@ -15,7 +15,7 @@ import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
 import { waitForResources, compareDeployedResources } from "../../status/status"
-import { KubernetesProvider, KubernetesPluginContext } from "../../config"
+import { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
 import {
   BuildStatusHandler,
@@ -35,6 +35,7 @@ import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
+import { ContainerModuleOutputs } from "../../../container/container"
 
 export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
 export const buildkitDeploymentName = "garden-buildkit"
@@ -85,8 +86,6 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   })
 
   const localId = module.outputs["local-image-id"]
-  const deploymentImageName = module.outputs["deployment-image-name"]
-  const deploymentImageId = module.outputs["deployment-image-id"]
   const dockerfile = module.spec.dockerfile || "Dockerfile"
 
   const { contextPath } = await syncToBuildSync({
@@ -112,11 +111,6 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     statusLine.setState(renderOutputStream(line.toString()))
   })
 
-  const cacheTag = "_buildcache"
-  // Prepare the build command (this thing, while an otherwise excellent piece of software, is clearly is not meant for
-  // everyday human usage)
-  let outputSpec = `type=image,"name=${deploymentImageId},${deploymentImageName}:${cacheTag}",push=true`
-
   const command = [
     "buildctl",
     "build",
@@ -127,13 +121,12 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     "dockerfile=" + contextPath,
     "--opt",
     "filename=" + dockerfile,
-    "--output",
-    outputSpec,
-    "--export-cache",
-    "type=inline",
-    "--import-cache",
-    `type=registry,ref=${deploymentImageName}:${cacheTag}`,
-    ...getBuildkitFlags(module),
+    ...getBuildkitImageFlags(
+      provider.config.clusterBuildkit!.cache,
+      module.outputs,
+      provider.config.deploymentRegistry!.insecure
+    ),
+    ...getBuildkitModuleFlags(module),
   ]
 
   // Execute the build
@@ -232,7 +225,7 @@ export async function ensureBuildkit({
   })
 }
 
-export function getBuildkitFlags(module: ContainerModule) {
+export function getBuildkitModuleFlags(module: ContainerModule) {
   const args: string[] = []
 
   for (const arg of getDockerBuildArgs(module)) {
@@ -246,6 +239,100 @@ export function getBuildkitFlags(module: ContainerModule) {
   args.push(...(module.spec.extraFlags || []))
 
   return args
+}
+
+export function getBuildkitImageFlags(
+  cacheConfig: ClusterBuildkitCacheConfig[],
+  moduleOutputs: ContainerModuleOutputs,
+  deploymentRegistryInsecure: boolean
+) {
+  const args: string[] = []
+
+  const inlineCaches = cacheConfig.filter(
+    (config) => getSupportedCacheMode(config, getCacheImageName(moduleOutputs, config)) === "inline"
+  )
+  const imageNames = [moduleOutputs["deployment-image-id"]]
+
+  if (inlineCaches.length > 0) {
+    args.push("--export-cache", "type=inline")
+
+    for (const cache of inlineCaches) {
+      const cacheImageName = getCacheImageName(moduleOutputs, cache)
+      imageNames.push(`${cacheImageName}:${cache.tag}`)
+    }
+  }
+
+  let deploymentRegistryExtraSpec = ""
+  if (deploymentRegistryInsecure) {
+    deploymentRegistryExtraSpec = ",registry.insecure=true"
+  }
+
+  args.push("--output", `type=image,"name=${imageNames.join(",")}",push=true${deploymentRegistryExtraSpec}`)
+
+  for (const cache of cacheConfig) {
+    const cacheImageName = getCacheImageName(moduleOutputs, cache)
+
+    let registryExtraSpec = ""
+    if (cache.registry === undefined) {
+      registryExtraSpec = deploymentRegistryExtraSpec
+    } else if (cache.registry?.insecure === true) {
+      registryExtraSpec = ",registry.insecure=true"
+    }
+
+    // subtle: it is important that --import-cache arguments are in the same order as the cacheConfigs
+    // buildkit will go through them one by one, and use the first that has any cache hit for all following
+    // layers, so it will actually never use multiple caches at once
+    args.push("--import-cache", `type=registry,ref=${cacheImageName}:${cache.tag}${registryExtraSpec}`)
+
+    if (cache.export === false) {
+      continue
+    }
+
+    const cacheMode = getSupportedCacheMode(cache, cacheImageName)
+    // we handle inline caches above
+    if (cacheMode === "inline") {
+      continue
+    }
+
+    args.push(
+      "--export-cache",
+      `type=registry,ref=${cacheImageName}:${cache.tag},mode=${cacheMode}${registryExtraSpec}`
+    )
+  }
+
+  return args
+}
+
+function getCacheImageName(moduleOutputs: ContainerModuleOutputs, cacheConfig: ClusterBuildkitCacheConfig): string {
+  if (cacheConfig.registry === undefined) {
+    return moduleOutputs["deployment-image-name"]
+  }
+
+  const { hostname, port, namespace } = cacheConfig.registry
+  const portPart = port ? `:${port}` : ""
+  return `${hostname}${portPart}/${namespace}/${moduleOutputs["local-image-name"]}`
+}
+
+export const getSupportedCacheMode = (
+  cache: ClusterBuildkitCacheConfig,
+  deploymentImageName: string
+): ClusterBuildkitCacheConfig["mode"] => {
+  if (cache.mode !== "auto") {
+    return cache.mode
+  }
+
+  // Detect AWS ECR
+  if (deploymentImageName.includes(".dkr.ecr.")) {
+    return "inline"
+  }
+
+  // Detect gcr.io
+  if (deploymentImageName.includes("gcr.io")) {
+    return "inline"
+  }
+
+  // Default to max for all others
+  return "max"
 }
 
 export function getBuildkitDeployment(

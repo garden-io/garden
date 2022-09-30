@@ -126,6 +126,18 @@ describe("detectModuleOverlap", () => {
         },
       ])
     })
+    it("should ignore modules that are disabled", () => {
+      const moduleA = {
+        name: "module-a",
+        path: join(projectRoot, "foo"),
+        disabled: true,
+      } as ModuleConfig
+      const moduleB = {
+        name: "module-b",
+        path: join(projectRoot, "foo"),
+      } as ModuleConfig
+      expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.be.empty
+    })
   })
 
   context("nested modules", () => {
@@ -147,6 +159,19 @@ describe("detectModuleOverlap", () => {
         name: "module-a",
         path: join(projectRoot, "foo"),
         exclude: [""],
+      } as ModuleConfig
+      const moduleB = {
+        name: "module-b",
+        path: join(projectRoot, "foo", "bar"),
+      } as ModuleConfig
+      expect(detectModuleOverlap({ projectRoot, gardenDirPath, moduleConfigs: [moduleA, moduleB] })).to.be.empty
+    })
+
+    it("should ignore modules that are disabled", () => {
+      const moduleA = {
+        name: "module-a",
+        path: join(projectRoot, "foo"),
+        disabled: true,
       } as ModuleConfig
       const moduleB = {
         name: "module-b",

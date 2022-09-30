@@ -29,6 +29,7 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
     version: joi
       .string()
       .allow(...supportedVersions, null)
+      .only()
       .default(defaultPulumiVersion).description(dedent`
         The version of pulumi to use. Set to \`null\` to use whichever version of \`pulumi\` is on your PATH.
       `),

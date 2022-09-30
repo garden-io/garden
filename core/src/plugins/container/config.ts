@@ -223,6 +223,16 @@ const devModeSyncSchema = () =>
       )
       .example("/app/src"),
     exclude: syncExcludeSchema(),
+    source: joi // same as hotReloadSyncSchema but no subPathOnly and relativeOnly
+      .posixPath()
+      .allowGlobs()
+      .default(".")
+      .description(
+        deline`
+      POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
+      Defaults to the module's top-level directory if no value is provided.`
+      )
+      .example("src"),
     mode: joi
       .string()
       .allow(
@@ -312,15 +322,39 @@ export const localModeRestartSchema = () =>
       `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`
     )
 
+export interface LocalModePortsSpec {
+  local: number
+  remote: number
+}
+
+export const localModePortsSchema = () =>
+  joi.object().keys({
+    local: joi
+      .number()
+      .integer()
+      .greater(0)
+      .optional()
+      .description("The local port to be used for reverse port-forward."),
+    remote: joi
+      .number()
+      .integer()
+      .greater(0)
+      .optional()
+      .description("The remote port to be used for reverse port-forward."),
+  })
+
 export interface ContainerLocalModeSpec {
-  localPort: number
+  ports: LocalModePortsSpec[]
   command?: string[]
   restart: LocalModeRestartSpec
 }
 
 export const containerLocalModeSchema = () =>
   joi.object().keys({
-    localPort: joi.number().description("The working port of the local application."),
+    ports: joi
+      .array()
+      .items(localModePortsSchema())
+      .description("The reverse port-forwards configuration for the local application."),
     command: joi
       .sparseArray()
       .optional()
@@ -330,7 +364,7 @@ export const containerLocalModeSchema = () =>
       ),
     restart: localModeRestartSchema(),
   }).description(dedent`
-    Configures the local application which will send and receive network requests instead of the target resource.
+    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
 
     The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
     Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
@@ -341,6 +375,8 @@ export const containerLocalModeSchema = () =>
     Health checks are disabled for services running in local mode.
 
     See the [Local Mode guide](${localModeGuideLink}) for more information.
+
+    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
@@ -664,6 +700,7 @@ export interface ContainerRegistryConfig {
   hostname: string
   port?: number
   namespace: string
+  insecure: boolean
 }
 
 export const containerRegistryConfigSchema = () =>
@@ -677,13 +714,15 @@ export const containerRegistryConfigSchema = () =>
     namespace: joi
       .string()
       .default("_")
-      .description("The namespace in the registry where images should be pushed.")
+      .description(
+        "The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>"
+      )
       .example("my-project"),
-  }).description(dedent`
-    The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
-
-    Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
-  `)
+    insecure: joi
+      .boolean()
+      .default(false)
+      .description("Set to true to allow insecure connections to the registry (without SSL)."),
+  })
 
 export interface ContainerService extends GardenService<ContainerModule> {}
 

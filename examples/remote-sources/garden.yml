@@ -5,7 +5,7 @@ sources:
     # use #your-branch to specify a branch or #v0.3.0 to specify a tag
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.4.0
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#master
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
 environments:
   - name: local
     variables:
@@ -24,8 +24,8 @@ providers:
     defaultHostname: ${var.baseHostname}
     buildMode: kaniko
     deploymentRegistry:
-      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
-      namespace: garden-ci   # <- set this to the project ID of the target cluster
+      hostname: eu.gcr.io # <- set this according to the region your cluster runs in
+      namespace: garden-ci # <- set this to the project ID of the target cluster
     imagePullSecrets:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
       # to authenticate with your registry (if needed)

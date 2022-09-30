@@ -4,7 +4,7 @@ ENV PORT=8080
 EXPOSE ${PORT}
 WORKDIR /app
 
-COPY main.go .
+COPY . /app
 
 RUN go mod init main && go build -o main .
 

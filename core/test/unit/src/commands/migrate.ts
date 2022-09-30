@@ -228,7 +228,7 @@ describe("commands", () => {
       )
     })
     it("should abort write if config file is dirty", async () => {
-      await execa("git", ["init"], { cwd: tmpDir.path })
+      await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
       await writeFile(
         join(tmpDir.path, "garden.yml"),
         dedent`

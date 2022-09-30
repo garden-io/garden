@@ -76,6 +76,16 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
         },
       },
       {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.25.1/pulumi-v3.25.1-darwin-arm64.tar.gz",
+        sha256: "a5ab29db86733b5f730a0f352b407aed64b82337a222a0c7cd1492b55189e6c1",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
         platform: "linux",
         architecture: "amd64",
         url: "https://github.com/pulumi/pulumi/releases/download/v3.25.1/pulumi-v3.25.1-linux-x64.tar.gz",
@@ -108,6 +118,16 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
         architecture: "amd64",
         url: "https://github.com/pulumi/pulumi/releases/download/v3.24.1/pulumi-v3.24.1-darwin-x64.tar.gz",
         sha256: "1bfafd10f189c4e57b9961ddf899055efb55649e7403fc1bdd33c89e5a9cce1c",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.24.1/pulumi-v3.24.1-darwin-arm64.tar.gz",
+        sha256: "cdfd2d05beb66380b7eb2354ef45abbce17865441a465294cf8e5448a534eb7f",
         extract: {
           format: "tar",
           targetPath: "pulumi/pulumi",
