@@ -3799,7 +3799,7 @@ Examples:
 
 #### Usage
 
-    garden update-remote sources [sources] 
+    garden update-remote sources [sources] [options]
 
 #### Arguments
 
@@ -3807,6 +3807,11 @@ Examples:
 | -------- | -------- | ----------- |
   | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password
 
 #### Outputs
 
