@@ -60,6 +60,7 @@ export class UpdateRemoteModulesCommand extends Command<Args, Opts> {
 
     Examples:
 
+        garden update-remote modules --parallel # update all remote modules in parallel mode
         garden update-remote modules            # update all remote modules in the project
         garden update-remote modules my-module  # update remote module my-module
   `

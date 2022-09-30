@@ -3794,6 +3794,7 @@ Updates the remote sources declared in the project level `garden.yml` config fil
 
 Examples:
 
+    garden update-remote sources --parallel # update all remote sources in parallel mode
     garden update-remote sources            # update all remote sources
     garden update-remote sources my-source  # update remote source my-source
 
@@ -3835,6 +3836,7 @@ in their `garden.yml` config that points to a remote repository.
 
 Examples:
 
+    garden update-remote modules --parallel # update all remote modules in parallel mode
     garden update-remote modules            # update all remote modules in the project
     garden update-remote modules my-module  # update remote module my-module
 
@@ -3873,7 +3875,8 @@ sources:
 
 Examples:
 
-    garden update-remote all # update all remote sources and modules in the project
+    garden update-remote all --parallel # update all remote sources and modules in the project in parallel mode
+    garden update-remote all            # update all remote sources and modules in the project
 
 #### Usage
 

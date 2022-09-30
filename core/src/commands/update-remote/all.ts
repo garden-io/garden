@@ -47,7 +47,8 @@ export class UpdateRemoteAllCommand extends Command<{}, Opts> {
   description = dedent`
     Examples:
 
-        garden update-remote all # update all remote sources and modules in the project
+        garden update-remote all --parallel # update all remote sources and modules in the project in parallel mode
+        garden update-remote all            # update all remote sources and modules in the project
   `
 
   printHeader({ headerLog }) {
