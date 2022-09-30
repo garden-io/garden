@@ -46,7 +46,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
   name = "sources"
   help = "Update remote sources."
   arguments = updateRemoteSourcesArguments
-  opts = updateRemoteSourcesOptions
+  options = updateRemoteSourcesOptions
 
   outputsSchema = () =>
     joi.object().keys({
