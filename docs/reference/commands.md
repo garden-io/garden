@@ -3812,7 +3812,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 
@@ -3854,7 +3854,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 
@@ -3886,7 +3886,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--parallel` |  | boolean | Allow git updates to happen in parallel
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 

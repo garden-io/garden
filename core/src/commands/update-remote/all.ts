@@ -14,7 +14,7 @@ import { updateRemoteModules } from "./modules"
 import { SourceConfig, projectSourceSchema, moduleSourceSchema } from "../../config/project"
 import { printHeader } from "../../logger/util"
 import { joi, joiArray } from "../../config/common"
-import { BooleanParameter } from "../../cli/params"
+import { updateRemoteSharedOptions } from "./helpers"
 
 export interface UpdateRemoteAllResult {
   projectSources: SourceConfig[]
@@ -22,10 +22,7 @@ export interface UpdateRemoteAllResult {
 }
 
 const updateRemoteAllOptions = {
-  parallel: new BooleanParameter({
-    help: "Allow git updates to happen in parallel",
-    defaultValue: false,
-  }),
+  ...updateRemoteSharedOptions,
 }
 
 type Opts = typeof updateRemoteAllOptions
