@@ -394,7 +394,7 @@ export const containerLocalModeSchema = () =>
       ),
     restart: localModeRestartSchema(),
   }).description(dedent`
-    Configures the local application which will send and receive network requests instead of the target resource.
+    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
 
     The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
     Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
@@ -405,6 +405,8 @@ export const containerLocalModeSchema = () =>
     Health checks are disabled for services running in local mode.
 
     See the [Local Mode guide](${localModeGuideLink}) for more information.
+
+    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
