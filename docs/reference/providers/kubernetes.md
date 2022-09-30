@@ -512,8 +512,8 @@ Choose the mechanism for building container images before deploying. By default 
 
 For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
 
-| Type     | Allowed Values                                                 | Default          | Required |
-| -------- | -------------------------------------------------------------- | ---------------- | -------- |
+| Type     | Allowed Values                               | Default          | Required |
+| -------- | -------------------------------------------- | ---------------- | -------- |
 | `string` | "local-docker", "kaniko", "cluster-buildkit" | `"local-docker"` | Yes      |
 
 ### `providers[].clusterBuildkit`

@@ -787,14 +787,13 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema()
-        .description(
-          dedent`
+      deploymentRegistry: containerRegistryConfigSchema().description(
+        dedent`
       The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
 
       Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
     `
-        ),
+      ),
       ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.

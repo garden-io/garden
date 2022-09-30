@@ -223,16 +223,6 @@ const devModeSyncSchema = () =>
       )
       .example("/app/src"),
     exclude: syncExcludeSchema(),
-    source: joi // same as hotReloadSyncSchema but no subPathOnly and relativeOnly
-      .posixPath()
-      .allowGlobs()
-      .default(".")
-      .description(
-        deline`
-      POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
-      Defaults to the module's top-level directory if no value is provided.`
-      )
-      .example("src"),
     mode: joi
       .string()
       .allow(
