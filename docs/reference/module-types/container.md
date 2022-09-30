@@ -300,7 +300,8 @@ services:
           # information.
           defaultGroup:
 
-    # Configures the local application which will send and receive network requests instead of the target resource.
+    # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the
+    # target resource.
     #
     # The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
     # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
@@ -311,6 +312,9 @@ services:
     # Health checks are disabled for services running in local mode.
     #
     # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+    #
+    # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+    # release.
     localMode:
       # The reverse port-forwards configuration for the local application.
       ports:
@@ -1402,7 +1406,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [services](#services) > localMode
 
-Configures the local application which will send and receive network requests instead of the target resource.
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
 
 The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
 Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
@@ -1413,6 +1417,8 @@ Local mode always takes the precedence over dev mode if there are any conflictin
 Health checks are disabled for services running in local mode.
 
 See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
 | Type     | Required |
 | -------- | -------- |
