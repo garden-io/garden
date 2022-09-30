@@ -58,6 +58,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
 
     Examples:
 
+        garden update-remote sources --parallel # update all remote sources in parallel mode
         garden update-remote sources            # update all remote sources
         garden update-remote sources my-source  # update remote source my-source
   `
