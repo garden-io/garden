@@ -698,7 +698,7 @@ Examples:
   | `--local-mode` | `-local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
-  | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` | `-nodeps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
 
 #### Outputs
@@ -3493,7 +3493,7 @@ Examples:
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-  | `--skip-dependencies` | `-no-deps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
+  | `--skip-dependencies` | `-nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
   | `--skip-dependants` |  | boolean | When using the modules argument, only run tests for those modules (and skip tests in other modules with dependencies on those modules).
 
 #### Outputs
