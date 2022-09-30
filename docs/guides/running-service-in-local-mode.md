@@ -9,6 +9,14 @@
 * **Local service** - a locally deployed and running application which is supposed to replace a target Garden service
   configured in _local mode_.
 
+## Development status
+
+This feature is still **experimental**. We're still working on some open tasks to improve the feature
+stability and usability. It means that:
+
+* some **incompatible changes can be made** until the first non-experimental release
+* there are some functional limitations, see the **Current limitations** section below
+
 ## Introduction
 
 By configuring a Garden service in _local mode_, one can replace a target Kubernetes workload in a k8s cluster with a
