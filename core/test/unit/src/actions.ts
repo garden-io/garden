@@ -504,7 +504,6 @@ describe("ActionRouter", () => {
     })
 
     it("should emit a testStatus event", async () => {
-      const all = graph.getActions()
       const action = await garden.resolveAction({ action: graph.getTest("module-a-unit"), log, graph })
       garden.events.eventLog = []
 
