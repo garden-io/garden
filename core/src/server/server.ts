@@ -299,14 +299,16 @@ export class GardenServer {
     const wsRouter = new Router()
 
     wsRouter.get("/ws", async (ctx) => {
+      // The typing for koa-websocket isn't working currently
+      const websocket: Koa.Context["ws"] = ctx["websocket"]
+
       if (!this.garden) {
-        return this.notReady(ctx)
+        this.log.debug("Server not ready.")
+        websocket.terminate()
+        return
       }
 
       const connId = uuidv4()
-
-      // The typing for koa-websocket isn't working currently
-      const websocket: Koa.Context["ws"] = ctx["websocket"]
 
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
