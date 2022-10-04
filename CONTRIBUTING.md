@@ -7,6 +7,16 @@ discussion, pull requests and any type of feedback. We request that all contribu
 adhere to the [Contributor Covenant](CODE_OF_CONDUCT.md) and work with us to make the collaboration and
 community productive and fun for everyone :)
 
+### How to report an issue
+
+If you have found a bug, or want to submit a feature request, or suggest any other change, please create
+a [new issue](https://github.com/garden-io/garden/issues/new/choose).
+
+If you report a bug, please describe the steps to reproduce it. You can share the complete Garden configuration of your
+project (without any code included) with us by running the `garden get debug-info` command. It will produce a single archive
+that matches the directory structure of your project, but contains only your Garden configuration files. This can be very helpful for us to
+reproduce and fix the issue.
+
 ## Project structure
 
 The project code is composed of several components, most of which are written in TypeScript. There's also a number of supporting scripts, documents, examples etc. Here is an overview of the top-level project folders:
