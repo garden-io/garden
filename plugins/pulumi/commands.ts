@@ -165,11 +165,27 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
   },
 ]
 
+const makePluginContextForService = async (
+  params: PulumiParamsWithService & { garden: Garden; graph: ConfigGraph }
+) => {
+  const { log, garden, graph, service, provider, ctx } = params
+  const allProviders = await garden.resolveProviders(log)
+  const allModules = graph.getModules()
+  const templateContext = ModuleConfigContext.fromModule({
+    garden,
+    resolvedProviders: allProviders,
+    module: service.module,
+    modules: allModules,
+    partialRuntimeResolution: false,
+  })
+  const ctxForService = await garden.getPluginContext(provider, templateContext, ctx.events)
+  return ctxForService
+}
+
 interface PulumiPluginCommandTaskParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  service: GardenService
   commandName: string
   commandDescription: string
   runFn: PulumiRunFn
@@ -180,7 +196,6 @@ interface PulumiPluginCommandTaskParams {
 class PulumiPluginCommandTask extends PluginTask {
   graph: ConfigGraph
   pulumiParams: PulumiParamsWithService
-  service: GardenService
   commandName: string
   commandDescription: string
   runFn: PulumiRunFn
@@ -189,15 +204,13 @@ class PulumiPluginCommandTask extends PluginTask {
     garden,
     graph,
     log,
-    service,
     commandName,
     commandDescription,
     runFn,
     pulumiParams,
   }: PulumiPluginCommandTaskParams) {
-    super({ garden, log, force: false, version: service.version })
+    super({ garden, log, force: false, version: pulumiParams.service.version })
     this.graph = graph
-    this.service = service
     this.commandName = commandName
     this.commandDescription = commandDescription
     this.runFn = runFn
@@ -207,17 +220,17 @@ class PulumiPluginCommandTask extends PluginTask {
   }
 
   getName() {
-    return this.service.name
+    return this.pulumiParams.service.name
   }
 
   getDescription(): string {
-    return `running ${chalk.white(this.commandName)} for ${this.service.name}`
+    return `running ${chalk.white(this.commandName)} for ${this.pulumiParams.service.name}`
   }
 
   async resolveDependencies() {
     // We process any build dependencies, since by default we don't have a build step for plugin tasks.
     const buildDeps = flatten(
-      await Bluebird.map(Object.values(this.service.module.buildDependencies), async (depModule) => {
+      await Bluebird.map(Object.values(this.pulumiParams.service.module.buildDependencies), async (depModule) => {
         return BuildTask.factory({
           garden: this.garden,
           graph: this.graph,
@@ -243,11 +256,10 @@ class PulumiPluginCommandTask extends PluginTask {
           garden: this.garden,
           graph: this.graph,
           log: this.log,
-          service: depService,
           commandName: this.commandName,
           commandDescription: this.commandDescription,
           runFn: this.runFn,
-          pulumiParams: { ...this.pulumiParams, module: depService.module },
+          pulumiParams: { ...this.pulumiParams, module: depService.module, service: depService },
         })
       })
     return [...buildDeps, ...deployDeps]
@@ -261,7 +273,13 @@ class PulumiPluginCommandTask extends PluginTask {
     })
     try {
       await selectStack(this.pulumiParams)
-      const result = await this.runFn(this.pulumiParams)
+      // We need to make sure that the template resolution context is specific to this service's module.
+      const ctxForService = await makePluginContextForService({
+        ...this.pulumiParams,
+        garden: this.garden,
+        graph: this.graph,
+      })
+      const result = await this.runFn({ ...this.pulumiParams, ctx: ctxForService })
       log.setSuccess({
         msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
       })
@@ -299,23 +317,12 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
 
       beforeFn && (await beforeFn({ ctx, log }))
 
-      const allProviders = await garden.resolveProviders(log)
-      const allModules = graph.getModules()
-
       const provider = ctx.provider as PulumiProvider
       const services = graph.getServices({ names: serviceNames }).filter((s) => s.module.type === "pulumi")
 
       const tasks = await Bluebird.map(services, async (service) => {
-        const templateContext = ModuleConfigContext.fromModule({
-          garden,
-          resolvedProviders: allProviders,
-          module: service.module,
-          modules: allModules,
-          partialRuntimeResolution: false,
-        })
-        const ctxForModule = await garden.getPluginContext(provider, templateContext, ctx.events)
         const pulumiParams: PulumiParamsWithService = {
-          ctx: ctxForModule,
+          ctx,
           provider,
           log,
           module: <PulumiModule>service.module,
@@ -327,7 +334,6 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
           garden,
           graph,
           log,
-          service,
           commandName: name,
           commandDescription,
           runFn,
