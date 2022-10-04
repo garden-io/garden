@@ -9,7 +9,7 @@ community productive and fun for everyone :)
 
 ### How to report an issue
 
-If you have found a bug, or need to submit a feature request, or suggest any other change, please create
+If you have found a bug, or want to submit a feature request, or suggest any other change, please create
 a [new issue](https://github.com/garden-io/garden/issues/new/choose).
 
 If you report a bug, please describe the steps to reproduce it. You can share the complete Garden configuration of your
