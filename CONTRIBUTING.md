@@ -15,7 +15,7 @@ a [new issue](https://github.com/garden-io/garden/issues/new/choose).
 If you report a bug, please describe the steps to reproduce it. You can share the complete Garden configuration of your
 project (without any code included) with us by running the `garden get debug-info` command. It will produce a single archive
 with the directory structure of your project and all Garden configuration files. That can be very helpful for us to
-debug the issue.
+reproduce and fix the issue.
 
 ## Project structure
 
