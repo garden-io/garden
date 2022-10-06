@@ -272,7 +272,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 #### Usage
 
-    garden call <serviceAndPath>
+    garden call <serviceAndPath> 
 
 #### Arguments
 
@@ -302,7 +302,7 @@ Examples:
 
 #### Usage
 
-    garden config analytics-enabled [enable]
+    garden config analytics-enabled [enable] 
 
 #### Arguments
 
@@ -383,7 +383,7 @@ Examples:
 
 #### Usage
 
-    garden cleanup secret <provider> <key>
+    garden cleanup secret <provider> <key> 
 
 #### Arguments
 
@@ -685,12 +685,12 @@ Examples:
 
 #### Options
 
-| Argument | Alias    | Type | Description |
-| -------- |----------| ---- | ----------- |
-  | `--force` |          | boolean | Force redeploy of service(s).
-  | `--force-build` |          | boolean | Force rebuild of module(s).
-  | `--watch` | `-w`     | boolean | Watch for changes in module(s) and auto-deploy.
-  | `--dev-mode` | `--dev`  | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--force` |  | boolean | Force redeploy of service(s).
+  | `--force-build` |  | boolean | Force rebuild of module(s).
+  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
+  | `--dev-mode` | `--dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
   | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
@@ -916,9 +916,9 @@ Examples:
 
 #### Options
 
-| Argument | Alias     | Type | Description |
-| -------- |-----------| ---- | ----------- |
-  | `--force` |           | boolean | Force redeploy of service(s).
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--force` |  | boolean | Force redeploy of service(s).
   | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip-tests` |  | boolean | Disable running the tests.
@@ -1044,7 +1044,7 @@ Examples:
 
 #### Usage
 
-    garden cloud secrets delete [ids]
+    garden cloud secrets delete [ids] 
 
 #### Arguments
 
@@ -1128,7 +1128,7 @@ Examples:
 
 #### Usage
 
-    garden cloud users delete [ids]
+    garden cloud users delete [ids] 
 
 #### Arguments
 
@@ -1167,7 +1167,7 @@ Examples:
 
 #### Usage
 
-    garden get graph
+    garden get graph 
 
 
 
@@ -1951,7 +1951,7 @@ domain:
 
 #### Usage
 
-    garden get linked-repos
+    garden get linked-repos 
 
 
 
@@ -1970,7 +1970,7 @@ Examples:
 
 #### Usage
 
-    garden get outputs
+    garden get outputs 
 
 
 #### Outputs
@@ -2314,7 +2314,7 @@ modules:
 
 #### Usage
 
-    garden get status
+    garden get status 
 
 
 #### Outputs
@@ -2463,7 +2463,7 @@ tests:
 
 #### Usage
 
-    garden get tasks [tasks]
+    garden get tasks [tasks] 
 
 #### Arguments
 
@@ -2480,7 +2480,7 @@ tests:
 
 #### Usage
 
-    garden get tests [tests]
+    garden get tests [tests] 
 
 #### Arguments
 
@@ -2497,7 +2497,7 @@ tests:
 
 #### Usage
 
-    garden get task-result <name>
+    garden get task-result <name> 
 
 #### Arguments
 
@@ -2558,7 +2558,7 @@ artifacts:
 
 #### Usage
 
-    garden get test-result <module> <name>
+    garden get test-result <module> <name> 
 
 #### Arguments
 
@@ -2650,7 +2650,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get vaccine
+    garden get vaccine 
 
 
 
@@ -2661,7 +2661,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get workflows [workflows]
+    garden get workflows [workflows] 
 
 #### Arguments
 
@@ -2685,7 +2685,7 @@ Examples:
 
 #### Usage
 
-    garden link source <source> <path>
+    garden link source <source> <path> 
 
 #### Arguments
 
@@ -2721,7 +2721,7 @@ Examples:
 
 #### Usage
 
-    garden link module <module> <path>
+    garden link module <module> <path> 
 
 #### Arguments
 
@@ -2824,7 +2824,7 @@ Prints all global options (options that can be applied to any command).
 
 #### Usage
 
-    garden options
+    garden options 
 
 
 
@@ -2849,7 +2849,7 @@ Examples:
 
 #### Usage
 
-    garden plugins [plugin] [command]
+    garden plugins [plugin] [command] 
 
 #### Arguments
 
@@ -3358,7 +3358,7 @@ Examples:
 
 #### Usage
 
-    garden run workflow <workflow>
+    garden run workflow <workflow> 
 
 #### Arguments
 
@@ -3375,7 +3375,7 @@ Examples:
 
 #### Usage
 
-    garden scan
+    garden scan 
 
 
 
@@ -3923,7 +3923,7 @@ Hides the specified warning message. The command and key is generally provided a
 
 #### Usage
 
-    garden util hide-warning <key>
+    garden util hide-warning <key> 
 
 #### Arguments
 
@@ -3941,7 +3941,7 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
 #### Usage
 
-    garden validate
+    garden validate 
 
 
 
