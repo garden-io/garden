@@ -88,27 +88,11 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
-function renderHeader({
-  environmentName,
-  namespaceName,
-  namespaceUrl,
-  distroName,
-}: {
-  environmentName: string
-  namespaceName: string
-  namespaceUrl?: string
-  distroName?: string
-}) {
+function renderHeader({ environmentName, namespaceName }: { environmentName: string; namespaceName: string }) {
   const divider = chalk.gray(renderDivider())
-  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName + "." + environmentName)}`
-
-  if (namespaceUrl) {
-    msg += dedent`
-      \n
-      ${nodeEmoji.lightning}   Connected to ${distroName}
-      ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
-    `
-  }
+  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
+    environmentName
+  )}`
 
   return dedent`
     ${divider}
@@ -419,25 +403,24 @@ ${renderCommands(commands)}
           let namespaceUrl: string | undefined
           if (cloudApi && cloudApi.environmentId && cloudApi.namespaceId) {
             const project = await cloudApi.getProject()
-            const path = `/projects/${project.id}/environments/${cloudApi.environmentId}/namespaces/${cloudApi.namespaceId}/stack`
+            const user = await cloudApi.getProfile()
+            const path = `/projects/${project.id}?sessionId=${sessionId}&userId=${user.id}`
             const url = new URL(path, cloudApi.domain)
             namespaceUrl = url.href
           }
 
-          // Print a specific header and footer when persistent and connected to Garden Cloud.
-          if (persistent && namespaceUrl) {
+          // Print a specific header and footer when connected to Garden Cloud.
+          if (namespaceUrl) {
             const distroName = getCloudDistributionName(cloudApi?.domain || "")
             nsLog.setState(
               renderHeader({
                 namespaceName: garden.namespace,
                 environmentName: garden.environmentName,
-                namespaceUrl,
-                distroName,
               })
             )
             const msg = dedent`
               \n${nodeEmoji.lightning}   ${chalk.cyan(
-              `Connected to ${distroName}! Visit your namespace to stream logs and more.`
+              `Connected to ${distroName}! Click the link below to view logs and more.`
             )}
               ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
             `
