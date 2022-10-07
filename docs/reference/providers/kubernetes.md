@@ -174,7 +174,8 @@ providers:
       # guide to assigning Pods to nodes.
       nodeSelector: {}
 
-      # Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds.
+      # Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run
+      # builds.
       tolerations:
         - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
           # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -874,11 +875,12 @@ providers:
       nodeSelector:
           disktype: ssd
 ```
+
 ### `providers[].clusterBuildkit.tolerations[]`
 
-[providers](#providers) > [clusberBuildkit](#providersclusterbuildkit) > tolerations
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > tolerations
 
-Specify tolerations to apply to the BuildKit deployment. Useful to control which nodes in a cluster can run builds.
+Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -886,7 +888,7 @@ Specify tolerations to apply to the BuildKit deployment. Useful to control which
 
 ### `providers[].clusterBuildkit.tolerations[].effect`
 
-[providers](#providers) > [kaniko](#providersclusterbuildkit) > [tolerations](#providerskanikotolerations) > effect
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > effect
 
 "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
 allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -897,7 +899,7 @@ allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
 
 ### `providers[].clusterBuildkit.tolerations[].key`
 
-[providers](#providers) > [kaniko](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > key
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > key
 
 "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
 If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
@@ -908,7 +910,7 @@ If the key is empty, operator must be "Exists"; this combination means to match 
 
 ### `providers[].clusterBuildkit.tolerations[].operator`
 
-[providers](#providers) > [kaniko](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > operator
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > operator
 
 "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
 "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
@@ -920,7 +922,7 @@ particular category.
 
 ### `providers[].clusterBuildkit.tolerations[].tolerationSeconds`
 
-[providers](#providers) > [kaniko](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > tolerationSeconds
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > tolerationSeconds
 
 "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
 otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
@@ -933,7 +935,7 @@ by the system.
 
 ### `providers[].clusterBuildkit.tolerations[].value`
 
-[providers](#providers) > [kaniko](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > value
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > value
 
 "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
 otherwise just a regular string.
