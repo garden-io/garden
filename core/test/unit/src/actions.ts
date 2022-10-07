@@ -52,6 +52,7 @@ import { BaseActionConfig } from "../../../src/actions/types"
 import { BaseRuntimeActionConfig } from "../../../src/actions/base"
 
 const now = new Date()
+const returnWrongOutputsCfgKey = "returnWrong"
 
 describe("ActionRouter", () => {
   let garden: TestGarden
@@ -535,7 +536,11 @@ describe("ActionRouter", () => {
 
           localMode: false,
         })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
+        expect(result).to.eql({
+          detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {} },
+          outputs: { base: "ok", foo: "ok" },
+          state: "ready",
+        })
       })
 
       it("should emit a serviceStatus event", async () => {
@@ -551,50 +556,27 @@ describe("ActionRouter", () => {
         expect(event).to.exist
         expect(event.name).to.eql("serviceStatus")
         expect(event.payload.serviceName).to.eql("service-a")
-        expect(event.payload.moduleVersion).to.eql(resolvedDeployAction.versionString())
+        expect(event.payload.actionVersion).to.eql(resolvedDeployAction.versionString())
         expect(event.payload.serviceVersion).to.eql(resolvedDeployAction.versionString())
         expect(event.payload.actionUid).to.be.undefined
         expect(event.payload.status.state).to.eql("ready")
       })
 
       it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-        stubRouterAction(actionRouter, "Deploy", "getStatus", async (_params) => {
-          return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: 123 } }
-        })
-
+        const action = cloneDeep(resolvedDeployAction)
+        action._config[returnWrongOutputsCfgKey] = true
         await expectError(
           () =>
             actionRouter.deploy.getStatus({
               log,
-              action: resolvedDeployAction,
+              action,
               graph,
               devMode: false,
               localMode: false,
             }),
           (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Error validating outputs from service 'service-a': key .foo must be a string"
-            )
-        )
-      })
-
-      it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
-        stubRouterAction(actionRouter, "Deploy", "getStatus", async (_params) => {
-          return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: 123, foo: "ok" } }
-        })
-
-        await expectError(
-          () =>
-            actionRouter.deploy.getStatus({
-              log,
-              action: resolvedDeployAction,
-              graph,
-              devMode: false,
-              localMode: false,
-            }),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Error validating outputs from service 'service-a': key .base must be a string"
+            expect(stripAnsi(err.message)).to.include(
+              "Error validating outputs from deploy 'service-a': key .foo must be a string"
             )
         )
       })
@@ -610,7 +592,11 @@ describe("ActionRouter", () => {
           devMode: false,
           localMode: false,
         })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: { base: "ok", foo: "ok" } })
+        expect(result).to.eql({
+          detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {} },
+          outputs: { base: "ok", foo: "ok" },
+          state: "ready",
+        })
       })
 
       it("should emit serviceStatus events", async () => {
@@ -623,7 +609,7 @@ describe("ActionRouter", () => {
           devMode: false,
           localMode: false,
         })
-        const moduleVersion = resolvedDeployAction.versionString()
+        const moduleVersion = resolvedDeployAction.moduleVersion().versionString
         const event1 = garden.events.eventLog[0]
         const event2 = garden.events.eventLog[1]
         expect(event1).to.exist
@@ -645,45 +631,21 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-        stubRouterAction(actionRouter, "Deploy", "deploy", async (_params) => {
-          return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: 123 } }
-        })
-
+        const action = cloneDeep(resolvedDeployAction)
+        action._config[returnWrongOutputsCfgKey] = true
         await expectError(
           () =>
             actionRouter.deploy.deploy({
               log,
-              action: resolvedDeployAction,
+              action,
               graph,
               force: true,
               devMode: false,
               localMode: false,
             }),
           (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Error validating outputs from service 'service-a': key .foo must be a string"
-            )
-        )
-      })
-
-      it("should throw if the outputs don't match the service outputs schema of a plugin's base", async () => {
-        stubRouterAction(actionRouter, "Deploy", "deploy", async (_params) => {
-          return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: 123, foo: "ok" } }
-        })
-
-        await expectError(
-          () =>
-            actionRouter.deploy.deploy({
-              log,
-              action: resolvedDeployAction,
-              graph,
-              force: true,
-              devMode: false,
-              localMode: false,
-            }),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Error validating outputs from service 'service-a': key .base must be a string"
+            expect(stripAnsi(err.message)).to.include(
+              "Error validating outputs from deploy 'service-a': key .foo must be a string"
             )
         )
       })
@@ -692,15 +654,24 @@ describe("ActionRouter", () => {
     describe("deploy.delete", () => {
       it("should correctly call the corresponding plugin handler", async () => {
         const result = await actionRouter.deploy.delete({ log, action: resolvedDeployAction, graph })
-        expect(result).to.eql({ forwardablePorts: [], state: "ready", detail: {}, outputs: {} })
+        expect(result).to.eql({
+          forwardablePorts: [],
+          state: "ready",
+          detail: {
+            detail: {},
+            state: "ready",
+          },
+          outputs: {},
+        })
       })
     })
 
     describe("deploy.exec", () => {
       it("should correctly call the corresponding plugin handler", async () => {
+        const executedAction = await garden.executeAction({ action: resolvedDeployAction, log, graph })
         const result = await actionRouter.deploy.exec({
           log,
-          action: await garden.executeAction({ action: resolvedDeployAction, log: garden.log, graph }),
+          action: executedAction,
           graph,
           command: ["foo"],
           interactive: false,
@@ -750,18 +721,21 @@ describe("ActionRouter", () => {
 
     before(() => {
       taskResult = {
-        moduleName: resolvedDeployAction.name,
-        taskName: resolvedRunAction.name,
-        command: ["foo"],
-        completedAt: now,
-        log: "bla bla",
+        detail: {
+          command: ["foo"],
+          completedAt: now,
+          log: "bla bla",
+          moduleName: "task-a",
+          startedAt: now,
+          success: true,
+          taskName: "task-a",
+          version: resolvedRunAction.versionString(),
+        },
         outputs: {
           base: "ok",
           foo: "ok",
         },
-        success: true,
-        startedAt: now,
-        version: resolvedRunAction.versionString(),
+        state: "ready",
       }
     })
 
@@ -787,44 +761,20 @@ describe("ActionRouter", () => {
         expect(event.name).to.eql("taskStatus")
         expect(event.payload.taskName).to.eql("task-a")
         expect(event.payload.moduleName).to.eql("module-a")
-        expect(event.payload.moduleVersion).to.eql(resolvedRunAction.versionString())
+        expect(event.payload.moduleVersion).to.eql(resolvedRunAction.moduleVersion().versionString)
         expect(event.payload.taskVersion).to.eql(resolvedRunAction.versionString())
         expect(event.payload.actionUid).to.be.undefined
         expect(event.payload.status.state).to.eql("succeeded")
       })
 
       it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-        stubRouterAction(actionRouter, "Run", "getResult", async (_params) => {
-          return {
-            state: "ready",
-            detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
-            outputs: { base: "ok", foo: 123 },
-          }
-        })
-
+        const action = cloneDeep(resolvedRunAction)
+        action._config[returnWrongOutputsCfgKey] = true
         await expectError(
-          () => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }),
+          () => actionRouter.run.getResult({ log, action, graph }),
           (err) =>
-            expect(stripAnsi(err.message)).to.equal(
+            expect(stripAnsi(err.message)).to.include(
               "Error validating outputs from task 'task-a': key .foo must be a string"
-            )
-        )
-      })
-
-      it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
-        stubRouterAction(actionRouter, "Run", "getResult", async (_params) => {
-          return {
-            state: "ready",
-            detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
-            outputs: { base: 123, foo: "ok" },
-          }
-        })
-
-        await expectError(
-          () => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Error validating outputs from task 'task-a': key .base must be a string"
             )
         )
       })
@@ -849,7 +799,7 @@ describe("ActionRouter", () => {
           interactive: true,
           graph,
         })
-        const moduleVersion = resolvedRunAction.versionString()
+        const moduleVersion = resolvedRunAction.moduleVersion().versionString
         const event1 = garden.events.eventLog[0]
         const event2 = garden.events.eventLog[1]
         expect(event1).to.exist
@@ -871,49 +821,19 @@ describe("ActionRouter", () => {
       })
 
       it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-        stubRouterAction(actionRouter, "Run", "run", async (_params) => {
-          return {
-            state: "ready",
-            detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
-            outputs: { base: "ok", foo: 123 },
-          }
-        })
-
+        const action = cloneDeep(resolvedRunAction)
+        action._config[returnWrongOutputsCfgKey] = true
         await expectError(
           () =>
             actionRouter.run.run({
               log,
-              action: resolvedRunAction,
+              action,
               interactive: true,
               graph,
             }),
           (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Error validating outputs from task 'task-a': key .foo must be a string"
-            )
-        )
-      })
-
-      it("should throw if the outputs don't match the task outputs schema of a plugin's base", async () => {
-        stubRouterAction(actionRouter, "Run", "run", async (_params) => {
-          return {
-            state: "ready",
-            detail: { success: true, startedAt: new Date(), completedAt: new Date(), log: "" },
-            outputs: { base: 123, foo: "ok" },
-          }
-        })
-
-        await expectError(
-          () =>
-            actionRouter.run.run({
-              log,
-              action: resolvedRunAction,
-              interactive: true,
-              graph,
-            }),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Error validating outputs from task 'task-a': key .base must be a string"
+            expect(stripAnsi(err.message)).to.include(
+              "Error validating outputs from Run 'task-a': key .foo must be a string"
             )
         )
       })
@@ -939,7 +859,7 @@ describe("ActionRouter", () => {
           action: await garden.resolveAction({
             action: runActionTaskA,
             log: garden.log,
-            graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+            graph,
           }),
           interactive: true,
           graph,
@@ -1886,6 +1806,13 @@ describe("ActionRouter", () => {
 const baseOutputsSchema = () => joi.object().keys({ base: joi.string() })
 const testOutputSchema = () => baseOutputsSchema().keys({ foo: joi.string() })
 
+const outputsCfg = {
+  schema: joi.object().keys({
+    base: joi.string(),
+    foo: joi.string(),
+  }),
+}
+
 const basePlugin = createGardenPlugin({
   name: "base",
   createModuleTypes: [
@@ -2189,14 +2116,23 @@ const testPlugin = createGardenPlugin({
         name: "test",
         docs: "Test Deploy action",
         schema: joi.object(),
+        outputs: outputsCfg,
         handlers: {
-          getStatus: async (_params) => {
-            return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: "ok" } }
+          getStatus: async (params) => {
+            return {
+              state: "ready",
+              detail: { state: "ready", detail: {} },
+              outputs: getTestPluginOutputs(params),
+            }
           },
 
           deploy: async (params) => {
-            validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
-            return { state: "ready", detail: { state: "ready", detail: {} }, outputs: { base: "ok", foo: "ok" } }
+            // validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
+            return {
+              state: "ready",
+              detail: { state: "ready", detail: {} },
+              outputs: getTestPluginOutputs(params),
+            }
           },
 
           delete: async (_params) => {
@@ -2246,6 +2182,7 @@ const testPlugin = createGardenPlugin({
         name: "test",
         docs: "Test Run action",
         schema: joi.object(),
+        outputs: outputsCfg,
         handlers: {
           getResult: async (params) => {
             return {
@@ -2256,12 +2193,11 @@ const testPlugin = createGardenPlugin({
                 command: ["foo"],
                 completedAt: now,
                 log: "bla bla",
-                outputs: { base: "ok", foo: "ok" },
                 success: true,
                 startedAt: now,
                 version: params.action.versionString(),
               },
-              outputs: {},
+              outputs: getTestPluginOutputs(params),
             }
           },
 
@@ -2279,12 +2215,11 @@ const testPlugin = createGardenPlugin({
                 command: ["foo"],
                 completedAt: now,
                 log: "bla bla",
-                outputs: { base: "ok", foo: "ok" },
                 success: true,
                 startedAt: now,
                 version: params.action.versionString(),
               },
-              outputs: {},
+              outputs: getTestPluginOutputs(params),
             }
           },
         },
@@ -2317,7 +2252,7 @@ const testPlugin = createGardenPlugin({
                 testName: params.action.name,
                 version: params.action.versionString(),
               },
-              outputs: {},
+              outputs: getTestPluginOutputs(params),
             }
           },
 
@@ -2337,7 +2272,7 @@ const testPlugin = createGardenPlugin({
                 testName: params.action.name,
                 version: params.action.versionString(),
               },
-              outputs: {},
+              outputs: getTestPluginOutputs(params),
             }
           },
         },
@@ -2350,6 +2285,10 @@ const testPluginB = createGardenPlugin({
   ...omit(testPlugin, ["createModuleTypes", "createActionTypes"]),
   name: "test-plugin-b",
 })
+
+function getTestPluginOutputs(params: any) {
+  return { base: "ok", foo: params.action._config[returnWrongOutputsCfgKey] ? 123 : "ok" }
+}
 
 function validateParams(params: any, schema: CustomObjectSchema) {
   validateSchema(
