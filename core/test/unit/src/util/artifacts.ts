@@ -17,7 +17,7 @@ import { getLogger } from "../../../../src/logger/logger"
 describe("artifacts", () => {
   describe("getArtifactKey", () => {
     it("should return the artifact key with format type.name.version", () => {
-      expect(getArtifactKey("task", "task-name", "v-123456")).to.equal("task.task-name.v-123456")
+      expect(getArtifactKey("run", "task-name", "v-123456")).to.equal("task.task-name.v-123456")
       expect(getArtifactKey("test", "test-name", "v-123456")).to.equal("test.test-name.v-123456")
     })
   })

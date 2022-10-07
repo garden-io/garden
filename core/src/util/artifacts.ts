@@ -12,14 +12,14 @@ import { LogEntry } from "../logger/log-entry"
 import { Garden } from "../garden"
 import chalk from "chalk"
 
-const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
+const maxArtifactLogLines = 5 // max number of artifacts to list in console after run+test runs
 
 /**
  * @param type task | test
  * @param name name of the task or test
  * @param version the version of the module that the task/test belongs to
  */
-export function getArtifactKey(type: "task" | "test", name: string, version: string) {
+export function getArtifactKey(type: "run" | "test", name: string, version: string) {
   return `${type}.${name}.${version}`
 }
 

@@ -70,7 +70,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
 
     if (res.state === "ready") {
       artifacts = await getArtifactFileList({
-        key: getArtifactKey("task", action.name, action.versionString()),
+        key: getArtifactKey("run", action.name, action.versionString()),
         artifactsPath: garden.artifactsPath,
         log: garden.log,
       })
