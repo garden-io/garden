@@ -86,7 +86,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
             garden,
             log: params.log,
             artifactsPath,
-            key: getArtifactKey("task", action.name, actionVersion),
+            key: getArtifactKey("run", action.name, actionVersion),
           })
         } finally {
           await tmpDir.cleanup()
