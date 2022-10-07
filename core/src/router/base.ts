@@ -318,7 +318,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     if (spec.outputs?.schema) {
       outputs = validateSchema(outputs, spec.outputs.schema, {
-        context: `outputs from service '${action.name}'`,
+        context: `outputs from ${action.kind} '${action.name}'`,
         ErrorClass: PluginError,
       })
     }
@@ -326,7 +326,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     for (const base of getActionTypeBases(spec, actionTypes[action.kind])) {
       if (base.outputs?.schema) {
         outputs = validateSchema(outputs, base.outputs.schema.unknown(true), {
-          context: `outputs from service '${action.name}' (base schema from '${base.name}' plugin)`,
+          context: `outputs from ${action.kind} '${action.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
       }
