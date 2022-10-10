@@ -546,6 +546,9 @@ services:
     # POSIX capabilities to remove from the running service's main container.
     dropCapabilities:
 
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
+
 # A list of tests to run in the module.
 tests:
   - # The name of the test.
@@ -2209,6 +2212,16 @@ POSIX capabilities to remove from the running service's main container.
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+### `services[].deploymentStrategy`
+
+[services](#services) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
 
 ### `tests[]`
 
