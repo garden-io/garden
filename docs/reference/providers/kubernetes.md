@@ -62,23 +62,23 @@ providers:
       # For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
       # option.
       #
-      # Some registries are known not to support the cache manifests needed for the `mode=max` option, so
-      # we will avoid using `mode=max` with them.
-      #
       # See the following table for details on our detection mechanism:
       #
-      # | Registry Name                   | Detection string | Assumed `mode=max` support |
-      # |---------------------------------|------------------|------------------------------|
-      # | AWS Elastic Container Registry  | `.dkr.ecr.`    | No                           |
-      # | Google Cloud Container Registry | `gcr.io`       | No                           |
-      # | Any other registry              | -                | Yes                          |
+      # | Registry Name                   | Registry Domain         | Assumed `mode=max` support |
+      # |---------------------------------|-------------------------|------------------------------|
+      # | Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
+      # | Azure Container Registry        | `azurecr.io`          | Yes                          |
+      # | GitHub Container Registry       | `ghcr.io`             | Yes                          |
+      # | DockerHub                       | `hub.docker.com`     | Yes                          |
+      # | Garden In-Cluster Registry      |                         | Yes                          |
+      # | Any other registry              |                         | No                           |
       #
       # In case you need to override the defaults for your registry, you can do it like so:
       #
       # clusterBuildkit:
       #   cache:
       #     - type: registry
-      #       mode: inline
+      #       mode: max
       #
       # When you add multiple caches, we will make sure to pass the `--import-cache` options to buildkit in the same
       # order as provided in the cache configuration. This is because buildkit will not actually use all imported
@@ -144,8 +144,8 @@ providers:
           # buildkit `--export-cache` option. Cache manifests will only be
           # stored stored in the configured `tag`.
           #
-          # `auto` is the same as `max` for most registries. Some popular registries do not support `max` and garden
-          # will fall back to `inline` for them.
+          # `auto` is the same as `max` for some registries that are known to support it. Garden will fall back to
+          # `inline` for all other registries.
           #  See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the
           # detection mechanism.
           #
@@ -659,16 +659,16 @@ For every build, this will
 For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
 option.
 
-Some registries are known not to support the cache manifests needed for the `mode=max` option, so
-we will avoid using `mode=max` with them.
-
 See the following table for details on our detection mechanism:
 
-| Registry Name                   | Detection string | Assumed `mode=max` support |
-|---------------------------------|------------------|------------------------------|
-| AWS Elastic Container Registry  | `.dkr.ecr.`    | No                           |
-| Google Cloud Container Registry | `gcr.io`       | No                           |
-| Any other registry              | -                | Yes                          |
+| Registry Name                   | Registry Domain         | Assumed `mode=max` support |
+|---------------------------------|-------------------------|------------------------------|
+| Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
+| Azure Container Registry        | `azurecr.io`          | Yes                          |
+| GitHub Container Registry       | `ghcr.io`             | Yes                          |
+| DockerHub                       | `hub.docker.com`     | Yes                          |
+| Garden In-Cluster Registry      |                         | Yes                          |
+| Any other registry              |                         | No                           |
 
 In case you need to override the defaults for your registry, you can do it like so:
 
@@ -676,7 +676,7 @@ In case you need to override the defaults for your registry, you can do it like 
 clusterBuildkit:
   cache:
     - type: registry
-      mode: inline
+      mode: max
 ```
 
 When you add multiple caches, we will make sure to pass the `--import-cache` options to buildkit in the same
@@ -812,7 +812,7 @@ The value `inline` ensures that garden is using the buildkit option `--export-ca
 The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the buildkit `--export-cache` option. Cache manifests will only be
 stored stored in the configured `tag`.
 
-`auto` is the same as `max` for most registries. Some popular registries do not support `max` and garden will fall back to `inline` for them.
+`auto` is the same as `max` for some registries that are known to support it. Garden will fall back to `inline` for all other registries.
  See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
 
 See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
