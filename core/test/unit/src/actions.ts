@@ -888,22 +888,6 @@ describe("ActionRouter", () => {
     })
   })
 
-  describe("getActionHandlers", () => {
-    it("should return all handlers for a type", async () => {
-      const handlers = await actionRouter["getActionHandlers"]("prepareEnvironment")
-
-      expect(Object.keys(handlers)).to.eql(["exec", "test-plugin", "test-plugin-b"])
-    })
-  })
-
-  describe("getModuleActionHandlers", () => {
-    it("should return all handlers for a type", async () => {
-      const handlers = await actionRouter["getModuleActionHandlers"]({ handlerType: "build", moduleType: "exec" })
-
-      expect(Object.keys(handlers)).to.eql(["exec"])
-    })
-  })
-
   describe("getActionHandler", () => {
     it("should return the configured handler for specified action type and plugin name", async () => {
       const gardenA = await makeTestGardenA()
