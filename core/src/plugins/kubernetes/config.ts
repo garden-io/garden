@@ -214,6 +214,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     cache: ClusterBuildkitCacheConfig[]
     rootless?: boolean
     nodeSelector?: StringMap
+    tolerations?: V1Toleration[]
   }
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -626,6 +627,9 @@ export const kubernetesConfigBase = () =>
           )
           .example({ disktype: "ssd" })
           .default(() => ({})),
+        tolerations: joiSparseArray(tolerationSchema()).description(
+          "Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds."
+        ),
       })
       .default(() => ({}))
       .description("Configuration options for the `cluster-buildkit` build mode."),

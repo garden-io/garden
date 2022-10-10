@@ -341,6 +341,7 @@ export function getBuildkitDeployment(
   authSecretName: string,
   imagePullSecrets: { name: string }[]
 ) {
+  const tolerations = [...(provider.config.clusterBuildkit?.tolerations || []), builderToleration]
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -426,7 +427,7 @@ export function getBuildkitDeployment(
               emptyDir: {},
             },
           ],
-          tolerations: [builderToleration],
+          tolerations,
         },
       },
     },

@@ -170,6 +170,34 @@ providers:
       # guide to assigning Pods to nodes.
       nodeSelector: {}
 
+      # Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run
+      # builds.
+      tolerations:
+        - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+          # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+          effect:
+
+          # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+          # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+          key:
+
+          # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal".
+          # Defaults to
+          # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+          # particular category.
+          operator: Equal
+
+          # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+          # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+          # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+          # by the system.
+          tolerationSeconds:
+
+          # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
+          # empty,
+          # otherwise just a regular string.
+          value:
+
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -796,6 +824,74 @@ providers:
       nodeSelector:
           disktype: ssd
 ```
+
+### `providers[].clusterBuildkit.tolerations[]`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > tolerations
+
+Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].clusterBuildkit.tolerations[].effect`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].key`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].operator`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"Equal"` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].tolerationSeconds`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].value`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].clusterDocker`
 
