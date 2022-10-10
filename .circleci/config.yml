@@ -311,6 +311,7 @@ jobs:
 
   test-framework:
     <<: *node-config
+    resource_class: large
     steps:
       - checkout
       - *remote-docker
