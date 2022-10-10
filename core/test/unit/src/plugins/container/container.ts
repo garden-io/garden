@@ -366,6 +366,7 @@ describe("plugins.container", () => {
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 replicas: 1,
                 volumes: [],
+                deploymentStrategy: defaultDeploymentStrategy,
               },
             ],
             tasks: [
@@ -445,6 +446,7 @@ describe("plugins.container", () => {
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 replicas: 1,
                 volumes: [],
+                deploymentStrategy: defaultDeploymentStrategy,
               },
             },
           ],
