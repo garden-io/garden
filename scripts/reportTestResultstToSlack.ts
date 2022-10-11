@@ -12,7 +12,7 @@ const prUrl = process.env.CIRCLE_PULL_REQUEST
 const branch = process.env.CIRCLE_BRANCH
 const ciJobUrl = process.env.CIRCLE_BUILD_URL
 
-const formattedPrUrl = prUrl ? `<\n${prUrl}>` : ""
+const formattedPrUrl = prUrl ? `\n${prUrl}` : ""
 const formattedBranch = `<https://github.com/garden-io/garden/tree/${branch}|${branch}>`
 const formattedJob = `<${ciJobUrl}|ci job>`
 
