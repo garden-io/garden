@@ -72,7 +72,10 @@ describe("test actions", () => {
         graph,
         silent: false,
       })
-      expect(result.outputs).to.eql({})
+      expect(result.outputs).to.eql({
+        base: "ok",
+        foo: "ok",
+      })
       expect(result.detail?.log).to.eql("bla bla")
       expect(result.state).to.eql("ready")
     })
@@ -163,7 +166,10 @@ describe("test actions", () => {
         graph,
       })
 
-      expect(result.outputs).to.eql({})
+      expect(result.outputs).to.eql({
+        base: "ok",
+        foo: "ok",
+      })
       expect(result.detail?.log).to.eql("bla bla")
       expect(result.state).to.eql("ready")
     })
