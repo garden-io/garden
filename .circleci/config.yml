@@ -324,6 +324,9 @@ jobs:
             GARDEN_LOGGER_TYPE="" yarn run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
+      - run:
+          name: Report test results to slack
+          command: yarn test:framework:unit:report
 
   e2e-project:
     <<: *node-config

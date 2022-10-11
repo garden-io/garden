@@ -83,7 +83,8 @@
     "lint": "./scripts/run-script.ts lint --no-bail --parallel && gulp check-licenses",
     "push-containers": "yarn run dist && ./script/push-containers.sh",
     "test:plugins": "./scripts/run-script.ts test --no-bail --scope @garden-io/garden-*",
-    "test:framework:unit": "./scripts/run-script.ts test --no-bail --ignore @garden-io/garden-*"
+    "test:framework:unit": "./scripts/run-script.ts test --no-bail --ignore @garden-io/garden-* 2>&1 | tee report.tmp",
+    "test:framework:unit:report": "ts-node ./scripts/reportTestResultstToSlack.ts"
   },
   "husky": {
     "hooks": {
