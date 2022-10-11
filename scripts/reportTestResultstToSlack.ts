@@ -16,7 +16,7 @@ const formattedPrUrl = prUrl ? `\n${prUrl}` : ""
 const formattedBranch = `<https://github.com/garden-io/garden/tree/${branch}|${branch}>`
 const formattedJob = `<${ciJobUrl}|ci job>`
 
-const report = `Unit tests passing ${testPassed[1]}/${testFailed[1]+testPassed[1]}
+const report = `Unit tests passing ${testPassed[1]}/${parseInt(testFailed[1])+parseInt(testPassed[1])}
 ${formattedJob} | branch: ${formattedBranch}${formattedPrUrl}`
 
 const webhookUrl = branch === "graph-v2" ? process.env.GRAPH_V2_SLACK_WH : process.env.GRAPH_V2_PR_SLACK_WH
