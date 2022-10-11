@@ -95,7 +95,7 @@ describe("run actions", () => {
         () => actionRouter.run.getResult({ log, action, graph }),
         (err) =>
           expect(stripAnsi(err.message)).to.include(
-            "Error validating outputs from task 'task-a': key .foo must be a string"
+            "Error validating outputs from Run 'task-a': key .foo must be a string"
           )
       )
     })
