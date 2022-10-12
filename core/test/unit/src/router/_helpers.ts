@@ -7,7 +7,7 @@
  */
 
 import { ensureFile } from "fs-extra"
-import { omit } from "lodash"
+import { cloneDeep, omit } from "lodash"
 import { join } from "path"
 import { BaseRuntimeActionConfig } from "../../../../src/actions/base"
 import { BuildActionConfig } from "../../../../src/actions/build"
@@ -21,31 +21,29 @@ import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { makeTestGarden, projectRootA } from "../../../helpers"
 
-const projectConfig: ProjectConfig = {
-  apiVersion: DEFAULT_API_VERSION,
-  kind: "Project",
-  name: "test",
-  path: projectRootA,
-  defaultEnvironment: "default",
-  dotIgnoreFile: defaultDotIgnoreFile,
-  environments: [{ name: "default", defaultNamespace, variables: {} }],
-  providers: [{ name: "base" }, { name: "test-plugin" }, { name: "test-plugin-b" }],
-  variables: {},
-}
-
 export async function getRouterTestData() {
   const {
     basePlugin,
     dateUsedForCompleted,
     returnWrongOutputsCfgKey,
-    testPlugin,
+    testPluginA,
     testPluginB,
   } = getRouterUnitTestPlugins()
   const garden = await makeTestGarden(projectRootA, {
-    plugins: [basePlugin, testPlugin, testPluginB],
-    config: projectConfig,
+    plugins: [basePlugin, testPluginA, testPluginB],
+    config: {
+      apiVersion: DEFAULT_API_VERSION,
+      kind: "Project",
+      name: "test",
+      path: projectRootA,
+      defaultEnvironment: "default",
+      dotIgnoreFile: defaultDotIgnoreFile,
+      environments: [{ name: "default", defaultNamespace, variables: {} }],
+      providers: [{ name: "base" }, { name: "test-plugin-a" }, { name: "test-plugin-b" }],
+      variables: {},
+    },
+    onlySpecifiedPlugins: true,
   })
-  projectConfig.path = garden.projectRoot
   const log = garden.log
   const actionRouter = await garden.getActionRouter()
   const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -125,8 +123,8 @@ function getRouterUnitTestPlugins() {
   const pluginActionDescriptions = getProviderActionDescriptions()
   const moduleActionDescriptions = getModuleHandlerDescriptions()
 
-  const testPlugin = createGardenPlugin({
-    name: "test-plugin",
+  const testPluginASpec: GardenPluginSpec = {
+    name: "test-plugin-a",
     dependencies: [{ name: "base" }],
 
     handlers: <ProviderHandlers>{
@@ -578,13 +576,13 @@ function getRouterUnitTestPlugins() {
   })
 
   const testPluginB = createGardenPlugin({
-    ...omit(testPlugin, ["createModuleTypes", "createActionTypes"]),
+    ...omit(testPluginA, ["createModuleTypes", "createActionTypes"]),
     name: "test-plugin-b",
   })
 
   return {
     basePlugin,
-    testPlugin,
+    testPluginA,
     testPluginB,
     returnWrongOutputsCfgKey,
     dateUsedForCompleted: now,
