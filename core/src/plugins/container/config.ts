@@ -111,6 +111,10 @@ interface Annotations {
   [name: string]: string
 }
 
+const deploymentStrategies = ["RollingUpdate", "Recreate"] as const
+export type DeploymentStrategy = typeof deploymentStrategies[number]
+export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
+
 export interface ContainerServiceSpec extends CommonServiceSpec {
   annotations: Annotations
   command?: string[]
@@ -132,6 +136,7 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   tty?: boolean
   addCapabilities?: string[]
   dropCapabilities?: string[]
+  deploymentStrategy: DeploymentStrategy
 }
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -684,6 +689,11 @@ const containerServiceSchema = () =>
       ),
     addCapabilities: containerAddCapabilitiesSchema("service"),
     dropCapabilities: containerDropCapabilitiesSchema("service"),
+    deploymentStrategy: joi
+      .string()
+      .default(defaultDeploymentStrategy)
+      .valid(...deploymentStrategies)
+      .description("Specifies the container's deployment strategy."),
   })
 
 export interface ContainerRegistryConfig {

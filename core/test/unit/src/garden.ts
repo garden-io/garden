@@ -4603,9 +4603,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-2db99eee24"
-      const moduleBVersionString = "v-54d52a425f"
-      const moduleCVersionString = "v-dcb493917a"
+      const moduleAVersionString = "v-6f85bdd407"
+      const moduleBVersionString = "v-6e138410f5"
+      const moduleCVersionString = "v-ea24adfffc"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
@@ -4624,7 +4624,7 @@ describe("Garden", () => {
         delete process.env.TEST_ENV_VAR
       })
 
-      it("should return the same module versions for identiclal modules in different projects", async () => {
+      it("should return the same module versions for identical modules in different projects", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-2")
 
         process.env.MODULE_A_TEST_ENV_VAR = "foo"
