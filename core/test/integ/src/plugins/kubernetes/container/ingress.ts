@@ -24,7 +24,7 @@ import {
   createIngressResources,
   supportedIngressApiVersions,
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { defaultContainerResources } from "../../../../../../src/plugins/container/config"
+import { defaultContainerResources, defaultDeploymentStrategy } from "../../../../../../src/plugins/container/config"
 import {
   ServicePortProtocol,
   ContainerIngressSpec,
@@ -388,6 +388,7 @@ describe("createIngressResources", () => {
       ports,
       replicas: 1,
       volumes: [],
+      deploymentStrategy: defaultDeploymentStrategy,
     }
     const moduleConfig = {
       allowPublish: false,
