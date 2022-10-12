@@ -16,7 +16,7 @@ import { defaultNamespace, ProjectConfig } from "../../../../src/config/project"
 import { validateSchema } from "../../../../src/config/validation"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
-import { createGardenPlugin } from "../../../../src/plugin/plugin"
+import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src/plugin/providers"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { makeTestGarden, projectRootA } from "../../../helpers"
@@ -573,10 +573,12 @@ function getRouterUnitTestPlugins() {
         },
       ],
     },
-  })
+  }
+
+  const testPluginA = createGardenPlugin(testPluginASpec)
 
   const testPluginB = createGardenPlugin({
-    ...omit(testPluginA, ["createModuleTypes", "createActionTypes"]),
+    ...omit(testPluginASpec, ["createModuleTypes", "createActionTypes"]),
     name: "test-plugin-b",
   })
 
