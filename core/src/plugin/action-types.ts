@@ -64,21 +64,23 @@ export type WrappedActionTypeHandler<T, N> = GetActionTypeHandler<T, N> & {
   pluginName: string
 }
 
+const baseActionTypeClasses = {
+  configure: new ConfigureActionConfig(),
+  getOutputs: new GetActionOutputs(),
+  validate: new ValidateAction(),
+}
+
 // TODO-G2: suggest and describe handlers
 const actionTypeClasses = {
   Build: {
-    configure: new ConfigureActionConfig(),
-    getOutputs: new GetActionOutputs(),
-    validate: new ValidateAction(),
+    ...baseActionTypeClasses,
     build: new DoBuildAction(),
     getStatus: new GetBuildActionStatus(),
     publish: new PublishBuildAction(),
     run: new RunBuildAction(),
   },
   Deploy: {
-    configure: new ConfigureActionConfig(),
-    getOutputs: new GetActionOutputs(),
-    validate: new ValidateAction(),
+    ...baseActionTypeClasses,
     delete: new DeleteDeploy(),
     deploy: new DoDeployAction(),
     exec: new ExecInDeploy(),
@@ -89,16 +91,12 @@ const actionTypeClasses = {
     stopPortForward: new StopDeployPortForward(),
   },
   Run: {
-    configure: new ConfigureActionConfig(),
-    getOutputs: new GetActionOutputs(),
-    validate: new ValidateAction(),
+    ...baseActionTypeClasses,
     getResult: new GetRunActionResult(),
     run: new RunRunAction(),
   },
   Test: {
-    configure: new ConfigureActionConfig(),
-    getOutputs: new GetActionOutputs(),
-    validate: new ValidateAction(),
+    ...baseActionTypeClasses,
     getResult: new GetTestActionResult(),
     run: new RunTestAction(),
   },
