@@ -132,7 +132,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       "Takes an array of strings (or other primitives) and concatenates them into a string, with the given separator",
     arguments: {
       input: joi.array().items(joiPrimitive()).required().description("The array to concatenate."),
-      separator: joi.string().required().description("The string to place between each item in the array."),
+      separator: joi.string().allow("").required().description("The string to place between each item in the array."),
     },
     outputSchema: joi.string(),
     exampleArguments: [

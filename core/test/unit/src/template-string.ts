@@ -1163,6 +1163,11 @@ describe("resolveTemplateString", async () => {
       const res = resolveTemplateString("${join(['foo', 'bar'], ',')}", new TestContext({}))
       expect(res).to.eql("foo,bar")
     })
+
+    it("allows empty string separator in join helper function", () => {
+      const res = resolveTemplateString("${join(['foo', 'bar'], '')}", new TestContext({}))
+      expect(res).to.eql("foobar")
+    })
   })
 })
 
