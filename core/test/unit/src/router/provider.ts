@@ -31,11 +31,11 @@ describe("provider actions", async () => {
 
   describe("configureProvider", () => {
     it("should configure the provider", async () => {
-      const config = { name: "test-plugin", foo: "bar", dependencies: [] }
+      const config = { name: "test-plugin-a", foo: "bar", dependencies: [] }
       const result = await actionRouter.provider.configureProvider({
         ctx: await garden.getPluginContext(
           providerFromConfig({
-            plugin: await garden.getPlugin("test-plugin"),
+            plugin: await garden.getPlugin("test-plugin-a"),
             config,
             dependencies: {},
             moduleConfigs: [],
@@ -44,7 +44,7 @@ describe("provider actions", async () => {
         ),
         namespace: "default",
         environmentName: "default",
-        pluginName: "test-plugin",
+        pluginName: "test-plugin-a",
         log,
         config,
         configStore: garden.configStore,
@@ -65,7 +65,7 @@ describe("provider actions", async () => {
       const providers = await garden.resolveProviders(garden.log)
       const result = await actionRouter.provider.augmentGraph({
         log,
-        pluginName: "test-plugin",
+        pluginName: "test-plugin-a",
         actions: graph.getActions(),
         providers,
       })
@@ -75,21 +75,21 @@ describe("provider actions", async () => {
         {
           by: {
             kind: "Deploy",
-            name: "added-by-test-plugin",
+            name: "added-by-test-plugin-a",
           },
           on: {
             kind: "Build",
-            name: "added-by-test-plugin",
+            name: "added-by-test-plugin-a",
           },
         },
       ])
       expect(result.addActions?.map((a) => ({ name: a.name, kind: a.kind }))).to.eql([
         {
-          name: "added-by-test-plugin",
+          name: "added-by-test-plugin-a",
           kind: "Build",
         },
         {
-          name: "added-by-test-plugin",
+          name: "added-by-test-plugin-a",
           kind: "Deploy",
         },
       ])
@@ -104,7 +104,7 @@ describe("provider actions", async () => {
         description: "foodefoodefoo",
         newWindow: false,
       }
-      const result = await actionRouter.provider.getDashboardPage({ log, pluginName: "test-plugin", page })
+      const result = await actionRouter.provider.getDashboardPage({ log, pluginName: "test-plugin-a", page })
       expect(result).to.eql({
         url: "http://foo",
       })
@@ -113,7 +113,7 @@ describe("provider actions", async () => {
 
   describe("getEnvironmentStatus", () => {
     it("should return the environment status for a provider", async () => {
-      const result = await actionRouter.provider.getEnvironmentStatus({ log, pluginName: "test-plugin" })
+      const result = await actionRouter.provider.getEnvironmentStatus({ log, pluginName: "test-plugin-a" })
       expect(result).to.eql({
         ready: false,
         outputs: {},
@@ -125,7 +125,7 @@ describe("provider actions", async () => {
     it("should prepare the environment for a configured provider", async () => {
       const result = await actionRouter.provider.prepareEnvironment({
         log,
-        pluginName: "test-plugin",
+        pluginName: "test-plugin-a",
         force: false,
         status: { ready: true, outputs: {} },
       })
@@ -140,14 +140,14 @@ describe("provider actions", async () => {
 
   describe("cleanupEnvironment", () => {
     it("should clean up environment for a provider", async () => {
-      const result = await actionRouter.provider.cleanupEnvironment({ log, pluginName: "test-plugin" })
+      const result = await actionRouter.provider.cleanupEnvironment({ log, pluginName: "test-plugin-a" })
       expect(result).to.eql({})
     })
   })
 
   describe("getSecret", () => {
     it("should retrieve a secret from the specified provider", async () => {
-      const result = await actionRouter.provider.getSecret({ log, pluginName: "test-plugin", key: "foo" })
+      const result = await actionRouter.provider.getSecret({ log, pluginName: "test-plugin-a", key: "foo" })
       expect(result).to.eql({ value: "foo" })
     })
   })
@@ -156,7 +156,7 @@ describe("provider actions", async () => {
     it("should set a secret via the specified provider", async () => {
       const result = await actionRouter.provider.setSecret({
         log,
-        pluginName: "test-plugin",
+        pluginName: "test-plugin-a",
         key: "foo",
         value: "boo",
       })
@@ -166,7 +166,7 @@ describe("provider actions", async () => {
 
   describe("deleteSecret", () => {
     it("should delete a secret from the specified provider", async () => {
-      const result = await actionRouter.provider.deleteSecret({ log, pluginName: "test-plugin", key: "foo" })
+      const result = await actionRouter.provider.deleteSecret({ log, pluginName: "test-plugin-a", key: "foo" })
       expect(result).to.eql({ found: true })
     })
   })
