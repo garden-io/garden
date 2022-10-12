@@ -50,10 +50,7 @@ export interface BaseRouterParams {
 }
 
 /**
- * The ProviderRouter takes care of choosing which plugin should be responsible for handling a provider action,
- * and preparing common parameters (so as to reduce boilerplate on the usage side).
- *
- * Each provider handler has a corresponding method on this class.
+ * The ProviderRouter is extended upon in BaseAction-, Module- and Provider routers.
  */
 export abstract class BaseRouter {
   protected readonly garden: Garden
