@@ -530,6 +530,11 @@ describe("resolveTemplateString", async () => {
     expect(res).to.eql([1, 2, 3])
   })
 
+  it("should concatenate two strings", async () => {
+    const res = resolveTemplateString("${a + b}", new TestContext({ a: "foo", b: "bar" }))
+    expect(res).to.eql("foobar")
+  })
+
   it("should add two numbers together", async () => {
     const res = resolveTemplateString("${1 + a}", new TestContext({ a: 2 }))
     expect(res).to.equal(3)
@@ -540,7 +545,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${a + b}", new TestContext({ a: 123, b: ["a"] })),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${a + b}): Both terms need to be either arrays or numbers for + operator (got number and object)."
+          "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object)."
         )
     )
   })

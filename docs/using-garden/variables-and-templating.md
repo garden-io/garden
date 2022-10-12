@@ -40,7 +40,7 @@ Note that while this syntax looks similar to template strings in Javascript, we 
 
 In addition to referencing variables from template contexts, you can include a variety of _literals_ in template strings:
 
-* _Strings_ enclosed with either double or single quotes: `${"foo"}`, `${'bar'}`.
+* _Strings_, including concatenated ones, enclosed with either double or single quotes: `${"foo"}`, `${'bar'}`, `${'bar' + 'foo}`.
 * _Numbers_: `${123}`
 * _Booleans_: `${true}`, `${false}`
 * _Null_: `${null}`
@@ -59,8 +59,9 @@ You can use a variety of operators in template string expressions:
 * Unary: `!` (negation), `typeof` (returns the type of the following value as a string, e.g. `"boolean"` or `"number"`)
 * Relational: `contains` (to see if an array contains a value, an object contains a key, or a string contains a substring)
 * Arrays: `+`
+* Strings: `+`
 
-The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers, except the `+` operator which can be used to concatenate two array references. The equality and logical operators work with any term (but be warned that arrays and complex objects aren't currently compared in-depth).
+The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers, except the `+` operator which can be used to concatenate two strings or array references. The equality and logical operators work with any term (but be warned that arrays and complex objects aren't currently compared in-depth).
 
 Clauses are evaluated in standard precedence order, but you can also use parentheses to control evaluation order (e.g. `${(1 + 2) * (3 + 4)}` evaluates to 21).
 
@@ -130,7 +131,7 @@ services:
   ...
 ```
 
-And the `+` operator can also be used to concatenate two arrays:
+And the `+` operator can also be used to concatenate two arrays or strings:
 
 ```yaml
 kind: Project
@@ -138,12 +139,15 @@ kind: Project
 variables:
   some-values: ["a", "b"]
   other-values: ["c", "d"]
+  str1: "foo"
+  str2: "bar"
 ---
 kind: Module
 type: helm
 # ...
 values:
   some-array: ${var.some-values + var.other-values}
+  str12: ${var.str1 + var.str2}
   ...
 ```
 

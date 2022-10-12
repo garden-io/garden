@@ -15,7 +15,7 @@ import {
   ContextKeySegment,
   GenericContext,
 } from "../config/template-contexts/base"
-import { difference, uniq, isPlainObject, isNumber, cloneDeep } from "lodash"
+import { difference, uniq, isPlainObject, isNumber, isString, cloneDeep } from "lodash"
 import {
   Primitive,
   StringMap,
@@ -540,11 +540,13 @@ function buildBinaryExpression(head: any, tail: any) {
     if (operator === "+") {
       if (isNumber(left) && isNumber(right)) {
         return left + right
+      } else if (isString(left) && isString(right)) {
+        return left + right
       } else if (Array.isArray(left) && Array.isArray(right)) {
         return left.concat(right)
       } else {
         const err = new TemplateStringError(
-          `Both terms need to be either arrays or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+          `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
           { left, right, operator }
         )
         return { _error: err }
