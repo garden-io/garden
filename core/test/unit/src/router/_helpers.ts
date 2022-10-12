@@ -165,7 +165,7 @@ function getRouterUnitTestPlugins() {
             {
               kind: "Build",
               name: actionName,
-              type: "container",
+              type: "test",
               internal: {
                 basePath: ".",
               },
@@ -174,7 +174,7 @@ function getRouterUnitTestPlugins() {
             {
               kind: "Deploy",
               name: actionName,
-              type: "container",
+              type: "test",
               internal: {
                 basePath: ".",
               },
