@@ -1136,6 +1136,55 @@ describe("resolveTemplateString", async () => {
           )
       )
     })
+
+    context("concat", () => {
+      it("allows empty strings", () => {
+        const res = resolveTemplateString("${concat('', '')}", new TestContext({}))
+        expect(res).to.equal("")
+      })
+
+      context("throws when", () => {
+        function expectArgTypeError({
+          template,
+          testContextVars = {},
+          errorMessage,
+        }: {
+          template: string
+          testContextVars?: object
+          errorMessage: string
+        }) {
+          return expectError(
+            () => resolveTemplateString(template, new TestContext(testContextVars)),
+            (err) =>
+              expect(stripAnsi(err.message)).to.equal(`Invalid template string (\${concat(a, b)}): ${errorMessage}`)
+          )
+        }
+
+        it("using on incompatible argument types (string and object)", async () => {
+          return expectArgTypeError({
+            template: "${concat(a, b)}",
+            testContextVars: {
+              a: "123",
+              b: ["a"],
+            },
+            errorMessage:
+              "Error from helper function concat: Both terms need to be either arrays or strings (got string and object).",
+          })
+        })
+
+        it("using on unsupported argument types (number and object)", async () => {
+          return expectArgTypeError({
+            template: "${concat(a, b)}",
+            testContextVars: {
+              a: 123,
+              b: ["a"],
+            },
+            errorMessage:
+              "Error validating argument 'arg1' for concat helper function: value must be one of [array, string]",
+          })
+        })
+      })
+    })
   })
 
   context("array literals", () => {
@@ -1290,7 +1339,7 @@ describe("resolveTemplateStrings", () => {
   })
 
   context("$concat", () => {
-    it("handles array concetenation", () => {
+    it("handles array concatenation", () => {
       const obj = {
         foo: ["a", { $concat: ["b", "c"] }, "d"],
       }
