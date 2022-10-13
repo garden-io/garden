@@ -85,7 +85,8 @@ export async function loadAndResolvePlugins(
 
       if (!depPlugin && !dep.optional) {
         throw new PluginError(
-          `Plugin '${plugin.name}' lists plugin '${dep}' as a dependency, but that plugin has not been registered.`,
+          `Plugin '${plugin.name}' lists plugin '${dep.name}' as a dependency,
+          but that plugin has not been registered.`,
           { loadedPlugins: Object.keys(loadedPlugins), dependency: dep }
         )
       }
