@@ -336,28 +336,20 @@ export async function prepareRunPodSpec({
   return preparedPodSpec
 }
 
-async function runWithoutArtifacts({
+interface PodData {
+  namespace: string
+  podName: string
+  podSpec: V1PodSpec
+}
+
+function getPodResourceAndRunner({
   ctx,
   api,
   provider,
-  log,
-  module,
-  args,
-  command,
-  timeout,
-  podSpec,
-  podName,
   namespace,
-  interactive,
-  version,
-}: RunModuleParams<GardenModule> & {
-  api: KubeApi
-  provider: KubernetesProvider
-  podSpec: V1PodSpec
-  podName: string
-  namespace: string
-  version: string
-}): Promise<RunResult> {
+  podName,
+  podSpec,
+}: PodData & { ctx: PluginContext; api: KubeApi; provider: KubernetesProvider }) {
   const pod: KubernetesResource<V1Pod> = {
     apiVersion: "v1",
     kind: "Pod",
@@ -374,6 +366,38 @@ async function runWithoutArtifacts({
     pod,
     provider,
     namespace,
+  })
+
+  return { pod, runner }
+}
+
+async function runWithoutArtifacts({
+  ctx,
+  api,
+  provider,
+  log,
+  module,
+  args,
+  command,
+  timeout,
+  podSpec,
+  podName,
+  namespace,
+  interactive,
+  version,
+}: RunModuleParams &
+  PodData & {
+    api: KubeApi
+    provider: KubernetesProvider
+    version: string
+  }): Promise<RunResult> {
+  const { runner } = getPodResourceAndRunner({
+    ctx,
+    api,
+    provider,
+    namespace,
+    podName,
+    podSpec,
   })
 
   let result: RunResult
@@ -445,37 +469,26 @@ async function runWithArtifacts({
   stderr,
   namespace,
   version,
-}: RunModuleParams<GardenModule> & {
-  podSpec: V1PodSpec
-  podName: string
-  mainContainerName: string
-  api: KubeApi
-  provider: KubernetesProvider
-  artifacts: ArtifactSpec[]
-  artifactsPath: string
-  description?: string
-  errorMetadata: any
-  stdout: Writable
-  stderr: Writable
-  namespace: string
-  version: string
-}): Promise<RunResult> {
-  const pod: KubernetesResource<V1Pod> = {
-    apiVersion: "v1",
-    kind: "Pod",
-    metadata: {
-      name: podName,
-      namespace,
-    },
-    spec: podSpec,
-  }
-
-  const runner = new PodRunner({
+}: RunModuleParams &
+  PodData & {
+    api: KubeApi
+    provider: KubernetesProvider
+    version: string
+    mainContainerName: string
+    artifacts: ArtifactSpec[]
+    artifactsPath: string
+    description?: string
+    errorMetadata: any
+    stdout: Writable
+    stderr: Writable
+  }): Promise<RunResult> {
+  const { pod, runner } = getPodResourceAndRunner({
     ctx,
     api,
-    pod,
     provider,
     namespace,
+    podName,
+    podSpec,
   })
 
   let result: RunResult
