@@ -987,6 +987,22 @@ export class PodRunner extends PodRunnerParams {
       })
     }
 
+    if (result.exitCode === 137) {
+      const getDebugLogs = async () => {
+        try {
+          return this.getMainContainerLogs()
+        } catch (err) {
+          return ""
+        }
+      }
+
+      const msg = `Pod container was OOMKilled.`
+      throw new OutOfMemoryError(msg, {
+        logs: (await getDebugLogs()) || msg,
+        execParams: params,
+      })
+    }
+
     if (result.exitCode !== 0) {
       throw new PodRunnerError(`Command exited with code ${result.exitCode}:\n${result.allLogs}`, {
         result,
