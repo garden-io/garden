@@ -464,7 +464,7 @@ export const makeTestGarden = profileAsync(async function _makeTestGarden(
     targetRoot = join(testProjectTempDirs[projectRoot].path, "project")
   }
 
-  const plugins = [...testPlugins(), ...(opts.plugins || [])]
+  const plugins = opts.onlySpecifiedPlugins ? opts.plugins : [...testPlugins(), ...(opts.plugins || [])]
 
   return TestGarden.factory(targetRoot, { ...opts, plugins })
 })
