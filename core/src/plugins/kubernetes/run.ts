@@ -642,7 +642,7 @@ rm -rf ${tmpPath} >/dev/null || true
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
 
     try {
-      await new Promise<void>((_resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         // Create an extractor to receive the tarball we will stream from the container
         // and extract to the artifacts directory.
         let done = 0
@@ -656,7 +656,7 @@ rm -rf ${tmpPath} >/dev/null || true
         extractor.on("end", () => {
           // Need to make sure both processes are complete before resolving (may happen in either order)
           done++
-          done === 2 && _resolve()
+          done === 2 && resolve()
         })
         extractor.on("error", (err) => {
           reject(err)
@@ -675,7 +675,7 @@ rm -rf ${tmpPath} >/dev/null || true
           .then(() => {
             // Need to make sure both processes are complete before resolving (may happen in either order)
             done++
-            done === 2 && _resolve()
+            done === 2 && resolve()
           })
           .catch(reject)
       })
@@ -698,6 +698,7 @@ rm -rf ${tmpPath} >/dev/null || true
 
   return result
 }
+
 function makeTimeOutErrorLog(containerLogs: string) {
   return (
     "Command timed out." + (containerLogs ? ` Here are the logs until the timeout occurred:\n\n${containerLogs}` : "")
