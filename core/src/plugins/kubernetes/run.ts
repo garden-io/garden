@@ -810,14 +810,6 @@ export class PodRunner extends PodRunnerParams {
     let mainContainerLogs = ""
     const mainContainerName = this.getMainContainerName()
 
-    const getDebugLogs = async () => {
-      try {
-        return this.getMainContainerLogs()
-      } catch (err) {
-        return ""
-      }
-    }
-
     const stream = new Stream<RunLogEntry>()
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
@@ -853,13 +845,13 @@ export class PodRunner extends PodRunnerParams {
         const exitReason = terminated?.reason
         const exitCode = terminated?.exitCode
 
-        // We've seen instances were Pods are OOMKilled but the exit code is 0 and the state that
-        // Garden computes is "stopped". However in those instances the exitReason is still "OOMKilled"
+        // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
+        // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
         // and we handle that case specifically here.
         if (exitCode === 137 || exitReason === "OOMKilled") {
           const msg = `Pod container was OOMKilled.`
           throw new OutOfMemoryError(msg, {
-            logs: (await getDebugLogs()) || msg,
+            logs: (await this.getDebugLogs()) || msg,
             serverPod,
           })
         }
@@ -898,7 +890,7 @@ export class PodRunner extends PodRunnerParams {
         if (timeoutSec && elapsed > timeoutSec) {
           const msg = `Command timed out after ${timeoutSec} seconds.`
           throw new TimeoutError(msg, {
-            logs: (await getDebugLogs()) || msg,
+            logs: (await this.getDebugLogs()) || msg,
             serverPod,
           })
         }
@@ -988,17 +980,9 @@ export class PodRunner extends PodRunnerParams {
     }
 
     if (result.exitCode === 137) {
-      const getDebugLogs = async () => {
-        try {
-          return this.getMainContainerLogs()
-        } catch (err) {
-          return ""
-        }
-      }
-
       const msg = `Pod container was OOMKilled.`
       throw new OutOfMemoryError(msg, {
-        logs: (await getDebugLogs()) || msg,
+        logs: (await this.getDebugLogs()) || msg,
         execParams: params,
       })
     }
@@ -1033,6 +1017,14 @@ export class PodRunner extends PodRunnerParams {
   async getMainContainerLogs() {
     const allLogs = await this.getLogs()
     return allLogs.find((l) => l.containerName === this.getMainContainerName())?.log || ""
+  }
+
+  async getDebugLogs() {
+    try {
+      return this.getMainContainerLogs()
+    } catch (err) {
+      return ""
+    }
   }
 
   /**
