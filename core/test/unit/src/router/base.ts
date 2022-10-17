@@ -14,87 +14,87 @@ import { createActionRouter } from "../../../../src/router/base"
 import { projectRootA, expectError, makeTestGarden, TestGarden, getDefaultProjectConfig } from "../../../helpers"
 
 describe("BaseActionRouter", () => {
-  describe("getHandler", () => {
-    const path = projectRootA
-    const _testHandlerResult = {
-      detail: {},
-      outputs: {
-        foo: "bar",
+  const path = projectRootA
+  const _testHandlerResult = {
+    detail: {},
+    outputs: {
+      foo: "bar",
+    },
+    state: "ready" as "ready",
+  }
+  let garden: TestGarden
+  const now = new Date()
+  const _testHandlers = {
+    build: async () => _testHandlerResult,
+    getStatus: async () => _testHandlerResult,
+    publish: async () => ({ ..._testHandlerResult, detail: { published: true } }),
+    run: async () => ({
+      ..._testHandlerResult,
+      completedAt: now,
+      startedAt: now,
+      success: true,
+      log: "bla bla",
+    }),
+  }
+
+  type DependenciesByName = string[]
+  const actionTypesCfg = {
+    Build: [
+      {
+        name: "test",
+        docs: "",
+        schema: joi.object(),
+        handlers: {
+          build: async () => _testHandlerResult,
+        },
       },
-      state: "ready" as "ready",
-    }
-    let garden: TestGarden
-    const now = new Date()
-    const _testHandlers = {
-      build: async () => _testHandlerResult,
-      getStatus: async () => _testHandlerResult,
-      publish: async () => ({ ..._testHandlerResult, detail: { published: true } }),
-      run: async () => ({
-        ..._testHandlerResult,
-        completedAt: now,
-        startedAt: now,
-        success: true,
-        log: "bla bla",
-      }),
-    }
-
-    type DependenciesByName = string[]
-    const actionTypesCfg = {
-      Build: [
-        {
-          name: "test",
-          docs: "",
-          schema: joi.object(),
-          handlers: {
-            build: async () => _testHandlerResult,
-          },
-        },
-      ],
-    }
-    const createTestPlugin = ({
+    ],
+  }
+  const createTestPlugin = ({
+    name,
+    dependencies,
+    actionTypes,
+    actionTypesConfig = actionTypesCfg,
+  }: {
+    name: string
+    dependencies: DependenciesByName
+    actionTypes: "create" | "extend"
+    actionTypesConfig?: Partial<ManyActionTypeDefinitions>
+  }) => {
+    return createGardenPlugin({
       name,
-      dependencies,
-      actionTypes,
-      actionTypesConfig = actionTypesCfg,
-    }: {
-      name: string
-      dependencies: DependenciesByName
-      actionTypes: "create" | "extend"
-      actionTypesConfig?: Partial<ManyActionTypeDefinitions>
-    }) => {
-      return createGardenPlugin({
-        name,
-        dependencies: dependencies.map((dep) => ({ name: dep })),
-        createActionTypes: actionTypes === "create" ? actionTypesConfig : undefined,
-        extendActionTypes: actionTypes === "extend" ? actionTypesConfig : undefined,
-      })
-    }
-
-    const createTestRouter = async (plugins: GardenPlugin[]) => {
-      garden = await makeTestGarden(path, {
-        plugins,
-        noTempDir: true,
-        onlySpecifiedPlugins: true,
-        config: {
-          ...getDefaultProjectConfig(),
-          providers: plugins.map((p) => ({ name: p.name, dependencies: p.dependencies.map((d) => d.name) })),
-        },
-      })
-      return createActionRouter(
-        "Build", // the action kind doesn't matter here, just picked randomly
-        {
-          garden,
-          loadedPlugins: plugins,
-          configuredPlugins: plugins,
-        },
-        _testHandlers
-      )
-    }
-
-    afterEach(async () => {
-      await garden.close()
+      dependencies: dependencies.map((dep) => ({ name: dep })),
+      createActionTypes: actionTypes === "create" ? actionTypesConfig : undefined,
+      extendActionTypes: actionTypes === "extend" ? actionTypesConfig : undefined,
     })
+  }
 
+  const createTestRouter = async (plugins: GardenPlugin[]) => {
+    garden = await makeTestGarden(path, {
+      plugins,
+      noTempDir: true,
+      onlySpecifiedPlugins: true,
+      config: {
+        ...getDefaultProjectConfig(),
+        providers: plugins.map((p) => ({ name: p.name, dependencies: p.dependencies.map((d) => d.name) })),
+      },
+    })
+    return createActionRouter(
+      "Build", // the action kind doesn't matter here, just picked randomly
+      {
+        garden,
+        loadedPlugins: plugins,
+        configuredPlugins: plugins,
+      },
+      _testHandlers
+    )
+  }
+
+  afterEach(async () => {
+    await garden.close()
+  })
+
+  describe("getHandler", () => {
     it("should return a handler for action- and handler type if one plugin provides it", async () => {
       const plugin = createTestPlugin({ name: "test-plugin", actionTypes: "create", dependencies: [] })
       const router = await createTestRouter([plugin])
@@ -350,4 +350,6 @@ describe("BaseActionRouter", () => {
       })
     })
   })
+
+  describe("callHandler", () => {})
 })
