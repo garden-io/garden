@@ -22,7 +22,6 @@ describe("BaseActionRouter", () => {
     },
     state: "ready" as "ready",
   }
-  let garden: TestGarden
   const now = new Date()
   const _testHandlers = {
     build: async () => _testHandlerResult,
@@ -70,7 +69,7 @@ describe("BaseActionRouter", () => {
   }
 
   const createTestRouter = async (plugins: GardenPlugin[]) => {
-    garden = await makeTestGarden(path, {
+    const garden = await makeTestGarden(path, {
       plugins,
       noTempDir: true,
       onlySpecifiedPlugins: true,
@@ -79,25 +78,24 @@ describe("BaseActionRouter", () => {
         providers: plugins.map((p) => ({ name: p.name, dependencies: p.dependencies.map((d) => d.name) })),
       },
     })
-    return createActionRouter(
-      "Build", // the action kind doesn't matter here, just picked randomly
-      {
-        garden,
-        loadedPlugins: plugins,
-        configuredPlugins: plugins,
-      },
-      _testHandlers
-    )
+    return {
+      garden,
+      router: createActionRouter(
+        "Build", // the action kind doesn't matter here, just picked randomly
+        {
+          garden,
+          loadedPlugins: plugins,
+          configuredPlugins: plugins,
+        },
+        _testHandlers
+      ),
+    }
   }
-
-  afterEach(async () => {
-    await garden.close()
-  })
 
   describe("getHandler", () => {
     it("should return a handler for action- and handler type if one plugin provides it", async () => {
       const plugin = createTestPlugin({ name: "test-plugin", actionTypes: "create", dependencies: [] })
-      const router = await createTestRouter([plugin])
+      const { router } = await createTestRouter([plugin])
 
       const handler = await router.getHandler({
         handlerType: "build",
@@ -111,7 +109,7 @@ describe("BaseActionRouter", () => {
 
     it("should throw if no handler is available", async () => {
       const plugin = createTestPlugin({ name: "test-plugin", actionTypes: "create", dependencies: [] })
-      const router = await createTestRouter([plugin])
+      const { router } = await createTestRouter([plugin])
 
       await expectError(
         () =>
@@ -126,7 +124,7 @@ describe("BaseActionRouter", () => {
     it("should return default handler if it's specified and no provider-defined handler is available", async () => {
       const defaultHandlerOutput = { outputs: { default: true } }
       const plugin = createTestPlugin({ name: "test-plugin", actionTypes: "create", dependencies: [] })
-      const router = await createTestRouter([plugin])
+      const { router } = await createTestRouter([plugin])
       const handler = await router.getHandler({
         handlerType: "getOutputs", // not specified on the test plugins
         actionType: "test",
@@ -149,7 +147,7 @@ describe("BaseActionRouter", () => {
       it("should return the handler from the extending provider", async () => {
         const basePlugin = createTestPlugin({ name: "base", actionTypes: "create", dependencies: [] })
         const extencionPlugin = createTestPlugin({ name: "extends", actionTypes: "extend", dependencies: ["base"] })
-        const router = await createTestRouter([basePlugin, extencionPlugin])
+        const { router } = await createTestRouter([basePlugin, extencionPlugin])
 
         const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
@@ -168,7 +166,7 @@ describe("BaseActionRouter", () => {
           actionTypes: "extend",
           dependencies: ["base-2"],
         })
-        const router = await createTestRouter([basePlugin, basePlugin2, extencionPlugin])
+        const { router } = await createTestRouter([basePlugin, basePlugin2, extencionPlugin])
 
         const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
@@ -190,7 +188,7 @@ describe("BaseActionRouter", () => {
             actionTypes: "extend",
             dependencies: ["base"],
           })
-          const router = await createTestRouter([basePlugin, extencionPlugin1, extencionPlugin2])
+          const { router } = await createTestRouter([basePlugin, extencionPlugin1, extencionPlugin2])
 
           const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
@@ -235,7 +233,7 @@ describe("BaseActionRouter", () => {
             },
           })
 
-          const router = await createTestRouter([basePlugin, extencionPluginThatHasTheHandler])
+          const { router } = await createTestRouter([basePlugin, extencionPluginThatHasTheHandler])
 
           const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
@@ -268,7 +266,7 @@ describe("BaseActionRouter", () => {
           },
         })
 
-        const router = await createTestRouter([basePlugin, plugin2])
+        const { router } = await createTestRouter([basePlugin, plugin2])
 
         const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extenction" })
 
@@ -296,7 +294,7 @@ describe("BaseActionRouter", () => {
           },
         })
 
-        const router = await createTestRouter([basePlugin, plugin2])
+        const { router } = await createTestRouter([basePlugin, plugin2])
 
         const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extenction" })
 
@@ -340,7 +338,7 @@ describe("BaseActionRouter", () => {
           },
         })
 
-        const router = await createTestRouter([basePlugin, basePlugin2, plugin2])
+        const { router } = await createTestRouter([basePlugin, basePlugin2, plugin2])
 
         const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extenction" })
 
