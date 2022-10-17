@@ -27,7 +27,7 @@ orbs:
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.3-1
+      - image: gardendev/circleci-runner:16.18.0
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -179,8 +179,8 @@ commands:
             # ...export for subsequent runs...
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 14
-            nvm alias default 14
+            nvm install 16
+            nvm alias default 16
             nvm use default
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
@@ -766,7 +766,7 @@ jobs:
       - *attach-workspace
       # - run:
       #     name: Configure Node.js
-      #     command: nvm install 14 && nvm alias default 14
+      #     command: nvm install 16 && nvm alias default 16
       - run:
           name: brew install
           command: brew install docker kubectl git rsync

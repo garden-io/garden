@@ -2,7 +2,7 @@
 FROM google/cloud-sdk:390.0.0 as gcloud
 
 #### ldid utility ####
-FROM cimg/node:14.19.3 as ldid
+FROM cimg/node:16.18.0 as ldid
 
 RUN sudo apt-get update && sudo apt-get install -qq -y --no-install-recommends \
   git \
@@ -18,7 +18,7 @@ RUN cd /tmp && \
   sudo cp -f ./ldid /usr/local/bin/ldid
 
 #### main ####
-FROM cimg/node:14.19.3
+FROM cimg/node:16.18.0
 
 # install system deps
 RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3
