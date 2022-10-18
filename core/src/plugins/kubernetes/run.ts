@@ -617,7 +617,7 @@ ${cmd.join(" ")}
           command: cmd,
           exitCode: res.exitCode,
         }
-      } else if (err.type === "pod-runner" && res && res.exitCode) {
+      } else if (err.type === "pod-runner") {
         // Command exited with non-zero code
         result = {
           log: (await runner.getMainContainerLogs()).trim() || err.message,
