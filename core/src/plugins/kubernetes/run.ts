@@ -377,8 +377,6 @@ async function runWithoutArtifacts({
   provider,
   log,
   module,
-  args,
-  command,
   timeout,
   podSpec,
   podName,
@@ -420,35 +418,15 @@ async function runWithoutArtifacts({
     const containerLogs = err.detail.logs
     const exitCode = err.detail.exitCode
 
-    if (err.type === "out-of-memory" || err.type === "timeout") {
-      // Command timed out or the pod container exceeded its memory limits
-      const errorLog =
-        err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
-      result = {
-        log: errorLog,
-        moduleName: module.name,
-        version,
-        success: false,
-        startedAt,
-        completedAt: new Date(),
-        command: runner.getFullCommand(),
-        exitCode,
-      }
-    } else if (err.type === "pod-runner") {
-      // Command exited with non-zero code
-      result = {
-        log: containerLogs || err.message,
-        moduleName: module.name,
-        version,
-        success: false,
-        startedAt,
-        completedAt: new Date(),
-        command: [...(command || []), ...(args || [])],
-        exitCode,
-      }
-    } else {
-      throw err
-    }
+    result = handlePodError({
+      err,
+      containerLogs,
+      command: runner.getFullCommand(),
+      startedAt,
+      exitCode,
+      version,
+      moduleName: module.name,
+    })
   }
 
   return result
@@ -606,35 +584,15 @@ ${cmd.join(" ")}
       const containerLogs = (await runner.getMainContainerLogs()).trim()
       const exitCode = err.detail.result.exitCode
 
-      if (err.type === "out-of-memory" || err.type === "timeout") {
-        // Command timed out or the pod container exceeded its memory limits
-        const errorLog =
-          err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
-        result = {
-          log: errorLog || err.message,
-          moduleName: module.name,
-          version,
-          success: false,
-          startedAt,
-          completedAt: new Date(),
-          command: cmd,
-          exitCode,
-        }
-      } else if (err.type === "pod-runner") {
-        // Command exited with non-zero code
-        result = {
-          log: containerLogs || err.message,
-          moduleName: module.name,
-          version,
-          success: false,
-          startedAt,
-          completedAt: new Date(),
-          command: cmd,
-          exitCode,
-        }
-      } else {
-        throw err
-      }
+      result = handlePodError({
+        err,
+        containerLogs,
+        command: cmd,
+        startedAt,
+        exitCode,
+        version,
+        moduleName: module.name,
+      })
     }
 
     // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
@@ -717,6 +675,54 @@ rm -rf ${tmpPath} >/dev/null || true
   }
 
   return result
+}
+
+function handlePodError({
+  err,
+  containerLogs,
+  command,
+  startedAt,
+  exitCode,
+  version,
+  moduleName,
+}: {
+  err: any
+  containerLogs: string
+  command: string[]
+  startedAt: Date
+  exitCode: number
+  version: string
+  moduleName
+}) {
+  if (err.type === "out-of-memory" || err.type === "timeout") {
+    // Command timed out or the pod container exceeded its memory limits
+    const errorLog =
+      err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
+    return {
+      log: errorLog || err.message,
+      moduleName,
+      version,
+      success: false,
+      startedAt,
+      completedAt: new Date(),
+      command,
+      exitCode,
+    }
+  } else if (err.type === "pod-runner") {
+    // Command exited with non-zero code
+    return {
+      log: containerLogs || err.message,
+      moduleName,
+      version,
+      success: false,
+      startedAt,
+      completedAt: new Date(),
+      command,
+      exitCode,
+    }
+  } else {
+    throw err
+  }
 }
 
 function makeTimeOutErrorLog(containerLogs: string) {
