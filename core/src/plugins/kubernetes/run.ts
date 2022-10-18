@@ -979,8 +979,9 @@ export class PodRunner extends PodRunnerParams {
 
     if (result.timedOut) {
       throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, {
-        result,
         logs: result.allLogs,
+        result,
+        execParams: params,
       })
     }
 
@@ -988,14 +989,16 @@ export class PodRunner extends PodRunnerParams {
       const msg = `Pod container was OOMKilled.`
       throw new OutOfMemoryError(msg, {
         logs: (await this.getDebugLogs()) || msg,
+        result,
         execParams: params,
       })
     }
 
     if (result.exitCode !== 0) {
       throw new PodRunnerError(`Command exited with code ${result.exitCode}:\n${result.allLogs}`, {
-        result,
         logs: result.allLogs,
+        result,
+        execParams: params,
       })
     }
 
