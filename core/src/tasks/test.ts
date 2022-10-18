@@ -194,11 +194,9 @@ export class TestTask extends BaseTask {
         append: true,
       })
     } else {
-      const msg = !!result.exitCode
-        ? `Failed with code ${result.exitCode}! (took ${log.getDuration(1)} sec)`
-        : `Failed! (took ${log.getDuration(1)} sec)`
+      const failedMsg = !!result.exitCode ? `Failed with code ${result.exitCode}!` : `Failed!`
       log.setError({
-        msg,
+        msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
         append: true,
       })
       throw new TestError(result.log)
