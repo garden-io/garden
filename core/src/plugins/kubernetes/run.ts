@@ -417,10 +417,13 @@ async function runWithoutArtifacts({
       version,
     }
   } catch (err) {
+    const containerLogs = err.detail.logs
+    const exitCode = err.detail.exitCode
+
     if (err.type === "out-of-memory" || err.type === "timeout") {
       // Command timed out or the pod container exceeded its memory limits
       const errorLog =
-        err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(err.detail.logs) : makeTimeOutErrorLog(err.detail.logs)
+        err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
       result = {
         log: errorLog,
         moduleName: module.name,
@@ -429,19 +432,19 @@ async function runWithoutArtifacts({
         startedAt,
         completedAt: new Date(),
         command: runner.getFullCommand(),
-        exitCode: err.detail.exitCode,
+        exitCode,
       }
     } else if (err.type === "pod-runner") {
       // Command exited with non-zero code
       result = {
-        log: err.detail.logs || err.message,
+        log: containerLogs || err.message,
         moduleName: module.name,
         version,
         success: false,
         startedAt,
         completedAt: new Date(),
         command: [...(command || []), ...(args || [])],
-        exitCode: err.detail.exitCode,
+        exitCode,
       }
     } else {
       throw err
@@ -600,34 +603,34 @@ ${cmd.join(" ")}
         version,
       }
     } catch (err) {
-      const res = err.detail.result
+      const containerLogs = (await runner.getMainContainerLogs()).trim()
+      const exitCode = err.detail.result.exitCode
 
       if (err.type === "out-of-memory" || err.type === "timeout") {
         // Command timed out or the pod container exceeded its memory limits
-        const containerLogs = (await runner.getMainContainerLogs()).trim()
         const errorLog =
           err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
         result = {
-          log: errorLog,
+          log: errorLog || err.message,
           moduleName: module.name,
           version,
           success: false,
           startedAt,
           completedAt: new Date(),
           command: cmd,
-          exitCode: res.exitCode,
+          exitCode,
         }
       } else if (err.type === "pod-runner") {
         // Command exited with non-zero code
         result = {
-          log: (await runner.getMainContainerLogs()).trim() || err.message,
+          log: containerLogs || err.message,
           moduleName: module.name,
           version,
           success: false,
           startedAt,
           completedAt: new Date(),
           command: cmd,
-          exitCode: res.exitCode,
+          exitCode,
         }
       } else {
         throw err
@@ -1029,7 +1032,7 @@ export class PodRunner extends PodRunnerParams {
 
   async getDebugLogs() {
     try {
-      return this.getMainContainerLogs()
+      return (await this.getMainContainerLogs()).trim()
     } catch (err) {
       return ""
     }
