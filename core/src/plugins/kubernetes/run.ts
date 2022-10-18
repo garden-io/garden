@@ -127,7 +127,7 @@ export async function runAndCopy({
   privileged,
   addCapabilities,
   dropCapabilities,
-}: RunModuleParams<GardenModule> & {
+}: RunModuleParams & {
   image: string
   container?: V1Container
   podName?: string
