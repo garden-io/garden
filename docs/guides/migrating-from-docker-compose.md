@@ -11,9 +11,9 @@ To follow along, you should have:
 * A local Kubernetes cluster running inside Docker Desktop.
 * A project that currently uses Docker Compose (or follow along using the provided example).
 
-## Getting the example application 
+## Getting the example application
 
-Clone our [example Docker Compose application](https://github.com/garden-io/garden-docker-compose) and take a look around. In summary, our application is built with a backend (Express), a frontend (React), and a database (MongoDB). 
+Clone our [example Docker Compose application](https://github.com/garden-io/garden-docker-compose) and take a look around. In summary, our application is built with a backend (Express), a frontend (React), and a database (MongoDB).
 
 The frontend and backend modules each have their own Dockerfile, and there is a top-level `docker-compose.yml` file to tie them together and to add MongoDB.
 
@@ -160,5 +160,5 @@ To build and deploy your project, terminate the `garden dev` process and run `ga
 
 ## Larger migrations
 
-This was a simple example, but it should give you what you need to migrate larger projects too. If you have feedback on how we could make migrating from Docker Compose easier, please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues), or reach out on our Slack channel.
+This was a simple example, but it should give you what you need to migrate larger projects too. If you have feedback on how we could make migrating from Docker Compose easier, please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues), or reach out on [our Discord community](https://discord.gg/gxeuDgp6Xt).
 

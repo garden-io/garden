@@ -12,7 +12,7 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://community.garden.io">Community</a>
+  <a href="https://discord.gg/gxeuDgp6Xt">Discord</a>
 </div>
 
 ### **What is Garden?**
@@ -122,9 +122,7 @@ Below are our guiding principles for developing Garden.
 
 ### **Community**
 
-Join the #garden channel on the [Kubernetes Slack](https://chat.garden.io/) to ask questions, give feedback or just say hi 🙂
-
-You can also head to our [community forum](https://community.garden.io/) for Qs and As on specific topics.
+Join our [Discord community](https://discord.gg/gxeuDgp6Xt) to ask questions, give feedback or just say hi 🙂
 
 ### **Security**
 
