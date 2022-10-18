@@ -429,6 +429,7 @@ async function runWithoutArtifacts({
         startedAt,
         completedAt: new Date(),
         command: runner.getFullCommand(),
+        exitCode: err.detail.exitCode,
       }
     } else if (err.type === "pod-runner") {
       // Command exited with non-zero code
@@ -614,6 +615,7 @@ ${cmd.join(" ")}
           startedAt,
           completedAt: new Date(),
           command: cmd,
+          exitCode: res.exitCode,
         }
       } else if (err.type === "pod-runner" && res && res.exitCode) {
         // Command exited with non-zero code
@@ -854,6 +856,7 @@ export class PodRunner extends PodRunnerParams {
           const msg = `Pod container was OOMKilled.`
           throw new OutOfMemoryError(msg, {
             logs: (await this.getDebugLogs()) || msg,
+            exitCode,
             serverPod,
           })
         }
