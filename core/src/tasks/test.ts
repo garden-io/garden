@@ -194,8 +194,11 @@ export class TestTask extends BaseTask {
         append: true,
       })
     } else {
+      const msg = !!result.exitCode
+        ? `Failed with code ${result.exitCode}! (took ${log.getDuration(1)} sec)`
+        : `Failed! (took ${log.getDuration(1)} sec)`
       log.setError({
-        msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
+        msg,
         append: true,
       })
       throw new TestError(result.log)

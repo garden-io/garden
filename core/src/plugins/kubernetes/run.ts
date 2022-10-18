@@ -440,6 +440,7 @@ async function runWithoutArtifacts({
         startedAt,
         completedAt: new Date(),
         command: [...(command || []), ...(args || [])],
+        exitCode: err.detail.exitCode,
       }
     } else {
       throw err
@@ -624,6 +625,7 @@ ${cmd.join(" ")}
           startedAt,
           completedAt: new Date(),
           command: cmd,
+          exitCode: res.exitCode,
         }
       } else {
         throw err
