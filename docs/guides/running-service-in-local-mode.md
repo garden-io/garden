@@ -97,8 +97,8 @@ services.
 
 ### Health-checks
 
-The readiness and liveness probes are disabled for all services running in local mode. This has been done because of
-some technical reasons.
+The startup, readiness and liveness probes are disabled for all services running in local mode. This has been done
+because of some technical reasons.
 
 The lifecycle of a local service can be completely controlled by a user. Thus, the health checks may be unwanted and
 obstructing.
