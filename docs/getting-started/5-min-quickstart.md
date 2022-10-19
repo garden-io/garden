@@ -19,14 +19,15 @@ You need the following dependencies on your local machine to use Garden:
 * Git (v2.14 or newer)
 * rsync (v3.1.0 or newer)
 
+Run `git version` and `rsync --version` to verify that a recent enough version of Git and rsync is installed.
+
 Then install the Garden CLI for your platform:
 
 {% tabs %}
 
 {% tab title="macOS (Homebrew)" %}
 ```sh
-brew tap garden-io/garden
-brew install garden-cli
+brew tap garden-io/garden && brew install garden-cli
 ```
 {% endtab %}
 
@@ -63,7 +64,7 @@ If you already have [a supported version](../guides/local-kubernetes.md#requirem
 
 In this guide we're using local Kubernetes since that's usually the fastest way to get started.
 
-For real world projects we recommend using a remote Kubernetes cluster since that comes with various benefits such as shared caches and, well, the fact that you don't need to run K8s on your laptop.
+For real world projects we recommend using a remote Kubernetes cluster since that comes with various benefits such as shared caches and, well, doesn't require you to run K8s on your laptop!.
 
 Below are our recommended local K8s providers by platform. For alternatives, check out our [local Kubernetes guide](../guides/local-kubernetes.md).
 
@@ -76,14 +77,14 @@ Then enable Kubernetes in Docker Desktop:
 1. From the Docker Dashboard, select the **Preferences** icon.
 2. Select **Kubernetes** from the left sidebar.
 3. Next to **Enable Kubernetes**, select the checkbox.
-3. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates images required to run the Kubernetes server as containers, and installs kubectl on your machine.
+3. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates the images required to run the Kubernetes server as containers, and installs kubectl on your machine.
 
 See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more details.
 
 {% endtab %}
 
 {% tab title="Linux (minikube)" %}
-To install minikube on AMD64 architecture, run:
+To install minikube on an AMD64 architecture, run:
 
 ```sh
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
@@ -92,7 +93,7 @@ sudo install minikube-linux-amd64 /usr/local/bin/minikube
 
 For other architectures and more detailed instructions, please see the [official minikube docs](https://minikube.sigs.k8s.io/docs/start/).
 
-Once if you installed minikube, you can start it with:
+Once you've installed minikube, you can start it with:
 
 ```sh
 minikube start
@@ -101,14 +102,14 @@ minikube start
 {% endtab %}
 
 {% tab title="Windows (Docker Desktop)" %}
-First, download and install Docker Desktop for Mac following the instructions on the [official Docker site](https://docs.docker.com/desktop/install/windows-install/).
+First, download and install Docker Desktop for Windows following the instructions on the [official Docker site](https://docs.docker.com/desktop/install/windows-install/).
 
 Then enable Kubernetes in Docker Desktop:
 
 1. From the Docker Dashboard, select the **Settings** icon.
 2. Select **Kubernetes** from the left sidebar.
 3. Next to **Enable Kubernetes**, select the checkbox.
-3. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates images required to run the Kubernetes server as containers, and installs kubectl on your machine.
+3. Select **Apply & Restart** to save the settings and then click Install to confirm. This instantiates the images required to run the Kubernetes server as containers, and installs kubectl on your machine.
 
 See the [official Docker docs](https://docs.docker.com/desktop/kubernetes/) for more details.
 {% endtab %}
@@ -143,4 +144,13 @@ The project itself doubles as an interactive guide that walks you through some c
 
 ## Next Steps
 
-// TODO
+Now that you have Garden installed and seen its basic capabilities it's time to take the next steps.
+
+If you'd like to better understand how a Garden project is configured when using one of the Kubernetes plugins, we recommend going
+through our [detailed Getting Started guide](./getting-started/0-introduction.md) which walks you through configuring a Garden project step-by-step.
+
+If you like to dive right in and configure your own project for Garden, we recommend using our [example
+projects on GitHub](https://github.com/garden-io/garden/tree/main/examples) for reference and reading through the different pages
+of the [Using Garden section](./using-garden/configuration-overview.md) of our docs.
+
+And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/gxeuDgp6Xt)!
