@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, dockerAuthSecretKey } from "../../constants"
+import { buildSyncVolumeName, dockerAuthSecretKey, inClusterRegistryHostname } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -322,18 +322,27 @@ export const getSupportedCacheMode = (
     return cache.mode
   }
 
-  // Detect AWS ECR
-  if (deploymentImageName.includes(".dkr.ecr.")) {
-    return "inline"
+  // NOTE: If you change this, please make sure to also change the table in our documentation in config.ts
+  const allowList = [
+    /^([^/]+\.)?pkg\.dev\//i, // Google Package Registry
+    /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
+    /^hub\.docker\.com\//i, // DockerHub
+    /^ghcr\.io\//i, // GitHub Container registry
+    new RegExp(`^${inClusterRegistryHostname}/`, "i"), // Garden in-cluster registry
+  ]
+
+  // use mode=max for all registries that are known to support it
+  for (const allowed of allowList) {
+    if (allowed.test(deploymentImageName)) {
+      return "max"
+    }
   }
 
-  // Detect gcr.io
-  if (deploymentImageName.includes("gcr.io")) {
-    return "inline"
-  }
-
-  // Default to max for all others
-  return "max"
+  // we default to mode=inline for all the other registries, including
+  // self-hosted ones. Actually almost all self-hosted registries do support
+  // mode=max, but harbor doesn't. As it is hard to auto-detect harbor, we
+  // chose to use mode=inline for all unknown registries.
+  return "inline"
 }
 
 export function getBuildkitDeployment(
