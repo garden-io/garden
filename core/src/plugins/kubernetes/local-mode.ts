@@ -366,7 +366,7 @@ function patchSyncableManifest(
   targetContainer.ports.push(...localModePorts)
 
   /*
-   Both readiness and liveness probes do not make much sense for the services running in local mode.
+   Startup, readiness and liveness probes do not make much sense for the services running in local mode.
    A user can completely control the lifecycle of a local service. Thus, these checks may be unwanted.
 
    The readiness probe can cause the failure of local mode startup,
@@ -374,9 +374,12 @@ function patchSyncableManifest(
 
    The liveness probe can cause unnecessary re-deployment of the proxy container in the target cluster.
    Also, it can create unnecessary noisy traffic to the local service is running in the debugger.
+
+   The startup probe can cause the proxy container failure.
    */
   delete targetContainer.readinessProbe
   delete targetContainer.livenessProbe
+  delete targetContainer.startupProbe
 }
 
 /**
