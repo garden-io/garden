@@ -36,7 +36,8 @@ import {
   reimportStack,
   selectStack,
 } from "./helpers"
-import { dedent } from "@garden-io/sdk/util/string"
+import { dedent, deline } from "@garden-io/sdk/util/string"
+import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/util/cli"
 import { copy, writeJSON, emptyDir } from "fs-extra"
 import { ModuleConfigContext } from "@garden-io/core/build/src/config/template-contexts/module"
 import { splitLast } from "@garden-io/core/build/src/util/util"
@@ -188,6 +189,7 @@ interface PulumiPluginCommandTaskParams {
   log: LogEntry
   commandName: string
   commandDescription: string
+  skipRuntimeDependencies: boolean
   runFn: PulumiRunFn
   pulumiParams: PulumiParamsWithService
 }
@@ -198,6 +200,7 @@ class PulumiPluginCommandTask extends PluginTask {
   pulumiParams: PulumiParamsWithService
   commandName: string
   commandDescription: string
+  skipRuntimeDependencies: boolean
   runFn: PulumiRunFn
 
   constructor({
@@ -206,6 +209,7 @@ class PulumiPluginCommandTask extends PluginTask {
     log,
     commandName,
     commandDescription,
+    skipRuntimeDependencies = false,
     runFn,
     pulumiParams,
   }: PulumiPluginCommandTaskParams) {
@@ -213,6 +217,7 @@ class PulumiPluginCommandTask extends PluginTask {
     this.graph = graph
     this.commandName = commandName
     this.commandDescription = commandDescription
+    this.skipRuntimeDependencies = skipRuntimeDependencies
     this.runFn = runFn
     this.pulumiParams = pulumiParams
     const provider = <PulumiProvider>pulumiParams.ctx.provider
@@ -240,6 +245,11 @@ class PulumiPluginCommandTask extends PluginTask {
         })
       })
     )
+
+    if (this.skipRuntimeDependencies) {
+      return [...buildDeps]
+    }
+
     const pulumiServiceNames = this.graph
       .getModules()
       .filter((m) => m.type === "pulumi")
@@ -258,6 +268,7 @@ class PulumiPluginCommandTask extends PluginTask {
           log: this.log,
           commandName: this.commandName,
           commandDescription: this.commandDescription,
+          skipRuntimeDependencies: this.skipRuntimeDependencies,
           runFn: this.runFn,
           pulumiParams: { ...this.pulumiParams, module: depService.module, service: depService },
         })
@@ -299,11 +310,24 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
   const description = commandDescription || `pulumi ${name}`
   const pulumiCommand = chalk.bold(description)
 
+  const pulumiCommandOpts = {
+    "skip-dependencies": new BooleanParameter({
+      help: deline`Run ${pulumiCommand} for the specified services, but not for any pulumi services that they depend on
+      (unless they're specified too).`,
+      alias: "nodeps",
+    }),
+  }
+
   return {
     name,
     description: dedent`
       Runs ${pulumiCommand} for the specified pulumi services, in dependency order (or for all pulumi services if no
       service names are provided).
+
+      If the --skip-dependencies option is used, ${pulumiCommand} will only be run for the specified services, but not
+      any pulumi services that they depend on (unless they're specified too).
+
+      Note: The --skip-dependencies option has to be put after the -- when invoking pulumi plugin commands.
     `,
     // We don't want to call `garden.getConfigGraph` twice (we need to do it in the handler anyway)
     resolveModules: false,
@@ -312,8 +336,16 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
       chalk.bold.magenta(`Running ${chalk.white.bold(pulumiCommand)} for module ${chalk.white.bold(args[0] || "")}`),
 
     async handler({ garden, ctx, args, log }: PluginCommandParams) {
-      const serviceNames = args.length === 0 ? undefined : args
       const graph = await garden.getConfigGraph({ log, emit: false })
+
+      const parsed = parsePluginCommandArgs({
+        stringArgs: args,
+        optionSpec: pulumiCommandOpts,
+        cli: true,
+      })
+      const { args: parsedArgs, opts } = parsed
+      const skipRuntimeDependencies = opts["skip-dependencies"]
+      const serviceNames = parsedArgs.length === 0 ? undefined : parsedArgs
 
       beforeFn && (await beforeFn({ ctx, log }))
 
@@ -336,6 +368,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
           log,
           commandName: name,
           commandDescription,
+          skipRuntimeDependencies,
           runFn,
           pulumiParams,
         })
