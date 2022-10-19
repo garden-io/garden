@@ -1185,6 +1185,38 @@ describe("resolveTemplateString", async () => {
         })
       })
     })
+
+    context("slice", () => {
+      it("allows numeric indices", () => {
+        const res = resolveTemplateString("${slice(foo, 0, 3)}", new TestContext({ foo: "abcdef" }))
+        expect(res).to.equal("abc")
+      })
+
+      it("allows numeric strings as indices", () => {
+        const res = resolveTemplateString("${slice(foo, '0', '3')}", new TestContext({ foo: "abcdef" }))
+        expect(res).to.equal("abc")
+      })
+
+      it("throws on invalid string in the start index", () => {
+        return expectError(
+          () => resolveTemplateString("${slice(foo, 'a', 3)}", new TestContext({ foo: "abcdef" })),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: start index must be a number or a numeric string (got "a")`
+            )
+        )
+      })
+
+      it("throws on invalid string in the end index", () => {
+        return expectError(
+          () => resolveTemplateString("${slice(foo, 0, 'b')}", new TestContext({ foo: "abcdef" })),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: end index must be a number or a numeric string (got "b")`
+            )
+        )
+      })
+    })
   })
 
   context("array literals", () => {
