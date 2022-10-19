@@ -356,7 +356,7 @@ export class GardenServer {
         isAlive = true
       })
 
-      // Pipe everything from the event bus to the socket, as well as from the /events endpoint
+      // Pipe everything from the event bus to the socket, as well as from the /events endpoint.
       const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)

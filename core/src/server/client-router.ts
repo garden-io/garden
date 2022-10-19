@@ -32,16 +32,16 @@ export class ClientRouter {
     switch (requestType) {
       case "build":
       case "buildRequested":
-        return await this.build(requestParams as ClientRequests["build"])
+        return this.build(requestParams as ClientRequests["build"])
       case "deploy":
       case "deployRequested":
-        return await this.deploy(requestParams as ClientRequests["deploy"])
+        return this.deploy(requestParams as ClientRequests["deploy"])
       case "test":
       case "testRequested":
-        return await this.test(requestParams as ClientRequests["test"])
+        return this.test(requestParams as ClientRequests["test"])
       case "task":
       case "taskRequested":
-        return await this.run(requestParams as ClientRequests["task"])
+        return this.run(requestParams as ClientRequests["task"])
       default:
         // This will result in a type error if one or more event types is forgotten above.
         const _exhaustivenessCheck: never = requestType

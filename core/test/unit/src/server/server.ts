@@ -264,14 +264,6 @@ describe("GardenServer", () => {
       garden.events.emit("_test", "foo")
     })
 
-    it("should emit events from the incoming event bus", (done) => {
-      onMessage((req) => {
-        expect(req).to.eql({ type: "event", name: "_test", payload: "foo" })
-        done()
-      })
-      gardenServer["incomingEvents"].emit("_test", "foo")
-    })
-
     it("should send error when a request is not valid JSON", (done) => {
       onMessage((req) => {
         expect(req).to.eql({
