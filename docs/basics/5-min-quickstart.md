@@ -54,7 +54,7 @@ This will significantly speed up the first Garden build of large projects on Win
 
 {% endtabs %}
 
-For more detailed installation instructions, please see our [Installation guide](./1-installation.md).
+For more detailed installation instructions, please see our [Installation guide](../getting-started/1-installation.md).
 
 ## Step 2 — Install Kubernetes locally
 
@@ -147,10 +147,10 @@ The project itself doubles as an interactive guide that walks you through some c
 Now that you have Garden installed and seen its basic capabilities it's time to take the next steps.
 
 If you'd like to better understand how a Garden project is configured when using one of the Kubernetes plugins, we recommend going
-through our [detailed Getting Started guide](./getting-started/0-introduction.md) which walks you through configuring a Garden project step-by-step.
+through our [detailed Getting Started guide](../getting-started/0-introduction.md) which walks you through configuring a Garden project step-by-step.
 
 If you like to dive right in and configure your own project for Garden, we recommend using our [example
 projects on GitHub](https://github.com/garden-io/garden/tree/main/examples) for reference and reading through the different pages
-of the [Using Garden section](./using-garden/configuration-overview.md) of our docs.
+of the [Using Garden section](../using-garden/configuration-overview.md) of our docs.
 
 And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/gxeuDgp6Xt)!
