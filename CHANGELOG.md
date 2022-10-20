@@ -5,7 +5,9 @@
 ### BREAKING CHANGES
 
 * check for requirements being installed ([#3097](https://github.com/garden-io/garden/issues/3097)) ([63628b13b](https://github.com/garden-io/garden/commit/63628b13b))
+* **local-mode:** allow multiple port-forwards ([a98af5363](https://github.com/garden-io/garden/commit/a98af5363))
 * **terraform:** upgraded default terraform tool version to `1.2.9` ([#3220](https://github.com/garden-io/garden/issues/3220)) ([8f6a3be44](https://github.com/garden-io/garden/commit/8f6a3be44))
+* rename `master` to `main` ([935eecff6](https://github.com/garden-io/garden/commit/935eecff6)) - On Mac machines, `brew update` command may fail with an error. To fix this, just run the suggested command `brew tap --repair` and re-run `brew update`.
 
 ### Bug Fixes
 
