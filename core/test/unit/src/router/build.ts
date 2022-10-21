@@ -44,13 +44,7 @@ describe("build actions", () => {
   describe("build.getStatus", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const result = await actionRouter.build.getStatus({ log, action: resolvedBuildAction, graph })
-      expect(result).to.eql({
-        detail: {},
-        outputs: {
-          foo: "bar",
-        },
-        state: "ready",
-      })
+      expect(result.outputs.foo).to.eql("bar")
     })
 
     it("should emit a buildStatus event", async () => {
@@ -73,6 +67,7 @@ describe("build actions", () => {
         detail: {},
         outputs: {
           foo: "bar",
+          isTestPluginABuildActionBuildHandlerReturn: true,
         },
         state: "ready",
       })
