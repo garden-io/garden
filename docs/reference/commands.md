@@ -690,11 +690,11 @@ Examples:
   | `--force` |  | boolean | Force redeploy of service(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
-  | `--dev-mode` | `-dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
-  | `--local-mode` | `-local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
+  | `--dev-mode` | `--dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
-  | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev mode.
 
 #### Outputs
@@ -919,10 +919,10 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force redeploy of service(s).
-  | `--local-mode` | `-local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
+  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip-tests` |  | boolean | Disable running the tests.
-  | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `--test-names` | `--tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 
 
 ### garden exec
@@ -1247,7 +1247,7 @@ providers:
                   source:
 
                   # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-                  # Defaults to to same as source path.
+                  # Defaults to the same as source path.
                   target:
 
           # Maximum time in seconds to wait for build to finish.
@@ -1258,7 +1258,7 @@ providers:
 
         # Set this to `true` to disable the module. You can use this with conditional template strings to disable
         # modules based on, for example, the current environment or other variables (e.g. `disabled:
-        # \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific
+        # ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific
         # environments, e.g. only for development.
         #
         # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It
@@ -1329,8 +1329,7 @@ providers:
         # nested objects and arrays._
         #
         # To use different module-level varfiles in different environments, you can template in the environment name
-        # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the
-        # corresponding
+        # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
         # varfiles exist).
         varfile:
 
@@ -1363,7 +1362,7 @@ providers:
 
             # Set this to `true` to disable the service. You can use this with conditional template strings to
             # enable/disable services based on, for example, the current environment or other variables (e.g.
-            # `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for
+            # `enabled: ${environment.name != "prod"}`). This can be handy when you only need certain services for
             # specific environments, e.g. only for development.
             #
             # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -1397,7 +1396,7 @@ providers:
 
             # Set this to `true` to disable the task. You can use this with conditional template strings to
             # enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled:
-            # \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific
+            # ${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific
             # environments, e.g. only for development.
             #
             # Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime
@@ -1431,7 +1430,7 @@ providers:
 
             # Set this to `true` to disable the test. You can use this with conditional template strings to
             # enable/disable tests based on, for example, the current environment or other variables (e.g.
-            # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+            # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
             # specific environments, e.g. only during CI.
             disabled:
 
@@ -1544,7 +1543,7 @@ moduleConfigs:
               source:
 
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-              # Defaults to to same as source path.
+              # Defaults to the same as source path.
               target:
 
       # Maximum time in seconds to wait for build to finish.
@@ -1554,7 +1553,7 @@ moduleConfigs:
     description:
 
     # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-    # based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name ==
+    # based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name ==
     # "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for
     # development.
     #
@@ -1625,7 +1624,7 @@ moduleConfigs:
     # nested objects and arrays._
     #
     # To use different module-level varfiles in different environments, you can template in the environment name
-    # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+    # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
     # varfiles exist).
     varfile:
 
@@ -1658,7 +1657,7 @@ moduleConfigs:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
         # enable/disable services based on, for example, the current environment or other variables (e.g. `enabled:
-        # \${environment.name != "prod"}`). This can be handy when you only need certain services for specific
+        # ${environment.name != "prod"}`). This can be handy when you only need certain services for specific
         # environments, e.g. only for development.
         #
         # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -1690,7 +1689,7 @@ moduleConfigs:
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-        # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+        # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name
         # != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only
         # for development.
         #
@@ -1725,7 +1724,7 @@ moduleConfigs:
 
         # Set this to `true` to disable the test. You can use this with conditional template strings to
         # enable/disable tests based on, for example, the current environment or other variables (e.g.
-        # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+        # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
         # specific environments, e.g. only during CI.
         disabled:
 
@@ -1838,7 +1837,7 @@ workflowConfigs:
         # <number of step> is the sequential number of the step (first step being number 1).
         #
         # This identifier is useful when referencing command outputs in following steps. For example, if you set this
-        # to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the `script` or `command`
+        # to "my-step", following steps can reference the ${steps.my-step.outputs.*} key in the `script` or `command`
         # fields.
         name:
 
@@ -2041,7 +2040,7 @@ modules:
               source:
 
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-              # Defaults to to same as source path.
+              # Defaults to the same as source path.
               target:
 
       # Maximum time in seconds to wait for build to finish.
@@ -2051,7 +2050,7 @@ modules:
     description:
 
     # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-    # based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name ==
+    # based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name ==
     # "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for
     # development.
     #
@@ -2122,7 +2121,7 @@ modules:
     # nested objects and arrays._
     #
     # To use different module-level varfiles in different environments, you can template in the environment name
-    # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+    # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
     # varfiles exist).
     varfile:
 
@@ -2152,7 +2151,7 @@ modules:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
         # enable/disable services based on, for example, the current environment or other variables (e.g. `enabled:
-        # \${environment.name != "prod"}`). This can be handy when you only need certain services for specific
+        # ${environment.name != "prod"}`). This can be handy when you only need certain services for specific
         # environments, e.g. only for development.
         #
         # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -2184,7 +2183,7 @@ modules:
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-        # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+        # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name
         # != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only
         # for development.
         #
@@ -2219,7 +2218,7 @@ modules:
 
         # Set this to `true` to disable the test. You can use this with conditional template strings to
         # enable/disable tests based on, for example, the current environment or other variables (e.g.
-        # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+        # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
         # specific environments, e.g. only during CI.
         disabled:
 
@@ -3475,7 +3474,7 @@ Examples:
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-  | `--skip-dependencies` | `-no-deps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
+  | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
   | `--skip-dependants` |  | boolean | When using the modules argument, only run tests for those modules (and skip tests in other modules with dependencies on those modules).
 
 #### Outputs
@@ -3776,12 +3775,13 @@ Updates the remote sources declared in the project level `garden.yml` config fil
 
 Examples:
 
+    garden update-remote sources --parallel # update all remote sources in parallel mode
     garden update-remote sources            # update all remote sources
     garden update-remote sources my-source  # update remote source my-source
 
 #### Usage
 
-    garden update-remote sources [sources] 
+    garden update-remote sources [sources] [options]
 
 #### Arguments
 
@@ -3789,6 +3789,11 @@ Examples:
 | -------- | -------- | ----------- |
   | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 
@@ -3812,12 +3817,13 @@ in their `garden.yml` config that points to a remote repository.
 
 Examples:
 
+    garden update-remote modules --parallel # update all remote modules in parallel mode
     garden update-remote modules            # update all remote modules in the project
     garden update-remote modules my-module  # update remote module my-module
 
 #### Usage
 
-    garden update-remote modules [modules] 
+    garden update-remote modules [modules] [options]
 
 #### Arguments
 
@@ -3825,6 +3831,11 @@ Examples:
 | -------- | -------- | ----------- |
   | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 
@@ -3845,12 +3856,18 @@ sources:
 
 Examples:
 
-    garden update-remote all # update all remote sources and modules in the project
+    garden update-remote all --parallel # update all remote sources and modules in the project in parallel mode
+    garden update-remote all            # update all remote sources and modules in the project
 
 #### Usage
 
-    garden update-remote all 
+    garden update-remote all [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 

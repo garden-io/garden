@@ -20,7 +20,7 @@ import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { KubernetesResource, KubernetesWorkload } from "../types"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, RuntimeError } from "../../../exceptions"
 import { ContainerServiceStatus, getContainerServiceStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
@@ -524,15 +524,26 @@ export async function createWorkloadManifest({
     const deployment = <V1Deployment>workload
     deployment.spec!.replicas = configuredReplicas
 
-    // Need the any cast because the library types are busted
-    deployment.spec!.strategy = <any>{
-      type: "RollingUpdate",
-      rollingUpdate: {
-        // This is optimized for fast re-deployment.
-        maxUnavailable: 1,
-        maxSurge: 1,
-      },
+    const deploymentStrategy = service.spec!.deploymentStrategy
+    if (deploymentStrategy === "RollingUpdate") {
+      // Need the any cast because the library types are busted
+      deployment.spec!.strategy = <any>{
+        type: deploymentStrategy,
+        rollingUpdate: {
+          // This is optimized for fast re-deployment.
+          maxUnavailable: 1,
+          maxSurge: 1,
+        },
+      }
+    } else if (deploymentStrategy === "Recreate") {
+      deployment.spec!.strategy = {
+        type: deploymentStrategy,
+      }
+    } else {
+      // defensive type-check, the actual type here must be 'never'
+      throw new RuntimeError(`Unsupported deployment strategy: ${deploymentStrategy}`, { deploymentStrategy })
     }
+
     workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
   }
 

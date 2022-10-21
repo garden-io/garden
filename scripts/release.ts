@@ -221,7 +221,7 @@ async function release() {
       https://github.com/garden-io/garden/pull/new/${branchName}\n
 
     Please refer to our contributing docs for the next steps:
-    https://github.com/garden-io/garden/blob/master/CONTRIBUTING.md
+    https://github.com/garden-io/garden/blob/main/CONTRIBUTING.md
   `);
   }
 }

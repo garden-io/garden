@@ -121,10 +121,9 @@ You can then retrieve this value by running e.g. `garden get outputs -o json` an
 
 ### Variables
 
-Variables defined in the project config are accessible in [template strings](../reference/template-strings/README.md) for all the project's module configurations. To illustrate, here's the project configuration from the `project-variables` example project:
+Variables defined in the project config are accessible in [template strings](../reference/template-strings/README.md) for all the project's module configurations. To illustrate, here's the project configuration from the [variables example](../../examples/variables/garden.yml) project:
 
 ```yaml
-# examples/project-variables/garden.yml
 kind: Project
 name: my-project
 variables:
@@ -144,10 +143,9 @@ providers:
     ...
 ```
 
-... and the configuration for a module in the same project:
+... and the [configuration for a module](../../examples/variables/backend/garden.yml) in the same project:
 
 ```yaml
-# examples/project-variables/backend/garden.yml
 kind: Module
 name: backend
 description: Backend service container

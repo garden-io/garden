@@ -24,7 +24,7 @@ describe("configmap module", () => {
   before(async () => {
     tmpDir = await makeTempDir()
 
-    await execa("git", ["init"], { cwd: tmpDir.path })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
     projectConfigFoo = {
       apiVersion: DEFAULT_API_VERSION,

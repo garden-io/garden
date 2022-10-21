@@ -11,7 +11,7 @@ You can import **two** types of remote repositories with Garden:
 
 > **Remote _module_**: The source code for a single Garden module. In this case, the `garden.yml` config file is stored in the main project repository while the module code itself is in the remote repository.
 
-The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/0.12.44/examples/remote-sources).
+The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/0.12.45/examples/remote-sources).
 
 ## Importing Remote Repositories
 
@@ -27,8 +27,8 @@ sources:
   - name: web-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git
   - name: db-services
-  # use #your-branch to specify a branch or #v0.3.0 to configure git version
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#master
+    # use #your-branch to specify a branch or #v0.3.0 to configure git version
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
 ```
 
 Note that the URL must point to a specific branch or tag.
@@ -108,7 +108,7 @@ Notice that it only contains the `garden.yml` file, all the source code is in th
 You can also import sources and modules from your local file system by setting the `repositoryUrl` to a local file path:
 
 ```yaml
-repositoryUrl: file:///my/local/project/path#master
+repositoryUrl: file:///my/local/project/path#main
 ```
 
 As usual, the URL must point to a specific branch or tag.
@@ -137,7 +137,7 @@ garden unlink source web-services
 
 Garden will only update a remote source if explicitly asked to do so via the `update-remote sources|modules` command.
 
-For example, if we had pointed the repository URL of the `web-services` source from above to something like a `master` branch, and we now wanted to pull the latest code from the remote, we would run:
+For example, if we had pointed the repository URL of the `web-services` source from above to something like a `main` branch, and we now wanted to pull the latest code from the remote, we would run:
 
 ```console
 garden update-remote source web-services

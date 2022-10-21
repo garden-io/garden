@@ -64,7 +64,7 @@ describe("Garden", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     pathFoo = tmpDir.path
 
-    await execa("git", ["init"], { cwd: pathFoo })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: pathFoo })
 
     projectConfigFoo = {
       apiVersion: DEFAULT_API_VERSION,
@@ -2389,11 +2389,11 @@ describe("Garden", () => {
         // Create a temporary git repo to clone
         const repoPath = resolve(_tmpDir.path, garden.projectName)
         await copy(localSourcePath, repoPath)
-        await exec("git", ["init"], { cwd: repoPath })
+        await exec("git", ["init", "--initial-branch=main"], { cwd: repoPath })
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables.sourceBranch = "master"
+        garden.variables.sourceBranch = "main"
 
         const _garden = garden as any
         _garden["projectSources"] = [
@@ -2577,15 +2577,10 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveModules({ log: garden.log }),
         (err) => {
-          expect(stripAnsi(err.message)).to.equal(dedent`
-          Missing include and/or exclude directives on modules with overlapping paths.
-          Setting includes/excludes is required when modules have the same path (i.e. are in the same garden.yml file),
-          or when one module is nested within another.
-
-          Module module-no-include-a overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-b (same path).
-
+          expect(stripAnsi(err.message)).to.include(dedent`
           Module module-no-include-b overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-a (same path).
-          `)
+
+          If this was intentional, there are two options to resolve this error`)
         }
       )
     })
@@ -3367,7 +3362,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3432,7 +3427,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3499,7 +3494,7 @@ describe("Garden", () => {
             dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
@@ -3556,7 +3551,7 @@ describe("Garden", () => {
             dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
@@ -4608,9 +4603,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-2db99eee24"
-      const moduleBVersionString = "v-54d52a425f"
-      const moduleCVersionString = "v-dcb493917a"
+      const moduleAVersionString = "v-6f85bdd407"
+      const moduleBVersionString = "v-6e138410f5"
+      const moduleCVersionString = "v-ea24adfffc"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
@@ -4629,7 +4624,7 @@ describe("Garden", () => {
         delete process.env.TEST_ENV_VAR
       })
 
-      it("should return the same module versions for identiclal modules in different projects", async () => {
+      it("should return the same module versions for identical modules in different projects", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-2")
 
         process.env.MODULE_A_TEST_ENV_VAR = "foo"

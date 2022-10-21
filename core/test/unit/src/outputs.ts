@@ -27,7 +27,7 @@ describe("resolveProjectOutputs", () => {
   beforeEach(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     tmpPath = await realpath(tmpDir.path)
-    await exec("git", ["init"], { cwd: tmpPath })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
     projectConfig = {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Project",

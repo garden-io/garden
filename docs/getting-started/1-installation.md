@@ -4,21 +4,21 @@ This guide will walk you through setting up the Garden framework.
 
 Please follow the guide for your operating system:
 
-* [macOS](#macos)
-* [Windows](#windows)
-* [Linux](#linux)
+- [macOS](#macos)
+- [Windows](#windows)
+- [Linux](#linux)
 
 If you'd like to run Kubernetes locally, please see our [local Kubernetes guide](../guides/local-kubernetes.md)
 for installation and usage information.
 
-If you want to install Garden from source, see the instructions in our [contributor guide](https://github.com/garden-io/garden/tree/master/CONTRIBUTING.md).
+If you want to install Garden from source, see the instructions in our [contributor guide](https://github.com/garden-io/garden/tree/main/CONTRIBUTING.md).
 
 ## Requirements
 
 You need the following dependencies on your local machine to use Garden:
 
-* Git (v2.14 or newer)
-* rsync (v3.1.0 or newer)
+- Git (v2.14 or newer)
+- rsync (v3.1.0 or newer)
 
 And if you'd like to build and run services locally, you need [a local installation of Kubernetes](https://kubernetes.io/docs/tutorials/hello-minikube/). Garden is committed to supporting [the _latest six_ stable versions (i.e. if the latest stable version is v1.23.x, Garden supports v1.18.x and newer)](https://kubernetes.io/releases/).
 
@@ -82,20 +82,22 @@ _Note: The Home edition doesn't support virtualization, but you can still use Ga
 To install the Garden CLI and its dependencies, please use our installation script. To run the script, open PowerShell as an administrator and run:
 
 ```PowerShell
-Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/support/install.ps1'))
+Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/main/support/install.ps1'))
 ```
 
 The things the script will check for are the following:
 
-* The [Chocolatey](https://chocolatey.org) package manager. The script installs it automatically if necessary.
-* _git_ and _rsync_ . The script will install or upgrade those via Chocolatey.
+- The [Chocolatey](https://chocolatey.org) package manager. The script installs it automatically if necessary.
+- _git_ and _rsync_ . The script will install or upgrade those via Chocolatey.
 
 To later upgrade to the newest version, simply re-run the above script.
 
 We also recommend adding an exclusion folder for the `.garden` directory in your repository root to Windows Defender:
+
 ```powershell
 Add-MpPreference -ExclusionPath "C:\Path\To\Your\Repo\.garden"
 ```
+
 This will significantly speed up the first Garden build of large projects on Windows machines.
 
 Note that you must run Powershell with elevated permissions when you execute this command.
@@ -138,7 +140,7 @@ for installation and usage information.
 If you're running Garden behind a firewall, you may need to use a proxy to route external requests. To do this,
 you need to set the `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment variables. For example:
 
- ```sh
+```sh
 export HTTP_PROXY=http://localhost:9999               # <- Replace with your proxy address.
 export HTTPS_PROXY=$HTTP_PROXY                        # <- Replace if you use a separate proxy for HTTPS.
 export NO_PROXY=local.app.garden,localhost,127.0.0.1  # <- This is important! See below.

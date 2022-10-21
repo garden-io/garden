@@ -19,7 +19,7 @@ import {
   createIngressResources,
   supportedIngressApiVersions,
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { defaultContainerResources } from "../../../../../../src/plugins/container/config"
+import { defaultContainerResources, defaultDeploymentStrategy } from "../../../../../../src/plugins/container/config"
 import {
   ServicePortProtocol,
   ContainerIngressSpec,
@@ -54,6 +54,7 @@ const basicConfig: PartialConfig = {
     hostname: "foo.garden",
     port: 5000,
     namespace: "boo",
+    insecure: true,
   },
   forceSsl: false,
   gardenSystemNamespace: defaultSystemNamespace,
@@ -380,6 +381,7 @@ describe("createIngressResources", () => {
       ports,
       replicas: 1,
       volumes: [],
+      deploymentStrategy: defaultDeploymentStrategy,
     }
     const moduleConfig = {
       allowPublish: false,

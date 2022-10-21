@@ -23,7 +23,7 @@ describe("GetOutputsCommand", () => {
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
 
-    await exec("git", ["init"], { cwd: tmpDir.path })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
     projectConfig = {
       apiVersion: DEFAULT_API_VERSION,

@@ -120,6 +120,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
       name,
       vcsUsername,
+      serviceAccount: false,
     }))
     const batches = chunk(usersToCreate, MAX_USERS_PER_REQUEST)
     // This pretty arbitrary, but the bulk action can create 100 users at a time

@@ -1,4 +1,48 @@
 
+<a name="0.12.45"></a>
+## [0.12.45](https://github.com/garden-io/garden/compare/0.12.44...0.12.45) (2022-09-29)
+
+### BREAKING CHANGES
+
+* check for requirements being installed ([#3097](https://github.com/garden-io/garden/issues/3097)) ([63628b13b](https://github.com/garden-io/garden/commit/63628b13b))
+* **local-mode:** allow multiple port-forwards ([a98af5363](https://github.com/garden-io/garden/commit/a98af5363))
+* **terraform:** upgraded default terraform tool version to `1.2.9` ([#3220](https://github.com/garden-io/garden/issues/3220)) ([8f6a3be44](https://github.com/garden-io/garden/commit/8f6a3be44))
+* rename `master` to `main` ([935eecff6](https://github.com/garden-io/garden/commit/935eecff6)) - On Mac machines, `brew update` command may fail with an error. To fix this, just run the suggested command `brew tap --repair` and re-run `brew update`.
+
+### Bug Fixes
+
+* subcommand help listing ([#3261](https://github.com/garden-io/garden/issues/3261)) ([5e9593440](https://github.com/garden-io/garden/commit/5e9593440))
+* ensure semver format in git/rsync version regex ([81cb0f98f](https://github.com/garden-io/garden/commit/81cb0f98f))
+* make copy target actually default to source ([#3223](https://github.com/garden-io/garden/issues/3223)) ([b8960204c](https://github.com/garden-io/garden/commit/b8960204c))
+* **docs:** fixed template strings rendering in docs generator ([7bc1e602a](https://github.com/garden-io/garden/commit/7bc1e602a))
+* **cli:** run exec commands from proj root ([5d0cd005c](https://github.com/garden-io/garden/commit/5d0cd005c))
+* **core:** fix Rosetta detection logic for OSX ([ff96b2ff1](https://github.com/garden-io/garden/commit/ff96b2ff1))
+* **core:** fixed concurrency issue with plugin tool downloads ([1c65ac7f5](https://github.com/garden-io/garden/commit/1c65ac7f5))
+
+### Features
+
+* add option to run git pulls in parallel ([5554a3dc8](https://github.com/garden-io/garden/commit/5554a3dc8))
+* allow module overlap if one or both of them are disabled ([#3222](https://github.com/garden-io/garden/issues/3222)) ([b97678999](https://github.com/garden-io/garden/commit/b97678999))
+* use M1 native tools where available ([#3185](https://github.com/garden-io/garden/pull/3185))
+* **k8s:** simple `mode=max` support with a list of not supported registries ([#3239](https://github.com/garden-io/garden/pull/3239))
+
+### Improvements
+
+* more precise error handling in binary tool version checker ([c102ebae9](https://github.com/garden-io/garden/commit/c102ebae9))
+* check for requirements being installed ([#3097](https://github.com/garden-io/garden/issues/3097)) ([63628b13b](https://github.com/garden-io/garden/commit/63628b13b))
+* **dev-mode:** allow non-subpaths for dev-mode sync ([2f71ce5d2](https://github.com/garden-io/garden/commit/2f71ce5d2)) and ([83de16e6](https://github.com/garden-io/garden/commit/83de16e6))
+* **jib:** stricter validation and better error messages ([203ef357a](https://github.com/garden-io/garden/commit/203ef357a))
+* **jib:** updated LTS JDKs (8 and 11) to the latest releases ([75ed16436](https://github.com/garden-io/garden/commit/75ed16436))
+* **jib:** supported JDK 17 LTS version ([3f3c91f31](https://github.com/garden-io/garden/commit/3f3c91f31))
+* **jib:** supported OpenJDK 13 ([12ffec527](https://github.com/garden-io/garden/commit/12ffec527))
+* **jib:** configurable JDK path ([3fa1fe45b](https://github.com/garden-io/garden/commit/3fa1fe45b))
+* **jib:** upgraded Gradle version to `7.5.1` ([6a6504e1d](https://github.com/garden-io/garden/commit/6a6504e1d))
+* **jib:** upgraded Maven version to `3.8.5` ([84bcb67b2](https://github.com/garden-io/garden/commit/84bcb67b2))
+* **jib:** configurable Maven binary ([dd8396c08](https://github.com/garden-io/garden/commit/dd8396c08))
+* **jib:** configurable Maven phases in jib modules ([e0b6d0814](https://github.com/garden-io/garden/commit/e0b6d0814))
+* **local-mode:** allow multiple port-forwards ([a98af5363](https://github.com/garden-io/garden/commit/a98af5363))
+* **terraform:** upgraded default terraform tool version to `1.2.9` ([#3220](https://github.com/garden-io/garden/issues/3220)) ([8f6a3be44](https://github.com/garden-io/garden/commit/8f6a3be44))
+
 <a name="0.12.44"></a>
 ## [0.12.44](https://github.com/garden-io/garden/compare/0.12.43...0.12.44) (2022-08-03)
 

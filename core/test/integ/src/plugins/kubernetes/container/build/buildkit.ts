@@ -7,7 +7,7 @@
  */
 
 import { getContainerTestGarden } from "../container"
-import { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
+import { ClusterBuildkitCacheConfig, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
 import {
@@ -28,6 +28,15 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
   let ctx: PluginContext
   let api: KubeApi
   let namespace: string
+
+  const defaultConfig: ClusterBuildkitCacheConfig[] = [
+    {
+      type: "registry",
+      mode: "auto",
+      tag: "_buildcache",
+      export: true,
+    },
+  ]
 
   before(async () => {
     garden = await getContainerTestGarden("cluster-buildkit")
@@ -82,7 +91,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
 
       const nodeSelector = { "kubernetes.io/os": "linux" }
 
-      provider.config.clusterBuildkit = { nodeSelector }
+      provider.config.clusterBuildkit = { nodeSelector, cache: defaultConfig }
 
       await ensureBuildkit({
         ctx,
@@ -152,7 +161,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
       } catch {}
 
-      provider.config.clusterBuildkit = { rootless: true }
+      provider.config.clusterBuildkit = { rootless: true, cache: defaultConfig }
 
       await ensureBuildkit({
         ctx,
@@ -176,7 +185,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
         namespace,
       })
 
-      provider.config.clusterBuildkit = { rootless: true }
+      provider.config.clusterBuildkit = { rootless: true, cache: defaultConfig }
 
       const { updated } = await ensureBuildkit({
         ctx,

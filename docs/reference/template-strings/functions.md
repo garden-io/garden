@@ -41,14 +41,15 @@ Examples:
 
 ## concat
 
-Concatenates two arrays.
+Concatenates two arrays or strings.
 
-Usage: `concat(array1, array2)`
+Usage: `concat(arg1, arg2)`
 
 Examples:
 
 * `${concat(["first","two"], ["second","list"])}` -> `["first","two","second","list"]`
 * `${concat([1,2,3], [4,5])}` -> `[1,2,3,4,5]`
+* `${concat("string1", "string2")}` -> `"string1string2"`
 
 ## indent
 

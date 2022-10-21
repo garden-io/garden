@@ -40,7 +40,122 @@ providers:
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
-    clusterBuildkit:
+    clusterBuildkit: {}
+      # Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
+      #
+      # The default value is:
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       mode: auto
+      #
+      # For every build, this will
+      # - import cached layers from a docker image tag named `_buildcache`
+      # - when the build is finished, upload cache information to `_buildcache`
+      #
+      # For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
+      # option.
+      #
+      # See the following table for details on our detection mechanism:
+      #
+      # | Registry Name                   | Registry Domain         | Assumed `mode=max` support |
+      # |---------------------------------|-------------------------|------------------------------|
+      # | Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
+      # | Azure Container Registry        | `azurecr.io`          | Yes                          |
+      # | GitHub Container Registry       | `ghcr.io`             | Yes                          |
+      # | DockerHub                       | `hub.docker.com`     | Yes                          |
+      # | Garden In-Cluster Registry      |                         | Yes                          |
+      # | Any other registry              |                         | No                           |
+      #
+      # In case you need to override the defaults for your registry, you can do it like so:
+      #
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       mode: max
+      #
+      # When you add multiple caches, we will make sure to pass the `--import-cache` options to buildkit in the same
+      # order as provided in the cache configuration. This is because buildkit will not actually use all imported
+      # caches
+      # for every build, but it will stick with the first cache that yields a cache hit for all the following layers.
+      #
+      # An example for this is the following:
+      #
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       tag: _buildcache-${slice(kebabCase(git.branch), "0", "30")}
+      #     - type: registry
+      #       tag: _buildcache-main
+      #       export: false
+      #
+      # Using this cache configuration, every build will first look for a cache specific to your feature branch.
+      # If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
+      # When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main`
+      # branch caches.
+      # A configuration like that may improve your cache hit rate and thus save time.
+      #
+      # If you need to disable caches completely you can achieve that with the following configuration:
+      #
+      # clusterBuildkit:
+      #   cache: []
+      cache:
+        - # Use the Docker registry configured at `deploymentRegistry` to retrieve and store buildkit cache
+          # information.
+          #
+          # See also the [buildkit registry cache
+          # documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+          type:
+
+          # The registry from which the cache should be imported from, or which it should be exported to.
+          #
+          # If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the
+          # internal in-cluster registry in case `deploymentRegistry` is not set.
+          #
+          # Important: You must make sure `imagePullSecrets` includes authentication with the specified cache
+          # registry, that has the appropriate write privileges (usually full write access to the configured
+          # `namespace`).
+          registry:
+            # The hostname (and optionally port, if not the default port) of the registry.
+            hostname:
+
+            # The port where the registry listens on, if not the default.
+            port:
+
+            # The registry namespace. Will be placed between hostname and image name, like so:
+            # <hostname>/<namespace>/<image name>
+            namespace: _
+
+            # Set to true to allow insecure connections to the registry (without SSL).
+            insecure: false
+
+          # This is the buildkit cache mode to be used.
+          #
+          # The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache
+          # information will be inlined and co-located with the Docker image itself.
+          #
+          # The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the
+          # buildkit `--export-cache` option. Cache manifests will only be
+          # stored stored in the configured `tag`.
+          #
+          # `auto` is the same as `max` for some registries that are known to support it. Garden will fall back to
+          # `inline` for all other registries.
+          #  See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the
+          # detection mechanism.
+          #
+          # See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+          mode: auto
+
+          # This is the Docker registry tag name buildkit should use for the registry build cache. Default is
+          # `_buildcache`
+          #
+          # **NOTE**: `tag` can only be used together with the `registry` cache type
+          tag: _buildcache
+
+          # If this is false, only pass the `--import-cache` option to buildkit, and not the `--export-cache` option.
+          # Defaults to true.
+          export: true
+
       # Enable rootless mode for the cluster-buildkit daemon, which runs the daemon with decreased privileges.
       # Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when
       # using this mode.
@@ -52,6 +167,34 @@ providers:
       # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
       # guide to assigning Pods to nodes.
       nodeSelector: {}
+
+      # Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run
+      # builds.
+      tolerations:
+        - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+          # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+          effect:
+
+          # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+          # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+          key:
+
+          # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal".
+          # Defaults to
+          # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+          # particular category.
+          operator: Equal
+
+          # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+          # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+          # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+          # by the system.
+          tolerationSeconds:
+
+          # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
+          # empty,
+          # otherwise just a regular string.
+          value:
 
     # Setting related to Jib image builds.
     jib:
@@ -346,9 +489,9 @@ Choose the mechanism for building container images before deploying. By default 
 
 For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
 
-| Type     | Default          | Required |
-| -------- | ---------------- | -------- |
-| `string` | `"local-docker"` | No       |
+| Type     | Allowed Values                               | Default          | Required |
+| -------- | -------------------------------------------- | ---------------- | -------- |
+| `string` | "local-docker", "kaniko", "cluster-buildkit" | `"local-docker"` | Yes      |
 
 ### `providers[].clusterBuildkit`
 
@@ -356,9 +499,214 @@ For more details on all the different options and what makes sense to use for yo
 
 Configuration options for the `cluster-buildkit` build mode.
 
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+### `providers[].clusterBuildkit.cache[]`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > cache
+
+Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
+
+The default value is:
+```yaml
+clusterBuildkit:
+  cache:
+    - type: registry
+      mode: auto
+```
+
+For every build, this will
+- import cached layers from a docker image tag named `_buildcache`
+- when the build is finished, upload cache information to `_buildcache`
+
+For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
+option.
+
+See the following table for details on our detection mechanism:
+
+| Registry Name                   | Registry Domain         | Assumed `mode=max` support |
+|---------------------------------|-------------------------|------------------------------|
+| Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
+| Azure Container Registry        | `azurecr.io`          | Yes                          |
+| GitHub Container Registry       | `ghcr.io`             | Yes                          |
+| DockerHub                       | `hub.docker.com`     | Yes                          |
+| Garden In-Cluster Registry      |                         | Yes                          |
+| Any other registry              |                         | No                           |
+
+In case you need to override the defaults for your registry, you can do it like so:
+
+```yaml
+clusterBuildkit:
+  cache:
+    - type: registry
+      mode: max
+```
+
+When you add multiple caches, we will make sure to pass the `--import-cache` options to buildkit in the same
+order as provided in the cache configuration. This is because buildkit will not actually use all imported caches
+for every build, but it will stick with the first cache that yields a cache hit for all the following layers.
+
+An example for this is the following:
+
+```yaml
+clusterBuildkit:
+  cache:
+    - type: registry
+      tag: _buildcache-${slice(kebabCase(git.branch), "0", "30")}
+    - type: registry
+      tag: _buildcache-main
+      export: false
+```
+
+Using this cache configuration, every build will first look for a cache specific to your feature branch.
+If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
+When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main` branch caches.
+A configuration like that may improve your cache hit rate and thus save time.
+
+If you need to disable caches completely you can achieve that with the following configuration:
+
+```yaml
+clusterBuildkit:
+  cache: []
+```
+
+| Type            | Default                                                                 | Required |
+| --------------- | ----------------------------------------------------------------------- | -------- |
+| `array[object]` | `[{"type":"registry","mode":"auto","tag":"_buildcache","export":true}]` | No       |
+
+### `providers[].clusterBuildkit.cache[].type`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > type
+
+Use the Docker registry configured at `deploymentRegistry` to retrieve and store buildkit cache information.
+
+See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "registry"     | Yes      |
+
+### `providers[].clusterBuildkit.cache[].registry`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > registry
+
+The registry from which the cache should be imported from, or which it should be exported to.
+
+If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the internal in-cluster registry in case `deploymentRegistry` is not set.
+
+Important: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `namespace`).
+
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+### `providers[].clusterBuildkit.cache[].registry.hostname`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > hostname
+
+The hostname (and optionally port, if not the default port) of the registry.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      cache:
+        - registry:
+            ...
+            hostname: "gcr.io"
+```
+
+### `providers[].clusterBuildkit.cache[].registry.port`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > port
+
+The port where the registry listens on, if not the default.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `providers[].clusterBuildkit.cache[].registry.namespace`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > namespace
+
+The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"_"`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      cache:
+        - registry:
+            ...
+            namespace: "my-project"
+```
+
+### `providers[].clusterBuildkit.cache[].registry.insecure`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > insecure
+
+Set to true to allow insecure connections to the registry (without SSL).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+### `providers[].clusterBuildkit.cache[].mode`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > mode
+
+This is the buildkit cache mode to be used.
+
+The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache information will be inlined and co-located with the Docker image itself.
+
+The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the buildkit `--export-cache` option. Cache manifests will only be
+stored stored in the configured `tag`.
+
+`auto` is the same as `max` for some registries that are known to support it. Garden will fall back to `inline` for all other registries.
+ See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+
+See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+
+| Type     | Allowed Values                 | Default  | Required |
+| -------- | ------------------------------ | -------- | -------- |
+| `string` | "auto", "min", "max", "inline" | `"auto"` | Yes      |
+
+### `providers[].clusterBuildkit.cache[].tag`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > tag
+
+This is the Docker registry tag name buildkit should use for the registry build cache. Default is `_buildcache`
+
+**NOTE**: `tag` can only be used together with the `registry` cache type
+
+| Type     | Default         | Required |
+| -------- | --------------- | -------- |
+| `string` | `"_buildcache"` | No       |
+
+### `providers[].clusterBuildkit.cache[].export`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > export
+
+If this is false, only pass the `--import-cache` option to buildkit, and not the `--export-cache` option. Defaults to true.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `providers[].clusterBuildkit.rootless`
 
@@ -392,6 +740,74 @@ providers:
       nodeSelector:
           disktype: ssd
 ```
+
+### `providers[].clusterBuildkit.tolerations[]`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > tolerations
+
+Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].clusterBuildkit.tolerations[].effect`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].key`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].operator`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"Equal"` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].tolerationSeconds`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].value`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].jib`
 
@@ -649,9 +1065,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].devMode.defaults.group`
 
@@ -659,9 +1075,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].forceSsl`
 
@@ -1207,9 +1623,9 @@ providers:
 
 Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates other namespaces as well with this name as a prefix.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `object | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `object \| string` | No       |
 
 ### `providers[].namespace.name`
 

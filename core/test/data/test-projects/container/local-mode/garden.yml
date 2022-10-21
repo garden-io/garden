@@ -10,7 +10,9 @@ variables:
 services:
   - name: local-mode
     localMode:
-      localPort: 8090
+      ports:
+        - local: 8090
+          remote: 8080
       command: []
     # this is here to test that local mode always take precedence over dev mode
     devMode:

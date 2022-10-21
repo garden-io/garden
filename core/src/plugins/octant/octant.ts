@@ -87,6 +87,7 @@ export const gardenPlugin = () =>
         type: "binary",
         _includeInGardenImage: false,
         builds: [
+          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
           {
             platform: "darwin",
             architecture: "amd64",

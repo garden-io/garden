@@ -1,5 +1,5 @@
 kind: Project
-name: project-variables
+name: variables
 variables:
   # This variable is referenced in the module configs, and overridden in the local project below
   service-replicas: 3

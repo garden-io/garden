@@ -69,7 +69,7 @@ async function draftReleaseNotes() {
   const contributors = getContributors(prevReleaseTag, curReleaseTag)
 
   const content = releaseNotesDraft(curReleaseTag, changelog, contributors)
-  const filename = `release-notes-${curReleaseTag}-draft.txt`
+  const filename = `release-notes-${curReleaseTag}-draft.md`
   const outputPath = `${gardenRoot}/${filename}`
 
   console.log(`Writing release notes draft to ${outputPath}`)

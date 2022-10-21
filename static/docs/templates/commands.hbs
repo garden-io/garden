@@ -21,7 +21,7 @@ The following option flags can be used with any of the CLI commands:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
 {{#each globalOptions}}
-  | `--{{name}}` | {{#if alias}}`-{{alias}}`{{/if}} | {{> argType}} | {{help}}
+  | `--{{name}}` | {{#if alias}}{{#if (isLongerThan alias 1)}}`--{{alias}}`{{else}}`-{{alias}}`{{/if}}{{/if}} | {{> argType}} | {{help}}
 {{/each}}
 
 {{#each commands}}
@@ -52,7 +52,7 @@ The following option flags can be used with any of the CLI commands:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
 {{#each options}}
-  | `--{{name}}` | {{#if alias}}`-{{alias}}`{{/if}} | {{> argType}} | {{help}}
+  | `--{{name}}` | {{#if alias}}{{#if (isLongerThan alias 1)}}`--{{alias}}`{{else}}`-{{alias}}`{{/if}}{{/if}} | {{> argType}} | {{help}}
 {{/each}}
 {{/if}}
 

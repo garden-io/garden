@@ -171,6 +171,50 @@ effect: "NoSchedule"
 
 This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../reference/providers/kubernetes.md#providersclusterbuildkitnodeselector) to serve the same purpose.
 
+#### Caching
+
+By default, cluster-buildkit will have two layers of cache
+
+1. A local file cache, maintained by the cluster-buildkit instance. The cache is shared for all builds in the same namespace
+2. A `_buildcache` image tag in the configured deploymentRegistry will be used as an external cache. This is useful for fresh namespaces, e.g. preview environments
+
+You can customize the cache configuration with the `cache` option. You can list multiple cache layers, and it will choose the first one that generates any hit for all following layers.
+
+In a large team it might be beneficial to use a more complicated cache strategy, for example the following:
+
+```yaml
+clusterBuildkit:
+  cache:
+      - type: registry
+        tag: _buildcache-${slice(kebabCase(git.branch), "0", "30")}
+      - type: registry
+        tag: _buildcache-main
+        export: false
+```
+
+With this configuration, every new feature branch will benefit from the main branch cache, while not polluting the main branch cache (via `export: false`).
+Any subsequent builds will use the feature branch cache.
+
+Please keep in mind that you should also configure a garbage collection policy in your Docker registry to clean old feature branch tags.
+
+#### Multi-stage caching
+
+If your `Dockerfile` has multiple stages, you can benefit from `mode=max` caching. It is automatically enabled, if your registry is not in our list of unsupported registries.
+Currently, those are AWS ECR and Google GCR. If you are using GCR, you can switch to the Google Artifact Registry, which supports `mode=max`.
+
+You can also configure a different cache registry for your images. That way you can keep using ECR or GCR, while having better cache hit rate with `mode=max`:
+
+```yaml
+clusterBuildkit:
+  cache:
+      - type: registry
+        registry:
+          hostname: hub.docker.com
+          namespace: my-team-cache
+```
+
+For this mode of operation you need secrets for all the registries configured in your `imagePullSecrets`.
+
 ### Local Docker
 
 This is the default mode. It is the least efficient one for remote clusters, but requires no additional configuration or services to be deployed to the cluster. For remote clusters, you do however need to explicitly configure a [deployment registry](#configuring-a-deployment-registry), and obviously you'll need to have Docker running locally.

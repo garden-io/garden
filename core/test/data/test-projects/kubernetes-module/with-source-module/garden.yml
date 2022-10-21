@@ -9,7 +9,9 @@ devMode:
       target: /app
 
 localMode:
-  localPort: 8090
+  ports:
+    - local: 8090
+      remote: 80
 
 manifests:
   - apiVersion: apps/v1

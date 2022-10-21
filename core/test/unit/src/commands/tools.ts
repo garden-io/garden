@@ -86,7 +86,7 @@ describe("ToolsCommand", () => {
 
   before(async () => {
     tmpDir = await makeTempDir()
-    await exec("git", ["init"], { cwd: tmpDir.path })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
     garden = await TestGarden.factory(tmpDir.path, {
       plugins: [pluginA, pluginB],

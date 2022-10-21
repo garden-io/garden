@@ -41,6 +41,9 @@ export function writeCommandReferenceDocs(docsRoot: string) {
 
   const templatePath = resolve(TEMPLATES_DIR, "commands.hbs")
   handlebars.registerPartial("argType", "{{#if choices}}{{#each choices}}`{{.}}` {{/each}}{{else}}{{type}}{{/if}}")
+  handlebars.registerHelper({
+    isLongerThan: (v1, v2) => !!v1 && v1.length > v2,
+  })
   const template = handlebars.compile(readFileSync(templatePath).toString())
   const markdown = template({ commands, globalOptions: describeParameters(globalOptions) })
 

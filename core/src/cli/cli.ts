@@ -88,27 +88,11 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
-function renderHeader({
-  environmentName,
-  namespaceName,
-  namespaceUrl,
-  distroName,
-}: {
-  environmentName: string
-  namespaceName: string
-  namespaceUrl?: string
-  distroName?: string
-}) {
+function renderHeader({ environmentName, namespaceName }: { environmentName: string; namespaceName: string }) {
   const divider = chalk.gray(renderDivider())
-  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName + "." + environmentName)}`
-
-  if (namespaceUrl) {
-    msg += dedent`
-      \n
-      ${nodeEmoji.lightning}   Connected to ${distroName}
-      ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
-    `
-  }
+  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
+    environmentName
+  )}`
 
   return dedent`
     ${divider}
@@ -419,25 +403,24 @@ ${renderCommands(commands)}
           let namespaceUrl: string | undefined
           if (cloudApi && cloudApi.environmentId && cloudApi.namespaceId) {
             const project = await cloudApi.getProject()
-            const path = `/projects/${project.id}/environments/${cloudApi.environmentId}/namespaces/${cloudApi.namespaceId}/stack`
+            const user = await cloudApi.getProfile()
+            const path = `/projects/${project.id}?sessionId=${sessionId}&userId=${user.id}`
             const url = new URL(path, cloudApi.domain)
             namespaceUrl = url.href
           }
 
-          // Print a specific header and footer when persistent and connected to Garden Cloud.
-          if (persistent && namespaceUrl) {
+          // Print a specific header and footer when connected to Garden Cloud.
+          if (namespaceUrl) {
             const distroName = getCloudDistributionName(cloudApi?.domain || "")
             nsLog.setState(
               renderHeader({
                 namespaceName: garden.namespace,
                 environmentName: garden.environmentName,
-                namespaceUrl,
-                distroName,
               })
             )
             const msg = dedent`
               \n${nodeEmoji.lightning}   ${chalk.cyan(
-              `Connected to ${distroName}! Visit your namespace to stream logs and more.`
+              `Connected to ${distroName}! Click the link below to view logs and more.`
             )}
               ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
             `
@@ -606,14 +589,10 @@ ${renderCommands(commands)}
       return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
     }
 
-    if (argv._.length === 0 || argv._[0] === "help") {
-      return done(0, await this.renderHelp(workingDir))
-    }
-
     let projectConfig: ProjectResource | undefined
 
     // First look for native Garden commands
-    let { command, matchedPath } = pickCommand(Object.values(this.commands), argv._)
+    let { command, rest, matchedPath } = pickCommand(Object.values(this.commands), argv._)
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {
@@ -627,13 +606,10 @@ ${renderCommands(commands)}
       }
     }
 
+    // If we still haven't found a valid command, print help
     if (!command) {
-      const exitCode = argv.h || argv.help ? 0 : 1
+      const exitCode = argv._.length === 0 || argv._[0] === "help" ? 0 : 1
       return done(exitCode, await this.renderHelp(workingDir))
-    }
-
-    if (command instanceof CommandGroup) {
-      return done(0, command.renderHelp())
     }
 
     // Parse the arguments again with the Command set, to fully validate, and to ensure boolean options are
@@ -643,15 +619,19 @@ ${renderCommands(commands)}
     // Slice command name from the positional args
     argv._ = argv._.slice(command.getPath().length)
 
-    // handle -h/--help
-    if (argv.h || argv.help) {
-      if (command) {
-        // Show help for command
-        return done(0, command.renderHelp())
-      } else {
-        // Show general help text
-        return done(0, await this.renderHelp(workingDir))
+    // Handle -h, --help, and subcommand listings
+    if (argv.h || argv.help || command instanceof CommandGroup) {
+      // Try to show specific help for given subcommand
+      if (command instanceof CommandGroup) {
+        for (const subCommand of command.subCommands) {
+          const sub = new subCommand()
+          if (sub.name === rest[0]) {
+            return done(0, sub.renderHelp())
+          }
+        }
+        // If not found, falls through to general command help below
       }
+      return done(0, command.renderHelp())
     }
 
     let parsedArgs: BuiltinArgs & ParameterValues<any>

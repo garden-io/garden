@@ -26,7 +26,7 @@ import { BuildModuleParams, BuildResult } from "../../types/plugin/module/build"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { TestResult } from "../../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../../types/plugin/task/runTask"
-import { createOutputStream, exec, ExecOpts, runScript, sleep } from "../../util/util"
+import { exec, ExecOpts, renderOutputStream, runScript, sleep } from "../../util/util"
 import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -422,19 +422,28 @@ function runPersistent({
 async function run({
   command,
   module,
+  ctx,
   log,
   env,
   opts = {},
 }: {
   command: string[]
   module: ExecModule
+  ctx: PluginContext
   log: LogEntry
   env?: PrimitiveMap
   opts?: ExecOpts
 }) {
-  const stdout = createOutputStream(log.placeholder({ level: LogLevel.verbose }))
+  const outputStream = split2()
 
-  return exec(command.join(" "), [], {
+  outputStream.on("error", () => {})
+  outputStream.on("data", (line: Buffer) => {
+    log.setState(renderOutputStream(line.toString()))
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+  })
+
+  const res = await exec(command.join(" "), [], {
+    ...opts,
     cwd: module.buildPath,
     env: {
       ...getDefaultEnvVars(module),
@@ -442,18 +451,18 @@ async function run({
     },
     // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
     shell: true,
-    stdout,
-    stderr: stdout,
-    ...opts,
+    stdout: outputStream,
+    stderr: outputStream,
   })
+  return res
 }
 
-export async function buildExecModule({ module, log }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
+export async function buildExecModule({ module, ctx, log }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const output: BuildResult = {}
   const { command } = module.spec.build
 
   if (command.length) {
-    const result = await run({ command, module, log })
+    const result = await run({ command, module, ctx, log })
 
     output.fresh = true
     output.buildLog = result.stdout + result.stderr
@@ -473,13 +482,14 @@ export async function buildExecModule({ module, log }: BuildModuleParams<ExecMod
 export async function testExecModule({
   log,
   module,
+  ctx,
   test,
   artifactsPath,
 }: TestModuleParams<ExecModule>): Promise<TestResult> {
   const startedAt = new Date()
   const { command } = test.config.spec
 
-  const result = await run({ command, module, log, env: test.config.spec.env, opts: { reject: false } })
+  const result = await run({ command, module, ctx, log, env: test.config.spec.env, opts: { reject: false } })
 
   await copyArtifacts(log, test.config.spec.artifacts, module.buildPath, artifactsPath)
 
@@ -502,7 +512,7 @@ export async function testExecModule({
 }
 
 export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<RunTaskResult> {
-  const { artifactsPath, log, task } = params
+  const { artifactsPath, log, task, ctx } = params
   const module = task.module
   const command = task.spec.command
   const startedAt = new Date()
@@ -512,7 +522,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   let success = true
 
   if (command && command.length) {
-    const commandResult = await run({ command, module, log, env: task.spec.env, opts: { reject: false } })
+    const commandResult = await run({ command, module, ctx, log, env: task.spec.env, opts: { reject: false } })
 
     completedAt = new Date()
     outputLog = (commandResult.stdout + commandResult.stderr).trim()
@@ -545,7 +555,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
 }
 
 export async function runExecModule(params: RunModuleParams<ExecModule>): Promise<RunResult> {
-  const { module, args, interactive, log } = params
+  const { module, ctx, args, interactive, log } = params
   const startedAt = new Date()
 
   let completedAt: Date
@@ -556,6 +566,7 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
     const commandResult = await run({
       command: args,
       module,
+      ctx,
       log,
       env: module.spec.env,
       opts: { reject: false, stdio: interactive ? "inherit" : undefined },
@@ -585,12 +596,13 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
 export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = async (
   params: GetServiceStatusParams<ExecModule>
 ) => {
-  const { module, service, log } = params
+  const { module, ctx, service, log } = params
 
   if (service.spec.statusCommand) {
     const result = await run({
       command: service.spec.statusCommand,
       module,
+      ctx,
       log,
       env: service.spec.env,
       opts: { reject: false },
@@ -646,6 +658,7 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
     const result = await run({
       command: serviceSpec.deployCommand,
       module,
+      ctx,
       log,
       env,
       opts: { reject: true },
@@ -728,6 +741,7 @@ async function deployPersistentExecService({
       const result = await run({
         command: devModeSpec.statusCommand,
         module,
+        ctx,
         log,
         env,
         opts: { reject: false },
@@ -743,12 +757,13 @@ async function deployPersistentExecService({
 export const deleteExecService: ServiceActionHandlers["deleteService"] = async (
   params: DeleteServiceParams<ExecModule>
 ) => {
-  const { module, service, log } = params
+  const { module, ctx, service, log } = params
 
   if (service.spec.cleanupCommand) {
     const result = await run({
       command: service.spec.cleanupCommand,
       module,
+      ctx,
       log,
       env: service.spec.env,
       opts: { reject: true },

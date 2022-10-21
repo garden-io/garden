@@ -51,6 +51,17 @@ export const kustomizeSpec: PluginToolSpec = {
       },
     },
     {
+      platform: "darwin",
+      architecture: "arm64",
+      url:
+        "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_darwin_arm64.tar.gz",
+      sha256: "4ee7ef099b8f59d65cb393d9c1b8fa49a392529dbefcd469359cc51094dad517",
+      extract: {
+        format: "tar",
+        targetPath: "kustomize",
+      },
+    },
+    {
       platform: "linux",
       architecture: "amd64",
       url:

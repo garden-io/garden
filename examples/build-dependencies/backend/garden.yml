@@ -6,7 +6,7 @@ build:
   dependencies:
     - name: shared-config
       copy:
-        - source: "config.env"
+        - source: "config.json"
           target: "config/"
 services:
   - name: backend

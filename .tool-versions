@@ -1,0 +1,4 @@
+jq 1.6
+nodejs 14.20.1
+kubectl 1.24.6
+helm 3.10.0

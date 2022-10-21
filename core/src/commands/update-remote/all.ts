@@ -14,15 +14,24 @@ import { updateRemoteModules } from "./modules"
 import { SourceConfig, projectSourceSchema, moduleSourceSchema } from "../../config/project"
 import { printHeader } from "../../logger/util"
 import { joi, joiArray } from "../../config/common"
+import { updateRemoteSharedOptions } from "./helpers"
 
 export interface UpdateRemoteAllResult {
   projectSources: SourceConfig[]
   moduleSources: SourceConfig[]
 }
 
-export class UpdateRemoteAllCommand extends Command {
+const updateRemoteAllOptions = {
+  ...updateRemoteSharedOptions,
+}
+
+type Opts = typeof updateRemoteAllOptions
+
+export class UpdateRemoteAllCommand extends Command<{}, Opts> {
   name = "all"
   help = "Update all remote sources and modules."
+
+  options = updateRemoteAllOptions
 
   outputsSchema = () =>
     joi.object().keys({
@@ -35,23 +44,26 @@ export class UpdateRemoteAllCommand extends Command {
   description = dedent`
     Examples:
 
-        garden update-remote all # update all remote sources and modules in the project
+        garden update-remote all --parallel # update all remote sources and modules in the project in parallel mode
+        garden update-remote all            # update all remote sources and modules in the project
   `
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Update remote sources and modules", "hammer_and_wrench")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult<UpdateRemoteAllResult>> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UpdateRemoteAllResult>> {
     const { result: projectSources } = await updateRemoteSources({
       garden,
       log,
       args: { sources: undefined },
+      opts: { parallel: opts.parallel },
     })
     const { result: moduleSources } = await updateRemoteModules({
       garden,
       log,
       args: { modules: undefined },
+      opts: { parallel: opts.parallel },
     })
 
     return {

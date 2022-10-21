@@ -15,12 +15,14 @@ export interface OsCommand {
   readonly command: string
   readonly args?: string[]
   readonly cwd?: string
+  readonly description?: string
 }
 
 export const renderOsCommand = (cmd: OsCommand): string => JSON.stringify(cmd)
 
 export interface ProcessMessage {
   readonly pid: number
+  readonly processDescription: string
   readonly message: string
   readonly error?: any
   readonly code?: number
@@ -259,6 +261,10 @@ export class RecoverableProcess {
     return this.lastKnownPid
   }
 
+  public getProcessDescription(): string {
+    return this.command.description || renderOsCommand(this.command)
+  }
+
   public getCurrentState(): RecoverableProcessState {
     return this.state
   }
@@ -302,7 +308,7 @@ export class RecoverableProcess {
 
     const composeMessage = (message: string): ProcessMessage => {
       const pid = this.getCurrentPid()!
-      return { pid, message }
+      return { pid, processDescription: this.getProcessDescription(), message }
     }
 
     const composeRetryInfo = (): RetryInfo => {
@@ -314,7 +320,7 @@ export class RecoverableProcess {
 
     const composeErrorMessage = (message: string, error?: any): ProcessMessage => {
       const pid = this.getCurrentPid()!
-      return { pid, message, retryInfo: composeRetryInfo(), error }
+      return { pid, processDescription: this.getProcessDescription(), message, retryInfo: composeRetryInfo(), error }
     }
 
     const composeTerminationMessage = (
@@ -323,7 +329,14 @@ export class RecoverableProcess {
       signal: NodeJS.Signals | undefined
     ): ProcessMessage => {
       const pid = this.getCurrentPid()!
-      return { pid, message, retryInfo: composeRetryInfo(), code, signal }
+      return {
+        pid,
+        processDescription: this.getProcessDescription(),
+        message,
+        retryInfo: composeRetryInfo(),
+        code,
+        signal,
+      }
     }
 
     proc.on("error", async (error) => {
