@@ -77,6 +77,11 @@ export async function getRouterTestData() {
     module,
     dateUsedForCompleted,
     returnWrongOutputsCfgKey,
+    plugins: {
+      basePlugin,
+      testPluginA,
+      testPluginB,
+    },
   }
 }
 
@@ -118,6 +123,18 @@ function getRouterUnitTestPlugins() {
         handlers: {},
       },
     ],
+    createActionTypes: {
+      Build: [
+        {
+          name: "base-action-type",
+          docs: "asd",
+          handlers: {
+            getStatus: async (props) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
+          },
+          schema: joi.object(),
+        },
+      ],
+    },
   })
 
   const pluginActionDescriptions = getProviderActionDescriptions()
@@ -378,13 +395,32 @@ function getRouterUnitTestPlugins() {
           name: "test",
           docs: "Test Build action",
           schema: joi.object(),
+          outputs: { schema: joi.object() },
+          base: "base-action-type",
           handlers: {
             getStatus: async (_params) => {
-              return { state: "ready", detail: {}, outputs: { foo: "bar" } }
+              // This is hacked for the base router tests
+              return {
+                state: "ready",
+                detail: {},
+                outputs: {
+                  foo: "bar",
+                  base: _params.base,
+                  plugin: "test-plugin-a",
+                  resolvedEnvName: _params.ctx.resolveTemplateStrings("${environment.name}"),
+                  resolvedActionVersion: "TODO-G2 (see one line below)",
+                  // resolvedActionVersion: _params.ctx.resolveTemplateStrings("${runtime.build.module-a.version}"),
+                },
+              }
             },
 
             build: async (_params) => {
-              return { state: "ready", detail: {}, outputs: { foo: "bar" } }
+              return {
+                state: "ready",
+                detail: {},
+                // This is hacked for the base router tests
+                outputs: { foo: "bar", isTestPluginABuildActionBuildHandlerReturn: true },
+              }
             },
 
             publish: async (_params) => {
