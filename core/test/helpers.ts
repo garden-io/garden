@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { cloneDeep, extend, intersection, mapValues, merge, pick } from "lodash"
+import { cloneDeep, extend, intersection, mapValues, merge, omit, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import {
@@ -486,7 +486,7 @@ export function stubRouterAction<K extends ActionKind, H extends keyof WrappedAc
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {
-  return mapValues(results.graphResults, (r) => r && r.result)
+  return mapValues(results.graphResults, (r) => r?.result && omit(r.result, "executedAction"))
 }
 
 export const cleanProject = async (gardenDirPath: string) => {
