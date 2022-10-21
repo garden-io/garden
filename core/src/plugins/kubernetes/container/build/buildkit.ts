@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, dockerAuthSecretKey, inClusterRegistryHostname } from "../../constants"
+import { buildSyncVolumeName, dockerAuthSecretKey } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -327,7 +327,6 @@ export const getSupportedCacheMode = (
     /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
     /^hub\.docker\.com\//i, // DockerHub
     /^ghcr\.io\//i, // GitHub Container registry
-    new RegExp(`^${inClusterRegistryHostname}/`, "i"), // Garden in-cluster registry
   ]
 
   // use mode=max for all registries that are known to support it
