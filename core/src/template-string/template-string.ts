@@ -63,7 +63,7 @@ interface ResolvedClause extends ContextResolveOutput {
 }
 
 interface ConditionalTree {
-  type: "root" | "if" | "if" | "else" | "value"
+  type: "root" | "if" | "else" | "value"
   value?: any
   children: ConditionalTree[]
   parent?: ConditionalTree
