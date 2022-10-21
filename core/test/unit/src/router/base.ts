@@ -7,11 +7,15 @@
  */
 
 import { expect } from "chai"
+import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { joi } from "../../../../src/config/common"
+import { ConfigGraph } from "../../../../src/graph/config-graph"
+import { LogEntry } from "../../../../src/logger/log-entry"
 import { ManyActionTypeDefinitions } from "../../../../src/plugin/action-types"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { createActionRouter } from "../../../../src/router/base"
 import { projectRootA, expectError, makeTestGarden, TestGarden, getDefaultProjectConfig } from "../../../helpers"
+import { getRouterTestData } from "./_helpers"
 
 describe("BaseActionRouter", () => {
   const path = projectRootA
@@ -337,5 +341,92 @@ describe("BaseActionRouter", () => {
     })
   })
 
-  describe("callHandler", () => {})
+  describe("callHandler", () => {
+    let garden: TestGarden
+    let graph: ConfigGraph
+    let log: LogEntry
+    let resolvedBuildAction: ResolvedBuildAction
+    let testPlugins: GardenPlugin[]
+
+    before(async () => {
+      const data = await getRouterTestData()
+      garden = data.garden
+      graph = data.graph
+      log = data.log
+      testPlugins = [data.plugins.basePlugin, data.plugins.testPluginA, data.plugins.testPluginB]
+      resolvedBuildAction = data.resolvedBuildAction
+    })
+
+    // TODO: test in a better way
+    // I'd love to write something better but there's no time.
+    // Currently this router that's returned from the createTestRouter is a brand new instance
+    // and does not have anyhing to do with the one already initiated in the garden instance.
+    // That's quite confusing and it's necessary to know how the internals work to test all the things.
+    // To clean up these tesks the base router logic itself has to be rewritten to be more testable.
+
+    // The test-plugin-a build action getStatus handler is modded for these tests.
+
+    it("should call the specified handler", async () => {
+      const { router } = await createTestRouter(testPlugins, garden)
+
+      const result = await router.callHandler({
+        handlerType: "build",
+        params: { graph, log, action: resolvedBuildAction },
+      })
+
+      expect(result.outputs.isTestPluginABuildActionBuildHandlerReturn).to.equal(true)
+    })
+
+    it("should should throw if the handler is not found", async () => {
+      const { router } = await createTestRouter(testPlugins, garden)
+
+      await expectError(
+        () =>
+          router.callHandler({
+            handlerType: "getOutputs", // this handler type is not specified on the test plugins,
+            params: { graph, log, action: resolvedBuildAction },
+          }),
+        { contains: "No 'getOutputs' handler configured for actionType" }
+      )
+    })
+
+    it("should call the handler with a base argument if the handler is overriding another", async () => {
+      const { router } = await createTestRouter(testPlugins, garden)
+
+      const result = await router.callHandler({
+        handlerType: "getStatus",
+        params: { graph, log, action: resolvedBuildAction },
+      })
+
+      expect(result.outputs.base).to.not.equal(undefined)
+      expect(await result.outputs.base().outputs.plugin).to.equal("base")
+    })
+
+    it("should recursively override the base parameter when calling a base handler", async () => {
+      throw "TODO-G2: write this test after the above is fixed"
+    })
+
+    it("should call the handler with the template context for the provider", async () => {
+      const { router } = await createTestRouter(testPlugins, garden)
+
+      const result = await router.callHandler({
+        handlerType: "getStatus",
+        params: { graph, log, action: resolvedBuildAction },
+      })
+
+      expect(result.outputs.resolvedEnvName).to.equal("default")
+    })
+
+    it("should call the handler with the template context for the action", async () => {
+      const { router } = await createTestRouter(testPlugins, garden)
+
+      const result = await router.callHandler({
+        handlerType: "getStatus",
+        params: { graph, log, action: resolvedBuildAction },
+      })
+
+      // TODO-G2: see test-plugin-a build getStatus handler comment
+      expect(result.outputs.resolvedActionVersion).to.equal("a valid version string")
+    })
+  })
 })
