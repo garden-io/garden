@@ -8,6 +8,7 @@
 
 import { expect } from "chai"
 import { ClusterBuildkitCacheConfig } from "../../../../../../../src/plugins/kubernetes/config"
+import { inClusterRegistryHostname } from "../../../../../../../src/plugins/kubernetes/constants"
 import {
   getBuildkitImageFlags,
   getBuildkitModuleFlags,
@@ -46,10 +47,15 @@ describe("getBuildkitImageFlags()", () => {
 
   // test autodetection for mode=inline
   const expectedInline = [
+    // The following registries are actually known NOT to support mode=max
     "eu.gcr.io",
     "gcr.io",
     "aws_account_id.dkr.ecr.region.amazonaws.com",
     "keks.dkr.ecr.bla.amazonaws.com",
+    // Most self-hosted registries actually support mode=max, but because
+    // Harbor actually doesn't, we need to default to inline.
+    "anyOtherRegistry",
+    "127.0.0.1",
   ]
   for (const registry of expectedInline) {
     it(`returns type=inline cache flags with default config with registry ${registry}`, async () => {
@@ -74,7 +80,16 @@ describe("getBuildkitImageFlags()", () => {
   }
 
   // test autodetection for mode=max
-  const expectedMax = ["anyOtherRegistry", "hub.docker.com", "blakekswtf", "127.0.0.1"]
+  const expectedMax = [
+    // The following registries are known to actually support mode=max
+    "hub.docker.com",
+    "pkg.dev",
+    "some.subdomain.pkg.dev",
+    "ghcr.io",
+    "GHCR.io",
+    "azurecr.io",
+    "some.subdomain.azurecr.io",
+  ]
   for (const registry of expectedMax) {
     it(`returns mode=max cache flags with default config with registry ${registry}`, async () => {
       const moduleOutputs = {
@@ -165,7 +180,7 @@ describe("getBuildkitImageFlags()", () => {
   })
 
   it("uses registry.insecure=true with the in-cluster registry", async () => {
-    const registry = "in-kubernetes-registry.local:5000"
+    const registry = inClusterRegistryHostname
 
     const moduleOutputs = {
       "local-image-id": "name:v-xxxxxx",
@@ -191,8 +206,8 @@ describe("getBuildkitImageFlags()", () => {
   })
 
   it("returns correct flags with separate cache registry", async () => {
-    const deploymentRegistry = "deploymentRegistry"
-    const cacheRegistry = "cacheRegistry"
+    const deploymentRegistry = "gcr.io/deploymentRegistry"
+    const cacheRegistry = "pkg.dev/cacheRegistry"
 
     const moduleOutputs = {
       "local-image-id": "name:v-xxxxxx",
@@ -231,8 +246,8 @@ describe("getBuildkitImageFlags()", () => {
   })
 
   it("returns correct flags for complex feautureBranch / Main branch + separate cache registry use case", async () => {
-    const deploymentRegistry = "someBigTeamDeploymentRegistry"
-    const cacheRegistry = "someBigTeamCacheRegistry"
+    const deploymentRegistry = "gcr.io/someBigTeamDeploymentRegistry"
+    const cacheRegistry = "pkg.dev/someBigTeamCacheRegistry"
 
     const moduleOutputs = {
       "local-image-id": "name:v-xxxxxx",

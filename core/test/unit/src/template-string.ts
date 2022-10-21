@@ -530,6 +530,11 @@ describe("resolveTemplateString", async () => {
     expect(res).to.eql([1, 2, 3])
   })
 
+  it("should concatenate two strings", async () => {
+    const res = resolveTemplateString("${a + b}", new TestContext({ a: "foo", b: "bar" }))
+    expect(res).to.eql("foobar")
+  })
+
   it("should add two numbers together", async () => {
     const res = resolveTemplateString("${1 + a}", new TestContext({ a: 2 }))
     expect(res).to.equal(3)
@@ -540,7 +545,7 @@ describe("resolveTemplateString", async () => {
       () => resolveTemplateString("${a + b}", new TestContext({ a: 123, b: ["a"] })),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${a + b}): Both terms need to be either arrays or numbers for + operator (got number and object)."
+          "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object)."
         )
     )
   })
@@ -1131,6 +1136,87 @@ describe("resolveTemplateString", async () => {
           )
       )
     })
+
+    context("concat", () => {
+      it("allows empty strings", () => {
+        const res = resolveTemplateString("${concat('', '')}", new TestContext({}))
+        expect(res).to.equal("")
+      })
+
+      context("throws when", () => {
+        function expectArgTypeError({
+          template,
+          testContextVars = {},
+          errorMessage,
+        }: {
+          template: string
+          testContextVars?: object
+          errorMessage: string
+        }) {
+          return expectError(
+            () => resolveTemplateString(template, new TestContext(testContextVars)),
+            (err) =>
+              expect(stripAnsi(err.message)).to.equal(`Invalid template string (\${concat(a, b)}): ${errorMessage}`)
+          )
+        }
+
+        it("using on incompatible argument types (string and object)", async () => {
+          return expectArgTypeError({
+            template: "${concat(a, b)}",
+            testContextVars: {
+              a: "123",
+              b: ["a"],
+            },
+            errorMessage:
+              "Error from helper function concat: Both terms need to be either arrays or strings (got string and object).",
+          })
+        })
+
+        it("using on unsupported argument types (number and object)", async () => {
+          return expectArgTypeError({
+            template: "${concat(a, b)}",
+            testContextVars: {
+              a: 123,
+              b: ["a"],
+            },
+            errorMessage:
+              "Error validating argument 'arg1' for concat helper function: value must be one of [array, string]",
+          })
+        })
+      })
+    })
+
+    context("slice", () => {
+      it("allows numeric indices", () => {
+        const res = resolveTemplateString("${slice(foo, 0, 3)}", new TestContext({ foo: "abcdef" }))
+        expect(res).to.equal("abc")
+      })
+
+      it("allows numeric strings as indices", () => {
+        const res = resolveTemplateString("${slice(foo, '0', '3')}", new TestContext({ foo: "abcdef" }))
+        expect(res).to.equal("abc")
+      })
+
+      it("throws on invalid string in the start index", () => {
+        return expectError(
+          () => resolveTemplateString("${slice(foo, 'a', 3)}", new TestContext({ foo: "abcdef" })),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: start index must be a number or a numeric string (got "a")`
+            )
+        )
+      })
+
+      it("throws on invalid string in the end index", () => {
+        return expectError(
+          () => resolveTemplateString("${slice(foo, 0, 'b')}", new TestContext({ foo: "abcdef" })),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: end index must be a number or a numeric string (got "b")`
+            )
+        )
+      })
+    })
   })
 
   context("array literals", () => {
@@ -1162,6 +1248,11 @@ describe("resolveTemplateString", async () => {
     it("calls a helper with an array literal argument", () => {
       const res = resolveTemplateString("${join(['foo', 'bar'], ',')}", new TestContext({}))
       expect(res).to.eql("foo,bar")
+    })
+
+    it("allows empty string separator in join helper function", () => {
+      const res = resolveTemplateString("${join(['foo', 'bar'], '')}", new TestContext({}))
+      expect(res).to.eql("foobar")
     })
   })
 })
@@ -1280,7 +1371,7 @@ describe("resolveTemplateStrings", () => {
   })
 
   context("$concat", () => {
-    it("handles array concetenation", () => {
+    it("handles array concatenation", () => {
       const obj = {
         foo: ["a", { $concat: ["b", "c"] }, "d"],
       }

@@ -179,23 +179,18 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods:
     .join("\n\n")
 }
 
-export function getExecExitCode(status: V1Status) {
-  if (!status) {
-    return 1
+export function getExecExitCode(status: V1Status): number {
+  // Status csn be either "Success" or "Failure"
+  if (status.status === "Success") {
+    return 0
   }
 
-  let exitCode = 0
+  const causes = status.details?.causes || []
+  const exitCodeCause = causes.find((c) => c.reason === "ExitCode")
 
-  if (status.status !== "Success") {
-    exitCode = 1
-
-    const causes = status.details?.causes || []
-    const exitCodeCause = causes.find((c) => c.reason === "ExitCode")
-
-    if (exitCodeCause && exitCodeCause.message) {
-      exitCode = parseInt(exitCodeCause.message, 10)
-    }
+  if (exitCodeCause && exitCodeCause.message) {
+    return parseInt(exitCodeCause.message, 10)
   }
 
-  return exitCode
+  return 1
 }

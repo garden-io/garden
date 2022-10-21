@@ -26,9 +26,6 @@ services:
         containerPort: 8080
         # Maps service:80 -> container:8080
         servicePort: 80
-      - name: http2
-        containerPort: 8000
-        servicePort: 80
     ingresses:
       - path: ${var.ingressPath}
         port: http # http2 can be used as an alternative port here

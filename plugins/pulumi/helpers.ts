@@ -7,8 +7,10 @@
  */
 
 import Bluebird from "bluebird"
-import { isEmpty } from "lodash"
+import { countBy, flatten, isEmpty, uniq } from "lodash"
 import { safeLoad } from "js-yaml"
+import stripAnsi from "strip-ansi"
+import chalk from "chalk"
 import { merge } from "json-merge-patch"
 import { extname, join, resolve } from "path"
 import { ensureDir, pathExists, readFile } from "fs-extra"
@@ -20,7 +22,6 @@ import { getPluginOutputsPath } from "@garden-io/sdk"
 import { LogEntry, PluginContext } from "@garden-io/sdk/types"
 import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiModule, PulumiProvider } from "./config"
-import chalk from "chalk"
 import { deline } from "@garden-io/sdk/util/string"
 
 export interface PulumiParams {
@@ -54,7 +55,7 @@ export interface PulumiPlan {
       // The goal state for the resource
       goal: DeepPrimitiveMap
       // The steps to be performed on the resource.
-      steps: string[] // When the plan is
+      steps: string[]
       // The proposed outputs for the resource, if any. Purely advisory.
       outputs: DeepPrimitiveMap
     }
@@ -79,17 +80,28 @@ type StackStatus = "up-to-date" | "outdated" | "error"
 
 export const stackVersionKey = "garden.io-service-version"
 
+export interface PreviewResult {
+  planPath: string
+  affectedResourcesCount: number
+  operationCounts: OperationCounts
+  // Only null if we didn't find a preview URL in the output (should never happen, but just in case).
+  previewUrl: string | null
+}
+
 /**
+ * Used by the `garden plugins pulumi preview` command.
+ *
  * Merges any values in the module's `pulumiVars` and `pulumiVariables`, then uses `pulumi preview` to generate
  * a plan (using the merged config).
  *
  * If `logPreview = true`, logs the output of `pulumi preview`.
  *
- * Returns the path to the generated plan.
+ * Returns the path to the generated plan, and the number of resources affected by the plan (zero resources means the
+ * plan is a no-op).
  */
 export async function previewStack(
   params: PulumiParams & { logPreview: boolean; previewDirPath?: string }
-): Promise<string> {
+): Promise<PreviewResult> {
   const { log, ctx, provider, module, logPreview, previewDirPath } = params
 
   const configPath = await applyConfig({ ...params, previewDirPath })
@@ -106,12 +118,26 @@ export async function previewStack(
     cwd: getModuleStackRoot(module),
     env: defaultPulumiEnv,
   })
+  const plan = await readPulumiPlan(module, planPath)
+  const affectedResourcesCount = countAffectedResources(plan)
+  const operationCounts = countPlannedResourceOperations(plan)
+  let previewUrl: string | null = null
   if (logPreview) {
-    log.info(res.stdout)
+    if (affectedResourcesCount > 0) {
+      const cleanedOutput = stripAnsi(res.stdout)
+      // We try to find the preview URL using a regex (which should keep working as long as the output format
+      // doesn't change). If we can't find a preview URL, we simply default to `null`. As far as I can tell,
+      // Pulumi's automation API doesn't provide this URL in any sort of structured output. -THS
+      const urlMatch = cleanedOutput.match(/View Live: ([^\s]*)/)
+      previewUrl = urlMatch ? urlMatch[1] : null
+      log.info(res.stdout)
+    } else {
+      log.info(`No resources were changed in the generated plan for ${chalk.cyan(module.name)}.`)
+    }
   } else {
     log.verbose(res.stdout)
   }
-  return planPath
+  return { planPath, affectedResourcesCount, operationCounts, previewUrl }
 }
 
 export async function getStackOutputs({ log, ctx, provider, module }: PulumiParams): Promise<any> {
@@ -268,25 +294,48 @@ export async function getStackStatusFromTag(params: PulumiParams & { serviceVers
   return tagVersion === params.serviceVersion && resources && resources.length > 0 ? "up-to-date" : "outdated"
 }
 
-// Keeping this here for now, in case we want to reuse this logic
-// export async function getStackStatusFromPlanPath(module: PulumiModule, planPath: string): Promise<StackStatus> {
-//   let plan: PulumiPlan
-//   try {
-//     plan = JSON.parse((await readFile(planPath)).toString()) as PulumiPlan
-//   } catch (err) {
-//     const errMsg = `An error occurred while reading a pulumi plan file at ${planPath}: ${err.message}`
-//     throw new FilesystemError(errMsg, {
-//       planPath,
-//       moduleName: module.name,
-//     })
-//   }
+async function readPulumiPlan(module: PulumiModule, planPath: string): Promise<PulumiPlan> {
+  let plan: PulumiPlan
+  try {
+    plan = JSON.parse((await readFile(planPath)).toString()) as PulumiPlan
+    return plan
+  } catch (err) {
+    const errMsg = `An error occurred while reading a pulumi plan file at ${planPath}: ${err.message}`
+    throw new FilesystemError(errMsg, {
+      planPath,
+      moduleName: module.name,
+    })
+  }
+}
 
-//   // If all steps across all resource plans are of the "same" type, then the plan indicates that the
-//   // stack doesn't need to be updated (so we don't need to redeploy).
-//   const stepTypes = uniq(flatten(Object.values(plan.resourcePlans).map((p) => p.steps)))
+export interface OperationCounts {
+  [operationType: string]: number
+}
 
-//   return stepTypes.length === 1 && stepTypes[0] === "same" ? "up-to-date" : "outdated"
-// }
+/**
+ * Counts the number of steps in plan by operation type.
+ */
+export function countPlannedResourceOperations(plan: PulumiPlan): OperationCounts {
+  const allSteps = flatten(Object.values(plan.resourcePlans).map((p) => p.steps))
+  const counts: OperationCounts = countBy(allSteps)
+  delete counts.same
+  return counts
+}
+
+/**
+ * Counts the number of resources in `plan` that have one or more steps that aren't of the `same` type
+ * (i.e. that aren't no-ops).
+ */
+export function countAffectedResources(plan: PulumiPlan): number {
+  const affectedResourcesCount = Object.values(plan.resourcePlans)
+    .map((p) => p.steps)
+    .filter((steps: string[]) => {
+      const stepTypes = uniq(steps)
+      return stepTypes.length > 1 || stepTypes[0] !== "same"
+    }).length
+
+  return affectedResourcesCount
+}
 
 // Helpers for plugin commands
 
@@ -399,6 +448,10 @@ export function getPreviewDirPath(ctx: PluginContext) {
 
 function getDefaultPreviewDirPath(ctx: PluginContext): string {
   return join(getPluginOutputsPath(ctx, "pulumi"), "last-preview")
+}
+
+export function getModifiedPlansDirPath(ctx: PluginContext): string {
+  return join(getPreviewDirPath(ctx), "modified")
 }
 
 export function getPlanFileName(module: PulumiModule, environmentName: string): string {

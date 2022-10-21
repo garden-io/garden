@@ -4,7 +4,7 @@ Below you'll find guides for creating and configuring a Kubernetes cluster with 
 prominent providers of hosted, managed Kubernetes clusters, and configuring your Garden
 project for connecting to your cluster.
 
-Let us know on [#garden on Kubernetes Slack](https://kubernetes.slack.com/messages/garden) if you'd like guides for more providers.
+Let us know on [our Discord community](https://discord.gg/gxeuDgp6Xt) if you'd like guides for more providers.
 
 ## GKE (Google)
 

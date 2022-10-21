@@ -2,14 +2,10 @@
 
 # Downloads binaries, computes and prints their SHAs. Useful when adding new tools or new versions of existing tools.
 #
-# Usage: ./compute-ext-tool-binary-shas <darwin-dl-url> <linux-dl-url> <win-dl-url>
+# Usage: ./compute-ext-tool-binary-shas <darwin-x64-dl-url> <darwin-arm64-dl-url> <linux-dl-url> <win-dl-url>
 
-darwin_dl_url=$1
-linux_dl_url=$2
-win_dl_url=$3
-
-platforms=("Darwin" "Linux" "Windows")
-urls=($1 $2 $3)
+platforms=("Darwin-x64" "Darwin-arm64" "Linux" "Windows")
+urls=($1 $2 $3 $4)
 
 for i in ${!platforms[@]}; do
   echo "Downloading ${platforms[$i]} binary at ${urls[$i]}..."

@@ -62,4 +62,4 @@ To make a new release, set your current working directory to the garden root dir
 12. Install the Homebrew package and make sure it works okay:
     - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
     - Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
-13. Prepare the release announcement and publish it in our channels (Slack and Twitter). If not possible, delegate the task to an available contributor.
+13. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
