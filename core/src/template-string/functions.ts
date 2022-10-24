@@ -9,7 +9,7 @@
 import { v4 as uuidv4 } from "uuid"
 import { createHash } from "crypto"
 import { TemplateStringError } from "../exceptions"
-import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike } from "lodash"
+import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike, isString } from "lodash"
 import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
 import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
@@ -70,10 +70,18 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
   },
   {
     name: "concat",
-    description: "Concatenates two arrays.",
+    description: "Concatenates two arrays or strings.",
     arguments: {
-      array1: joi.array().required().description("The array to append to."),
-      array2: joi.array().required().description("The array to append."),
+      arg1: joi
+        .alternatives(joi.array(), joi.string())
+        .allow("")
+        .required()
+        .description("The array or string to append to."),
+      arg2: joi
+        .alternatives(joi.array(), joi.string())
+        .allow("")
+        .required()
+        .description("The array or string to append."),
     },
     outputSchema: joi.string(),
     exampleArguments: [
@@ -91,8 +99,20 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
         ],
         output: [1, 2, 3, 4, 5],
       },
+      { input: ["string1", "string2"], output: "string1string2" },
     ],
-    fn: (array1: any[], array2: any[]) => [...array1, ...array2],
+    fn: (arg1: any, arg2: any) => {
+      if (isString(arg1) && isString(arg2)) {
+        return arg1 + arg2
+      } else if (Array.isArray(arg1) && Array.isArray(arg2)) {
+        return [...arg1, ...arg2]
+      } else {
+        throw new TemplateStringError(
+          `Both terms need to be either arrays or strings (got ${typeof arg1} and ${typeof arg2}).`,
+          { arg1, arg2 }
+        )
+      }
+    },
   },
   {
     name: "indent",

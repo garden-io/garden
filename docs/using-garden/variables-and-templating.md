@@ -44,7 +44,7 @@ In addition to referencing variables from template contexts, you can include a v
 * _Numbers_: `${123}`
 * _Booleans_: `${true}`, `${false}`
 * _Null_: `${null}`
-* _Arrays_: `${[1, 2, 3]}`, `${["foo", "bar"]}`, `${[var.someKey, var.someOtherKey]}`, `${join(["foo", "bar"], ",")}`
+* _Arrays_: `${[1, 2, 3]}`, `${["foo", "bar"]}`, `${[var.someKey, var.someOtherKey]}`, `${concat(["foo", "bar"], ["baz"])}`, `${join(["foo", "bar"], ",")}`
 
 These can be used with [operators](#operators), as [helper function arguments](#helper-functions) and more.
 
