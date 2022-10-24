@@ -117,7 +117,7 @@ describe("cloudEventHandlers", () => {
         ...params,
         request: { moduleName: "module-a", force: false, forceBuild: false, skipDependencies: true },
       })
-      expect(testTasks.map((t) => t.action.name).sort()).to.eql(["integration", "unit"])
+      expect(testTasks.map((t) => t.action.name).sort()).to.eql(["module-a-integration", "module-a-unit"])
     })
 
     it("should return test tasks for the requested module and test names", async () => {
@@ -127,11 +127,11 @@ describe("cloudEventHandlers", () => {
           moduleName: "module-a",
           force: false,
           forceBuild: false,
-          testNames: ["unit"],
+          testNames: ["module-a-unit"],
           skipDependencies: true,
         },
       })
-      expect(testTasks.map((t) => t.action.name).sort()).to.eql(["unit"])
+      expect(testTasks.map((t) => t.action.name).sort()).to.eql(["module-a-unit"])
     })
   })
 
