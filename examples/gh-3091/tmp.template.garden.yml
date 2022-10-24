@@ -1,0 +1,16 @@
+kind: ModuleTemplate
+name: tmp-template
+inputsSchemaPath: tmp-template-inputs.json
+modules:
+  - type: container
+    name: ${inputs.module-name}
+    description: ${inputs.module-description}?
+    image: ${inputs.image}
+    services:
+      $forEach: ${inputs.services}
+      $return:
+        $merge: ${item.value.service-props}
+        env:
+          ALLOW_DATABASE_RESET: 'true'
+          $merge: ${item.value.env-overrides}
+
