@@ -1,4 +1,39 @@
 
+<a name="0.12.46"></a>
+## [0.12.46](https://github.com/garden-io/garden/compare/0.12.45...0.12.46) (2022-10-21)
+
+### Bug Fixes
+
+* fixed `parallel` flag impl in `update-remote sources` command ([ef3a993ba](https://github.com/garden-io/garden/commit/ef3a993ba))
+* **cli:** fixed alias of `--skip-dependencies` flag in garden commands ([7a329fd74](https://github.com/garden-io/garden/commit/7a329fd74))
+* **cloud:** quick fix the "cloud create user" command ([2a4a631a0](https://github.com/garden-io/garden/commit/2a4a631a0))
+* **k8s:** use mode=inline for buildkit in-cluster builder as default ([#3312](https://github.com/garden-io/garden/issues/3312)) ([4850aa9f7](https://github.com/garden-io/garden/commit/4850aa9f7))
+* **local-mode:** disabled startup probes for proxy container ([aa5b50e46](https://github.com/garden-io/garden/commit/aa5b50e46))
+* **local-mode:** fixed some bugs in local mode config ([#3311](https://github.com/garden-io/garden/issues/3311)) ([ee97935a4](https://github.com/garden-io/garden/commit/ee97935a4))
+* **pulumi:** use correct template context ([47300cdc9](https://github.com/garden-io/garden/commit/47300cdc9))
+* **server:** terminate ws connection if server not ready ([6dc50d233](https://github.com/garden-io/garden/commit/6dc50d233))
+* **template:** support numeric indices in `slice` function ([9685a1414](https://github.com/garden-io/garden/commit/9685a1414))
+
+### Features
+
+* **core:** allow adding tolerations to buildkit deployment ([60aa32110](https://github.com/garden-io/garden/commit/60aa32110))
+* **exec:** live log streaming for exec modules ([bbe493b16](https://github.com/garden-io/garden/commit/bbe493b16))
+* **pulumi:** add --skip-dependencies CLI option ([6d87f3cdd](https://github.com/garden-io/garden/commit/6d87f3cdd))
+
+### Improvements
+
+* **cli:** improve header/footer text when connected to Cloud ([2131a4569](https://github.com/garden-io/garden/commit/2131a4569))
+* **container:** configurable deployment strategy  ([#3293](https://github.com/garden-io/garden/issues/3293)) ([f6e7cfd10](https://github.com/garden-io/garden/commit/f6e7cfd10))
+* **logs:** run and test commands error handling ([#3309](https://github.com/garden-io/garden/issues/3309)) ([00402e62f](https://github.com/garden-io/garden/commit/00402e62f))
+* **pulumi:** better preview summaries ([977877ebf](https://github.com/garden-io/garden/commit/977877ebf))
+* **pulumi:** handle build deps ([3137e0ccf](https://github.com/garden-io/garden/commit/3137e0ccf))
+* **pulumi:** improve preview output ([5d96b7c8a](https://github.com/garden-io/garden/commit/5d96b7c8a))
+* **pulumi:** stricter validation and better error messages ([8995b1e8e](https://github.com/garden-io/garden/commit/8995b1e8e))
+* **template:** string concatenation with `concat` function ([97631f6f7](https://github.com/garden-io/garden/commit/97631f6f7))
+* **template:** support string concatenation with `+` operator ([164da6668](https://github.com/garden-io/garden/commit/164da6668))
+* **template:** allow empty string separator in `join` function ([987c211d4](https://github.com/garden-io/garden/commit/987c211d4))
+* **terraform:** stricter validation and better error messages ([351bfb855](https://github.com/garden-io/garden/commit/351bfb855))
+
 <a name="0.12.45"></a>
 ## [0.12.45](https://github.com/garden-io/garden/compare/0.12.44...0.12.45) (2022-09-29)
 
