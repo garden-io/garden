@@ -43,13 +43,11 @@ export interface SyncParams {
 @Profile()
 export class BuildStaging {
   public buildDirPath: string
-  public buildMetadataDirPath: string
 
   private createdPaths: Set<string>
 
   constructor(protected projectRoot: string, gardenDirPath: string) {
     this.buildDirPath = join(gardenDirPath, "build")
-    this.buildMetadataDirPath = join(gardenDirPath, "build-metadata")
     this.createdPaths = new Set()
   }
 
@@ -137,20 +135,6 @@ export class BuildStaging {
 
   async ensureBuildPath(config: BuildActionConfig<string, any>): Promise<string> {
     const path = this.getBuildPath(config)
-    await this.ensureDir(path)
-    return path
-  }
-
-  /**
-   * This directory can be used to store build-related metadata for a given module, for example the last built
-   * version for exec modules.
-   */
-  getBuildMetadataPath(moduleName: string) {
-    return join(this.buildMetadataDirPath, moduleName)
-  }
-
-  async ensureBuildMetadataPath(moduleName: string): Promise<string> {
-    const path = this.getBuildMetadataPath(moduleName)
     await this.ensureDir(path)
     return path
   }

@@ -143,11 +143,6 @@ export class BuildAction<
       return join(this.baseBuildDirectory, this.name)
     }
   }
-
-  // TODO-G2: see if we actually need/want this
-  getBuildMetadataPath() {
-    return join(this.baseBuildDirectory, this.name + ".metadata")
-  }
 }
 
 // TODO: see if we can avoid the duplication here with ResolvedRuntimeAction
