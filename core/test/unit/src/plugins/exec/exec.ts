@@ -401,21 +401,6 @@ describe("exec plugin", () => {
   })
 
   describe("build", () => {
-    it("should write a build version file after building", async () => {
-      const action = graph.getBuild(moduleName)
-      const buildMetadataPath = action.getBuildMetadataPath()
-      const versionFilePath = join(buildMetadataPath, GARDEN_BUILD_VERSION_FILENAME)
-
-      await garden.buildStaging.syncFromSrc(action, log)
-      const actions = await garden.getActionRouter()
-      const resolvedAction = await garden.resolveAction({ action, graph, log })
-      await actions.build.build({ log, action: resolvedAction, graph })
-
-      const versionFileContents = await readModuleVersionFile(versionFilePath)
-
-      expect(versionFileContents).to.eql(action.versionString())
-    })
-
     it("should run the build command in the module dir if local true", async () => {
       const action = graph.getBuild("module-local")
       const actions = await garden.getActionRouter()
