@@ -45,7 +45,6 @@ export interface GardenModule<
   O extends {} = any
 > extends ModuleConfig<M, S, T, W> {
   buildPath: string
-  buildMetadataPath: string
   needsBuild: boolean
 
   version: ModuleVersion
@@ -68,7 +67,6 @@ export interface GardenModule<
 export const moduleSchema = () =>
   moduleConfigSchema().keys({
     buildPath: joi.string().required().description("The path to the build staging directory for the module."),
-    buildMetadataPath: joi.string().required().description("The path to the build metadata directory for the module."),
     compatibleTypes: joiArray(joiIdentifier())
       .required()
       .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
@@ -133,7 +131,6 @@ export async function moduleFromConfig({
     ...cloneDeep(config),
 
     buildPath,
-    buildMetadataPath: await garden.buildStaging.ensureBuildMetadataPath(config.name),
 
     version,
     needsBuild: moduleNeedsBuild(config, moduleTypes[config.type]),
