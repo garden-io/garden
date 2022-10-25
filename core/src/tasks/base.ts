@@ -295,7 +295,7 @@ export abstract class BaseActionTask<
       )
     }
 
-    return <Executed<T>>result.outputs.resolvedAction
+    return <Executed<T>>result.result?.executedAction
   }
 
   /**
