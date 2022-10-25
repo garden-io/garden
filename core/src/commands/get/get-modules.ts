@@ -102,7 +102,6 @@ function logFull(garden: Garden, modules: GardenModule[], log: LogEntry) {
         "_config",
         "variables",
         "buildPath",
-        "buildMetadataPath",
         "configPath",
         "plugin",
         "serviceConfigs",
