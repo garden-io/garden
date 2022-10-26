@@ -195,7 +195,7 @@ export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ 
   }
 
   if (output.detail?.buildLog) {
-    const prefix = `Finished building module ${chalk.white(action.name)}. Here is the full output:`
+    const prefix = `Finished building action ${chalk.white(action.name)}. Here is the full output:`
     log.verbose(renderMessageWithDivider(prefix, output.detail?.buildLog, false, chalk.gray))
   }
 
