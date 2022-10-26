@@ -62,7 +62,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         msg: "Publishing disabled (allowPublish=false set on action)",
         status: "active",
       })
-      return { state: <ActionState>"ready", detail: { published: false, outputs: {} }, outputs: {} }
+      return { state: <ActionState>"ready", detail: { published: false }, outputs: {} }
     }
 
     const action = this.getExecutedAction(this.action, dependencyResults)
