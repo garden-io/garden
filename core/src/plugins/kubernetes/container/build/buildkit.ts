@@ -30,7 +30,7 @@ import {
 import { getNamespaceStatus } from "../../namespace"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
-import { ContainerBuildAction } from "../../../container/moduleConfig"
+import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
@@ -339,7 +339,6 @@ export const getSupportedCacheMode = (
     /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
     /^hub\.docker\.com\//i, // DockerHub
     /^ghcr\.io\//i, // GitHub Container registry
-    new RegExp(`^${inClusterRegistryHostname}/`, "i"), // Garden in-cluster registry
   ]
 
   // use mode=max for all registries that are known to support it

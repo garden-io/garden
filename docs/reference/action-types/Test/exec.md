@@ -71,7 +71,7 @@ source:
 dependencies: []
 
 # Set this to `true` to disable the action. You can use this with conditional template strings to disable actions
-# based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`).
+# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
 # This can be handy when you only need certain actions for specific environments, e.g. only for development.
 #
 # For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another enabled
@@ -258,9 +258,9 @@ When set, Garden will import the action source from this repository, but use thi
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | Yes      |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | Yes      |
 
 Example:
 
@@ -296,7 +296,7 @@ dependencies:
 
 ### `disabled`
 
-Set this to `true` to disable the action. You can use this with conditional template strings to disable actions based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for development.
+Set this to `true` to disable the action. You can use this with conditional template strings to disable actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for development.
 
 For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or built).
 
@@ -517,9 +517,9 @@ A map of all variables defined in the module.
 
 ### `${actions.test.<name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${actions.test.<name>.version}`
 
