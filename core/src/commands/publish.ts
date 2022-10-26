@@ -57,13 +57,18 @@ export class PublishCommand extends Command<Args, Opts> {
   description = dedent`
     Publishes built artifacts for all or specified builds. Also builds dependencies if needed.
 
-    By default the artifacts/images are tagged with the Garden action version, but you can also specify the \`--tag\` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the build being tagged are available, in addition to ${"${build.name}"}, ${"${build.version}"} and ${"${build.hash}"} tags that allows referencing the name of the build being tagged, as well as its Garden version. ${"${build.version}"} includes the "v-" prefix normally used for Garden versions, and ${"${build.hash}"} doesn't.
+    By default the artifacts/images are tagged with the Garden action version,
+    but you can also specify the \`--tag\` option to specify a specific string tag _or_ a templated tag.
+    Any template values that can be used on the build being tagged are available,
+    in addition to ${"${build.name}"}, ${"${build.version}"} and ${"${build.hash}"}
+    tags that allows referencing the name of the build being tagged, as well as its Garden version.
+    ${"${build.version}"} includes the "v-" prefix normally used for Garden versions, ${"${build.hash}"} doesn't.
 
     Examples:
 
-        garden publish                # publish artifacts for all modules in the project
+        garden publish                # publish artifacts for all builds in the project
         garden publish my-container   # only publish my-container
-        garden publish --force-build  # force re-build of modules before publishing artifacts
+        garden publish --force-build  # force re-build before publishing artifacts
 
         # Publish my-container with a tag of v0.1
         garden publish my-container --tag "v0.1"
@@ -78,12 +83,12 @@ export class PublishCommand extends Command<Args, Opts> {
   outputsSchema = () =>
     processCommandResultSchema().keys({
       published: joiIdentifierMap(publishResultSchema().keys(processCommandResultKeys())).description(
-        "A map of all modules that were published (or scheduled/attempted for publishing) and the results."
+        "A map of all builds that were published (or scheduled/attempted for publishing) and the results."
       ),
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Publish modules", "rocket")
+    printHeader(headerLog, "Publish builds", "rocket")
   }
 
   async action({
