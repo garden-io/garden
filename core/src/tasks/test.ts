@@ -104,7 +104,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         append: true,
       })
     } else {
-      const failedMsg = !!result.exitCode ? `Failed with code ${result.exitCode}!` : `Failed!`
+      const exitCode = status.detail?.exitCode
+      const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
       log.setError({
         msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
         append: true,

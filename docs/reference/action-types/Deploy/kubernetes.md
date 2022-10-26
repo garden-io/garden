@@ -79,7 +79,7 @@ source:
 dependencies: []
 
 # Set this to `true` to disable the action. You can use this with conditional template strings to disable actions
-# based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`).
+# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
 # This can be handy when you only need certain actions for specific environments, e.g. only for development.
 #
 # For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another enabled
@@ -389,12 +389,15 @@ spec:
   #
   # Health checks are disabled for services running in local mode.
   #
-  # See the [Local Mode
-  # guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more
-  # information.
+  # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
   localMode:
-    # The working port of the local application.
-    localPort:
+    # The reverse port-forwards configuration for the local application.
+    ports:
+      - # The local port to be used for reverse port-forward.
+        local:
+
+        # The remote port to be used for reverse port-forward.
+        remote:
 
     # The command to run the local application. If not present, then the local application should be started manually.
     command:
@@ -512,9 +515,9 @@ When set, Garden will import the action source from this repository, but use thi
 
 A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific branch or tag, with the format: <git remote url>#<branch|tag>
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | Yes      |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | Yes      |
 
 Example:
 
@@ -550,7 +553,7 @@ dependencies:
 
 ### `disabled`
 
-Set this to `true` to disable the action. You can use this with conditional template strings to disable actions based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for development.
+Set this to `true` to disable the action. You can use this with conditional template strings to disable actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for development.
 
 For Build actions, this means the build is not performed _unless_ it is declared as a dependency by another enabled action (in which case the Build is assumed to be necessary for the dependant action to be run or built).
 
@@ -683,9 +686,9 @@ Resolve the specified kustomization and include the resulting resources. Note th
 
 The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
 
-| Type                 | Default | Required |
-| -------------------- | ------- | -------- |
-| `posixPath | string` | `"."`   | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `posixPath \| string` | `"."`   | No       |
 
 ### `spec.kustomize.extraArgs[]`
 
@@ -947,9 +950,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `spec.devMode.defaults.group`
 
@@ -957,9 +960,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `spec.devMode.syncs[]`
 
@@ -997,9 +1000,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `spec.devMode.syncs[].group`
 
@@ -1007,9 +1010,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `spec.devMode.syncs[].target`
 
@@ -1155,9 +1158,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `spec.devMode.syncs[].defaultGroup`
 
@@ -1165,9 +1168,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `spec.devMode.overrides[]`
 
@@ -1249,17 +1252,37 @@ Local mode always takes the precedence over dev mode if there are any conflictin
 
 Health checks are disabled for services running in local mode.
 
-See the [Local Mode guide](https://github.com/garden-io/garden/blob/master/docs/guides/running-service-in-local-mode.md) for more information.
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.localMode.localPort`
+### `spec.localMode.ports[]`
 
-[spec](#spec) > [localMode](#speclocalmode) > localPort
+[spec](#spec) > [localMode](#speclocalmode) > ports
 
-The working port of the local application.
+The reverse port-forwards configuration for the local application.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `spec.localMode.ports[].local`
+
+[spec](#spec) > [localMode](#speclocalmode) > [ports](#speclocalmodeports) > local
+
+The local port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `spec.localMode.ports[].remote`
+
+[spec](#spec) > [localMode](#speclocalmode) > [ports](#speclocalmodeports) > remote
+
+The remote port to be used for reverse port-forward.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1417,9 +1440,9 @@ A map of all variables defined in the module.
 
 ### `${actions.deploy.<name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${actions.deploy.<name>.version}`
 

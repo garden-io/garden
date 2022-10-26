@@ -10,7 +10,10 @@ import { expect } from "chai"
 import { ClusterBuildkitCacheConfig } from "../../../../../../../src/plugins/kubernetes/config"
 import { getBuildkitImageFlags } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
-import { getBuildkitFlags } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
+import {
+  getBuildkitFlags,
+  getBuildkitImageFlags,
+} from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { getDataDir, makeTestGarden } from "../../../../../../helpers"
 
 describe("getBuildkitModuleFlags", () => {

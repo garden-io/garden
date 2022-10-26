@@ -883,9 +883,9 @@ Resolve the specified kustomization and include the resulting resources. Note th
 
 The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
 
-| Type                 | Default | Required |
-| -------------------- | ------- | -------- |
-| `posixPath | string` | `"."`   | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `posixPath \| string` | `"."`   | No       |
 
 ### `kustomize.extraArgs[]`
 

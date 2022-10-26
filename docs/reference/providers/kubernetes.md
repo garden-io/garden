@@ -68,7 +68,6 @@ providers:
       # | Azure Container Registry        | `azurecr.io`          | Yes                          |
       # | GitHub Container Registry       | `ghcr.io`             | Yes                          |
       # | DockerHub                       | `hub.docker.com`     | Yes                          |
-      # | Garden In-Cluster Registry      |                         | Yes                          |
       # | Any other registry              |                         | No                           |
       #
       # In case you need to override the defaults for your registry, you can do it like so:
@@ -113,8 +112,7 @@ providers:
 
           # The registry from which the cache should be imported from, or which it should be exported to.
           #
-          # If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the
-          # internal in-cluster registry in case `deploymentRegistry` is not set.
+          # If not specified, use the configured `deploymentRegistry` in your kubernetes provider config.
           #
           # Important: You must make sure `imagePullSecrets` includes authentication with the specified cache
           # registry, that has the appropriate write privileges (usually full write access to the configured
@@ -582,7 +580,6 @@ See the following table for details on our detection mechanism:
 | Azure Container Registry        | `azurecr.io`          | Yes                          |
 | GitHub Container Registry       | `ghcr.io`             | Yes                          |
 | DockerHub                       | `hub.docker.com`     | Yes                          |
-| Garden In-Cluster Registry      |                         | Yes                          |
 | Any other registry              |                         | No                           |
 
 In case you need to override the defaults for your registry, you can do it like so:
@@ -644,7 +641,7 @@ See also the [buildkit registry cache documentation](https://github.com/moby/bui
 
 The registry from which the cache should be imported from, or which it should be exported to.
 
-If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the internal in-cluster registry in case `deploymentRegistry` is not set.
+If not specified, use the configured `deploymentRegistry` in your kubernetes provider config.
 
 Important: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `namespace`).
 
