@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.44/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.45/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -68,17 +68,7 @@ build:
   projectType: auto
 
   # The JDK version to use.
-  #
-  # The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and
-  # Maven.
-  #
-  # To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
   jdkVersion: 11
-
-  # The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
-  #
-  # The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
-  jdkPath:
 
   # Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).
   dockerBuild: false
@@ -88,16 +78,6 @@ build:
 
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
-
-  # Defines the location of the custom executable Maven binary.
-  #
-  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
-  # Maven.
-  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
-  mavenPath:
-
-  # Defines the Maven phases to be executed during the Garden build step.
-  mavenPhases:
 
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
@@ -319,6 +299,9 @@ services:
 
     # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
     tty: false
+
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
 
     # Annotations to attach to the service _(note: May not be applicable to all providers)_.
     #
@@ -607,6 +590,9 @@ tests:
     # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
+
     # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
     # `.garden/artifacts` directory.
     #
@@ -716,6 +702,9 @@ tasks:
 
     # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
     tty: false
+
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
 
     # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
     # `.garden/artifacts` directory.
@@ -910,29 +899,6 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | Type     | Default    | Required |
 | -------- | ---------- | -------- |
 | `string` | `"docker"` | No       |
-
-### `build.mavenPath`
-
-[build](#build) > mavenPath
-
-Defines the location of the custom executable Maven binary.
-
-**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
-To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `build.mavenPhases[]`
-
-[build](#build) > mavenPhases
-
-Defines the Maven phases to be executed during the Garden build step.
-
-| Type            | Default       | Required |
-| --------------- | ------------- | -------- |
-| `array[string]` | `["compile"]` | No       |
 
 ### `build.extraFlags[]`
 
@@ -1419,6 +1385,16 @@ Specify if containers in this module have TTY support enabled (which implies hav
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `services[].deploymentStrategy`
+
+[services](#services) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
 
 ### `services[].annotations`
 
@@ -2334,6 +2310,16 @@ Specify if containers in this module have TTY support enabled (which implies hav
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
+### `tests[].deploymentStrategy`
+
+[tests](#tests) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
+
 ### `tests[].artifacts[]`
 
 [tests](#tests) > artifacts
@@ -2684,6 +2670,16 @@ Specify if containers in this module have TTY support enabled (which implies hav
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `tasks[].deploymentStrategy`
+
+[tasks](#tasks) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
 
 ### `tasks[].artifacts[]`
 

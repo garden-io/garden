@@ -279,6 +279,9 @@ services:
     # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
+
     # Annotations to attach to the service _(note: May not be applicable to all providers)_.
     #
     # When using the Kubernetes provider, these annotations are applied to both Service and Pod resources. You can
@@ -566,6 +569,9 @@ tests:
     # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
     tty: false
 
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
+
     # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
     # `.garden/artifacts` directory.
     #
@@ -675,6 +681,9 @@ tasks:
 
     # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
     tty: false
+
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
 
     # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
     # `.garden/artifacts` directory.
@@ -1305,6 +1314,16 @@ Specify if containers in this module have TTY support enabled (which implies hav
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `services[].deploymentStrategy`
+
+[services](#services) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
 
 ### `services[].annotations`
 
@@ -2220,6 +2239,16 @@ Specify if containers in this module have TTY support enabled (which implies hav
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
+### `tests[].deploymentStrategy`
+
+[tests](#tests) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
+
 ### `tests[].artifacts[]`
 
 [tests](#tests) > artifacts
@@ -2570,6 +2599,16 @@ Specify if containers in this module have TTY support enabled (which implies hav
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
+
+### `tasks[].deploymentStrategy`
+
+[tasks](#tasks) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
 
 ### `tasks[].artifacts[]`
 

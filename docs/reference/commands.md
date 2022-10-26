@@ -261,7 +261,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 #### Usage
 
-    garden call <nameAndPath>
+    garden call <nameAndPath> 
 
 #### Arguments
 
@@ -291,7 +291,7 @@ Examples:
 
 #### Usage
 
-    garden config analytics-enabled [enable]
+    garden config analytics-enabled [enable] 
 
 #### Arguments
 
@@ -372,7 +372,7 @@ Examples:
 
 #### Usage
 
-    garden cleanup secret <provider> <key>
+    garden cleanup secret <provider> <key> 
 
 #### Arguments
 
@@ -679,11 +679,11 @@ Examples:
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
   | `--watch` | `-w` | boolean | Watch for changes and auto-deploy.
-  | `--dev-mode` | `-dev` | array:string | The name(s) of the deploys to deploy with dev mode enabled. Use comma as a separator to specify multiple names. Use * to deploy all with dev mode enabled. Implicitly sets the --watch/-w flag.
-  | `--local-mode` | `-local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
+  | `--dev-mode` | `--dev` | array:string | The name(s) of the deploys to deploy with dev mode enabled. Use comma as a separator to specify multiple names. Use * to deploy all with dev mode enabled. Implicitly sets the --watch/-w flag.
+  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
-  | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev mode.
 
 #### Outputs
@@ -897,7 +897,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy of deploy(s)/service(s).
-  | `--local-mode` | `-local` | array:string | [EXPERIMENTAL] The name(s) of deploy action(s) to be started locally with local mode enabled.
+  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of deploy action(s) to be started locally with local mode enabled.
 Use comma as a separator to specify multiple actions. Use * to deploy all compatible actions with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip-tests` |  | boolean | Disable running the tests.
@@ -1023,7 +1023,7 @@ Examples:
 
 #### Usage
 
-    garden cloud secrets delete [ids]
+    garden cloud secrets delete [ids] 
 
 #### Arguments
 
@@ -1107,7 +1107,7 @@ Examples:
 
 #### Usage
 
-    garden cloud users delete [ids]
+    garden cloud users delete [ids] 
 
 #### Arguments
 
@@ -1146,7 +1146,7 @@ Examples:
 
 #### Usage
 
-    garden get graph
+    garden get graph 
 
 
 
@@ -1555,7 +1555,7 @@ actionConfigs:
       dependencies:
 
       # Set this to `true` to disable the action. You can use this with conditional template strings to disable
-      # actions based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
       # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
       # development.
       #
@@ -1729,7 +1729,7 @@ actionConfigs:
       dependencies:
 
       # Set this to `true` to disable the action. You can use this with conditional template strings to disable
-      # actions based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
       # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
       # development.
       #
@@ -1870,7 +1870,7 @@ actionConfigs:
       dependencies:
 
       # Set this to `true` to disable the action. You can use this with conditional template strings to disable
-      # actions based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
       # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
       # development.
       #
@@ -2014,7 +2014,7 @@ actionConfigs:
       dependencies:
 
       # Set this to `true` to disable the action. You can use this with conditional template strings to disable
-      # actions based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name
+      # actions based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name
       # == "prod"}`). This can be handy when you only need certain actions for specific environments, e.g. only for
       # development.
       #
@@ -2539,7 +2539,7 @@ domain:
 
 #### Usage
 
-    garden get linked-repos
+    garden get linked-repos 
 
 
 
@@ -2558,7 +2558,7 @@ Examples:
 
 #### Usage
 
-    garden get outputs
+    garden get outputs 
 
 
 #### Outputs
@@ -2902,7 +2902,7 @@ modules:
 
 #### Usage
 
-    garden get status
+    garden get status 
 
 
 #### Outputs
@@ -3137,7 +3137,7 @@ actions:
 
 #### Usage
 
-    garden get runs [names]
+    garden get runs [names] 
 
 #### Arguments
 
@@ -3154,7 +3154,7 @@ actions:
 
 #### Usage
 
-    garden get tests [names]
+    garden get tests [names] 
 
 #### Arguments
 
@@ -3171,7 +3171,7 @@ actions:
 
 #### Usage
 
-    garden get run-result <name>
+    garden get run-result <name> 
 
 #### Arguments
 
@@ -3232,7 +3232,7 @@ artifacts:
 
 #### Usage
 
-    garden get test-result <name> [moduleTestName]
+    garden get test-result <name> [moduleTestName] 
 
 #### Arguments
 
@@ -3318,7 +3318,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get vaccine
+    garden get vaccine 
 
 
 
@@ -3329,7 +3329,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get workflows [workflows]
+    garden get workflows [workflows] 
 
 #### Arguments
 
@@ -3353,7 +3353,7 @@ Examples:
 
 #### Usage
 
-    garden link source <source> <path>
+    garden link source <source> <path> 
 
 #### Arguments
 
@@ -3389,7 +3389,7 @@ Examples:
 
 #### Usage
 
-    garden link module <module> <path>
+    garden link module <module> <path> 
 
 #### Arguments
 
@@ -3447,7 +3447,7 @@ Examples:
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.
   | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
-  | `--hide-name` | `-hide-service` | boolean | Hide the action name and render the logs directly.
+  | `--hide-name` | `--hide-service` | boolean | Hide the action name and render the logs directly.
 
 
 ### garden migrate
@@ -3492,7 +3492,7 @@ Prints all global options (options that can be applied to any command).
 
 #### Usage
 
-    garden options
+    garden options 
 
 
 
@@ -3517,7 +3517,7 @@ Examples:
 
 #### Usage
 
-    garden plugins [plugin] [command]
+    garden plugins [plugin] [command] 
 
 #### Arguments
 
@@ -3998,7 +3998,7 @@ Examples:
 
 #### Usage
 
-    garden run workflow <workflow>
+    garden run workflow <workflow> 
 
 #### Arguments
 
@@ -4015,7 +4015,7 @@ Examples:
 
 #### Usage
 
-    garden scan
+    garden scan 
 
 
 
@@ -4115,12 +4115,7 @@ Only run tests with the specfied name (e.g. unit or integ). Accepts glob pattern
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-<<<<<<< HEAD
   | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
-  | `--skip-dependants` |  | boolean | When using the modules argument, only run tests for those modules (and skip tests in other modules with dependencies on those modules).
-=======
-  | `--skip-dependencies` | `-no-deps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
->>>>>>> 0fc94f72c (feat: add action type reference docs)
 
 #### Outputs
 
@@ -4557,7 +4552,7 @@ Hides the specified warning message. The command and key is generally provided a
 
 #### Usage
 
-    garden util hide-warning <key>
+    garden util hide-warning <key> 
 
 #### Arguments
 
@@ -4575,7 +4570,7 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
 #### Usage
 
-    garden validate
+    garden validate 
 
 
 

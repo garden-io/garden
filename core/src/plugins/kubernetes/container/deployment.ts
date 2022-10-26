@@ -549,7 +549,7 @@ export async function createWorkloadManifest({
     const deployment = <V1Deployment>workload
     deployment.spec!.replicas = configuredReplicas
 
-    const deploymentStrategy = service.spec!.deploymentStrategy
+    const deploymentStrategy = spec.deploymentStrategy
     if (deploymentStrategy === "RollingUpdate") {
       // Need the any cast because the library types are busted
       deployment.spec!.strategy = <any>{
