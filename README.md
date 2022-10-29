@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" align="center">
+  <img src="docs/logo.p  ng" align="center">
 </p>
 
 **Garden is an automation platform for Kubernetes development and testing.** Remove barriers between development, testing, and CI. Use the same workflows and production-like Kubernetes environments for every step of the development process.
