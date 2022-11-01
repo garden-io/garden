@@ -64,7 +64,7 @@ async function assertIdentical(sourceRoot: string, targetRoot: string, posixPath
   })
 }
 
-describe.only("BuildStaging", () => {
+describe("BuildStaging", () => {
   let garden: TestGarden
   let log: LogEntry
   let buildStaging: BuildStaging
