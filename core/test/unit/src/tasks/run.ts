@@ -94,7 +94,7 @@ describe("RunTask", () => {
     it("should cache results when cacheResult=true", async () => {
       const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "test",
@@ -147,7 +147,7 @@ describe("RunTask", () => {
     it("should not cache results when cacheResult=false", async () => {
       const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "test",

@@ -114,7 +114,7 @@ describe("kubernetes-module handlers", () => {
   })
 
   after(async () => {
-    garden.setModuleConfigs(moduleConfigBackup)
+    garden.setActionConfigs(moduleConfigBackup)
     await tmpDir.cleanup()
     if (garden) {
       await garden.close()
@@ -316,7 +316,7 @@ describe("kubernetes-module handlers", () => {
     })
 
     it("should not delete previously deployed namespace resources", async () => {
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
+      garden.setActionConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-1")])
       let graph = await garden.getConfigGraph({ log, emit: false })
       let action = graph.getDeploy("namespace-resource")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
@@ -358,7 +358,7 @@ describe("kubernetes-module handlers", () => {
       ])
 
       // This should result in a new namespace with a new name being deployed.
-      garden.setModuleConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])
+      garden.setActionConfigs([withNamespace(nsModuleConfig, "kubernetes-module-ns-2")])
       graph = await garden.getConfigGraph({ log, emit: false })
       action = graph.getDeploy("namespace-resource")
       manifests = await getManifests({

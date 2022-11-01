@@ -207,7 +207,7 @@ describe("BuildCommand", () => {
       }),
     ]
 
-    garden.setModuleConfigs(moduleConfigs)
+    garden.setActionConfigs(moduleConfigs)
 
     const { result } = await command.action({
       garden,

@@ -18,7 +18,7 @@ import { exec } from "../../../src/util/util"
 import { ServiceState } from "../../../src/types/service"
 import { defaultDotIgnoreFile } from "../../../src/util/fs"
 
-describe("resolveProjectOutputs", () => {
+describe.only("resolveProjectOutputs", () => {
   let tmpDir: tmp.DirectoryResult
   let tmpPath: string
   let projectConfig: ProjectConfig
@@ -102,7 +102,7 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -159,7 +159,7 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -230,7 +230,7 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,

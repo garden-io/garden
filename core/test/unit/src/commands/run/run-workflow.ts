@@ -344,7 +344,7 @@ describe("RunWorkflowCommand", () => {
 
     const _garden = await TestGarden.factory(tmpDir.path, { config: projectConfig, plugins: [testPlugin] })
     const log = garden.log
-    _garden.setModuleConfigs([
+    _garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         name: "test",
