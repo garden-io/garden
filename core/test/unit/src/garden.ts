@@ -2665,7 +2665,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -2717,7 +2717,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -2769,7 +2769,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -2821,7 +2821,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -2873,7 +2873,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -2937,7 +2937,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -3015,7 +3015,7 @@ describe("Garden", () => {
       })
 
       it("resolves referenced project variables", async () => {
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "module-a",
@@ -3039,7 +3039,7 @@ describe("Garden", () => {
       })
 
       it("resolves referenced module variables", async () => {
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "module-a",
@@ -3066,7 +3066,7 @@ describe("Garden", () => {
       })
 
       it("prefers module variables over project variables", async () => {
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "module-a",
@@ -3093,7 +3093,7 @@ describe("Garden", () => {
       })
 
       it("resolves project variables in module variables", async () => {
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "module-a",
@@ -3120,7 +3120,7 @@ describe("Garden", () => {
       })
 
       it("exposes module vars to other modules", async () => {
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "module-a",
@@ -3222,7 +3222,7 @@ describe("Garden", () => {
 
       const targetPath = "targetfile.log"
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -3264,7 +3264,7 @@ describe("Garden", () => {
 
       const targetPath = "targetfile.log"
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -3298,7 +3298,7 @@ describe("Garden", () => {
     it("throws helpful error is sourcePath doesn't contain globs and can't be found", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -3354,7 +3354,7 @@ describe("Garden", () => {
         const targetPath = "targetfile.log"
         await writeFile(sourceFullPath, "hello ${project.name}")
 
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "module-a",
@@ -3419,7 +3419,7 @@ describe("Garden", () => {
         const targetPath = "targetfile.log"
         await writeFile(sourceFullPath, "hello ${project.name}")
 
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "module-a",
@@ -3704,7 +3704,7 @@ describe("Garden", () => {
         },
       })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",

@@ -123,7 +123,7 @@ describe("ConfigGraph", () => {
     it("should throw if a build dependency is missing", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         makeTestModule({
           name: "test",
           path: tmpPath,
@@ -141,7 +141,7 @@ describe("ConfigGraph", () => {
     it("should throw if a runtime dependency is missing", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         makeTestModule({
           name: "test",
           path: tmpPath,
@@ -181,7 +181,7 @@ describe("ConfigGraph", () => {
     it("should omit disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -216,7 +216,7 @@ describe("ConfigGraph", () => {
     it("should optionally include disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -251,7 +251,7 @@ describe("ConfigGraph", () => {
     it("should throw if specifically requesting a disabled deploy", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -329,7 +329,7 @@ describe("ConfigGraph", () => {
     it("should omit disabled runs", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -362,7 +362,7 @@ describe("ConfigGraph", () => {
     it("should optionally include disabled runs", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -395,7 +395,7 @@ describe("ConfigGraph", () => {
     it("should throw if specifically requesting a disabled run", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -464,7 +464,7 @@ describe("ConfigGraph", () => {
       // FIXME: find a proper way of refreshing module configs programmatically.
       //  With the configs below, function convertModules(...) from convert-modules.ts loses the build actions info
       //  when its' called from Garden.getConfigGraph(...)
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           kind: "Module",
@@ -512,7 +512,7 @@ describe("ConfigGraph", () => {
     it("should ignore dependencies by deploys on disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -556,7 +556,7 @@ describe("ConfigGraph", () => {
     it("should ignore dependencies by deploys on disabled runs", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -602,7 +602,7 @@ describe("ConfigGraph", () => {
     it("should ignore dependencies by deploys on deploys in disabled modules", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -664,7 +664,7 @@ describe("ConfigGraph", () => {
     it("should ignore dependencies by runs on disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -710,7 +710,7 @@ describe("ConfigGraph", () => {
     it("should ignore dependencies by tests on disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -758,7 +758,7 @@ describe("ConfigGraph", () => {
     it("should include disabled modules in build dependencies", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -800,7 +800,7 @@ describe("ConfigGraph", () => {
     it("should not traverse past disabled deploys", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -859,7 +859,7 @@ describe("ConfigGraph", () => {
     it("should return deploys and runs for a build dependant of the given module", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
