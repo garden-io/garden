@@ -270,6 +270,7 @@ export const gardenPlugin = () =>
                 tarOnly: module.spec.build.tarOnly,
                 dockerfile: "_jib", // See configure handler above
                 ...pick(module.spec.build, Object.keys(jibBuildSchemaKeys())),
+                mavenPhases: module.spec.build.mavenPhases,
               },
             }
 

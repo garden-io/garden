@@ -79,6 +79,16 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
+  # Defines the location of the custom executable Maven binary.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Maven.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+  mavenPath:
+
+  # Defines the Maven phases to be executed during the Garden build step.
+  mavenPhases:
+
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
 
@@ -899,6 +909,29 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | Type     | Default    | Required |
 | -------- | ---------- | -------- |
 | `string` | `"docker"` | No       |
+
+### `build.mavenPath`
+
+[build](#build) > mavenPath
+
+Defines the location of the custom executable Maven binary.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `build.mavenPhases[]`
+
+[build](#build) > mavenPhases
+
+Defines the Maven phases to be executed during the Garden build step.
+
+| Type            | Default       | Required |
+| --------------- | ------------- | -------- |
+| `array[string]` | `["compile"]` | No       |
 
 ### `build.extraFlags[]`
 
