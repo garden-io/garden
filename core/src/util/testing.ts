@@ -27,6 +27,7 @@ import { ConfigGraph } from "../graph/config-graph"
 import { SolveParams } from "../graph/solver"
 import { GraphResults } from "../graph/results"
 import { expect } from "chai"
+import { ActionKind, BaseActionConfig } from "../actions/types"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -226,9 +227,14 @@ export class TestGarden extends Garden {
     return await super.getRepoRoot()
   }
 
-  setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
+  setActionConfigs(moduleConfigs: PartialModuleConfig[], actionConfigs?: BaseActionConfig<ActionKind>[]) {
     this.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
+    if (actionConfigs) {
+      actionConfigs.forEach((ac) => {
+        this.actionConfigs[ac.kind][ac.name] = ac
+      })
+    }
   }
 
   setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {

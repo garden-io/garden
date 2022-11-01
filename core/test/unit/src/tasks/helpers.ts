@@ -37,7 +37,7 @@ describe("TaskHelpers", () => {
     it("should return no deploy tasks for a disabled action, but include its dependants", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -104,7 +104,7 @@ describe("TaskHelpers", () => {
     it("should omit tasks for disabled dependant modules", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -225,7 +225,7 @@ describe("TaskHelpers", () => {
       it("should omit deploy tasks for disabled services in the module", async () => {
         const garden = await makeTestGardenA()
 
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             allowPublish: false,
@@ -270,7 +270,7 @@ describe("TaskHelpers", () => {
       it("should omit deploy tasks for disabled dependant services", async () => {
         const garden = await makeTestGardenA()
 
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             allowPublish: false,

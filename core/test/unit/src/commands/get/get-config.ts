@@ -102,7 +102,7 @@ describe("GetConfigCommand", () => {
     const log = garden.log
     const command = new GetConfigCommand()
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -172,7 +172,7 @@ describe("GetConfigCommand", () => {
     const log = garden.log
     const command = new GetConfigCommand()
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -232,7 +232,7 @@ describe("GetConfigCommand", () => {
     const log = garden.log
     const command = new GetConfigCommand()
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -289,7 +289,7 @@ describe("GetConfigCommand", () => {
     const log = garden.log
     const command = new GetConfigCommand()
 
-    garden.setModuleConfigs([
+    garden.setActionConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -354,7 +354,7 @@ describe("GetConfigCommand", () => {
       const log = garden.log
       const command = new GetConfigCommand()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -422,7 +422,7 @@ describe("GetConfigCommand", () => {
       const log = garden.log
       const command = new GetConfigCommand()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -509,7 +509,7 @@ describe("GetConfigCommand", () => {
       const log = garden.log
       const command = new GetConfigCommand()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -587,7 +587,7 @@ describe("GetConfigCommand", () => {
       const log = garden.log
       const command = new GetConfigCommand()
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -700,7 +700,7 @@ describe("GetConfigCommand", () => {
         },
       ]
 
-      garden.setModuleConfigs(rawConfigs)
+      garden.setActionConfigs(rawConfigs)
 
       const res = await command.action({
         garden,
