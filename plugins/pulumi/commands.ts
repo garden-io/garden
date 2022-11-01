@@ -15,8 +15,6 @@ import {
   PluginCommand,
   PluginCommandParams,
   PluginContext,
-  BuildTask,
-  PluginTask,
   GraphResults,
   PluginActionTask,
 } from "@garden-io/sdk/types"
@@ -38,14 +36,12 @@ import {
 } from "./helpers"
 import { dedent, deline } from "@garden-io/sdk/util/string"
 import { BooleanParameter, parsePluginCommandArgs } from "@garden-io/sdk/util/cli"
-import { copy, writeJSON, emptyDir } from "fs-extra"
-import { splitLast } from "@garden-io/core/build/src/util/util"
+import { copy, emptyDir } from "fs-extra"
 import { join } from "path"
-import { pickBy } from "lodash"
 import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
 import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
-import { ActionState } from "@garden-io/core/build/src/actions/types"
 import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
+import { deletePulumiDeploy } from "./handlers"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -56,7 +52,17 @@ interface PulumiCommandSpec {
   commandDescription: string
   beforeFn?: ({ ctx, log }: { ctx: PluginContext; log: LogEntry }) => Promise<any>
   runFn: PulumiRunFn
-  afterFn?: ({ ctx, log, results }: { ctx: PluginContext; log: LogEntry; results: GraphResults }) => Promise<any>
+  afterFn?: ({
+    ctx,
+    log,
+    results,
+    pulumiTasks,
+  }: {
+    ctx: PluginContext
+    log: LogEntry
+    results: GraphResults
+    pulumiTasks: PulumiPluginCommandTask[]
+  }) => Promise<any>
 }
 
 interface TotalSummary {
@@ -112,33 +118,31 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
         return null
       }
     },
-    afterFn: async ({ ctx, log, results }) => {
-      // No-op plans (i.e. where no resources were changed) are omitted here.
-      const pulumiTaskResults = Object.fromEntries(
-        Object.entries(pickBy(results, (r) => r && r.type === "plugin" && r.output)).map(([k, r]) => [
-          splitLast(k, ".")[1],
-          r ? r.output : null,
-        ])
-      )
-      const totalStepCounts: OperationCounts = {}
-      for (const result of Object.values(pulumiTaskResults)) {
-        const opCounts = (<PreviewResult>result).operationCounts
-        for (const [stepType, count] of Object.entries(opCounts)) {
-          totalStepCounts[stepType] = (totalStepCounts[stepType] || 0) + count
-        }
-      }
-      const totalSummary: TotalSummary = {
-        completedAt: new Date().toISOString(),
-        totalStepCounts,
-        results: pulumiTaskResults,
-      }
-      const previewDirPath = getPreviewDirPath(ctx)
-      const summaryPath = join(previewDirPath, "plan-summary.json")
-      await writeJSON(summaryPath, totalSummary, { spaces: 2 })
-      log.info("")
-      log.info(chalk.green(`Wrote plan summary to ${chalk.white(summaryPath)}`))
-      return totalSummary
-    },
+    // TODO-G2-thor: Re-enable and test when 0.13 is stable enough to run commands.
+    // afterFn: async ({ ctx, log, results, pulumiTasks }) => {
+    //   // No-op plans (i.e. where no resources were changed) are omitted here.
+    //   const pulumiTaskResults = Object.fromEntries(
+    //     pulumiTasks.map((t) => [t.getName(), results.getResult(t)?.outputs || null])
+    //   )
+    //   const totalStepCounts: OperationCounts = {}
+    //   for (const result of Object.values(pulumiTaskResults)) {
+    //     const opCounts = (<PreviewResult>result).operationCounts
+    //     for (const [stepType, count] of Object.entries(opCounts)) {
+    //       totalStepCounts[stepType] = (totalStepCounts[stepType] || 0) + count
+    //     }
+    //   }
+    //   const totalSummary: TotalSummary = {
+    //     completedAt: new Date().toISOString(),
+    //     totalStepCounts,
+    //     results: pulumiTaskResults,
+    //   }
+    //   const previewDirPath = getPreviewDirPath(ctx)
+    //   const summaryPath = join(previewDirPath, "plan-summary.json")
+    //   await writeJSON(summaryPath, totalSummary, { spaces: 2 })
+    //   log.info("")
+    //   log.info(chalk.green(`Wrote plan summary to ${chalk.white(summaryPath)}`))
+    //   return totalSummary
+    // },
   },
   {
     name: "cancel",
@@ -166,13 +170,11 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
   },
 ]
 
-const makePluginContextForService = async (
-  params: PulumiParamsWithService & { garden: Garden; graph: ConfigGraph }
-) => {
+const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garden; graph: ConfigGraph }) => {
   const { garden, provider, ctx } = params
   const templateContext = new ActionConfigContext(garden)
-  const ctxForService = await garden.getPluginContext(provider, templateContext, ctx.events)
-  return ctxForService
+  const ctxForDeploy = await garden.getPluginContext(provider, templateContext, ctx.events)
+  return ctxForDeploy
 }
 
 interface PulumiPluginCommandTaskParams {
@@ -279,7 +281,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
     try {
       await selectStack(params)
       // We need to make sure that the template resolution context is specific to this service's module.
-      const ctxForService = await makePluginContextForService({
+      const ctxForService = await makePluginContextForDeploy({
         ...params,
         garden: this.garden,
         graph: this.graph,
@@ -345,14 +347,11 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
 
       const tasks = await Bluebird.map(actions, async (action) => {
         const templateContext = new ActionConfigContext(garden)
-        const pulumiParams: PulumiParams = {
+        const pulumiParams: PulumiBaseParams = {
           ctx: await garden.getPluginContext(provider, templateContext, ctx.events),
           provider,
           log,
-          action,
         }
-        // TODO: Generate a non-empty runtime context to provide runtime values for template resolution in varfiles.
-        // This will require processing deploy & task dependencies (also for non-pulumi modules).
         return new PulumiPluginCommandTask({
           garden,
           graph,
@@ -366,11 +365,11 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
         })
       })
 
-      const results = await garden.processTasks({ log, tasks, throwOnError: true })
+      const results = (await garden.processTasks({ log, tasks, throwOnError: true })).results
 
       let commandResult: any = {}
       if (afterFn) {
-        commandResult = await afterFn({ ctx, log, results })
+        commandResult = await afterFn({ ctx, log, results, pulumiTasks: tasks })
       }
 
       return { result: commandResult }
