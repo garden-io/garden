@@ -64,7 +64,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
   }
 
   const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
-  garden.setModuleConfigs([
+  garden.setActionConfigs([
     {
       apiVersion: DEFAULT_API_VERSION,
       name: "test",
@@ -344,7 +344,7 @@ describe("LogsCommand", () => {
           return {}
         }
         const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-        garden.setModuleConfigs([
+        garden.setActionConfigs([
           {
             apiVersion: DEFAULT_API_VERSION,
             name: "test",
@@ -428,7 +428,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "test",
@@ -511,7 +511,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setModuleConfigs(moduleConfigsForTags())
+      garden.setActionConfigs(moduleConfigsForTags())
 
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
@@ -542,7 +542,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setModuleConfigs(moduleConfigsForTags())
+      garden.setActionConfigs(moduleConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api"] } }))
@@ -562,7 +562,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setModuleConfigs(moduleConfigsForTags())
+      garden.setActionConfigs(moduleConfigsForTags())
 
       const command = new LogsCommand()
       await expectError(
@@ -594,7 +594,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setModuleConfigs(moduleConfigsForTags())
+      garden.setActionConfigs(moduleConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1"] } }))
@@ -634,7 +634,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setModuleConfigs(moduleConfigsForTags())
+      garden.setActionConfigs(moduleConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(
@@ -680,7 +680,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setModuleConfigs(moduleConfigsForTags())
+      garden.setActionConfigs(moduleConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=*-main"] } }))

@@ -82,7 +82,7 @@ describe("AnalyticsHandler", () => {
     it("should handle projects with no services, tests, or tasks", async () => {
       scope.post(`/v1/batch`).reply(200)
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",

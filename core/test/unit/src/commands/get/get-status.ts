@@ -89,7 +89,7 @@ describe("GetStatusCommand", () => {
 
       const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-      garden.setModuleConfigs([
+      garden.setActionConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "test",
