@@ -38,7 +38,7 @@ import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { ContainerModuleOutputs } from "../../../container/container"
 
-export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
+export const buildkitImageName = "gardendev/buildkit:v0.10.5-1"
 export const buildkitDeploymentName = "garden-buildkit"
 const buildkitContainerName = "buildkitd"
 
