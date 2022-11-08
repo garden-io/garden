@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ExtensionsV1beta1Ingress, NetworkingV1beta1Ingress, V1Ingress } from "@kubernetes/client-node"
+import { V1Ingress } from "@kubernetes/client-node"
 import { expect } from "chai"
 import { getK8sIngresses } from "../../../../../../src/plugins/kubernetes/status/ingress"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
@@ -35,7 +35,7 @@ describe("getK8sIngresses", () => {
   })
 
   it("picks up extensions/v1beta1 Ingress resource", () => {
-    const ingress: KubernetesResource<ExtensionsV1beta1Ingress> = {
+    const ingress: KubernetesResource<any> = {
       apiVersion: "extensions/v1beta1",
       kind: "Ingress",
       metadata: {
@@ -89,7 +89,7 @@ describe("getK8sIngresses", () => {
   })
 
   it("picks up networking.k8s.io/v1beta1 Ingress resource", () => {
-    const ingress: KubernetesResource<NetworkingV1beta1Ingress> = {
+    const ingress: KubernetesResource<any> = {
       apiVersion: "networking.k8s.io/v1beta1",
       kind: "Ingress",
       metadata: {
@@ -155,8 +155,8 @@ describe("getK8sIngresses", () => {
             host: "a.com",
             http: {
               paths: [
-                { path: "/a1", backend: { service: { name: "one" } } },
-                { path: "/a2", backend: { service: { name: "two" } } },
+                { path: "/a1", pathType: "ImplementationSpecific", backend: { service: { name: "one" } } },
+                { path: "/a2", pathType: "ImplementationSpecific", backend: { service: { name: "two" } } },
               ],
             },
           },
@@ -164,8 +164,8 @@ describe("getK8sIngresses", () => {
             host: "b.com",
             http: {
               paths: [
-                { path: "/b1", backend: { service: { name: "one" } } },
-                { path: "/b2", backend: { service: { name: "two" } } },
+                { path: "/b1", pathType: "ImplementationSpecific",  backend: { service: { name: "one" } } },
+                { path: "/b2", pathType: "ImplementationSpecific",  backend: { service: { name: "two" } } },
               ],
             },
           },
@@ -209,8 +209,8 @@ describe("getK8sIngresses", () => {
             host: "a.com",
             http: {
               paths: [
-                { path: "/a1", backend: { service: { name: "one" } } },
-                { path: "/a2", backend: { service: { name: "two" } } },
+                { path: "/a1", pathType: "ImplementationSpecific", backend: { service: { name: "one" } } },
+                { path: "/a2", pathType: "ImplementationSpecific", backend: { service: { name: "two" } } },
               ],
             },
           },
@@ -218,8 +218,8 @@ describe("getK8sIngresses", () => {
             host: "b.com",
             http: {
               paths: [
-                { path: "/b1", backend: { service: { name: "one" } } },
-                { path: "/b2", backend: { service: { name: "two" } } },
+                { path: "/b1", pathType: "ImplementationSpecific", backend: { service: { name: "one" } } },
+                { path: "/b2", pathType: "ImplementationSpecific", backend: { service: { name: "two" } } },
               ],
             },
           },
@@ -264,8 +264,8 @@ describe("getK8sIngresses", () => {
             host: "a.com",
             http: {
               paths: [
-                { path: "/a1", backend: { service: { name: "one" } } },
-                { path: "/a2", backend: { service: { name: "two" } } },
+                { path: "/a2", pathType: "ImplementationSpecific", backend: { service: { name: "two" } } },
+                { path: "/a1", pathType: "ImplementationSpecific", backend: { service: { name: "one" } } },
               ],
             },
           },
@@ -273,8 +273,8 @@ describe("getK8sIngresses", () => {
             // host: "b.com", <---
             http: {
               paths: [
-                { path: "/b1", backend: { service: { name: "one" } } },
-                { path: "/b2", backend: { service: { name: "two" } } },
+                { path: "/b2", pathType: "ImplementationSpecific", backend: { service: { name: "two" } } },
+                { path: "/b1", pathType: "ImplementationSpecific", backend: { service: { name: "one" } } },
               ],
             },
           },
@@ -308,8 +308,8 @@ describe("getK8sIngresses", () => {
             host: "a.com",
             http: {
               paths: [
-                { path: "/a1", backend: { service: { name: "one" } } },
-                { backend: { service: { name: "two" } } }, // <---
+                { path: "/a1", pathType: "ImplementationSpecific", backend: { service: { name: "one" } } },
+                { pathType: "ImplementationSpecific", backend: { service: { name: "two" } } }, // <---
               ],
             },
           },
@@ -317,8 +317,8 @@ describe("getK8sIngresses", () => {
             host: "b.com",
             http: {
               paths: [
-                { backend: { service: { name: "one" } } }, // <---
-                { path: "/b2", backend: { service: { name: "two" } } },
+                { pathType: "ImplementationSpecific",  backend: { service: { name: "one" } } }, // <---
+                { path: "/b2", pathType: "ImplementationSpecific", backend: { service: { name: "two" } } },
               ],
             },
           },

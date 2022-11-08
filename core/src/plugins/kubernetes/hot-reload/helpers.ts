@@ -160,7 +160,7 @@ export function configureHotReload({
       timeoutSeconds: 3,
       successThreshold: 1,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+      tcpSocket: { port: rsyncPortName },
     },
   })
 }

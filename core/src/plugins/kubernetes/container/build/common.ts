@@ -488,7 +488,7 @@ export function getUtilContainer(authSecretName: string): V1Container {
       timeoutSeconds: 3,
       successThreshold: 2,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+      tcpSocket: { port: rsyncPortName },
     },
     resources: {
       // This should be ample
