@@ -364,6 +364,7 @@ export class K8sLogFollower<T> {
           // Otherwise we might end up fetching logs that have already been rendered.
           since: isRetry ? "10s" : since,
         })
+        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
       } catch (err) {
         // Log the error and keep trying.
         this.log.debug(
@@ -379,9 +380,6 @@ export class K8sLogFollower<T> {
         status: <LogConnection["status"]>"connected",
       }
 
-      req.on("response", async () => {
-        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
-      })
       req.on("error", (error) => this.handleConnectionClose(connectionId, "error", error.message))
       req.on("close", () => this.handleConnectionClose(connectionId, "closed", "Request closed"))
       req.on("socket", (socket) => {
