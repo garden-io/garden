@@ -244,7 +244,6 @@ export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args
   const maxRetries = 10
 
   while (true) {
-    // Keep trying for a bit in case we can't connect to the daemon
     try {
       const res = await mutagen.exec({
         cwd: dataDir,
@@ -259,19 +258,27 @@ export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args
       return res
     } catch (err) {
       const unableToConnect = err.message.match(/unable to connect to daemon/)
+      const unableToFlush = err.message.match(/unable to flush session/)
 
-      if (unableToConnect && loops < 10) {
+      if ((unableToFlush || unableToConnect) && loops < 10) {
         loops += 1
+        if (unableToFlush) {
+          log.warn({
+            symbol: "empty",
+            section: mutagenLogSection,
+            msg: chalk.gray(`Could not flush mutagen session, retrying (attempt ${loops}/${maxRetries})...`),
+          })
+        }
         if (unableToConnect) {
           log.warn({
             symbol: "empty",
             section: mutagenLogSection,
             msg: chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`),
           })
+          await killSyncDaemon(false)
+          dataDir = await ensureMutagenDaemon(ctx, log)
         }
-        await killSyncDaemon(false)
         await sleep(2000 + loops * 500)
-        dataDir = await ensureMutagenDaemon(ctx, log)
       } else {
         throw err
       }
