@@ -2850,9 +2850,6 @@ modules:
     # The path to the build staging directory for the module.
     buildPath:
 
-    # The path to the build metadata directory for the module.
-    buildMetadataPath:
-
     # A list of types that this module is compatible with (i.e. the module type itself + all bases).
     compatibleTypes:
 
@@ -3534,13 +3531,18 @@ Examples:
 
 Publishes built artifacts for all or specified builds. Also builds dependencies if needed.
 
-By default the artifacts/images are tagged with the Garden action version, but you can also specify the `--tag` option to specify a specific string tag _or_ a templated tag. Any template values that can be used on the build being tagged are available, in addition to ${build.name}, ${build.version} and ${build.hash} tags that allows referencing the name of the build being tagged, as well as its Garden version. ${build.version} includes the "v-" prefix normally used for Garden versions, and ${build.hash} doesn't.
+By default the artifacts/images are tagged with the Garden action version,
+but you can also specify the `--tag` option to specify a specific string tag _or_ a templated tag.
+Any template values that can be used on the build being tagged are available,
+in addition to ${build.name}, ${build.version} and ${build.hash}
+tags that allows referencing the name of the build being tagged, as well as its Garden version.
+${build.version} includes the "v-" prefix normally used for Garden versions, ${build.hash} doesn't.
 
 Examples:
 
-    garden publish                # publish artifacts for all modules in the project
+    garden publish                # publish artifacts for all builds in the project
     garden publish my-container   # only publish my-container
-    garden publish --force-build  # force re-build of modules before publishing artifacts
+    garden publish --force-build  # force re-build before publishing artifacts
 
     # Publish my-container with a tag of v0.1
     garden publish my-container --tag "v0.1"
@@ -3742,17 +3744,26 @@ tests:
 # A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
 graphResults:
 
-# A map of all modules that were published (or scheduled/attempted for publishing) and the results.
+# A map of all builds that were published (or scheduled/attempted for publishing) and the results.
 published:
   <name>:
-    # Set to true if the build was published.
-    published:
+    # The state of the action.
+    state:
 
-    # Optional result message from the provider.
-    message:
+    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+    # dependencies and in templating.
+    outputs:
+      <name>:
 
-    # The published artifact identifier, if applicable.
-    identifier:
+    detail:
+      # Set to true if the build was published.
+      published:
+
+      # Optional result message from the provider.
+      message:
+
+      # The published artifact identifier, if applicable.
+      identifier:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
