@@ -239,10 +239,6 @@ export async function readTreeVersionFile(path: string): Promise<TreeVersion | n
   return readVersionFile(path, treeVersionSchema())
 }
 
-export async function readModuleVersionFile(path: string): Promise<ModuleVersion | null> {
-  return readVersionFile(path, moduleVersionSchema())
-}
-
 /**
  * Writes a normalized TreeVersion file to the specified directory
  *
@@ -259,10 +255,6 @@ export async function writeTreeVersionFile(dir: string, version: TreeVersion) {
   }
   const path = join(dir, GARDEN_TREEVERSION_FILENAME)
   await writeFile(path, JSON.stringify(processed, null, 4) + "\n")
-}
-
-export async function writeModuleVersionFile(path: string, version: ModuleVersion) {
-  await writeFile(path, JSON.stringify(version, null, 4) + "\n")
 }
 
 /**
