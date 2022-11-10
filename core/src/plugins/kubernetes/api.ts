@@ -33,7 +33,6 @@ import {
   V1Service,
   Log,
   NetworkingV1Api,
-  ApiextensionsApi,
   ApiextensionsV1Api,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
@@ -319,7 +318,9 @@ export class KubeApi {
     path: string
     opts?: Omit<request.OptionsWithUrl, "url">
   }): Promise<any> {
-    const baseUrl = this.config.getCurrentCluster()!.server
+    const currentCluster = this.config.getCurrentCluster()!
+    const baseUrl = currentCluster.server
+    const tlsServerName = currentCluster.tlsServerName
     const url = urlJoin(baseUrl, path)
 
     // set some default values
@@ -329,6 +330,8 @@ export class KubeApi {
       json: true,
       resolveWithFullResponse: true,
       agent: requestAgent,
+      tlsServerName,
+      serverName: tlsServerName,
       ...opts,
     }
 
@@ -893,6 +896,7 @@ async function getContextConfig(log: LogEntry, ctx: PluginContext, provider: Kub
 
   // There doesn't appear to be a method to just load the parsed config :/
   try {
+    // HERE
     kc.loadFromString(safeDumpYaml(rawConfig))
     kc.setCurrentContext(context)
   } catch (err) {

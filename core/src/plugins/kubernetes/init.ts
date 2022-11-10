@@ -33,7 +33,7 @@ import { ConfigurationError } from "../../exceptions"
 import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
 import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants"
-import { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
+import { CoreV1Api, KubeConfig, V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
@@ -81,6 +81,20 @@ export async function getEnvironmentStatus({
   const api = await KubeApi.factory(log, ctx, provider)
 
   let projectHelmMigrated = true
+
+  console.log("HACK")
+  try {
+    const kc = new KubeConfig()
+
+    kc.loadFromDefault(undefined, true)
+
+    const k8sApi = kc.makeApiClient(CoreV1Api)
+
+    const test = await k8sApi.listNamespace()
+    console.log(test.body.items.forEach(ns => console.log(ns.metadata?.name))[0])
+  } catch (err) {
+    console.log(err)
+  }
 
   const namespaces = await prepareNamespaces({ ctx, log })
   const systemServiceNames = k8sCtx.provider.config._systemServices
@@ -232,9 +246,14 @@ export async function prepareEnvironment(
   const { ctx, log, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
+  console.log("preper env")
+
   // Prepare system services
+  console.log("sys")
   await prepareSystem({ ...params, clusterInit: false })
+  console.log("ns")
   const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+  console.log("cert manager")
   await setupCertManager({ ctx: k8sCtx, provider: k8sCtx.provider, log, status })
 
   return { status: { namespaceStatuses: [ns], ready: true, outputs: status.outputs } }
