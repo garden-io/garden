@@ -14,12 +14,11 @@ import psTree from "ps-tree"
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
 import { ExecBuildActionSpec } from "../../../../../src/plugins/exec/config"
-import { GARDEN_BUILD_VERSION_FILENAME, DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { getDataDir, makeTestModule, expectError } from "../../../../helpers"
 import { RunTask } from "../../../../../src/tasks/run"
-import { readModuleVersionFile } from "../../../../../src/vcs/vcs"
 import { dataDir, makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
@@ -36,7 +35,6 @@ import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
 import { BuildActionConfig, ExecutedBuildAction } from "../../../../../src/actions/build"
 
 describe("exec plugin", () => {
-  const moduleName = "module-a"
   const testProjectRoot = resolve(dataDir, "test-project-exec")
   const plugin = gardenPlugin()
 
