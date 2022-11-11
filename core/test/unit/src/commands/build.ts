@@ -24,11 +24,13 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
 import { join } from "path"
 import { ProcessCommandResult } from "../../../../src/commands/base"
+import { nodeKey } from "../../../../src/graph/modules"
 
 describe("BuildCommand", () => {
   function getBuildModuleVersion(result: ProcessCommandResult, moduleName: string) {
     const buildActionResults = result!.graphResults
-    const buildModuleResult = buildActionResults[`build.${moduleName}`]
+    const moduleKey = nodeKey("build", moduleName)
+    const buildModuleResult = buildActionResults[moduleKey]
     return buildModuleResult?.version
   }
 
