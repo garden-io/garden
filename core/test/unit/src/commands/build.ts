@@ -25,7 +25,6 @@ import { writeFile } from "fs-extra"
 import { join } from "path"
 import { ProcessCommandResult } from "../../../../src/commands/base"
 
-// TODO-G2: rename test cases to match the new graph model semantics
 describe("BuildCommand", () => {
   function getBuildModuleVersion(result: ProcessCommandResult, moduleName: string) {
     const buildActionResults = result!.graphResults
@@ -50,9 +49,7 @@ describe("BuildCommand", () => {
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
-    // TODO-G2: need to check if results.graphResults["build.module-a"]?.outputs still makes any sense.
-    //  It's an empty object in the debugger. Isn't it the same as .result.outputs?
-    // TODO-G2: think about a way to use type-safe .result values
+    // TODO-G2B: think about a way to use type-safe values in taskOutputResults
     const taskOutputResults = taskResultOutputs(result!)
     expect(taskOutputResults).to.eql({
       "build.module-a": {
@@ -79,7 +76,7 @@ describe("BuildCommand", () => {
     const buildModuleBVersion = getBuildModuleVersion(result!, "module-b")
     const buildModuleCVersion = getBuildModuleVersion(result!, "module-c")
 
-    // TODO-G2: fix versions
+    // TODO-G2: check if the following assertions are still semantically correct and fix those if necessary
     expect(buildModuleAVersion).to.eql(modules["module-a"].version.versionString)
     expect(buildModuleBVersion).to.eql(modules["module-b"].version.versionString)
     expect(buildModuleCVersion).to.eql(modules["module-c"].version.versionString)
