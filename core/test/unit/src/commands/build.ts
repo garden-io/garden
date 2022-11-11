@@ -27,13 +27,6 @@ import { ProcessCommandResult } from "../../../../src/commands/base"
 import { nodeKey } from "../../../../src/graph/modules"
 
 describe("BuildCommand", () => {
-  function getBuildModuleVersion(result: ProcessCommandResult, moduleName: string) {
-    const buildActionResults = result!.graphResults
-    const moduleKey = nodeKey("build", moduleName)
-    const buildModuleResult = buildActionResults[moduleKey]
-    return buildModuleResult?.version
-  }
-
   it("should build all modules in a project and output the results", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
@@ -71,14 +64,20 @@ describe("BuildCommand", () => {
       },
     })
 
-    const graph = await garden.getConfigGraph({ log, emit: false })
-    const modules = keyBy(graph.getModules(), "name")
+    function getBuildModuleVersion(result: ProcessCommandResult, moduleName: string) {
+      const buildActionResults = result!.graphResults
+      const moduleKey = nodeKey("build", moduleName)
+      const buildModuleResult = buildActionResults[moduleKey]
+      return buildModuleResult?.result?.executedAction?.moduleVersion().versionString
+    }
 
     const buildModuleAVersion = getBuildModuleVersion(result!, "module-a")
     const buildModuleBVersion = getBuildModuleVersion(result!, "module-b")
     const buildModuleCVersion = getBuildModuleVersion(result!, "module-c")
 
-    // TODO-G2: check if the following assertions are still semantically correct and fix those if necessary
+    const graph = await garden.getConfigGraph({ log, emit: false })
+    const modules = keyBy(graph.getModules(), "name")
+
     expect(buildModuleAVersion).to.eql(modules["module-a"].version.versionString)
     expect(buildModuleBVersion).to.eql(modules["module-b"].version.versionString)
     expect(buildModuleCVersion).to.eql(modules["module-c"].version.versionString)
