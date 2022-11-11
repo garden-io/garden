@@ -66,6 +66,7 @@ import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
 import { GlobalConfigStore, RequirementsCheck } from "../config-store"
+import * as k8s from "@kubernetes/client-node"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -347,6 +348,20 @@ ${renderCommands(commands)}
     // jumping.
     // TODO: Link to Cloud namespace page here.
     const nsLog = headerLog.info("")
+
+    console.log("HACK")
+    try {
+      const kc = new k8s.KubeConfig()
+
+      kc.loadFromDefault(undefined, true)
+
+      const k8sApi = kc.makeApiClient(k8s.CoreV1Api)
+
+      const test = await k8sApi.listNamespace()
+      console.log(test.body.items.forEach((ns) => console.log(ns.metadata?.name)))
+    } catch (err) {
+      console.log(err)
+    }
 
     do {
       try {
