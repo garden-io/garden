@@ -8,16 +8,15 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { cloneDeep, extend, intersection, mapValues, merge, pick } from "lodash"
+import { cloneDeep, extend, intersection, mapValues, merge, omit, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import {
-  containerDeploySchema,
   containerModuleSpecSchema,
   containerModuleTestSchema,
   containerTaskSchema,
 } from "../src/plugins/container/moduleConfig"
-import { buildExecAction, prepareExecBuildAction } from "../src/plugins/exec/exec"
+import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
@@ -42,10 +41,10 @@ import { ConfigurationError } from "../src/exceptions"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
-import { execBuildSpecSchema } from "../src/plugins/exec/moduleConfig"
+import { execBuildSpecSchema, ExecModule } from "../src/plugins/exec/moduleConfig"
 import {
-  ExecActionConfig,
   execBuildActionSchema,
+  execDeployActionSchema,
   ExecRun,
   execRunActionSchema,
   ExecTest,
@@ -57,9 +56,6 @@ import { WrappedActionRouterHandlers } from "../src/router/base"
 import { Resolved } from "../src/actions/types"
 import { defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/module/convert"
-import { convertContainerModuleRuntimeActions } from "../src/plugins/container/container"
-import { ContainerActionConfig } from "../src/plugins/container/config"
-import { isTruthy } from "../src/util/util"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -228,8 +224,7 @@ export const testPlugin = () =>
         {
           name: "test",
           docs: "Test Deploy action",
-          schema: containerDeploySchema(),
-          // schema: execDeployActionSchema(),
+          schema: execDeployActionSchema(),
           handlers: {
             deploy: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
@@ -281,27 +276,11 @@ export const testPlugin = () =>
         schema: testModuleSpecSchema(),
         needsBuild: true,
         handlers: {
+          // We want all the actions from the exec conversion.
           convert: async (params: ConvertModuleParams) => {
-            const module = params.module
-            // We want the build action from the exec conversion,
-            // and all the other actions from the container conversion.
-            const execBuildAction = prepareExecBuildAction(params)
-            const containerRuntimeActions = convertContainerModuleRuntimeActions(params, execBuildAction, false)
-            const actions: (ContainerActionConfig | ExecActionConfig)[] = [
-              execBuildAction,
-              ...containerRuntimeActions,
-            ].filter(isTruthy)
-            return {
-              group: {
-                // This is an annoying TypeScript limitation :P
-                kind: <"Group">"Group",
-                name: module.name,
-                path: module.path,
-                actions,
-              },
-            }
+            const module: ExecModule = params.module
+            return convertExecModule({ ...params, module })
           },
-          // convert: convertExecModule,
           configure: configureTestModule,
 
           async getModuleOutputs() {
@@ -507,7 +486,7 @@ export function stubRouterAction<K extends ActionKind, H extends keyof WrappedAc
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {
-  return mapValues(results.graphResults, (r) => r && r.result)
+  return mapValues(results.graphResults, (r) => r?.result && omit(r.result, "executedAction"))
 }
 
 export const cleanProject = async (gardenDirPath: string) => {

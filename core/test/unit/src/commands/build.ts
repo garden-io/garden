@@ -18,14 +18,22 @@ import {
   withDefaultGlobalOpts,
 } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
-import { keyBy } from "lodash"
+import { keyBy, omit } from "lodash"
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
 import { join } from "path"
+import { ProcessCommandResult } from "../../../../src/commands/base"
+import { nodeKey } from "../../../../src/graph/modules"
 
-// TODO-G2: rename test cases to match the new graph model semantics
 describe("BuildCommand", () => {
+  function getBuildModuleVersion(result: ProcessCommandResult, moduleName: string) {
+    const buildActionResults = result!.graphResults
+    const moduleKey = nodeKey("build", moduleName)
+    const buildModuleResult = buildActionResults[moduleKey]
+    return buildModuleResult?.version
+  }
+
   it("should build all modules in a project and output the results", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
@@ -43,43 +51,37 @@ describe("BuildCommand", () => {
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
-    const buildActionResults = result!.graphResults
-
-    expect(buildActionResults["build.module-a"]?.outputs.fresh).to.be.true
-    expect(buildActionResults["build.module-a"]?.outputs.buildLog).to.equal("A")
-    expect(buildActionResults["build.module-b"]?.outputs.fresh).to.be.true
-    expect(buildActionResults["build.module-b"]?.outputs.buildLog).to.equal("B")
+    // TODO-G2B: think about a way to use type-safe values in taskOutputResults
+    const taskOutputResults = taskResultOutputs(result!)
+    expect(taskOutputResults).to.eql({
+      "build.module-a": {
+        state: "ready",
+        outputs: {},
+        detail: { fresh: true, buildLog: "A" },
+      },
+      "build.module-b": {
+        state: "ready",
+        outputs: {},
+        detail: { fresh: true, buildLog: "B" },
+      },
+      "build.module-c": {
+        state: "ready",
+        outputs: {},
+        detail: {},
+      },
+    })
 
     const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = keyBy(graph.getModules(), "name")
 
-    expect(buildActionResults).to.eql({
-      "module-a": {
-        fresh: true,
-        buildLog: "A",
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-        success: true,
-        version: modules["module-a"].version.versionString,
-      },
-      "module-b": {
-        fresh: true,
-        buildLog: "B",
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-        success: true,
-        version: modules["module-b"].version.versionString,
-      },
-      "module-c": {
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-        success: true,
-        version: modules["module-c"].version.versionString,
-      },
-    })
+    const buildModuleAVersion = getBuildModuleVersion(result!, "module-a")
+    const buildModuleBVersion = getBuildModuleVersion(result!, "module-b")
+    const buildModuleCVersion = getBuildModuleVersion(result!, "module-c")
+
+    // TODO-G2: check if the following assertions are still semantically correct and fix those if necessary
+    expect(buildModuleAVersion).to.eql(modules["module-a"].version.versionString)
+    expect(buildModuleBVersion).to.eql(modules["module-b"].version.versionString)
+    expect(buildModuleCVersion).to.eql(modules["module-c"].version.versionString)
   })
 
   it("should optionally build single module and its dependencies", async () => {
@@ -97,9 +99,18 @@ describe("BuildCommand", () => {
       opts: withDefaultGlobalOpts({ "watch": false, "force": true, "with-dependants": false }),
     })
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A" },
-      "build.module-b": { fresh: true, buildLog: "B" },
+    const taskOutputResults = taskResultOutputs(result!)
+    expect(taskOutputResults).to.eql({
+      "build.module-a": {
+        state: "ready",
+        outputs: {},
+        detail: { fresh: true, buildLog: "A" },
+      },
+      "build.module-b": {
+        state: "ready",
+        outputs: {},
+        detail: { fresh: true, buildLog: "B" },
+      },
     })
   })
 
@@ -127,8 +138,8 @@ describe("BuildCommand", () => {
     })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A" },
-      "build.module-b": { fresh: true, buildLog: "B" },
+      "build.module-a": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "A" } },
+      "build.module-b": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "B" } },
     })
   })
 
@@ -152,9 +163,9 @@ describe("BuildCommand", () => {
     })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A" },
-      "build.module-b": { fresh: true, buildLog: "B" },
-      "build.module-c": {},
+      "build.module-a": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "A" } },
+      "build.module-b": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "B" } },
+      "build.module-c": { state: "ready", outputs: {}, detail: {} },
     })
   })
 
@@ -219,10 +230,10 @@ describe("BuildCommand", () => {
     })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { fresh: true, buildLog: "A" },
-      "build.module-b": { fresh: true, buildLog: "B" },
-      "build.module-c": { fresh: true, buildLog: "C" },
-      "build.module-d": { fresh: true, buildLog: "D" },
+      "build.module-a": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "A" } },
+      "build.module-b": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "B" } },
+      "build.module-c": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "C" } },
+      "build.module-d": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "D" } },
     })
   })
 
