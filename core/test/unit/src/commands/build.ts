@@ -63,7 +63,7 @@ describe("BuildCommand", () => {
       },
     })
 
-    function getBuildModuleResultVersion(result: ProcessCommandResult, moduleName: string) {
+    function getBuildModuleResultVersion(result: ProcessCommandResult, moduleName: string): string {
       const buildActionResults = result!.graphResults
       const moduleKey = nodeKey("build", moduleName)
       const buildModuleResult = buildActionResults[moduleKey]
@@ -76,9 +76,9 @@ describe("BuildCommand", () => {
 
     const graph = await garden.getConfigGraph({ log, emit: false })
 
-    expect(buildModuleAVersion).to.eql(graph.getBuild("module-a").moduleVersion())
-    expect(buildModuleBVersion).to.eql(graph.getBuild("module-b").moduleVersion())
-    expect(buildModuleCVersion).to.eql(graph.getBuild("module-c").moduleVersion())
+    expect(buildModuleAVersion).to.eql(graph.getBuild("module-a").moduleVersion().versionString)
+    expect(buildModuleBVersion).to.eql(graph.getBuild("module-b").moduleVersion().versionString)
+    expect(buildModuleCVersion).to.eql(graph.getBuild("module-c").moduleVersion().versionString)
   })
 
   it("should optionally build single module and its dependencies", async () => {
