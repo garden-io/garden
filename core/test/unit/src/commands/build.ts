@@ -18,7 +18,6 @@ import {
   withDefaultGlobalOpts,
 } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
-import { keyBy, omit } from "lodash"
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
