@@ -18,7 +18,6 @@ import {
   withDefaultGlobalOpts,
 } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
-import { keyBy, omit } from "lodash"
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
@@ -27,13 +26,6 @@ import { ProcessCommandResult } from "../../../../src/commands/base"
 import { nodeKey } from "../../../../src/graph/modules"
 
 describe("BuildCommand", () => {
-  function getBuildModuleVersion(result: ProcessCommandResult, moduleName: string) {
-    const buildActionResults = result!.graphResults
-    const moduleKey = nodeKey("build", moduleName)
-    const buildModuleResult = buildActionResults[moduleKey]
-    return buildModuleResult?.version
-  }
-
   it("should build all modules in a project and output the results", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
@@ -71,17 +63,22 @@ describe("BuildCommand", () => {
       },
     })
 
+    function getBuildModuleResultVersion(result: ProcessCommandResult, moduleName: string) {
+      const buildActionResults = result!.graphResults
+      const moduleKey = nodeKey("build", moduleName)
+      const buildModuleResult = buildActionResults[moduleKey]
+      return buildModuleResult?.result?.executedAction?.moduleVersion().versionString
+    }
+
+    const buildModuleAVersion = getBuildModuleResultVersion(result!, "module-a")
+    const buildModuleBVersion = getBuildModuleResultVersion(result!, "module-b")
+    const buildModuleCVersion = getBuildModuleResultVersion(result!, "module-c")
+
     const graph = await garden.getConfigGraph({ log, emit: false })
-    const modules = keyBy(graph.getModules(), "name")
 
-    const buildModuleAVersion = getBuildModuleVersion(result!, "module-a")
-    const buildModuleBVersion = getBuildModuleVersion(result!, "module-b")
-    const buildModuleCVersion = getBuildModuleVersion(result!, "module-c")
-
-    // TODO-G2: check if the following assertions are still semantically correct and fix those if necessary
-    expect(buildModuleAVersion).to.eql(modules["module-a"].version.versionString)
-    expect(buildModuleBVersion).to.eql(modules["module-b"].version.versionString)
-    expect(buildModuleCVersion).to.eql(modules["module-c"].version.versionString)
+    expect(buildModuleAVersion).to.eql(graph.getBuild("module-a").moduleVersion())
+    expect(buildModuleBVersion).to.eql(graph.getBuild("module-b").moduleVersion())
+    expect(buildModuleCVersion).to.eql(graph.getBuild("module-c").moduleVersion())
   })
 
   it("should optionally build single module and its dependencies", async () => {
