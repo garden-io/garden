@@ -44,7 +44,7 @@ describe("getResourceRequirements", () => {
     })
   })
 
-  it("shoudl prioritize deprecated limits param", () => {
+  it("should prioritize deprecated limits param", () => {
     expect(
       getResourceRequirements({ cpu: { max: 1, min: 1 }, memory: { max: null, min: 1 } }, { cpu: 50, memory: 50 })
     ).to.eql({
