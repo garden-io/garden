@@ -3615,8 +3615,8 @@ describe("Garden", () => {
         config: projectConfigFoo,
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "foo",
@@ -3629,7 +3629,7 @@ describe("Garden", () => {
           testConfigs: [],
           spec: { bla: "fla" },
         },
-      }
+      ])
 
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
@@ -3663,8 +3663,8 @@ describe("Garden", () => {
         config: projectConfigFoo,
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "foo",
@@ -3677,7 +3677,7 @@ describe("Garden", () => {
           testConfigs: [],
           spec: {},
         },
-      }
+      ])
 
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
@@ -3813,8 +3813,8 @@ describe("Garden", () => {
         },
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "foo",
@@ -3827,7 +3827,7 @@ describe("Garden", () => {
           testConfigs: [],
           spec: { foo: "bar" },
         },
-      }
+      ])
 
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
@@ -3877,8 +3877,8 @@ describe("Garden", () => {
         },
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "foo",
@@ -3891,7 +3891,7 @@ describe("Garden", () => {
           testConfigs: [],
           spec: {},
         },
-      }
+      ])
 
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
@@ -3962,8 +3962,8 @@ describe("Garden", () => {
           },
         })
 
-        garden["moduleConfigs"] = {
-          foo: {
+        garden.setActionConfigs([
+          {
             apiVersion: DEFAULT_API_VERSION,
             name: "foo",
             type: "foo",
@@ -3976,7 +3976,7 @@ describe("Garden", () => {
             testConfigs: [],
             spec: { foo: "bar" },
           },
-        }
+        ])
 
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
@@ -4039,8 +4039,8 @@ describe("Garden", () => {
           },
         })
 
-        garden["moduleConfigs"] = {
-          foo: {
+        garden.setActionConfigs([
+          {
             apiVersion: DEFAULT_API_VERSION,
             name: "foo",
             type: "foo",
@@ -4053,7 +4053,7 @@ describe("Garden", () => {
             testConfigs: [],
             spec: {},
           },
-        }
+        ])
 
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
@@ -4225,8 +4225,8 @@ describe("Garden", () => {
           config: projectConfigFoo,
         })
 
-        garden["moduleConfigs"] = {
-          foo: {
+        garden.setActionConfigs([
+          {
             apiVersion: DEFAULT_API_VERSION,
             name: "foo",
             type: "foo",
@@ -4239,7 +4239,7 @@ describe("Garden", () => {
             testConfigs: [],
             spec: {},
           },
-          bar: {
+          {
             apiVersion: DEFAULT_API_VERSION,
             name: "bar",
             type: "foo",
@@ -4252,7 +4252,7 @@ describe("Garden", () => {
             testConfigs: [],
             spec: {},
           },
-        }
+        ])
 
         const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
 
@@ -4308,8 +4308,8 @@ describe("Garden", () => {
           config: projectConfigFoo,
         })
 
-        garden["moduleConfigs"] = {
-          foo: {
+        garden.setActionConfigs([
+          {
             apiVersion: DEFAULT_API_VERSION,
             name: "foo",
             type: "foo",
@@ -4322,7 +4322,7 @@ describe("Garden", () => {
             testConfigs: [],
             spec: {},
           },
-        }
+        ])
 
         await expectError(() => garden.resolveModules({ log: garden.log }), {
           contains: [
