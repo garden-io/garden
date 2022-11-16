@@ -88,8 +88,8 @@ describe("DeployTask", () => {
     const testPlugin = customizedTestPlugin({})
     garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-    garden["moduleConfigs"] = {
-      test: {
+    garden.setActionConfigs([
+      {
         apiVersion: DEFAULT_API_VERSION,
         name: "test",
         type: "test",
@@ -132,7 +132,7 @@ describe("DeployTask", () => {
         testConfigs: [],
         spec: { bla: "fla" },
       },
-    }
+    ])
 
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
