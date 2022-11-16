@@ -67,9 +67,9 @@ describe("hadolint provider", () => {
       config: projectConfigFoo,
     })
 
-    garden["moduleConfigs"] = {
+    garden.setActionConfigs([
       // With Dockerfile
-      foo: {
+      {
         apiVersion: DEFAULT_API_VERSION,
         name: "foo",
         type: "container",
@@ -83,7 +83,7 @@ describe("hadolint provider", () => {
         spec: { dockerfile: "foo.Dockerfile" },
       },
       // Without Dockerfile
-      bar: {
+      {
         apiVersion: DEFAULT_API_VERSION,
         name: "bar",
         type: "container",
@@ -98,7 +98,7 @@ describe("hadolint provider", () => {
           image: "bar:bla",
         },
       },
-    }
+    ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("hadolint-foo")
@@ -133,8 +133,8 @@ describe("hadolint provider", () => {
       },
     })
 
-    garden["moduleConfigs"] = {
-      foo: {
+    garden.setActionConfigs([
+      {
         apiVersion: DEFAULT_API_VERSION,
         name: "foo",
         type: "foo",
@@ -147,7 +147,7 @@ describe("hadolint provider", () => {
         testConfigs: [],
         spec: { dockerfile: "foo.Dockerfile" },
       },
-    }
+    ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("hadolint-foo")
@@ -168,8 +168,8 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "hadolint",
@@ -182,7 +182,7 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
@@ -241,8 +241,8 @@ describe("hadolint provider", () => {
 
       const modulePath = getDataDir("hadolint", "ignore-dl3007")
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "hadolint",
@@ -255,7 +255,7 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
@@ -309,8 +309,8 @@ describe("hadolint provider", () => {
         `
       )
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "hadolint",
@@ -323,7 +323,7 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
@@ -371,8 +371,8 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "hadolint",
@@ -385,7 +385,8 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
-      }
+      ])
+
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
       const { actions } = await convertModules(garden, garden.log, [module], graph.moduleGraph)
@@ -422,8 +423,8 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "hadolint",
@@ -436,7 +437,7 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "warn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
@@ -477,8 +478,8 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden["moduleConfigs"] = {
-        foo: {
+      garden.setActionConfigs([
+        {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
           type: "hadolint",
@@ -491,7 +492,7 @@ describe("hadolint provider", () => {
           testConfigs: [{ name: "foo", dependencies: [], disabled: false, spec: {}, timeout: 10 }],
           spec: { dockerfilePath: "errAndWarn.Dockerfile" },
         },
-      }
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const module = graph.getModule("foo")
