@@ -43,16 +43,24 @@ export function getResourceRequirements(
 ): V1ResourceRequirements {
   const maxCpu = limits?.cpu || resources.cpu.max
   const maxMemory = limits?.memory || resources.memory.max
-  return {
+
+  const resourceReq: V1ResourceRequirements = {
     requests: {
       cpu: millicpuToString(resources.cpu.min),
       memory: kilobytesToString(resources.memory.min * 1024),
     },
-    limits: {
-      cpu: millicpuToString(maxCpu),
-      memory: kilobytesToString(maxMemory * 1024),
-    },
   }
+  if (maxMemory || maxCpu) {
+    resourceReq.limits = {}
+  }
+  if (maxMemory) {
+    resourceReq.limits!.memory = kilobytesToString(maxMemory * 1024)
+  }
+  if (maxCpu) {
+    resourceReq.limits!.cpu = millicpuToString(maxCpu)
+  }
+
+  return resourceReq
 }
 
 export function getSecurityContext(
