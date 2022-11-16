@@ -372,12 +372,12 @@ const helpers = {
       flatten(
         commands.map((cmd) => {
           const args = cmd.args as string[]
-          if (args[0].startsWith("--chown")) {
-            // Ignore --chown args
-            return args.slice(1, -1)
-          } else if (args[0].startsWith("--from")) {
+          if (args.find((arg) => arg.startsWith("--from"))) {
             // Skip statements copying from another build stage
             return []
+          } else if (args[0].startsWith("--chown")) {
+            // Ignore --chown args
+            return args.slice(1, -1)
           } else {
             return args.slice(0, -1)
           }

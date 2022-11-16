@@ -543,6 +543,19 @@ describe("containerHelpers", () => {
       expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "Dockerfile"])
     })
 
+    it("should handle COPY statements with multiple arguments in any order", async () => {
+      await writeFile(
+        dockerfilePath,
+        dedent`
+        FROM foo
+        ADD --chown=bla file-a /
+        COPY --chown=bla --from=bla /file-b file-c /
+        COPY --from=bla --chown=bla  /file-c file-d /
+        `
+      )
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "Dockerfile"])
+    })
+
     it("should ignore paths containing a template string", async () => {
       await writeFile(dockerfilePath, "FROM foo\nADD file-a /\nCOPY file-${foo} file-c /")
       expect(await helpers.autoResolveIncludes(config, log)).to.be.undefined
