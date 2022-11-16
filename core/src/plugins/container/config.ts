@@ -539,7 +539,8 @@ export const containerCpuSchema = (targetType: string) =>
         The minimum amount of CPU the ${targetType} needs to be available for it to be deployed, in millicpus
         (i.e. 1000 = 1 CPU)
       `),
-    max: joi.number().default(defaultContainerResources.cpu.max).min(10).allow(null).description(deline`
+    max: joi.number().default(defaultContainerResources.cpu.max).min(defaultContainerResources.cpu.min).allow(null)
+      .description(deline`
         The maximum amount of CPU the ${targetType} can use, in millicpus (i.e. 1000 = 1 CPU).
         If set to null will result in no limit being set.
       `),
