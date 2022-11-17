@@ -533,7 +533,10 @@ export function getUtilManifests(
   authSecretName: string,
   imagePullSecrets: { name: string }[]
 ) {
-  const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
+  const kanikoTolerations = [
+    ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
+    builderToleration,
+  ]
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",

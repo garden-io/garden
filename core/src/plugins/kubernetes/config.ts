@@ -229,6 +229,9 @@ export interface KubernetesConfig extends BaseProviderConfig {
     namespace?: string | null
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    util?: {
+      tolerations?: V1Toleration[]
+    }
   }
   context: string
   defaultHostname?: string
@@ -704,8 +707,14 @@ export const kubernetesConfigBase = () =>
           `
         ),
         tolerations: joiSparseArray(tolerationSchema()).description(
-          "Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds."
+          deline`Specify tolerations to apply to each Kaniko builder Pod. Useful to control which nodes in a cluster can run builds.
+          Same tolerations will be used for the util pod unless they are specifically set under \`util.tolerations\``
         ),
+        util: joi.object().keys({
+          tolerations: joiSparseArray(tolerationSchema()).description(
+            "Specify tolerations to apply to each garden-util Pod."
+          ),
+        }),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),
