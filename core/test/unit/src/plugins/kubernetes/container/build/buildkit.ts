@@ -8,7 +8,6 @@
 
 import { expect } from "chai"
 import { ClusterBuildkitCacheConfig } from "../../../../../../../src/plugins/kubernetes/config"
-import { getBuildkitImageFlags } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 import {
   getBuildkitFlags,
