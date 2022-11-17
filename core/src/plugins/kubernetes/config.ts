@@ -175,6 +175,7 @@ interface KubernetesResources {
   builder: KubernetesResourceSpec
   registry: KubernetesResourceSpec
   sync: KubernetesResourceSpec
+  util: KubernetesResourceSpec
 }
 
 interface KubernetesStorageSpec {
@@ -290,6 +291,16 @@ export const defaultResources: KubernetesResources = {
     requests: {
       cpu: 100,
       memory: 90,
+    },
+  },
+  util: {
+    limits: {
+      cpu: 256,
+      memory: 512,
+    },
+    requests: {
+      cpu: 256,
+      memory: 512,
     },
   },
 }
@@ -762,6 +773,12 @@ export const kubernetesConfigBase = () =>
 
             This is shared across all users and builds, so it should be resourced accordingly, factoring
             in how many concurrent builds you expect and how large your images tend to be.
+          `),
+        util: resourceSchema(defaultResources.util, false).description(dedent`
+            Resource requests and limits for the util pod for in-cluster builders.
+            This pod is used to get, start, stop and inquire the status of the builds.
+
+            This pod is created in each garden namespace.
           `),
         sync: resourceSchema(defaultResources.sync, true)
           .description(

@@ -63,7 +63,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   return skopeoBuildStatus({
     namespace,
     deploymentName: buildkitDeploymentName,
-    containerName: getUtilContainer(authSecret.metadata.name).name,
+    containerName: getUtilContainer(authSecret.metadata.name, provider).name,
     log,
     api,
     ctx,
@@ -415,7 +415,7 @@ export function getBuildkitDeployment(
               ],
             },
             // Attach a util container for the rsync server and to use skopeo
-            getUtilContainer(authSecretName),
+            getUtilContainer(authSecretName, provider),
           ],
           imagePullSecrets,
           volumes: [

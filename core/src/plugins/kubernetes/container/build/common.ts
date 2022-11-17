@@ -11,7 +11,7 @@ import pRetry from "p-retry"
 import { ContainerModule, ContainerRegistryConfig } from "../../../container/config"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
-import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
+import { getRunningDeploymentPod, megabytesToString, millicpuToString, usingInClusterRegistry } from "../../util"
 import {
   buildSyncVolumeName,
   dockerAuthSecretKey,
@@ -449,7 +449,7 @@ function isLocalHostname(hostname: string) {
   return hostname === "localhost" || hostname.startsWith("127.")
 }
 
-export function getUtilContainer(authSecretName: string): V1Container {
+export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {
   return {
     name: utilContainerName,
     image: k8sUtilImageName,
@@ -506,10 +506,19 @@ export function getUtilContainer(authSecretName: string): V1Container {
       },
     },
     resources: {
-      // This should be ample
       limits: {
-        cpu: "256m",
-        memory: "512Mi",
+        cpu: millicpuToString(provider.config.resources.util.limits.cpu),
+        memory: megabytesToString(provider.config.resources.util.limits.memory),
+        ...(provider.config.resources.util.limits.ephemeralStorage
+          ? { "ephemeral-storage": megabytesToString(provider.config.resources.util.limits.ephemeralStorage) }
+          : {}),
+      },
+      requests: {
+        cpu: millicpuToString(provider.config.resources.util.requests.cpu),
+        memory: megabytesToString(provider.config.resources.util.requests.memory),
+        ...(provider.config.resources.util.requests.ephemeralStorage
+          ? { "ephemeral-storage": megabytesToString(provider.config.resources.util.requests.ephemeralStorage) }
+          : {}),
       },
     },
     securityContext: {
@@ -548,7 +557,7 @@ export function getUtilManifests(
           },
         },
         spec: {
-          containers: [getUtilContainer(authSecretName)],
+          containers: [getUtilContainer(authSecretName, provider)],
           imagePullSecrets,
           volumes: [
             {

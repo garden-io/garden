@@ -396,6 +396,31 @@ providers:
           # Ephemeral storage request in megabytes.
           ephemeralStorage:
 
+      # Resource requests and limits for the util pod for in-cluster builders.
+      # This pod is used to get, start, stop and inquire the status of the builds.
+      #
+      # This pod is created in each garden namespace.
+      util:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 256
+
+          # Memory limit in megabytes.
+          memory: 512
+
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 256
+
+          # Memory request in megabytes.
+          memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
+
     # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
     # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
     #
@@ -1286,9 +1311,9 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
 
-| Type     | Default                                                                                                                                                                                                                                                    | Required |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}}` | No       |
+| Type     | Default                                                                                                                                                                                                                                                                                                                                   | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}},"util":{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}}` | No       |
 
 ### `providers[].resources.builder`
 
@@ -1622,6 +1647,173 @@ providers:
   - resources:
       ...
       registry:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.util`
+
+[providers](#providers) > [resources](#providersresources) > util
+
+Resource requests and limits for the util pod for in-cluster builders.
+This pod is used to get, start, stop and inquire the status of the builds.
+
+This pod is created in each garden namespace.
+
+| Type     | Default                                                                   | Required |
+| -------- | ------------------------------------------------------------------------- | -------- |
+| `object` | `{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}` | No       |
+
+### `providers[].resources.util.limits`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > limits
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":256,"memory":512}` | No       |
+
+### `providers[].resources.util.limits.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > cpu
+
+CPU limit in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `256`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          cpu: 256
+```
+
+### `providers[].resources.util.limits.memory`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > memory
+
+Memory limit in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.util.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > ephemeralStorage
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.util.requests`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > requests
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":256,"memory":512}` | No       |
+
+### `providers[].resources.util.requests.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > cpu
+
+CPU request in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `256`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        requests:
+          ...
+          cpu: 256
+```
+
+### `providers[].resources.util.requests.memory`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > memory
+
+Memory request in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        requests:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.util.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > ephemeralStorage
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
         ...
         requests:
           ...
