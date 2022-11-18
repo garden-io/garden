@@ -8,7 +8,7 @@
 
 import { V1PodSpec } from "@kubernetes/client-node"
 import { ContainerModule } from "../../../container/config"
-import { millicpuToString, megabytesToString, makePodName, usingInClusterRegistry } from "../../util"
+import { makePodName, usingInClusterRegistry } from "../../util"
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -40,6 +40,7 @@ import split2 from "split2"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
+import { stringifyResources } from "../util"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -337,22 +338,7 @@ async function runKaniko({
             mountPath: sharedMountPath,
           },
         ],
-        resources: {
-          limits: {
-            cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
-            memory: megabytesToString(provider.config.resources.builder.limits.memory),
-            ...(provider.config.resources.builder.limits.ephemeralStorage
-              ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.limits.ephemeralStorage) }
-              : {}),
-          },
-          requests: {
-            cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
-            memory: megabytesToString(provider.config.resources.builder.requests.memory),
-            ...(provider.config.resources.builder.requests.ephemeralStorage
-              ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.requests.ephemeralStorage) }
-              : {}),
-          },
-        },
+        resources: stringifyResources(provider.config.resources.builder),
       },
     ],
     tolerations: kanikoTolerations,

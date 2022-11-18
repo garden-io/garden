@@ -10,12 +10,12 @@ import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { LogEntry } from "../../../logger/log-entry"
-import { KubernetesPluginContext } from "../config"
+import { KubernetesPluginContext, KubernetesResourceSpec } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
 import { ContainerResourcesSpec, ServiceLimitSpec } from "../../container/config"
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
-import { kilobytesToString, millicpuToString } from "../util"
+import { kilobytesToString, megabytesToString, millicpuToString } from "../util"
 
 export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry, path: string, opts?: GotTextOptions) {
   const registryFwd = await getRegistryPortForward(ctx, log)
@@ -82,4 +82,23 @@ export function getSecurityContext(
     ctx.capabilities = { ...(ctx.capabilities || {}), drop: dropCapabilities }
   }
   return ctx
+}
+
+export function stringifyResources(resources: KubernetesResourceSpec) {
+  return {
+    limits: {
+      cpu: millicpuToString(resources.limits.cpu),
+      memory: megabytesToString(resources.limits.memory),
+      ...(resources.limits.ephemeralStorage
+        ? { "ephemeral-storage": megabytesToString(resources.limits.ephemeralStorage) }
+        : {}),
+    },
+    requests: {
+      cpu: millicpuToString(resources.requests.cpu),
+      memory: megabytesToString(resources.requests.memory),
+      ...(resources.requests.ephemeralStorage
+        ? { "ephemeral-storage": megabytesToString(resources.requests.ephemeralStorage) }
+        : {}),
+    },
+  }
 }

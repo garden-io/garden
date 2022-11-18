@@ -33,10 +33,11 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
-import { getRunningDeploymentPod, millicpuToString, megabytesToString, usingInClusterRegistry } from "../../util"
+import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { ContainerModuleOutputs } from "../../../container/container"
+import { stringifyResources } from "../util"
 
 export const buildkitImageName = "gardendev/buildkit:v0.10.5-1"
 export const buildkitDeploymentName = "garden-buildkit"
@@ -462,22 +463,7 @@ export function getBuildkitDeployment(
     }
   }
 
-  buildkitContainer.resources = {
-    limits: {
-      cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
-      memory: megabytesToString(provider.config.resources.builder.limits.memory),
-      ...(provider.config.resources.builder.limits.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.limits.ephemeralStorage) }
-        : {}),
-    },
-    requests: {
-      cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
-      memory: megabytesToString(provider.config.resources.builder.requests.memory),
-      ...(provider.config.resources.builder.requests.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.requests.ephemeralStorage) }
-        : {}),
-    },
-  }
+  buildkitContainer.resources = stringifyResources(provider.config.resources.builder)
 
   if (usingInClusterRegistry(provider)) {
     // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod
