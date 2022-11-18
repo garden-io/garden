@@ -158,17 +158,15 @@ export interface CertManagerConfig {
   acmeServer?: LetsEncryptServerType
 }
 
+export interface KuberetesResourceConfig {
+  cpu: number
+  memory: number
+  ephemeralStorage?: number
+}
+
 export interface KubernetesResourceSpec {
-  limits: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
-  requests: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
+  limits: KuberetesResourceConfig
+  requests: KuberetesResourceConfig
 }
 
 interface KubernetesResources {
