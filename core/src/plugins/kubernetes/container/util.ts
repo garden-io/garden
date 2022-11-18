@@ -10,7 +10,7 @@ import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { LogEntry } from "../../../logger/log-entry"
-import { KubernetesPluginContext, KubernetesResourceSpec } from "../config"
+import { KuberetesResourceConfig, KubernetesPluginContext, KubernetesResourceSpec } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
 import { ContainerResourcesSpec, ServiceLimitSpec } from "../../container/config"
@@ -85,20 +85,14 @@ export function getSecurityContext(
 }
 
 export function stringifyResources(resources: KubernetesResourceSpec) {
+  const stringify = (r: KuberetesResourceConfig) => ({
+    cpu: millicpuToString(r.cpu),
+    memory: megabytesToString(r.memory),
+    ...(r.ephemeralStorage ? { "ephemeral-storage": megabytesToString(r.ephemeralStorage) } : {}),
+  })
+
   return {
-    limits: {
-      cpu: millicpuToString(resources.limits.cpu),
-      memory: megabytesToString(resources.limits.memory),
-      ...(resources.limits.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(resources.limits.ephemeralStorage) }
-        : {}),
-    },
-    requests: {
-      cpu: millicpuToString(resources.requests.cpu),
-      memory: megabytesToString(resources.requests.memory),
-      ...(resources.requests.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(resources.requests.ephemeralStorage) }
-        : {}),
-    },
+    limits: stringify(resources.limits),
+    requests: stringify(resources.requests),
   }
 }
