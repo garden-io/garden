@@ -11,7 +11,7 @@ import pRetry from "p-retry"
 import { ContainerModule, ContainerRegistryConfig } from "../../../container/config"
 import { GetBuildStatusParams, BuildStatus } from "../../../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams, BuildResult } from "../../../../types/plugin/module/build"
-import { getRunningDeploymentPod, megabytesToString, millicpuToString, usingInClusterRegistry } from "../../util"
+import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
 import {
   buildSyncVolumeName,
   dockerAuthSecretKey,
@@ -40,6 +40,7 @@ import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
+import { stringifyResources } from "../util"
 
 const inClusterRegistryPort = 5000
 
@@ -505,22 +506,7 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
         },
       },
     },
-    resources: {
-      limits: {
-        cpu: millicpuToString(provider.config.resources.util.limits.cpu),
-        memory: megabytesToString(provider.config.resources.util.limits.memory),
-        ...(provider.config.resources.util.limits.ephemeralStorage
-          ? { "ephemeral-storage": megabytesToString(provider.config.resources.util.limits.ephemeralStorage) }
-          : {}),
-      },
-      requests: {
-        cpu: millicpuToString(provider.config.resources.util.requests.cpu),
-        memory: megabytesToString(provider.config.resources.util.requests.memory),
-        ...(provider.config.resources.util.requests.ephemeralStorage
-          ? { "ephemeral-storage": megabytesToString(provider.config.resources.util.requests.ephemeralStorage) }
-          : {}),
-      },
-    },
+    resources: stringifyResources(provider.config.resources.util),
     securityContext: {
       runAsUser: 1000,
       runAsGroup: 1000,
