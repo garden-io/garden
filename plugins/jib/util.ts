@@ -14,7 +14,7 @@ import { ContainerBuildSpec, ContainerModuleSpec } from "@garden-io/core/build/s
 
 interface JibModuleBuildSpec extends ContainerBuildSpec {
   dockerBuild?: boolean
-  projectType: "gradle" | "maven" | "auto"
+  projectType: "gradle" | "maven" | "mavend" | "auto"
   jdkVersion: number
   jdkPath?: string
   tarOnly?: boolean
@@ -69,7 +69,7 @@ export function getBuildFlags(module: JibContainerModule, projectType: JibModule
   let targetDir: string
   let target: string
 
-  if (projectType === "maven") {
+  if (projectType === "maven" || projectType === "mavend") {
     targetDir = "target"
     if (tarOnly) {
       target = "jib:buildTar"
