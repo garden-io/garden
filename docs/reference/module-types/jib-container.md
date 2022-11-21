@@ -888,9 +888,9 @@ Maximum time in seconds to wait for build to finish.
 
 The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
 
-| Type     | Allowed Values                   | Default  | Required |
-| -------- | -------------------------------- | -------- | -------- |
-| `string` | "gradle", "maven", "jib", "auto" | `"auto"` | Yes      |
+| Type     | Allowed Values                             | Default  | Required |
+| -------- | ------------------------------------------ | -------- | -------- |
+| `string` | "gradle", "maven", "jib", "auto", "mavend" | `"auto"` | Yes      |
 
 ### `build.jdkVersion`
 
