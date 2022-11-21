@@ -19,7 +19,7 @@ const formattedJob = `<${ciJobUrl}|ci job>`
 const report = `Unit tests passing ${testPassed[1]}/${parseInt(testFailed[1])+parseInt(testPassed[1])}
 ${formattedJob} | branch: ${formattedBranch}${formattedPrUrl}`
 
-const webhookUrl = branch === "graph-v2" ? process.env.GRAPH_V2_SLACK_WH : process.env.GRAPH_V2_PR_SLACK_WH
+const webhookUrl = branch === "0.13" ? process.env.GRAPH_V2_SLACK_WH : process.env.GRAPH_V2_PR_SLACK_WH
 
 if (!webhookUrl) throw "webhook URL undefined"
 
