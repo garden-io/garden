@@ -202,6 +202,10 @@ providers:
           # otherwise just a regular string.
           value:
 
+      # Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit.
+      # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+      annotations:
+
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -261,8 +265,13 @@ providers:
           # otherwise just a regular string.
           value:
 
+      # Specify annotations to apply to each Kaniko builder Pod. Annotations may have an effect on the behaviour of
+      # certain components, for example autoscalers. Same anotations will be used for the util pod unless they are
+      # specifically set under `util.annotations`
+      annotations:
+
       util:
-        # Specify tolerations to apply to each garden-util Pod.
+        # Specify tolerations to apply to the garden-util Pod.
         tolerations:
           - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
             # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -288,6 +297,9 @@ providers:
             # empty,
             # otherwise just a regular string.
             value:
+
+        # Specify annotations to apply to the garden-util Pod and Deployment.
+        annotations:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -999,6 +1011,26 @@ otherwise just a regular string.
 | -------- | -------- |
 | `string` | No       |
 
+### `providers[].clusterBuildkit.annotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > annotations
+
+Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
 ### `providers[].clusterDocker`
 
 [providers](#providers) > clusterDocker
@@ -1169,6 +1201,26 @@ otherwise just a regular string.
 | -------- | -------- |
 | `string` | No       |
 
+### `providers[].kaniko.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > annotations
+
+Specify annotations to apply to each Kaniko builder Pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. Same anotations will be used for the util pod unless they are specifically set under `util.annotations`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
 ### `providers[].kaniko.util`
 
 [providers](#providers) > [kaniko](#providerskaniko) > util
@@ -1181,7 +1233,7 @@ otherwise just a regular string.
 
 [providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > tolerations
 
-Specify tolerations to apply to each garden-util Pod.
+Specify tolerations to apply to the garden-util Pod.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1244,6 +1296,28 @@ otherwise just a regular string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `providers[].kaniko.util.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > annotations
+
+Specify annotations to apply to the garden-util Pod and Deployment.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      util:
+        ...
+        annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
 
 ### `providers[].defaultHostname`
 
@@ -2851,6 +2925,16 @@ Map of annotations to apply to the namespace when creating it.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - namespace: ''
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
 
 ### `providers[].namespace.labels`
 
