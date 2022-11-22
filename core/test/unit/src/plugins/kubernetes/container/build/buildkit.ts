@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expect, util } from "chai"
+import { expect } from "chai"
 import { DeepPartial } from "typeorm-with-better-sqlite3"
 import {
   ClusterBuildkitCacheConfig,
