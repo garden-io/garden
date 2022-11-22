@@ -46,8 +46,6 @@ Requirements for the local machine environment:
 
 ## Current limitations
 
-This is the first release of _local mode_ feature which supports [`container`](./container-modules.md),
-[`kubernetes`](../reference/module-types/kubernetes.md) and [`helm`](../reference/module-types/helm.md) module types.
 There is a number of functional limitations in this release:
 
 * **Windows compatibility.** The _local mode_ is not supported natively for Windows OS. It should be used with WSL in
