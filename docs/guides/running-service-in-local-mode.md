@@ -150,7 +150,7 @@ services:
 
 An example can be found in the [`local-mode project`](../../examples/local-mode).
 
-### Configuring dev mode for `kubernetes` modules
+### Configuring local mode for `kubernetes` and `helm` modules
 
 ```yaml
 kind: Module
