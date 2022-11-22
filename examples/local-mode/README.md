@@ -50,3 +50,18 @@ garden dev --local=*
 
 To verify the result, call the corresponding ingress URLs of the `frontend` and `backend` applications. The local
 backend implementations return different messages in responses.
+
+## Limitations
+
+As it has been described in the [local mode guide](../../docs/guides/running-service-in-local-mode.md), a service that
+calls some other services may not work properly in local mode.
+
+In this example, the [frontend](./frontend) service can be configured and deployed in local mode. Calls to
+its `/hello-frontend` will be handled by the locally deployed service with no troubles.
+
+But, calls to `/call-backend-1` or `/call-backend-2` endpoints will fail with an error message like "Unable to reach
+service at `http://backend-1/hello-backend-1`". This will happen because the locally deployed service is not aware of
+the DNS names `backend-1` and `backend-2` which are configured inside the k8s cluster.
+
+This can be fixed by using the exact DNS names of ingresses instead of k8s DNS names in
+the [application code](./frontend/app.js).
