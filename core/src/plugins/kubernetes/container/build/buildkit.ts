@@ -360,6 +360,7 @@ export function getBuildkitDeployment(
         app: buildkitDeploymentName,
       },
       name: buildkitDeploymentName,
+      annotations: provider.config.clusterBuildkit?.annotations,
     },
     spec: {
       replicas: 1,
@@ -373,6 +374,7 @@ export function getBuildkitDeployment(
           labels: {
             app: buildkitDeploymentName,
           },
+          annotations: provider.config.clusterBuildkit?.annotations,
         },
         spec: {
           containers: [

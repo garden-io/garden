@@ -390,6 +390,7 @@ async function runKaniko({
     metadata: {
       name: podName,
       namespace: kanikoNamespace,
+      annotations: provider.config.kaniko?.annotations,
     },
     spec,
   }

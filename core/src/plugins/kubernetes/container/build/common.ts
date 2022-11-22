@@ -523,6 +523,7 @@ export function getUtilManifests(
     ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
     builderToleration,
   ]
+  const kanikoAnnotations = provider.config.kaniko?.util?.annotations || provider.config.kaniko?.annotations
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -531,6 +532,7 @@ export function getUtilManifests(
         app: utilDeploymentName,
       },
       name: utilDeploymentName,
+      annotations: kanikoAnnotations,
     },
     spec: {
       replicas: 1,
@@ -544,6 +546,7 @@ export function getUtilManifests(
           labels: {
             app: utilDeploymentName,
           },
+          annotations: kanikoAnnotations,
         },
         spec: {
           containers: [getUtilContainer(authSecretName, provider)],
