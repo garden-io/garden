@@ -233,10 +233,10 @@ providers:
       # pods to only run on particular nodes.
       #
       # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
-      # guide to assigning Pods to nodes.
+      # guide to assigning pods to nodes.
       nodeSelector:
 
-      # Specify tolerations to apply to each Kaniko builder Pod. Useful to control which nodes in a cluster can run
+      # Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run
       # builds. Same tolerations will be used for the util pod unless they are specifically set under
       # `util.tolerations`
       tolerations:
@@ -265,13 +265,13 @@ providers:
           # otherwise just a regular string.
           value:
 
-      # Specify annotations to apply to each Kaniko builder Pod. Annotations may have an effect on the behaviour of
-      # certain components, for example autoscalers. Same anotations will be used for the util pod unless they are
+      # Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of
+      # certain components, for example autoscalers. Same anotations will be used for each util pod unless they are
       # specifically set under `util.annotations`
       annotations:
 
       util:
-        # Specify tolerations to apply to the garden-util Pod.
+        # Specify tolerations to apply to each garden-util pod.
         tolerations:
           - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
             # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -298,7 +298,7 @@ providers:
             # otherwise just a regular string.
             value:
 
-        # Specify annotations to apply to the garden-util Pod and Deployment.
+        # Specify annotations to apply to each garden-util pod and deployments.
         annotations:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
@@ -1127,7 +1127,7 @@ Choose the namespace where the Kaniko pods will be run. Set to `null` to use the
 
 Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
 
-[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1137,7 +1137,7 @@ Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows 
 
 [providers](#providers) > [kaniko](#providerskaniko) > tolerations
 
-Specify tolerations to apply to each Kaniko builder Pod. Useful to control which nodes in a cluster can run builds. Same tolerations will be used for the util pod unless they are specifically set under `util.tolerations`
+Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. Same tolerations will be used for the util pod unless they are specifically set under `util.tolerations`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1205,7 +1205,7 @@ otherwise just a regular string.
 
 [providers](#providers) > [kaniko](#providerskaniko) > annotations
 
-Specify annotations to apply to each Kaniko builder Pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. Same anotations will be used for the util pod unless they are specifically set under `util.annotations`
+Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. Same anotations will be used for each util pod unless they are specifically set under `util.annotations`
 
 | Type     | Required |
 | -------- | -------- |
@@ -1233,7 +1233,7 @@ providers:
 
 [providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > tolerations
 
-Specify tolerations to apply to the garden-util Pod.
+Specify tolerations to apply to each garden-util pod.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1301,7 +1301,7 @@ otherwise just a regular string.
 
 [providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > annotations
 
-Specify annotations to apply to the garden-util Pod and Deployment.
+Specify annotations to apply to each garden-util pod and deployments.
 
 | Type     | Required |
 | -------- | -------- |
