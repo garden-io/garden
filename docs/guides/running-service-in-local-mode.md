@@ -46,14 +46,21 @@ Requirements for the local machine environment:
 
 ## Current limitations
 
-There is a number of functional limitations in this release:
+There is a number of functional limitations in the current version.
 
-* **Windows compatibility.** The _local mode_ is not supported natively for Windows OS. It should be used with WSL in
-  Windows environments.
-* Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md) or
-  [`helm`](../reference/module-types/helm.md) service.
-* The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
-  be re-deployed manually by using `garden deploy`.
+### Windows compatibility
+
+The _local mode_ is not supported natively for Windows OS. It should be used with WSL in Windows environments.
+
+### Number of the services in local mode
+
+Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md)
+or [`helm`](../reference/module-types/helm.md) service. This limitation is planned to be removed in Garden Core `0.13`.
+
+### Cluster state on exit
+
+The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must be
+re-deployed manually by using `garden deploy`.
 
 The next step is to fully integrate local services into remote clusters and to establish connections to all dependent
 data sources and services.
