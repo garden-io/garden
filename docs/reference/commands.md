@@ -1036,7 +1036,11 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--scope-to-user-id` |  | number | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
   | `--scope-to-env` |  | string | Scope the secret to an environment. Note that this does not default to the environment that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if you want to create an environment scoped secret.
-  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should either be a JSON file with the &quot;.json&quot; extension or a standard env file.
+JSON files should have the following format:
+[ { name: &quot;SECRET_A&quot;, value: &quot;VALUE_A&quot; }, { name: &quot;SECRET_B&quot;, value: &quot;VALUE_B&quot;, } ]
+Env files should have the &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+Files that don&#x27;t have a &quot;.json&quot; extension will be treated as env files by default.
 
 
 ### garden cloud secrets delete
@@ -1065,7 +1069,7 @@ Examples:
 
 **[EXPERIMENTAL] Show secrets.**
 
-Show all secrets from Garden Cloud for the given project, environment and user triplet.
+Show the given secret frm Garden Cloud for the given project, environment and user triplet.
 
 Note that secrets can be scoped to a project, scoped to a project and an environment, or
 scoped to a project, an environment, and a user. Garden resolves secrets in that precedence
@@ -1074,21 +1078,17 @@ from another user unless you assume their role.
 
 Examples:
     garden cloud secrets show                                          # show all secrets
-    garden cloud secrets show --filter-names DB_*                      # show all secrets that start with DB_
-
-| Supported in workflows |   |
-| ---------------------- |---|
-| No |                                                  |
 
 #### Usage
 
-    garden cloud secrets show [options]
+    garden cloud secrets show <secret> 
 
-#### Options
+#### Arguments
 
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `secret` | Yes | Name of the secret to show.
+
 
 
 ### garden cloud users list
