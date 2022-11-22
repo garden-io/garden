@@ -707,23 +707,23 @@ export const kubernetesConfigBase = () =>
           dedent`
             Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
 
-            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
           `
         ),
         tolerations: joiSparseArray(tolerationSchema()).description(
-          deline`Specify tolerations to apply to each Kaniko builder Pod. Useful to control which nodes in a cluster can run builds.
+          deline`Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds.
           Same tolerations will be used for the util pod unless they are specifically set under \`util.tolerations\``
         ),
         annotations: annotationsSchema().description(
-          deline`Specify annotations to apply to each Kaniko builder Pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
-          Same anotations will be used for the util pod unless they are specifically set under \`util.annotations\``
+          deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+          Same anotations will be used for each util pod unless they are specifically set under \`util.annotations\``
         ),
         util: joi.object().keys({
           tolerations: joiSparseArray(tolerationSchema()).description(
-            "Specify tolerations to apply to the garden-util Pod."
+            "Specify tolerations to apply to each garden-util pod."
           ),
           annotations: annotationsSchema().description(
-            "Specify annotations to apply to the garden-util Pod and Deployment."
+            "Specify annotations to apply to each garden-util pod and deployments."
           ),
         }),
       })
