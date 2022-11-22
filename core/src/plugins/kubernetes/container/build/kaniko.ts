@@ -211,7 +211,16 @@ export function kanikoBuildFailed(buildRes: RunResult) {
   )
 }
 
-interface GetKanikoBuilderPodManifestParams {
+export function getKanikoBuilderPodManifest({
+  provider,
+  kanikoNamespace,
+  authSecretName,
+  syncArgs,
+  imagePullSecrets,
+  sourceUrl,
+  podName,
+  commandStr,
+}: {
   provider: KubernetesProvider
   kanikoNamespace: string
   authSecretName: string
@@ -222,18 +231,7 @@ interface GetKanikoBuilderPodManifestParams {
   sourceUrl: string
   podName: string
   commandStr: string
-}
-
-export function getKanikoBuilderPodManifest({
-  provider,
-  kanikoNamespace,
-  authSecretName,
-  syncArgs,
-  imagePullSecrets,
-  sourceUrl,
-  podName,
-  commandStr,
-}: GetKanikoBuilderPodManifestParams) {
+}) {
   const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
 
@@ -361,17 +359,6 @@ export function getKanikoBuilderPodManifest({
   return pod
 }
 
-interface RunKanikoParams {
-  ctx: PluginContext
-  provider: KubernetesProvider
-  kanikoNamespace: string
-  utilNamespace: string
-  authSecretName: string
-  log: LogEntry
-  module: ContainerModule
-  args: string[]
-}
-
 async function runKaniko({
   ctx,
   provider,
@@ -381,7 +368,16 @@ async function runKaniko({
   log,
   module,
   args,
-}: RunKanikoParams): Promise<RunResult> {
+}: {
+  ctx: PluginContext
+  provider: KubernetesProvider
+  kanikoNamespace: string
+  utilNamespace: string
+  authSecretName: string
+  log: LogEntry
+  module: ContainerModule
+  args: string[]
+}): Promise<RunResult> {
   const api = await KubeApi.factory(log, ctx, provider)
 
   const podName = makePodName("kaniko", module.name)
