@@ -58,6 +58,11 @@ DNS configuration is not aware about any DNS names configured in the k8s cluster
 
 A concrete example can be found in the [`local-mode project`](../../examples/local-mode).
 
+### Compatibility with dev mode
+
+A service cannot be running in local and dev modes simultaneously. Local mode always takes precedence over dev mode if
+both are configured in the relevant `garden.yml` configuration file and if both `--local` and `--dev` flags are enabled.
+
 ### Windows compatibility
 
 The _local mode_ is not supported natively for Windows OS. It should be used with WSL in Windows environments.
