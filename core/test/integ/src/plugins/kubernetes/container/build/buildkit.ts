@@ -153,6 +153,30 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
       })
       expect(updated).to.be.false
     })
+
+    it("returns false if buildkit is already deployed with annotations", async () => {
+      provider.config.clusterBuildkit = {
+        cache: [],
+        annotations: {
+          testAnnotation: "is-there",
+        },
+      }
+      await ensureBuildkit({
+        ctx,
+        provider,
+        log: garden.log,
+        api,
+        namespace,
+      })
+      const { updated } = await ensureBuildkit({
+        ctx,
+        provider,
+        log: garden.log,
+        api,
+        namespace,
+      })
+      expect(updated).to.be.false
+    })
   })
 
   grouped("cluster-buildkit-rootless").context("cluster-buildkit-rootless mode", () => {

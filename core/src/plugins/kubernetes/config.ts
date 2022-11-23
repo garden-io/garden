@@ -214,6 +214,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     rootless?: boolean
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    annotations?: StringMap
   }
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -227,8 +228,10 @@ export interface KubernetesConfig extends BaseProviderConfig {
     namespace?: string | null
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    annotations?: StringMap
     util?: {
       tolerations?: V1Toleration[]
+      annotations?: StringMap
     }
   }
   context: string
@@ -642,6 +645,9 @@ export const kubernetesConfigBase = () =>
         tolerations: joiSparseArray(tolerationSchema()).description(
           "Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds."
         ),
+        annotations: annotationsSchema().description(
+          "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
+        ),
       })
       .default(() => ({}))
       .description("Configuration options for the `cluster-buildkit` build mode."),
@@ -701,16 +707,23 @@ export const kubernetesConfigBase = () =>
           dedent`
             Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
 
-            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
           `
         ),
         tolerations: joiSparseArray(tolerationSchema()).description(
-          deline`Specify tolerations to apply to each Kaniko builder Pod. Useful to control which nodes in a cluster can run builds.
+          deline`Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds.
           Same tolerations will be used for the util pod unless they are specifically set under \`util.tolerations\``
+        ),
+        annotations: annotationsSchema().description(
+          deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+          Same anotations will be used for each util pod unless they are specifically set under \`util.annotations\``
         ),
         util: joi.object().keys({
           tolerations: joiSparseArray(tolerationSchema()).description(
-            "Specify tolerations to apply to each garden-util Pod."
+            "Specify tolerations to apply to each garden-util pod."
+          ),
+          annotations: annotationsSchema().description(
+            "Specify annotations to apply to each garden-util pod and deployments."
           ),
         }),
       })
@@ -959,13 +972,18 @@ export const tolerationSchema = () =>
         `),
   })
 
+const annotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
 export const namespaceSchema = () =>
   joi.alternatives(
     joi.object().keys({
       name: namespaceNameSchema(),
-      annotations: joiStringMap(joi.string()).description(
-        "Map of annotations to apply to the namespace when creating it."
-      ),
+      annotations: annotationsSchema().description("Map of annotations to apply to the namespace when creating it."),
       labels: joiStringMap(joi.string()).description("Map of labels to apply to the namespace when creating it."),
     }),
     namespaceNameSchema()
