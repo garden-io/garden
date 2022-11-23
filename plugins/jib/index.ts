@@ -12,6 +12,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
 import { mavenSpec, mvn } from "./maven"
+import { mavendSpec, mvnd } from "./mavend"
 import { gradle, gradleSpec } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
@@ -43,7 +44,7 @@ const jibModuleSchema = () =>
     build: baseBuildSpecSchema().keys({
       projectType: joi
         .string()
-        .valid("gradle", "maven", "jib", "auto")
+        .valid("gradle", "maven", "jib", "auto", "mavend")
         .default("auto")
         .description(
           dedent`
@@ -245,6 +246,15 @@ export const gardenPlugin = () =>
                 mavenPath: module.spec.build.mavenPath,
                 outputStream,
               })
+            } else if (projectType === "mavend") {
+              await mvnd({
+                ctx,
+                log,
+                cwd: module.path,
+                args: [...mavenPhases, ...args],
+                openJdkPath,
+                outputStream,
+              })
             } else {
               await gradle({
                 ctx,
@@ -267,5 +277,5 @@ export const gardenPlugin = () =>
         },
       },
     ],
-    tools: [mavenSpec, gradleSpec, ...openJdkSpecs],
+    tools: [mavenSpec, gradleSpec, mavendSpec, ...openJdkSpecs],
   })
