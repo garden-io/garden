@@ -1,9 +1,0 @@
-kind: Project
-name: tmp
-
-environments:
-  - name: local
-
-providers:
-  - name: local-kubernetes
-    environments: [ local ]
