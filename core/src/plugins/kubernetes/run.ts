@@ -432,6 +432,48 @@ async function runWithoutArtifacts({
   return result
 }
 
+/**
+ * Wraps a given {@code cmd} into a script to redirect its stdout and stderr to the same tmp file.
+ * See https://stackoverflow.com/a/20564208
+ * @param cmd the command to wrap
+ */
+function commandExecutionScript(cmd: string[]) {
+  return `
+exec 1<&-
+exec 2<&-
+exec 1<>/tmp/output
+exec 2>&1
+
+${cmd.join(" ")}
+`
+}
+
+/**
+ * For given {@code artifacts} prepares a script which will:
+ *   1. Create temp directory in the container
+ *   2. Create directories for each target, as necessary
+ *   3. Recursively (and silently) copy all specified artifact files/directories into the temp directory
+ *   4. Tarball the directory and pipe to stdout
+ * @param artifacts the artifacts to be processed
+ */
+function artifactsTarScript(artifacts: ArtifactSpec[]) {
+  // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
+  const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
+  const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
+
+  // TODO: escape the user paths somehow?
+  return `
+rm -rf ${tmpPath} >/dev/null || true
+mkdir -p ${tmpPath}
+cd ${tmpPath}
+touch .garden-placeholder
+${directoriesToCreate.map((target) => `mkdir -p ${target}`).join("\n")}
+${artifacts.map(({ source, target }) => `cp -r ${source} ${target || "."} >/dev/null || true`).join("\n")}
+tar -c -z -f - . | cat
+rm -rf ${tmpPath} >/dev/null || true
+`
+}
+
 async function runWithArtifacts({
   ctx,
   api,
@@ -553,15 +595,7 @@ async function runWithArtifacts({
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
 
     try {
-      // See https://stackoverflow.com/a/20564208
-      const commandScript = `
-exec 1<&-
-exec 2<&-
-exec 1<>/tmp/output
-exec 2>&1
-
-${cmd.join(" ")}
-`
+      const commandScript = commandExecutionScript(cmd)
 
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
@@ -595,26 +629,7 @@ ${cmd.join(" ")}
       })
     }
 
-    // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
-    const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
-    const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
-
-    // This script will
-    // 1. Create temp directory in the container
-    // 2. Create directories for each target, as necessary
-    // 3. Recursively (and silently) copy all specified artifact files/directories into the temp directory
-    // 4. Tarball the directory and pipe to stdout
-    // TODO: escape the user paths somehow?
-    const tarScript = `
-rm -rf ${tmpPath} >/dev/null || true
-mkdir -p ${tmpPath}
-cd ${tmpPath}
-touch .garden-placeholder
-${directoriesToCreate.map((target) => `mkdir -p ${target}`).join("\n")}
-${artifacts.map(({ source, target }) => `cp -r ${source} ${target || "."} >/dev/null || true`).join("\n")}
-tar -c -z -f - . | cat
-rm -rf ${tmpPath} >/dev/null || true
-    `
+    const tarScript = artifactsTarScript(artifacts)
 
     // Copy the artifacts
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
