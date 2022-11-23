@@ -81,6 +81,7 @@ export async function getActionWatchTasks({
   testsWatched: string[]
 }): Promise<BaseTask[]> {
   const dependants = graph.getDependants({ kind: updatedAction.kind, name: updatedAction.name, recursive: true })
+  dependants.push(updatedAction)
 
   const outputTasks: BaseTask[] = []
 
