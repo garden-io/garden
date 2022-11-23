@@ -417,12 +417,14 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   // Note: Making this name verbose so that people don't accidentally use this instead of versionString()
   @Memoize()
   getFullVersion(): ModuleVersion {
-    const dependencyVersions = fromPairs(
-      this.dependencies.map((d) => {
-        const action = this.graph.getActionByRef(d)
-        return [action.key(), action.versionString()]
-      })
-    )
+    const depPairs: string[][] = []
+    this.dependencies.forEach((d) => {
+      const action = this.graph.getActionByRef(d, { includeDisabled: true })
+      if (!action.isDisabled()) {
+        depPairs.push([action.key(), action.versionString()])
+      }
+    })
+    const dependencyVersions = fromPairs(depPairs)
 
     const versionString = versionStringPrefix + hashStrings([this.configVersion(), this._treeVersion.contentHash])
 
