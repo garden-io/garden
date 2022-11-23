@@ -576,12 +576,12 @@ ${cmd.join(" ")}
       })
       result = {
         ...res,
-        log: (await runner.getMainContainerLogs()).trim() || res.log,
+        log: (await runner.getMainContainerLogs()) || res.log,
         moduleName: module.name,
         version,
       }
     } catch (err) {
-      const containerLogs = (await runner.getMainContainerLogs()).trim()
+      const containerLogs = await runner.getMainContainerLogs()
       const exitCode = err.detail.result.exitCode
 
       result = handlePodError({
@@ -864,7 +864,7 @@ export class PodRunner extends PodRunnerParams {
         if (exitCode === 137 || exitReason === "OOMKilled") {
           const msg = `Pod container was OOMKilled.`
           throw new OutOfMemoryError(msg, {
-            logs: (await this.getDebugLogs()) || msg,
+            logs: (await this.getMainContainerLogs()) || msg,
             exitCode,
             serverPod,
           })
@@ -904,7 +904,7 @@ export class PodRunner extends PodRunnerParams {
         if (timeoutSec && elapsed > timeoutSec) {
           const msg = `Command timed out after ${timeoutSec} seconds.`
           throw new TimeoutError(msg, {
-            logs: (await this.getDebugLogs()) || msg,
+            logs: (await this.getMainContainerLogs()) || msg,
             serverPod,
           })
         }
@@ -997,7 +997,7 @@ export class PodRunner extends PodRunnerParams {
     if (result.exitCode === 137) {
       const msg = `Pod container was OOMKilled.`
       throw new OutOfMemoryError(msg, {
-        logs: (await this.getDebugLogs()) || msg,
+        logs: (await this.getMainContainerLogs()) || msg,
         result,
         execParams: params,
       })
@@ -1031,14 +1031,11 @@ export class PodRunner extends PodRunnerParams {
     })
   }
 
-  async getMainContainerLogs() {
-    const allLogs = await this.getLogs()
-    return allLogs.find((l) => l.containerName === this.getMainContainerName())?.log || ""
-  }
-
-  async getDebugLogs() {
+  async getMainContainerLogs(): Promise<string> {
     try {
-      return (await this.getMainContainerLogs()).trim()
+      const allLogs = await this.getLogs()
+      const containerLogs = allLogs.find((l) => l.containerName === this.getMainContainerName())?.log || ""
+      return containerLogs.trim()
     } catch (err) {
       return ""
     }
