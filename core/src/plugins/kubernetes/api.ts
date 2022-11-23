@@ -1004,7 +1004,7 @@ const statusCodesForRetry: number[] = [
   httpStatusCodes.SERVICE_UNAVAILABLE,
   httpStatusCodes.GATEWAY_TIMEOUT,
 
-  // Clouflare-specific status codes
+  // Cloudflare-specific status codes
   521, // Web Server Is Down
   522, // Connection Timed Out
   524, // A Timeout Occurred
