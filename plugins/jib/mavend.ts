@@ -20,9 +20,9 @@ const mvndSpec = {
   description: "The Maven Daemon CLI.",
   baseUrl: `https://github.com/apache/maven-mvnd/releases/download/${mvndVersion}/`,
   linux: {
-    filename: `maven-mvnd-${mvndVersion}-darwin-amd64.tar.gz`,
+    filename: `maven-mvnd-${mvndVersion}-linux-amd64.tar.gz`,
     sha256: "5bcd4c3e45b767d562aa8d81583461abeb4fd6626ea1b8a1d961f34ef472f115",
-    targetPath: `maven-mvnd-${mvndVersion}-darwin-amd64/bin/mvnd`,
+    targetPath: `maven-mvnd-${mvndVersion}-linux-amd64/bin/mvnd`,
   },
   darwin_aarch64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-aarch64.tar.gz`,
@@ -36,7 +36,7 @@ const mvndSpec = {
   },
   windows: {
     filename: `maven-mvnd-${mvndVersion}-windows-amd64.zip`,
-    sha256: "1991f977d9f73b8fa13a21c062e0fa3bd850e874f2f5682dca1f567548024bc6",
+    sha256: "bfe6115b643ecb54b52a46df9e5b790035e54e67e21c10f964c7d58f633b7f22",
     targetPath: `maven-mvnd-${mvndVersion}-windows-amd64/bin/mvnd.cmd`,
   },
 }
