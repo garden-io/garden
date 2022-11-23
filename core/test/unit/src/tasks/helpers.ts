@@ -34,23 +34,39 @@ describe("TaskHelpers", () => {
    * getDependencies methods of the task classes in question.
    */
   describe("getActionWatchTasks", () => {
-    it("should return no deploy tasks for a disabled action, but include its dependants", async () => {
+    it("should return tasks for an action", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          allowPublish: false,
-          build: { dependencies: [] },
-          disabled: true, // <---------------
-          name: "module-a",
-          include: [],
-          path: garden.projectRoot,
-          serviceConfigs: [],
-          taskConfigs: [],
-          spec: {
-            services: [
-              {
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            name: "test-action",
+            kind: "Deploy",
+            type: "test",
+            internal: {
+              basePath: "foo",
+            },
+            spec: {},
+          },
+        ]
+      )
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = graph.getDeploy("test-action")
+
+      const tasks = await getActionWatchTasks({
+        garden,
+        graph,
+        log,
+        updatedAction: action,
+        deploysWatched: graph.getDeploys().map((s) => s.name),
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        testsWatched: [],
+      })
+
+      expect(sortedBaseKeys(tasks)).to.eql(["deploy.test-action"])
+    })
                 name: "service-a",
                 dependencies: [],
                 disabled: false,
