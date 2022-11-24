@@ -345,8 +345,11 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
     // Have to override the cache in the parent context here
     // TODO: make this a little less hacky :P
-    delete loopContext["_resolvedValues"]["item.key"]
-    delete loopContext["_resolvedValues"]["item.value"]
+    const resolvedValues = loopContext["_resolvedValues"]
+    delete resolvedValues["item.key"]
+    delete resolvedValues["item.value"]
+    const subValues = Object.keys(resolvedValues).filter((k) => k.match(/item\.value\.*/))
+    subValues.forEach((v) => delete resolvedValues[v])
 
     // Check $filter clause output, if applicable
     if (filterExpression !== undefined) {
