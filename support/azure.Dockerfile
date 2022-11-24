@@ -11,7 +11,7 @@ RUN apk add --virtual=build gcc libffi-dev musl-dev openssl-dev make readline li
   && apk del --purge build
 
 # Ensure kubelogin is available
-ENV KUBELOGIN_VERSION="v0.0.9"
+ENV KUBELOGIN_VERSION="v0.0.24"
 RUN wget -O kubelogin-linux-amd64.zip https://github.com/Azure/kubelogin/releases/download/$KUBELOGIN_VERSION/kubelogin-linux-amd64.zip  \
  && unzip kubelogin-linux-amd64.zip \
  && cp bin/linux_amd64/kubelogin /usr/local/bin/ \
