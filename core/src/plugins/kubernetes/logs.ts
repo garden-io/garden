@@ -343,19 +343,12 @@ export class K8sLogFollower<T> {
         },
       })
 
-      const doneCallback = (error: any) => {
-        if (error) {
-          this.handleConnectionClose(connectionId, "error", error.message)
-        }
-      }
-
       let req: request.Request
       try {
         req = await this.getPodLogs({
           namespace,
           containerName,
           podName: pod.metadata.name,
-          doneCallback,
           stream: writableStream,
           limitBytes,
           tail,
@@ -403,7 +396,6 @@ export class K8sLogFollower<T> {
     namespace,
     podName,
     containerName,
-    doneCallback,
     stream,
     limitBytes,
     tail,
@@ -418,7 +410,6 @@ export class K8sLogFollower<T> {
     tail?: number
     timestamps?: boolean
     since?: string
-    doneCallback: (err: any) => void
   }) {
     const logger = this.k8sApi.getLogger()
     const sinceSeconds = since ? parseDuration(since, "s") || undefined : undefined
@@ -436,7 +427,7 @@ export class K8sLogFollower<T> {
       opts["limitBytes"] = limitBytes
     }
 
-    return logger.log(namespace, podName, containerName, stream, doneCallback, opts)
+    return logger.log(namespace, podName, containerName, stream, opts)
   }
 
   private getConnectionId(pod: KubernetesPod, containerName: string) {
