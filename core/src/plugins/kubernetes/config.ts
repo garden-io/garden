@@ -132,6 +132,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
   }
   jib?: {
     pushViaCluster?: boolean
@@ -143,6 +144,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
     annotations?: StringMap
+    serviceAccountAnnotations?: StringMap
     util?: {
       tolerations?: V1Toleration[]
       annotations?: StringMap
@@ -517,9 +519,29 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
           ),
+          serviceAccountAnnotations: annotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building."
+          ),
         })
         .default(() => ({}))
         .description("Configuration options for the `cluster-buildkit` build mode."),
+      clusterDocker: joi
+        .object()
+        .keys({
+          enableBuildKit: joi
+            .boolean()
+            .default(false)
+            .description(
+              deline`
+            Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be
+            more performant, but we're opting to keep it optional until it's enabled by default in Docker.
+          `
+            )
+            .meta({ deprecated: true }),
+        })
+        .default(() => ({}))
+        .description("Configuration options for the `cluster-docker` build mode.")
+        .meta({ deprecated: "The cluster-docker build mode has been deprecated." }),
       jib: joi
         .object()
         .keys({
@@ -529,8 +551,12 @@ export const kubernetesConfigBase = () =>
             .description(
               "In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g. if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true, but do note that the build will take considerably take longer to complete! Only applies when using in-cluster building."
             ),
+          annotations: annotationsSchema().description(
+            "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
+          ),
         })
-        .description("Setting related to Jib image builds."),
+        .default(() => ({}))
+        .description("Configuration options for the `cluster-buildkit` build mode."),
       kaniko: joi
         .object()
         .keys({

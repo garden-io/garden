@@ -31,6 +31,7 @@ import {
   V1Deployment,
   V1Secret,
   V1Service,
+  V1ServiceAccount,
   ServerConfiguration,
   createConfiguration,
 } from "@kubernetes/client-node"
@@ -128,6 +129,15 @@ const crudMap = {
     replace: null,
     delete: "deleteNamespacedService",
     patch: "patchNamespacedService",
+  },
+  ServiceAccount: {
+    cls: new V1ServiceAccount(),
+    group: "core",
+    read: "readNamespacedServiceAccount",
+    create: "createNamespacedServiceAccount",
+    replace: "replaceNamespacedServiceAccount",
+    delete: "deleteNamespacedServiceAccount",
+    patch: "patchNamespacedServiceAccount",
   },
 }
 
