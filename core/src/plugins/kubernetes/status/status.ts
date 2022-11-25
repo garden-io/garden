@@ -381,15 +381,28 @@ export async function compareDeployedResources(
     if (deployedResource.metadata && deployedResource.metadata.annotations) {
       const lastAppliedHashed = deployedResource.metadata.annotations[gardenAnnotationKey("manifest-hash")]
 
-      // The new manifest matches the last applied manifest
-      if (lastAppliedHashed && (await hashManifest(manifest)) === lastAppliedHashed) {
-        continue
+      if (lastAppliedHashed) {
+        const calculated = await hashManifest(manifest)
+        if (calculated !== lastAppliedHashed) {
+          log.verbose(`Resource ${manifest.metadata.name} is outdated according to garden manifest-hash`)
+          log.silly(`Deployed ${gardenAnnotationKey("manifest-hash")}: ${lastAppliedHashed}`)
+          log.silly(`Calculated ${gardenAnnotationKey("manifest-hash")}: ${calculated}`)
+          result.state = "outdated"
+          return result
+        }
       }
 
       // Fallback to comparing against kubectl's last-applied-configuration annotation
       const lastApplied = deployedResource.metadata.annotations["kubectl.kubernetes.io/last-applied-configuration"]
-      if (lastApplied && stableStringify(manifest) === lastApplied) {
-        continue
+      if (lastApplied) {
+        const calculated = stableStringify(manifest)
+        if (calculated !== lastApplied) {
+          log.verbose(`Resource ${manifest.metadata.name} is outdated according to kubectl last-applied-configuration`)
+          log.silly(`Deployed kubectl.kubernetes.io/last-applied-configuration: ${lastApplied}`)
+          log.silly(`Calculated kubectl.kubernetes.io/last-applied-configuration: ${calculated}`)
+          result.state = "outdated"
+          return result
+        }
       }
     }
 
