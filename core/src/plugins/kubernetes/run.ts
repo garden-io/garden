@@ -823,21 +823,8 @@ export class PodRunner extends PodRunnerParams {
     return this.pod.spec.containers[0].name
   }
 
-  /**
-   * Runs the Pod, waits for it to terminate, and returns the result. Throws if the Pod never successfully starts.
-   * Returns the logs for the first container in the Pod. Returns success=false if Pod exited with non-zero code.
-   *
-   * If tty=true, we attach to the process stdio during execution.
-   */
-  async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
-    const { log, remove, timeoutSec, tty, events } = params
-    const { namespace, podName } = this
-
-    const startedAt = new Date()
-    let success = true
-    let mainContainerLogs = ""
-    const mainContainerName = this.getMainContainerName()
-
+  private prepareLogsFollower(params: RunParams) {
+    const { log, tty, events } = params
     const stream = new Stream<RunLogEntry>()
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
@@ -846,7 +833,7 @@ export class PodRunner extends PodRunnerParams {
         process.stdout.write(`${entry.msg}\n`)
       }
     })
-    const logsFollower = new K8sLogFollower({
+    return new K8sLogFollower({
       defaultNamespace: this.namespace,
       retryIntervalMs: 10,
       stream,
@@ -855,6 +842,24 @@ export class PodRunner extends PodRunnerParams {
       resources: [this.pod],
       k8sApi: this.api,
     })
+  }
+
+  /**
+   * Runs the Pod, waits for it to terminate, and returns the result. Throws if the Pod never successfully starts.
+   * Returns the logs for the first container in the Pod. Returns success=false if Pod exited with non-zero code.
+   *
+   * If tty=true, we attach to the process stdio during execution.
+   */
+  async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
+    const { log, remove, timeoutSec, tty } = params
+    const { namespace, podName } = this
+
+    const startedAt = new Date()
+    let success = true
+    let mainContainerLogs = ""
+    const mainContainerName = this.getMainContainerName()
+
+    const logsFollower = this.prepareLogsFollower(params)
     const limitBytes = 1000 * 1024 // 1MB
     logsFollower.followLogs({ limitBytes }).catch((_err) => {
       // Errors in `followLogs` are logged there, so all we need to do here is to ensure that the follower is closed.
