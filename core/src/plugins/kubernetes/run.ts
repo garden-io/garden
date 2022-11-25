@@ -852,12 +852,10 @@ export class PodRunner extends PodRunnerParams {
    */
   async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
     const { log, remove, timeoutSec, tty } = params
-    const { namespace, podName } = this
 
     const startedAt = new Date()
     let success = true
     let mainContainerLogs = ""
-    const mainContainerName = this.getMainContainerName()
 
     const logsFollower = this.prepareLogsFollower(params)
     const limitBytes = 1000 * 1024 // 1MB
@@ -869,68 +867,7 @@ export class PodRunner extends PodRunnerParams {
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
-      while (true) {
-        const serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
-        const state = checkPodStatus(serverPod)
-
-        const mainContainerStatus = (serverPod.status.containerStatuses || []).find((s) => s.name === mainContainerName)
-        const terminated = mainContainerStatus?.state?.terminated
-        const exitReason = terminated?.reason
-        const exitCode = terminated?.exitCode
-
-        // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
-        // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
-        // and we handle that case specifically here.
-        if (exitCode === 137 || exitReason === "OOMKilled") {
-          const msg = `Pod container was OOMKilled.`
-          throw new OutOfMemoryError(msg, {
-            logs: (await this.getMainContainerLogs()) || msg,
-            exitCode,
-            serverPod,
-          })
-        }
-
-        if (state === "unhealthy") {
-          if (
-            exitCode !== undefined &&
-            exitCode < 127 &&
-            exitReason !== "ContainerCannotRun" &&
-            exitReason !== "StartError"
-          ) {
-            // Successfully ran the command in the main container, but returned non-zero exit code
-            success = false
-            break
-          }
-
-          const statusStr = terminated
-            ? `${terminated.reason} - ${terminated.message}`
-            : "Status:\n" + JSON.stringify(serverPod.status, null, 2)
-
-          throw new PodRunnerError(`Failed to start Pod ${podName}. ${statusStr}`, {
-            logs: statusStr,
-            exitCode,
-            pod: serverPod,
-          })
-        }
-
-        // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
-        if (state === "stopped" || exitReason === "Completed") {
-          success = exitCode === 0
-          break
-        }
-
-        const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
-
-        if (timeoutSec && elapsed > timeoutSec) {
-          const msg = `Command timed out after ${timeoutSec} seconds.`
-          throw new TimeoutError(msg, {
-            logs: (await this.getMainContainerLogs()) || msg,
-            serverPod,
-          })
-        }
-
-        await sleep(800)
-      }
+      success = await this.awaitRunningPod(startedAt, timeoutSec)
 
       // Retrieve logs after run
       mainContainerLogs = await this.getMainContainerLogs()
@@ -947,6 +884,72 @@ export class PodRunner extends PodRunnerParams {
       completedAt: new Date(),
       log: mainContainerLogs,
       success,
+    }
+  }
+
+  private async awaitRunningPod(startedAt: Date, timeoutSec: number | undefined): Promise<boolean> {
+    const { namespace, podName } = this
+    const mainContainerName = this.getMainContainerName()
+
+    while (true) {
+      const serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
+      const state = checkPodStatus(serverPod)
+
+      const mainContainerStatus = (serverPod.status.containerStatuses || []).find((s) => s.name === mainContainerName)
+      const terminated = mainContainerStatus?.state?.terminated
+      const exitReason = terminated?.reason
+      const exitCode = terminated?.exitCode
+
+      // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
+      // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
+      // and we handle that case specifically here.
+      if (exitCode === 137 || exitReason === "OOMKilled") {
+        const msg = `Pod container was OOMKilled.`
+        throw new OutOfMemoryError(msg, {
+          logs: (await this.getMainContainerLogs()) || msg,
+          exitCode,
+          serverPod,
+        })
+      }
+
+      if (state === "unhealthy") {
+        if (
+          exitCode !== undefined &&
+          exitCode < 127 &&
+          exitReason !== "ContainerCannotRun" &&
+          exitReason !== "StartError"
+        ) {
+          // Successfully ran the command in the main container, but returned non-zero exit code
+          return false
+        }
+
+        const statusStr = terminated
+          ? `${terminated.reason} - ${terminated.message}`
+          : "Status:\n" + JSON.stringify(serverPod.status, null, 2)
+
+        throw new PodRunnerError(`Failed to start Pod ${podName}. ${statusStr}`, {
+          logs: statusStr,
+          exitCode,
+          pod: serverPod,
+        })
+      }
+
+      // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
+      if (state === "stopped" || exitReason === "Completed") {
+        return exitCode === 0
+      }
+
+      const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
+
+      if (timeoutSec && elapsed > timeoutSec) {
+        const msg = `Command timed out after ${timeoutSec} seconds.`
+        throw new TimeoutError(msg, {
+          logs: (await this.getMainContainerLogs()) || msg,
+          serverPod,
+        })
+      }
+
+      await sleep(800)
     }
   }
 
