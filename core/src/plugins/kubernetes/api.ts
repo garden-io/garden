@@ -54,14 +54,14 @@ import {
 } from "./types"
 import { LogEntry } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
-import { deline, urlJoin } from "../../util/string"
+import { deline, gardenAnnotationKey, urlJoin } from "../../util/string"
 import { KubernetesProvider } from "./config"
 import { StringMap } from "../../config/common"
 import { PluginContext } from "../../plugin-context"
 import { Writable, Readable, PassThrough } from "stream"
 import { WebSocketHandler } from "@kubernetes/client-node/dist/web-socket-handler"
 import { getExecExitCode } from "./status/pod"
-import { labelSelectorToString } from "./util"
+import { hashManifest, labelSelectorToString } from "./util"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -597,6 +597,17 @@ export class KubeApi {
     obj: O
     log: LogEntry
   }) {
+    // Hash the raw input and add as an annotation on each manifest (this is helpful beyond kubectl's own annotation,
+    // because kubectl applies some normalization/transformation that is sometimes difficult to reason about).
+    // Hashing the input prevents "Too long annotation..." errors.
+    if (!obj.metadata.annotations) {
+      obj.metadata.annotations = {}
+    }
+    if (obj.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
+      delete obj.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+    }
+    obj.metadata.annotations[gardenAnnotationKey("manifest-hash")] = await hashManifest(obj)
+
     const api = this[crudMap[kind].group]
     const name = obj.metadata.name
 
