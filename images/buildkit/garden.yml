@@ -6,7 +6,10 @@ image: gardendev/buildkit:v0.10.5-2
 dockerfile: Dockerfile
 build:
   targetImage: output
+extraFlags: [ "--platform", "linux/amd64" ]
+
 ---
+
 kind: Module
 type: container
 name: buildkit-rootless
@@ -19,3 +22,4 @@ build:
   targetImage: output
 buildArgs:
   BASE_IMAGE_SUFFIX: "-rootless"
+extraFlags: [ "--platform", "linux/amd64" ]

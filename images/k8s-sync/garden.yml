@@ -4,3 +4,4 @@ name: k8s-sync
 description: Used by the kubernetes provider for dev mode sync setup
 image: gardendev/k8s-sync:0.1.5
 dockerfile: Dockerfile
+extraFlags: [ "--platform", "linux/amd64" ]
