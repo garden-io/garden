@@ -8,3 +8,4 @@ build:
   dependencies: [k8s-sync]
 buildArgs:
   BASE_IMAGE: ${modules.k8s-sync.outputs.local-image-id}
+extraFlags: [ "--platform", "linux/amd64" ]
