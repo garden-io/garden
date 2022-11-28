@@ -342,17 +342,20 @@ function patchSyncableManifest(
 
   // use reverse proxy container image
   targetContainer.image = k8sReverseProxyImageName
+  // erase the original container command, the proxy container won't recognize it
+  targetContainer.command = []
   // erase the original container arguments, the proxy container won't recognize them
   targetContainer.args = []
 
-  const extraEnvVars = prepareEnvVars(localModeEnvVars)
-  if (!targetContainer.env) {
-    targetContainer.env = []
-  }
-  // prevent duplicate env vars
-  const extraEnvVarNames = new Set(extraEnvVars.map((v) => v.name))
-  remove(targetContainer.env, (v) => extraEnvVarNames.has(v.name))
-  targetContainer.env.push(...extraEnvVars)
+  // overwrite env vars of the proxy container,
+  // it needs only some specific variables to make reverse proxy work
+  targetContainer.env = prepareEnvVars(localModeEnvVars)
+  // ignore envFrom if any defined
+  targetContainer.envFrom = []
+
+  // remove all mounted volumes and devices from the proxy container
+  targetContainer.volumeMounts = []
+  targetContainer.volumeDevices = []
 
   if (!targetContainer.ports) {
     targetContainer.ports = []
@@ -363,7 +366,7 @@ function patchSyncableManifest(
   targetContainer.ports.push(...localModePorts)
 
   /*
-   Both readiness and liveness probes do not make much sense for the services running in local mode.
+   Startup, readiness and liveness probes do not make much sense for the services running in local mode.
    A user can completely control the lifecycle of a local service. Thus, these checks may be unwanted.
 
    The readiness probe can cause the failure of local mode startup,
@@ -371,9 +374,12 @@ function patchSyncableManifest(
 
    The liveness probe can cause unnecessary re-deployment of the proxy container in the target cluster.
    Also, it can create unnecessary noisy traffic to the local service is running in the debugger.
+
+   The startup probe can cause the proxy container failure.
    */
   delete targetContainer.readinessProbe
   delete targetContainer.livenessProbe
+  delete targetContainer.startupProbe
 }
 
 /**

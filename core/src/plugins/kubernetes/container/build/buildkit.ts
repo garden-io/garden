@@ -10,7 +10,7 @@ import AsyncLock from "async-lock"
 import chalk from "chalk"
 import split2 = require("split2")
 import { isEmpty } from "lodash"
-import { buildSyncVolumeName, dockerAuthSecretKey } from "../../constants"
+import { buildSyncVolumeName, dockerAuthSecretKey, inClusterRegistryHostname } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -33,12 +33,13 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
-import { getRunningDeploymentPod, millicpuToString, megabytesToString, usingInClusterRegistry } from "../../util"
+import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { ContainerModuleOutputs } from "../../../container/container"
+import { stringifyResources } from "../util"
 
-export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
+export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
 export const buildkitDeploymentName = "garden-buildkit"
 const buildkitContainerName = "buildkitd"
 
@@ -63,7 +64,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   return skopeoBuildStatus({
     namespace,
     deploymentName: buildkitDeploymentName,
-    containerName: getUtilContainer(authSecret.metadata.name).name,
+    containerName: getUtilContainer(authSecret.metadata.name, provider).name,
     log,
     api,
     ctx,
@@ -322,18 +323,27 @@ export const getSupportedCacheMode = (
     return cache.mode
   }
 
-  // Detect AWS ECR
-  if (deploymentImageName.includes(".dkr.ecr.")) {
-    return "inline"
+  // NOTE: If you change this, please make sure to also change the table in our documentation in config.ts
+  const allowList = [
+    /^([^/]+\.)?pkg\.dev\//i, // Google Package Registry
+    /^([^/]+\.)?azurecr\.io\//i, // Azure Container registry
+    /^hub\.docker\.com\//i, // DockerHub
+    /^ghcr\.io\//i, // GitHub Container registry
+    new RegExp(`^${inClusterRegistryHostname}/`, "i"), // Garden in-cluster registry
+  ]
+
+  // use mode=max for all registries that are known to support it
+  for (const allowed of allowList) {
+    if (allowed.test(deploymentImageName)) {
+      return "max"
+    }
   }
 
-  // Detect gcr.io
-  if (deploymentImageName.includes("gcr.io")) {
-    return "inline"
-  }
-
-  // Default to max for all others
-  return "max"
+  // we default to mode=inline for all the other registries, including
+  // self-hosted ones. Actually almost all self-hosted registries do support
+  // mode=max, but harbor doesn't. As it is hard to auto-detect harbor, we
+  // chose to use mode=inline for all unknown registries.
+  return "inline"
 }
 
 export function getBuildkitDeployment(
@@ -350,6 +360,7 @@ export function getBuildkitDeployment(
         app: buildkitDeploymentName,
       },
       name: buildkitDeploymentName,
+      annotations: provider.config.clusterBuildkit?.annotations,
     },
     spec: {
       replicas: 1,
@@ -363,6 +374,7 @@ export function getBuildkitDeployment(
           labels: {
             app: buildkitDeploymentName,
           },
+          annotations: provider.config.clusterBuildkit?.annotations,
         },
         spec: {
           containers: [
@@ -406,7 +418,7 @@ export function getBuildkitDeployment(
               ],
             },
             // Attach a util container for the rsync server and to use skopeo
-            getUtilContainer(authSecretName),
+            getUtilContainer(authSecretName, provider),
           ],
           imagePullSecrets,
           volumes: [
@@ -453,22 +465,7 @@ export function getBuildkitDeployment(
     }
   }
 
-  buildkitContainer.resources = {
-    limits: {
-      cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
-      memory: megabytesToString(provider.config.resources.builder.limits.memory),
-      ...(provider.config.resources.builder.limits.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.limits.ephemeralStorage) }
-        : {}),
-    },
-    requests: {
-      cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
-      memory: megabytesToString(provider.config.resources.builder.requests.memory),
-      ...(provider.config.resources.builder.requests.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.requests.ephemeralStorage) }
-        : {}),
-    },
-  }
+  buildkitContainer.resources = stringifyResources(provider.config.resources.builder)
 
   if (usingInClusterRegistry(provider)) {
     // We need a proxy sidecar to be able to reach the in-cluster registry from the Pod

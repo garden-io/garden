@@ -1025,17 +1025,16 @@ workflows:
 
       ### MAIN ONLY ###
 
-      # TODO: Re-enable this if we can figure out a way to not spam users who have starred the repo.
-      # - build-dist-edge:
-      #     <<: *only-main
-      #     requires: [build]
-      # - release-service-docker:
-      #     <<: *only-main
-      #     context: docker
-      #     requires: [build-dist-edge]
-      # - release-service-dist-edge:
-      #     <<: *only-main
-      #     requires: [build-dist-edge]
+      - build-dist-edge:
+          <<: *only-main
+          requires: [build]
+      - release-service-docker:
+          <<: *only-main
+          context: docker
+          requires: [build-dist-edge]
+      - release-service-dist-edge:
+          <<: *only-main
+          requires: [build-dist-edge]
 
   tags:
     jobs:

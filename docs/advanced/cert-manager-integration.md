@@ -127,4 +127,4 @@ $: kubectl describe Certificate certificate-name -n your-namespace
 Please find more info in the ["Issuing an ACME certificate using HTTP validation"](https://cert-manager.io/docs/tutorials/acme/http-validation/#issuing-an-acme-certificate-using-http-validation) guide in the official cert-manager documentation.
 
 ---
-If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in our [Slack channel](https://chat.garden.io/).
+If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in [our Discord community](https://discord.gg/gxeuDgp6Xt).

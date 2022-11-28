@@ -251,9 +251,12 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       "Slices a string or array at the specified start/end offsets. Note that you can use a negative number for the end offset to count backwards from the end.",
     arguments: {
       input: joi.alternatives(joi.string(), joi.array()).required().description("The string or array to slice."),
-      start: joi.string().required().description("The first index you want from the string/array."),
+      start: joi
+        .alternatives(joi.number(), joi.string())
+        .required()
+        .description("The first index you want from the string/array."),
       end: joi
-        .string()
+        .alternatives(joi.number(), joi.string())
         .description(
           "The last index you want from the string/array. Specify a negative number to count backwards from the end."
         ),
@@ -263,7 +266,26 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["ThisIsALongStringThatINeedAPartOf", 11, -7], output: "StringThatINeed" },
       { input: [".foo", 1], output: "foo" },
     ],
-    fn: (stringOrArray: string | any[], start: number, end?: number) => stringOrArray.slice(start, end),
+    fn: (stringOrArray: string | any[], start: number | string, end?: number | string) => {
+      const parseInt = (value: number | string, name: string): number => {
+        if (typeof value === "number") {
+          return value
+        }
+
+        const result = Number.parseInt(value, 10)
+        if (Number.isNaN(result)) {
+          throw new TemplateStringError(`${name} index must be a number or a numeric string (got "${value}")`, {
+            name,
+            value,
+          })
+        }
+        return result
+      }
+
+      const startIdx = parseInt(start, "start")
+      const endIdx = !!end ? parseInt(end, "end") : undefined
+      return stringOrArray.slice(startIdx, endIdx)
+    },
   },
   {
     name: "split",

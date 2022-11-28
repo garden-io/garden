@@ -158,23 +158,22 @@ export interface CertManagerConfig {
   acmeServer?: LetsEncryptServerType
 }
 
-interface KubernetesResourceSpec {
-  limits: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
-  requests: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
+export interface KuberetesResourceConfig {
+  cpu: number
+  memory: number
+  ephemeralStorage?: number
+}
+
+export interface KubernetesResourceSpec {
+  limits: KuberetesResourceConfig
+  requests: KuberetesResourceConfig
 }
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
   registry: KubernetesResourceSpec
   sync: KubernetesResourceSpec
+  util: KubernetesResourceSpec
 }
 
 interface KubernetesStorageSpec {
@@ -215,6 +214,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     rootless?: boolean
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    annotations?: StringMap
   }
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -228,6 +228,11 @@ export interface KubernetesConfig extends BaseProviderConfig {
     namespace?: string | null
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    annotations?: StringMap
+    util?: {
+      tolerations?: V1Toleration[]
+      annotations?: StringMap
+    }
   }
   context: string
   defaultHostname?: string
@@ -290,6 +295,16 @@ export const defaultResources: KubernetesResources = {
     requests: {
       cpu: 100,
       memory: 90,
+    },
+  },
+  util: {
+    limits: {
+      cpu: 256,
+      memory: 512,
+    },
+    requests: {
+      cpu: 256,
+      memory: 512,
     },
   },
 }
@@ -492,7 +507,7 @@ const buildkitCacheConfigurationSchema = () =>
         The values \`min\` and \`max\` ensure that garden passes the \`mode=max\` or \`mode=min\` modifiers to the buildkit \`--export-cache\` option. Cache manifests will only be
         stored stored in the configured \`tag\`.
 
-        \`auto\` is the same as \`max\` for most registries. Some popular registries do not support \`max\` and garden will fall back to \`inline\` for them.
+        \`auto\` is the same as \`max\` for some registries that are known to support it. Garden will fall back to \`inline\` for all other registries.
          See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
 
         See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
@@ -559,16 +574,16 @@ export const kubernetesConfigBase = () =>
             For registries that support it, \`mode: auto\` (the default) will enable the buildkit \`mode=max\`
             option.
 
-            Some registries are known not to support the cache manifests needed for the \`mode=max\` option, so
-            we will avoid using \`mode=max\` with them.
-
             See the following table for details on our detection mechanism:
 
-            | Registry Name                   | Detection string | Assumed \`mode=max\` support |
-            |---------------------------------|------------------|------------------------------|
-            | AWS Elastic Container Registry  | \`.dkr.ecr.\`    | No                           |
-            | Google Cloud Container Registry | \`gcr.io\`       | No                           |
-            | Any other registry              | -                | Yes                          |
+            | Registry Name                   | Registry Domain         | Assumed \`mode=max\` support |
+            |---------------------------------|-------------------------|------------------------------|
+            | Google Cloud Artifact Registry  | \`pkg.dev\`             | Yes                          |
+            | Azure Container Registry        | \`azurecr.io\`          | Yes                          |
+            | GitHub Container Registry       | \`ghcr.io\`             | Yes                          |
+            | DockerHub                       | \`hub.docker.com\`     | Yes                          |
+            | Garden In-Cluster Registry      |                         | Yes                          |
+            | Any other registry              |                         | No                           |
 
             In case you need to override the defaults for your registry, you can do it like so:
 
@@ -576,7 +591,7 @@ export const kubernetesConfigBase = () =>
             clusterBuildkit:
               cache:
                 - type: registry
-                  mode: inline
+                  mode: max
             \`\`\`
 
             When you add multiple caches, we will make sure to pass the \`--import-cache\` options to buildkit in the same
@@ -629,6 +644,9 @@ export const kubernetesConfigBase = () =>
           .default(() => ({})),
         tolerations: joiSparseArray(tolerationSchema()).description(
           "Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds."
+        ),
+        annotations: annotationsSchema().description(
+          "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
         ),
       })
       .default(() => ({}))
@@ -689,12 +707,25 @@ export const kubernetesConfigBase = () =>
           dedent`
             Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
 
-            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
           `
         ),
         tolerations: joiSparseArray(tolerationSchema()).description(
-          "Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds."
+          deline`Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds.
+          Same tolerations will be used for the util pod unless they are specifically set under \`util.tolerations\``
         ),
+        annotations: annotationsSchema().description(
+          deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+          Same anotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+        ),
+        util: joi.object().keys({
+          tolerations: joiSparseArray(tolerationSchema()).description(
+            "Specify tolerations to apply to each garden-util pod."
+          ),
+          annotations: annotationsSchema().description(
+            "Specify annotations to apply to each garden-util pod and deployments."
+          ),
+        }),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),
@@ -762,6 +793,12 @@ export const kubernetesConfigBase = () =>
 
             This is shared across all users and builds, so it should be resourced accordingly, factoring
             in how many concurrent builds you expect and how large your images tend to be.
+          `),
+        util: resourceSchema(defaultResources.util, false).description(dedent`
+            Resource requests and limits for the util pod for in-cluster builders.
+            This pod is used to get, start, stop and inquire the status of the builds.
+
+            This pod is created in each garden namespace.
           `),
         sync: resourceSchema(defaultResources.sync, true)
           .description(
@@ -935,13 +972,18 @@ export const tolerationSchema = () =>
         `),
   })
 
+const annotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
 export const namespaceSchema = () =>
   joi.alternatives(
     joi.object().keys({
       name: namespaceNameSchema(),
-      annotations: joiStringMap(joi.string()).description(
-        "Map of annotations to apply to the namespace when creating it."
-      ),
+      annotations: annotationsSchema().description("Map of annotations to apply to the namespace when creating it."),
       labels: joiStringMap(joi.string()).description("Map of labels to apply to the namespace when creating it."),
     }),
     namespaceNameSchema()

@@ -343,19 +343,12 @@ export class K8sLogFollower<T> {
         },
       })
 
-      const doneCallback = (error: any) => {
-        if (error) {
-          this.handleConnectionClose(connectionId, "error", error.message)
-        }
-      }
-
       let req: request.Request
       try {
         req = await this.getPodLogs({
           namespace,
           containerName,
           podName: pod.metadata.name,
-          doneCallback,
           stream: writableStream,
           limitBytes,
           tail,
@@ -364,6 +357,7 @@ export class K8sLogFollower<T> {
           // Otherwise we might end up fetching logs that have already been rendered.
           since: isRetry ? "10s" : since,
         })
+        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
       } catch (err) {
         // Log the error and keep trying.
         this.log.debug(
@@ -379,9 +373,6 @@ export class K8sLogFollower<T> {
         status: <LogConnection["status"]>"connected",
       }
 
-      req.on("response", async () => {
-        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
-      })
       req.on("error", (error) => this.handleConnectionClose(connectionId, "error", error.message))
       req.on("close", () => this.handleConnectionClose(connectionId, "closed", "Request closed"))
       req.on("socket", (socket) => {
@@ -405,7 +396,6 @@ export class K8sLogFollower<T> {
     namespace,
     podName,
     containerName,
-    doneCallback,
     stream,
     limitBytes,
     tail,
@@ -420,7 +410,6 @@ export class K8sLogFollower<T> {
     tail?: number
     timestamps?: boolean
     since?: string
-    doneCallback: (err: any) => void
   }) {
     const logger = this.k8sApi.getLogger()
     const sinceSeconds = since ? parseDuration(since, "s") || undefined : undefined
@@ -438,7 +427,7 @@ export class K8sLogFollower<T> {
       opts["limitBytes"] = limitBytes
     }
 
-    return logger.log(namespace, podName, containerName, stream, doneCallback, opts)
+    return logger.log(namespace, podName, containerName, stream, opts)
   }
 
   private getConnectionId(pod: KubernetesPod, containerName: string) {
@@ -519,30 +508,34 @@ export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<
 }
 
 // DEPRECATED: Remove stern in v0.13
+// This version has no Darwin ARM support yet. If you add a later release, please add the "arm64" architecture.
+const sternVersion = "1.22.0"
+
+function sternBuildSpec(platform: string, architecture: string, sha256: string) {
+  const url = `https://github.com/stern/stern/releases/download/v${sternVersion}/stern_${sternVersion}_${platform}_${architecture}.tar.gz`
+  return {
+    platform,
+    architecture,
+    url,
+    sha256,
+    extract: {
+      format: "tar",
+      targetPath: ".",
+    },
+  }
+}
+
 export const sternSpec: PluginToolSpec = {
   name: "stern",
   description: "Utility CLI for streaming logs from Kubernetes.",
   type: "binary",
   _includeInGardenImage: true,
   builds: [
-    // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
-    {
-      platform: "darwin",
-      architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_darwin_amd64",
-      sha256: "7aea3b6691d47b3fb844dfc402905790665747c1e6c02c5cabdd41994533d7e9",
-    },
-    {
-      platform: "linux",
-      architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_linux_amd64",
-      sha256: "e0b39dc26f3a0c7596b2408e4fb8da533352b76aaffdc18c7ad28c833c9eb7db",
-    },
-    {
-      platform: "windows",
-      architecture: "amd64",
-      url: "https://github.com/wercker/stern/releases/download/1.11.0/stern_windows_amd64.exe",
-      sha256: "75708b9acf6ef0eeffbe1f189402adc0405f1402e6b764f1f5152ca288e3109e",
-    },
+    sternBuildSpec("darwin", "amd64", "3e2d06ef35866b155aa9349d1b337aed114e56d49d7fc8245143d6180115ffef"),
+    sternBuildSpec("darwin", "arm64", "066e0562b962acf576242e9a23aa4d61de21812d5fa62cbfe198a62f5801d282"),
+    sternBuildSpec("linux", "amd64", "6eff028d104b53c8a53c3af752a52292ddb2024b469ce5ab05aee2f0954bde72"),
+    // sternBuildSpec("linux", "arm64", "34746c58b80e8f0db3273ff691a03d5c57f10a913e9c6a791fae1f4107aee5e5"),
+    sternBuildSpec("windows", "amd64", "8771d8023f10eb16a28136e88790faeb8107736f00f1d9f3bae812766f681c2a"),
+    // sternBuildSpec("windows", "arm64", "61deb25940f2ff8b9554e1375dd7d39dd6633adc3b852787004aea881c270760"),
   ],
 }

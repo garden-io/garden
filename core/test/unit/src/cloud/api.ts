@@ -19,7 +19,7 @@ import { cleanupAuthTokens } from "../../../helpers"
 /**
  * Note: Running these tests locally will delete your saved auth token, if any.
  */
-describe("EnterpriseApi", () => {
+describe("CloudApi", () => {
   const log = getLogger().placeholder()
 
   after(cleanupAuthTokens)

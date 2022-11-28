@@ -9,14 +9,14 @@
 import { expect } from "chai"
 import { ConfigGraph } from "../../../../src/config-graph"
 import { LogEntry } from "../../../../src/logger/log-entry"
-import { CloudEventHandlerCommonParams, cloudEventHandlers } from "../../../../src/process"
+import { ClientRequestHandlerCommonParams, clientRequestHandlers } from "../../../../src/server/client-router"
 import { makeTestGardenA, TestGarden } from "../../../helpers"
 
-describe("cloudEventHandlers", () => {
+describe("clientRequestHandlers", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let log: LogEntry
-  let params: CloudEventHandlerCommonParams
+  let params: ClientRequestHandlerCommonParams
 
   before(async () => {
     garden = await makeTestGardenA()
@@ -25,9 +25,9 @@ describe("cloudEventHandlers", () => {
     params = { garden, log, graph }
   })
 
-  describe("buildRequested", () => {
+  describe("build", () => {
     it("should return a build task for the requested module", async () => {
-      const tasks = await cloudEventHandlers.buildRequested({
+      const tasks = await clientRequestHandlers.build({
         ...params,
         request: { moduleName: "module-a", force: false },
       })
@@ -39,7 +39,7 @@ describe("cloudEventHandlers", () => {
     })
 
     it("should optionally return a build task with force = true for the requested module", async () => {
-      const tasks = await cloudEventHandlers.buildRequested({
+      const tasks = await clientRequestHandlers.build({
         ...params,
         request: { moduleName: "module-a", force: true },
       })
@@ -51,9 +51,9 @@ describe("cloudEventHandlers", () => {
     })
   })
 
-  describe("deployRequested", () => {
+  describe("deploy", () => {
     it("should return a deploy task for the requested service", async () => {
-      const deployTask = await cloudEventHandlers.deployRequested({
+      const deployTask = await clientRequestHandlers.deploy({
         ...params,
         request: {
           serviceName: "service-a",
@@ -72,7 +72,7 @@ describe("cloudEventHandlers", () => {
     })
 
     it("should return a dev-mode deploy task for the requested service", async () => {
-      const deployTask = await cloudEventHandlers.deployRequested({
+      const deployTask = await clientRequestHandlers.deploy({
         ...params,
         request: {
           serviceName: "service-a",
@@ -90,7 +90,7 @@ describe("cloudEventHandlers", () => {
     })
 
     it("should return a local-mode deploy task for the requested service", async () => {
-      const deployTask = await cloudEventHandlers.deployRequested({
+      const deployTask = await clientRequestHandlers.deploy({
         ...params,
         request: {
           serviceName: "service-a",
@@ -108,9 +108,9 @@ describe("cloudEventHandlers", () => {
     })
   })
 
-  describe("testRequested", () => {
+  describe("test", () => {
     it("should return test tasks for the requested module", async () => {
-      const testTasks = await cloudEventHandlers.testRequested({
+      const testTasks = await clientRequestHandlers.test({
         ...params,
         request: { moduleName: "module-a", force: false, forceBuild: false, skipDependencies: true },
       })
@@ -118,7 +118,7 @@ describe("cloudEventHandlers", () => {
     })
 
     it("should return test tasks for the requested module and test names", async () => {
-      const testTasks = await cloudEventHandlers.testRequested({
+      const testTasks = await clientRequestHandlers.test({
         ...params,
         request: {
           moduleName: "module-a",
@@ -132,9 +132,9 @@ describe("cloudEventHandlers", () => {
     })
   })
 
-  describe("taskRequested", () => {
+  describe("run", () => {
     it("should return test tasks for the requested module", async () => {
-      const taskTask = await cloudEventHandlers.taskRequested({
+      const taskTask = await clientRequestHandlers.run({
         ...params,
         request: { taskName: "task-a", force: false, forceBuild: false },
       })

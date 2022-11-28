@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.45/examples/jib-container) to see it in action.
+Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.46/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -448,7 +448,8 @@ services:
       # CPU)
       min: 10
 
-      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in
+      # no limit being set.
       max: 1000
 
     memory:
@@ -456,8 +457,9 @@ services:
       # GB)
       min: 90
 
-      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
+      max: 1024
 
     # List of ports that the service container exposes.
     ports:
@@ -595,7 +597,8 @@ tests:
       # CPU)
       min: 10
 
-      # The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no
+      # limit being set.
       max: 1000
 
     memory:
@@ -603,8 +606,9 @@ tests:
       # GB)
       min: 90
 
-      # The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no
+      # limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when deploying the test.
     #
@@ -708,7 +712,8 @@ tasks:
       # CPU)
       min: 10
 
-      # The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no
+      # limit being set.
       max: 1000
 
     memory:
@@ -716,8 +721,9 @@ tasks:
       # GB)
       min: 90
 
-      # The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no
+      # limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when deploying the task.
     #
@@ -888,9 +894,9 @@ Maximum time in seconds to wait for build to finish.
 
 The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
 
-| Type     | Allowed Values                   | Default  | Required |
-| -------- | -------------------------------- | -------- | -------- |
-| `string` | "gradle", "maven", "jib", "auto" | `"auto"` | Yes      |
+| Type     | Allowed Values                             | Default  | Required |
+| -------- | ------------------------------------------ | -------- | -------- |
+| `string` | "gradle", "maven", "jib", "auto", "mavend" | `"auto"` | Yes      |
 
 ### `build.jdkVersion`
 
@@ -1945,7 +1951,7 @@ The minimum amount of CPU the service needs to be available for it to be deploye
 
 [services](#services) > [cpu](#servicescpu) > max
 
-The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1973,11 +1979,11 @@ The minimum amount of RAM the service needs to be available for it to be deploye
 
 [services](#services) > [memory](#servicesmemory) > max
 
-The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `services[].ports[]`
 
@@ -2415,7 +2421,7 @@ The minimum amount of CPU the test needs to be available for it to be deployed, 
 
 [tests](#tests) > [cpu](#testscpu) > max
 
-The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2443,11 +2449,11 @@ The minimum amount of RAM the test needs to be available for it to be deployed, 
 
 [tests](#tests) > [memory](#testsmemory) > max
 
-The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tests[].volumes[]`
 
@@ -2760,7 +2766,7 @@ The minimum amount of CPU the task needs to be available for it to be deployed, 
 
 [tasks](#tasks) > [cpu](#taskscpu) > max
 
-The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2788,11 +2794,11 @@ The minimum amount of RAM the task needs to be available for it to be deployed, 
 
 [tasks](#tasks) > [memory](#tasksmemory) > max
 
-The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tasks[].volumes[]`
 

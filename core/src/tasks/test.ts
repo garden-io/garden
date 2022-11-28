@@ -24,6 +24,7 @@ import { GraphResults } from "../task-graph"
 import { Profile } from "../util/profiling"
 import { GardenTest, testFromConfig } from "../types/test"
 import { ModuleConfig } from "../config/module"
+import { pMemoizeDecorator } from "../lib/p-memoize"
 
 class TestError extends Error {
   toString() {
@@ -194,8 +195,9 @@ export class TestTask extends BaseTask {
         append: true,
       })
     } else {
+      const failedMsg = !!result.exitCode ? `Failed with code ${result.exitCode}!` : `Failed!`
       log.setError({
-        msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
+        msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
         append: true,
       })
       throw new TestError(result.log)
@@ -204,6 +206,9 @@ export class TestTask extends BaseTask {
     return result
   }
 
+  // We memoize this method for performance and to avoid emitting two `testStatus` events when the task is added
+  // and processed (since this method is called in `resolveDependencies` and `process`).
+  @pMemoizeDecorator()
   private async getTestResult(): Promise<TestResult | null> {
     if (this.force) {
       return null

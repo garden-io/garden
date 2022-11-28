@@ -160,7 +160,22 @@ export function configureHotReload({
       timeoutSeconds: 3,
       successThreshold: 1,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+      tcpSocket: { port: rsyncPortName },
+    },
+    lifecycle: {
+      preStop: {
+        exec: {
+          // this preStop command makes sure that we wait for some time if an rsync is still ongoing, before
+          // actually killing the pod. If the transfer takes more than 30 seconds, which is unlikely, the pod
+          // will be killed anyway. The command works by counting the number of rsync processes. This works
+          // because rsync forks for every connection.
+          command: [
+            "/bin/sh",
+            "-c",
+            "until test $(pgrep -fc '^[^ ]+rsync') = 1; do echo waiting for rsync to finish...; sleep 1; done",
+          ],
+        },
+      },
     },
   })
 }

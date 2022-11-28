@@ -3,3 +3,4 @@ type: container
 name: circleci-runner
 description: Used for the core pipeline in CircleCI
 image: gardendev/circleci-runner:16.18.0
+extraFlags: ["--platform", "linux/amd64"]

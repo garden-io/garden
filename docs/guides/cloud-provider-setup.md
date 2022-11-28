@@ -4,7 +4,7 @@ Below you'll find guides for creating and configuring a Kubernetes cluster with 
 prominent providers of hosted, managed Kubernetes clusters, and configuring your Garden
 project for connecting to your cluster.
 
-Let us know on [#garden on Kubernetes Slack](https://kubernetes.slack.com/messages/garden) if you'd like guides for more providers.
+Let us know on [our Discord community](https://discord.gg/gxeuDgp6Xt) if you'd like guides for more providers.
 
 ## GKE (Google)
 
@@ -52,7 +52,7 @@ Run `garden --env=remote plugins kubernetes cluster-init`, then `garden dev --en
 
 ### Optional: Use in-cluster building with GCR and Kaniko
 
-Take a look at the [gke example project](https://github.com/garden-io/garden/tree/0.12.45/examples/gke)) to see the additional steps required to set up in-cluster building on GKE with Kaniko and GCR as a deployment registry.
+Take a look at the [gke example project](https://github.com/garden-io/garden/tree/0.12.46/examples/gke)) to see the additional steps required to set up in-cluster building on GKE with Kaniko and GCR as a deployment registry.
 
 ### Optional: Configure DNS
 

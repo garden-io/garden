@@ -776,7 +776,7 @@ function configureHealthCheck(
   } else if (spec.healthCheck?.tcpPort) {
     container.readinessProbe.tcpSocket = {
       // For some reason the field is an object type
-      port: (portsByName[spec.healthCheck.tcpPort].containerPort as unknown) as object,
+      port: portsByName[spec.healthCheck.tcpPort].containerPort,
     }
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {

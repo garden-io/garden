@@ -24,7 +24,7 @@ import { DASHBOARD_STATIC_DIR, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
-import { EventName, Events, EventBus, GardenEventListener, cloudRequestEventNames } from "../events"
+import { EventName, Events, EventBus, GardenEventListener } from "../events"
 import { uuidv4, ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
@@ -32,6 +32,7 @@ import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
+import { clientRequestNames, ClientRouter } from "./client-router"
 
 // Note: This is different from the `garden dashboard` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -64,6 +65,7 @@ export class GardenServer {
   private debugLog: LogEntry
   private server: Server
   private garden: Garden | undefined
+  private clientRouter: ClientRouter | undefined
   private app: websockify.App
   private analytics: AnalyticsHandler
   private incomingEvents: EventBus
@@ -78,6 +80,7 @@ export class GardenServer {
     this.log = log
     this.debugLog = this.log.placeholder({ level: LogLevel.debug, childEntriesInheritLevel: true })
     this.garden = undefined
+    this.clientRouter = undefined
     this.port = port
     this.authKey = randomString(24)
     this.incomingEvents = new EventBus()
@@ -147,6 +150,7 @@ export class GardenServer {
 
     this.garden = garden
     this.garden.log = this.debugLog
+    this.clientRouter = new ClientRouter(this.garden, this.log)
 
     // Serve artifacts as static assets
     this.app.use(mount("/artifacts", serve(garden.artifactsPath)))
@@ -352,7 +356,7 @@ export class GardenServer {
         isAlive = true
       })
 
-      // Pipe everything from the event bus to the socket, as well as from the /events endpoint
+      // Pipe everything from the event bus to the socket, as well as from the /events endpoint.
       const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)
@@ -482,8 +486,8 @@ export class GardenServer {
           const req = this.activePersistentRequests[requestId]
           req && req.command.terminate()
           delete this.activePersistentRequests[requestId]
-        } else if (cloudRequestEventNames.find((e) => e === request.type)) {
-          this.garden?.events.emit(request.type, request)
+        } else if (clientRequestNames.find((e) => e === request.type)) {
+          this.clientRouter?.dispatch(request.type, request)
         } else {
           return send("error", {
             requestId,

@@ -129,7 +129,7 @@ to your registry's documentation on how to do that (for Docker Hub you simply ru
 
 ### Ingress, TLS and DNS
 
-By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find an example for [using Garden with Istio](https://github.com/garden-io/garden/tree/0.12.45/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.12.45/examples).
+By default, Garden will not install an ingress controller for remote environments. This can be toggled by setting the [`setupIngressController` flag](../reference/providers/kubernetes.md#providerssetupingresscontroller) to `nginx`. Alternatively, you can set up your own ingress controller, e.g. using [Traefik](https://traefik.io/), [Ambassador](https://www.getambassador.io/) or [Istio](https://istio.io/). You can find an example for [using Garden with Istio](https://github.com/garden-io/garden/tree/0.12.46/examples/istio) in our [examples directory](https://github.com/garden-io/garden/tree/0.12.46/examples).
 
 You'll also need to point one or more DNS entries to your cluster, and configure a TLS certificate for the hostnames
 you will expose for ingress.
@@ -216,4 +216,4 @@ The flag is also given to each provider, which may modify behavior accordingly. 
 4. Increase the `RevisionHistoryLimit` on workloads to 10.
 5. By default, running `garden deploy --force` will propagate the `--force` flag to `helm upgrade`, and set the `--replace` flag on `helm install` when deploying `helm` modules. This may be okay while developing but risky in production, so the `production` flag prevents both of those.
 
-We would highly appreciate feedback on other configuration settings that should be altered when `production: true`. Please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues) or reach out on our Slack channel!
+We would highly appreciate feedback on other configuration settings that should be altered when `production: true`. Please send us feedback via [GitHub issues](https://github.com/garden-io/garden/issues) or reach out on [our Discord Community](https://discord.gg/gxeuDgp6Xt)!

@@ -20,7 +20,7 @@ app.get('/call-backend-1', (req, res) => {
       res.statusCode = 500
       res.json({
         error: err,
-        message: "Unable to reach service at " + backendServiceEndpoint,
+        message: "Unable to reach service at " + backend1ServiceEndpoint,
       })
     });
 });
@@ -38,7 +38,7 @@ app.get('/call-backend-2', (req, res) => {
       res.statusCode = 500
       res.json({
         error: err,
-        message: "Unable to reach service at " + backendServiceEndpoint,
+        message: "Unable to reach service at " + backend2ServiceEndpoint,
       })
     });
 });

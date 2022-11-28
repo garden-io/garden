@@ -46,19 +46,36 @@ Requirements for the local machine environment:
 
 ## Current limitations
 
-This is the first release of _local mode_ feature which supports [`container`](./container-modules.md),
-[`kubernetes`](../reference/module-types/kubernetes.md) and [`helm`](../reference/module-types/helm.md) module types.
-There is a number of functional limitations in this release:
+There is a number of functional limitations in the current version.
 
-* **Windows compatibility.** The _local mode_ is not supported natively for Windows OS. It should be used with WSL in
-  Windows environments.
-* Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md) or
-  [`helm`](../reference/module-types/helm.md) service.
-* The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
-  be re-deployed manually by using `garden deploy`.
+### Reachability of the underlying services
 
-The next step is to fully integrate local services into remote clusters and to establish connections to all dependent
-data sources and services.
+The best matching use-case for _local mode_ is to locally run an "isolated" service, i.e. a service that does not make
+any calls to other services.
+
+If your service makes HTTP calls to some other services using k8s DNS names, then such calls will fail because the local
+DNS configuration is not aware about any DNS names configured in the k8s cluster.
+
+A concrete example can be found in the [`local-mode project`](../../examples/local-mode).
+
+### Compatibility with dev mode
+
+A service cannot be running in local and dev modes simultaneously. Local mode always takes precedence over dev mode if
+both are configured in the relevant `garden.yml` configuration file and if both `--local` and `--dev` flags are enabled.
+
+### Windows compatibility
+
+The _local mode_ is not supported natively for Windows OS. It should be used with WSL in Windows environments.
+
+### Number of the services in local mode
+
+Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md)
+or [`helm`](../reference/module-types/helm.md) service. This limitation is planned to be removed in Garden Core `0.13`.
+
+### Cluster state on exit
+
+The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must be
+re-deployed manually by using `garden deploy`.
 
 ## How it works
 
@@ -97,8 +114,8 @@ services.
 
 ### Health-checks
 
-The readiness and liveness probes are disabled for all services running in local mode. This has been done because of
-some technical reasons.
+The startup, readiness and liveness probes are disabled for all services running in local mode. This has been done
+because of some technical reasons.
 
 The lifecycle of a local service can be completely controlled by a user. Thus, the health checks may be unwanted and
 obstructing.
@@ -138,7 +155,7 @@ services:
 
 An example can be found in the [`local-mode project`](../../examples/local-mode).
 
-### Configuring dev mode for `kubernetes` modules
+### Configuring local mode for `kubernetes` and `helm` modules
 
 ```yaml
 kind: Module

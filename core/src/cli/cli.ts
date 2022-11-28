@@ -383,8 +383,12 @@ ${renderCommands(commands)}
           }
 
           // Connect the dashboard event streamer (making sure it doesn't stream to the local server)
-          const commandServerUrl = command.server?.getUrl() || undefined
-          dashboardEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
+          dashboardEventStream.connect({
+            garden,
+            ignoreHost: command.server?.getBaseUrl(),
+            streamEvents,
+            streamLogEntries,
+          })
           const runningServers = await dashboardEventStream.updateTargets()
 
           if (cloudApi && !cloudApi.sessionRegistered && command.streamEvents) {

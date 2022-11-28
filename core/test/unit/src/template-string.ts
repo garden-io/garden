@@ -1185,6 +1185,38 @@ describe("resolveTemplateString", async () => {
         })
       })
     })
+
+    context("slice", () => {
+      it("allows numeric indices", () => {
+        const res = resolveTemplateString("${slice(foo, 0, 3)}", new TestContext({ foo: "abcdef" }))
+        expect(res).to.equal("abc")
+      })
+
+      it("allows numeric strings as indices", () => {
+        const res = resolveTemplateString("${slice(foo, '0', '3')}", new TestContext({ foo: "abcdef" }))
+        expect(res).to.equal("abc")
+      })
+
+      it("throws on invalid string in the start index", () => {
+        return expectError(
+          () => resolveTemplateString("${slice(foo, 'a', 3)}", new TestContext({ foo: "abcdef" })),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: start index must be a number or a numeric string (got "a")`
+            )
+        )
+      })
+
+      it("throws on invalid string in the end index", () => {
+        return expectError(
+          () => resolveTemplateString("${slice(foo, 0, 'b')}", new TestContext({ foo: "abcdef" })),
+          (err) =>
+            expect(stripAnsi(err.message)).to.equal(
+              `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: end index must be a number or a numeric string (got "b")`
+            )
+        )
+      })
+    })
   })
 
   context("array literals", () => {
@@ -1602,6 +1634,60 @@ describe("resolveTemplateStrings", () => {
       const res = resolveTemplateStrings(obj, new TestContext({}))
       expect(res).to.eql({
         foo: [],
+      })
+    })
+
+    it("$merge should correctly merge objects with overlapping property names inside $forEach loop", () => {
+      const services = [
+        {
+          "env-overrides": {},
+          "service-props": {
+            name: "tmp",
+            command: ["sh", "run.sh"],
+          },
+        },
+        {
+          "env-overrides": {
+            ENABLE_TMP: "true",
+          },
+          "service-props": {
+            name: "tmp-admin",
+            command: ["sh", "run.sh"],
+          },
+        },
+      ]
+      const obj = {
+        services: {
+          $forEach: "${services}",
+          $return: {
+            $merge: "${item.value.service-props}",
+            env: {
+              ALLOW_DATABASE_RESET: "true",
+              $merge: "${item.value.env-overrides}",
+            },
+          },
+        },
+      }
+
+      const res = resolveTemplateStrings(obj, new TestContext({ services }))
+      expect(res).to.eql({
+        services: [
+          {
+            command: ["sh", "run.sh"],
+            env: {
+              ALLOW_DATABASE_RESET: "true",
+            },
+            name: "tmp",
+          },
+          {
+            command: ["sh", "run.sh"],
+            env: {
+              ALLOW_DATABASE_RESET: "true",
+              ENABLE_TMP: "true",
+            },
+            name: "tmp-admin",
+          },
+        ],
       })
     })
   })
