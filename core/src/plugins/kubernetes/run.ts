@@ -888,7 +888,7 @@ export class PodRunner extends PodRunnerParams {
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
-      const { success, containerStatus } = await this.awaitRunningPod(startedAt, timeoutSec)
+      const exitCode = await this.awaitRunningPod(startedAt, timeoutSec)
 
       // Retrieve logs after run
       const mainContainerLogs = await this.getMainContainerLogs()
@@ -898,8 +898,8 @@ export class PodRunner extends PodRunnerParams {
         startedAt,
         completedAt: new Date(),
         log: mainContainerLogs,
-        success,
-        exitCode: containerStatus?.state?.terminated?.exitCode,
+        exitCode,
+        success: exitCode === 0,
       }
     } finally {
       logsFollower.close()
@@ -909,10 +909,7 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
-  private async awaitRunningPod(
-    startedAt: Date,
-    timeoutSec: number | undefined
-  ): Promise<{ success: boolean; containerStatus?: V1ContainerStatus }> {
+  private async awaitRunningPod(startedAt: Date, timeoutSec: number | undefined): Promise<number | undefined> {
     const { namespace, podName } = this
     const mainContainerName = this.getMainContainerName()
 
@@ -959,10 +956,7 @@ export class PodRunner extends PodRunnerParams {
         if (!!exitCode) {
           throw new PodRunnerError(`Command exited with code ${exitCode}.`, errorDetails)
         }
-        return {
-          success: exitCode === 0,
-          containerStatus: mainContainerStatus,
-        }
+        return exitCode
       }
 
       const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
