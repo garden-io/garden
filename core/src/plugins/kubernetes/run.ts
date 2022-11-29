@@ -415,11 +415,8 @@ async function runWithoutArtifacts({
       version,
     }
   } catch (err) {
-    const containerLogs = err.detail.logs
-
     result = await runner.handlePodError({
       err,
-      containerLogs,
       command: runner.getFullCommand(),
       startedAt,
       version,
@@ -613,11 +610,8 @@ async function runWithArtifacts({
         version,
       }
     } catch (err) {
-      const containerLogs = await runner.getMainContainerLogs()
-
       result = await runner.handlePodError({
         err,
-        containerLogs,
         command: cmd,
         startedAt,
         version,
@@ -1036,14 +1030,12 @@ export class PodRunner extends PodRunnerParams {
 
   async handlePodError({
     err,
-    containerLogs,
     command,
     startedAt,
     version,
     moduleName,
   }: {
     err: any
-    containerLogs: string
     command: string[]
     startedAt: Date
     version: string
@@ -1051,7 +1043,7 @@ export class PodRunner extends PodRunnerParams {
   }) {
     const errorDetail = <PodErrorDetails>err.detail
     // Error detail may already contain container logs
-    const logs = errorDetail.logs || containerLogs
+    const logs = errorDetail.logs || (await this.getMainContainerLogs())
 
     const renderError = (error: any, podErrorDetails: PodErrorDetails) => {
       switch (error.type) {
