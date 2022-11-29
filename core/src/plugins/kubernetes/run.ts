@@ -9,7 +9,7 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
-import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
+import { V1PodSpec, V1Pod, V1Container, V1ContainerStatus } from "@kubernetes/client-node"
 import { RunResult } from "../../types/plugin/base"
 import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
@@ -793,6 +793,7 @@ interface RunAndWaitResult {
   completedAt: Date
   log: string
   success: boolean
+  exitCode?: number
 }
 
 export class PodRunner extends PodRunnerParams {
@@ -854,40 +855,42 @@ export class PodRunner extends PodRunnerParams {
     const { log, remove, timeoutSec, tty } = params
 
     const startedAt = new Date()
-    let success = true
-    let mainContainerLogs = ""
-
     const logsFollower = this.prepareLogsFollower(params)
     const limitBytes = 1000 * 1024 // 1MB
     logsFollower.followLogs({ limitBytes }).catch((_err) => {
       // Errors in `followLogs` are logged there, so all we need to do here is to ensure that the follower is closed.
       logsFollower.close()
     })
+
     try {
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
-      success = await this.awaitRunningPod(startedAt, timeoutSec)
+      const { success, containerStatus } = await this.awaitRunningPod(startedAt, timeoutSec)
 
       // Retrieve logs after run
-      mainContainerLogs = await this.getMainContainerLogs()
+      const mainContainerLogs = await this.getMainContainerLogs()
+
+      return {
+        command: this.getFullCommand(),
+        startedAt,
+        completedAt: new Date(),
+        log: mainContainerLogs,
+        success,
+        exitCode: containerStatus?.state?.terminated?.exitCode,
+      }
     } finally {
       logsFollower.close()
       if (remove) {
         await this.stop()
       }
     }
-
-    return {
-      command: this.getFullCommand(),
-      startedAt,
-      completedAt: new Date(),
-      log: mainContainerLogs,
-      success,
-    }
   }
 
-  private async awaitRunningPod(startedAt: Date, timeoutSec: number | undefined): Promise<boolean> {
+  private async awaitRunningPod(
+    startedAt: Date,
+    timeoutSec: number | undefined
+  ): Promise<{ success: boolean; containerStatus?: V1ContainerStatus }> {
     const { namespace, podName } = this
     const mainContainerName = this.getMainContainerName()
 
@@ -908,7 +911,7 @@ export class PodRunner extends PodRunnerParams {
         throw new OutOfMemoryError(msg, {
           logs: (await this.getMainContainerLogs()) || msg,
           exitCode,
-          serverPod,
+          containerStatus: mainContainerStatus,
         })
       }
 
@@ -920,7 +923,7 @@ export class PodRunner extends PodRunnerParams {
           exitReason !== "StartError"
         ) {
           // Successfully ran the command in the main container, but returned non-zero exit code
-          return false
+          return { success: false, containerStatus: mainContainerStatus }
         }
 
         const statusStr = terminated
@@ -930,13 +933,16 @@ export class PodRunner extends PodRunnerParams {
         throw new PodRunnerError(`Failed to start Pod ${podName}. ${statusStr}`, {
           logs: statusStr,
           exitCode,
-          pod: serverPod,
+          containerStatus: mainContainerStatus,
         })
       }
 
       // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
       if (state === "stopped" || exitReason === "Completed") {
-        return exitCode === 0
+        return {
+          success: exitCode === 0,
+          containerStatus: mainContainerStatus,
+        }
       }
 
       const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
@@ -945,7 +951,7 @@ export class PodRunner extends PodRunnerParams {
         const msg = `Command timed out after ${timeoutSec} seconds.`
         throw new TimeoutError(msg, {
           logs: (await this.getMainContainerLogs()) || msg,
-          serverPod,
+          containerStatus: mainContainerStatus,
         })
       }
 
