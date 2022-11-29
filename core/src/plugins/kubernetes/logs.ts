@@ -360,9 +360,12 @@ export class K8sLogFollower<T> {
         this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
       } catch (err) {
         // Log the error and keep trying.
-        this.log.debug(
-          `<Getting logs for container '${containerName}' in Pod '${pod.metadata.name}' failed with error: ${err?.message}>`
-        )
+        // If the error is "HTTP request failed" most likely the pod is just not up yet
+        if (err.message !== "HTTP request failed") {
+          this.log.debug(
+            `<Getting logs for container '${containerName}' in Pod '${pod.metadata.name}' failed with error: ${err?.message}>`
+          )
+        }
         return
       }
       this.connections[connectionId] = {
