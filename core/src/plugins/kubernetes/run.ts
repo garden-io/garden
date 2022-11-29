@@ -946,16 +946,19 @@ export class PodRunner extends PodRunnerParams {
           exitReason !== "ContainerCannotRun" &&
           exitReason !== "StartError"
         ) {
-          // Successfully ran the command in the main container, but returned non-zero exit code
-          return { success: false, containerStatus: mainContainerStatus }
+          // Successfully ran the command in the main container, but returned non-zero exit code.
+          // Consider it as a task execution error inside the Pod.
+          throw new PodRunnerError(`Command exited with code ${exitCode}.`, errorDetails)
+        } else {
+          throw new PodRunnerError(`Failed to start Pod ${podName}.`, errorDetails)
         }
-
-
-        throw new PodRunnerError(`Failed to start Pod ${podName}.`, errorDetails)
       }
 
       // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
       if (state === "stopped" || exitReason === "Completed") {
+        if (!!exitCode) {
+          throw new PodRunnerError(`Command exited with code ${exitCode}.`, errorDetails)
+        }
         return {
           success: exitCode === 0,
           containerStatus: mainContainerStatus,
