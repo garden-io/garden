@@ -56,6 +56,14 @@ export interface UserResult {
   }[]
 }
 
+export interface ProjectResult {
+  id: number
+  createdAt: string
+  updatedAt: string
+  name: string
+  environments: number
+}
+
 export const noApiMsg = (action: string, resource: string) => dedent`
   Unable to ${action} ${resource}. Make sure the project is configured for Garden Cloud and that you're logged in.
 `

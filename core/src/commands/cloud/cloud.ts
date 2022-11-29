@@ -11,13 +11,14 @@ import { CommandGroup } from "../base"
 import { GroupsCommand } from "./groups/groups"
 import { SecretsCommand } from "./secrets/secrets"
 import { UsersCommand } from "./users/users"
+import { ProjectsCommand } from "./projects/projects"
 
 export class CloudCommand extends CommandGroup {
   name = "cloud"
   alias = "enterprise"
   help = dedent`
-    Manage Garden Cloud/Enterprise resources such as users, groups and secrets.
+    Manage Garden Cloud/Enterprise resources such as users, groups, projects and secrets.
   `
 
-  subCommands = [SecretsCommand, UsersCommand, GroupsCommand]
+  subCommands = [SecretsCommand, UsersCommand, GroupsCommand, ProjectsCommand]
 }
