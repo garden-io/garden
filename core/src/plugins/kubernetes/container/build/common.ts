@@ -489,7 +489,7 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
       timeoutSeconds: 3,
       successThreshold: 2,
       failureThreshold: 5,
-      tcpSocket: { port: rsyncPortName },
+      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
     },
     lifecycle: {
       preStop: {

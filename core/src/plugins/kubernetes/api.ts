@@ -23,8 +23,10 @@ import {
   V1APIVersions,
   V1APIResource,
   CoreV1Api,
+  ExtensionsV1beta1Api,
   RbacAuthorizationV1Api,
   AppsV1Api,
+  ApiextensionsV1beta1Api,
   PolicyV1beta1Api,
   KubernetesObject,
   Exec,
@@ -33,7 +35,6 @@ import {
   V1Service,
   Log,
   NetworkingV1Api,
-  ApiextensionsV1Api,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -87,21 +88,23 @@ const requestAgent = new Agent({ lookup })
 // NOTE: be warned, the API of the client library is very likely to change
 
 type K8sApi =
-  | ApiextensionsV1Api
+  | ApiextensionsV1beta1Api
   | AppsV1Api
   | CoreApi
   | CoreV1Api
+  | ExtensionsV1beta1Api
   | NetworkingV1Api
   | PolicyV1beta1Api
   | RbacAuthorizationV1Api
 type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
 
 const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
+  apiExtensions: ApiextensionsV1beta1Api,
   apis: ApisApi,
   apps: AppsV1Api,
   core: CoreV1Api,
   coreApi: CoreApi,
-  extensions: ApiextensionsV1Api,
+  extensions: ExtensionsV1beta1Api,
   networking: NetworkingV1Api,
   policy: PolicyV1beta1Api,
   rbac: RbacAuthorizationV1Api,
@@ -173,11 +176,12 @@ type WrappedApi<T> = {
 }
 
 export class KubeApi {
+  public apiExtensions: WrappedApi<ApiextensionsV1beta1Api>
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
   public core: WrappedApi<CoreV1Api>
   public coreApi: WrappedApi<CoreApi>
-  public extensions: WrappedApi<ApiextensionsV1Api>
+  public extensions: WrappedApi<ExtensionsV1beta1Api>
   public networking: WrappedApi<NetworkingV1Api>
   public policy: WrappedApi<PolicyV1beta1Api>
   public rbac: WrappedApi<RbacAuthorizationV1Api>
