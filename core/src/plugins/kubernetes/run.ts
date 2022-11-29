@@ -1019,7 +1019,6 @@ export class PodRunner extends PodRunnerParams {
       throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, {
         logs: result.allLogs,
         result,
-        execParams: params,
       })
     }
 
@@ -1028,7 +1027,6 @@ export class PodRunner extends PodRunnerParams {
       throw new OutOfMemoryError(msg, {
         logs: (await this.getMainContainerLogs()) || msg,
         result,
-        execParams: params,
       })
     }
 
@@ -1036,7 +1034,6 @@ export class PodRunner extends PodRunnerParams {
       throw new PodRunnerError(`Command exited with code ${result.exitCode}:\n${result.allLogs}`, {
         logs: result.allLogs,
         result,
-        execParams: params,
       })
     }
 
