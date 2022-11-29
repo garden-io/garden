@@ -40,7 +40,6 @@ import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
-import { lookup } from "dns-lookup-cache"
 
 import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
@@ -82,7 +81,7 @@ const cachedApiInfo: { [context: string]: ApiInfo } = {}
 const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
 
-const requestAgent = new Agent({ lookup })
+const requestAgent = new Agent({})
 
 // NOTE: be warned, the API of the client library is very likely to change
 
