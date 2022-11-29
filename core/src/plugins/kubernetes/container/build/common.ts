@@ -583,8 +583,9 @@ export function getUtilManifests(
   }
 
   // Set the configured nodeSelector, if any
-  if (!isEmpty(provider.config.kaniko?.nodeSelector)) {
-    deployment.spec!.template.spec!.nodeSelector = provider.config.kaniko?.nodeSelector
+  const nodeSelector = provider.config.kaniko?.util?.nodeSelector || provider.config.kaniko?.nodeSelector
+  if (!isEmpty(nodeSelector)) {
+    deployment.spec!.template.spec!.nodeSelector = nodeSelector
   }
 
   return { deployment, service }

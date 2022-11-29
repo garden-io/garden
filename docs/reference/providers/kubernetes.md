@@ -266,7 +266,7 @@ providers:
           value:
 
       # Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of
-      # certain components, for example autoscalers. Same anotations will be used for each util pod unless they are
+      # certain components, for example autoscalers. Same annotations will be used for each util pod unless they are
       # specifically set under `util.annotations`
       annotations:
 
@@ -300,6 +300,9 @@ providers:
 
         # Specify annotations to apply to each garden-util pod and deployments.
         annotations:
+
+        # Specify the nodeSelector constraints for each garden-util pod.
+        nodeSelector:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -1205,7 +1208,7 @@ otherwise just a regular string.
 
 [providers](#providers) > [kaniko](#providerskaniko) > annotations
 
-Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. Same anotations will be used for each util pod unless they are specifically set under `util.annotations`
+Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. Same annotations will be used for each util pod unless they are specifically set under `util.annotations`
 
 | Type     | Required |
 | -------- | -------- |
@@ -1318,6 +1321,16 @@ providers:
         annotations:
             cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
+
+### `providers[].kaniko.util.nodeSelector`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > nodeSelector
+
+Specify the nodeSelector constraints for each garden-util pod.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].defaultHostname`
 

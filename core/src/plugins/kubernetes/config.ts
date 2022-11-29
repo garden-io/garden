@@ -232,6 +232,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     util?: {
       tolerations?: V1Toleration[]
       annotations?: StringMap
+      nodeSelector?: StringMap
     }
   }
   context: string
@@ -716,7 +717,7 @@ export const kubernetesConfigBase = () =>
         ),
         annotations: annotationsSchema().description(
           deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
-          Same anotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+          Same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
         ),
         util: joi.object().keys({
           tolerations: joiSparseArray(tolerationSchema()).description(
@@ -724,6 +725,9 @@ export const kubernetesConfigBase = () =>
           ),
           annotations: annotationsSchema().description(
             "Specify annotations to apply to each garden-util pod and deployments."
+          ),
+          nodeSelector: joiStringMap(joi.string()).description(
+            "Specify the nodeSelector constraints for each garden-util pod."
           ),
         }),
       })
