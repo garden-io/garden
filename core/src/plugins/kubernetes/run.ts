@@ -608,7 +608,7 @@ async function runWithArtifacts({
       })
       result = {
         ...res,
-        log: (await runner.getMainContainerLogs()) || res.log,
+        log: res.log || (await runner.getMainContainerLogs()),
         moduleName: module.name,
         version,
       }
@@ -704,18 +704,17 @@ function handlePodError({
   moduleName
 }) {
   const errorDetail = <PodErrorDetails>err.detail
+  // Error detail may already contain container logs
+  const logs = errorDetail.logs || containerLogs
 
   const renderError = (error: any, podErrorDetails: PodErrorDetails) => {
     switch (error.type) {
       // The pod container exceeded its memory limits
       case "out-of-memory":
-        return (
-          err.message +
-          (containerLogs ? ` Here are the logs until the out-of-memory event occurred:\n\n${containerLogs}` : "")
-        )
+        return err.message + (logs ? ` Here are the logs until the out-of-memory event occurred:\n\n${logs}` : "")
       // Command timed out
       case "timeout":
-        return err.message + (containerLogs ? ` Here are the logs until the timeout occurred:\n\n${containerLogs}` : "")
+        return err.message + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : "")
       // Command exited with non-zero code
       case "pod-runner":
         let errorDesc = error.message + "\n"
@@ -743,8 +742,8 @@ function handlePodError({
           errorDesc += podStatusDesc + "\n"
         }
 
-        if (!!containerLogs) {
-          errorDesc += `Here are the logs until the error occurred:\n\n${containerLogs}`
+        if (!!logs) {
+          errorDesc += `Here are the logs until the error occurred:\n\n${logs}`
         }
 
         return errorDesc
@@ -1050,7 +1049,7 @@ export class PodRunner extends PodRunnerParams {
       command,
       startedAt,
       completedAt: new Date(),
-      log: result.stdout + result.stderr,
+      log: (result.stdout + result.stderr).trim(),
       exitCode: result.exitCode,
       success: result.exitCode === 0,
     }
