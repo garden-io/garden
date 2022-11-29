@@ -606,7 +606,6 @@ export async function enableAnalytics(garden: TestGarden) {
     originalAnalyticsConfig = { ...((await garden.globalConfigStore.get(["analytics"])) as AnalyticsGlobalConfig) }
   } catch {}
 
-  await garden.globalConfigStore.set(["analytics", "optedIn"], true)
   gardenEnv.GARDEN_DISABLE_ANALYTICS = false
   // Set the analytics mode to dev for good measure
   gardenEnv.ANALYTICS_DEV = true
