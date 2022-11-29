@@ -416,14 +416,12 @@ async function runWithoutArtifacts({
     }
   } catch (err) {
     const containerLogs = err.detail.logs
-    const exitCode = err.detail.exitCode
 
     result = handlePodError({
       err,
       containerLogs,
       command: runner.getFullCommand(),
       startedAt,
-      exitCode,
       version,
       moduleName: module.name,
     })
@@ -616,14 +614,12 @@ async function runWithArtifacts({
       }
     } catch (err) {
       const containerLogs = await runner.getMainContainerLogs()
-      const exitCode = err.detail.exitCode
 
       result = handlePodError({
         err,
         containerLogs,
         command: cmd,
         startedAt,
-        exitCode,
         version,
         moduleName: module.name,
       })
@@ -697,7 +693,6 @@ function handlePodError({
   containerLogs,
   command,
   startedAt,
-  exitCode,
   version,
   moduleName,
 }: {
@@ -705,10 +700,12 @@ function handlePodError({
   containerLogs: string
   command: string[]
   startedAt: Date
-  exitCode: number
   version: string
   moduleName
 }) {
+  const errorDetail = <PodErrorDetails>err.detail
+  const exitCode = errorDetail.exitCode
+
   if (err.type === "out-of-memory" || err.type === "timeout") {
     // Command timed out or the pod container exceeded its memory limits
     const errorLog =
