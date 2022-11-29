@@ -12,13 +12,10 @@ import { OptionsOfTextResponseBody, Headers } from "got"
 
 // Handle proxy environment settings
 // (see https://github.com/gajus/global-agent#what-is-the-reason-global-agentbootstrap-does-not-use-http_proxy)
-const isProxyEnvSet = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.NO_PROXY
-
-if (isProxyEnvSet) {
-  bootstrap({
-    environmentVariableNamespace: "",
-  })
-}
+bootstrap({
+  environmentVariableNamespace: "",
+  forceGlobalAgent: true,
+})
 
 // Exporting from here to make sure the global-agent bootstrap is executed, and for convenience as well
 export const got = _got
