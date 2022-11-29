@@ -709,10 +709,13 @@ function handlePodError({
     switch (error.type) {
       // The pod container exceeded its memory limits
       case "out-of-memory":
-        return makeOutOfMemoryErrorLog(containerLogs)
+        return (
+          err.message +
+          (containerLogs ? ` Here are the logs until the out-of-memory event occurred:\n\n${containerLogs}` : "")
+        )
       // Command timed out
       case "timeout":
-        return makeTimeOutErrorLog(containerLogs)
+        return err.message + (containerLogs ? ` Here are the logs until the timeout occurred:\n\n${containerLogs}` : "")
       // Command exited with non-zero code
       case "pod-runner":
         return containerLogs || error.message
@@ -733,19 +736,6 @@ function handlePodError({
     command,
     exitCode: errorDetail.exitCode,
   }
-}
-
-function makeTimeOutErrorLog(containerLogs: string) {
-  return (
-    "Command timed out." + (containerLogs ? ` Here are the logs until the timeout occurred:\n\n${containerLogs}` : "")
-  )
-}
-
-function makeOutOfMemoryErrorLog(containerLogs?: string) {
-  return (
-    "The Pod container was OOMKilled." +
-    (containerLogs ? ` Here are the logs until the out-of-memory event occurred:\n\n${containerLogs}` : "")
-  )
 }
 
 class PodRunnerParams {
