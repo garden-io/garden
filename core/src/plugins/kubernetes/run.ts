@@ -982,12 +982,15 @@ export class PodRunner extends PodRunnerParams {
   }
 
   async getMainContainerLogs(): Promise<string> {
+    const mainContainerName = this.getMainContainerName()
     try {
       const allLogs = await this.getLogs()
-      const containerLogs = allLogs.find((l) => l.containerName === this.getMainContainerName())?.log || ""
-      return containerLogs.trim()
+      const containerLogs = allLogs.find((l) => l.containerName === mainContainerName)?.log?.trim()
+      return containerLogs || ""
     } catch (err) {
-      return ""
+      return `[Could not retrieve logs for container '${mainContainerName}': ${
+        err.message || "unknown error occurred"
+      }]`
     }
   }
 
