@@ -925,15 +925,17 @@ export class PodRunner extends PodRunnerParams {
       const exitReason = terminated?.reason
       const exitCode = terminated?.exitCode
 
+      const errorDetails: PodErrorDetails = {
+        logs: await this.getMainContainerLogs(),
+        exitCode,
+        containerStatus: mainContainerStatus,
+        podStatus: serverPod.status,
+      }
+
       // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
       // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
       // and we handle that case specifically here.
       if (exitCode === 137 || exitReason === "OOMKilled") {
-        const errorDetails: PodErrorDetails = {
-          logs: await this.getMainContainerLogs(),
-          exitCode,
-          containerStatus: mainContainerStatus,
-        }
         throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
       }
 
@@ -948,12 +950,7 @@ export class PodRunner extends PodRunnerParams {
           return { success: false, containerStatus: mainContainerStatus }
         }
 
-        const errorDetails: PodErrorDetails = {
-          logs: await this.getMainContainerLogs(),
-          exitCode,
-          containerStatus: mainContainerStatus,
-          podStatus: serverPod.status,
-        }
+
         throw new PodRunnerError(`Failed to start Pod ${podName}.`, errorDetails)
       }
 
@@ -968,10 +965,6 @@ export class PodRunner extends PodRunnerParams {
       const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
 
       if (timeoutSec && elapsed > timeoutSec) {
-        const errorDetails: PodErrorDetails = {
-          logs: await this.getMainContainerLogs(),
-          containerStatus: mainContainerStatus,
-        }
         throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, errorDetails)
       }
 
