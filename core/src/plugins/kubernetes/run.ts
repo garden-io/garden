@@ -704,36 +704,34 @@ function handlePodError({
   moduleName
 }) {
   const errorDetail = <PodErrorDetails>err.detail
-  const exitCode = errorDetail.exitCode
 
-  if (err.type === "out-of-memory" || err.type === "timeout") {
-    // Command timed out or the pod container exceeded its memory limits
-    const errorLog =
-      err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
-    return {
-      log: errorLog || err.message,
-      moduleName,
-      version,
-      success: false,
-      startedAt,
-      completedAt: new Date(),
-      command,
-      exitCode,
+  const renderError = (error: any, _detail: PodErrorDetails) => {
+    switch (error.type) {
+      // The pod container exceeded its memory limits
+      case "out-of-memory":
+        return makeOutOfMemoryErrorLog(containerLogs)
+      // Command timed out
+      case "timeout":
+        return makeTimeOutErrorLog(containerLogs)
+      // Command exited with non-zero code
+      case "pod-runner":
+        return containerLogs || error.message
+      // Unknown/unexpected error, rethrow it
+      default:
+        throw err
     }
-  } else if (err.type === "pod-runner") {
-    // Command exited with non-zero code
-    return {
-      log: containerLogs || err.message,
-      moduleName,
-      version,
-      success: false,
-      startedAt,
-      completedAt: new Date(),
-      command,
-      exitCode,
-    }
-  } else {
-    throw err
+  }
+
+  const log = renderError(err, errorDetail)
+  return {
+    log,
+    moduleName,
+    version,
+    success: false,
+    startedAt,
+    completedAt: new Date(),
+    command,
+    exitCode: errorDetail.exitCode,
   }
 }
 
