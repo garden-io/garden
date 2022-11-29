@@ -417,7 +417,7 @@ async function runWithoutArtifacts({
   } catch (err) {
     const containerLogs = err.detail.logs
 
-    result = handlePodError({
+    result = await runner.handlePodError({
       err,
       containerLogs,
       command: runner.getFullCommand(),
@@ -615,7 +615,7 @@ async function runWithArtifacts({
     } catch (err) {
       const containerLogs = await runner.getMainContainerLogs()
 
-      result = handlePodError({
+      result = await runner.handlePodError({
         err,
         containerLogs,
         command: cmd,
@@ -686,84 +686,6 @@ async function runWithArtifacts({
   }
 
   return result
-}
-
-function handlePodError({
-  err,
-  containerLogs,
-  command,
-  startedAt,
-  version,
-  moduleName,
-}: {
-  err: any
-  containerLogs: string
-  command: string[]
-  startedAt: Date
-  version: string
-  moduleName
-}) {
-  const errorDetail = <PodErrorDetails>err.detail
-  // Error detail may already contain container logs
-  const logs = errorDetail.logs || containerLogs
-
-  const renderError = (error: any, podErrorDetails: PodErrorDetails) => {
-    switch (error.type) {
-      // The pod container exceeded its memory limits
-      case "out-of-memory":
-        return err.message + (logs ? ` Here are the logs until the out-of-memory event occurred:\n\n${logs}` : "")
-      // Command timed out
-      case "timeout":
-        return err.message + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : "")
-      // Command exited with non-zero code
-      case "pod-runner":
-        let errorDesc = error.message + "\n"
-
-        const terminated = podErrorDetails.containerStatus?.state?.terminated
-        const podStatus = podErrorDetails.podStatus
-
-        if (!!terminated) {
-          let terminationDesc = ""
-          if (!!terminated.exitCode) {
-            terminationDesc += `Exited with code: ${terminated.exitCode}. `
-          }
-          if (!!terminated.signal) {
-            terminationDesc += `Stopped with signal: ${terminated.signal}. `
-          }
-          terminationDesc += `Reason: ${terminated.reason || "unknown"}. `
-          terminationDesc += `Message: ${terminated.message || "n/a"}.`
-          terminationDesc = terminationDesc.trim()
-
-          if (!!terminationDesc) {
-            errorDesc += terminationDesc + "\n"
-          }
-        } else if (!!podStatus) {
-          const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
-          errorDesc += podStatusDesc + "\n"
-        }
-
-        if (!!logs) {
-          errorDesc += `Here are the logs until the error occurred:\n\n${logs}`
-        }
-
-        return errorDesc
-      // Unknown/unexpected error, rethrow it
-      default:
-        throw err
-    }
-  }
-
-  const log = renderError(err, errorDetail)
-  return {
-    log,
-    moduleName,
-    version,
-    success: false,
-    startedAt,
-    completedAt: new Date(),
-    command,
-    exitCode: errorDetail.exitCode,
-  }
 }
 
 class PodRunnerParams {
@@ -1109,6 +1031,84 @@ export class PodRunner extends PodRunnerParams {
       await this.api.createPod(this.namespace, pod)
     } catch (error) {
       throw new PodRunnerError(`Failed to create Pod ${this.podName}: ${error.message}`, { error })
+    }
+  }
+
+  async handlePodError({
+    err,
+    containerLogs,
+    command,
+    startedAt,
+    version,
+    moduleName,
+  }: {
+    err: any
+    containerLogs: string
+    command: string[]
+    startedAt: Date
+    version: string
+    moduleName
+  }) {
+    const errorDetail = <PodErrorDetails>err.detail
+    // Error detail may already contain container logs
+    const logs = errorDetail.logs || containerLogs
+
+    const renderError = (error: any, podErrorDetails: PodErrorDetails) => {
+      switch (error.type) {
+        // The pod container exceeded its memory limits
+        case "out-of-memory":
+          return err.message + (logs ? ` Here are the logs until the out-of-memory event occurred:\n\n${logs}` : "")
+        // Command timed out
+        case "timeout":
+          return err.message + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : "")
+        // Command exited with non-zero code
+        case "pod-runner":
+          let errorDesc = error.message + "\n"
+
+          const terminated = podErrorDetails.containerStatus?.state?.terminated
+          const podStatus = podErrorDetails.podStatus
+
+          if (!!terminated) {
+            let terminationDesc = ""
+            if (!!terminated.exitCode) {
+              terminationDesc += `Exited with code: ${terminated.exitCode}. `
+            }
+            if (!!terminated.signal) {
+              terminationDesc += `Stopped with signal: ${terminated.signal}. `
+            }
+            terminationDesc += `Reason: ${terminated.reason || "unknown"}. `
+            terminationDesc += `Message: ${terminated.message || "n/a"}.`
+            terminationDesc = terminationDesc.trim()
+
+            if (!!terminationDesc) {
+              errorDesc += terminationDesc + "\n"
+            }
+          } else if (!!podStatus) {
+            const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
+            errorDesc += podStatusDesc + "\n"
+          }
+
+          if (!!logs) {
+            errorDesc += `Here are the logs until the error occurred:\n\n${logs}`
+          }
+
+          return errorDesc
+        // Unknown/unexpected error, rethrow it
+        default:
+          throw err
+      }
+    }
+
+    const log = renderError(err, errorDetail)
+    return {
+      log,
+      moduleName,
+      version,
+      success: false,
+      startedAt,
+      completedAt: new Date(),
+      command,
+      exitCode: errorDetail.exitCode,
     }
   }
 }
