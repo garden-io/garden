@@ -407,7 +407,7 @@ async function runWithoutArtifacts({
       remove: true,
       events: ctx.events,
       timeoutSec: timeout || defaultTimeout,
-      tty: !!interactive,
+      tty: interactive,
     })
     result = {
       ...res,
