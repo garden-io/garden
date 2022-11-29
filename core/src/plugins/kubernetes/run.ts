@@ -9,7 +9,7 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
-import { V1Container, V1ContainerStatus, V1Pod, V1PodSpec } from "@kubernetes/client-node"
+import { V1Container, V1ContainerStatus, V1Pod, V1PodSpec, V1PodStatus } from "@kubernetes/client-node"
 import { RunResult } from "../../types/plugin/base"
 import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
@@ -705,7 +705,7 @@ function handlePodError({
 }) {
   const errorDetail = <PodErrorDetails>err.detail
 
-  const renderError = (error: any, _detail: PodErrorDetails) => {
+  const renderError = (error: any, podErrorDetails: PodErrorDetails) => {
     switch (error.type) {
       // The pod container exceeded its memory limits
       case "out-of-memory":
@@ -718,7 +718,36 @@ function handlePodError({
         return err.message + (containerLogs ? ` Here are the logs until the timeout occurred:\n\n${containerLogs}` : "")
       // Command exited with non-zero code
       case "pod-runner":
-        return containerLogs || error.message
+        let errorDesc = error.message + "\n"
+
+        const terminated = podErrorDetails.containerStatus?.state?.terminated
+        const podStatus = podErrorDetails.podStatus
+
+        if (!!terminated) {
+          let terminationDesc = ""
+          if (!!terminated.exitCode) {
+            terminationDesc += `Exited with code: ${terminated.exitCode}. `
+          }
+          if (!!terminated.signal) {
+            terminationDesc += `Stopped with signal: ${terminated.signal}. `
+          }
+          terminationDesc += `Reason: ${terminated.reason || "unknown"}. `
+          terminationDesc += `Message: ${terminated.message || "n/a"}.`
+          terminationDesc = terminationDesc.trim()
+
+          if (!!terminationDesc) {
+            errorDesc += terminationDesc + "\n"
+          }
+        } else if (!!podStatus) {
+          const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
+          errorDesc += podStatusDesc + "\n"
+        }
+
+        if (!!containerLogs) {
+          errorDesc += `Here are the logs until the error occurred:\n\n${containerLogs}`
+        }
+
+        return errorDesc
       // Unknown/unexpected error, rethrow it
       default:
         throw err
@@ -783,8 +812,10 @@ interface RunAndWaitResult {
 
 interface PodErrorDetails {
   logs: string
+  // optional details
   exitCode?: number
-  containerStatus?: V1ContainerStatus // optional details
+  containerStatus?: V1ContainerStatus
+  podStatus?: V1PodStatus
 }
 
 export class PodRunner extends PodRunnerParams {
@@ -917,14 +948,11 @@ export class PodRunner extends PodRunnerParams {
           return { success: false, containerStatus: mainContainerStatus }
         }
 
-        const statusStr = terminated
-          ? `${terminated.reason} - ${terminated.message}`
-          : "Status:\n" + JSON.stringify(serverPod.status, null, 2)
-
         const errorDetails: PodErrorDetails = {
-          logs: statusStr,
+          logs: await this.getMainContainerLogs(),
           exitCode,
           containerStatus: mainContainerStatus,
+          podStatus: serverPod.status,
         }
         throw new PodRunnerError(`Failed to start Pod ${podName}.`, errorDetails)
       }
