@@ -9,7 +9,7 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
-import { V1PodSpec, V1Pod, V1Container, V1ContainerStatus } from "@kubernetes/client-node"
+import { V1Container, V1ContainerStatus, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { RunResult } from "../../types/plugin/base"
 import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
@@ -616,7 +616,7 @@ async function runWithArtifacts({
       }
     } catch (err) {
       const containerLogs = await runner.getMainContainerLogs()
-      const exitCode = err.detail.result.exitCode
+      const exitCode = err.detail.exitCode
 
       result = handlePodError({
         err,
@@ -796,6 +796,12 @@ interface RunAndWaitResult {
   exitCode?: number
 }
 
+interface PodErrorDetails {
+  logs: string
+  exitCode?: number
+  containerStatus?: V1ContainerStatus // optional details
+}
+
 export class PodRunner extends PodRunnerParams {
   podName: string
   running: boolean
@@ -907,12 +913,12 @@ export class PodRunner extends PodRunnerParams {
       // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
       // and we handle that case specifically here.
       if (exitCode === 137 || exitReason === "OOMKilled") {
-        const msg = `Pod container was OOMKilled.`
-        throw new OutOfMemoryError(msg, {
-          logs: (await this.getMainContainerLogs()) || msg,
+        const errorDetails: PodErrorDetails = {
+          logs: await this.getMainContainerLogs(),
           exitCode,
           containerStatus: mainContainerStatus,
-        })
+        }
+        throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
       }
 
       if (state === "unhealthy") {
@@ -930,11 +936,12 @@ export class PodRunner extends PodRunnerParams {
           ? `${terminated.reason} - ${terminated.message}`
           : "Status:\n" + JSON.stringify(serverPod.status, null, 2)
 
-        throw new PodRunnerError(`Failed to start Pod ${podName}. ${statusStr}`, {
+        const errorDetails: PodErrorDetails = {
           logs: statusStr,
           exitCode,
           containerStatus: mainContainerStatus,
-        })
+        }
+        throw new PodRunnerError(`Failed to start Pod ${podName}.`, errorDetails)
       }
 
       // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
@@ -948,11 +955,11 @@ export class PodRunner extends PodRunnerParams {
       const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
 
       if (timeoutSec && elapsed > timeoutSec) {
-        const msg = `Command timed out after ${timeoutSec} seconds.`
-        throw new TimeoutError(msg, {
-          logs: (await this.getMainContainerLogs()) || msg,
+        const errorDetails: PodErrorDetails = {
+          logs: await this.getMainContainerLogs(),
           containerStatus: mainContainerStatus,
-        })
+        }
+        throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, errorDetails)
       }
 
       await sleep(800)
@@ -1016,25 +1023,24 @@ export class PodRunner extends PodRunnerParams {
     })
 
     if (result.timedOut) {
-      throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, {
-        logs: result.allLogs,
-        result,
-      })
+      const errorDetails: PodErrorDetails = { logs: result.allLogs }
+      throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, errorDetails)
     }
 
     if (result.exitCode === 137) {
-      const msg = `Pod container was OOMKilled.`
-      throw new OutOfMemoryError(msg, {
-        logs: (await this.getMainContainerLogs()) || msg,
-        result,
-      })
+      const errorDetails: PodErrorDetails = {
+        logs: await this.getMainContainerLogs(),
+        exitCode: result.exitCode,
+      }
+      throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
     }
 
     if (result.exitCode !== 0) {
-      throw new PodRunnerError(`Command exited with code ${result.exitCode}:\n${result.allLogs}`, {
+      const errorDetails: PodErrorDetails = {
         logs: result.allLogs,
-        result,
-      })
+        exitCode: result.exitCode,
+      }
+      throw new PodRunnerError(`Command exited with code ${result.exitCode}.`, errorDetails)
     }
 
     return {
