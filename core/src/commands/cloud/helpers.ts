@@ -14,9 +14,11 @@ import { capitalize } from "lodash"
 import minimatch from "minimatch"
 import pluralize from "pluralize"
 import chalk from "chalk"
-import { CommandError } from "../../exceptions"
+import { CommandError, EnterpriseApiError } from "../../exceptions"
 import { CommandResult } from "../base"
 import { userPrompt } from "../../util/util"
+import { CloudApi } from "../../cloud/api"
+import { CloudConnectedProject, LocalConfig } from "../../config-store"
 
 export interface DeleteResult {
   id: number
@@ -193,4 +195,24 @@ export async function confirmDelete(resource: string, count: number) {
   })
 
   return answer.continue
+}
+
+export async function ensureUserProfile(api: CloudApi): Promise<UserResponse> {
+  try {
+    return await api.getProfile()
+  } catch (error) {
+    throw new EnterpriseApiError("Failed to retrieve the user profile, login to Garden Cloud", {})
+  }
+}
+
+export function findConnectedProjectId(
+  localConfig: LocalConfig,
+  organizationName: string,
+  projectName: string
+): string | undefined {
+  const project: CloudConnectedProject | undefined = localConfig.cloud?.connectedProjects.find(
+    (p) => p.organizationName === organizationName && p.projectName === projectName
+  )
+
+  return project?.projectId
 }

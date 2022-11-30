@@ -9,10 +9,10 @@
 import { dedent, renderTable } from "../../../util/string"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { printHeader } from "../../../logger/util"
-import { ConfigurationError } from "../../../exceptions"
-import { noApiMsg, ProjectResult } from "../helpers"
+import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { ensureUserProfile, noApiMsg, ProjectResult } from "../helpers"
 import chalk from "chalk"
-import { GetAllProjectsResponse, ListProjectsResponse } from "@garden-io/platform-api-types"
+import { GetAllProjectsResponse, ListProjectsResponse, UserResponse } from "@garden-io/platform-api-types"
 
 export class ProjectsListCommand extends Command<{}, {}> {
   name = "list"
@@ -34,13 +34,15 @@ export class ProjectsListCommand extends Command<{}, {}> {
       throw new ConfigurationError(noApiMsg("list", "projects"), {})
     }
 
-    log.debug(`Fetching all projects`)
+    const profile: UserResponse = await ensureUserProfile(api)
+    const organization: string = profile.organization.name
+
+    log.debug(`Fetching all projects for ${organization}.`)
     const response = await api.get<GetAllProjectsResponse>(`/projects`)
 
     if (response.status === "error") {
-      log.info("Failed when retrieving projects.")
       log.debug(`Attempt to retrieve projects failed with ${response.error}`)
-      return { result: [] }
+      throw new EnterpriseApiError(`Failed to retrieve projects for the organization ${organization}`, {})
     }
 
     const projects: ListProjectsResponse[] = response.data
@@ -48,7 +50,7 @@ export class ProjectsListCommand extends Command<{}, {}> {
     log.info("")
 
     if (projects.length === 0) {
-      log.info("No projects found in project.")
+      log.info("No projects found in organization.")
       return { result: [] }
     }
 
