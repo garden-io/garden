@@ -171,10 +171,21 @@ export interface AnalyticsLocalConfig {
   projectId: string
 }
 
+export interface CloudConnectedProject {
+  organizationName: string
+  projectName: string
+  projectId: string
+}
+
+export interface CloudLocalConfig {
+  connectedProjects: CloudConnectedProject[]
+}
+
 export interface LocalConfig {
   linkedModuleSources?: LinkedSource[] // TODO Use KeyedSet instead of array
   linkedProjectSources?: LinkedSource[]
   analytics: AnalyticsLocalConfig
+  cloud: CloudLocalConfig
 }
 
 const analyticsLocalConfigSchema = () =>
@@ -185,10 +196,29 @@ const analyticsLocalConfigSchema = () =>
     })
     .meta({ internal: true })
 
+const cloudConnectedProjectSchema = () =>
+  joi
+    .object()
+    .keys({
+      organizationName: joi.string(),
+      projectName: joi.string(),
+      projectId: joi.string(),
+    })
+    .meta({ internal: true })
+
+const cloudLocalConfigSchema = () =>
+  joi
+    .object()
+    .keys({
+      connectedProjects: joiArray(cloudConnectedProjectSchema()),
+    })
+    .meta({ internal: true })
+
 const localConfigSchemaKeys = {
   linkedModuleSources: () => joiArray(linkedSourceSchema()),
   linkedProjectSources: () => joiArray(linkedSourceSchema()),
   analytics: () => analyticsLocalConfigSchema(),
+  cloud: () => cloudLocalConfigSchema(),
 }
 
 export const localConfigKeys = () =>
