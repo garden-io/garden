@@ -1060,27 +1060,32 @@ export class PodRunner extends PodRunnerParams {
         case "pod-runner":
           let errorDesc = error.message + "\n"
 
-          const terminated = podErrorDetails.containerStatus?.state?.terminated
+          const containerState = podErrorDetails.containerStatus?.state
+          const terminatedContainerState = containerState?.terminated
           const podStatus = podErrorDetails.podStatus
 
-          if (!!terminated) {
+          if (!!terminatedContainerState) {
             let terminationDesc = ""
-            if (!!terminated.exitCode) {
-              terminationDesc += `Exited with code: ${terminated.exitCode}. `
+            if (!!terminatedContainerState.exitCode) {
+              terminationDesc += `Exited with code: ${terminatedContainerState.exitCode}. `
             }
-            if (!!terminated.signal) {
-              terminationDesc += `Stopped with signal: ${terminated.signal}. `
+            if (!!terminatedContainerState.signal) {
+              terminationDesc += `Stopped with signal: ${terminatedContainerState.signal}. `
             }
-            terminationDesc += `Reason: ${terminated.reason || "unknown"}. `
-            terminationDesc += `Message: ${terminated.message || "n/a"}.`
+            terminationDesc += `Reason: ${terminatedContainerState.reason || "unknown"}. `
+            terminationDesc += `Message: ${terminatedContainerState.message || "n/a"}.`
             terminationDesc = terminationDesc.trim()
 
             if (!!terminationDesc) {
               errorDesc += terminationDesc + "\n"
             }
-          } else if (!!podStatus) {
-            const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
-            errorDesc += podStatusDesc + "\n"
+          }
+          // Print Pod status if case of too generic and non-informative error in the terminated state
+          if (!terminatedContainerState?.message && terminatedContainerState?.reason === "Error") {
+            if (!!podStatus) {
+              const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
+              errorDesc += podStatusDesc + "\n"
+            }
           }
 
           if (!!logs) {
