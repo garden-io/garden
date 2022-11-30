@@ -230,14 +230,15 @@ providers:
       namespace: garden-system
 
       # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
-      # pods to only run on particular nodes.
+      # pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
+      # specifically set under `util.nodeSelector`.
       #
       # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
       # guide to assigning pods to nodes.
       nodeSelector:
 
       # Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run
-      # builds. Same tolerations will be used for the util pod unless they are specifically set under
+      # builds. The same tolerations will be used for each util pod unless they are specifically set under
       # `util.tolerations`
       tolerations:
         - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
@@ -266,8 +267,8 @@ providers:
           value:
 
       # Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of
-      # certain components, for example autoscalers. Same annotations will be used for each util pod unless they are
-      # specifically set under `util.annotations`
+      # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
+      # are specifically set under `util.annotations`
       annotations:
 
       util:
@@ -1128,7 +1129,7 @@ Choose the namespace where the Kaniko pods will be run. Set to `null` to use the
 
 [providers](#providers) > [kaniko](#providerskaniko) > nodeSelector
 
-Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under `util.nodeSelector`.
 
 [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
 
@@ -1140,7 +1141,7 @@ Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows 
 
 [providers](#providers) > [kaniko](#providerskaniko) > tolerations
 
-Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. Same tolerations will be used for the util pod unless they are specifically set under `util.tolerations`
+Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. The same tolerations will be used for each util pod unless they are specifically set under `util.tolerations`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1208,7 +1209,7 @@ otherwise just a regular string.
 
 [providers](#providers) > [kaniko](#providerskaniko) > annotations
 
-Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. Same annotations will be used for each util pod unless they are specifically set under `util.annotations`
+Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. The same annotations will be used for each util pod unless they are specifically set under `util.annotations`
 
 | Type     | Required |
 | -------- | -------- |
