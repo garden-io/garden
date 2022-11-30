@@ -725,7 +725,7 @@ interface RunAndWaitResult {
   exitCode?: number
 }
 
-interface PodErrorDetails {
+export interface PodErrorDetails {
   logs: string
   // optional details
   exitCode?: number
