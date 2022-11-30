@@ -82,7 +82,8 @@ export abstract class ConfigStore<T extends object = any> {
   public async delete(keyPath: string[]) {
     let config = await this.getConfig()
     if (get(config, keyPath) === undefined) {
-      this.throwKeyNotFound(config, keyPath)
+      // Nothing to do
+      return
     }
     const success = unset(config, keyPath)
     if (!success) {
