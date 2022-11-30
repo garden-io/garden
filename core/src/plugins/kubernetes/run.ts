@@ -1077,14 +1077,14 @@ export class PodRunner extends PodRunnerParams {
             terminationDesc = terminationDesc.trim()
 
             if (!!terminationDesc) {
-              errorDesc += terminationDesc + "\n"
+              errorDesc += terminationDesc + "\n\n"
             }
           }
           // Print Pod status if case of too generic and non-informative error in the terminated state
           if (!terminatedContainerState?.message && terminatedContainerState?.reason === "Error") {
             if (!!podStatus) {
               const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
-              errorDesc += podStatusDesc + "\n"
+              errorDesc += podStatusDesc + "\n\n"
             }
           }
 
