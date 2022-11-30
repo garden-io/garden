@@ -232,6 +232,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     util?: {
       tolerations?: V1Toleration[]
       annotations?: StringMap
+      nodeSelector?: StringMap
     }
   }
   context: string
@@ -705,18 +706,18 @@ export const kubernetesConfigBase = () =>
           ),
         nodeSelector: joiStringMap(joi.string()).description(
           dedent`
-            Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+            Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under \`util.nodeSelector\`.
 
             [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
           `
         ),
         tolerations: joiSparseArray(tolerationSchema()).description(
           deline`Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds.
-          Same tolerations will be used for the util pod unless they are specifically set under \`util.tolerations\``
+          The same tolerations will be used for each util pod unless they are specifically set under \`util.tolerations\``
         ),
         annotations: annotationsSchema().description(
           deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
-          Same anotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+          The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
         ),
         util: joi.object().keys({
           tolerations: joiSparseArray(tolerationSchema()).description(
@@ -724,6 +725,9 @@ export const kubernetesConfigBase = () =>
           ),
           annotations: annotationsSchema().description(
             "Specify annotations to apply to each garden-util pod and deployments."
+          ),
+          nodeSelector: joiStringMap(joi.string()).description(
+            "Specify the nodeSelector constraints for each garden-util pod."
           ),
         }),
       })
