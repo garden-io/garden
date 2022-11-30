@@ -257,7 +257,7 @@ describe("kubernetes Pod runner functions", () => {
         expect(res.success).to.be.true
       })
 
-      it("returns success=false if Pod returns with non-zero exit code", async () => {
+      it("throws if Pod returns with non-zero exit code", async () => {
         const pod = makePod(["sh", "-c", "echo foo && exit 1"])
 
         runner = new PodRunner({
@@ -268,10 +268,10 @@ describe("kubernetes Pod runner functions", () => {
           provider,
         })
 
-        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
-
-        expect(res.log.trim()).to.equal("foo")
-        expect(res.success).to.be.false
+        await expectError(
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
+          (err) => expect(err.message.trim()).to.equal("Command exited with code 1:\nfoo")
+        )
       })
 
       it("throws if Pod is invalid", async () => {
