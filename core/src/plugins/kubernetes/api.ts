@@ -769,13 +769,25 @@ export class KubeApi {
       }
     }
 
-    const execHandler = new Exec(this.config, new WebSocketHandler(this.config))
+    const execHandler = new Exec(this.config)
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       let done = false
 
+      const KEEPALIVE_INTERVAL = 10000
+      let keepAlive: NodeJS.Timeout | undefined
+
+      const stopKeepalive = () => {
+        if (keepAlive) {
+          clearInterval(keepAlive)
+          keepAlive = undefined
+        }
+      }
+
       const finish = (timedOut: boolean, exitCode?: number) => {
-        !done &&
+        if (!done) {
+          stopKeepalive()
+
           resolve({
             allLogs: combinedCollector.getString(),
             stdout: stdoutCollector.getString(),
@@ -783,26 +795,48 @@ export class KubeApi {
             timedOut,
             exitCode,
           })
-        done = true
+          done = true
+        }
       }
 
       if (timeoutSec) {
         setTimeout(() => {
-          !done && finish(true)
+          if (!done) {
+            finish(true)
+          }
         }, timeoutSec * 1000)
       }
 
-      execHandler
-        .exec(namespace, podName, containerName, command, _stdout, _stderr, stdin || null, tty, (status) => {
-          finish(false, getExecExitCode(status))
+      try {
+        const ws = await execHandler.exec(
+          namespace,
+          podName,
+          containerName,
+          command,
+          _stdout,
+          _stderr,
+          stdin || null,
+          tty,
+          (status) => {
+            finish(false, getExecExitCode(status))
+          }
+        )
+
+        ws.on("error", (err) => {
+          if (!done) {
+            stopKeepalive()
+            reject(err)
+          }
+          done = true
         })
-        .then((ws) => {
-          ws.on("error", (err) => {
-            !done && reject(err)
-            done = true
-          })
-        })
-        .catch(reject)
+
+        keepAlive = setInterval(() => {
+          ws.ping()
+        }, KEEPALIVE_INTERVAL)
+      } catch (err) {
+        stopKeepalive()
+        reject(err)
+      }
     })
   }
 
