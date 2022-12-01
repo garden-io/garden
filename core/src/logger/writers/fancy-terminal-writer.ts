@@ -132,8 +132,9 @@ export class FancyTerminalWriter extends Writer {
     const nextEntryLineNumber = allLines.length >= this.prevOutput.length ? nextEntry.lineNumber : 0
     const terminalHeight = process.stdout.rows
     const nextEntryIsInViewport = nextEntryLineNumber >= allLines.length - terminalHeight - 1
+    const nextEntryIsNew = nextEntryLineNumber >= this.prevOutput.length - 1
 
-    // If the next entry is in the viewport, we clear the terminal from the bottom
+    // If the next entry is new, or in the viewport, we clear the terminal from the bottom
     // and up towards the entry, and then render it alongside the subsequent entries.
     //
     // This applies to entries that are being updated and have content below them
@@ -142,7 +143,7 @@ export class FancyTerminalWriter extends Writer {
     // This is the "legacy" render method.
     //
     // Terminal height may not always be defined, in which case we also fallback to this method.
-    if (nextEntryIsInViewport || !terminalHeight || gardenEnv.GARDEN_LEGACY_FANCY_LOG_RENDER) {
+    if (nextEntryIsNew || nextEntryIsInViewport || !terminalHeight || gardenEnv.GARDEN_LEGACY_FANCY_LOG_RENDER) {
       const nLinesToErase = this.prevOutput.length - nextEntryLineNumber
       out += ansiEscapes.eraseLines(nLinesToErase)
       out += allLines.slice(nextEntryLineNumber).join("\n")
