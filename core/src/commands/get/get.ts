@@ -22,12 +22,14 @@ import { GetDoddiCommand } from "./get-doddi"
 import { GetModulesCommand } from "./get-modules"
 import { GetTestsCommand } from "./get-tests"
 import { GetWorkflowsCommand } from "./get-workflows"
+import { GetCommandInfoCommand } from "./get-command-info"
 
 export class GetCommand extends CommandGroup {
   name = "get"
   help = "Retrieve and output data and objects, e.g. secrets, status info etc."
 
   subCommands = [
+    GetCommandInfoCommand,
     GetGraphCommand,
     GetConfigCommand,
     GetDoddiCommand,

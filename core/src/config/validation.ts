@@ -119,6 +119,7 @@ export function validateSchema<T>(
       // a little hack to always use full key paths instead of just the label
       e.message = e.message.replace(
         joiLabelPlaceholderRegex,
+
         renderedPath ? "key " + chalk.underline(renderedPath) : "value"
       )
       e.message = e.message.replace(joiPathPlaceholderRegex, chalk.underline(renderedPath || "."))

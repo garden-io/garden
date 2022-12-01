@@ -440,6 +440,7 @@ export class GardenServer {
 
           try {
             const commands = prepareCommands()
+
             const { command, log, args, opts } = parseRequest(
               ctx,
               this.debugLog,
