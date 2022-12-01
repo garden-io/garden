@@ -734,7 +734,7 @@ interface RunAndWaitResult {
 }
 
 export interface PodErrorDetails {
-  logs: string
+  logs?: string
   // optional details
   exitCode?: number
   containerStatus?: V1ContainerStatus
@@ -1054,25 +1054,42 @@ export class PodRunner extends PodRunnerParams {
     version: string
     moduleName
   }) {
-    const errorDetail = <PodErrorDetails>err.detail
-    // Error detail may already contain container logs
-    const logs = errorDetail.logs
+    // Some types and predicates to identify known errors
+    const knownErrorTypes = ["out-of-memory", "timeout", "pod-runner"] as const
+    type KnownErrorType = typeof knownErrorTypes[number]
+    // A known error is always an instance of a subclass of GardenBaseError
+    type KnownError = {
+      message: string
+      type: KnownErrorType
+      detail: PodErrorDetails
+    }
+    const isKnownError = (error: any): error is KnownError => {
+      return knownErrorTypes.includes(error.type) && !!error.detail
+    }
 
-    const renderError = (error: any, podErrorDetails: PodErrorDetails) => {
+    // Rethrow any unexpected/unknown error
+    if (!isKnownError(err)) {
+      throw err
+    }
+
+    const renderError = (error: KnownError) => {
+      const errorDetail = error.detail
+      const logs = errorDetail.logs
+
       switch (error.type) {
         // The pod container exceeded its memory limits
         case "out-of-memory":
-          return err.message + (logs ? ` Here are the logs until the out-of-memory event occurred:\n\n${logs}` : "")
+          return error.message + (logs ? ` Here are the logs until the out-of-memory event occurred:\n\n${logs}` : "")
         // Command timed out
         case "timeout":
-          return err.message + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : "")
+          return error.message + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : "")
         // Command exited with non-zero code
         case "pod-runner":
           let errorDesc = error.message + "\n\n"
 
-          const containerState = podErrorDetails.containerStatus?.state
+          const containerState = errorDetail.containerStatus?.state
           const terminatedContainerState = containerState?.terminated
-          const podStatus = podErrorDetails.podStatus
+          const podStatus = errorDetail.podStatus
 
           if (!!terminatedContainerState) {
             let terminationDesc = ""
@@ -1103,13 +1120,13 @@ export class PodRunner extends PodRunnerParams {
           }
 
           return errorDesc
-        // Unknown/unexpected error, rethrow it
         default:
-          throw err
+          const _exhaustiveCheck: never = error.type
+          return _exhaustiveCheck
       }
     }
 
-    const log = renderError(err, errorDetail)
+    const log = renderError(err)
     return {
       log,
       moduleName,
@@ -1118,7 +1135,7 @@ export class PodRunner extends PodRunnerParams {
       startedAt,
       completedAt: new Date(),
       command,
-      exitCode: errorDetail.exitCode,
+      exitCode: err.detail.exitCode,
     }
   }
 }
