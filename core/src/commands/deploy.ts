@@ -125,6 +125,7 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy --local              # deploys all compatible services with local mode enabled
         garden deploy --env stage          # deploy your services to an environment called stage
         garden deploy --skip service-b     # deploy all services except service-b
+        garden deploy --forward            # deploy all services and start port forwards without watching for changes
   `
 
   arguments = deployArgs
