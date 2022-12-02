@@ -63,6 +63,10 @@ describe("AnalyticsHandler", () => {
   let analytics: AnalyticsHandler
   let garden: TestGarden
   let resetAnalyticsConfig: Function
+  let ciInfo = {
+    isCi: false,
+    ciName: null,
+  }
 
   before(async () => {
     garden = await makeTestGardenA()
@@ -95,7 +99,7 @@ describe("AnalyticsHandler", () => {
       expect(currentConfig.analytics).to.be.undefined
 
       const now = freezeTime()
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       const newConfig = await garden.globalConfigStore.get()
       expect(newConfig.analytics?.anonymousUserId).to.be.a("string")
@@ -110,14 +114,23 @@ describe("AnalyticsHandler", () => {
     })
     it("should create a valid anonymous user ID on first run", async () => {
       await garden.globalConfigStore.delete(["analytics"])
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       const config = await garden.globalConfigStore.get()
+
       expect(validateUuid(config.analytics?.anonymousUserId!)).to.eql(true)
+    })
+    it("should set user ID to ci-user if in CI", async () => {
+      await garden.globalConfigStore.delete(["analytics"])
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
+
+      const config = await garden.globalConfigStore.get()
+
+      expect(config.analytics?.anonymousUserId!).to.eql("ci-user")
     })
     it("should not override anonymous user ID on subsequent runs", async () => {
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       const config = await garden.globalConfigStore.get()
       expect(config.analytics?.anonymousUserId).to.eql(basicConfig.anonymousUserId)
@@ -125,7 +138,7 @@ describe("AnalyticsHandler", () => {
     it("should update the analytics config if it already exists", async () => {
       await garden.globalConfigStore.set(["analytics"], basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       const config = await garden.globalConfigStore.get()
       expect(config.analytics).to.eql({
@@ -139,7 +152,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should print an info message if first Garden run", async () => {
       await garden.globalConfigStore.delete(["analytics"])
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const msgs = garden.log.root.getLogEntries().map((l) => l.getMessages())
       const infoMsg = msgs.find((messageArr) => messageArr[0].msg?.includes("Thanks for installing Garden!"))
 
@@ -148,7 +161,7 @@ describe("AnalyticsHandler", () => {
     it("should NOT print an info message on subsequent runs", async () => {
       // The existens of base config suggests it's not the first run
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const msgs = garden.log.root.getLogEntries().map((l) => l.getMessages())
       const infoMsg = msgs.find((messageArr) => messageArr[0].msg?.includes("Thanks for installing Garden!"))
 
@@ -166,7 +179,7 @@ describe("AnalyticsHandler", () => {
 
       const now = freezeTime()
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       await analytics.flush()
 
@@ -185,7 +198,7 @@ describe("AnalyticsHandler", () => {
             platform: payload[0].traits.platform,
             platformVersion: payload[0].traits.platformVersion,
             gardenVersion: payload[0].traits.gardenVersion,
-            isCI: false,
+            isCI: payload[0].traits.isCI,
             firstRunAt: basicConfig.firstRunAt,
             latestRunAt: now.toUTCString(),
             isRecurringUser: false,
@@ -212,7 +225,7 @@ describe("AnalyticsHandler", () => {
         ...basicConfig,
         optedIn: false,
       })
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       await analytics.flush()
 
       expect(analytics.isEnabled).to.equal(false)
@@ -221,7 +234,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should be enabled by default", async () => {
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       expect(analytics.isEnabled).to.be.true
     })
@@ -229,7 +242,7 @@ describe("AnalyticsHandler", () => {
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
 
@@ -240,7 +253,7 @@ describe("AnalyticsHandler", () => {
         ...basicConfig,
         optedIn: false,
       })
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       expect(analytics.isEnabled).to.be.false
     })
@@ -268,7 +281,7 @@ describe("AnalyticsHandler", () => {
       await garden.globalConfigStore.set(["analytics"], basicConfig)
 
       const now = freezeTime()
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       const newConfig = await garden.globalConfigStore.get()
       expect(newConfig.analytics).to.eql({
@@ -282,14 +295,14 @@ describe("AnalyticsHandler", () => {
     })
     it("should be enabled unless env var for disabling is set", async () => {
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const isEnabledWhenNoEnvVar = analytics.isEnabled
 
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
       // Create a fresh instance after setting env var
       AnalyticsHandler.clearInstance()
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const isEnabledWhenEnvVar = analytics.isEnabled
 
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
@@ -309,7 +322,7 @@ describe("AnalyticsHandler", () => {
 
       const now = freezeTime()
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       await analytics.flush()
 
@@ -325,7 +338,7 @@ describe("AnalyticsHandler", () => {
             platform: payload[0].traits.platform,
             platformVersion: payload[0].traits.platformVersion,
             gardenVersion: payload[0].traits.gardenVersion,
-            isCI: false,
+            isCI: payload[0].traits.isCI,
             firstRunAt: basicConfig.firstRunAt,
             latestRunAt: now.toUTCString(),
             isRecurringUser: false,
@@ -351,7 +364,7 @@ describe("AnalyticsHandler", () => {
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
       await analytics.flush()
 
@@ -379,7 +392,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set(["analytics"], basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const event = analytics.trackCommand("testCommand")
 
       expect(event).to.eql({
@@ -399,6 +412,45 @@ describe("AnalyticsHandler", () => {
           ciName: analytics["ciName"],
           system: analytics["systemConfig"],
           isCI: analytics["isCI"],
+          sessionId: analytics["sessionId"],
+          firstRunAt: basicConfig.firstRunAt,
+          latestRunAt: now.toUTCString(),
+          isRecurringUser: false,
+          projectMetadata: {
+            modulesCount: 3,
+            moduleTypes: ["test"],
+            tasksCount: 4,
+            servicesCount: 3,
+            testsCount: 5,
+          },
+        },
+      })
+    })
+    it("should set the CI info if applicable", async () => {
+      scope.post(`/v1/batch`).reply(200)
+
+      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      const now = freezeTime()
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
+      const event = analytics.trackCommand("testCommand")
+
+      expect(event).to.eql({
+        type: "Run Command",
+        properties: {
+          name: "testCommand",
+          projectId: AnalyticsHandler.hash(remoteOriginUrl),
+          projectIdV2: AnalyticsHandler.hashV2(remoteOriginUrl),
+          projectName,
+          projectNameV2,
+          enterpriseProjectId: undefined,
+          enterpriseProjectIdV2: undefined,
+          enterpriseDomain: undefined,
+          enterpriseDomainV2: undefined,
+          isLoggedIn: false,
+          customer: undefined,
+          system: analytics["systemConfig"],
+          isCI: true,
+          ciName: "foo",
           sessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
           latestRunAt: now.toUTCString(),
@@ -434,7 +486,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set(["analytics"], basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       const event = analytics.trackCommand("testCommand")
 
@@ -478,7 +530,7 @@ describe("AnalyticsHandler", () => {
 
       await garden.globalConfigStore.set(["analytics"], basicConfig)
       const now = freezeTime()
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       const event = analytics.trackCommand("testCommand")
 
@@ -553,7 +605,7 @@ describe("AnalyticsHandler", () => {
         .reply(200)
 
       await garden.globalConfigStore.set(["analytics"], basicConfig)
-      analytics = await AnalyticsHandler.init(garden, garden.log)
+      analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       analytics.trackCommand("test-command-A")
       await analytics.flush()
