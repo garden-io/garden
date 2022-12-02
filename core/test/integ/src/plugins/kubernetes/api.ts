@@ -195,61 +195,6 @@ describe("KubeApi", () => {
     })
   })
 
-  describe("attachToPod", () => {
-    it("should attach to a running Pod and stream the output", async () => {
-      const pod = makePod([
-        "/bin/sh",
-        "-c",
-        dedent`
-          for i in 1 2 3 4 5
-          do
-            echo "Log line $i"
-            sleep 1
-          done
-        `,
-      ])
-      const podName = pod.metadata.name
-
-      await api.createPod(namespace, pod)
-      await waitForResources({
-        namespace,
-        ctx,
-        provider,
-        serviceName: "exec-test",
-        resources: [pod],
-        log: garden.log,
-        timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
-      })
-
-      const stdout = new StringCollector()
-
-      try {
-        const ws = await api.attachToPod({
-          namespace,
-          podName,
-          containerName,
-          stdout,
-          tty: false,
-        })
-
-        await new Promise<void>((resolve, reject) => {
-          ws.onerror = ({ error }) => {
-            reject(error)
-          }
-
-          ws.onclose = () => {
-            resolve()
-          }
-        })
-
-        const output = stdout.getString()
-        expect(output).to.include("Log line")
-      } finally {
-        await api.core.deleteNamespacedPod(podName, namespace)
-      }
-    })
-  })
-
   describe("listResources", () => {
     it("should list all resources of specified kind", async () => {
       const name = randomString()

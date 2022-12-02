@@ -40,6 +40,7 @@ import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
+import WebSocket from "isomorphic-ws"
 
 import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
@@ -774,20 +775,8 @@ export class KubeApi {
     return new Promise(async (resolve, reject) => {
       let done = false
 
-      const KEEPALIVE_INTERVAL = 10000
-      let keepAlive: NodeJS.Timeout | undefined
-
-      const stopKeepalive = () => {
-        if (keepAlive) {
-          clearInterval(keepAlive)
-          keepAlive = undefined
-        }
-      }
-
       const finish = (timedOut: boolean, exitCode?: number) => {
         if (!done) {
-          stopKeepalive()
-
           resolve({
             allLogs: combinedCollector.getString(),
             stdout: stdoutCollector.getString(),
@@ -808,62 +797,30 @@ export class KubeApi {
       }
 
       try {
-        const ws = await execHandler.exec(
-          namespace,
-          podName,
-          containerName,
-          command,
-          _stdout,
-          _stderr,
-          stdin || null,
-          tty,
-          (status) => {
-            finish(false, getExecExitCode(status))
-          }
+        const ws = attachWebsocketKeepalive(
+          await execHandler.exec(
+            namespace,
+            podName,
+            containerName,
+            command,
+            _stdout,
+            _stderr,
+            stdin || null,
+            tty,
+            (status) => {
+              finish(false, getExecExitCode(status))
+            }
+          )
         )
 
         ws.on("error", (err) => {
-          if (!done) {
-            stopKeepalive()
-            reject(err)
-          }
           done = true
+          reject(err)
         })
-
-        keepAlive = setInterval(() => {
-          ws.ping()
-        }, KEEPALIVE_INTERVAL)
       } catch (err) {
-        stopKeepalive()
         reject(err)
       }
     })
-  }
-
-  /**
-   * Attach to the specified Pod and container.
-   *
-   * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
-   */
-  async attachToPod({
-    namespace,
-    podName,
-    containerName,
-    stdout,
-    stderr,
-    stdin,
-    tty,
-  }: {
-    namespace: string
-    podName: string
-    containerName: string
-    stdout?: Writable
-    stderr?: Writable
-    stdin?: Readable
-    tty: boolean
-  }) {
-    const handler = new Attach(this.config, new WebSocketHandler(this.config))
-    return handler.attach(namespace, podName, containerName, stdout || null, stderr || null, stdin || null, tty)
   }
 
   getLogger() {
@@ -886,6 +843,50 @@ export class KubeApi {
       }
     }
   }
+}
+
+const WEBSOCKET_KEEPALIVE_INTERVAL = 5_000
+const WEBSOCKET_PING_TIMEOUT = 30_000
+
+function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
+  let keepAlive: NodeJS.Timeout = setInterval(() => {
+    ws.ping()
+  }, WEBSOCKET_KEEPALIVE_INTERVAL)
+
+  let pingTimeout: NodeJS.Timeout | undefined
+
+  function heartbeat() {
+    if (pingTimeout) {
+      clearTimeout(pingTimeout)
+    }
+    pingTimeout = setTimeout(() => {
+      ws.emit("error", new Error("Lost connection to the Kubernetes WebSocket API (Timed out)"))
+      ws.terminate()
+    }, WEBSOCKET_PING_TIMEOUT)
+  }
+
+  function clear() {
+    if (pingTimeout) {
+      clearTimeout(pingTimeout)
+    }
+    clearInterval(keepAlive)
+  }
+
+  ws.on("pong", (msg) => {
+    heartbeat()
+  })
+
+  ws.on("error", (err) => {
+    clear()
+  })
+
+  ws.on("close", () => {
+    clear()
+  })
+
+  heartbeat()
+
+  return ws
 }
 
 function getGroupBasePath(apiVersion: string) {
