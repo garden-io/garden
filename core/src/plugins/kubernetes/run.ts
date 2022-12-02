@@ -855,18 +855,18 @@ export class PodRunner extends PodRunnerParams {
       const exitReason = terminated?.reason
       const exitCode = terminated?.exitCode
 
-      const errorDetails: PodErrorDetails = {
+      const errorDetails = async (): Promise<PodErrorDetails> => ({
         logs: await this.getMainContainerLogs(),
         exitCode,
         containerStatus: mainContainerStatus,
         podStatus: serverPod.status,
-      }
+      })
 
       // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
       // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
       // and we handle that case specifically here.
       if (exitCode === 137 || exitReason === "OOMKilled") {
-        throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
+        throw new OutOfMemoryError("Pod container was OOMKilled.", await errorDetails())
       }
 
       if (state === "unhealthy") {
@@ -878,16 +878,16 @@ export class PodRunner extends PodRunnerParams {
         ) {
           // Successfully ran the command in the main container, but returned non-zero exit code.
           // Consider it as a task execution error inside the Pod.
-          throw newExitCodePodRunnerError(errorDetails)
+          throw newExitCodePodRunnerError(await errorDetails())
         } else {
-          throw new PodRunnerError(`Failed to start Pod ${podName}.`, errorDetails)
+          throw new PodRunnerError(`Failed to start Pod ${podName}.`, await errorDetails())
         }
       }
 
       // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
       if (state === "stopped" || exitReason === "Completed") {
         if (!!exitCode) {
-          throw newExitCodePodRunnerError(errorDetails)
+          throw newExitCodePodRunnerError(await errorDetails())
         }
         return exitCode
       }
@@ -895,7 +895,7 @@ export class PodRunner extends PodRunnerParams {
       const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
 
       if (timeoutSec && elapsed > timeoutSec) {
-        throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, errorDetails)
+        throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, await errorDetails())
       }
 
       await sleep(800)
