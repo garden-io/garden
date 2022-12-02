@@ -1,4 +1,39 @@
 
+<a name="0.12.47-0"></a>
+## [0.12.47-0](https://github.com/garden-io/garden/compare/0.12.46...0.12.47-0) (2022-12-02)
+
+### Bug Fixes
+
+* do not log failed log connection attempt ([58a1ae7c8](https://github.com/garden-io/garden/commit/58a1ae7c8))
+* initiate global-agent only when needed ([737c6c444](https://github.com/garden-io/garden/commit/737c6c444))
+* **cloud:** fix duplicate event emission ([6aac57ff7](https://github.com/garden-io/garden/commit/6aac57ff7))
+* **container:** autoResolveIncludes with multi-stage dockerfiles ([328d3e9ef](https://github.com/garden-io/garden/commit/328d3e9ef))
+* **docker:** handle unknown Dockerfile flags ([#3359](https://github.com/garden-io/garden/issues/3359)) ([6118ff394](https://github.com/garden-io/garden/commit/6118ff394))
+* **framework:** idempotent config store deletes ([98d34ad06](https://github.com/garden-io/garden/commit/98d34ad06))
+* **k8s:** make getRolloutStatus work with 0 replicas ([66f74e8be](https://github.com/garden-io/garden/commit/66f74e8be))
+* **k8s:** update ecr-cred-helper for imdsv2 support ([#3380](https://github.com/garden-io/garden/issues/3380)) ([7759cb1b0](https://github.com/garden-io/garden/commit/7759cb1b0))
+* **k8s:** add preStop command for rsync containers ([#3329](https://github.com/garden-io/garden/issues/3329)) ([7e86f3eae](https://github.com/garden-io/garden/commit/7e86f3eae))
+* **logger:** fix issues with spinner and duplicated entries ([9e9be6956](https://github.com/garden-io/garden/commit/9e9be6956))
+* **logger:** ensure fancy logger doesn't erease new entries ([a5717d542](https://github.com/garden-io/garden/commit/a5717d542))
+* **plugins:** fixed `stern` repo link and updated version ([78e7c2ffc](https://github.com/garden-io/garden/commit/78e7c2ffc))
+* **template:** fixed loop context caching in `forEach` helper ([#3350](https://github.com/garden-io/garden/issues/3350)) ([1393e0850](https://github.com/garden-io/garden/commit/1393e0850))
+
+### Features
+
+* allow separate tolerations on garden-util pod ([df391165e](https://github.com/garden-io/garden/commit/df391165e))
+* separate resource config for util pods ([a8c2f42df](https://github.com/garden-io/garden/commit/a8c2f42df))
+* allow to set no resource limits ([#3352](https://github.com/garden-io/garden/issues/3352)) ([640ec4699](https://github.com/garden-io/garden/commit/640ec4699))
+* **jib:** add maven daemon support as project build type ([#3361](https://github.com/garden-io/garden/issues/3361)) ([bcbc7e353](https://github.com/garden-io/garden/commit/bcbc7e353))
+* **k8s:** custom nodeSelector for util pods ([#3391](https://github.com/garden-io/garden/issues/3391)) ([bdbe5bd94](https://github.com/garden-io/garden/commit/bdbe5bd94))
+* **k8s:** custom annotations for builder pods ([#3365](https://github.com/garden-io/garden/issues/3365)) ([0a35ead5d](https://github.com/garden-io/garden/commit/0a35ead5d))
+
+### Improvements
+
+* retry mutagen session flush ([e9cde8827](https://github.com/garden-io/garden/commit/e9cde8827))
+* **k8s:** bump buildkit image to v0.10.5 ([#3336](https://github.com/garden-io/garden/issues/3336)) ([9080edb36](https://github.com/garden-io/garden/commit/9080edb36))
+* **plugins:** supported darwin arm64 `stern` binaries ([492aaceab](https://github.com/garden-io/garden/commit/492aaceab))
+* **pulumi:** upgrade pulumi version to 3.48.0 ([#3400](https://github.com/garden-io/garden/issues/3400)) ([77aff5e3b](https://github.com/garden-io/garden/commit/77aff5e3b))
+
 <a name="0.12.46"></a>
 ## [0.12.46](https://github.com/garden-io/garden/compare/0.12.45...0.12.46) (2022-10-21)
 
