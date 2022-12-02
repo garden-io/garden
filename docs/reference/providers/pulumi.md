@@ -120,9 +120,9 @@ providers:
 
 The version of pulumi to use. Set to `null` to use whichever version of `pulumi` is on your PATH.
 
-| Type     | Allowed Values                     | Default    | Required |
-| -------- | ---------------------------------- | ---------- | -------- |
-| `string` | "3.40.0", "3.39.4", "3.25.1", null | `"3.40.0"` | Yes      |
+| Type     | Allowed Values                               | Default    | Required |
+| -------- | ---------------------------------------------| ---------- | -------- |
+| `string` | "3.48.0", "3.40.0", "3.39.4", "3.25.1", null | `"3.48.0"` | Yes      |
 
 ### `providers[].previewDir`
 

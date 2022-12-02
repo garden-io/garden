@@ -111,7 +111,7 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
     name: "pulumi-3-40-0",
     description: "The pulumi CLI, v3.40.0",
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
@@ -256,5 +256,5 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
 export const supportedVersions = Object.keys(pulumiCliSPecs)
 
 // Default to latest pulumi version
-export const defaultPulumiVersion = "3.40.0"
+export const defaultPulumiVersion = "3.48.0"
 // export const defaultPulumiVersion = "3.25.1"
