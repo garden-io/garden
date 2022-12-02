@@ -143,56 +143,5 @@ describe("RunTask", () => {
       // Expect the same log from the second run
       expect(logA).to.equal(logB)
     })
-
-    it("should not cache results when cacheResult=false", async () => {
-      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
-
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          name: "test",
-          type: "test",
-          allowPublish: false,
-          disabled: false,
-          build: { dependencies: [] },
-          path: tmpDir.path,
-          serviceConfigs: [],
-          taskConfigs: [
-            {
-              name: "test",
-              cacheResult: false,
-              dependencies: [],
-              disabled: false,
-              spec: {},
-              timeout: 10,
-            },
-          ],
-          testConfigs: [],
-          spec: {},
-        },
-      ])
-
-      let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      let taskTask = new RunTask({
-        garden,
-        graph,
-        action: graph.getRun("test"),
-        force: false,
-        forceBuild: false,
-        log: garden.log,
-        devModeDeployNames: [],
-        localModeDeployNames: [],
-        fromWatch: false,
-      })
-
-      let result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })
-      const logA = result[taskTask.getBaseKey()]!.result.outputs.log
-
-      result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })
-      const logB = result[taskTask.getBaseKey()]!.result.outputs.log
-
-      // Expect a different log from the second run
-      expect(logA).to.not.equal(logB)
-    })
   })
 })
