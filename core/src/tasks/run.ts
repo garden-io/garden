@@ -83,7 +83,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       log.setError()
       throw err
     }
-    if (status.state !== "ready") {
+    if (status.state === "ready") {
       log.setSuccess({
         msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
         append: true,
