@@ -795,6 +795,11 @@ export class PodRunner extends PodRunnerParams {
    * Returns the logs for the first container in the Pod. Returns success=false if Pod exited with non-zero code.
    *
    * If tty=true, we attach to the process stdio during execution.
+   *
+   * @throws {OutOfMemoryError}
+   * @throws {TimeoutError}
+   * @throws {PodRunnerError}
+   * @throws {KubernetesError}
    */
   async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
     const { log, remove, timeoutSec, tty } = params
@@ -832,6 +837,11 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
+  /**
+   * @throws {OutOfMemoryError}
+   * @throws {TimeoutError}
+   * @throws {PodRunnerError}
+   */
   private async awaitRunningPod(startedAt: Date, timeoutSec: number | undefined): Promise<number | undefined> {
     const { namespace, podName } = this
     const mainContainerName = this.getMainContainerName()
@@ -893,9 +903,9 @@ export class PodRunner extends PodRunnerParams {
   }
 
   /**
-   * Starts the Pod and leaves it running. Use this along with the `exec()` method when you need to run multiple
-   * commands in the same Pod. Note that you *must manually call `stop()`* when you're done. Otherwise the Pod will
-   * stay running in the cluster until the process exits.
+   * Starts the Pod and leaves it running. Use this along with the {@link #exec()} method when you need to run multiple
+   * commands in the same Pod. Note that you *must manually call {@link #stop()}* when you're done.
+   * Otherwise, the Pod will stay running in the cluster until the process exits.
    */
   async start({ log, timeoutSec = KUBECTL_DEFAULT_TIMEOUT }: StartParams) {
     const { ctx, provider, pod, namespace } = this
@@ -909,7 +919,11 @@ export class PodRunner extends PodRunnerParams {
   }
 
   /**
-   * Executes a command in the running Pod. Must be called after `start()`.
+   * Executes a command in the running Pod. Must be called after {@link start()}.
+   *
+   * @throws {OutOfMemoryError}
+   * @throws {TimeoutError}
+   * @throws {PodRunnerError}
    */
   async exec(params: ExecParams) {
     const { command, containerName: container, timeoutSec, tty = false, log, buffer = true } = params
