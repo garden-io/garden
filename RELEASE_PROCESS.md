@@ -25,6 +25,10 @@ and does the following:
 
 To make a new release, set your current working directory to the garden root directory and follow the steps below.
 
+### 1. Prepare and test
+
+First, you need to prepare the release binaries and run some manual tests:
+
 1. **Checkout to the `latest-release` branch**.
 2. Make the first pre-release:
    - Reset `latest-release` to `main` with `git reset --hard origin/main`.
@@ -45,8 +49,13 @@ To make a new release, set your current working directory to the garden root dir
    - Checkout to the most recent pre-release branch, e.g. `1.2.3-1`.
    - Remove all the `bump version...` commits. E.g. by using `git rebase -i <hash-before-first-version-bump>` and `drop`-ing the commits. In this case we drop `chore(release): bump version to 1.2.3-0` and `chore(release): bump version to v.1.2.3-1`.
    - Run `./scripts/release.ts minor | patch`. This way, the version bump commits and changelog entries created by the pre-releases are omitted from the final history.
-6. Go to our GitHub [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
-7. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
+
+### 2. Publish and announce
+
+Once the release CI job is done, a draft release will appear in GitHub. That draft release should be published and announced:
+
+1. Go to our GitHub [Releases page](https://github.com/garden-io/garden/releases) and click the **Edit** button for the draft just created from CI. Note that for drafts, a new one is always created instead of replacing a previous one.
+2. Write release notes. The notes should give an overview of the release and mention all relevant features. They should also **acknowledge all external contributors** and contain the changelog for that release.
    - Automated release notes generation:
      - Run `./scripts/draft-release-notes.ts <previous-tag> <current-tag>`, the filename with the draft notes will be printed in the console
      - Open the draft file (it's named `release-notes-${version}-draft.md`, e.g. `release-notes-0.12.38-draft.md`) and resolve all suggested TODO items
@@ -55,11 +64,11 @@ To make a new release, set your current working directory to the garden root dir
      - To get a list of all contributors between releases, ordered by count, run: `./scripts/show-contributors.sh <previous-tag> <current-tag>`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on GitHub as well.
      - Take the previous release notes for GitHub as a template and apply the necessary updates.
      - Remember to put the list of features on top of the list of bug fixes in the changelog.
-8. Click the **Publish release** button.
-9. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
-10. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
-11. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls).
-12. Install the Homebrew package and make sure it works okay:
+3. Click the **Publish release** button.
+4. Make a pull request for the branch that was pushed by the script and make sure it's merged as soon as possible.
+5. Make sure the `latest-release` branch contains the released version, and push it to the remote. **This branch is used for our documentation, so this step is important.**
+6. Check the `update-homebrew` GitHub Action run successfully and merge the relevant PR in the [homebrew repo](https://github.com/garden-io/homebrew-garden/pulls).
+7. Install the Homebrew package and make sure it works okay:
     - `brew tap garden-io/garden && brew install garden-cli || true && brew update && brew upgrade garden-cli`
     - Run `$(brew --prefix garden-cli)/bin/garden dev` (to make sure you're using the packaged release) in an example project and see if all looks well.
-13. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
+8. Prepare the release announcement and publish it in our channels (Discord and Twitter). If not possible, delegate the task to an available contributor.
