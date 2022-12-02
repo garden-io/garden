@@ -67,6 +67,11 @@ function getIsRecurringUser(firstRunAt: string, latestRunAt: string) {
   return hoursSinceFirstRun > 12
 }
 
+interface CiInfo {
+  isCi: boolean
+  ciName: string | null
+}
+
 interface SystemInfo {
   gardenVersion: string
   platform: string
@@ -223,6 +228,7 @@ export class AnalyticsHandler {
     moduleConfigs,
     cloudUser,
     isEnabled,
+    ciInfo,
   }: {
     garden: Garden
     log: LogEntry
@@ -230,6 +236,7 @@ export class AnalyticsHandler {
     moduleConfigs: ModuleConfig[]
     isEnabled: boolean
     cloudUser?: UserResponse
+    ciInfo: CiInfo
   }) {
     const segmentClient = require("analytics-node")
     this.segment = new segmentClient(API_KEY, { flushAt: 20, flushInterval: 300 })
@@ -255,8 +262,8 @@ export class AnalyticsHandler {
       gardenVersion: getPackageVersion().toString(),
     }
 
-    this.isCI = ci.isCI
-    this.ciName = ci.name
+    this.isCI = ciInfo.isCi
+    this.ciName = ciInfo.ciName
 
     const originName = this.garden.vcsInfo.originUrl
 
@@ -300,7 +307,7 @@ export class AnalyticsHandler {
         platform: platform(),
         platformVersion: release(),
         gardenVersion: getPackageVersion(),
-        isCI: ci.isCI,
+        isCI: ciInfo.isCi,
         firstRunAt: analyticsConfig.firstRunAt,
         latestRunAt: analyticsConfig.latestRunAt,
         isRecurringUser: this.isRecurringUser,
@@ -310,7 +317,13 @@ export class AnalyticsHandler {
 
   static async init(garden: Garden, log: LogEntry) {
     if (!AnalyticsHandler.instance) {
-      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log })
+      // We're passing this explictliy to that it's easier to overwrite and test
+      // in actual CI.
+      const ciInfo = {
+        isCi: ci.isCI,
+        ciName: ci.name,
+      }
+      AnalyticsHandler.instance = await AnalyticsHandler.factory({ garden, log, ciInfo })
     } else {
       /**
        * This init is called from within the do while loop in the cli
@@ -340,7 +353,7 @@ export class AnalyticsHandler {
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
-  static async factory({ garden, log }: { garden: Garden; log: LogEntry }) {
+  static async factory({ garden, log, ciInfo }: { garden: Garden; log: LogEntry; ciInfo: CiInfo }) {
     const currentAnalyticsConfig = (await garden.globalConfigStore.get()).analytics
     const isFirstRun = isEmpty(currentAnalyticsConfig)
     const moduleConfigs = await garden.getRawModuleConfigs()
@@ -354,7 +367,7 @@ export class AnalyticsHandler {
       }
     }
 
-    if (isFirstRun && !ci.isCI) {
+    if (isFirstRun && !ciInfo.isCi) {
       const gitHubUrl = getGitHubUrl("docs/misc/telemetry.md")
       const msg = dedent`
         Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
@@ -362,7 +375,7 @@ export class AnalyticsHandler {
       log.info({ symbol: "info", msg })
     }
 
-    const anonymousUserId = getAnonymousUserId({ analyticsConfig: currentAnalyticsConfig, isCi: ci.isCI })
+    const anonymousUserId = getAnonymousUserId({ analyticsConfig: currentAnalyticsConfig, isCi: ciInfo.isCi })
 
     let isEnabled: boolean
     // The order of preference is important here, hence the awkward if statements.
@@ -392,7 +405,7 @@ export class AnalyticsHandler {
 
     await garden.globalConfigStore.set([globalConfigKeys.analytics], analyticsConfig)
 
-    return new AnalyticsHandler({ garden, log, analyticsConfig, moduleConfigs, cloudUser, isEnabled })
+    return new AnalyticsHandler({ garden, log, analyticsConfig, moduleConfigs, cloudUser, isEnabled, ciInfo })
   }
 
   /**
