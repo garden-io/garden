@@ -30,7 +30,7 @@ To make a new release, set your current working directory to the garden root dir
    - Reset `latest-release` to `main` with `git reset --hard origin/main`.
    - Run `git log` to make sure that the latest commit is the expected one and there are no unwanted changes from `main` included in the release.
    - Run `./scripts/release.ts preminor|prepatch`.
-   - Wait for the CI build job to get the binaries from the [Github Releases page](https://github.com/garden-io/garden/releases).
+   - Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
 3. Manual testing (using the pre-release/release binary)
    - On **macOS** or **Linux**, run the `./scripts/test-release.sh <version>` script, where `<version>` should have the format `<major>.<minor>.<patch>-<preReleaseCounter>`, e.g. `0.12.38-0`. The script runs some simple tests to sanity check the release.
    - On a **Windows** machine, run `garden deploy --dev vote --env remote` in the `vote` example project.
@@ -52,7 +52,7 @@ To make a new release, set your current working directory to the garden root dir
      - Open the draft file (it's named `release-notes-${version}-draft.md`, e.g. `release-notes-0.12.38-draft.md`) and resolve all suggested TODO items
    - Old way of release notes generation (if the automated way fails for some reason):
      - To generate a changelog for just that tag, run `git-chglog <previous-release-tag-name>..<tag-name>`
-     - To get a list of all contributors between releases, ordered by count, run: `./scripts/show-contributors.sh <previous-tag> <current-tag>`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on Github as well.
+     - To get a list of all contributors between releases, ordered by count, run: `./scripts/show-contributors.sh <previous-tag> <current-tag>`. Note that authors of squashed commits won't show up, so it might be good to do a quick sanity check on GitHub as well.
      - Take the previous release notes for GitHub as a template and apply the necessary updates.
      - Remember to put the list of features on top of the list of bug fixes in the changelog.
 8. Click the **Publish release** button.
