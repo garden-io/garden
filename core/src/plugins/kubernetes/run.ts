@@ -1018,6 +1018,10 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
+  /**
+   * Sets TTY settings for Pod and creates it.
+   * @throws {KubernetesError}
+   */
   private async createPod({ log, tty }: { log: LogEntry; tty: boolean }) {
     const command = this.getFullCommand()
     log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
@@ -1034,11 +1038,7 @@ export class PodRunner extends PodRunnerParams {
     // We never want to restart containers in these ephemeral pods
     pod.spec.restartPolicy = "Never"
 
-    try {
-      await this.api.createPod(this.namespace, pod)
-    } catch (error) {
-      throw new PodRunnerError(`Failed to create Pod ${this.podName}: ${error.message}`, { error })
-    }
+    await this.api.createPod(this.namespace, pod)
   }
 
   async handlePodError({
@@ -1055,7 +1055,7 @@ export class PodRunner extends PodRunnerParams {
     moduleName
   }) {
     // Some types and predicates to identify known errors
-    const knownErrorTypes = ["out-of-memory", "timeout", "pod-runner"] as const
+    const knownErrorTypes = ["out-of-memory", "timeout", "pod-runner", "kubernetes"] as const
     type KnownErrorType = typeof knownErrorTypes[number]
     // A known error is always an instance of a subclass of GardenBaseError
     type KnownError = {
@@ -1072,7 +1072,7 @@ export class PodRunner extends PodRunnerParams {
       throw err
     }
 
-    const renderError = (error: KnownError) => {
+    function renderError(error: KnownError): string {
       const errorDetail = error.detail
       const logs = errorDetail.logs
 
@@ -1120,6 +1120,8 @@ export class PodRunner extends PodRunnerParams {
           }
 
           return errorDesc
+        case "kubernetes":
+          return `Unable to start command execution. Kubernetes cluster returned error:\n${error.message}\n\nPlease check the cluster health.`
         default:
           const _exhaustiveCheck: never = error.type
           return _exhaustiveCheck

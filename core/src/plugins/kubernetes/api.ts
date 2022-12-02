@@ -838,6 +838,7 @@ export class KubeApi {
 
   /**
    * Create an ad-hoc Pod. Use this method to handle race-condition cases when creating Pods.
+   * @throws {KubernetesError}
    */
   async createPod(namespace: string, pod: KubernetesPod) {
     try {
