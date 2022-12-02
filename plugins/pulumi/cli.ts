@@ -257,4 +257,3 @@ export const supportedVersions = Object.keys(pulumiCliSPecs)
 
 // Default to latest pulumi version
 export const defaultPulumiVersion = "3.48.0"
-// export const defaultPulumiVersion = "3.25.1"
