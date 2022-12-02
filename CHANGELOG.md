@@ -2,6 +2,14 @@
 <a name="0.12.47"></a>
 ## [0.12.47](https://github.com/garden-io/garden/compare/0.12.46...0.12.47) (2022-12-02)
 
+## Important note
+
+The `dns-lookup-cache` library usage was removed in the following commit:
+* chore: remove dns-lookup-cache ([#3389](https://github.com/garden-io/garden/issues/3389)) ([352440189](https://github.com/garden-io/garden/commit/352440189))
+
+**This may affect Rancher users.**
+If you get any troubles with Rancher, please submit a [GitHub issue](https://github.com/garden-io/garden/issues/new/choose).
+
 ### Bug Fixes
 
 * do not log failed log connection attempt ([58a1ae7c8](https://github.com/garden-io/garden/commit/58a1ae7c8))
