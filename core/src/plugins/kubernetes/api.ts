@@ -28,7 +28,6 @@ import {
   PolicyV1beta1Api,
   KubernetesObject,
   Exec,
-  Attach,
   V1Deployment,
   V1Service,
   Log,
@@ -59,7 +58,6 @@ import { KubernetesProvider } from "./config"
 import { StringMap } from "../../config/common"
 import { PluginContext } from "../../plugin-context"
 import { Writable, Readable, PassThrough } from "stream"
-import { WebSocketHandler } from "@kubernetes/client-node/dist/web-socket-handler"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 
@@ -872,11 +870,11 @@ function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
     clearInterval(keepAlive)
   }
 
-  ws.on("pong", (msg) => {
+  ws.on("pong", () => {
     heartbeat()
   })
 
-  ws.on("error", (err) => {
+  ws.on("error", () => {
     clear()
   })
 
