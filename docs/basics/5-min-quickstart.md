@@ -138,9 +138,55 @@ And finally deploy the project with Garden in dev mode:
 garden deploy --dev
 ```
 
-You can now visit the example project at http://vote.local.app.garden.
+You should now be able to visit the example project at [http://vote.local.app.garden](http://vote.local.app.garden).
+
+If the page doesn't load because the DNS address can't be found, you'll need to go to step 4 and update your hostfile. Otherwise, you're done!
 
 The project itself doubles as an interactive guide that walks you through some common Garden commands and workflows. We encourage you to give it a spin!
+
+## Step 4 — Update hostfile (only if needed)
+
+{% hint style="info" %}
+The `*.local.app.garden` domain resolves to 127.0.0.1 via our DNS provider. This means that when you go to [http://vote.local.app.garden](http://vote.local.app.garden), you _should_ be redirected to the app that you have running locally. However, some routers will prevent redirects to 127.0.0.1 and you'll need to update your hostfile instead.
+{% endhint %}
+
+If you get an error saying that DNS address can't be found when attempting to load the page, follow the instructions below to edit the hostfile for your platform.
+
+{% tabs %}
+
+{% tab title="macOS / Linux" %}
+In your terminal, open your hostfile as an administrator by running:
+
+```console
+sudo vim /etc/hosts
+```
+
+We're using vim here but feel free to use your editor of choice.
+
+Then add the following to file and save it:
+
+```sh
+127.0.0.1 vote.local.app.garden
+```
+
+{% endtab %}
+
+{% tab title="Windows" %}
+First, open Notepad as an administrator.
+
+From Notepad, open the `hosts` file in the `C:\Windows\System32\Drivers\etc` directory.
+
+Then add the following to the file and save it:
+
+```sh
+127.0.0.1 vote.local.app.garden
+```
+
+{% endtab %}
+
+{% endtabs %}
+
+Now you should be able to load the quickstart example project in your browser at [http://vote.local.app.garden](http://vote.local.app.garden).
 
 ## Next Steps
 
