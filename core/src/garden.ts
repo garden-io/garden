@@ -1282,18 +1282,36 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
   const cloudDomain = cloudApi?.domain
+  const cloudProjectId: string | undefined = config.id
+
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
     const cloudLog = log.info({ section, msg: "Initializing...", status: "active" })
 
-    try {
-      secrets = await getSecrets({ log: cloudLog, environmentName, cloudApi })
-      cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
-      cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-    } catch (err) {
-      cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
-      cloudLog.setWarn()
+    if (cloudProjectId) {
+      // Ensure that the current projectId exists in the remote project
+      try {
+        const projectUrl = await cloudApi.ensureProject(cloudProjectId)
+        cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+      } catch (err) {
+        cloudLog.info(`Failed to find a project with the configured project ID ${cloudProjectId}`)
+        cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
+      }
+
+      // Only fetch secrets if the projectId existed in the cloud instance
+      if (cloudApi.projectId) {
+        try {
+          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
+          cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
+          cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+        } catch (err) {
+          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+          cloudLog.setWarn()
+        }
+      }
+    } else {
+      cloudLog.info(`Logged in to ${distroName}, but failed to find a configured project ID`)
     }
   }
 
@@ -1342,7 +1360,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     vcsInfo,
     sessionId,
     disablePortForwards,
-    projectId: config.id,
+    projectId: cloudApi?.projectId,
     enterpriseDomain: config.domain,
     projectRoot,
     projectName,
