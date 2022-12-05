@@ -858,7 +858,10 @@ function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
       clearTimeout(pingTimeout)
     }
     pingTimeout = setTimeout(() => {
-      ws.emit("error", new Error("Lost connection to the Kubernetes WebSocket API (Timed out)"))
+      ws.emit(
+        "error",
+        new Error(`Lost connection to the Kubernetes WebSocket API (Timed out after ${WEBSOCKET_PING_TIMEOUT / 1000}s)`)
+      )
       ws.terminate()
     }, WEBSOCKET_PING_TIMEOUT)
   }
