@@ -12,13 +12,12 @@ import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
 import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { getAppNamespace } from "../../../../../src/plugins/kubernetes/namespace"
-import { randomString, dedent, gardenAnnotationKey } from "../../../../../src/util/string"
+import { randomString, gardenAnnotationKey } from "../../../../../src/util/string"
 import { V1ConfigMap } from "@kubernetes/client-node"
 import { KubernetesResource, KubernetesPod } from "../../../../../src/plugins/kubernetes/types"
 import { expect } from "chai"
 import { waitForResources } from "../../../../../src/plugins/kubernetes/status/status"
 import { PluginContext } from "../../../../../src/plugin-context"
-import { StringCollector } from "../../../../../src/util/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../../../../../src/plugins/kubernetes/kubectl"
 
 describe("KubeApi", () => {
@@ -189,61 +188,6 @@ describe("KubeApi", () => {
         expect(res.stderr).to.equal("")
         expect(res.exitCode).to.be.undefined
         expect(res.timedOut).to.be.true
-      } finally {
-        await api.core.deleteNamespacedPod(podName, namespace)
-      }
-    })
-  })
-
-  describe("attachToPod", () => {
-    it("should attach to a running Pod and stream the output", async () => {
-      const pod = makePod([
-        "/bin/sh",
-        "-c",
-        dedent`
-          for i in 1 2 3 4 5
-          do
-            echo "Log line $i"
-            sleep 1
-          done
-        `,
-      ])
-      const podName = pod.metadata.name
-
-      await api.createPod(namespace, pod)
-      await waitForResources({
-        namespace,
-        ctx,
-        provider,
-        serviceName: "exec-test",
-        resources: [pod],
-        log: garden.log,
-        timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
-      })
-
-      const stdout = new StringCollector()
-
-      try {
-        const ws = await api.attachToPod({
-          namespace,
-          podName,
-          containerName,
-          stdout,
-          tty: false,
-        })
-
-        await new Promise<void>((resolve, reject) => {
-          ws.onerror = ({ error }) => {
-            reject(error)
-          }
-
-          ws.onclose = () => {
-            resolve()
-          }
-        })
-
-        const output = stdout.getString()
-        expect(output).to.include("Log line")
       } finally {
         await api.core.deleteNamespacedPod(podName, namespace)
       }

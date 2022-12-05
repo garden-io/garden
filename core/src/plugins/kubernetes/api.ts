@@ -28,7 +28,6 @@ import {
   PolicyV1beta1Api,
   KubernetesObject,
   Exec,
-  Attach,
   V1Deployment,
   V1Service,
   Log,
@@ -40,6 +39,7 @@ import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
+import WebSocket from "isomorphic-ws"
 
 import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
@@ -58,7 +58,6 @@ import { KubernetesProvider } from "./config"
 import { StringMap } from "../../config/common"
 import { PluginContext } from "../../plugin-context"
 import { Writable, Readable, PassThrough } from "stream"
-import { WebSocketHandler } from "@kubernetes/client-node/dist/web-socket-handler"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 
@@ -769,13 +768,13 @@ export class KubeApi {
       }
     }
 
-    const execHandler = new Exec(this.config, new WebSocketHandler(this.config))
+    const execHandler = new Exec(this.config)
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       let done = false
 
       const finish = (timedOut: boolean, exitCode?: number) => {
-        !done &&
+        if (!done) {
           resolve({
             allLogs: combinedCollector.getString(),
             stdout: stdoutCollector.getString(),
@@ -783,53 +782,43 @@ export class KubeApi {
             timedOut,
             exitCode,
           })
-        done = true
+          done = true
+        }
       }
 
       if (timeoutSec) {
         setTimeout(() => {
-          !done && finish(true)
+          if (!done) {
+            finish(true)
+          }
         }, timeoutSec * 1000)
       }
 
-      execHandler
-        .exec(namespace, podName, containerName, command, _stdout, _stderr, stdin || null, tty, (status) => {
-          finish(false, getExecExitCode(status))
-        })
-        .then((ws) => {
-          ws.on("error", (err) => {
-            !done && reject(err)
-            done = true
-          })
-        })
-        .catch(reject)
-    })
-  }
+      try {
+        const ws = attachWebsocketKeepalive(
+          await execHandler.exec(
+            namespace,
+            podName,
+            containerName,
+            command,
+            _stdout,
+            _stderr,
+            stdin || null,
+            tty,
+            (status) => {
+              finish(false, getExecExitCode(status))
+            }
+          )
+        )
 
-  /**
-   * Attach to the specified Pod and container.
-   *
-   * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
-   */
-  async attachToPod({
-    namespace,
-    podName,
-    containerName,
-    stdout,
-    stderr,
-    stdin,
-    tty,
-  }: {
-    namespace: string
-    podName: string
-    containerName: string
-    stdout?: Writable
-    stderr?: Writable
-    stdin?: Readable
-    tty: boolean
-  }) {
-    const handler = new Attach(this.config, new WebSocketHandler(this.config))
-    return handler.attach(namespace, podName, containerName, stdout || null, stderr || null, stdin || null, tty)
+        ws.on("error", (err) => {
+          done = true
+          reject(err)
+        })
+      } catch (err) {
+        reject(err)
+      }
+    })
   }
 
   getLogger() {
@@ -852,6 +841,53 @@ export class KubeApi {
       }
     }
   }
+}
+
+const WEBSOCKET_KEEPALIVE_INTERVAL = 5_000
+const WEBSOCKET_PING_TIMEOUT = 30_000
+
+function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
+  let keepAlive: NodeJS.Timeout = setInterval(() => {
+    ws.ping()
+  }, WEBSOCKET_KEEPALIVE_INTERVAL)
+
+  let pingTimeout: NodeJS.Timeout | undefined
+
+  function heartbeat() {
+    if (pingTimeout) {
+      clearTimeout(pingTimeout)
+    }
+    pingTimeout = setTimeout(() => {
+      ws.emit(
+        "error",
+        new Error(`Lost connection to the Kubernetes WebSocket API (Timed out after ${WEBSOCKET_PING_TIMEOUT / 1000}s)`)
+      )
+      ws.terminate()
+    }, WEBSOCKET_PING_TIMEOUT)
+  }
+
+  function clear() {
+    if (pingTimeout) {
+      clearTimeout(pingTimeout)
+    }
+    clearInterval(keepAlive)
+  }
+
+  ws.on("pong", () => {
+    heartbeat()
+  })
+
+  ws.on("error", () => {
+    clear()
+  })
+
+  ws.on("close", () => {
+    clear()
+  })
+
+  heartbeat()
+
+  return ws
 }
 
 function getGroupBasePath(apiVersion: string) {
