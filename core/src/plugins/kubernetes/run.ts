@@ -827,7 +827,7 @@ export class PodRunner extends PodRunnerParams {
         completedAt: new Date(),
         log: mainContainerLogs,
         exitCode,
-        success: exitCode === 0,
+        success: exitCode === undefined || exitCode === 0,
       }
     } finally {
       logsFollower.close()
@@ -886,7 +886,7 @@ export class PodRunner extends PodRunnerParams {
 
       // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
       if (state === "stopped" || exitReason === "Completed") {
-        if (!!exitCode) {
+        if (exitCode !== undefined && exitCode !== 0) {
           throw newExitCodePodRunnerError(await errorDetails())
         }
         return exitCode
