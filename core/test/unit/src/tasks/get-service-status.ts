@@ -12,14 +12,45 @@ import execa from "execa"
 import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expect } from "chai"
-import { customizedTestPlugin, TestGarden, testPlugin as getTestPlugin } from "../../../helpers"
+import { TestGarden } from "../../../helpers"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { DeployTask } from "../../../../src/tasks/deploy"
+import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
+import { joi } from "../../../../src/config/common"
+import { ActionConfig } from "../../../../src/actions/types"
 
 // TODO-G2: consider merging it with ./deploy.ts
 describe("DeployTask", () => {
   let tmpDir: tmp.DirectoryResult
   let config: ProjectConfig
+  let testPlugin: GardenPlugin
+  let garden: TestGarden
+
+  const actionConfig: ActionConfig[] = [
+    {
+      name: "test-deploy",
+      type: "test",
+      kind: "Deploy",
+      dependencies: ["run.test-run"],
+      internal: {
+        basePath: "foo",
+      },
+      spec: {
+        log: "${runtime.tasks.test-run.outputs.log}",
+      },
+    },
+    {
+      name: "test-run",
+      type: "test",
+      kind: "Run",
+      internal: {
+        basePath: "foo",
+      },
+      spec: {
+        log: "cool log",
+      },
+    },
+  ]
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
@@ -37,6 +68,46 @@ describe("DeployTask", () => {
       providers: [{ name: "test" }],
       variables: {},
     }
+    testPlugin = createGardenPlugin({
+      name: "test",
+      createActionTypes: {
+        Deploy: [
+          {
+            name: "test",
+            docs: "asd",
+            schema: joi.object(),
+            handlers: {
+              getStatus: async (params) => ({
+                state: "ready",
+                detail: { detail: {}, state: "ready" },
+                outputs: { log: params.action.getSpec().log },
+              }),
+            },
+          },
+        ],
+        Run: [
+          {
+            name: "test",
+            docs: "asdü",
+            schema: joi.object(),
+            handlers: {
+              getResult: async (params) => ({
+                detail: {
+                  completedAt: new Date(),
+                  log: params.action.getSpec().log,
+                  startedAt: new Date(),
+                  success: true,
+                },
+                outputs: {},
+                state: "ready",
+              }),
+            },
+          },
+        ],
+      },
+    })
+
+    garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
   })
 
   after(async () => {
@@ -45,84 +116,10 @@ describe("DeployTask", () => {
 
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
-      // const testPlugin = createGardenPlugin({
-      //   name: "test",
-      //   createModuleTypes: [
-      //     {
-      //       name: "test",
-      //       docs: "test",
-      //       serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-      //       handlers: {
-      //         build: async () => ({}),
-      //         getServiceStatus: async ({ service }: GetServiceStatusParams) => {
-      //           return {
-      //             state: <ServiceState>"ready",
-      //             detail: {},
-      //             outputs: { log: service.spec.log },
-      //           }
-      //         },
-      //         getTaskResult: async ({ task }: GetTaskResultParams) => {
-      //           const log = task.spec.log
-      //
-      //           return {
-      //             taskName: task.name,
-      //             moduleName: task.module.name,
-      //             success: true,
-      //             outputs: { log },
-      //             command: [],
-      //             log,
-      //             startedAt: new Date(),
-      //             completedAt: new Date(),
-      //             version: task.version,
-      //           }
-      //         },
-      //       },
-      //     },
-      //   ],
-      // })
-      // TODO-G2: customize behaviour to inject outputs if necessary, see getTaskResult in the commented code above
-      const testPlugin = customizedTestPlugin({})
-      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
-
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          name: "test",
-          type: "test",
-          allowPublish: false,
-          disabled: false,
-          build: { dependencies: [] },
-          path: tmpDir.path,
-          serviceConfigs: [
-            {
-              name: "test-service",
-              dependencies: ["test-task"],
-              disabled: false,
-
-              spec: {
-                log: "${runtime.tasks.test-task.outputs.log}",
-              },
-            },
-          ],
-          taskConfigs: [
-            {
-              name: "test-task",
-              cacheResult: true,
-              dependencies: [],
-              disabled: false,
-              spec: {
-                log: "test output",
-              },
-              timeout: 10,
-            },
-          ],
-          testConfigs: [],
-          spec: { bla: "fla" },
-        },
-      ])
+      garden.setActionConfigs([], actionConfig)
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("test-service")
+      const action = graph.getDeploy("test-deploy")
 
       const deployTask = new DeployTask({
         garden,
@@ -137,49 +134,11 @@ describe("DeployTask", () => {
 
       const result = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
-      expect(result.results.getResult(deployTask)?.outputs).to.eql({ log: "test output" })
+      expect(result.results.getResult(deployTask)?.outputs).to.eql({ log: "cool log" })
     })
 
     it("should set status to unknown if runtime variables can't be resolved", async () => {
-      const testPlugin = getTestPlugin()
-      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
-
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          name: "test",
-          type: "test",
-          allowPublish: false,
-          disabled: false,
-          build: { dependencies: [] },
-          path: tmpDir.path,
-          serviceConfigs: [
-            {
-              name: "test-service",
-              dependencies: ["test-task"],
-              disabled: false,
-
-              spec: {
-                log: "${runtime.tasks.test-task.outputs.log}",
-              },
-            },
-          ],
-          taskConfigs: [
-            {
-              name: "test-task",
-              cacheResult: true,
-              dependencies: [],
-              disabled: false,
-              spec: {
-                log: "test output",
-              },
-              timeout: 10,
-            },
-          ],
-          testConfigs: [],
-          spec: { bla: "fla" },
-        },
-      ])
+      garden.setActionConfigs([], actionConfig)
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("test-service")

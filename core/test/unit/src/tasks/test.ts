@@ -71,7 +71,12 @@ describe("TestTask", () => {
 
       const deps = task.resolveProcessDependencies()
 
-      expect(deps.map((d) => d.getBaseKey())).to.eql(["build.module-a", "deploy.service-b", "task.task-a"])
+      expect(deps.map((d) => d.getBaseKey())).to.eql([
+        "resolve-action.module-a-integ",
+        "deploy.service-b",
+        "run.task-a",
+        "build.module-a",
+      ])
     })
 
     context("when skipRuntimeDependencies = true", () => {
