@@ -1135,7 +1135,7 @@ export class PodRunner extends PodRunnerParams {
 
           return errorDesc
         case "kubernetes":
-          return `Unable to start command execution. Kubernetes cluster returned error:\n${error.message}\n\nPlease check the cluster health.`
+          return `Unable to start command execution. Failed to initiate a runner pod with error:\n${error.message}\n\nPlease check the cluster health and network connectivity.`
         default:
           const _exhaustiveCheck: never = error.type
           return _exhaustiveCheck
