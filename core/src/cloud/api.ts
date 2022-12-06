@@ -108,7 +108,7 @@ export function getGardenCloudDomain(projectConfig?: ProjectResource): string | 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
   } else if (projectConfig?.domain) {
-    cloudDomain = new URL(projectConfig?.domain).origin
+    cloudDomain = new URL(projectConfig.domain).origin
   }
 
   return cloudDomain

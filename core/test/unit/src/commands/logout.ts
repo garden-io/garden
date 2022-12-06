@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { getDataDir, cleanupAuthTokens, makeCommandParams } from "../../../helpers"
+import { getDataDir, cleanupAuthTokens, makeCommandParams, TestGardenCli } from "../../../helpers"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { randomString } from "../../../../src/util/string"
@@ -16,9 +16,11 @@ import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { LogOutCommand } from "../../../../src/commands/logout"
 import { getLogMessages } from "../../../../src/util/testing"
+import { ensureConnected } from "../../../../src/db/connection"
 
 describe("LogoutCommand", () => {
   beforeEach(async () => {
+    await ensureConnected()
     await cleanupAuthTokens()
   })
 
@@ -35,6 +37,7 @@ describe("LogoutCommand", () => {
     }
 
     const command = new LogOutCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -51,7 +54,7 @@ describe("LogoutCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
@@ -62,12 +65,13 @@ describe("LogoutCommand", () => {
 
   it("should be a no-op if the user is already logged out", async () => {
     const command = new LogOutCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
     expect(logOutput).to.include("You're already logged out from Garden Enterprise.")
@@ -82,6 +86,7 @@ describe("LogoutCommand", () => {
     }
 
     const command = new LogOutCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -99,7 +104,7 @@ describe("LogoutCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
@@ -117,6 +122,7 @@ describe("LogoutCommand", () => {
     }
 
     const command = new LogOutCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -134,7 +140,7 @@ describe("LogoutCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")

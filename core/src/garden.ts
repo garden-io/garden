@@ -108,7 +108,7 @@ import {
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
-import { CloudApi } from "./cloud/api"
+import { CloudApi, getGardenCloudDomain } from "./cloud/api"
 import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
@@ -1281,7 +1281,12 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
-  const cloudDomain = cloudApi?.domain
+  // fall back to get the domain from config if the cloudApi instance failed
+  // to login or was not defined
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
+
+  // The cloudApi instance only has a project ID when the configured ID has
+  // been verified against the cloud instance.
   const cloudProjectId: string | undefined = config.id
 
   if (!opts.noEnterprise && cloudApi) {
@@ -1360,8 +1365,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     vcsInfo,
     sessionId,
     disablePortForwards,
-    projectId: cloudApi?.projectId,
-    enterpriseDomain: config.domain,
+    projectId: cloudProjectId,
+    enterpriseDomain: cloudDomain,
     projectRoot,
     projectName,
     environmentName,
