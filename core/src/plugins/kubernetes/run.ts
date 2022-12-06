@@ -432,7 +432,7 @@ async function runWithoutArtifacts({
  * See https://stackoverflow.com/a/20564208
  * @param cmd the command to wrap
  */
-function commandExecutionScript(cmd: string[]) {
+function getCommandExecutionScript(cmd: string[]) {
   return `
 exec 1<&-
 exec 2<&-
@@ -451,7 +451,7 @@ ${cmd.join(" ")}
  *   4. Tarball the directory and pipe to stdout
  * @param artifacts the artifacts to be processed
  */
-function artifactsTarScript(artifacts: ArtifactSpec[]) {
+function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
   // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
   const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
   const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
@@ -590,7 +590,7 @@ async function runWithArtifacts({
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
 
     try {
-      const commandScript = commandExecutionScript(cmd)
+      const commandScript = getCommandExecutionScript(cmd)
 
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
@@ -619,7 +619,7 @@ async function runWithArtifacts({
       })
     }
 
-    const tarScript = artifactsTarScript(artifacts)
+    const tarScript = getArtifactsTarScript(artifacts)
 
     // Copy the artifacts
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
