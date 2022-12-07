@@ -848,126 +848,126 @@ workflows:
           requires: [build]
       - check-package-licenses:
           requires: [build]
-      - build-docker-alpine:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-dist]
-      - build-docker-aws:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-azure:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-alpine]
-      - build-docker-aws-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-aws-gcloud-azure:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-full:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
-      - build-docker-buster:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-dist]
+      # - build-docker-alpine:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-dist]
+      # - build-docker-aws:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-docker-alpine]
+      # - build-docker-azure:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-docker-alpine]
+      # - build-docker-gcloud:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-docker-alpine]
+      # - build-docker-aws-gcloud:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-docker-gcloud]
+      # - build-docker-aws-gcloud-azure:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-docker-gcloud]
+      # - build-docker-full:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-docker-gcloud]
+      # - build-docker-buster:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-dist]
 
-      - test-docker-gcloud:
-          <<: *only-internal-prs
-          context: docker
-          requires: [build-docker-gcloud]
+      # - test-docker-gcloud:
+      #     <<: *only-internal-prs
+      #     context: docker
+      #     requires: [build-docker-gcloud]
       - test-framework:
           requires: [build]
-      - test-dist:
-          # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
-          <<: *only-internal-prs
-          requires: [build-dist]
-      - test-macos:
-          <<: *only-internal-prs
-          requires: [build-dist]
-      - test-windows:
-          <<: *only-internal-prs
-          requires: [build-dist]
+      # - test-dist:
+      #     # Don't attempt to run dist tests for external PRs (they won't have access to the required keys)
+      #     <<: *only-internal-prs
+      #     requires: [build-dist]
+      # - test-macos:
+      #     <<: *only-internal-prs
+      #     requires: [build-dist]
+      # - test-windows:
+      #     <<: *only-internal-prs
+      #     requires: [build-dist]
 
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-code-synchronization
-          project: code-synchronization
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-code-synchronization
+      #     project: code-synchronization
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project
           project: demo-project
           environment: remote
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-deployment-strategies
-          project: deployment-strategies
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-kaniko
-          project: gke
-          environment: gke-kaniko
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-gke-buildkit
-          project: gke
-          environment: gke-buildkit
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-hadolint
-          project: hadolint
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-jib-container
-          project: jib-container
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-kustomize
-          project: kustomize
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-remote-sources
-          project: remote-sources
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-tasks
-          project: tasks
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-templated-k8s-container
-          project: templated-k8s-container
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote
-          project: vote
-          environment: remote
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote-helm
-          project: vote-helm
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-deployment-strategies
+      #     project: deployment-strategies
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-gke-kaniko
+      #     project: gke
+      #     environment: gke-kaniko
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-gke-buildkit
+      #     project: gke
+      #     environment: gke-buildkit
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-hadolint
+      #     project: hadolint
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-jib-container
+      #     project: jib-container
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-kustomize
+      #     project: kustomize
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-remote-sources
+      #     project: remote-sources
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-tasks
+      #     project: tasks
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-templated-k8s-container
+      #     project: templated-k8s-container
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote
+      #     project: vote
+      #     environment: remote
+      #     requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-helm
+      #     project: vote-helm
+      #     requires: [build]
 
       ### VM TESTS ###
 
@@ -975,53 +975,53 @@ workflows:
       # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      - test-minikube:
-          name: vm-1.22-minikube
-          requires: [build]
-          kubernetesVersion: "1.22.2"
-          minikubeVersion: "v1.25.2"
-          # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
-          # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
-          # integration tests.
-          skipTests: cluster-buildkit kaniko remote-only
-      - test-minikube:
-          name: vm-1.23-minikube
-          requires: [build]
-          kubernetesVersion: "1.23.3"
-          minikubeVersion: "v1.25.2"
-      - test-minikube:
-          name: vm-1.19-minikube
-          requires: [build]
-          kubernetesVersion: "1.19.7"
-          minikubeVersion: "v1.16.0"
-      - test-microk8s:
-          name: vm-1.24-microk8s
-          requires: [build]
-          kubernetesVersion: "1.24"
-      - test-kind:
-          name: vm-1.19-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.19.4
-      - test-kind:
-          name: vm-1.20-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.20.2
-      - test-kind:
-          name: vm-1.21-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.21.2
-      - test-kind:
-          name: vm-1.22-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
-      - test-kind:
-          name: vm-1.23-kind
-          requires: [build]
-          kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
+      # - test-minikube:
+      #     name: vm-1.22-minikube
+      #     requires: [build]
+      #     kubernetesVersion: "1.22.2"
+      #     minikubeVersion: "v1.25.2"
+      #     # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
+      #     # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
+      #     # integration tests.
+      #     skipTests: cluster-buildkit kaniko remote-only
+      # - test-minikube:
+      #     name: vm-1.23-minikube
+      #     requires: [build]
+      #     kubernetesVersion: "1.23.3"
+      #     minikubeVersion: "v1.25.2"
+      # - test-minikube:
+      #     name: vm-1.19-minikube
+      #     requires: [build]
+      #     kubernetesVersion: "1.19.7"
+      #     minikubeVersion: "v1.16.0"
+      # - test-microk8s:
+      #     name: vm-1.24-microk8s
+      #     requires: [build]
+      #     kubernetesVersion: "1.24"
+      # - test-kind:
+      #     name: vm-1.19-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.19.4
+      # - test-kind:
+      #     name: vm-1.20-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.20.2
+      # - test-kind:
+      #     name: vm-1.21-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.21.2
+      # - test-kind:
+      #     name: vm-1.22-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
+      # - test-kind:
+      #     name: vm-1.23-kind
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
 
-      - test-plugins:
-          requires: [build]
-          kindNodeImage: kindest/node:v1.21.2
+      # - test-plugins:
+      #     requires: [build]
+      #     kindNodeImage: kindest/node:v1.21.2
 
       ### MAIN ONLY ###
 
