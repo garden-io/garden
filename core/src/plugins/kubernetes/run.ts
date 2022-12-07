@@ -408,6 +408,7 @@ async function runWithoutArtifacts({
       events: ctx.events,
       timeoutSec: timeout || defaultTimeout,
       tty: interactive,
+      throwOnExitCode: true,
     })
     result = {
       ...res,
@@ -710,6 +711,8 @@ type RunParams = StartParams & {
   remove: boolean
   tty: boolean
   events: PluginEventBroker
+  // TODO: 0.13 consider removing this in the scope of https://github.com/garden-io/garden/issues/3254
+  throwOnExitCode?: boolean
 }
 
 class PodRunnerError extends GardenBaseError {
@@ -802,7 +805,7 @@ export class PodRunner extends PodRunnerParams {
    * @throws {KubernetesError}
    */
   async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
-    const { log, remove, timeoutSec, tty } = params
+    const { log, remove, tty } = params
 
     const startedAt = new Date()
     const logsFollower = this.prepareLogsFollower(params)
@@ -816,7 +819,7 @@ export class PodRunner extends PodRunnerParams {
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
-      const exitCode = await this.awaitRunningPod(startedAt, timeoutSec)
+      const exitCode = await this.awaitRunningPod(params, startedAt)
 
       // Retrieve logs after run
       const mainContainerLogs = await this.getMainContainerLogs()
@@ -842,7 +845,8 @@ export class PodRunner extends PodRunnerParams {
    * @throws {TimeoutError}
    * @throws {PodRunnerError}
    */
-  private async awaitRunningPod(startedAt: Date, timeoutSec: number | undefined): Promise<number | undefined> {
+  private async awaitRunningPod(params: RunParams, startedAt: Date): Promise<number | undefined> {
+    const { timeoutSec, throwOnExitCode } = params
     const { namespace, podName } = this
     const mainContainerName = this.getMainContainerName()
 
@@ -877,8 +881,12 @@ export class PodRunner extends PodRunnerParams {
           exitReason !== "StartError"
         ) {
           // Successfully ran the command in the main container, but returned non-zero exit code.
-          // Consider it as a task execution error inside the Pod.
-          throw newExitCodePodRunnerError(await errorDetails())
+          if (throwOnExitCode === true) {
+            // Consider it as a task execution error inside the Pod.
+            throw newExitCodePodRunnerError(await errorDetails())
+          } else {
+            return exitCode
+          }
         } else {
           throw new PodRunnerError(`Failed to start Pod ${podName}.`, await errorDetails())
         }
@@ -887,7 +895,11 @@ export class PodRunner extends PodRunnerParams {
       // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
       if (state === "stopped" || exitReason === "Completed") {
         if (exitCode !== undefined && exitCode !== 0) {
-          throw newExitCodePodRunnerError(await errorDetails())
+          if (throwOnExitCode === true) {
+            throw newExitCodePodRunnerError(await errorDetails())
+          } else {
+            return exitCode
+          }
         }
         return exitCode
       }
