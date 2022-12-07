@@ -47,6 +47,7 @@ import { GetServiceStatusParams } from "../../types/plugin/service/getServiceSta
 import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 import { PluginContext } from "../../plugin-context"
 import { ServiceStatus } from "../../types/service"
+import { taskOutputsSchema } from "../kubernetes/task-results"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -814,16 +815,7 @@ export const execPlugin = () =>
     `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
-        taskOutputsSchema: joi.object().keys({
-          log: joi
-            .string()
-            .allow("")
-            .default("")
-            .description(
-              "The full log from the executed task. " +
-                "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-            ),
-        }),
+        taskOutputsSchema,
         handlers: {
           configure: configureExecModule,
           build: buildExecModule,
