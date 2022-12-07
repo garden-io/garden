@@ -255,6 +255,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: kubernetesHandlers,
       },
       pvcModuleDefinition(),
