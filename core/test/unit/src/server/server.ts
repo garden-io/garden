@@ -224,40 +224,71 @@ describe("GardenServer", () => {
       ws.close()
     })
 
-    const onMessage = (cb: (req: object) => void) => {
-      ws.on("message", (msg) => cb(JSON.parse(msg.toString())))
+    const onFirstMsgAfterReadyMsg = (cb: (req: object) => void) => {
+      ws.on("message", (msg) => {
+        const parsed = JSON.parse(msg.toString())
+        // This message is always sent at the beginning and we skip it here
+        // to simplify testing.
+        if (parsed.type !== "serverReady") {
+          cb(parsed)
+        }
+      })
     }
 
     it("terminates the connection if auth query params are missing", (done) => {
       const badWs = new WebSocket(`ws://localhost:${port}/ws`)
-      badWs.on("close", () => {
+      badWs.on("close", (code, reason) => {
+        expect(code).to.eql(4401)
+        expect(reason).to.eql("Unauthorized")
         done()
       })
     })
 
     it("terminates the connection if key doesn't match and sessionId is missing", (done) => {
       const badWs = new WebSocket(`ws://localhost:${port}/ws?key=foo`)
-      badWs.on("close", () => {
+      badWs.on("close", (code, reason) => {
+        expect(code).to.eql(4401)
+        expect(reason).to.eql("Unauthorized")
         done()
       })
     })
 
     it("terminates the connection if sessionId doesn't match and key is missing", (done) => {
       const badWs = new WebSocket(`ws://localhost:${port}/ws?sessionId=foo`)
-      badWs.on("close", () => {
+      badWs.on("close", (code, reason) => {
+        expect(code).to.eql(4401)
+        expect(reason).to.eql("Unauthorized")
         done()
       })
     })
 
     it("terminates the connection if both sessionId and key are bad", (done) => {
       const badWs = new WebSocket(`ws://localhost:${port}/ws?sessionId=foo&key=bar`)
-      badWs.on("close", () => {
+      badWs.on("close", (code, reason) => {
+        expect(code).to.eql(4401)
+        expect(reason).to.eql("Unauthorized")
         done()
       })
     })
 
+    it("should send a serverReady event when the server is ready", (done) => {
+      let msgs: any[] = []
+      ws.on("message", (msg) => {
+        msgs.push(JSON.parse(msg.toString()))
+
+        if (msgs.length === 2) {
+          expect(msgs).to.eql([
+            { type: "serverReady", message: "Server ready" },
+            { type: "event", name: "_test", payload: "foo" },
+          ])
+          done()
+        }
+      })
+      garden.events.emit("_test", "foo")
+    })
+
     it("should emit events from the Garden event bus", (done) => {
-      onMessage((req) => {
+      onFirstMsgAfterReadyMsg((req) => {
         expect(req).to.eql({ type: "event", name: "_test", payload: "foo" })
         done()
       })
@@ -265,7 +296,7 @@ describe("GardenServer", () => {
     })
 
     it("should send error when a request is not valid JSON", (done) => {
-      onMessage((req) => {
+      onFirstMsgAfterReadyMsg((req) => {
         expect(req).to.eql({
           type: "error",
           message: "Could not parse message as JSON",
@@ -278,7 +309,7 @@ describe("GardenServer", () => {
     it("should send error when Garden instance is not set", (done) => {
       const id = uuidv4()
 
-      onMessage((req) => {
+      onFirstMsgAfterReadyMsg((req) => {
         expect(req).to.eql({
           type: "error",
           message: "Waiting for Garden instance to initialize",
@@ -299,7 +330,7 @@ describe("GardenServer", () => {
     })
 
     it("should error when a request is missing an ID", (done) => {
-      onMessage((req) => {
+      onFirstMsgAfterReadyMsg((req) => {
         expect(req).to.eql({
           type: "error",
           message: "Message should contain an `id` field with a UUID value",
@@ -310,7 +341,7 @@ describe("GardenServer", () => {
     })
 
     it("should error when a request has an invalid ID", (done) => {
-      onMessage((req) => {
+      onFirstMsgAfterReadyMsg((req) => {
         expect(req).to.eql({
           type: "error",
           requestId: "ksdhgalsdkjghalsjkg",
@@ -323,7 +354,7 @@ describe("GardenServer", () => {
 
     it("should error when a request has an invalid type", (done) => {
       const id = uuidv4()
-      onMessage((req) => {
+      onFirstMsgAfterReadyMsg((req) => {
         expect(req).to.eql({
           type: "error",
           requestId: id,
@@ -340,7 +371,7 @@ describe("GardenServer", () => {
       garden
         .dumpConfig({ log: garden.log })
         .then((config) => {
-          onMessage((req: any) => {
+          onFirstMsgAfterReadyMsg((req: any) => {
             if (req.type !== "commandResult") {
               return
             }
@@ -365,7 +396,7 @@ describe("GardenServer", () => {
 
     it("should correctly map arguments and options to commands", (done) => {
       const id = uuidv4()
-      onMessage((req) => {
+      onFirstMsgAfterReadyMsg((req) => {
         // Ignore other events such as taskPending and taskProcessing and wait for the command result
         if ((<any>req).type !== "commandResult") {
           return
