@@ -654,16 +654,19 @@ export async function cleanupAuthTokens() {
 }
 
 export function makeCommandParams<T extends Parameters = {}, U extends Parameters = {}>({
+  cli,
   garden,
   args,
   opts,
 }: {
+  cli?: GardenCli
   garden: Garden
   args: T
   opts: U
 }): CommandParams<T, U> {
   const log = garden.log
   return {
+    cli,
     garden,
     log,
     headerLog: log,

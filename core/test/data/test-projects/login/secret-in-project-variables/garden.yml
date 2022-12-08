@@ -3,6 +3,6 @@ name: login
 domain: http://dummy-domain.com
 id: dummy-id
 environments:
-  - test
+  - name: test
 variables:
   foo: ${secrets.foo}

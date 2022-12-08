@@ -9,12 +9,13 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { AuthTokenResponse, CloudApi, getEnterpriseConfig } from "../cloud/api"
+import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigurationError, InternalError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events"
 import { getCloudDistributionName } from "../util/util"
+import { ProjectResource } from "../config/project"
 
 export class LoginCommand extends Command {
   name = "login"
@@ -35,14 +36,22 @@ export class LoginCommand extends Command {
     printHeader(headerLog, "Login", "cloud")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult> {
+  async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
     const currentDirectory = garden.projectRoot
     const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
 
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(currentDirectory)
+    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
+
+    if (!cloudDomain) {
+      throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+    }
+
     try {
-      const enterpriseApi = await CloudApi.factory({ log, currentDirectory, skipLogging: true })
+      const enterpriseApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true })
+
       if (enterpriseApi) {
         log.info({ msg: `You're already logged in to ${distroName}.` })
         enterpriseApi.close()
@@ -60,13 +69,8 @@ export class LoginCommand extends Command {
       throw err
     }
 
-    const config = await getEnterpriseConfig(currentDirectory)
-    if (!config) {
-      throw new ConfigurationError(`Project config is missing a cloud domain and/or a project ID.`, {})
-    }
-
-    log.info({ msg: `Logging in to ${config.domain}...` })
-    const tokenResponse = await login(log, config.domain, garden.events)
+    log.info({ msg: `Logging in to ${cloudDomain}...` })
+    const tokenResponse = await login(log, cloudDomain, garden.events)
     await CloudApi.saveAuthToken(log, tokenResponse)
     log.info({ msg: `Successfully logged in to ${distroName}.` })
     return {}

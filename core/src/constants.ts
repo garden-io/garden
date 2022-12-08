@@ -79,4 +79,5 @@ export const gardenEnv = {
   // Allow users to fallback to "legacy" fancy writer render logic in case recent changes introduce
   // issues on terminals we haven't tested. We can remove again in v0.13.
   GARDEN_LEGACY_FANCY_LOG_RENDER: env.get("GARDEN_LEGACY_FANCY_LOG_RENDER").required(false).asBool(),
+  GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
 }
