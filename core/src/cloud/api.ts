@@ -107,7 +107,7 @@ export function getGardenCloudDomain(projectConfig?: ProjectResource): string | 
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (projectConfig?.domain) {
+  } else if (projectConfig.domain) {
     cloudDomain = new URL(projectConfig.domain).origin
   }
 
@@ -558,7 +558,11 @@ export class CloudApi {
   }
 
   async getProject() {
-    if (this._project) {
+    // If we are using a new project ID, retrieve again from the API
+    // NOTE: If we wan't to use this with multiple project IDs we need
+    // a cache supporting that + check if the remote project metadata
+    // was updated.
+    if (this._project && this._project.uid === this.projectId) {
       return this._project
     }
 

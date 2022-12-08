@@ -1304,10 +1304,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
       }
 
-      // Only fetch secrets if the projectId existed in the cloud instance
+      // Only fetch secrets if the projectId exists in the cloud API instance
       if (cloudApi.projectId) {
         try {
-          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
+          secrets = await getSecrets({ log: cloudLog, projectId: cloudProjectId, environmentName, cloudApi })
           cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
           cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
