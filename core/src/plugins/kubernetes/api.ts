@@ -170,6 +170,14 @@ type WrappedApi<T> = {
   T[P]
 }
 
+export interface ExecInPodResult {
+  exitCode?: number
+  allLogs: string
+  stdout: string
+  stderr: string
+  timedOut: boolean
+}
+
 export class KubeApi {
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
@@ -720,7 +728,7 @@ export class KubeApi {
     stdin?: Readable
     tty: boolean
     timeoutSec?: number
-  }): Promise<{ exitCode?: number; allLogs: string; stdout: string; stderr: string; timedOut: boolean }> {
+  }): Promise<ExecInPodResult> {
     const stdoutCollector = new StringCollector()
     const stderrCollector = new StringCollector()
     const combinedCollector = new StringCollector()

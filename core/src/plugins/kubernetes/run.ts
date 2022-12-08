@@ -24,7 +24,7 @@ import {
 import { KubernetesProvider } from "./config"
 import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
-import { KubeApi } from "./api"
+import { ExecInPodResult, KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
 import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
@@ -742,7 +742,7 @@ export interface PodErrorDetails {
   exitCode?: number
   containerStatus?: V1ContainerStatus
   podStatus?: V1PodStatus
-  result?: any
+  result?: ExecInPodResult
 }
 
 export class PodRunner extends PodRunnerParams {
