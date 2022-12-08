@@ -257,7 +257,7 @@ describe("kubernetes Pod runner functions", () => {
         expect(res.success).to.be.true
       })
 
-      it("throws if Pod returns with non-zero exit code", async () => {
+      it("returns success=false if Pod returns with non-zero exit code", async () => {
         const pod = makePod(["sh", "-c", "echo foo && exit 1"])
 
         runner = new PodRunner({
@@ -268,10 +268,10 @@ describe("kubernetes Pod runner functions", () => {
           provider,
         })
 
-        await expectError(
-          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events }),
-          (err) => expect(err.message.trim()).to.equal("Command exited with code 1:\nfoo")
-        )
+        const res = await runner.runAndWait({ log, remove: true, tty: false, events: ctx.events })
+
+        expect(res.log.trim()).to.equal("foo")
+        expect(res.success).to.be.false
       })
 
       it("throws if Pod is invalid", async () => {
@@ -990,7 +990,6 @@ describe("kubernetes Pod runner functions", () => {
       const task = graph.getTask("artifacts-task")
       const module = task.module
 
-      const timeout = 4
       const result = await runAndCopy({
         ctx: await garden.getPluginContext(provider),
         log: garden.log,
@@ -1001,12 +1000,12 @@ describe("kubernetes Pod runner functions", () => {
         namespace,
         runtimeContext: { envVars: {}, dependencies: [] },
         image,
-        timeout,
+        timeout: 4,
         version: module.version.versionString,
       })
 
       // Note: Kubernetes doesn't always return the logs when commands time out.
-      expect(result.log.trim()).to.include(`Command timed out after ${timeout} seconds.`)
+      expect(result.log.trim()).to.include("Command timed out.")
       expect(result.success).to.be.false
     })
 
@@ -1162,7 +1161,6 @@ describe("kubernetes Pod runner functions", () => {
         const task = graph.getTask("artifacts-task")
         const module = task.module
 
-        const timeout = 3
         const result = await runAndCopy({
           ctx: await garden.getPluginContext(provider),
           log: garden.log,
@@ -1175,13 +1173,11 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          timeout,
+          timeout: 3,
           version: module.version.versionString,
         })
 
-        expect(result.log.trim()).to.equal(
-          `Command timed out after ${timeout} seconds. Here are the logs until the timeout occurred:\n\nbanana`
-        )
+        expect(result.log.trim()).to.equal("Command timed out. Here are the logs until the timeout occurred:\n\nbanana")
         expect(result.success).to.be.false
       })
 
@@ -1189,7 +1185,6 @@ describe("kubernetes Pod runner functions", () => {
         const task = graph.getTask("artifacts-task")
         const module = task.module
 
-        const timeout = 3
         const result = await runAndCopy({
           ctx: await garden.getPluginContext(provider),
           log: garden.log,
@@ -1202,11 +1197,11 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          timeout,
+          timeout: 3,
           version: module.version.versionString,
         })
 
-        expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)
+        expect(result.log.trim()).to.equal("Command timed out.")
         expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
         expect(result.success).to.be.false
       })

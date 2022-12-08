@@ -827,7 +827,6 @@ export class KubeApi {
 
   /**
    * Create an ad-hoc Pod. Use this method to handle race-condition cases when creating Pods.
-   * @throws {KubernetesError}
    */
   async createPod(namespace: string, pod: KubernetesPod) {
     try {
@@ -1041,7 +1040,7 @@ const statusCodesForRetry: number[] = [
   httpStatusCodes.SERVICE_UNAVAILABLE,
   httpStatusCodes.GATEWAY_TIMEOUT,
 
-  // Cloudflare-specific status codes
+  // Clouflare-specific status codes
   521, // Web Server Is Down
   522, // Connection Timed Out
   524, // A Timeout Occurred
