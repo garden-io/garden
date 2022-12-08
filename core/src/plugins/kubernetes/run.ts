@@ -24,7 +24,7 @@ import {
 import { KubernetesProvider } from "./config"
 import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
-import { KubeApi } from "./api"
+import { ExecInPodResult, KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
 import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
@@ -742,6 +742,7 @@ export interface PodErrorDetails {
   exitCode?: number
   containerStatus?: V1ContainerStatus
   podStatus?: V1PodStatus
+  result?: ExecInPodResult
 }
 
 export class PodRunner extends PodRunnerParams {
@@ -977,7 +978,7 @@ export class PodRunner extends PodRunnerParams {
     const collectLogs = async () => result.allLogs || (await this.getMainContainerLogs())
 
     if (result.timedOut) {
-      const errorDetails: PodErrorDetails = { logs: await collectLogs() }
+      const errorDetails: PodErrorDetails = { logs: await collectLogs(), result }
       throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, errorDetails)
     }
 
@@ -985,6 +986,7 @@ export class PodRunner extends PodRunnerParams {
       const errorDetails: PodErrorDetails = {
         logs: await collectLogs(),
         exitCode: result.exitCode,
+        result,
       }
       throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
     }
@@ -993,6 +995,7 @@ export class PodRunner extends PodRunnerParams {
       const errorDetails: PodErrorDetails = {
         logs: await collectLogs(),
         exitCode: result.exitCode,
+        result,
       }
       throw newExitCodePodRunnerError(errorDetails)
     }
