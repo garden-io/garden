@@ -184,7 +184,7 @@ describe("deploy actions", () => {
 
   describe("deploy.exec", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const executedAction = await garden.executeAction({ action: resolvedDeployAction, log, graph })
+      const executedAction = (await garden.executeAction({ action: resolvedDeployAction, log, graph })).executedAction
       const result = await actionRouter.deploy.exec({
         log,
         action: executedAction,

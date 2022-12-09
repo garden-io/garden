@@ -169,6 +169,12 @@ export const execRunActionSchema = () =>
         )
         .required(),
       env: joiEnvVars().description("Environment variables to set when running the command."),
+      timeout: joi
+        .number()
+        .optional()
+        .allow(null)
+        .default(null)
+        .description("Maximum duration (in seconds) of the run's execution."),
     })
     .description("A shell command Run.")
 
@@ -195,6 +201,12 @@ export const execTestActionSchema = () =>
         .required(),
       env: joiEnvVars().description("Environment variables to set when running the command."),
       artifacts: artifactsSchema().description("A list of artifacts to copy after the test run."),
+      timeout: joi
+        .number()
+        .optional()
+        .allow(null)
+        .default(null)
+        .description("Maximum duration (in seconds) of the run's execution."),
     })
     .description("A shell command Test.")
 

@@ -26,9 +26,9 @@ import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 
 const placeholderTimestamp = new Date()
 
-const placeholderTaskResult = (moduleName: string, taskName: string, command: string[]) => ({
+const placeholderRunResult = (moduleName: string, runName: string, command: string[]) => ({
   moduleName,
-  taskName,
+  runName,
   command,
   version: "v-1",
   success: true,
@@ -90,7 +90,7 @@ const testProvider = () => {
             },
             run: async (params) => {
               // TODO-G2: check the result object structure and fix it if necessary
-              return placeholderTaskResult(
+              return placeholderRunResult(
                 params.action.moduleName(),
                 params.action.name,
                 params.action.getSpec().command
@@ -224,7 +224,7 @@ describe("DeployCommand", () => {
 
     const sortedEvents = sortBy(
       getRuntimeStatusEvents(garden.events.eventLog),
-      (e) => `${e.name}.${e.payload.taskName || e.payload.serviceName}.${e.payload.status.state}`
+      (e) => `${e.name}.${e.payload.runName || e.payload.serviceName}.${e.payload.status.state}`
     )
 
     const getDeployUid = (serviceName: string): string => {
@@ -235,25 +235,25 @@ describe("DeployCommand", () => {
       return event.payload.actionUid
     }
 
-    const getRunTaskUid = (taskName: string) => {
-      const event = sortedEvents.find((e) => e.payload.taskName === taskName && !!e.payload.actionUid)
+    const getRunTaskUid = (runName: string) => {
+      const event = sortedEvents.find((e) => e.payload.runName === runName && !!e.payload.actionUid)
       if (!event) {
-        throw new Error(`No taskStatus event with an actionUid found for task name ${taskName}`)
+        throw new Error(`No runStatus event with an actionUid found for run name ${runName}`)
       }
       return event.payload.actionUid
     }
 
     const getModuleVersion = (moduleName: string) => graph.getModule(moduleName).version.versionString
     const getDeployVersion = (serviceName: string) => graph.getDeploy(serviceName).versionString()
-    const getRunVersion = (taskName: string) => graph.getRun(taskName).versionString()
+    const getRunVersion = (runName: string) => graph.getRun(runName).versionString()
 
     const deployServiceAUid = getDeployUid("service-a")
     const deployServiceBUid = getDeployUid("service-b")
     const deployServiceCUid = getDeployUid("service-c")
     const deployServiceDUid = getDeployUid("service-d")
 
-    const runTaskAUid = getRunTaskUid("task-a")
-    const runTaskCUid = getRunTaskUid("task-c")
+    const runAUid = getRunTaskUid("task-a")
+    const runCUid = getRunTaskUid("task-c")
 
     const moduleVersionA = getModuleVersion("module-a")
     const moduleVersionB = getModuleVersion("module-b")
@@ -264,8 +264,8 @@ describe("DeployCommand", () => {
     const serviceVersionC = getDeployVersion("service-c")
     const serviceVersionD = getDeployVersion("service-d") // `service-d` is defined in `module-c`
 
-    const taskVersionA = getRunVersion("task-a")
-    const taskVersionC = getRunVersion("task-c")
+    const runVersionA = getRunVersion("task-a")
+    const runVersionC = getRunVersion("task-c")
 
     expect(sortedEvents).to.eql([
       {
@@ -397,66 +397,66 @@ describe("DeployCommand", () => {
         },
       },
       {
-        name: "taskStatus",
+        name: "runStatus",
         payload: {
-          taskName: "task-a",
+          runName: "task-a",
           moduleName: "module-a",
           moduleVersion: moduleVersionA,
-          taskVersion: taskVersionA,
+          taskVersion: runVersionA,
           status: { state: "not-implemented" },
         },
       },
       {
-        name: "taskStatus",
+        name: "runStatus",
         payload: {
-          taskName: "task-a",
+          runName: "task-a",
           moduleName: "module-a",
           moduleVersion: moduleVersionA,
-          taskVersion: taskVersionA,
-          actionUid: runTaskAUid,
+          taskVersion: runVersionA,
+          actionUid: runAUid,
           status: { state: "running" },
         },
       },
       {
-        name: "taskStatus",
+        name: "runStatus",
         payload: {
-          taskName: "task-a",
+          runName: "task-a",
           moduleName: "module-a",
           moduleVersion: moduleVersionA,
-          taskVersion: taskVersionA,
-          actionUid: runTaskAUid,
+          taskVersion: runVersionA,
+          actionUid: runAUid,
           status: { state: "succeeded" },
         },
       },
       {
-        name: "taskStatus",
+        name: "runStatus",
         payload: {
-          taskName: "task-c",
+          runName: "task-c",
           moduleName: "module-c",
           moduleVersion: moduleVersionC,
-          taskVersion: taskVersionC,
+          taskVersion: runVersionC,
           status: { state: "not-implemented" },
         },
       },
       {
-        name: "taskStatus",
+        name: "runStatus",
         payload: {
-          taskName: "task-c",
+          runName: "task-c",
           moduleName: "module-c",
           moduleVersion: moduleVersionC,
-          taskVersion: taskVersionC,
-          actionUid: runTaskCUid,
+          taskVersion: runVersionC,
+          actionUid: runCUid,
           status: { state: "running" },
         },
       },
       {
-        name: "taskStatus",
+        name: "runStatus",
         payload: {
-          taskName: "task-c",
+          runName: "task-c",
           moduleName: "module-c",
           moduleVersion: moduleVersionC,
-          taskVersion: taskVersionC,
-          actionUid: runTaskCUid,
+          taskVersion: runVersionC,
+          actionUid: runCUid,
           status: { state: "succeeded" },
         },
       },

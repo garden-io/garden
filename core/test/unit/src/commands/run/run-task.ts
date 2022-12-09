@@ -13,6 +13,7 @@ import {
   customizedTestPlugin,
   expectError,
   makeTestGarden,
+  makeTestGardenA,
   projectRootA,
   projectTestFailsRoot,
   testPluginB,
@@ -21,9 +22,10 @@ import {
 import { LogLevel } from "../../../../../src/logger/logger"
 import { renderDivider } from "../../../../../src/logger/util"
 import { dedent } from "../../../../../src/util/string"
-import { execRunAction } from "../../../../../src/plugins/exec/exec"
 import { getLogMessages } from "../../../../../src/util/testing"
+import { validateSchema } from "../../../../../src/config/validation"
 import { execRunActionSchema } from "../../../../../src/plugins/exec/config"
+import { execRunAction } from "../../../../../src/plugins/exec/exec"
 
 describe("RunTaskCommand", () => {
   const cmd = new RunTaskCommand()
@@ -60,7 +62,11 @@ describe("RunTaskCommand", () => {
 
   async function makeExecTestGarden(projectRoot: string = projectRootA) {
     return makeTestGarden(projectRoot, {
+      onlySpecifiedPlugins: true,
+      // TODO-G2: Using testExecPlugin and testExecPluginB together throws this error:
+      //   Plugin 'test-plugin-b' redeclares the 'test' module type, already declared by its base.
       plugins: [testExecPlugin, testExecPluginB],
+      // plugins: [testExecPlugin],
     })
   }
 
@@ -77,29 +83,30 @@ describe("RunTaskCommand", () => {
       opts: withDefaultGlobalOpts({ "force": true, "force-build": false }),
     })
 
+    validateSchema(result, cmd.outputsSchema())
     expect(cmd.outputsSchema().validate(result).error).to.be.undefined
 
     const expected = {
-      aborted: false,
-      command: ["echo", "OK"],
-      moduleName: "module-a",
-      log: "OK",
-      outputs: {
-        log: "OK",
+      detail: {
+        aborted: false,
+        log: "echo OK",
+        success: true,
       },
-      success: true,
-      error: undefined,
-      taskName: "task-a",
+      outputs: {},
+      state: "ready",
     }
 
     //expect(result!.result!.durationMsec).to.gte(0)
-    expect(result!.result!.startedAt).to.be.a("Date")
-    expect(result!.result!.completedAt).to.be.a("Date")
-    expect(result!.result!.version).to.be.a("string")
+    const detail = result!.result!.detail!
+    expect(detail).to.exist
+    expect(detail.startedAt).to.be.a("Date")
+    expect(detail.completedAt).to.be.a("Date")
+    expect(detail.version).to.be.a("string")
 
-    const omittedKeys = ["durationMsec", "completedAt", "startedAt", "version"]
+    const omittedDetailKeys = ["completedAt", "startedAt", "version"]
 
-    expect(omit(result!.result, omittedKeys)).to.eql(expected)
+    expect(omit(result!.result!.detail, omittedDetailKeys)).to.eql(expected.detail)
+    expect(result!.result!.outputs).to.eql(expected.outputs)
   })
 
   it("should raise an error if the task fails", async () => {
@@ -121,7 +128,7 @@ describe("RunTaskCommand", () => {
   })
 
   it("should throw if the task is disabled", async () => {
-    const garden = await makeExecTestGarden()
+    const garden = await makeTestGardenA()
     const log = garden.log
 
     await garden.getRawModuleConfigs()
@@ -145,7 +152,7 @@ describe("RunTaskCommand", () => {
   })
 
   it("should allow running a disabled task with --force flag", async () => {
-    const garden = await makeExecTestGarden()
+    const garden = await makeTestGardenA()
     const log = garden.log
 
     await garden.scanAndAddConfigs()
@@ -164,7 +171,7 @@ describe("RunTaskCommand", () => {
   })
 
   it("should log the result if successful", async () => {
-    const garden = await makeExecTestGarden()
+    const garden = await makeTestGardenA()
     const log = garden.log
 
     await cmd.action({
@@ -189,7 +196,7 @@ describe("RunTaskCommand", () => {
   })
 
   it("should raise the error and not log the result on failure", async () => {
-    const garden = await makeExecTestGarden(projectTestFailsRoot)
+    const garden = await makeTestGarden(projectTestFailsRoot)
     const log = garden.log
 
     await expectError(

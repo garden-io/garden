@@ -10,7 +10,7 @@ import { GardenModule } from "./module"
 import { TaskConfig, taskConfigSchema } from "../config/task"
 import { getEntityVersion } from "../vcs/vcs"
 import { joi, joiUserIdentifier, moduleVersionSchema, versionStringSchema } from "../config/common"
-import { namespaceStatusSchema } from "../plugin/base"
+import { executionResultSchema } from "../plugin/base"
 import { deline } from "../util/string"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
 
@@ -24,21 +24,24 @@ export interface GardenTask<M extends GardenModule = GardenModule> {
   version: string
 }
 
+// Note: We're using "run" instead of "task" to refer to the action in the docstrings here to avoid referring to both
+// the old and new namings in the generated reference docs.
+
 export const taskSchema = () =>
   joi
     .object()
     .options({ presence: "required" })
     .keys({
-      name: joiUserIdentifier().description("The name of the task."),
-      description: joi.string().optional().description("A description of the task."),
-      disabled: joi.boolean().default(false).description("Set to true if the task or its module is disabled."),
+      name: joiUserIdentifier().description("The name of the run."),
+      description: joi.string().optional().description("A description of the run."),
+      disabled: joi.boolean().default(false).description("Set to true if the run or its module is disabled."),
       module: joi.object().unknown(true),
       config: taskConfigSchema(),
       spec: joi
         .object()
         .meta({ extendable: true })
-        .description("The configuration of the task (specific to each plugin)."),
-      version: versionStringSchema().description("The version of the task."),
+        .description("The configuration of the run (specific to each plugin)."),
+      version: versionStringSchema().description("The version of the run."),
     })
 
 export function taskFromConfig<M extends GardenModule = GardenModule>(module: M, config: TaskConfig): GardenTask<M> {
@@ -54,22 +57,12 @@ export function taskFromConfig<M extends GardenModule = GardenModule>(module: M,
 
 export const taskVersionSchema = () =>
   moduleVersionSchema().description(deline`
-    The task run's version. In addition to the parent module's version, this also
-    factors in the module versions of the tasks's runtime dependencies (if any).`)
+    The run action's version. In addition to the parent module's version, this also
+    factors in the module versions of the run action's runtime dependencies (if any).`)
 
 export const taskResultSchema = () =>
-  joi
-    .object()
-    .unknown(true)
-    .keys({
-      moduleName: joi.string().description("The name of the module that the task belongs to, if applicable."),
-      taskName: joi.string().description("The name of the task that was run."),
-      command: joi.sparseArray().items(joi.string().allow("")).required().description("The command that the task ran."),
-      version: joi.string().description("The string version of the task."),
-      success: joi.boolean().required().description("Whether the task was successfully run."),
-      startedAt: joi.date().required().description("When the task run was started."),
-      completedAt: joi.date().required().description("When the task run was completed."),
-      log: joi.string().required().allow("").description("The output log from the run."),
-      outputs: actionOutputsSchema(),
-      namespaceStatus: namespaceStatusSchema().optional(),
-    })
+  joi.object().keys({
+    outputs: actionOutputsSchema(),
+    state: joi.string(),
+    detail: executionResultSchema("run"),
+  })

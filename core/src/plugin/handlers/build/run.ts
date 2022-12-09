@@ -8,11 +8,11 @@
 
 import { dedent } from "../../../util/string"
 import {
-  runBaseParams,
-  runResultSchema,
+  executionBaseParams,
+  executionResultSchema,
   actionParamsSchema,
   PluginBuildActionParamsBase,
-  RunResult,
+  ExecutionResult,
 } from "../../../plugin/base"
 import { joiArray, joi } from "../../../config/common"
 import { BuildAction } from "../../../actions/build"
@@ -28,7 +28,7 @@ export interface RunBuildParams<T extends BuildAction> extends PluginBuildAction
   timeout?: number
 }
 
-export const runBuildBaseSchema = () => actionParamsSchema().keys(runBaseParams())
+export const runBuildBaseSchema = () => actionParamsSchema().keys(executionBaseParams())
 
 const runBuildParamsSchema = () =>
   runBuildBaseSchema().keys({
@@ -39,7 +39,7 @@ const runBuildParamsSchema = () =>
 export class RunBuildAction<T extends BuildAction = BuildAction> extends ActionTypeHandlerSpec<
   "Build",
   RunBuildParams<Executed<T>>,
-  RunResult
+  ExecutionResult
 > {
   description = dedent`
     Run an ad-hoc instance of the specified build. This should wait until the execution completes, and should ideally attach it to the terminal (i.e. pipe the output from the service to the console, as well as pipe the input from the console to the running service).
@@ -48,5 +48,5 @@ export class RunBuildAction<T extends BuildAction = BuildAction> extends ActionT
   `
 
   paramsSchema = () => runBuildParamsSchema()
-  resultSchema = () => runResultSchema()
+  resultSchema = () => executionResultSchema("build")
 }

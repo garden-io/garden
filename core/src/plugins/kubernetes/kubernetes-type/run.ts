@@ -106,7 +106,7 @@ export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunActi
       const detail = {
         ...res,
         namespaceStatus,
-        taskName: action.name,
+        runName: action.name,
         outputs: {
           log: res.log || "",
         },

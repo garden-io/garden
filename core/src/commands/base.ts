@@ -20,7 +20,7 @@ import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
 import { GraphResults, GraphResultMap } from "../graph/results"
-import { RunResult } from "../plugin/base"
+import { ExecutionResult } from "../plugin/base"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
 import { serviceStatusSchema } from "../types/service"
@@ -29,9 +29,9 @@ import { renderOptions, renderCommands, renderArguments, getCliStyles } from "..
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
-import { TestTask } from "../tasks/test"
-import { RunTask } from "../tasks/run"
 import { buildResultSchema } from "../plugin/handlers/build/get-status"
+import { ActionStatus } from "../actions/types"
+import { BaseAction } from "../actions/base"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -381,10 +381,9 @@ export function printResult({
 }
 
 /**
- * Handles the command result and logging for commands that return a result of type RunResult. E.g.
- * the ``run service` command.
+ * Handles the command result and logging for commands that run a single action (e.g. `run run` and `run test`).
  */
-export async function handleRunResult<T extends RunResult>({
+export async function handleRunResult<T extends BaseAction>({
   log,
   description,
   graphResults,
@@ -394,61 +393,78 @@ export async function handleRunResult<T extends RunResult>({
   log: LogEntry
   description: string
   graphResults: GraphResults
-  result: T
+  result: RunActionResult<T>
   interactive: boolean
 }) {
-  if (!interactive && result.log) {
-    printResult({ log, result: result.log, success: result.success, description })
-  }
+  if (result && result.detail) {
+    if (!interactive && result.detail.log) {
+      printResult({ log, result: result.detail.log, success: result.detail.success, description })
+    }
 
-  if (!result.success) {
-    const error = new RuntimeError(`${capitalize(description)} failed!`, {
-      result,
-    })
-    return { errors: [error] }
+    if (!result.detail.success) {
+      const error = new RuntimeError(`${capitalize(description)} failed!`, {
+        result,
+      })
+      return { error: error.message }
+    }
   }
 
   if (!interactive) {
     printFooter(log)
   }
 
-  return { result: { error: null, result, graphResults: graphResults.getMap() } }
+  return { result: { result, graphResults: graphResults.getMap() } }
 }
 
 /**
- * Handles the command result and logging for commands the return a result of type TaskResult. E.g.
- * the `run task` and `run test` commands.
+ * Handles the command result and logging for run commands that run a single action interactively, but where the
+ * action returns no outputs (e.g. `run deploy` and `run module`).
  */
-export async function handleTaskResult({
+export async function handleExecResult({
   log,
-  actionDescription,
+  description,
   graphResults,
-  task,
-  interactive = false,
+  result,
+  interactive,
 }: {
   log: LogEntry
-  actionDescription: string
-  graphResults: GraphResults<RunTask | TestTask>
-  task: RunTask | TestTask
-  interactive?: boolean
+  description: string
+  graphResults: GraphResults
+  result: ExecutionResult
+  interactive: boolean
 }) {
-  const result = graphResults.getResult(task)!
+  if (result) {
+    if (!interactive && result.log) {
+      printResult({ log, result: result.log, success: result.success, description })
+    }
 
-  // If there's an error, the task graph prints it
-  if (!interactive && !result.error && result.result?.detail?.log) {
-    printResult({ log, result: result.result.detail.log, success: true, description: actionDescription })
+    if (!result.success) {
+      const error = new RuntimeError(`${capitalize(description)} failed!`, {
+        result,
+      })
+      return { error: error.message }
+    }
   }
 
-  if (result.error) {
-    const error = new RuntimeError(`${capitalize(actionDescription)} failed!`, {
-      result,
-    })
-    return { errors: [error] }
+  if (!interactive) {
+    printFooter(log)
   }
 
-  printFooter(log)
+  return { result: { result, success: result.success, graphResults: graphResults.getMap() } }
+}
 
-  return { result: { error: result.error, result, graphResults: graphResults.getMap() } }
+export interface ExecActionOutput {
+  error?: string
+  result: ExecutionResult
+  graphResults: GraphResultMap
+}
+
+export type RunActionResult<T extends BaseAction> = ActionStatus<T, ExecutionResult> | null
+
+export interface RunActionOutput<T extends BaseAction> {
+  error?: string
+  result: RunActionResult<T>
+  graphResults: GraphResultMap
 }
 
 // TODO-G2: update

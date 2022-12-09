@@ -199,17 +199,20 @@ deployments:
 # A map of all tests that were run (or scheduled/attempted) and the test results.
 tests:
   <test name>:
-    # The exit code of the run (if applicable).
+    # The exit code of the test run (if applicable).
     exitCode:
 
-    # When the module run was started.
+    # When the test run was started.
     startedAt:
 
-    # When the module run was completed.
+    # When the test run was completed.
     completedAt:
 
-    # The output log from the run.
+    # The output log from the test run.
     log:
+
+    # The string version of the action that was run.
+    version:
 
     namespaceStatus:
       pluginName:
@@ -224,13 +227,6 @@ tests:
     # dependencies and in templating.
     outputs:
       <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
@@ -818,17 +814,20 @@ deployments:
 # A map of all tests that were run (or scheduled/attempted) and the test results.
 tests:
   <test name>:
-    # The exit code of the run (if applicable).
+    # The exit code of the test run (if applicable).
     exitCode:
 
-    # When the module run was started.
+    # When the test run was started.
     startedAt:
 
-    # When the module run was completed.
+    # When the test run was completed.
     completedAt:
 
-    # The output log from the run.
+    # The output log from the test run.
     log:
+
+    # The string version of the action that was run.
+    version:
 
     namespaceStatus:
       pluginName:
@@ -843,13 +842,6 @@ tests:
     # dependencies and in templating.
     outputs:
       <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
@@ -3049,20 +3041,26 @@ actions:
       state:
 
       detail:
-        # Whether the module was successfully run.
+        # Whether the run was aborted.
+        aborted:
+
+        # Whether the run was successful.
         success:
 
         # The exit code of the run (if applicable).
         exitCode:
 
-        # When the module run was started.
+        # When the run was started.
         startedAt:
 
-        # When the module run was completed.
+        # When the run was completed.
         completedAt:
 
         # The output log from the run.
         log:
+
+        # The string version of the action that was run.
+        version:
 
         namespaceStatus:
           pluginName:
@@ -3085,20 +3083,26 @@ actions:
       state:
 
       detail:
-        # Whether the module was successfully run.
+        # Whether the test run was aborted.
+        aborted:
+
+        # Whether the test run was successful.
         success:
 
-        # The exit code of the run (if applicable).
+        # The exit code of the test run (if applicable).
         exitCode:
 
-        # When the module run was started.
+        # When the test run was started.
         startedAt:
 
-        # When the module run was completed.
+        # When the test run was completed.
         completedAt:
 
-        # The output log from the run.
+        # The output log from the test run.
         log:
+
+        # The string version of the action that was run.
+        version:
 
         namespaceStatus:
           pluginName:
@@ -3113,13 +3117,6 @@ actions:
         # for dependencies and in templating.
         outputs:
           <name>:
-
-        # The name of the test that was run.
-        testName:
-
-        # The test run's version, as a string. In addition to the parent module's version, this also factors in the
-        # module versions of the test's runtime dependencies (if any).
-        version:
 
       # Structured outputs from the execution, as defined by individual action/module types, to be made available for
       # dependencies and in templating.
@@ -3180,43 +3177,43 @@ actions:
 #### Outputs
 
 ```yaml
-# The name of the module that the task belongs to, if applicable.
-moduleName:
-
-# The name of the task that was run.
-taskName:
-
-# The command that the task ran.
-command:
-
-# The string version of the task.
-version:
-
-# Whether the task was successfully run.
-success:
-
-# When the task run was started.
-startedAt:
-
-# When the task run was completed.
-completedAt:
-
-# The output log from the run.
-log:
-
 # Structured outputs from the execution, as defined by individual action/module types, to be made available for
 # dependencies and in templating.
 outputs:
   <name>:
 
-namespaceStatus:
-  pluginName:
+state:
 
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-  # and cannot end with a dash) and must not be longer than 63 characters.
-  namespaceName:
+detail:
+  # Whether the run was aborted.
+  aborted:
 
-  state:
+  # Whether the run was successful.
+  success:
+
+  # The exit code of the run (if applicable).
+  exitCode:
+
+  # When the run was started.
+  startedAt:
+
+  # When the run was completed.
+  completedAt:
+
+  # The output log from the run.
+  log:
+
+  # The string version of the action that was run.
+  version:
+
+  namespaceStatus:
+    pluginName:
+
+    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+    # and cannot end with a dash) and must not be longer than 63 characters.
+    namespaceName:
+
+    state:
 
 # Local file paths to any exported artifacts from the task run.
 artifacts:
@@ -3242,20 +3239,26 @@ artifacts:
 #### Outputs
 
 ```yaml
-# Whether the module was successfully run.
+# Whether the test run was aborted.
+aborted:
+
+# Whether the test run was successful.
 success:
 
-# The exit code of the run (if applicable).
+# The exit code of the test run (if applicable).
 exitCode:
 
-# When the module run was started.
+# When the test run was started.
 startedAt:
 
-# When the module run was completed.
+# When the test run was completed.
 completedAt:
 
-# The output log from the run.
+# The output log from the test run.
 log:
+
+# The string version of the action that was run.
+version:
 
 namespaceStatus:
   pluginName:
@@ -3270,13 +3273,6 @@ namespaceStatus:
 # dependencies and in templating.
 outputs:
   <name>:
-
-# The name of the test that was run.
-testName:
-
-# The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-# versions of the test's runtime dependencies (if any).
-version:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
@@ -3699,17 +3695,20 @@ deployments:
 # A map of all tests that were run (or scheduled/attempted) and the test results.
 tests:
   <test name>:
-    # The exit code of the run (if applicable).
+    # The exit code of the test run (if applicable).
     exitCode:
 
-    # When the module run was started.
+    # When the test run was started.
     startedAt:
 
-    # When the module run was completed.
+    # When the test run was completed.
     completedAt:
 
-    # The output log from the run.
+    # The output log from the test run.
     log:
+
+    # The string version of the action that was run.
+    version:
 
     namespaceStatus:
       pluginName:
@@ -3724,13 +3723,6 @@ tests:
     # dependencies and in templating.
     outputs:
       <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
@@ -3775,28 +3767,30 @@ published:
     error:
 ```
 
-### garden run build
+### garden run module
 
-**Run an ad-hoc instance of a build.**
+**Run an ad-hoc instance of a module.**
 
-This is useful for debugging or ad-hoc experimentation with build/modules.
+This is useful for debugging or ad-hoc experimentation with modules.
+
+Note: This command is deprecated, and will be removed in Garden 0.14.
 
 Examples:
 
-    garden run build my-container                                   # run an ad-hoc instance of a my-container container and attach to it
-    garden run build my-container /bin/sh                           # run an interactive shell in a new my-container container
-    garden run build my-container --interactive=false /some/script  # execute a script in my-container and return the output
+    garden run module my-container                                   # run an ad-hoc instance of a my-container container and attach to it
+    garden run module my-container /bin/sh                           # run an interactive shell in a new my-container container
+    garden run module my-container --interactive=false /some/script  # execute a script in my-container and return the output
 
 #### Usage
 
-    garden run build <name> [arguments] [options]
+    garden run module <name> [arguments] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `name` | Yes | The name of the Build (or module) to run.
-  | `arguments` | No | The arguments to run the build with. Example: &#x27;yarn run my-script&#x27;.
+  | `name` | Yes | The name of the module to run.
+  | `arguments` | No | The arguments to run the module with. Example: &#x27;yarn run my-script&#x27;.
 
 #### Options
 
@@ -3804,7 +3798,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
   | `--force-build` |  | boolean | Force rebuild before running.
-  | `--command` | `-c` | string | The base command (a.k.a. entrypoint) to run in the build. For container images, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all types. Example: &#x27;/bin/sh -c&#x27;.
+  | `--command` | `-c` | string | The base command (a.k.a. entrypoint) to run in the module. For container images, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all types. Example: &#x27;/bin/sh -c&#x27;.
 
 
 ### garden run deploy
@@ -3865,51 +3859,48 @@ Examples:
 #### Outputs
 
 ```yaml
+# An error message, if the task failed.
+error:
+
 # The result of the task.
 result:
-  # The name of the module that the task belongs to, if applicable.
-  moduleName:
-
-  # The name of the task that was run.
-  taskName:
-
-  # The command that the task ran.
-  command:
-
-  # The string version of the task.
-  version:
-
-  # When the task run was started.
-  startedAt:
-
-  # When the task run was completed.
-  completedAt:
-
-  # The output log from the run.
-  log:
-
   # Structured outputs from the execution, as defined by individual action/module types, to be made available for
   # dependencies and in templating.
   outputs:
     <name>:
 
-  namespaceStatus:
-    pluginName:
+  state:
 
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
+  detail:
+    # Whether the run was aborted.
+    aborted:
 
-    state:
+    # Whether the run was successful.
+    success:
 
-  # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
-  aborted:
+    # The exit code of the run (if applicable).
+    exitCode:
 
-  # Whether the action was succeessful.
-  success:
+    # When the run was started.
+    startedAt:
 
-  # An error message, if the action failed.
-  error:
+    # When the run was completed.
+    completedAt:
+
+    # The output log from the run.
+    log:
+
+    # The string version of the action that was run.
+    version:
+
+    namespaceStatus:
+      pluginName:
+
+      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+      # letter, and cannot end with a dash) and must not be longer than 63 characters.
+      namespaceName:
+
+      state:
 
 # A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
 graphResults:
@@ -3951,17 +3942,20 @@ Examples:
 ```yaml
 # The result of the test.
 result:
-  # The exit code of the run (if applicable).
+  # The exit code of the test run (if applicable).
   exitCode:
 
-  # When the module run was started.
+  # When the test run was started.
   startedAt:
 
-  # When the module run was completed.
+  # When the test run was completed.
   completedAt:
 
-  # The output log from the run.
+  # The output log from the test run.
   log:
+
+  # The string version of the action that was run.
+  version:
 
   namespaceStatus:
     pluginName:
@@ -3976,13 +3970,6 @@ result:
   # dependencies and in templating.
   outputs:
     <name>:
-
-  # The name of the test that was run.
-  testName:
-
-  # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-  # versions of the test's runtime dependencies (if any).
-  version:
 
   # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
   aborted:
@@ -4260,17 +4247,20 @@ deployments:
 # A map of all tests that were run (or scheduled/attempted) and the test results.
 tests:
   <test name>:
-    # The exit code of the run (if applicable).
+    # The exit code of the test run (if applicable).
     exitCode:
 
-    # When the module run was started.
+    # When the test run was started.
     startedAt:
 
-    # When the module run was completed.
+    # When the test run was completed.
     completedAt:
 
-    # The output log from the run.
+    # The output log from the test run.
     log:
+
+    # The string version of the action that was run.
+    version:
 
     namespaceStatus:
       pluginName:
@@ -4285,13 +4275,6 @@ tests:
     # dependencies and in templating.
     outputs:
       <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:

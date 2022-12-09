@@ -26,7 +26,7 @@ describe("RunDeployCommand", () => {
     graph = await garden.getConfigGraph({ log, emit: false })
   })
 
-  it("should run a service", async () => {
+  it("should run a deploy", async () => {
     const { result } = await cmd.action({
       garden,
       log,
@@ -38,21 +38,17 @@ describe("RunDeployCommand", () => {
 
     const expected = {
       aborted: false,
-      moduleName: "module-a",
-      command: ["service-a"],
       completedAt: testNow,
-      log: "service-a",
-      version: graph.getModule("module-a").version.versionString,
+      log: "",
+      version: graph.getDeploy("service-a").versionString(),
       startedAt: testNow,
       success: true,
     }
 
-    // expect(result!.result.durationMsec).to.gte(0)
-
     expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
   })
 
-  it("should throw if the service is disabled", async () => {
+  it("should throw if the deploy is disabled", async () => {
     await garden.getRawModuleConfigs()
     garden["moduleConfigs"]["module-a"].disabled = true
 
@@ -68,7 +64,7 @@ describe("RunDeployCommand", () => {
         }),
       {
         contains:
-          "exec Deploy service-a is disabled for the local environment. If you're sure you want to run it anyway, please run the command again with the --force flag.",
+          "test Deploy service-a (from module module-a) is disabled for the local environment. If you're sure you want to run it anyway, please run the command again with the --force flag.",
       }
     )
   })

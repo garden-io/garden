@@ -57,7 +57,7 @@ export const baseTaskSpecSchema = () =>
         .default(null)
         .description("Maximum duration (in seconds) of the task's execution."),
     })
-    .description("Required configuration for module tasks.")
+    .description("Required configuration for tasks.")
 
 export interface TaskConfig<T extends TaskSpec = TaskSpec> extends BaseTaskSpec {
   cacheResult: boolean

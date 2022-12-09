@@ -18,7 +18,7 @@ import { PodRunner } from "../../run"
 import { ensureNamespace, getNamespaceStatus, getSystemNamespace } from "../../namespace"
 import { prepareSecrets } from "../../secrets"
 import { dedent } from "../../../../util/string"
-import { RunResult } from "../../../../plugin/base"
+import { ExecutionResult } from "../../../../plugin/base"
 import { PluginContext } from "../../../../plugin-context"
 import { KubernetesPod } from "../../types"
 import {
@@ -208,7 +208,7 @@ export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): stri
   return [...(flags || []), ...topLevelToKeep, ...defaultsToKeep]
 }
 
-export function kanikoBuildFailed(buildRes: RunResult) {
+export function kanikoBuildFailed(buildRes: ExecutionResult) {
   return (
     !buildRes.success &&
     !(
@@ -238,7 +238,7 @@ async function runKaniko({
   log,
   action,
   args,
-}: RunKanikoParams): Promise<RunResult> {
+}: RunKanikoParams): Promise<ExecutionResult> {
   const api = await KubeApi.factory(log, ctx, provider)
 
   const podName = makePodName("kaniko", action.name)
@@ -384,5 +384,8 @@ async function runKaniko({
     tty: false,
   })
 
-  return result
+  return {
+    ...result,
+    version: action.versionString(),
+  }
 }

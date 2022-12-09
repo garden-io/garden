@@ -28,17 +28,10 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const actionName = action.name
       const actionVersion = action.versionString()
       const testName = actionName
-      const testVersion = actionVersion
-      const moduleName = action.moduleName()
-      const moduleVersion = action.moduleVersion().versionString
 
       garden.events.emit("testStatus", {
         actionName,
         actionVersion,
-        testName,
-        moduleName,
-        moduleVersion,
-        testVersion,
         actionUid,
         status: { state: "running", startedAt: new Date() },
       })
@@ -53,8 +46,10 @@ export const testRouter = (baseParams: BaseRouterParams) =>
             actionUid,
             entity: {
               type: "test",
-              key: `${moduleName}.${testName}`,
-              moduleName,
+              key: testName,
+              // TODO-GT: Should this just be `testName` now?
+              // key: `${moduleName}.${testName}`,
+              // moduleName,
             },
             data: data.toString(),
           })
@@ -68,10 +63,6 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         garden.events.emit("testStatus", {
           actionName,
           actionVersion,
-          testName,
-          moduleName,
-          moduleVersion,
-          testVersion,
           actionUid,
           status: runStatus(result.detail),
         })
@@ -108,10 +99,6 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("testStatus", {
         actionName,
         actionVersion,
-        testName: actionName,
-        moduleName: action.moduleName(),
-        moduleVersion: action.moduleVersion().versionString,
-        testVersion: actionVersion,
         status: runStatus(result.detail),
       })
 

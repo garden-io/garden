@@ -158,9 +158,9 @@ export abstract class BaseConfigGraph<
     }
   }
 
-  getActionByRef(refOrString: ActionReference | string): A {
+  getActionByRef(refOrString: ActionReference | string, opts: GetActionOpts = {}): A {
     const ref = parseActionReference(refOrString)
-    return <A>(<unknown>this.getActionByKind(ref.kind, ref.name))
+    return <A>(<unknown>this.getActionByKind(ref.kind, ref.name, opts))
   }
 
   getActionByKind<K extends ActionKind>(
@@ -177,7 +177,7 @@ export abstract class BaseConfigGraph<
     }
 
     if (action.isDisabled() && !opts.includeDisabled) {
-      throw new GraphError(`${action.longDescription()} is disabled.`, {
+      throw new GraphError(`${action.longDescription()} is disabled`, {
         config: action.getConfig(),
       })
     }
@@ -480,6 +480,11 @@ export class MutableConfigGraph extends ConfigGraph {
   addDependency(by: ActionReference | string, on: ActionReference | string, attributes: ActionDependencyAttributes) {
     const dependant = this.getActionByRef(by)
     const dependency = this.getActionByRef(on)
+
+    // We don't create dependency relationships when one or both actions is disabled.
+    if (dependant.isDisabled() || dependency.isDisabled()) {
+      return
+    }
 
     dependant.addDependency({ ...dependency, ...attributes })
 

@@ -772,6 +772,18 @@ export class Garden {
   }
 
   /**
+   * Returns action configs that are registered in this context, before template resolution and validation.
+   * Scans for modules and actions in the project root and remote/linked sources if it hasn't already been done.
+   */
+  async getRawActionConfigs(): Promise<ActionConfigMap> {
+    if (!this.configsScanned) {
+      await this.scanAndAddConfigs()
+    }
+
+    return this.actionConfigs
+  }
+
+  /**
    * Returns module configs that are registered in this context, before template resolution and validation.
    * Scans for modules in the project root and remote/linked sources if it hasn't already been done.
    */

@@ -25,9 +25,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const actionName = action.name
       const serviceName = actionName
       const actionVersion = action.versionString()
-      const moduleVersion = action.moduleVersion().versionString
-      const serviceVersion = actionVersion
-      const moduleName = action.moduleName()
 
       params.events.on("log", ({ timestamp, data }) => {
         garden.events.emit("log", {
@@ -36,7 +33,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           entity: {
             type: "deploy",
             key: `${serviceName}`,
-            moduleName,
+            // moduleName,
           },
           data: data.toString(),
         })
@@ -47,10 +44,10 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("serviceStatus", {
         actionName,
         actionVersion,
-        serviceName,
-        moduleName,
-        moduleVersion,
-        serviceVersion,
+        // serviceName,
+        // moduleName,
+        // moduleVersion,
+        // serviceVersion,
         actionUid,
         status: { state: "deploying", deployStartedAt },
       })
@@ -62,10 +59,10 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("serviceStatus", {
         actionName,
         actionVersion,
-        serviceName,
-        moduleName,
-        moduleVersion,
-        serviceVersion,
+        // serviceName,
+        // moduleName,
+        // moduleVersion,
+        // serviceVersion,
         actionUid,
         status: {
           ...omit(result.detail, "detail"),
@@ -155,10 +152,10 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("serviceStatus", {
         actionName,
         actionVersion,
-        serviceName: actionName,
-        moduleVersion: action.moduleVersion().versionString,
-        moduleName: action.moduleName(),
-        serviceVersion: actionVersion,
+        // serviceName: actionName,
+        // moduleVersion: action.moduleVersion().versionString,
+        // moduleName: action.moduleName(),
+        // serviceVersion: actionVersion,
         status: omit(result.detail, "detail"),
       })
 

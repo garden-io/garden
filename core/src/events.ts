@@ -10,7 +10,7 @@ import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
 import { LogEntryEventPayload } from "./cloud/buffered-event-stream"
 import { ServiceStatus } from "./types/service"
-import { NamespaceStatus, RunStatus } from "./plugin/base"
+import { NamespaceStatus, ExecutionStatus } from "./plugin/base"
 import { Omit } from "./util/util"
 import { AuthTokenResponse } from "./cloud/api"
 import { RenderedActionGraph } from "./graph/config-graph"
@@ -19,7 +19,6 @@ import { BuildState } from "./plugin/handlers/build/get-status"
 import { ActionReference } from "./config/common"
 import { GraphResult } from "./graph/results"
 import { sanitizeObject } from "./logger/logger"
-import { ModuleVersion } from "./vcs/vcs"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -194,7 +193,7 @@ export interface Events extends LoggerEvents {
     timestamp: number
     actionUid: string
     entity: {
-      moduleName: string
+      // moduleName: string
       type: string
       key: string
     }
@@ -207,7 +206,7 @@ export interface Events extends LoggerEvents {
    * In the `buildStatus`, `taskStatus`, `testStatus` and `serviceStatus` events, the optional `actionUid` field
    * identifies a single build/deploy/run.
    *
-   * The `build`/`testModule`/`runTask`/`deployService` actions emit two events: One before the plugin handler is
+   * The `build`/`testModule`/`run`/`deployService` actions emit two events: One before the plugin handler is
    * called (a "building"/"running"/"deploying" event), and another one after the handler finishes successfully or
    * throws an error.
    *
@@ -223,8 +222,8 @@ export interface Events extends LoggerEvents {
     actionVersion: string
 
     // DEPRECATED: remove in 0.14
-    moduleName: string
-    moduleVersion: string
+    // moduleName: string
+    // moduleVersion: string
     /**
      * `actionUid` should only be defined if `state = "building" | "built" | "failed"` (and not if `state = "fetched",
      * since in that case, no build took place and there are no logs/timestamps to view).
@@ -241,44 +240,44 @@ export interface Events extends LoggerEvents {
     actionVersion: string
 
     // DEPRECATED: remove in 0.14
-    taskName: string
-    moduleName: string
-    moduleVersion: string
-    taskVersion: string
+    // taskName: string
+    // moduleName: string
+    // moduleVersion: string
+    // taskVersion: string
     /**
      * `actionUid` should only be defined if the task was run , i.e. if `state = "running" | "succeeded" | "failed"`
      * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
      * logs/timestamps to view).
      */
     actionUid?: string
-    status: RunStatus
+    status: ExecutionStatus
   }
   testStatus: {
     actionName: string
     actionVersion: string
 
     // DEPRECATED: remove in 0.14
-    testName: string
-    moduleName: string
-    moduleVersion: string
-    testVersion: string
+    // testName: string
+    // moduleName: string
+    // moduleVersion: string
+    // testVersion: string
     /**
      * `actionUid` should only be defined if the test was run, i.e. if `state = "running" | "succeeded" | "failed"`
      * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
      * logs/timestamps to view).
      */
     actionUid?: string
-    status: RunStatus
+    status: ExecutionStatus
   }
   serviceStatus: {
     actionName: string
     actionVersion: string
 
     // DEPRECATED: remove in 0.14
-    serviceName: string
-    moduleName: string
-    moduleVersion: string
-    serviceVersion: string
+    // serviceName: string
+    // moduleName: string
+    // moduleVersion: string
+    // serviceVersion: string
     /**
      * `actionUid` should only be defined if a deploy took place (i.e. when emitted from the `deployService` action).
      */

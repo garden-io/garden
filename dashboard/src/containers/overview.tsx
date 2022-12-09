@@ -10,7 +10,7 @@ import React from "react"
 import styled from "@emotion/styled"
 
 import type { ServiceState } from "@garden-io/core/build/src/types/service"
-import type { RunState } from "@garden-io/core/build/src/plugin/base"
+import type { ExecutionState } from "@garden-io/core/build/src/plugin/base"
 
 import PageError from "../components/page-error"
 import { ModuleCard, Props as ModuleProps } from "../components/entity-cards/module"
@@ -30,7 +30,7 @@ const Modules = styled.div`
 
 export type Entity = {
   name?: string
-  state?: ServiceState | RunState
+  state?: ServiceState | ExecutionState
   dependencies: string[]
 }
 

@@ -6,7 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { runBaseParams, artifactsPathSchema, PluginRunActionParamsBase, actionParamsSchema } from "../../../plugin/base"
+import {
+  executionBaseParams,
+  artifactsPathSchema,
+  PluginRunActionParamsBase,
+  actionParamsSchema,
+} from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
@@ -30,7 +35,7 @@ export class RunRunAction<T extends RunAction = RunAction> extends ActionTypeHan
   `
 
   paramsSchema = () =>
-    actionParamsSchema().keys(runBaseParams()).keys({
+    actionParamsSchema().keys(executionBaseParams()).keys({
       artifactsPath: artifactsPathSchema(),
     })
   resultSchema = () => getRunResultSchema()

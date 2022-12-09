@@ -50,7 +50,7 @@ describe("kubernetes task results", () => {
           startedAt: new Date(),
           completedAt: new Date(),
           // command: [],
-          // version: task.version,
+          version: action.versionString(),
           success: true,
         },
       })

@@ -7,14 +7,13 @@
  */
 
 import { expect } from "chai"
-import { RunBuildCommand } from "../../../../../src/commands/run/run-build"
-import { makeTestGardenA, TestGarden, testNow, withDefaultGlobalOpts } from "../../../../helpers"
+import { RunModuleCommand } from "../../../../../src/commands/run/run-module"
+import { makeTestGardenA, TestGarden, withDefaultGlobalOpts } from "../../../../helpers"
 import { omit } from "lodash"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 
-describe("RunBuildCommand", () => {
-  // TODO: test optional flags
+describe("RunModuleCommand", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let log: LogEntry
@@ -25,8 +24,10 @@ describe("RunBuildCommand", () => {
     graph = await garden.getConfigGraph({ log, emit: false })
   })
 
-  it("should run a build without an arguments param", async () => {
-    const cmd = new RunBuildCommand()
+  const omittedKeys = ["durationMsec", "completedAt", "startedAt"]
+
+  it("should run a module without an arguments param", async () => {
+    const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
       log,
@@ -40,29 +41,27 @@ describe("RunBuildCommand", () => {
       }),
     })
 
+    // The `command` and `moduleName` fields are specific to the exec plugin's "run build" handler
     const expected = {
       aborted: false,
-      command: [],
-      completedAt: testNow,
       log: "",
+      moduleName: "module-a",
+      command: [],
       version: graph.getBuild("module-a").versionString(),
-      startedAt: testNow,
       success: true,
     }
 
-    // expect(result!.result.durationMsec).to.gte(0)
-
-    expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
+    expect(omit(result!.result, omittedKeys)).to.eql(expected)
   })
 
-  it("should run a build with an arguments param", async () => {
-    const cmd = new RunBuildCommand()
+  it("should run a module with an arguments param", async () => {
+    const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { name: "module-a", arguments: ["my", "command"] },
+      args: { name: "module-a", arguments: ["echo", "my", "command"] },
       opts: withDefaultGlobalOpts({
         "command": undefined,
         "interactive": false,
@@ -72,21 +71,18 @@ describe("RunBuildCommand", () => {
 
     const expected = {
       aborted: false,
-      command: ["my", "command"],
-      completedAt: testNow,
+      moduleName: "module-a",
+      command: ["echo", "my", "command"],
       log: "my command",
       version: graph.getBuild("module-a").versionString(),
-      startedAt: testNow,
       success: true,
     }
 
-    // expect(result!.result.durationMsec).to.gte(0)
-
-    expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
+    expect(omit(result!.result, omittedKeys)).to.eql(expected)
   })
 
-  it("should run a build with a command option", async () => {
-    const cmd = new RunBuildCommand()
+  it("should run a module with a command option", async () => {
+    const cmd = new RunModuleCommand()
     const { result } = await cmd.action({
       garden,
       log,
@@ -96,22 +92,19 @@ describe("RunBuildCommand", () => {
       opts: withDefaultGlobalOpts({
         "interactive": false,
         "force-build": false,
-        "command": "/bin/sh -c",
+        "command": "echo",
       }),
     })
 
     const expected = {
       aborted: false,
-      command: ["/bin/sh", "-c", "my", "command"],
-      completedAt: testNow,
-      log: "/bin/sh -c my command",
+      moduleName: "module-a",
+      command: ["echo", "my", "command"],
+      log: "my command",
       version: graph.getBuild("module-a").versionString(),
-      startedAt: testNow,
       success: true,
     }
 
-    //expect(result!.result.durationMsec).to.gte(0)
-
-    expect(omit(result!.result, ["durationMsec"])).to.eql(expected)
+    expect(omit(result!.result, omittedKeys)).to.eql(expected)
   })
 })

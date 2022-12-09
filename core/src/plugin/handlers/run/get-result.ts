@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginRunActionParamsBase, actionParamsSchema, RunResult, runResultSchema } from "../../base"
+import { PluginRunActionParamsBase, actionParamsSchema, ExecutionResult, executionResultSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
@@ -16,13 +16,13 @@ import { memoize } from "lodash"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
-export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, RunResult>
+export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, ExecutionResult>
 
 export interface RunStatusMap extends ActionStatusMap<RunAction> {
   [key: string]: GetRunResult
 }
 
-export const getRunResultSchema = memoize(() => actionStatusSchema(runResultSchema()))
+export const getRunResultSchema = memoize(() => actionStatusSchema(executionResultSchema("run")))
 
 export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
   "Run",

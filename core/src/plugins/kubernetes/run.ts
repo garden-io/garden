@@ -10,7 +10,7 @@ import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
-import { RunResult } from "../../plugin/base"
+import { ExecutionResult } from "../../plugin/base"
 import { LogEntry } from "../../logger/log-entry"
 import {
   PluginError,
@@ -144,7 +144,7 @@ export async function runAndCopy({
   privileged?: boolean
   addCapabilities?: string[]
   dropCapabilities?: string[]
-}): Promise<RunResult> {
+}): Promise<ExecutionResult> {
   const provider = <KubernetesProvider>ctx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
@@ -396,7 +396,7 @@ async function runWithoutArtifacts({
   version: string
   podData: PodData
   run: BaseRunParams
-}): Promise<RunResult> {
+}): Promise<ExecutionResult> {
   const { timeout, interactive } = run
 
   const { runner } = getPodResourceAndRunner({
@@ -406,7 +406,7 @@ async function runWithoutArtifacts({
     podData,
   })
 
-  let result: RunResult
+  let result: ExecutionResult
   const startedAt = new Date()
 
   try {
@@ -419,6 +419,7 @@ async function runWithoutArtifacts({
     })
     result = {
       ...res,
+      version,
     }
   } catch (err) {
     const containerLogs = err.detail.logs
@@ -470,7 +471,7 @@ async function runWithArtifacts({
   version: string
   podData: PodData
   run: BaseRunParams
-}): Promise<RunResult> {
+}): Promise<ExecutionResult> {
   const { args, command, timeout } = run
 
   const { pod, runner } = getPodResourceAndRunner({
@@ -480,7 +481,7 @@ async function runWithArtifacts({
     podData,
   })
 
-  let result: RunResult
+  let result: ExecutionResult
   const startedAt = new Date()
 
   const timeoutSec = timeout || defaultTimeout
@@ -582,6 +583,7 @@ ${cmd.join(" ")}
       })
       result = {
         ...res,
+        version,
         log: (await runner.getMainContainerLogs()).trim() || res.log,
       }
     } catch (err) {

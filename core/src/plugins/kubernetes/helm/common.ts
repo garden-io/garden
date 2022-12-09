@@ -22,7 +22,7 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { deline, tailString } from "../../../util/string"
 import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
-import { RunResult } from "../../../plugin/base"
+import { ExecutionResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
 import { dumpYaml } from "../../../util/util"
 import { HelmDeployAction } from "./config"
@@ -361,7 +361,7 @@ export function loadTemplate(template: string) {
     })
 }
 
-export function trimRunOutput<T extends RunResult>(result: T): T {
+export function trimRunOutput<T extends ExecutionResult>(result: T): T {
   const log = tailString(result.log, MAX_RUN_RESULT_LOG_LENGTH, true)
 
   return {

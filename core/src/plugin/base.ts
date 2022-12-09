@@ -124,16 +124,17 @@ export const moduleActionParamsSchema = () =>
  * END LEGACY
  */
 
-export const runBaseParams = () => ({
+export const executionBaseParams = () => ({
   interactive: joi.boolean().description("Whether to run interactively (i.e. attach to the terminal)."),
   silent: joi.boolean().description("Set to false if the output should not be logged to the console."),
   timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
 })
 
-// TODO-G2: update this schema in 0.13
-export interface RunResult {
+export interface ExecutionResult {
+  aborted?: boolean
   success: boolean
   exitCode?: number
+  version: string
   // FIXME: we should avoid native Date objects
   startedAt: Date
   completedAt: Date
@@ -141,31 +142,33 @@ export interface RunResult {
   namespaceStatus?: NamespaceStatus
 }
 
-export const runResultSchema = () =>
+export const executionResultSchema = (executionType: string) =>
   joi
     .object()
     .unknown(true)
     .keys({
-      success: joi.boolean().required().description("Whether the module was successfully run."),
-      exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
-      startedAt: joi.date().required().description("When the module run was started."),
-      completedAt: joi.date().required().description("When the module run was completed."),
-      log: joi.string().allow("").default("").description("The output log from the run."),
+      aborted: joi.boolean().default(false).description(`Whether the ${executionType} was aborted.`),
+      success: joi.boolean().required().description(`Whether the ${executionType} was successful.`),
+      exitCode: joi.number().integer().description(`The exit code of the ${executionType} (if applicable).`),
+      startedAt: joi.date().required().description(`When the ${executionType} was started.`),
+      completedAt: joi.date().required().description(`When the ${executionType} was completed.`),
+      log: joi.string().allow(``).default(``).description(`The output log from the ${executionType}.`),
+      version: joi.string().description(`The string version of the action that was run.`),
       namespaceStatus: namespaceStatusSchema().optional(),
     })
 
 export const artifactsPathSchema = () =>
-  joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
+  joi.string().required().description("A directory path where the handler should write any exported artifacts.")
 
-export type RunState = "outdated" | "running" | "succeeded" | "failed" | "not-implemented"
+export type ExecutionState = "outdated" | "running" | "succeeded" | "failed" | "not-implemented"
 
-export interface RunStatus {
-  state: RunState
+export interface ExecutionStatus {
+  state: ExecutionState
   startedAt?: Date
   completedAt?: Date
 }
 
-export function runStatus<R extends RunResult>(result: R | null | undefined): RunStatus {
+export function runStatus<R extends ExecutionResult>(result: R | null | undefined): ExecutionStatus {
   if (result) {
     const { startedAt, completedAt } = result
     return {

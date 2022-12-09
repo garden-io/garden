@@ -48,6 +48,7 @@ import { dedent } from "../util/string"
 import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
+import { GraphResults } from "./results"
 
 export async function actionConfigsToGraph({
   garden,
@@ -120,7 +121,6 @@ export async function actionFromConfig({
     ...getActionTypeBases(actionTypes[config.kind][config.type], actionTypes[config.kind]).map((t) => t.name),
   ]
   const definition = actionTypes[config.kind][config.type]
-
   const dependencies = dependenciesFromActionConfig(config, configsByKey, definition)
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
 
@@ -263,7 +263,7 @@ export async function executeAction<T extends Action>({
   graph: ConfigGraph
   action: T
   log: LogEntry
-}): Promise<Executed<T>> {
+}): Promise<{ graphResults: GraphResults; executedAction: Executed<T> }> {
   const task = getExecuteTaskForAction(action, {
     garden,
     graph,
@@ -274,9 +274,12 @@ export async function executeAction<T extends Action>({
     fromWatch: false,
   })
 
-  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+  const graphResults = (await garden.processTasks({ tasks: [task], log, throwOnError: true })).results
 
-  return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
+  return {
+    executedAction: <Executed<T>>(<unknown>graphResults.getResult(task)!.result!.executedAction),
+    graphResults,
+  }
 }
 
 const getActionConfigContextKeys = memoize(() => {
@@ -403,11 +406,17 @@ function dependenciesFromActionConfig(
     config.dependencies = []
   }
 
+  // Disabled actions have no dependencies.
+  if (config.disabled) {
+    return []
+  }
+
   const deps: ActionDependency[] = config.dependencies.map((d) => {
     const { kind, name } = parseActionReference(d)
     return { kind, name, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
   })
 
+  // We don't add dependencies on disabled actions.
   function addDep(ref: ActionReference, attributes: ActionDependencyAttributes) {
     addActionDependency({ ...ref, ...attributes }, deps)
   }
@@ -459,5 +468,6 @@ function dependenciesFromActionConfig(
     addDep(ref, { explicit: false, needsExecutedOutputs: needsExecuted, needsStaticOutputs: !needsExecuted })
   }
 
-  return deps
+  // We don't include dependencies on disabled actions.
+  return deps.filter((d) => !configsByKey[actionReferenceToString(d)].disabled)
 }

@@ -14,6 +14,7 @@ import {
 import { expect } from "chai"
 
 describe("kaniko build", () => {
+  const dummyVersionString = "v-12345"
   it("should return as successful when immutable tag already exists in destination", () => {
     const errorMessage = `error pushing image: failed to push to destination dockerhub.com/garden/backend:v-1234567: TAG_INVALID: The image tag "v-1234567" already exists in the "garden/backend" repository and cannot be overwritten because the repository is immutable.`
 
@@ -23,6 +24,7 @@ describe("kaniko build", () => {
         completedAt: new Date(),
         success: false,
         log: errorMessage,
+        version: dummyVersionString,
       })
     ).to.be.false
   })
@@ -36,6 +38,7 @@ describe("kaniko build", () => {
         completedAt: new Date(),
         success: false,
         log: errorMessage,
+        version: dummyVersionString,
       })
     ).to.be.true
   })
@@ -47,6 +50,7 @@ describe("kaniko build", () => {
         completedAt: new Date(),
         success: true,
         log: "",
+        version: dummyVersionString,
       })
     ).to.be.false
   })

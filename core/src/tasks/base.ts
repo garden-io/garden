@@ -221,7 +221,7 @@ export abstract class BaseActionTask<
     const resolveTask = this.getResolveTask(this.action)
 
     const deps = this.action.getDependencyReferences().flatMap((dep): BaseTask[] => {
-      const action = this.graph.getActionByRef(dep)
+      const action = this.graph.getActionByRef(dep, { includeDisabled: true })
 
       // Maybe we can make this easier to reason about... - JE
       if (dep.needsExecutedOutputs) {

@@ -20,14 +20,14 @@ import {
   CommandResult,
   processCommandResultKeys,
   graphResultsSchema,
-  handleTaskResult,
+  RunActionOutput,
+  handleRunResult,
 } from "../base"
 import { joi } from "../../config/common"
 import { StringParameter, BooleanParameter, ParameterValues } from "../../cli/params"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
 import { ConfigGraph } from "../../graph/config-graph"
-import { GraphResult, GraphResultMap, GraphResults } from "../../graph/results"
-import { GetTestResult } from "../../plugin/handlers/test/get-result"
+import { TestAction } from "../../actions/test"
 
 export const runTestArgs = {
   name: new StringParameter({
@@ -61,11 +61,7 @@ const runTestOpts = {
 type Args = typeof runTestArgs
 type Opts = typeof runTestOpts
 
-interface RunTestOutput {
-  error: Error | null
-  result: GraphResult<GetTestResult> | null
-  graphResults: GraphResultMap
-}
+type RunTestOutput = RunActionOutput<TestAction>
 
 export class RunTestCommand extends Command<Args, Opts> {
   name = "test"
@@ -98,8 +94,8 @@ export class RunTestCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTestOutput>> {
     const graph = await garden.getConfigGraph({ log, emit: true })
-
     const action = getTestActionFromArgs(graph, args)
+    const router = await garden.getActionRouter()
 
     if (action.isDisabled() && !opts.force) {
       throw new CommandError(
@@ -129,14 +125,29 @@ export class RunTestCommand extends Command<Args, Opts> {
       fromWatch: false,
     })
 
-    const { results } = await garden.processTasks({ tasks: [testTask], log, throwOnError: true })
-
-    return handleTaskResult({
+    const dependencyTasks = testTask.resolveProcessDependencies()
+    const { results: dependencyResults } = await garden.processTasks({
+      tasks: dependencyTasks,
       log,
-      actionDescription: "test",
-      graphResults: <GraphResults<TestTask>>results,
-      task: testTask,
+      throwOnError: true,
+    })
+    const { executedAction } = await garden.executeAction({ log, graph, action })
+    const result = await router.test.run({
+      log,
+      graph,
+      action: executedAction,
+      // action: resolved,
+      silent: false,
       interactive,
+    })
+
+
+    return handleRunResult({
+      log,
+      description: "run test",
+      result,
+      interactive,
+      graphResults: dependencyResults,
     })
   }
 }

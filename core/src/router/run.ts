@@ -28,17 +28,14 @@ export const runRouter = (baseParams: BaseRouterParams) =>
       const actionName = action.name
       const actionVersion = action.versionString()
       const taskName = actionName
-      const taskVersion = actionVersion
-      const moduleName = action.moduleName()
-      const moduleVersion = action.moduleVersion().versionString
 
       garden.events.emit("taskStatus", {
         actionName,
         actionVersion,
-        taskName,
-        moduleName,
-        moduleVersion,
-        taskVersion,
+        // taskName,
+        // moduleName,
+        // moduleVersion,
+        // taskVersion,
         actionUid,
         status: { state: "running", startedAt: new Date() },
       })
@@ -54,7 +51,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
             entity: {
               type: "task",
               key: taskName,
-              moduleName,
+              // moduleName,
             },
             data: data.toString(),
           })
@@ -68,10 +65,10 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         garden.events.emit("taskStatus", {
           actionName,
           actionVersion,
-          taskName,
-          moduleName,
-          moduleVersion,
-          taskVersion,
+          // taskName,
+          // moduleName,
+          // moduleVersion,
+          // taskVersion,
           actionUid,
           status: runStatus(result.detail),
         })
@@ -105,18 +102,10 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
-      const taskName = actionName
-      const taskVersion = actionVersion
-      const moduleName = action.moduleName()
-      const moduleVersion = action.moduleVersion().versionString
 
       garden.events.emit("taskStatus", {
         actionName,
         actionVersion,
-        taskName,
-        moduleName,
-        moduleVersion,
-        taskVersion,
         status: runStatus(result.detail),
       })
 

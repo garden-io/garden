@@ -11,19 +11,18 @@ import {
   Command,
   CommandParams,
   CommandResult,
-  handleTaskResult,
-  processCommandResultKeys,
   graphResultsSchema,
+  RunActionOutput,
+  handleRunResult,
 } from "../base"
 import { RunTask } from "../../tasks/run"
-import { GraphResult, GraphResultMap, GraphResults } from "../../graph/results"
 import { printHeader } from "../../logger/util"
 import { CommandError } from "../../exceptions"
 import { dedent, deline } from "../../util/string"
 import { taskResultSchema } from "../../types/task"
 import { joi } from "../../config/common"
 import { StringParameter, BooleanParameter } from "../../cli/params"
-import { GetRunResult } from "../../plugin/handlers/run/get-result"
+import { RunAction } from "../../actions/run"
 
 const runTaskArgs = {
   name: new StringParameter({
@@ -44,11 +43,13 @@ const runTaskOpts = {
 type Args = typeof runTaskArgs
 type Opts = typeof runTaskOpts
 
-interface RunTaskOutput {
-  error: Error | null
-  result: GraphResult<GetRunResult> | null
-  graphResults: GraphResultMap
-}
+// interface RunTaskOutput {
+//   error: string | null
+//   result: GraphResult<GetRunResult> | null
+//   graphResults: GraphResultMap
+// }
+
+type RunTaskOutput = RunActionOutput<RunAction>
 
 export class RunTaskCommand extends Command<Args, Opts> {
   name = "run"
@@ -70,7 +71,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
 
   outputsSchema = () =>
     joi.object().keys({
-      result: taskResultSchema().keys(processCommandResultKeys()).description("The result of the task."),
+      error: joi.string().optional().description("An error message, if the task failed."),
+      result: taskResultSchema().description("The result of the task."),
       graphResults: graphResultsSchema(),
     })
 
@@ -82,6 +84,8 @@ export class RunTaskCommand extends Command<Args, Opts> {
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<RunTaskOutput>> {
     const graph = await garden.getConfigGraph({ log, emit: true })
     const action = graph.getRun(args.name, { includeDisabled: true })
+    const router = await garden.getActionRouter()
+    const interactive = true
 
     if (action.isDisabled() && !opts.force) {
       throw new CommandError(
@@ -105,13 +109,28 @@ export class RunTaskCommand extends Command<Args, Opts> {
       localModeDeployNames: [],
       fromWatch: false,
     })
-    const { results } = await garden.processTasks({ tasks: [runTask], log, throwOnError: true })
 
-    return handleTaskResult({
+    const dependencyTasks = runTask.resolveProcessDependencies()
+    const { results: dependencyResults } = await garden.processTasks({
+      tasks: dependencyTasks,
       log,
-      actionDescription: "task",
-      graphResults: <GraphResults<RunTask>>results,
-      task: runTask,
+      throwOnError: true,
+    })
+    const { executedAction } = await garden.executeAction({ log, graph, action })
+
+    const result = await router.run.run({
+      log,
+      graph,
+      action: executedAction,
+      interactive,
+    })
+
+    return handleRunResult({
+      log,
+      description: "run task",
+      result,
+      interactive,
+      graphResults: dependencyResults,
     })
   }
 }

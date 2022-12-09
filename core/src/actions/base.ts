@@ -31,7 +31,7 @@ import type { ActionKind } from "../plugin/action-types"
 import pathIsInside from "path-is-inside"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import type { GraphResult, GraphResults } from "../graph/results"
-import type { RunResult } from "../plugin/base"
+import type { ExecutionResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
 import { fromPairs, isString } from "lodash"
 import { ActionConfigContext } from "../config/template-contexts/actions"
@@ -257,9 +257,9 @@ export const actionStatusSchema = (detailSchema?: Joi.ObjectSchema) =>
   })
 
 /**
- * Maps a RunResult to the state field on ActionStatus, returned by several action handler types.
+ * Maps an ExecutionResult to the state field on ActionStatus, returned by several action handler types.
  */
-export function runResultToActionState(result: RunResult) {
+export function runResultToActionState(result: ExecutionResult) {
   if (result.success) {
     return "ready"
   } else {
@@ -334,7 +334,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     let d = `${this.type} ${this.kind} ${chalk.bold.white(this.name)}`
 
     if (this._moduleName) {
-      d += `(from module ${chalk.bold.white(this.name)})`
+      d += ` (from module ${chalk.bold.white(this._moduleName)})`
     }
 
     return d
@@ -418,6 +418,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   @Memoize()
   getFullVersion(): ModuleVersion {
     const dependencyVersions = fromPairs(
+      // We don't include the versions of disabled dependencies.
       this.dependencies.map((d) => {
         const action = this.graph.getActionByRef(d)
         return [action.key(), action.versionString()]
@@ -505,7 +506,7 @@ export abstract class RuntimeAction<
   getBuildAction<T extends BuildAction>() {
     const buildName = this.getConfig("build")
     if (buildName) {
-      const buildAction = this.graph.getBuild(buildName)
+      const buildAction = this.graph.getBuild(buildName, { includeDisabled: true })
       return <T>buildAction
     } else {
       return null

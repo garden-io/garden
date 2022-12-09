@@ -7,11 +7,11 @@
  */
 
 import {
-  runBaseParams,
+  executionBaseParams,
   actionParamsSchema,
   PluginDeployActionParamsBase,
-  RunResult,
-  runResultSchema,
+  ExecutionResult,
+  executionResultSchema,
 } from "../../../plugin/base"
 import { dedent } from "../../../util/string"
 import { DeployAction } from "../../../actions/deploy"
@@ -26,7 +26,7 @@ interface RunDeployParams<T extends DeployAction> extends PluginDeployActionPara
 export class RunDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Run",
   RunDeployParams<Resolved<T>>,
-  RunResult
+  ExecutionResult
 > {
   description = dedent`
     Run an ad-hoc instance of the specified deployment. This should wait until the process completes execution, and should ideally attach it to the terminal (i.e. pipe the output from the process to the console, as well as pipe the input from the console).
@@ -34,6 +34,6 @@ export class RunDeploy<T extends DeployAction = DeployAction> extends ActionType
     Called by the \`garden run deploy\` (formerly \`garden run service\`) command.
   `
 
-  paramsSchema = () => actionParamsSchema().keys(runBaseParams())
-  resultSchema = () => runResultSchema()
+  paramsSchema = () => actionParamsSchema().keys(executionBaseParams())
+  resultSchema = () => executionResultSchema("deployment")
 }

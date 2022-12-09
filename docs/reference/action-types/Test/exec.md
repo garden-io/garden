@@ -174,6 +174,9 @@ spec:
       # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
       # `.garden/artifacts`.
       target: .
+
+  # Maximum duration (in seconds) of the run's execution.
+  timeout: null
 ```
 
 ## Configuration Keys
@@ -464,6 +467,16 @@ A POSIX-style path to copy the artifacts to, relative to the project artifacts d
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
 | `posixPath` | `"."`   | No       |
+
+### `spec.timeout`
+
+[spec](#spec) > timeout
+
+Maximum duration (in seconds) of the run's execution.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 
 ## Outputs

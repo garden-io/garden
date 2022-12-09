@@ -10,14 +10,8 @@ import td from "testdouble"
 import { join, relative, resolve } from "path"
 import { cloneDeep, extend, intersection, mapValues, merge, omit, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
-
-import {
-  containerModuleSpecSchema,
-  containerModuleTestSchema,
-  containerTaskSchema,
-} from "../src/plugins/container/moduleConfig"
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
-import { joi, joiArray } from "../src/config/common"
+import { joiSparseArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
@@ -41,19 +35,20 @@ import { ConfigurationError } from "../src/exceptions"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
-import { execBuildSpecSchema, ExecModule } from "../src/plugins/exec/moduleConfig"
+import {
+  execCommandSchema,
+  ExecModule,
+  execModuleSpecSchema,
+  execServiceSchema,
+} from "../src/plugins/exec/moduleConfig"
 import {
   execBuildActionSchema,
   execDeployActionSchema,
-  ExecRun,
   execRunActionSchema,
-  ExecTest,
   execTestActionSchema,
 } from "../src/plugins/exec/config"
-import { ActionKind, RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
-import { GetRunResult } from "../src/plugin/handlers/run/get-result"
+import { ActionKind } from "../src/plugin/action-types"
 import { WrappedActionRouterHandlers } from "../src/router/base"
-import { Resolved } from "../src/actions/types"
 import { defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/module/convert"
 
@@ -94,15 +89,18 @@ export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
-const testModuleTestSchema = () => containerModuleTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
 
-const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.sparseArray().items(joi.string()) })
+
+const testServiceSchema = () =>
+  execServiceSchema().keys({
+    deployCommand: execCommandSchema()
+      .description("We make the deploy command optional for test service specs.")
+      .default(["echo", "OK"]),
+  })
 
 export const testModuleSpecSchema = () =>
-  containerModuleSpecSchema().keys({
-    build: execBuildSpecSchema(),
-    tests: joiArray(testModuleTestSchema()),
-    tasks: joiArray(testModuleTaskSchema()),
+  execModuleSpecSchema().keys({
+    services: joiSparseArray(testServiceSchema()).description("A list of services to deploy."),
   })
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
@@ -120,7 +118,6 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
     dependencies: t.dependencies,
     disabled: t.disabled,
     spec: t,
-    timeout: t.timeout,
   }))
 
   moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
@@ -128,26 +125,12 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
     dependencies: t.dependencies,
     disabled: t.disabled,
     spec: t,
-    timeout: t.timeout,
   }))
 
   return { moduleConfig }
 }
 
-const runTest: RunActionHandler<"run", ExecRun> = async ({ action }): Promise<GetRunResult> => {
-  const { command } = action.getSpec()
 
-  return {
-    state: "ready",
-    detail: {
-      completedAt: testNow,
-      log: command.join(" "),
-      startedAt: testNow,
-      success: true,
-    },
-    outputs: {},
-  }
-}
 
 const testPluginSecrets: { [key: string]: string } = {}
 
@@ -213,7 +196,7 @@ export const testPlugin = () =>
       Build: [
         {
           name: "test",
-          docs: "Test Build action",
+          docs: "Placeholder Build action",
           schema: execBuildActionSchema(),
           handlers: {
             build: buildExecAction,
@@ -223,7 +206,7 @@ export const testPlugin = () =>
       Deploy: [
         {
           name: "test",
-          docs: "Test Deploy action",
+          docs: "Placeholder Deploy action",
           schema: execDeployActionSchema(),
           handlers: {
             deploy: async ({}) => {
@@ -232,13 +215,15 @@ export const testPlugin = () =>
             getStatus: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
-            run: async (params) => {
-              const res = await runTest({
-                ...params,
-                action: <Resolved<ExecRun>>(<unknown>params.action),
-                artifactsPath: "/tmp",
-              })
-              return res.detail!
+            run: async ({ action }) => {
+              console.log("in placeholder run action")
+              return {
+                success: true,
+                version: action.versionString(),
+                startedAt: testNow,
+                completedAt: testNow,
+                log: "",
+              }
             },
             exec: async ({ action }) => {
               const { command } = action.getSpec()
@@ -250,20 +235,48 @@ export const testPlugin = () =>
       Run: [
         {
           name: "test",
-          docs: "Test Run action",
+          docs: "Placeholder Run action",
           schema: execRunActionSchema(),
           handlers: {
-            run: runTest,
+            run: async ({ action }) => {
+              const { command } = action.getSpec()
+
+              return {
+                state: "ready",
+                detail: {
+                  completedAt: testNow,
+                  log: command.join(" "),
+                  startedAt: testNow,
+                  success: true,
+                  version: action.versionString(),
+                },
+                outputs: {},
+              }
+            },
           },
         },
       ],
       Test: [
         {
           name: "test",
-          docs: "Test Test action",
+          docs: "Placeholder Test action",
           schema: execTestActionSchema(),
           handlers: {
-            run: <TestActionHandler<"run", ExecTest>>(<unknown>runTest),
+            run: async ({ action }) => {
+              const { command } = action.getSpec()
+
+              return {
+                state: "ready",
+                detail: {
+                  completedAt: testNow,
+                  log: command.join(" "),
+                  startedAt: testNow,
+                  success: true,
+                  version: action.versionString(),
+                },
+                outputs: {},
+              }
+            },
           },
         },
       ],
@@ -276,10 +289,13 @@ export const testPlugin = () =>
         schema: testModuleSpecSchema(),
         needsBuild: true,
         handlers: {
-          // We want all the actions from the exec conversion.
           convert: async (params: ConvertModuleParams) => {
             const module: ExecModule = params.module
-            return convertExecModule({ ...params, module })
+            const res = await convertExecModule({ ...params, module })
+            res.group.actions.forEach((action: any) => {
+              action.type = "test"
+            })
+            return res
           },
           configure: configureTestModule,
 

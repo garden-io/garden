@@ -11,12 +11,10 @@ import dedent = require("dedent")
 
 import { CommandError } from "../../exceptions"
 import { printHeader } from "../../logger/util"
-import { DeployTask } from "../../tasks/deploy"
-import { RunResult } from "../../plugin/base"
 import { deline } from "../../util/string"
-import { Command, CommandParams, CommandResult, handleRunResult } from "../base"
-import { GraphResultMap } from "../../graph/results"
+import { Command, CommandParams, CommandResult, ExecActionOutput, handleExecResult } from "../base"
 import { StringParameter, BooleanParameter } from "../../cli/params"
+import { DeployTask } from "../../tasks/deploy"
 
 const runDeployArgs = {
   name: new StringParameter({
@@ -37,11 +35,7 @@ const runDeployOpts = {
 type Args = typeof runDeployArgs
 type Opts = typeof runDeployOpts
 
-interface RunDeployOutput {
-  error: Error | null
-  result: RunResult | null
-  graphResults: GraphResultMap
-}
+type RunDeployOutput = ExecActionOutput
 
 export class RunDeployCommand extends Command<Args, Opts> {
   name = "deploy"
@@ -70,6 +64,7 @@ export class RunDeployCommand extends Command<Args, Opts> {
     const serviceName = args.name
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(serviceName, { includeDisabled: true })
+    const interactive = true
 
     if (action.isDisabled() && !opts.force) {
       throw new CommandError(
@@ -97,9 +92,12 @@ export class RunDeployCommand extends Command<Args, Opts> {
       localModeDeployNames: [],
     })
 
-    const tasks = deployTask.resolveProcessDependencies()
-    const { results: dependencyResults } = await garden.processTasks({ tasks, log, throwOnError: true })
-    const interactive = true
+    const dependencyTasks = deployTask.resolveProcessDependencies()
+    const { results: dependencyResults } = await garden.processTasks({
+      tasks: dependencyTasks,
+      log,
+      throwOnError: true,
+    })
 
     if (interactive) {
       log.root.stop()
@@ -110,12 +108,13 @@ export class RunDeployCommand extends Command<Args, Opts> {
     const result = await router.deploy.run({
       log,
       graph,
+      // action: executedAction,
       action: resolved,
       interactive,
       timeout: 999999,
     })
 
-    return handleRunResult({
+    return handleExecResult({
       log,
       description: "run deploy",
       result,

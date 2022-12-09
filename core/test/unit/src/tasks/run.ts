@@ -74,6 +74,7 @@ describe("RunTask", () => {
                     log: params.action.getSpec().command.join(" "),
                     startedAt: new Date(),
                     success: true,
+                    version: params.action.versionString(),
                   },
                   outputs: { log },
                 }

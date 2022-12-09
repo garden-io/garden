@@ -20,7 +20,6 @@ describe("build actions", () => {
   let graph: ConfigGraph
   let log: LogEntry
   let actionRouter: ActionRouter
-  let returnWrongOutputsCfgKey: string
   let resolvedBuildAction: ResolvedBuildAction
   let module: GardenModule
   let dateUsedForCompleted: Date
@@ -31,7 +30,6 @@ describe("build actions", () => {
     graph = data.graph
     log = data.log
     actionRouter = data.actionRouter
-    returnWrongOutputsCfgKey = data.returnWrongOutputsCfgKey
     resolvedBuildAction = data.resolvedBuildAction
     module = data.module
     dateUsedForCompleted = data.dateUsedForCompleted
@@ -99,11 +97,13 @@ describe("build actions", () => {
       const command = ["npm", "run"]
       const result = await actionRouter.build.run({
         log,
-        action: await garden.executeAction({
-          action: resolvedBuildAction,
-          log: garden.log,
-          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
-        }),
+        action: (
+          await garden.executeAction({
+            action: resolvedBuildAction,
+            log: garden.log,
+            graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+          })
+        ).executedAction,
         args: command,
         interactive: true,
         graph,

@@ -37,6 +37,7 @@ describe("BaseActionRouter", () => {
       startedAt: now,
       success: true,
       log: "bla bla",
+      version: "v-12345",
     }),
   }
 

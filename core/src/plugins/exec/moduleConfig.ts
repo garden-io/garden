@@ -91,12 +91,12 @@ export interface ExecServiceSpec extends CommonServiceSpec {
   env: { [key: string]: string }
 }
 
+export const execCommandSchema = () => joi.sparseArray().items(joi.string().allow(""))
+
 export const execServiceSchema = () =>
   baseServiceSpecSchema()
     .keys({
-      deployCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
+      deployCommand: execCommandSchema()
         .description(
           dedent`
           The command to run to deploy the service.
@@ -105,11 +105,8 @@ export const execServiceSchema = () =>
           `
         )
         .required(),
-      statusCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
+      statusCommand: execCommandSchema().description(
+        dedent`
           Optionally set a command to check the status of the service. If this is specified, it is run before the
           \`deployCommand\`. If the command runs successfully and returns exit code of 0, the service is considered
           already deployed and the \`deployCommand\` is not run.
@@ -119,28 +116,22 @@ export const execServiceSchema = () =>
 
           ${execPathDoc}
           `
-        ),
-      cleanupCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
+      ),
+      cleanupCommand: execCommandSchema().description(
+        dedent`
           Optionally set a command to clean the service up, e.g. when running \`garden delete env\`.
 
           ${execPathDoc}
           `
-        ),
+      ),
       // TODO: Set a default in v0.13.
       timeout: joi.number().description(dedent`
         The maximum duration (in seconds) to wait for a local script to exit.
       `),
       env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
       devMode: joi.object().keys({
-        command: joi
-          .sparseArray()
-          .items(joi.string().allow(""))
-          .description(
-            dedent`
+        command: execCommandSchema().description(
+          dedent`
               The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
               the command starts a persistent process and does not wait for it return. The logs from the process
               can be retrieved via the \`garden logs\` command as usual.
@@ -150,12 +141,9 @@ export const execServiceSchema = () =>
 
               ${execPathDoc}
             `
-          ),
-        statusCommand: joi
-          .sparseArray()
-          .items(joi.string().allow(""))
-          .description(
-            dedent`
+        ),
+        statusCommand: execCommandSchema().description(
+          dedent`
               Optionally set a command to check the status of the service in dev mode. Garden will run the status command
               at an interval until it returns a zero exit code or times out.
 
@@ -163,7 +151,7 @@ export const execServiceSchema = () =>
 
               ${execPathDoc}
               `
-          ),
+        ),
         timeout: joi.number().default(localProcDefaultTimeoutSec).description(dedent`
           The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero
           exit code. Ignored if no \`statusCommand\` is set.

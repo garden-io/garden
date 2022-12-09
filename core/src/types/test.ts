@@ -14,8 +14,7 @@ import { NotFoundError } from "../exceptions"
 import { joi, joiUserIdentifier, versionStringSchema } from "../config/common"
 import { sortBy } from "lodash"
 import { serializeConfig } from "../config/module"
-import { RunResult, runResultSchema } from "../plugin/base"
-import { deline } from "../util/string"
+import { ExecutionResult, executionResultSchema } from "../plugin/base"
 import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import { ModuleGraph } from "../graph/modules"
 
@@ -82,13 +81,9 @@ export function testFromModule<M extends GardenModule = GardenModule>(
   return testFromConfig(module, config, graph)
 }
 
-export interface TestResult extends RunResult {}
+export interface TestResult extends ExecutionResult {}
 
 export const testResultSchema = () =>
-  runResultSchema().keys({
+  executionResultSchema("test run").keys({
     outputs: actionOutputsSchema(),
-    testName: joi.string().required().description("The name of the test that was run."),
-    version: joi.string().description(deline`
-        The test run's version, as a string. In addition to the parent module's version, this also
-        factors in the module versions of the test's runtime dependencies (if any).`),
   })

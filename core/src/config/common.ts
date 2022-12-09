@@ -14,7 +14,7 @@ import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
@@ -48,6 +48,8 @@ export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => type
 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
+  // Populated by the makeSchema helper function, which also ensures that these names are unique across the codebase.
+  schemaName?: string
   // Flag as an advanced feature, to be advised in generated docs
   advanced?: boolean
   // Flag as deprecated. Set to a string to provide a deprecation message for docs.
@@ -435,6 +437,27 @@ joi = joi.extend({
     return { value }
   },
 })
+
+const registeredSchemaNames = new Set<string>()
+
+// We can easily support more schema types than CustomObjectSchema if the need arises by broadening the param type.
+/**
+ * TODO-DODDI: Write docstring
+ * TODO-DODDI: Memoize
+ */
+export function makeSchema({ name, schema }: { name: string; schema: CustomObjectSchema }) {
+  if (registeredSchemaNames.has(name)) {
+    throw new InternalError(
+      `Attempted to create a schema with the name ${name}, but that name has already been used.`,
+      {
+        name,
+        schema,
+      }
+    )
+  }
+  registeredSchemaNames.add(name)
+  return schema.meta({ schemaName: name })
+}
 
 export interface ActionReference {
   kind: ActionKind

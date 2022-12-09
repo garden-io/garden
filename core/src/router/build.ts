@@ -33,8 +33,8 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         const actionVersion = action.versionString()
 
         garden.events.emit("buildStatus", {
-          moduleName: action.moduleName(),
-          moduleVersion: action.moduleVersion().versionString,
+          // moduleName: action.moduleName(),
+          // moduleVersion: action.moduleVersion().versionString,
           actionName: action.name,
           actionVersion,
           status: { state: "fetched" },
@@ -53,8 +53,6 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
-      const moduleVersion = action.moduleVersion().versionString
-      const moduleName = action.moduleName()
 
       params.events.on("log", ({ timestamp, data }) => {
         garden.events.emit("log", {
@@ -62,8 +60,8 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           actionUid,
           entity: {
             type: "build",
-            key: `${moduleName}`,
-            moduleName,
+            key: actionName,
+            // moduleName,
           },
           data: data.toString(),
         })
@@ -71,8 +69,8 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("buildStatus", {
         actionName,
         actionVersion,
-        moduleName,
-        moduleVersion,
+        // moduleName,
+        // moduleVersion,
         actionUid,
         status: { state: "building", startedAt },
       })
@@ -81,8 +79,6 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         garden.events.emit("buildStatus", {
           actionName,
           actionVersion,
-          moduleName,
-          moduleVersion,
           actionUid,
           status: {
             state,

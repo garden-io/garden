@@ -263,7 +263,7 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
 
   const detail = {
     moduleName: action.moduleName(),
-    taskName: action.name,
+    runName: action.name,
     command,
     version: action.versionString(),
     success,
@@ -291,10 +291,13 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
   let completedAt: Date
   let outputLog: string
   let success = true
+  let command: string[] = []
+  params.command && params.command.length && command.push(...params.command)
+  args && args.length && command.push(...args)
 
-  if (args && args.length) {
+  if (command.length) {
     const commandResult = await run({
-      command: args,
+      command,
       action,
       ctx,
       log,
@@ -314,13 +317,12 @@ const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
 
   return {
     moduleName: action.moduleName(),
-    command: [],
+    command,
     version: action.versionString(),
     success,
     log: outputLog,
     startedAt,
     completedAt,
-    outputs: {},
   }
 }
 

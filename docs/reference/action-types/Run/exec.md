@@ -174,6 +174,9 @@ spec:
 
   # Environment variables to set when running the command.
   env: {}
+
+  # Maximum duration (in seconds) of the run's execution.
+  timeout: null
 ```
 
 ## Configuration Keys
@@ -464,6 +467,16 @@ Environment variables to set when running the command.
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
+
+### `spec.timeout`
+
+[spec](#spec) > timeout
+
+Maximum duration (in seconds) of the run's execution.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 
 ## Outputs
