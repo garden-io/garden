@@ -45,6 +45,7 @@ import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
 import { emitWarning } from "../../warnings"
 import { kustomizeSpec } from "./kubernetes-module/kustomize"
+import { taskOutputsSchema } from "./task-results"
 
 export async function configureProvider({
   log,
@@ -236,6 +237,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: helmHandlers,
       },
       {
@@ -253,6 +255,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: kubernetesHandlers,
       },
       pvcModuleDefinition(),
