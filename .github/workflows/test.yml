@@ -1,0 +1,58 @@
+name: Build and test
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
+    - uses: ./.github/actions/yarn
+    - run: yarn run build
+    - run: yarn run dist --version edge
+      env:
+        # Needed for the alpine docker build
+        PKG_CACHE_PATH: tmp/pkg/
+    - name: dist artifacts
+      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      with:
+        name: dist
+        path: dist
+    - name: tmp/pkg artifacts
+      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      with:
+        name: tmp/pkg
+        path: tmp/pkg
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
+    - uses: ./.github/actions/yarn
+    - run: yarn run lint
+
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
+    - uses: ./.github/actions/yarn
+    - run: yarn run check-docs
+
+  check-licenses:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
+    - uses: ./.github/actions/yarn
+    - run: mkdir tmp
+    - run: yarn check-package-licenses
+
+  test-framework:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
+    - uses: ./.github/actions/yarn
+    - run: yarn run test:framework:unit
+      env:
+        GARDEN_LOGGER_TYPE: ""
+        CHOKIDAR_USEPOLLING: "1"

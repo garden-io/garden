@@ -1,0 +1,12 @@
+name: 'Yarn install'
+description: 'Set up and install yarn'
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@8c91899e586c5b171469028077307d293428b516
+      with:
+        node-version: 14
+        cache: 'yarn'
+    - run: yarn install
+      shell: bash
