@@ -82,7 +82,8 @@ export abstract class ConfigStore<T extends object = any> {
   public async delete(keyPath: string[]) {
     let config = await this.getConfig()
     if (get(config, keyPath) === undefined) {
-      this.throwKeyNotFound(config, keyPath)
+      // Nothing to do
+      return
     }
     const success = unset(config, keyPath)
     if (!success) {
@@ -211,7 +212,7 @@ export class LocalConfigStore extends ConfigStore<LocalConfig> {
     return join(gardenDirPath, LOCAL_CONFIG_FILENAME)
   }
 
-  validate(config): LocalConfig {
+  validate(config: any): LocalConfig {
     return validateSchema(config, localConfigSchema(), {
       context: this.configPath,
       ErrorClass: LocalConfigError,
@@ -226,14 +227,12 @@ export class LocalConfigStore extends ConfigStore<LocalConfig> {
  **********************************************/
 
 export type AnalyticsGlobalConfig = {
-  userId?: string
+  firstRunAt: string
+  latestRunAt: string
+  anonymousUserId: string
   optedIn?: boolean
-  firstRun?: boolean
-  showOptInMessage?: boolean
   cloudVersion?: number
   cloudProfileEnabled?: boolean
-} & {
-  [key: string]: any
 }
 
 export interface VersionCheckGlobalConfig {
@@ -257,8 +256,6 @@ const analyticsGlobalConfigSchema = () =>
     .keys({
       userId: joiPrimitive().allow("").optional(),
       optedIn: joi.boolean().optional(),
-      firstRun: joi.boolean().optional(),
-      showOptInMessage: joi.boolean().optional(),
       cloudVersion: joi.number().optional(),
       cloudProfileEnabled: joi.boolean().optional(),
     })

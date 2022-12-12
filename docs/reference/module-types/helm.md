@@ -2167,3 +2167,11 @@ Example:
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
 
+### `${runtime.tasks.<task-name>.outputs.log}`
+
+The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |
+

@@ -647,7 +647,6 @@ export async function enableAnalytics(garden: TestGarden) {
     originalAnalyticsConfig = { ...((await garden.globalConfigStore.get(["analytics"])) as AnalyticsGlobalConfig) }
   } catch {}
 
-  await garden.globalConfigStore.set(["analytics", "optedIn"], true)
   gardenEnv.GARDEN_DISABLE_ANALYTICS = false
   // Set the analytics mode to dev for good measure
   gardenEnv.ANALYTICS_DEV = true
@@ -696,16 +695,19 @@ export async function cleanupAuthTokens() {
 }
 
 export function makeCommandParams<T extends Parameters = {}, U extends Parameters = {}>({
+  cli,
   garden,
   args,
   opts,
 }: {
+  cli?: GardenCli
   garden: Garden
   args: T
   opts: U
 }): CommandParams<T, U> {
   const log = garden.log
   return {
+    cli,
     garden,
     log,
     headerLog: log,

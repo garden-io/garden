@@ -103,12 +103,22 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy service-a,service-b  # only deploy service-a and service-b
         garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
         garden deploy --watch              # watch for changes to code
+<<<<<<< HEAD
         garden deploy --dev=my-service     # deploys everything with dev mode enabled for my-service
         garden deploy --dev                # deploys everything, enabling dev mode on all applicable actions
         garden deploy --local=my-service   # deploys everything with local mode enabled for my-service
         garden deploy --local              # deploys everything, enabling local mode on all applicable actions
         garden deploy --env stage          # deploy to an environment called stage
         garden deploy --skip service-b     # deploy everything except service-b
+=======
+        garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
+        garden deploy --dev                # deploys all compatible services with dev mode enabled
+        garden deploy --local=my-service   # deploys all services, with local mode enabled for my-service
+        garden deploy --local              # deploys all compatible services with local mode enabled
+        garden deploy --env stage          # deploy your services to an environment called stage
+        garden deploy --skip service-b     # deploy all services except service-b
+        garden deploy --forward            # deploy all services and start port forwards without watching for changes
+>>>>>>> main
   `
 
   arguments = deployArgs

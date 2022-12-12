@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "garden-build-sync.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "garden-build-sync.name" . }}
+    helm.sh/chart: {{ include "garden-build-sync.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "garden-build-sync.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "garden-build-sync.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      volumes:
+        - name: garden-build-sync
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.name }}
+      initContainers:
+        - name: init
+          image: "busybox:1.31.1"
+          command: ["mkdir", "-p", "/data/tmp"]
+          volumeMounts:
+            - mountPath: /data
+              name: garden-build-sync
+      containers:
+        - name: sync
+          image: "gardendev/rsync:0.2.0"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: rsync
+              containerPort: 873
+              protocol: TCP
+          readinessProbe:
+            exec:
+              command: [pidof, rsync]
+            initialDelaySeconds: 5
+            periodSeconds: 2
+          livenessProbe:
+            exec:
+              # The volume mount can go stale (for reasons not fully understood). This checks makes sure the volume
+              # mount works and terminates the container if/when the mount fails.
+              command: [stat, /data]
+            initialDelaySeconds: 20
+            periodSeconds: 2
+          lifecycle:
+            preStop:
+              exec:
+                # this preStop command makes sure that we wait for some time if an rsync is still ongoing, before
+                # this preStop command makes sure that we wait for some time if an rsync is still ongoing, before
+                # actually killing the pod. If the transfer takes more than 30 seconds, which is unlikely, the pod
+                # will be killed anyway. The command works by counting the number of rsync processes. This works
+                # because rsync forks for every connection.
+                command: ["/bin/sh", "-c", "until test $(pgrep -fc '^[^ ]+rsync') = 1; do echo waiting for rsync to finish...; sleep 1; done"]
+          volumeMounts:
+            - mountPath: /data
+              name: garden-build-sync
+          env:
+            # The service is not exposed at all outside the cluster, so this should be all good.
+            - name: ALLOW
+              value: "0.0.0.0/0"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

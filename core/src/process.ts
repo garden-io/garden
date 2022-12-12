@@ -12,6 +12,7 @@ import { keyBy, flatten } from "lodash"
 
 import { BaseTask } from "./tasks/base"
 import { Garden } from "./garden"
+<<<<<<< HEAD
 import { EmojiName, LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
 import { dedent, naturalList } from "./util/string"
@@ -28,6 +29,14 @@ import { actionReferenceToString } from "./actions/base"
 import { getTestActions } from "./commands/test"
 import { GraphResults } from "./graph/results"
 import { GardenModule } from "./types/module"
+=======
+import { LogEntry } from "./logger/log-entry"
+import { ConfigGraph } from "./config-graph"
+import { dedent } from "./util/string"
+import { ConfigurationError } from "./exceptions"
+import { uniqByName } from "./util/util"
+import { renderDivider } from "./logger/util"
+>>>>>>> main
 
 export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
 
@@ -252,6 +261,7 @@ export async function processActions({
       await garden.processTasks({ tasks, log })
     })
 
+<<<<<<< HEAD
     garden.events.on("buildRequested", async (event: Events["buildRequested"]) => {
       log.info("")
       log.info({
@@ -328,6 +338,8 @@ export async function processActions({
       }
     })
 
+=======
+>>>>>>> main
     waiting()
   })
 
@@ -337,6 +349,7 @@ export async function processActions({
   }
 }
 
+<<<<<<< HEAD
 export interface CloudEventHandlerCommonParams {
   garden: Garden
   graph: ConfigGraph
@@ -422,6 +435,8 @@ export const cloudEventHandlers = {
   },
 }
 
+=======
+>>>>>>> main
 /**
  * When config files change / are added / are removed, we try initializing a new Garden instance
  * with the changed config files and performing a bit of validation on it before proceeding with

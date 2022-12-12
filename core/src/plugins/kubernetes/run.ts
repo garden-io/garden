@@ -9,8 +9,14 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
+<<<<<<< HEAD
 import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
 import { RunResult } from "../../plugin/base"
+=======
+import { V1Container, V1ContainerStatus, V1Pod, V1PodSpec, V1PodStatus } from "@kubernetes/client-node"
+import { RunResult } from "../../types/plugin/base"
+import { GardenModule } from "../../types/module"
+>>>>>>> main
 import { LogEntry } from "../../logger/log-entry"
 import {
   PluginError,
@@ -23,7 +29,7 @@ import {
 import { KubernetesProvider } from "./config"
 import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
-import { KubeApi } from "./api"
+import { ExecInPodResult, KubeApi } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
 import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeActions } from "./types"
 import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/moduleConfig"
@@ -415,27 +421,65 @@ async function runWithoutArtifacts({
       remove: true,
       events: ctx.events,
       timeoutSec: timeout || defaultTimeout,
-      tty: !!interactive,
+      tty: interactive,
+      throwOnExitCode: true,
     })
     result = {
       ...res,
     }
   } catch (err) {
-    const containerLogs = err.detail.logs
-    const exitCode = err.detail.exitCode
-
-    result = handlePodError({
+    result = await runner.handlePodError({
       err,
-      containerLogs,
       command: runner.getFullCommand(),
       startedAt,
-      exitCode,
       version,
       moduleName: action.moduleName(),
     })
   }
 
   return result
+}
+
+/**
+ * Wraps a given {@code cmd} into a script to redirect its stdout and stderr to the same tmp file.
+ * See https://stackoverflow.com/a/20564208
+ * @param cmd the command to wrap
+ */
+function getCommandExecutionScript(cmd: string[]) {
+  return `
+exec 1<&-
+exec 2<&-
+exec 1<>/tmp/output
+exec 2>&1
+
+${cmd.join(" ")}
+`
+}
+
+/**
+ * For given {@code artifacts} prepares a script which will:
+ *   1. Create temp directory in the container
+ *   2. Create directories for each target, as necessary
+ *   3. Recursively (and silently) copy all specified artifact files/directories into the temp directory
+ *   4. Tarball the directory and pipe to stdout
+ * @param artifacts the artifacts to be processed
+ */
+function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
+  // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
+  const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
+  const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
+
+  // TODO: escape the user paths somehow?
+  return `
+rm -rf ${tmpPath} >/dev/null || true
+mkdir -p ${tmpPath}
+cd ${tmpPath}
+touch .garden-placeholder
+${directoriesToCreate.map((target) => `mkdir -p ${target}`).join("\n")}
+${artifacts.map(({ source, target }) => `cp -r ${source} ${target || "."} >/dev/null || true`).join("\n")}
+tar -c -z -f - . | cat
+rm -rf ${tmpPath} >/dev/null || true
+`
 }
 
 async function runWithArtifacts({
@@ -559,15 +603,7 @@ async function runWithArtifacts({
     const cmd = [...command!, ...(args || [])].map((s) => JSON.stringify(s))
 
     try {
-      // See https://stackoverflow.com/a/20564208
-      const commandScript = `
-exec 1<&-
-exec 2<&-
-exec 1<>/tmp/output
-exec 2>&1
-
-${cmd.join(" ")}
-`
+      const commandScript = getCommandExecutionScript(cmd)
 
       const res = await runner.exec({
         // Pipe the output from the command to the /tmp/output pipe, including stderr. Some shell voodoo happening
@@ -582,43 +618,25 @@ ${cmd.join(" ")}
       })
       result = {
         ...res,
+<<<<<<< HEAD
         log: (await runner.getMainContainerLogs()).trim() || res.log,
+=======
+        log: res.log || (await runner.getMainContainerLogs()),
+        moduleName: module.name,
+        version,
+>>>>>>> main
       }
     } catch (err) {
-      const containerLogs = (await runner.getMainContainerLogs()).trim()
-      const exitCode = err.detail.result.exitCode
-
-      result = handlePodError({
+      result = await runner.handlePodError({
         err,
-        containerLogs,
         command: cmd,
         startedAt,
-        exitCode,
         version,
         moduleName: action.moduleName(),
       })
     }
 
-    // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
-    const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
-    const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
-
-    // This script will
-    // 1. Create temp directory in the container
-    // 2. Create directories for each target, as necessary
-    // 3. Recursively (and silently) copy all specified artifact files/directories into the temp directory
-    // 4. Tarball the directory and pipe to stdout
-    // TODO: escape the user paths somehow?
-    const tarScript = `
-rm -rf ${tmpPath} >/dev/null || true
-mkdir -p ${tmpPath}
-cd ${tmpPath}
-touch .garden-placeholder
-${directoriesToCreate.map((target) => `mkdir -p ${target}`).join("\n")}
-${artifacts.map(({ source, target }) => `cp -r ${source} ${target || "."} >/dev/null || true`).join("\n")}
-tar -c -z -f - . | cat
-rm -rf ${tmpPath} >/dev/null || true
-    `
+    const tarScript = getArtifactsTarScript(artifacts)
 
     // Copy the artifacts
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
@@ -681,67 +699,6 @@ rm -rf ${tmpPath} >/dev/null || true
   return result
 }
 
-function handlePodError({
-  err,
-  containerLogs,
-  command,
-  startedAt,
-  exitCode,
-  version,
-  moduleName,
-}: {
-  err: any
-  containerLogs: string
-  command: string[]
-  startedAt: Date
-  exitCode: number
-  version: string
-  moduleName
-}) {
-  if (err.type === "out-of-memory" || err.type === "timeout") {
-    // Command timed out or the pod container exceeded its memory limits
-    const errorLog =
-      err.type === "out-of-memory" ? makeOutOfMemoryErrorLog(containerLogs) : makeTimeOutErrorLog(containerLogs)
-    return {
-      log: errorLog || err.message,
-      moduleName,
-      version,
-      success: false,
-      startedAt,
-      completedAt: new Date(),
-      command,
-      exitCode,
-    }
-  } else if (err.type === "pod-runner") {
-    // Command exited with non-zero code
-    return {
-      log: containerLogs || err.message,
-      moduleName,
-      version,
-      success: false,
-      startedAt,
-      completedAt: new Date(),
-      command,
-      exitCode,
-    }
-  } else {
-    throw err
-  }
-}
-
-function makeTimeOutErrorLog(containerLogs: string) {
-  return (
-    "Command timed out." + (containerLogs ? ` Here are the logs until the timeout occurred:\n\n${containerLogs}` : "")
-  )
-}
-
-function makeOutOfMemoryErrorLog(containerLogs?: string) {
-  return (
-    "The Pod container was OOMKilled." +
-    (containerLogs ? ` Here are the logs until the out-of-memory event occurred:\n\n${containerLogs}` : "")
-  )
-}
-
 class PodRunnerParams {
   ctx: PluginContext
   annotations?: { [key: string]: string }
@@ -770,10 +727,20 @@ type RunParams = StartParams & {
   remove: boolean
   tty: boolean
   events: PluginEventBroker
+  // TODO: 0.13 consider removing this in the scope of https://github.com/garden-io/garden/issues/3254
+  throwOnExitCode?: boolean
 }
 
 class PodRunnerError extends GardenBaseError {
   type = "pod-runner"
+}
+
+function newExitCodePodRunnerError(podErrorDetails: PodErrorDetails): PodRunnerError {
+  const { exitCode, logs } = podErrorDetails
+  const errorMessage = !!logs
+    ? `Command exited with code ${exitCode}:\n${logs}`
+    : `Command exited with code ${exitCode}.`
+  return new PodRunnerError(errorMessage, omit(podErrorDetails, "logs"))
 }
 
 interface RunAndWaitResult {
@@ -782,6 +749,16 @@ interface RunAndWaitResult {
   completedAt: Date
   log: string
   success: boolean
+  exitCode?: number
+}
+
+export interface PodErrorDetails {
+  logs?: string
+  // optional details
+  exitCode?: number
+  containerStatus?: V1ContainerStatus
+  podStatus?: V1PodStatus
+  result?: ExecInPodResult
 }
 
 export class PodRunner extends PodRunnerParams {
@@ -812,21 +789,8 @@ export class PodRunner extends PodRunnerParams {
     return this.pod.spec.containers[0].name
   }
 
-  /**
-   * Runs the Pod, waits for it to terminate, and returns the result. Throws if the Pod never successfully starts.
-   * Returns the logs for the first container in the Pod. Returns success=false if Pod exited with non-zero code.
-   *
-   * If tty=true, we attach to the process stdio during execution.
-   */
-  async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
-    const { log, remove, timeoutSec, tty, events } = params
-    const { namespace, podName } = this
-
-    const startedAt = new Date()
-    let success = true
-    let mainContainerLogs = ""
-    const mainContainerName = this.getMainContainerName()
-
+  private prepareLogsFollower(params: RunParams) {
+    const { log, tty, events } = params
     const stream = new Stream<RunLogEntry>()
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
@@ -835,7 +799,7 @@ export class PodRunner extends PodRunnerParams {
         process.stdout.write(`${entry.msg}\n`)
       }
     })
-    const logsFollower = new K8sLogFollower({
+    return new K8sLogFollower({
       defaultNamespace: this.namespace,
       retryIntervalMs: 10,
       stream,
@@ -844,100 +808,133 @@ export class PodRunner extends PodRunnerParams {
       resources: [this.pod],
       k8sApi: this.api,
     })
+  }
+
+  /**
+   * Runs the Pod, waits for it to terminate, and returns the result. Throws if the Pod never successfully starts.
+   * Returns the logs for the first container in the Pod. Returns success=false if Pod exited with non-zero code.
+   *
+   * If tty=true, we attach to the process stdio during execution.
+   *
+   * @throws {OutOfMemoryError}
+   * @throws {TimeoutError}
+   * @throws {PodRunnerError}
+   * @throws {KubernetesError}
+   */
+  async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
+    const { log, remove, tty } = params
+
+    const startedAt = new Date()
+    const logsFollower = this.prepareLogsFollower(params)
     const limitBytes = 1000 * 1024 // 1MB
     logsFollower.followLogs({ limitBytes }).catch((_err) => {
       // Errors in `followLogs` are logged there, so all we need to do here is to ensure that the follower is closed.
       logsFollower.close()
     })
+
     try {
       await this.createPod({ log, tty })
 
       // Wait until main container terminates
-      while (true) {
-        const serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
-        const state = checkPodStatus(serverPod)
-
-        const mainContainerStatus = (serverPod.status.containerStatuses || []).find((s) => s.name === mainContainerName)
-        const terminated = mainContainerStatus?.state?.terminated
-        const exitReason = terminated?.reason
-        const exitCode = terminated?.exitCode
-
-        // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
-        // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
-        // and we handle that case specifically here.
-        if (exitCode === 137 || exitReason === "OOMKilled") {
-          const msg = `Pod container was OOMKilled.`
-          throw new OutOfMemoryError(msg, {
-            logs: (await this.getDebugLogs()) || msg,
-            exitCode,
-            serverPod,
-          })
-        }
-
-        if (state === "unhealthy") {
-          if (
-            exitCode !== undefined &&
-            exitCode < 127 &&
-            exitReason !== "ContainerCannotRun" &&
-            exitReason !== "StartError"
-          ) {
-            // Successfully ran the command in the main container, but returned non-zero exit code
-            success = false
-            break
-          }
-
-          const statusStr = terminated
-            ? `${terminated.reason} - ${terminated.message}`
-            : "Status:\n" + JSON.stringify(serverPod.status, null, 2)
-
-          throw new PodRunnerError(`Failed to start Pod ${podName}. ${statusStr}`, {
-            logs: statusStr,
-            exitCode,
-            pod: serverPod,
-          })
-        }
-
-        // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
-        if (state === "stopped" || exitReason === "Completed") {
-          success = exitCode === 0
-          break
-        }
-
-        const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
-
-        if (timeoutSec && elapsed > timeoutSec) {
-          const msg = `Command timed out after ${timeoutSec} seconds.`
-          throw new TimeoutError(msg, {
-            logs: (await this.getDebugLogs()) || msg,
-            serverPod,
-          })
-        }
-
-        await sleep(800)
-      }
+      const exitCode = await this.awaitRunningPod(params, startedAt)
 
       // Retrieve logs after run
-      mainContainerLogs = await this.getMainContainerLogs()
+      const mainContainerLogs = await this.getMainContainerLogs()
+
+      return {
+        command: this.getFullCommand(),
+        startedAt,
+        completedAt: new Date(),
+        log: mainContainerLogs,
+        exitCode,
+        success: exitCode === undefined || exitCode === 0,
+      }
     } finally {
       logsFollower.close()
       if (remove) {
         await this.stop()
       }
     }
+  }
 
-    return {
-      command: this.getFullCommand(),
-      startedAt,
-      completedAt: new Date(),
-      log: mainContainerLogs,
-      success,
+  /**
+   * @throws {OutOfMemoryError}
+   * @throws {TimeoutError}
+   * @throws {PodRunnerError}
+   */
+  private async awaitRunningPod(params: RunParams, startedAt: Date): Promise<number | undefined> {
+    const { timeoutSec, throwOnExitCode } = params
+    const { namespace, podName } = this
+    const mainContainerName = this.getMainContainerName()
+
+    while (true) {
+      const serverPod = await this.api.core.readNamespacedPodStatus(podName, namespace)
+      const state = checkPodStatus(serverPod)
+
+      const mainContainerStatus = (serverPod.status.containerStatuses || []).find((s) => s.name === mainContainerName)
+      const terminated = mainContainerStatus?.state?.terminated
+      const exitReason = terminated?.reason
+      const exitCode = terminated?.exitCode
+
+      const errorDetails = async (): Promise<PodErrorDetails> => ({
+        logs: await this.getMainContainerLogs(),
+        exitCode,
+        containerStatus: mainContainerStatus,
+        podStatus: serverPod.status,
+      })
+
+      // We've seen instances where Pods are OOMKilled but the exit code is 0 and the state that
+      // Garden computes is "stopped". However, in those instances the exitReason is still "OOMKilled"
+      // and we handle that case specifically here.
+      if (exitCode === 137 || exitReason === "OOMKilled") {
+        throw new OutOfMemoryError("Pod container was OOMKilled.", await errorDetails())
+      }
+
+      if (state === "unhealthy") {
+        if (
+          exitCode !== undefined &&
+          exitCode < 127 &&
+          exitReason !== "ContainerCannotRun" &&
+          exitReason !== "StartError"
+        ) {
+          // Successfully ran the command in the main container, but returned non-zero exit code.
+          if (throwOnExitCode === true) {
+            // Consider it as a task execution error inside the Pod.
+            throw newExitCodePodRunnerError(await errorDetails())
+          } else {
+            return exitCode
+          }
+        } else {
+          throw new PodRunnerError(`Failed to start Pod ${podName}.`, await errorDetails())
+        }
+      }
+
+      // reason "Completed" means main container is done, but sidecars or other containers possibly still alive
+      if (state === "stopped" || exitReason === "Completed") {
+        if (exitCode !== undefined && exitCode !== 0) {
+          if (throwOnExitCode === true) {
+            throw newExitCodePodRunnerError(await errorDetails())
+          } else {
+            return exitCode
+          }
+        }
+        return exitCode
+      }
+
+      const elapsed = (new Date().getTime() - startedAt.getTime()) / 1000
+
+      if (timeoutSec && elapsed > timeoutSec) {
+        throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, await errorDetails())
+      }
+
+      await sleep(800)
     }
   }
 
   /**
-   * Starts the Pod and leaves it running. Use this along with the `exec()` method when you need to run multiple
-   * commands in the same Pod. Note that you *must manually call `stop()`* when you're done. Otherwise the Pod will
-   * stay running in the cluster until the process exits.
+   * Starts the Pod and leaves it running. Use this along with the {@link #exec()} method when you need to run multiple
+   * commands in the same Pod. Note that you *must manually call {@link #stop()}* when you're done.
+   * Otherwise, the Pod will stay running in the cluster until the process exits.
    */
   async start({ log, timeoutSec = KUBECTL_DEFAULT_TIMEOUT }: StartParams) {
     const { ctx, provider, pod, namespace } = this
@@ -951,7 +948,11 @@ export class PodRunner extends PodRunnerParams {
   }
 
   /**
-   * Executes a command in the running Pod. Must be called after `start()`.
+   * Executes a command in the running Pod. Must be called after {@link start()}.
+   *
+   * @throws {OutOfMemoryError}
+   * @throws {TimeoutError}
+   * @throws {PodRunnerError}
    */
   async exec(params: ExecParams) {
     const { command, containerName: container, timeoutSec, tty = false, log, buffer = true } = params
@@ -990,36 +991,36 @@ export class PodRunner extends PodRunnerParams {
       timeoutSec,
     })
 
+    const collectLogs = async () => result.allLogs || (await this.getMainContainerLogs())
+
     if (result.timedOut) {
-      throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, {
-        logs: result.allLogs,
-        result,
-        execParams: params,
-      })
+      const errorDetails: PodErrorDetails = { logs: await collectLogs(), result }
+      throw new TimeoutError(`Command timed out after ${timeoutSec} seconds.`, errorDetails)
     }
 
     if (result.exitCode === 137) {
-      const msg = `Pod container was OOMKilled.`
-      throw new OutOfMemoryError(msg, {
-        logs: (await this.getDebugLogs()) || msg,
+      const errorDetails: PodErrorDetails = {
+        logs: await collectLogs(),
+        exitCode: result.exitCode,
         result,
-        execParams: params,
-      })
+      }
+      throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
     }
 
     if (result.exitCode !== 0) {
-      throw new PodRunnerError(`Command exited with code ${result.exitCode}:\n${result.allLogs}`, {
-        logs: result.allLogs,
+      const errorDetails: PodErrorDetails = {
+        logs: await collectLogs(),
+        exitCode: result.exitCode,
         result,
-        execParams: params,
-      })
+      }
+      throw newExitCodePodRunnerError(errorDetails)
     }
 
     return {
       command,
       startedAt,
       completedAt: new Date(),
-      log: result.stdout + result.stderr,
+      log: (result.stdout + result.stderr).trim(),
       exitCode: result.exitCode,
       success: result.exitCode === 0,
     }
@@ -1035,16 +1036,16 @@ export class PodRunner extends PodRunnerParams {
     })
   }
 
-  async getMainContainerLogs() {
-    const allLogs = await this.getLogs()
-    return allLogs.find((l) => l.containerName === this.getMainContainerName())?.log || ""
-  }
-
-  async getDebugLogs() {
+  async getMainContainerLogs(): Promise<string> {
+    const mainContainerName = this.getMainContainerName()
     try {
-      return (await this.getMainContainerLogs()).trim()
+      const allLogs = await this.getLogs()
+      const containerLogs = allLogs.find((l) => l.containerName === mainContainerName)?.log?.trim()
+      return containerLogs || ""
     } catch (err) {
-      return ""
+      return `[Could not retrieve logs for container '${mainContainerName}': ${
+        err.message || "unknown error occurred"
+      }]`
     }
   }
 
@@ -1062,6 +1063,10 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
+  /**
+   * Sets TTY settings for Pod and creates it.
+   * @throws {KubernetesError}
+   */
   private async createPod({ log, tty }: { log: LogEntry; tty: boolean }) {
     const command = this.getFullCommand()
     log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
@@ -1078,10 +1083,106 @@ export class PodRunner extends PodRunnerParams {
     // We never want to restart containers in these ephemeral pods
     pod.spec.restartPolicy = "Never"
 
-    try {
-      await this.api.createPod(this.namespace, pod)
-    } catch (error) {
-      throw new PodRunnerError(`Failed to create Pod ${this.podName}: ${error.message}`, { error })
+    await this.api.createPod(this.namespace, pod)
+  }
+
+  async handlePodError({
+    err,
+    command,
+    startedAt,
+    version,
+    moduleName,
+  }: {
+    err: any
+    command: string[]
+    startedAt: Date
+    version: string
+    moduleName
+  }) {
+    // Some types and predicates to identify known errors
+    const knownErrorTypes = ["out-of-memory", "timeout", "pod-runner", "kubernetes"] as const
+    type KnownErrorType = typeof knownErrorTypes[number]
+    // A known error is always an instance of a subclass of GardenBaseError
+    type KnownError = {
+      message: string
+      type: KnownErrorType
+      detail: PodErrorDetails
+    }
+    const isKnownError = (error: any): error is KnownError => {
+      return knownErrorTypes.includes(error.type) && !!error.detail
+    }
+
+    // Rethrow any unexpected/unknown error
+    if (!isKnownError(err)) {
+      throw err
+    }
+
+    function renderError(error: KnownError): string {
+      const errorDetail = error.detail
+      const logs = errorDetail.logs
+
+      switch (error.type) {
+        // The pod container exceeded its memory limits
+        case "out-of-memory":
+          return error.message + (logs ? ` Here are the logs until the out-of-memory event occurred:\n\n${logs}` : "")
+        // Command timed out
+        case "timeout":
+          return error.message + (logs ? ` Here are the logs until the timeout occurred:\n\n${logs}` : "")
+        // Command exited with non-zero code
+        case "pod-runner":
+          let errorDesc = error.message + "\n\n"
+
+          const containerState = errorDetail.containerStatus?.state
+          const terminatedContainerState = containerState?.terminated
+          const podStatus = errorDetail.podStatus
+
+          if (!!terminatedContainerState) {
+            let terminationDesc = ""
+            if (!!terminatedContainerState.exitCode) {
+              terminationDesc += `Exited with code: ${terminatedContainerState.exitCode}. `
+            }
+            if (!!terminatedContainerState.signal) {
+              terminationDesc += `Stopped with signal: ${terminatedContainerState.signal}. `
+            }
+            terminationDesc += `Reason: ${terminatedContainerState.reason || "unknown"}. `
+            terminationDesc += `Message: ${terminatedContainerState.message || "n/a"}.`
+            terminationDesc = terminationDesc.trim()
+
+            if (!!terminationDesc) {
+              errorDesc += terminationDesc + "\n\n"
+            }
+          }
+          // Print Pod status if case of too generic and non-informative error in the terminated state
+          if (!terminatedContainerState?.message && terminatedContainerState?.reason === "Error") {
+            if (!!podStatus) {
+              const podStatusDesc = "PodStatus:\n" + JSON.stringify(podStatus, null, 2)
+              errorDesc += podStatusDesc + "\n\n"
+            }
+          }
+
+          if (!!logs) {
+            errorDesc += `Here are the logs until the error occurred:\n\n${logs}`
+          }
+
+          return errorDesc
+        case "kubernetes":
+          return `Unable to start command execution. Failed to initiate a runner pod with error:\n${error.message}\n\nPlease check the cluster health and network connectivity.`
+        default:
+          const _exhaustiveCheck: never = error.type
+          return _exhaustiveCheck
+      }
+    }
+
+    const log = renderError(err)
+    return {
+      log,
+      moduleName,
+      version,
+      success: false,
+      startedAt,
+      completedAt: new Date(),
+      command,
+      exitCode: err.detail.exitCode,
     }
   }
 }

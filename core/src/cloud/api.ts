@@ -9,8 +9,7 @@
 import { IncomingHttpHeaders } from "http"
 
 import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { findProjectConfig } from "../config/base"
-import { CommandError, EnterpriseApiError } from "../exceptions"
+import { EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
 import { gardenEnv } from "../constants"
 import type { ClientAuthToken as ClientAuthTokenType } from "../db/entities/client-auth-token"
@@ -21,6 +20,7 @@ import chalk from "chalk"
 import { GetProjectResponse, GetUserResponse } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
+import { ProjectResource } from "../config/project"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -95,24 +95,23 @@ export interface RegisterSessionResponse {
 }
 
 /**
- * A helper function that finds a project without resolving template strings and returns the enterprise
- * config. Needed since the EnterpriseApi is generally used before initializing the Garden class.
+ * A helper function to get the cloud domain from a project config. Uses the env var
+ * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export async function getEnterpriseConfig(currentDirectory: string) {
-  const projectConfig = await findProjectConfig(currentDirectory)
+export function getGardenCloudDomain(projectConfig?: ProjectResource): string | undefined {
   if (!projectConfig) {
-    throw new CommandError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
-      currentDirectory,
-    })
+    return undefined
   }
 
-  const projectId = projectConfig.id
-  if (!projectId || !projectConfig.domain) {
-    return
+  let cloudDomain: string | undefined
+
+  if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
+    cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
+  } else if (projectConfig.domain) {
+    cloudDomain = new URL(projectConfig.domain).origin
   }
 
-  const domain = new URL(projectConfig.domain).origin
-  return { domain, projectId }
+  return cloudDomain
 }
 
 /**
@@ -129,18 +128,17 @@ export class CloudApi {
   private _project?: GetProjectResponse["data"]
   private _profile?: GetUserResponse["data"]
   public domain: string
-  public projectId: string
+  public projectId: string | undefined
 
   // Set when/if the Core session is registered with Cloud
   public environmentId?: number
   public namespaceId?: number
   public sessionRegistered = false
 
-  constructor(log: LogEntry, enterpriseDomain: string, projectId: string) {
+  constructor(log: LogEntry, enterpriseDomain: string) {
     this.log = log
     // TODO: Replace all instances of "enterpriseDomain" with "cloudDomain".
     this.domain = enterpriseDomain
-    this.projectId = projectId
   }
 
   /**
@@ -154,20 +152,14 @@ export class CloudApi {
    */
   static async factory({
     log,
-    currentDirectory,
+    cloudDomain,
     skipLogging = false,
   }: {
     log: LogEntry
-    currentDirectory: string
+    cloudDomain: string
     skipLogging?: boolean
   }) {
     log.debug("Initializing Garden Cloud API client.")
-
-    const config = await getEnterpriseConfig(currentDirectory)
-    if (!config) {
-      log.debug("Cloud/Enterprise domain and/or project ID missing. Aborting.")
-      return null
-    }
 
     const token = await CloudApi.getClientAuthTokenFromDb(log)
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
@@ -175,10 +167,10 @@ export class CloudApi {
       return null
     }
 
-    const api = new CloudApi(log, config.domain, config.projectId)
+    const api = new CloudApi(log, cloudDomain)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const distroName = getCloudDistributionName(config.domain)
+    const distroName = getCloudDistributionName(api.domain)
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
 
     const enterpriseLog = skipLogging ? null : log.info({ section, msg: "Authorizing...", status: "active" })
@@ -217,13 +209,6 @@ export class CloudApi {
     }
 
     enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
-    try {
-      const project = await api.getProject()
-      const url = new URL(`/projects/${project.id}`, api.domain)
-      enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${url.href}` })
-    } catch (err) {
-      log.debug(`Getting project from API failed with error: ${err.message}`)
-    }
 
     return api
   }
@@ -335,6 +320,17 @@ export class CloudApi {
     if (this.intervalId) {
       clearInterval(this.intervalId)
       this.intervalId = null
+    }
+  }
+
+  async ensureProject(projectId: string) {
+    try {
+      this.projectId = projectId
+      const project = await this.getProject()
+      return new URL(`/projects/${project.id}`, this.domain)
+    } catch (err) {
+      this.projectId = undefined
+      throw err
     }
   }
 
@@ -562,7 +558,11 @@ export class CloudApi {
   }
 
   async getProject() {
-    if (this._project) {
+    // If we are using a new project ID, retrieve again from the API
+    // NOTE: If we wan't to use this with multiple project IDs we need
+    // a cache supporting that + check if the remote project metadata
+    // was updated.
+    if (this._project && this._project.uid === this.projectId) {
       return this._project
     }
 

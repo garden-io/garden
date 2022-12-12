@@ -425,8 +425,8 @@ export async function compareDeployedResources(
       }
     }
 
-    // clean null values
-    manifest = <KubernetesResource>removeNull(manifest)
+    // clean null and undefined values
+    manifest = <KubernetesResource>removeNullAndUndefined(manifest)
     // The Kubernetes API currently strips out environment variables values so we remove them
     // from the manifests as well
     manifest = removeEmptyEnvValues(manifest)
@@ -483,15 +483,15 @@ export async function getDeployedResource(
 }
 
 /**
- * Recursively removes all null value properties from objects
+ * Recursively removes all null and undefined value properties from objects
  */
-function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof T]: T[K] } {
+function removeNullAndUndefined<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof T]: T[K] } {
   if (isArray(value)) {
-    return value.map(removeNull)
+    return value.map(removeNullAndUndefined)
   } else if (isPlainObject(value)) {
     return <{ [K in keyof T]: T[K] }>mapValues(
-      pickBy(<any>value, (v) => v !== null),
-      removeNull
+      pickBy(<any>value, (v) => v !== null && v !== undefined),
+      removeNullAndUndefined
     )
   } else {
     return value

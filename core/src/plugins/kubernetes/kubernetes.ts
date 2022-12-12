@@ -40,6 +40,7 @@ import { helm3Spec } from "./helm/helm-cli"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
 import { configMapModuleDefinition } from "./volumes/configmap"
+<<<<<<< HEAD
 import { jibContainerHandlers, k8sJibContainerBuildExtension } from "./jib-container"
 import { kustomizeSpec } from "./kubernetes-type/kustomize"
 import { k8sContainerBuildExtension, k8sContainerDeployExtension } from "./container/extensions"
@@ -47,6 +48,12 @@ import { helmDeployDefinition, helmDeployDocs } from "./helm/action"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
 import { kubernetesRunDefinition } from "./kubernetes-type/run"
 import { kubernetesTestDefinition } from "./kubernetes-type/test"
+=======
+import { jibContainerHandlers } from "./jib-container"
+import { emitWarning } from "../../warnings"
+import { kustomizeSpec } from "./kubernetes-module/kustomize"
+import { taskOutputsSchema } from "./task-results"
+>>>>>>> main
 
 export async function configureProvider({
   namespace,
@@ -183,14 +190,20 @@ export const gardenPlugin = () =>
         docs: helmDeployDocs,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
+<<<<<<< HEAD
         handlers: helmModuleHandlers,
         needsBuild: false,
+=======
+        taskOutputsSchema,
+        handlers: helmHandlers,
+>>>>>>> main
       },
       {
         name: "kubernetes",
         docs: kubernetesDeployDocs,
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: kubernetesHandlers,
         needsBuild: false,
       },

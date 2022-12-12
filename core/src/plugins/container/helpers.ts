@@ -21,7 +21,7 @@ import {
 } from "./moduleConfig"
 import { Writable } from "stream"
 import Bluebird from "bluebird"
-import { flatten, uniq, fromPairs } from "lodash"
+import { flatten, uniq, fromPairs, reduce } from "lodash"
 import { LogEntry } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
@@ -379,16 +379,30 @@ const helpers = {
     const paths: string[] = uniq(
       flatten(
         commands.map((cmd) => {
-          const args = cmd.args as string[]
-          if (args[0].startsWith("--chown")) {
-            // Ignore --chown args
-            return args.slice(1, -1)
-          } else if (args[0].startsWith("--from")) {
+          const parsed = reduce(
+            cmd.args as string[],
+            (state, current) => {
+              // starts with -- and we did not parse any files yet?
+              // must be a flag!
+              if (current.startsWith("--") && !state.files.length) {
+                state.flags.push(current)
+              } else {
+                // must be a file
+                state.files.push(current)
+              }
+
+              return state
+            },
+            { flags: [] as string[], files: [] as string[] }
+          )
+
+          if (parsed.flags.find((f) => f.startsWith("--from"))) {
             // Skip statements copying from another build stage
             return []
-          } else {
-            return args.slice(0, -1)
           }
+
+          // skip the COPY destination
+          return parsed.files.slice(0, -1)
         })
       )
         // Strip quotes from quoted paths

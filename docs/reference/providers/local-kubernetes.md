@@ -194,6 +194,10 @@ providers:
           # otherwise just a regular string.
           value:
 
+      # Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit.
+      # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+      annotations:
+
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -218,13 +222,16 @@ providers:
       namespace: garden-system
 
       # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
-      # pods to only run on particular nodes.
+      # pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
+      # specifically set under `util.nodeSelector`.
       #
       # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
-      # guide to assigning Pods to nodes.
+      # guide to assigning pods to nodes.
       nodeSelector:
 
-      # Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds.
+      # Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run
+      # builds. The same tolerations will be used for each util pod unless they are specifically set under
+      # `util.tolerations`
       tolerations:
         - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
           # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -250,6 +257,45 @@ providers:
           # empty,
           # otherwise just a regular string.
           value:
+
+      # Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of
+      # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
+      # are specifically set under `util.annotations`
+      annotations:
+
+      util:
+        # Specify tolerations to apply to each garden-util pod.
+        tolerations:
+          - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+            # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+            effect:
+
+            # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+            # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+            key:
+
+            # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal".
+            # Defaults to
+            # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+            # particular category.
+            operator: Equal
+
+            # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+            # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+            # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+            # by the system.
+            tolerationSeconds:
+
+            # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
+            # empty,
+            # otherwise just a regular string.
+            value:
+
+        # Specify annotations to apply to each garden-util pod and deployments.
+        annotations:
+
+        # Specify the nodeSelector constraints for each garden-util pod.
+        nodeSelector:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -359,6 +405,77 @@ providers:
           # Ephemeral storage request in megabytes.
           ephemeralStorage:
 
+<<<<<<< HEAD
+=======
+      # Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
+      # so that they are available to all the nodes in your cluster.
+      #
+      # This is shared across all users and builds, so it should be resourced accordingly, factoring
+      # in how many concurrent builds you expect and how large your images tend to be.
+      registry:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 2000
+
+          # Memory limit in megabytes.
+          memory: 4096
+
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 200
+
+          # Memory request in megabytes.
+          memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
+
+      # Resource requests and limits for the util pod for in-cluster builders.
+      # This pod is used to get, start, stop and inquire the status of the builds.
+      #
+      # This pod is created in each garden namespace.
+      util:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 256
+
+          # Memory limit in megabytes.
+          memory: 512
+
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 256
+
+          # Memory request in megabytes.
+          memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
+
+    # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
+    # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
+    #
+    # These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
+    # factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
+    storage:
+      # Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
+      # are available to all the nodes in your cluster.
+      #
+      # Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+      registry:
+        # Volume size in megabytes.
+        size: 20480
+
+        # Storage class to use for the volume.
+        storageClass: null
+
+>>>>>>> main
     # One or more certificates to use for ingress.
     tlsCertificates:
       - # A unique identifier for this certificate.
@@ -805,6 +922,57 @@ otherwise just a regular string.
 | -------- | -------- |
 | `string` | No       |
 
+<<<<<<< HEAD
+=======
+### `providers[].clusterBuildkit.annotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > annotations
+
+Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].clusterDocker`
+
+[providers](#providers) > clusterDocker
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Configuration options for the `cluster-docker` build mode.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+### `providers[].clusterDocker.enableBuildKit`
+
+[providers](#providers) > [clusterDocker](#providersclusterdocker) > enableBuildKit
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more performant, but we're opting to keep it optional until it's enabled by default in Docker.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+>>>>>>> main
 ### `providers[].jib`
 
 [providers](#providers) > jib
@@ -871,9 +1039,9 @@ Choose the namespace where the Kaniko pods will be run. Set to `null` to use the
 
 [providers](#providers) > [kaniko](#providerskaniko) > nodeSelector
 
-Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under `util.nodeSelector`.
 
-[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
 
 | Type     | Required |
 | -------- | -------- |
@@ -883,7 +1051,7 @@ Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows 
 
 [providers](#providers) > [kaniko](#providerskaniko) > tolerations
 
-Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds.
+Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. The same tolerations will be used for each util pod unless they are specifically set under `util.tolerations`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -946,6 +1114,134 @@ otherwise just a regular string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `providers[].kaniko.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > annotations
+
+Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. The same annotations will be used for each util pod unless they are specifically set under `util.annotations`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].kaniko.util`
+
+[providers](#providers) > [kaniko](#providerskaniko) > util
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].kaniko.util.tolerations[]`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > tolerations
+
+Specify tolerations to apply to each garden-util pod.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].kaniko.util.tolerations[].effect`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.tolerations[].key`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.tolerations[].operator`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"Equal"` | No       |
+
+### `providers[].kaniko.util.tolerations[].tolerationSeconds`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.tolerations[].value`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > annotations
+
+Specify annotations to apply to each garden-util pod and deployments.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      util:
+        ...
+        annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].kaniko.util.nodeSelector`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > nodeSelector
+
+Specify the nodeSelector constraints for each garden-util pod.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].defaultHostname`
 
@@ -1170,9 +1466,15 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Resource requests and limits for the in-cluster builder..
 
+<<<<<<< HEAD
 | Type     | Default                                                                                 | Required |
 | -------- | --------------------------------------------------------------------------------------- | -------- |
 | `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}}}` | No       |
+=======
+| Type     | Default                                                                                                                                                                                                                                                                                                                                   | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}},"util":{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}}` | No       |
+>>>>>>> main
 
 ### `providers[].resources.builder`
 
@@ -1342,6 +1644,717 @@ providers:
           ephemeralStorage: 8192
 ```
 
+<<<<<<< HEAD
+=======
+### `providers[].resources.registry`
+
+[providers](#providers) > [resources](#providersresources) > registry
+
+Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
+so that they are available to all the nodes in your cluster.
+
+This is shared across all users and builds, so it should be resourced accordingly, factoring
+in how many concurrent builds you expect and how large your images tend to be.
+
+| Type     | Default                                                                     | Required |
+| -------- | --------------------------------------------------------------------------- | -------- |
+| `object` | `{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}}` | No       |
+
+### `providers[].resources.registry.limits`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > limits
+
+| Type     | Default                      | Required |
+| -------- | ---------------------------- | -------- |
+| `object` | `{"cpu":2000,"memory":4096}` | No       |
+
+### `providers[].resources.registry.limits.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > cpu
+
+CPU limit in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `2000`  | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        limits:
+          ...
+          cpu: 2000
+```
+
+### `providers[].resources.registry.limits.memory`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > memory
+
+Memory limit in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `4096`  | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        limits:
+          ...
+          memory: 4096
+```
+
+### `providers[].resources.registry.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [limits](#providersresourcesregistrylimits) > ephemeralStorage
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.registry.requests`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > requests
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":200,"memory":512}` | No       |
+
+### `providers[].resources.registry.requests.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > cpu
+
+CPU request in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `200`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        requests:
+          ...
+          cpu: 200
+```
+
+### `providers[].resources.registry.requests.memory`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > memory
+
+Memory request in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        requests:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.registry.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [registry](#providersresourcesregistry) > [requests](#providersresourcesregistryrequests) > ephemeralStorage
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      registry:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.util`
+
+[providers](#providers) > [resources](#providersresources) > util
+
+Resource requests and limits for the util pod for in-cluster builders.
+This pod is used to get, start, stop and inquire the status of the builds.
+
+This pod is created in each garden namespace.
+
+| Type     | Default                                                                   | Required |
+| -------- | ------------------------------------------------------------------------- | -------- |
+| `object` | `{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}` | No       |
+
+### `providers[].resources.util.limits`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > limits
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":256,"memory":512}` | No       |
+
+### `providers[].resources.util.limits.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > cpu
+
+CPU limit in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `256`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          cpu: 256
+```
+
+### `providers[].resources.util.limits.memory`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > memory
+
+Memory limit in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.util.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > ephemeralStorage
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.util.requests`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > requests
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":256,"memory":512}` | No       |
+
+### `providers[].resources.util.requests.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > cpu
+
+CPU request in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `256`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        requests:
+          ...
+          cpu: 256
+```
+
+### `providers[].resources.util.requests.memory`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > memory
+
+Memory request in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        requests:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.util.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > ephemeralStorage
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.sync`
+
+[providers](#providers) > [resources](#providersresources) > sync
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
+ahead of building images. This generally is not resource intensive, but you might want to adjust the
+defaults if you have many concurrent users.
+
+| Type     | Default                                                                  | Required |
+| -------- | ------------------------------------------------------------------------ | -------- |
+| `object` | `{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}` | No       |
+
+### `providers[].resources.sync.limits`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > limits
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":500,"memory":512}` | No       |
+
+### `providers[].resources.sync.limits.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > cpu
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+CPU limit in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `500`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        limits:
+          ...
+          cpu: 500
+```
+
+### `providers[].resources.sync.limits.memory`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > memory
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Memory limit in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        limits:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.sync.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [limits](#providersresourcessynclimits) > ephemeralStorage
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.sync.requests`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > requests
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+| Type     | Default                   | Required |
+| -------- | ------------------------- | -------- |
+| `object` | `{"cpu":100,"memory":90}` | No       |
+
+### `providers[].resources.sync.requests.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > cpu
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+CPU request in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `100`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        requests:
+          ...
+          cpu: 100
+```
+
+### `providers[].resources.sync.requests.memory`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > memory
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Memory request in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `90`    | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        requests:
+          ...
+          memory: 90
+```
+
+### `providers[].resources.sync.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [sync](#providersresourcessync) > [requests](#providersresourcessyncrequests) > ephemeralStorage
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      sync:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].storage`
+
+[providers](#providers) > storage
+
+Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
+(which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
+
+These are all shared cluster-wide across all users and builds, so they should be resourced accordingly,
+factoring in how many concurrent builds you expect and how large your images and build contexts tend to be.
+
+| Type     | Default                                                                                                                                                              | Required |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `object` | `{"builder":{"size":20480,"storageClass":null},"nfs":{"storageClass":null},"registry":{"size":20480,"storageClass":null},"sync":{"size":10240,"storageClass":null}}` | No       |
+
+### `providers[].storage.builder`
+
+[providers](#providers) > [storage](#providersstorage) > builder
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Storage parameters for the data volume for the in-cluster Docker Daemon.
+
+Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
+
+| Type     | Default                              | Required |
+| -------- | ------------------------------------ | -------- |
+| `object` | `{"size":20480,"storageClass":null}` | No       |
+
+### `providers[].storage.builder.size`
+
+[providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > size
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Volume size in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `20480` | No       |
+
+### `providers[].storage.builder.storageClass`
+
+[providers](#providers) > [storage](#providersstorage) > [builder](#providersstoragebuilder) > storageClass
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Storage class to use for the volume.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `null`  | No       |
+
+### `providers[].storage.nfs`
+
+[providers](#providers) > [storage](#providersstorage) > nfs
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Storage parameters for the NFS provisioner, which we automatically create for the sync volume, _unless_
+you specify a `storageClass` for the sync volume. See the below `sync` parameter for more.
+
+Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+
+| Type     | Default                 | Required |
+| -------- | ----------------------- | -------- |
+| `object` | `{"storageClass":null}` | No       |
+
+### `providers[].storage.nfs.storageClass`
+
+[providers](#providers) > [storage](#providersstorage) > [nfs](#providersstoragenfs) > storageClass
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Storage class to use as backing storage for NFS .
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `null`  | No       |
+
+### `providers[].storage.registry`
+
+[providers](#providers) > [storage](#providersstorage) > registry
+
+Storage parameters for the in-cluster Docker registry volume. Built images are stored here, so that they
+are available to all the nodes in your cluster.
+
+Only applies when `buildMode` is set to `cluster-docker` or `kaniko`, ignored otherwise.
+
+| Type     | Default                              | Required |
+| -------- | ------------------------------------ | -------- |
+| `object` | `{"size":20480,"storageClass":null}` | No       |
+
+### `providers[].storage.registry.size`
+
+[providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > size
+
+Volume size in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `20480` | No       |
+
+### `providers[].storage.registry.storageClass`
+
+[providers](#providers) > [storage](#providersstorage) > [registry](#providersstorageregistry) > storageClass
+
+Storage class to use for the volume.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `null`  | No       |
+
+### `providers[].storage.sync`
+
+[providers](#providers) > [storage](#providersstorage) > sync
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Storage parameters for the code sync volume, which build contexts are synced to ahead of running
+in-cluster builds.
+
+Important: The storage class configured here has to support _ReadWriteMany_ access.
+If you don't specify a storage class, Garden creates an NFS provisioner and provisions an
+NFS volume for the sync data volume.
+
+Only applies when `buildMode` is set to `cluster-docker`, ignored otherwise.
+
+| Type     | Default                              | Required |
+| -------- | ------------------------------------ | -------- |
+| `object` | `{"size":10240,"storageClass":null}` | No       |
+
+### `providers[].storage.sync.size`
+
+[providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > size
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Volume size in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10240` | No       |
+
+### `providers[].storage.sync.storageClass`
+
+[providers](#providers) > [storage](#providersstorage) > [sync](#providersstoragesync) > storageClass
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Storage class to use for the volume.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `null`  | No       |
+
+>>>>>>> main
 ### `providers[].tlsCertificates[]`
 
 [providers](#providers) > tlsCertificates
@@ -1642,6 +2655,16 @@ Map of annotations to apply to the namespace when creating it.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - namespace: ''
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
 
 ### `providers[].namespace.labels`
 

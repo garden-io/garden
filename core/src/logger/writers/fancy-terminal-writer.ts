@@ -17,6 +17,7 @@ import { LogEntry } from "../log-entry"
 import { Logger, LogLevel } from "../logger"
 import { getChildEntries, getTerminalWidth, interceptStream } from "../util"
 import { Writer } from "./base"
+import { gardenEnv } from "../../constants"
 
 const INTERVAL_MS = 60
 const THROTTLE_MS = 600
@@ -85,13 +86,21 @@ export class FancyTerminalWriter extends Writer {
     entries.forEach((e) => {
       let out = ""
       const x = e.spinnerCoords[0]
-      const y = -(totalLines - e.spinnerCoords[1] - 1)
+      const y = totalLines - e.spinnerCoords[1] - 1
+      const terminalHeight = process.stdout.rows
+      const spinnerIsOutsideViewport = y >= terminalHeight
+
+      // Terminal height may not always be defined, in which case we fallback to the default behaviour
+      if (terminalHeight && spinnerIsOutsideViewport) {
+        return false
+      }
+
       out += ansiEscapes.cursorSavePosition
       out += ansiEscapes.cursorTo(0) // Ensure cursor is to the left
-      out += ansiEscapes.cursorMove(x, y)
+      out += ansiEscapes.cursorMove(x, -y)
       out += spinnerStyle(this.tickSpinner(e.key))
       out += ansiEscapes.cursorRestorePosition
-      this.stream.write(out)
+      return this.stream.write(out)
     })
   }
 
@@ -114,12 +123,54 @@ export class FancyTerminalWriter extends Writer {
     return this.spinners[key]()
   }
 
-  private write(output: string[], nextEntry: TerminalEntry) {
+  private write(allLines: string[], nextEntry: TerminalEntry) {
     cliCursor.hide(this.stream)
 
-    const lineNumber = output.length >= this.prevOutput.length ? nextEntry.lineNumber : 0
-    const nLinesToErase = this.prevOutput.length - lineNumber
-    this.stream.write(ansiEscapes.eraseLines(nLinesToErase) + output.slice(lineNumber).join("\n"))
+    let out = ""
+
+    // We start at the top if the next batch to be rendered is shorter then the previous one.
+    const nextEntryLineNumber = allLines.length >= this.prevOutput.length ? nextEntry.lineNumber : 0
+    const terminalHeight = process.stdout.rows
+    const nextEntryIsInViewport = nextEntryLineNumber >= allLines.length - terminalHeight - 1
+    const nextEntryIsNew = nextEntryLineNumber >= this.prevOutput.length - 1
+
+    // If the next entry is new, or in the viewport, we clear the terminal from the bottom
+    // and up towards the entry, and then render it alongside the subsequent entries.
+    //
+    // This applies to entries that are being updated and have content below them
+    // as well as new entries (in which case nLinesToErase = 0).
+    //
+    // This is the "legacy" render method.
+    //
+    // Terminal height may not always be defined, in which case we also fallback to this method.
+    if (nextEntryIsNew || nextEntryIsInViewport || !terminalHeight || gardenEnv.GARDEN_LEGACY_FANCY_LOG_RENDER) {
+      const nLinesToErase = this.prevOutput.length - nextEntryLineNumber
+      out += ansiEscapes.eraseLines(nLinesToErase)
+      out += allLines.slice(nextEntryLineNumber).join("\n")
+      return this.stream.write(out)
+    }
+
+    // Here's where it gets tricky.
+    //
+    // The next entry is not in the viewport so we can't use ansi escape codes
+    // as they can only be applied to content that's in the actual view port.
+    //
+    // In this case we render the next entry at the top and then the rest of the _previous_ output,
+    // slicing at the top of the viewport.
+    //
+    // We use the previous output since in this case the "next entry" isn't a new entry
+    // (otherwise it would be in the viewport) and therefore the rest of the output stays the same
+    // for this render loop.
+    //
+    // This ensures that all entries are rendered but never duplicated.
+    const outputInViewPort = this.prevOutput.slice(this.prevOutput.length - terminalHeight)
+    const firstLine = allLines[nextEntryLineNumber]
+    const rest = outputInViewPort
+
+    // Clear current view port
+    out += ansiEscapes.eraseLines(terminalHeight)
+    out += [firstLine, ...rest].join("\n")
+    return this.stream.write(out)
   }
 
   private handleGraphChange(log: LogEntry, logger: Logger, didWrite: boolean = false) {
@@ -154,20 +205,20 @@ export class FancyTerminalWriter extends Writer {
       return
     }
 
-    const output = this.render(terminalEntries)
+    const allLines = this.render(terminalEntries)
     if (!didWrite) {
-      this.write(output, nextEntry)
+      this.write(allLines, nextEntry)
     }
 
     const entriesWithspinner = <TerminalEntryWithSpinner[]>terminalEntries.filter((e) => e.spinnerCoords)
 
     if (entriesWithspinner.length > 0) {
-      this.startLoop(entriesWithspinner, output.length)
+      this.startLoop(entriesWithspinner, allLines.length)
     } else {
       this.stopLoop()
     }
 
-    this.prevOutput = output
+    this.prevOutput = allLines
   }
 
   public toTerminalEntries(logger: Logger): TerminalEntry[] {

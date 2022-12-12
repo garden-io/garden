@@ -46,7 +46,7 @@ import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
 import { Resolved } from "../../actions/types"
 
-export const skopeoImage = "gardendev/skopeo:1.41.0-2"
+export const skopeoImage = "gardendev/skopeo:1.41.0-3"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]

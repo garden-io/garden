@@ -28,6 +28,7 @@ import { ensureFile, remove } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
+<<<<<<< HEAD
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import {
   ExecActionConfig,
@@ -56,6 +57,10 @@ import { runResultToActionState } from "../../actions/base"
 import { ResolvedBuildAction } from "../../actions/build"
 import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
 import { BuildStatus } from "../../plugin/handlers/build/get-status"
+=======
+import { ServiceStatus } from "../../types/service"
+import { taskOutputsSchema } from "../kubernetes/task-results"
+>>>>>>> main
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -741,6 +746,10 @@ export const execPlugin = () =>
         needsBuild: true,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
+<<<<<<< HEAD
+=======
+        taskOutputsSchema,
+>>>>>>> main
         handlers: {
           configure: configureExecModule,
           convert: convertExecModule,

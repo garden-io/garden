@@ -144,7 +144,7 @@ describe("kubernetes", () => {
 
         setTimeout(() => {
           logsFollower.close()
-        }, 2500)
+        }, 5000)
         await logsFollower.followLogs({ limitBytes: null })
 
         expect(ctx.log.toString()).to.match(/Connected to container 'simple-service'/)

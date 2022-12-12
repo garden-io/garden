@@ -16,8 +16,6 @@ import type {
   V1Pod,
   V1ListMeta,
   V1Ingress,
-  NetworkingV1beta1Ingress,
-  ExtensionsV1beta1Ingress,
 } from "@kubernetes/client-node"
 
 import type { Omit } from "../../util/util"
@@ -90,7 +88,7 @@ export type KubernetesStatefulSet = KubernetesResource<V1StatefulSet>
 export type KubernetesPod = KubernetesResource<V1Pod>
 
 export type KubernetesWorkload = KubernetesResource<V1DaemonSet | V1Deployment | V1ReplicaSet | V1StatefulSet>
-export type KubernetesIngress = KubernetesResource<V1Ingress | NetworkingV1beta1Ingress | ExtensionsV1beta1Ingress>
+export type KubernetesIngress = KubernetesResource<V1Ingress>
 
 export function isPodResource(resource: KubernetesWorkload | KubernetesPod): resource is KubernetesPod {
   return resource.kind === "Pod"

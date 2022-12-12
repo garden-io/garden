@@ -112,12 +112,17 @@ import {
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
+<<<<<<< HEAD
 import { CloudApi } from "./cloud/api"
 import {
   DefaultEnvironmentContext,
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project"
+=======
+import { CloudApi, getGardenCloudDomain } from "./cloud/api"
+import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
+>>>>>>> main
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
@@ -1481,19 +1486,42 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
-  const cloudDomain = cloudApi?.domain
+  // fall back to get the domain from config if the cloudApi instance failed
+  // to login or was not defined
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
+
+  // The cloudApi instance only has a project ID when the configured ID has
+  // been verified against the cloud instance.
+  const cloudProjectId: string | undefined = config.id
+
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
     const cloudLog = log.info({ section, msg: "Initializing...", status: "active" })
 
-    try {
-      secrets = await getSecrets({ log: cloudLog, environmentName, cloudApi })
-      cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
-      cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-    } catch (err) {
-      cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
-      cloudLog.setWarn()
+    if (cloudProjectId) {
+      // Ensure that the current projectId exists in the remote project
+      try {
+        const projectUrl = await cloudApi.ensureProject(cloudProjectId)
+        cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+      } catch (err) {
+        cloudLog.info(`Failed to find a project with the configured project ID ${cloudProjectId}`)
+        cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
+      }
+
+      // Only fetch secrets if the projectId exists in the cloud API instance
+      if (cloudApi.projectId) {
+        try {
+          secrets = await getSecrets({ log: cloudLog, projectId: cloudProjectId, environmentName, cloudApi })
+          cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
+          cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+        } catch (err) {
+          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+          cloudLog.setWarn()
+        }
+      }
+    } else {
+      cloudLog.info(`Logged in to ${distroName}, but failed to find a configured project ID`)
     }
   }
 
@@ -1542,8 +1570,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     vcsInfo,
     sessionId,
     disablePortForwards,
-    projectId: config.id,
-    enterpriseDomain: config.domain,
+    projectId: cloudProjectId,
+    enterpriseDomain: cloudDomain,
     projectRoot,
     projectName,
     environmentName,

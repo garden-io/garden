@@ -18,6 +18,7 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
+<<<<<<< HEAD
 import { ConfigurationError, RuntimeError } from "../../../exceptions"
 import {
   KubernetesResource,
@@ -28,6 +29,11 @@ import {
   SyncableResource,
 } from "../types"
 import { ContainerServiceStatus, k8sGetContainerDeployStatus } from "./status"
+=======
+import { KubernetesResource, KubernetesWorkload } from "../types"
+import { ConfigurationError } from "../../../exceptions"
+import { ContainerServiceStatus, getContainerServiceStatus } from "./status"
+>>>>>>> main
 import { LogEntry } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
@@ -551,7 +557,7 @@ export async function createWorkloadManifest({
 
     const deploymentStrategy = spec.deploymentStrategy
     if (deploymentStrategy === "RollingUpdate") {
-      // Need the any cast because the library types are busted
+      // Need the <any> cast because the library types are busted
       deployment.spec!.strategy = <any>{
         type: deploymentStrategy,
         rollingUpdate: {
@@ -565,8 +571,8 @@ export async function createWorkloadManifest({
         type: deploymentStrategy,
       }
     } else {
-      // defensive type-check, the actual type here must be 'never'
-      throw new RuntimeError(`Unsupported deployment strategy: ${deploymentStrategy}`, { deploymentStrategy })
+      const _exhaustiveCheck: never = deploymentStrategy
+      return _exhaustiveCheck
     }
 
     workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
@@ -781,7 +787,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
   } else if (spec.healthCheck?.tcpPort) {
     container.readinessProbe.tcpSocket = {
       // For some reason the field is an object type
-      port: (portsByName[spec.healthCheck.tcpPort].containerPort as unknown) as object,
+      port: portsByName[spec.healthCheck.tcpPort].containerPort,
     }
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {

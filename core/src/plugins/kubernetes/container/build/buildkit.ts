@@ -32,14 +32,22 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
+<<<<<<< HEAD
 import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { defaultDockerfileName } from "../../../container/helpers"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { Resolved } from "../../../../actions/types"
+=======
+import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
+import { PodRunner } from "../../run"
+import { prepareSecrets } from "../../secrets"
+import { ContainerModuleOutputs } from "../../../container/container"
+import { stringifyResources } from "../util"
+>>>>>>> main
 
-export const buildkitImageName = "gardendev/buildkit:v0.9.3-1"
+export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
 export const buildkitDeploymentName = "garden-buildkit"
 const buildkitContainerName = "buildkitd"
 
@@ -64,7 +72,7 @@ export const getBuildkitBuildStatus: BuildStatusHandler = async (params) => {
   return skopeoBuildStatus({
     namespace,
     deploymentName: buildkitDeploymentName,
-    containerName: getUtilContainer(authSecret.metadata.name).name,
+    containerName: getUtilContainer(authSecret.metadata.name, provider).name,
     log,
     api,
     ctx,
@@ -369,6 +377,7 @@ export function getBuildkitDeployment(
         app: buildkitDeploymentName,
       },
       name: buildkitDeploymentName,
+      annotations: provider.config.clusterBuildkit?.annotations,
     },
     spec: {
       replicas: 1,
@@ -382,6 +391,7 @@ export function getBuildkitDeployment(
           labels: {
             app: buildkitDeploymentName,
           },
+          annotations: provider.config.clusterBuildkit?.annotations,
         },
         spec: {
           containers: [
@@ -425,7 +435,7 @@ export function getBuildkitDeployment(
               ],
             },
             // Attach a util container for the rsync server and to use skopeo
-            getUtilContainer(authSecretName),
+            getUtilContainer(authSecretName, provider),
           ],
           imagePullSecrets,
           volumes: [
@@ -472,22 +482,7 @@ export function getBuildkitDeployment(
     }
   }
 
-  buildkitContainer.resources = {
-    limits: {
-      cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
-      memory: megabytesToString(provider.config.resources.builder.limits.memory),
-      ...(provider.config.resources.builder.limits.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.limits.ephemeralStorage) }
-        : {}),
-    },
-    requests: {
-      cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
-      memory: megabytesToString(provider.config.resources.builder.requests.memory),
-      ...(provider.config.resources.builder.requests.ephemeralStorage
-        ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.requests.ephemeralStorage) }
-        : {}),
-    },
-  }
+  buildkitContainer.resources = stringifyResources(provider.config.resources.builder)
 
   // Set the configured nodeSelector, if any
   if (!isEmpty(provider.config.clusterBuildkit?.nodeSelector)) {

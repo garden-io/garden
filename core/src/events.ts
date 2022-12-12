@@ -307,6 +307,7 @@ export interface Events extends LoggerEvents {
   }
 
   // Cloud UI events
+<<<<<<< HEAD
   buildRequested: {
     moduleName: string
     force: boolean
@@ -344,6 +345,8 @@ export interface Events extends LoggerEvents {
     moduleName: string
     test: boolean
   }
+=======
+>>>>>>> main
 }
 
 export type EventName = keyof Events
@@ -351,12 +354,6 @@ export type EventName = keyof Events
 /**
  * These events indicate a request from Cloud to Core.
  */
-export const cloudRequestEventNames: EventName[] = [
-  "buildRequested",
-  "deployRequested",
-  "testRequested",
-  "taskRequested",
-]
 
 // Note: Does not include logger events.
 export const pipedEventNames: EventName[] = [
@@ -397,8 +394,4 @@ export const pipedEventNames: EventName[] = [
   "workflowStepError",
   "workflowStepProcessing",
   "workflowStepSkipped",
-  "buildRequested",
-  "deployRequested",
-  "testRequested",
-  "taskRequested",
 ]
