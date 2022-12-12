@@ -18,27 +18,11 @@ import hasha from "hasha"
 import { upsertConfigMap } from "./util"
 import { trimRunOutput } from "./helm/common"
 import chalk from "chalk"
-<<<<<<< HEAD:core/src/plugins/kubernetes/run-results.ts
-import { runResultToActionState, RuntimeAction } from "../../actions/base"
+import { runResultToActionState } from "../../actions/base"
 import { Action } from "../../actions/types"
 import { RunResult } from "../../plugin/base"
 import { RunActionHandler } from "../../plugin/action-types"
 import { KubernetesRunAction } from "./kubernetes-type/run"
-=======
-import { GardenTask } from "../../types/task"
-import { joi } from "../../config/common"
-
-export const taskOutputsSchema = joi.object().keys({
-  log: joi
-    .string()
-    .allow("")
-    .default("")
-    .description(
-      "The full log from the executed task. " +
-        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-    ),
-})
->>>>>>> main:core/src/plugins/kubernetes/task-results.ts
 
 // TODO-G2: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {

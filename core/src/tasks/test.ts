@@ -13,13 +13,9 @@ import minimatch = require("minimatch")
 import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
-<<<<<<< HEAD
+import { executeAction } from "../actions/helpers"
 import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/test/get-result"
-import { executeAction } from "../actions/helpers"
-=======
-import { pMemoizeDecorator } from "../lib/p-memoize"
->>>>>>> main
 
 class TestError extends Error {
   toString() {
@@ -119,73 +115,6 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     return { ...status, executedAction: executeAction(action, { status }) }
   }
-<<<<<<< HEAD
-=======
-
-  // We memoize this method for performance and to avoid emitting two `testStatus` events when the task is added
-  // and processed (since this method is called in `resolveDependencies` and `process`).
-  @pMemoizeDecorator()
-  private async getTestResult(): Promise<TestResult | null> {
-    if (this.force) {
-      return null
-    }
-
-    const actions = await this.garden.getActionRouter()
-
-    return actions.getTestResult({
-      log: this.log,
-      graph: this.graph,
-      module: this.test.module,
-      test: this.test,
-    })
-  }
-}
-
-export async function getTestTasks({
-  garden,
-  log,
-  graph,
-  module,
-  filterNames,
-  devModeServiceNames,
-  hotReloadServiceNames,
-  localModeServiceNames,
-  force = false,
-  forceBuild = false,
-  fromWatch = false,
-  skipRuntimeDependencies = false,
-}: {
-  garden: Garden
-  log: LogEntry
-  graph: ConfigGraph
-  module: GardenModule
-  filterNames?: string[]
-  devModeServiceNames: string[]
-  hotReloadServiceNames: string[]
-  localModeServiceNames: string[]
-  force?: boolean
-  forceBuild?: boolean
-  fromWatch?: boolean
-  skipRuntimeDependencies?: boolean
-}) {
-  return Bluebird.map(
-    filterTestConfigs(module.testConfigs, filterNames),
-    (testConfig) =>
-      new TestTask({
-        garden,
-        graph,
-        log,
-        force,
-        forceBuild,
-        fromWatch,
-        test: testFromConfig(module, testConfig, graph),
-        devModeServiceNames,
-        hotReloadServiceNames,
-        localModeServiceNames,
-        skipRuntimeDependencies,
-      })
-  )
->>>>>>> main
 }
 
 export function filterTestConfigs(

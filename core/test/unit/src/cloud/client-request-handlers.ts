@@ -53,58 +53,44 @@ describe("clientRequestHandlers", () => {
 
   describe("deploy", () => {
     it("should return a deploy task for the requested service", async () => {
-<<<<<<< HEAD:core/test/unit/src/enterprise/event-handlers.ts
-      const deployTasks = await cloudEventHandlers.deployRequested({
-=======
       const deployTask = await clientRequestHandlers.deploy({
->>>>>>> main:core/test/unit/src/cloud/client-request-handlers.ts
         ...params,
         request: {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
           devMode: false,
+          hotReload: false,
 
           localMode: false,
           skipDependencies: true,
         },
       })
-      expect(deployTasks.length).to.eql(1)
-      const deployTask = deployTasks[0]
       expect(deployTask.devModeDeployNames).to.eql([])
       expect(deployTask.localModeDeployNames).to.eql([])
       expect(deployTask.action.name).to.eql("service-a")
     })
 
     it("should return a dev-mode deploy task for the requested service", async () => {
-<<<<<<< HEAD:core/test/unit/src/enterprise/event-handlers.ts
-      const deployTasks = await cloudEventHandlers.deployRequested({
-=======
       const deployTask = await clientRequestHandlers.deploy({
->>>>>>> main:core/test/unit/src/cloud/client-request-handlers.ts
         ...params,
         request: {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
           devMode: true,
+          hotReload: false,
           localMode: false,
           skipDependencies: true,
         },
       })
-      expect(deployTasks.length).to.eql(1)
-      const deployTask = deployTasks[0]
       expect(deployTask.action.name).to.eql("service-a")
       // todo
       // expect(deployTask.devModeDeployNames).to.eql(["service-a"])
     })
 
     it("should return a local-mode deploy task for the requested service", async () => {
-<<<<<<< HEAD:core/test/unit/src/enterprise/event-handlers.ts
-      const deployTasks = await cloudEventHandlers.deployRequested({
-=======
       const deployTask = await clientRequestHandlers.deploy({
->>>>>>> main:core/test/unit/src/cloud/client-request-handlers.ts
         ...params,
         request: {
           serviceName: "service-a",
@@ -112,11 +98,10 @@ describe("clientRequestHandlers", () => {
           forceBuild: false,
           devMode: false,
           localMode: true,
+          hotReload: false,
           skipDependencies: true,
         },
       })
-      expect(deployTasks.length).to.eql(1)
-      const deployTask = deployTasks[0]
       expect(deployTask.action.name).to.eql("service-a")
       // todo
       // expect(deployTask.localModeDeployNames).to.eql(["service-a"])
@@ -149,13 +134,9 @@ describe("clientRequestHandlers", () => {
 
   describe("run", () => {
     it("should return test tasks for the requested module", async () => {
-<<<<<<< HEAD:core/test/unit/src/enterprise/event-handlers.ts
-      const taskTasks = await cloudEventHandlers.taskRequested({
-=======
-      const taskTask = await clientRequestHandlers.run({
->>>>>>> main:core/test/unit/src/cloud/client-request-handlers.ts
+      const taskTasks = await clientRequestHandlers.run({
         ...params,
-        request: { taskName: "task-a", force: false, forceBuild: false, skipDependencies: false },
+        request: { taskName: "task-a", force: false, forceBuild: false },
       })
 
       expect(taskTasks.length).to.eql(1)

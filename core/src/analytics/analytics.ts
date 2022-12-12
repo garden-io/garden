@@ -20,12 +20,8 @@ import { AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
-<<<<<<< HEAD
-import { ActionKind } from "../actions/types"
-=======
 import { ModuleConfig } from "../config/module"
 import { UserResponse } from "@garden-io/platform-api-types"
->>>>>>> main
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -126,15 +122,6 @@ interface CommandEvent extends EventBase {
   }
 }
 
-<<<<<<< HEAD
-interface AnalyticsActionConfigErrorProperties extends AnalyticsEventProperties {
-  kind: ActionKind
-  type: string
-}
-
-interface AnalyticsModuleConfigErrorProperties extends AnalyticsEventProperties {
-  moduleType: string
-=======
 interface ApiEvent extends EventBase {
   type: AnalyticsType.CALL_API
   properties: PropertiesBase & {
@@ -142,7 +129,6 @@ interface ApiEvent extends EventBase {
     command: string
     name: string
   }
->>>>>>> main
 }
 
 interface ConfigErrorEvent extends EventBase {
@@ -559,7 +545,6 @@ export class AnalyticsHandler {
   }
 
   /**
-<<<<<<< HEAD
    * Tracks a Garden action configuration error
    */
   trackActionConfigError({
@@ -573,12 +558,12 @@ export class AnalyticsHandler {
     name: string
     moduleName: string
   }) {
-    return this.track(<AnalyticsEvent>{
+    return this.track(<ConfigErrorEvent>{
       type: AnalyticsType.MODULE_CONFIG_ERROR,
-      properties: <AnalyticsActionConfigErrorProperties>{
+      properties: {
         ...this.getBasicAnalyticsProperties(),
         kind,
-        type,
+        moduleType: type,
         name: hasha(name, { algorithm: "sha256" }),
         moduleName: hasha(moduleName, { algorithm: "sha256" }),
       },
@@ -591,19 +576,13 @@ export class AnalyticsHandler {
    * @param {string} moduleType The type of the module causing the configuration error
    * @returns
    * @memberof AnalyticsHandler
-=======
    * Tracks a Garden Module configuration error
->>>>>>> main
    */
   trackModuleConfigError(name: string, moduleType: string) {
     const moduleName = hasha(name, { algorithm: "sha256" })
     return this.track({
       type: AnalyticsType.MODULE_CONFIG_ERROR,
-<<<<<<< HEAD
-      properties: <AnalyticsModuleConfigErrorProperties>{
-=======
       properties: {
->>>>>>> main
         ...this.getBasicAnalyticsProperties(),
         moduleName,
         moduleType,

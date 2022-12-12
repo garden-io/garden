@@ -9,14 +9,6 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
-<<<<<<< HEAD
-import { V1PodSpec, V1Pod, V1Container } from "@kubernetes/client-node"
-import { RunResult } from "../../plugin/base"
-=======
-import { V1Container, V1ContainerStatus, V1Pod, V1PodSpec, V1PodStatus } from "@kubernetes/client-node"
-import { RunResult } from "../../types/plugin/base"
-import { GardenModule } from "../../types/module"
->>>>>>> main
 import { LogEntry } from "../../logger/log-entry"
 import {
   PluginError,
@@ -46,6 +38,8 @@ import { copy } from "fs-extra"
 import { K8sLogFollower, PodLogEntryConverter, PodLogEntryConverterParams } from "./logs"
 import { Stream } from "ts-stream"
 import { BaseRunParams } from "../../plugin/handlers/base/base"
+import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
+import { RunResult } from "../../plugin/base"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -618,13 +612,7 @@ async function runWithArtifacts({
       })
       result = {
         ...res,
-<<<<<<< HEAD
-        log: (await runner.getMainContainerLogs()).trim() || res.log,
-=======
         log: res.log || (await runner.getMainContainerLogs()),
-        moduleName: module.name,
-        version,
->>>>>>> main
       }
     } catch (err) {
       result = await runner.handlePodError({

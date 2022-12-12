@@ -18,22 +18,6 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
-<<<<<<< HEAD
-import { ConfigurationError, RuntimeError } from "../../../exceptions"
-import {
-  KubernetesResource,
-  KubernetesWorkload,
-  SyncableKind,
-  SupportedRuntimeActions,
-  syncableKinds,
-  SyncableResource,
-} from "../types"
-import { ContainerServiceStatus, k8sGetContainerDeployStatus } from "./status"
-=======
-import { KubernetesResource, KubernetesWorkload } from "../types"
-import { ConfigurationError } from "../../../exceptions"
-import { ContainerServiceStatus, getContainerServiceStatus } from "./status"
->>>>>>> main
 import { LogEntry } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
@@ -45,6 +29,9 @@ import { getDeployedImageId, getResourceRequirements, getSecurityContext } from 
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 import { Resolved } from "../../../actions/types"
+import { ConfigurationError } from "../../../exceptions"
+import { SyncableKind, syncableKinds, SyncableResource, KubernetesWorkload, KubernetesResource, SupportedRuntimeActions } from "../types"
+import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters

@@ -25,7 +25,6 @@ import { SuggestModulesParams, SuggestModulesResult } from "../../plugin/handler
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
-<<<<<<< HEAD
 import { GetModuleOutputsParams } from "../../plugin/handlers/module/get-outputs"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import { ExecActionConfig, ExecBuildConfig } from "../exec/config"
@@ -55,53 +54,12 @@ import { Resolved } from "../../actions/types"
 import { getDeployedImageId } from "../kubernetes/container/util"
 import { KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"
-=======
-import { isSubdir } from "../../util/util"
-import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
-import { taskOutputsSchema } from "../kubernetes/task-results"
->>>>>>> main
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 
 export type ContainerProvider = Provider<ContainerProviderConfig>
 
-<<<<<<< HEAD
 // TODO: remove in 0.14. validation should be in the action validation handler.
-=======
-export interface ContainerModuleOutputs {
-  "local-image-name": string
-  "local-image-id": string
-  "deployment-image-name": string
-  "deployment-image-id": string
-}
-
-export const containerModuleOutputsSchema = () =>
-  joi.object().keys({
-    "local-image-name": joi
-      .string()
-      .required()
-      .description("The name of the image (without tag/version) that the module uses for local builds and deployments.")
-      .example("my-module"),
-    "local-image-id": joi
-      .string()
-      .required()
-      .description(
-        "The full ID of the image (incl. tag/version) that the module uses for local builds and deployments."
-      )
-      .example("my-module:v-abf3f8dca"),
-    "deployment-image-name": joi
-      .string()
-      .required()
-      .description("The name of the image (without tag/version) that the module will use during deployment.")
-      .example("my-deployment-registry.io/my-org/my-module"),
-    "deployment-image-id": joi
-      .string()
-      .required()
-      .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
-      .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
-  })
-
->>>>>>> main
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate services
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((spec) => {

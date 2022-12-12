@@ -112,17 +112,12 @@ import {
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
-<<<<<<< HEAD
-import { CloudApi } from "./cloud/api"
 import {
   DefaultEnvironmentContext,
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project"
-=======
 import { CloudApi, getGardenCloudDomain } from "./cloud/api"
-import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
->>>>>>> main
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"

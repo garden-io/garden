@@ -171,12 +171,8 @@ export interface KubernetesResourceSpec {
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
-<<<<<<< HEAD
-=======
-  registry: KubernetesResourceSpec
   sync: KubernetesResourceSpec
   util: KubernetesResourceSpec
->>>>>>> main
 }
 
 interface KubernetesStorageSpec {
@@ -273,18 +269,6 @@ export const defaultResources: KubernetesResources = {
       memory: 512,
     },
   },
-<<<<<<< HEAD
-=======
-  registry: {
-    limits: {
-      cpu: 2000,
-      memory: 4096,
-    },
-    requests: {
-      cpu: 200,
-      memory: 512,
-    },
-  },
   sync: {
     limits: {
       cpu: 500,
@@ -305,7 +289,6 @@ export const defaultResources: KubernetesResources = {
       memory: 512,
     },
   },
->>>>>>> main
 }
 
 export const defaultStorage: KubernetesStorage = {
@@ -742,15 +725,6 @@ export const kubernetesConfigBase = () =>
 
             When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
           `),
-<<<<<<< HEAD
-=======
-        registry: resourceSchema(defaultResources.registry, false).description(dedent`
-            Resource requests and limits for the in-cluster image registry. Built images are pushed to this registry,
-            so that they are available to all the nodes in your cluster.
-
-            This is shared across all users and builds, so it should be resourced accordingly, factoring
-            in how many concurrent builds you expect and how large your images tend to be.
-          `),
         util: resourceSchema(defaultResources.util, false).description(dedent`
             Resource requests and limits for the util pod for in-cluster builders.
             This pod is used to get, start, stop and inquire the status of the builds.
@@ -768,7 +742,6 @@ export const kubernetesConfigBase = () =>
           .meta({
             deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
           }),
->>>>>>> main
       })
       .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder..

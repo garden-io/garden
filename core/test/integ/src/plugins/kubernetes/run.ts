@@ -1021,13 +1021,8 @@ describe("kubernetes Pod runner functions", () => {
         namespace,
 
         image,
-<<<<<<< HEAD
-        timeout: 4,
         version: action.versionString(),
-=======
         timeout,
-        version: module.version.versionString,
->>>>>>> main
       })
 
       // Note: Kubernetes doesn't always return the logs when commands time out.
@@ -1200,13 +1195,8 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-<<<<<<< HEAD
-          timeout: 3,
           version: action.versionString(),
-=======
           timeout,
-          version: module.version.versionString,
->>>>>>> main
         })
 
         expect(result.log.trim()).to.equal(
@@ -1232,13 +1222,8 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-<<<<<<< HEAD
-          timeout: 3,
           version: action.versionString(),
-=======
           timeout,
-          version: module.version.versionString,
->>>>>>> main
         })
 
         expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)

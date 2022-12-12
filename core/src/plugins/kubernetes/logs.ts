@@ -507,39 +507,3 @@ export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<
     },
   })
 }
-<<<<<<< HEAD
-=======
-
-// DEPRECATED: Remove stern in v0.13
-// This version has no Darwin ARM support yet. If you add a later release, please add the "arm64" architecture.
-const sternVersion = "1.22.0"
-
-function sternBuildSpec(platform: string, architecture: string, sha256: string) {
-  const url = `https://github.com/stern/stern/releases/download/v${sternVersion}/stern_${sternVersion}_${platform}_${architecture}.tar.gz`
-  return {
-    platform,
-    architecture,
-    url,
-    sha256,
-    extract: {
-      format: "tar",
-      targetPath: ".",
-    },
-  }
-}
-
-export const sternSpec: PluginToolSpec = {
-  name: "stern",
-  description: "Utility CLI for streaming logs from Kubernetes.",
-  type: "binary",
-  _includeInGardenImage: true,
-  builds: [
-    sternBuildSpec("darwin", "amd64", "3e2d06ef35866b155aa9349d1b337aed114e56d49d7fc8245143d6180115ffef"),
-    sternBuildSpec("darwin", "arm64", "066e0562b962acf576242e9a23aa4d61de21812d5fa62cbfe198a62f5801d282"),
-    sternBuildSpec("linux", "amd64", "6eff028d104b53c8a53c3af752a52292ddb2024b469ce5ab05aee2f0954bde72"),
-    // sternBuildSpec("linux", "arm64", "34746c58b80e8f0db3273ff691a03d5c57f10a913e9c6a791fae1f4107aee5e5"),
-    sternBuildSpec("windows", "amd64", "8771d8023f10eb16a28136e88790faeb8107736f00f1d9f3bae812766f681c2a"),
-    // sternBuildSpec("windows", "arm64", "61deb25940f2ff8b9554e1375dd7d39dd6633adc3b852787004aea881c270760"),
-  ],
-}
->>>>>>> main

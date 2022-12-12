@@ -7,28 +7,22 @@
  */
 
 import { expect } from "chai"
-<<<<<<< HEAD
-import { ClusterBuildkitCacheConfig } from "../../../../../../../src/plugins/kubernetes/config"
+import { DeepPartial } from "utility-types"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
-import {
-  getBuildkitFlags,
-=======
-import { DeepPartial } from "typeorm-with-better-sqlite3"
 import {
   ClusterBuildkitCacheConfig,
   defaultResources,
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config"
-import { inClusterRegistryHostname, k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
 import {
   buildkitImageName,
   getBuildkitDeployment,
->>>>>>> main
+  getBuildkitFlags,
   getBuildkitImageFlags,
 } from "../../../../../../../src/plugins/kubernetes/container/build/buildkit"
 import { getDataDir, makeTestGarden } from "../../../../../../helpers"
 
-<<<<<<< HEAD
 describe("getBuildkitModuleFlags", () => {
   it("should correctly format the build target option", async () => {
     const projectRoot = getDataDir("test-project-container")
@@ -42,7 +36,8 @@ describe("getBuildkitModuleFlags", () => {
     const flags = getBuildkitFlags(build)
 
     expect(flags).to.eql(["--opt", "build-arg:GARDEN_MODULE_VERSION=" + build.versionString, "--opt", "target=foo"])
-=======
+  })
+})
 describe("buildkit build", () => {
   describe("getBuildkitDeployment", () => {
     const _provider: DeepPartial<KubernetesProvider> = {
@@ -206,7 +201,6 @@ describe("buildkit build", () => {
       expect(result.metadata.annotations).eql(provider.config.clusterBuildkit.annotations)
       expect(result.spec.template.metadata?.annotations).eql(provider.config.clusterBuildkit.annotations)
     })
->>>>>>> main
   })
 
   describe("getBuildkitModuleFlags", () => {
@@ -214,15 +208,16 @@ describe("buildkit build", () => {
       const projectRoot = getDataDir("test-project-container")
       const garden = await makeTestGarden(projectRoot)
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("module-a")
+      const act =  await graph.getBuild("module-a")
+      const module = await garden.resolveAction({ action: act, graph, log: garden.log })
 
-      module.spec.build.targetImage = "foo"
+      module.getSpec().build.targetImage = "foo"
 
-      const flags = getBuildkitModuleFlags(module)
+      const flags = getBuildkitFlags(module)
 
       expect(flags).to.eql([
         "--opt",
-        "build-arg:GARDEN_MODULE_VERSION=" + module.version.versionString,
+        "build-arg:GARDEN_MODULE_VERSION=" + module.getFullVersion().versionString,
         "--opt",
         "target=foo",
       ])
@@ -403,26 +398,6 @@ describe("buildkit build", () => {
       const deploymentRegistry = "gcr.io/deploymentRegistry"
       const cacheRegistry = "pkg.dev/cacheRegistry"
 
-<<<<<<< HEAD
-  it("returns correct flags with separate cache registry", async () => {
-    const deploymentRegistry = "gcr.io/deploymentRegistry"
-    const cacheRegistry = "pkg.dev/cacheRegistry"
-
-    const moduleOutputs = {
-      "local-image-id": "name:v-xxxxxx",
-      "local-image-name": "name",
-      "deployment-image-id": `${deploymentRegistry}/namespace/name:v-xxxxxx`,
-      "deployment-image-name": `${deploymentRegistry}/namespace/name`,
-    }
-
-    const config: ClusterBuildkitCacheConfig[] = [
-      {
-        type: "registry",
-        registry: {
-          hostname: cacheRegistry,
-          namespace: "namespace",
-          insecure: false,
-=======
       const moduleOutputs = {
         "local-image-id": "name:v-xxxxxx",
         "local-image-name": "name",
@@ -441,7 +416,6 @@ describe("buildkit build", () => {
           mode: "auto",
           tag: "_buildcache",
           export: true,
->>>>>>> main
         },
       ]
 

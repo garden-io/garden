@@ -7,13 +7,6 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-<<<<<<< HEAD
-import { ContainerBuildAction } from "../../../container/moduleConfig"
-import { millicpuToString, megabytesToString, makePodName } from "../../util"
-=======
-import { ContainerModule } from "../../../container/config"
-import { makePodName, usingInClusterRegistry } from "../../util"
->>>>>>> main
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -44,12 +37,11 @@ import split2 from "split2"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
-<<<<<<< HEAD
-import { defaultDockerfileName } from "../../../container/helpers"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
-=======
+import { defaultDockerfileName } from "../../../container/helpers"
 import { stringifyResources } from "../util"
->>>>>>> main
+import { makePodName } from "../../util"
+import { ContainerBuildAction } from "../../../container/config"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -227,7 +219,6 @@ export function kanikoBuildFailed(buildRes: RunResult) {
   )
 }
 
-<<<<<<< HEAD
 interface RunKanikoParams {
   ctx: PluginContext
   provider: KubernetesProvider
@@ -239,46 +230,10 @@ interface RunKanikoParams {
   args: string[]
 }
 
-async function runKaniko({
-  ctx,
-=======
 export function getKanikoBuilderPodManifest({
->>>>>>> main
   provider,
   kanikoNamespace,
   authSecretName,
-<<<<<<< HEAD
-  log,
-  action,
-  args,
-}: RunKanikoParams): Promise<RunResult> {
-  const api = await KubeApi.factory(log, ctx, provider)
-
-  const podName = makePodName("kaniko", action.name)
-
-  // Escape the args so that we can safely interpolate them into the kaniko command
-  const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
-
-  let commandStr = dedent`
-    /kaniko/executor ${argsStr};
-    export exitcode=$?;
-    touch ${sharedMountPath}/done;
-    exit $exitcode;
-  `
-
-  const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
-  const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
-  const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
-  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
-  const imagePullSecrets = await prepareSecrets({
-    api,
-    namespace: kanikoNamespace,
-    secrets: provider.config.imagePullSecrets,
-    log,
-  })
-
-  const syncArgs = [...commonSyncArgs, sourceUrl, contextPath]
-=======
   syncArgs,
   imagePullSecrets,
   sourceUrl,
@@ -298,7 +253,6 @@ export function getKanikoBuilderPodManifest({
 }) {
   const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
->>>>>>> main
 
   const spec: V1PodSpec = {
     shareProcessNamespace: true,
@@ -391,21 +345,12 @@ async function runKaniko({
   utilNamespace,
   authSecretName,
   log,
-  module,
+  action,
   args,
-}: {
-  ctx: PluginContext
-  provider: KubernetesProvider
-  kanikoNamespace: string
-  utilNamespace: string
-  authSecretName: string
-  log: LogEntry
-  module: ContainerModule
-  args: string[]
-}): Promise<RunResult> {
+}: RunKanikoParams): Promise<RunResult> {
   const api = await KubeApi.factory(log, ctx, provider)
 
-  const podName = makePodName("kaniko", module.name)
+  const podName = makePodName("kaniko", action.name)
 
   // Escape the args so that we can safely interpolate them into the kaniko command
   const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
@@ -417,23 +362,8 @@ async function runKaniko({
     exit $exitcode;
   `
 
-  if (usingInClusterRegistry(provider)) {
-    // This may seem kind of insane but we have to wait until the socat proxy is up (because Kaniko immediately tries to
-    // reach the registry we plan on pushing to). See the support container in the Pod spec below for more on this
-    // hackery.
-    commandStr = dedent`
-      while true; do
-        if ls ${sharedMountPath}/socatStarted 2> /dev/null; then
-          ${commandStr}
-        else
-          sleep 0.3;
-        fi
-      done
-    `
-  }
-
   const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
-  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${module.name}/`
+  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
   const imagePullSecrets = await prepareSecrets({
     api,
     namespace: kanikoNamespace,

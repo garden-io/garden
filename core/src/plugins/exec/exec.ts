@@ -28,39 +28,34 @@ import { ensureFile, remove } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
-<<<<<<< HEAD
-import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
-import {
-  ExecActionConfig,
-  ExecBuild,
-  execBuildActionSchema,
-  ExecBuildConfig,
-  ExecDeploy,
-  execDeployActionSchema,
-  ExecDevModeSpec,
-  execRunActionSchema,
-  ExecRun,
-  ExecTest,
-  execTestActionSchema,
-} from "./config"
-import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
-import {
-  BuildActionHandler,
-  DeployActionHandler,
-  RunActionDefinition,
-  RunActionHandler,
-  TestActionDefinition,
-  TestActionHandler,
-} from "../../plugin/action-types"
-import { Action } from "../../actions/types"
 import { runResultToActionState } from "../../actions/base"
 import { ResolvedBuildAction } from "../../actions/build"
-import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
+import { Action } from "../../actions/types"
+import {
+  BuildActionHandler,
+  TestActionHandler,
+  RunActionHandler,
+  DeployActionHandler,
+  RunActionDefinition,
+  TestActionDefinition,
+} from "../../plugin/action-types"
 import { BuildStatus } from "../../plugin/handlers/build/get-status"
-=======
-import { ServiceStatus } from "../../types/service"
-import { taskOutputsSchema } from "../kubernetes/task-results"
->>>>>>> main
+import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
+import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
+import {
+  ExecBuildConfig,
+  ExecBuild,
+  ExecTest,
+  ExecRun,
+  ExecDeploy,
+  ExecDevModeSpec,
+  ExecActionConfig,
+  execBuildActionSchema,
+  execDeployActionSchema,
+  execRunActionSchema,
+  execTestActionSchema,
+} from "./config"
+import { ExecModule, execModuleSpecSchema, configureExecModule } from "./moduleConfig"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -746,10 +741,6 @@ export const execPlugin = () =>
         needsBuild: true,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
-<<<<<<< HEAD
-=======
-        taskOutputsSchema,
->>>>>>> main
         handlers: {
           configure: configureExecModule,
           convert: convertExecModule,

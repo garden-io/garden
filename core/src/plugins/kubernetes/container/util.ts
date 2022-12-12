@@ -10,11 +10,7 @@ import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { LogEntry } from "../../../logger/log-entry"
-<<<<<<< HEAD
-import { KubernetesPluginContext, KubernetesProvider } from "../config"
-=======
-import { KuberetesResourceConfig, KubernetesPluginContext, KubernetesResourceSpec } from "../config"
->>>>>>> main
+import { KuberetesResourceConfig, KubernetesPluginContext, KubernetesProvider, KubernetesResourceSpec } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
 import {
@@ -24,11 +20,10 @@ import {
   ServiceLimitSpec,
 } from "../../container/moduleConfig"
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
-<<<<<<< HEAD
-import { kilobytesToString, millicpuToString } from "../util"
 import { ConfigurationError } from "../../../exceptions"
 import { Resolved } from "../../../actions/types"
 import { containerHelpers } from "../../container/helpers"
+import { kilobytesToString, megabytesToString, millicpuToString } from "../util"
 
 export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, provider: KubernetesProvider): string {
   const explicitImage = action.getSpec().image
@@ -50,9 +45,6 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, pro
     })
   }
 }
-=======
-import { kilobytesToString, megabytesToString, millicpuToString } from "../util"
->>>>>>> main
 
 export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry, path: string, opts?: GotTextOptions) {
   const registryFwd = await getRegistryPortForward(ctx, log)

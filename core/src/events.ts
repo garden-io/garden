@@ -305,48 +305,6 @@ export interface Events extends LoggerEvents {
     index: number
     durationMsec: number
   }
-
-  // Cloud UI events
-<<<<<<< HEAD
-  buildRequested: {
-    moduleName: string
-    force: boolean
-  }
-  deployRequested: {
-    serviceName: string
-    devMode: boolean
-    localMode: boolean
-    force: boolean
-    forceBuild: boolean
-    skipDependencies: boolean
-  }
-  testRequested: {
-    moduleName: string
-    force: boolean
-    forceBuild: boolean
-    testNames?: string[] // If not provided, run all tests for the module
-    skipDependencies: boolean
-  }
-  taskRequested: {
-    taskName: string
-    force: boolean
-    forceBuild: boolean
-    skipDependencies: boolean
-  }
-  setBuildOnWatch: {
-    moduleName: string
-    build: boolean
-  }
-  setDeployOnWatch: {
-    serviceName: string
-    deploy: boolean
-  }
-  setTestOnWatch: {
-    moduleName: string
-    test: boolean
-  }
-=======
->>>>>>> main
 }
 
 export type EventName = keyof Events

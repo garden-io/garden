@@ -37,13 +37,10 @@ import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
-<<<<<<< HEAD
 import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { Resolved } from "../../../../actions/types"
-=======
 import { stringifyResources } from "../util"
->>>>>>> main
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
