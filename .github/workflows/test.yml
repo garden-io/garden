@@ -14,15 +14,23 @@ jobs:
       env:
         # Needed for the alpine docker build
         PKG_CACHE_PATH: tmp/pkg/
-    - name: dist artifacts
+    - name: build artifacts
       uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
       with:
-        name: dist
-        path: dist
-    - name: tmp/pkg artifacts
+        name: build
+        path: |
+          dist
+          cli/build/
+          core/build/
+          dashboard/build/
+          static/
+          sdk/
+          plugins/
+          e2e/
+    - name: pkgtmp artifacts
       uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
       with:
-        name: tmp/pkg
+        name: pkgtmp
         path: tmp/pkg
 
   lint:
@@ -49,8 +57,13 @@ jobs:
 
   test-framework:
     runs-on: ubuntu-latest
+    needs:
+      - build
     steps:
     - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791
+    - uses: actions/download-artifact@9782bd6a9848b53b110e712e20e42d89988822b7
+      with:
+        name: build
     - uses: ./.github/actions/yarn
     - run: yarn run test:framework:unit
       env:
