@@ -9,7 +9,6 @@
 // No idea why tslint complains over this line
 // tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
-import { Agent } from "https"
 import { ReadStream } from "tty"
 import Bluebird from "bluebird"
 import chalk from "chalk"
@@ -79,8 +78,6 @@ const cachedConfigs: { [context: string]: KubeConfig } = {}
 const cachedApiInfo: { [context: string]: ApiInfo } = {}
 const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
-
-const requestAgent = new Agent({})
 
 // NOTE: be warned, the API of the client library is very likely to change
 
@@ -333,7 +330,6 @@ export class KubeApi {
       method: "get",
       json: true,
       resolveWithFullResponse: true,
-      agent: requestAgent,
       ...opts,
     }
 
@@ -644,10 +640,6 @@ export class KubeApi {
    */
   private wrapApi<T extends K8sApi>(log: LogEntry, api: T, config: KubeConfig): T {
     api.setDefaultAuthentication(config)
-
-    api.addInterceptor((opts) => {
-      opts.agent = requestAgent
-    })
 
     return new Proxy(api, {
       get: (target: T, name: string, receiver) => {
