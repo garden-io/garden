@@ -8,11 +8,12 @@
 
 import { CommandGroup } from "../../base"
 import { ProjectsConnectCommand } from "./projects-connect"
+import { ProjectsCreateCommand } from "./projects-create"
 import { ProjectsListCommand } from "./projects-list"
 
 export class ProjectsCommand extends CommandGroup {
   name = "projects"
-  help = "List and connect cloud projects."
+  help = "List, create and connect cloud projects."
 
-  subCommands = [ProjectsListCommand, ProjectsConnectCommand]
+  subCommands = [ProjectsListCommand, ProjectsConnectCommand, ProjectsCreateCommand]
 }

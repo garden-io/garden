@@ -12,11 +12,14 @@ import { printHeader } from "../../../logger/util"
 import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
 import { ensureUserProfile, noApiMsg, ProjectResult } from "../helpers"
 import chalk from "chalk"
-import { GetAllProjectsResponse, ListProjectsResponse, UserResponse } from "@garden-io/platform-api-types"
+import { ListProjectsResponse, GetProfileResponse } from "@garden-io/platform-api-types"
 
 export class ProjectsListCommand extends Command<{}, {}> {
   name = "list"
   help = "List projects."
+  noProject = true
+  cloudConnect = true
+
   description = dedent`
       List all projects from Garden Cloud.
 
@@ -34,18 +37,18 @@ export class ProjectsListCommand extends Command<{}, {}> {
       throw new ConfigurationError(noApiMsg("list", "projects"), {})
     }
 
-    const profile: UserResponse = await ensureUserProfile(api)
+    const profile: GetProfileResponse["data"] = await ensureUserProfile(api)
     const organization: string = profile.organization.name
 
     log.debug(`Fetching all projects for ${organization}.`)
-    const response = await api.get<GetAllProjectsResponse>(`/projects`)
+    const response = await api.get<ListProjectsResponse>(`/projects`)
 
     if (response.status === "error") {
       log.debug(`Attempt to retrieve projects failed with ${response.error}`)
       throw new EnterpriseApiError(`Failed to retrieve projects for the organization ${organization}`, {})
     }
 
-    const projects: ListProjectsResponse[] = response.data
+    const projects: ListProjectsResponse["data"] = response.data
 
     log.info("")
 

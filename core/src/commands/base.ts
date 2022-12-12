@@ -88,6 +88,8 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   cliOnly: boolean = false
   hidden: boolean = false
   noProject: boolean = false
+  // Connects to cloud even if noProject is defined, but we still get a dummy garden instance
+  cloudConnect: boolean = false
   protected: boolean = false
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command

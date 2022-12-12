@@ -6,7 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
+import {
+  GetProfileResponse,
+  SecretResult as SecretResultApi,
+  UserResult as UserResultApi,
+} from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string"
 
 import { LogEntry } from "../../logger/log-entry"
@@ -197,7 +201,7 @@ export async function confirmDelete(resource: string, count: number) {
   return answer.continue
 }
 
-export async function ensureUserProfile(api: CloudApi): Promise<UserResponse> {
+export async function ensureUserProfile(api: CloudApi): Promise<GetProfileResponse["data"]> {
   try {
     return await api.getProfile()
   } catch (error) {

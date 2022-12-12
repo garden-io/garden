@@ -285,7 +285,7 @@ ${renderCommands(commands)}
 
     // Init Cloud API
     let cloudApi: CloudApi | null = null
-    if (!command.noProject) {
+    if (!command.noProject || command.cloudConnect) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
       const cloudDomain: string | undefined = getGardenCloudDomain(config)
 
