@@ -21,7 +21,7 @@ import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
-import { UserResponse } from "@garden-io/platform-api-types"
+import { UserResult } from "@garden-io/platform-api-types"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -235,7 +235,7 @@ export class AnalyticsHandler {
     analyticsConfig: AnalyticsGlobalConfig
     moduleConfigs: ModuleConfig[]
     isEnabled: boolean
-    cloudUser?: UserResponse
+    cloudUser?: UserResult
     ciInfo: CiInfo
   }) {
     const segmentClient = require("analytics-node")
@@ -358,7 +358,7 @@ export class AnalyticsHandler {
     const isFirstRun = isEmpty(currentAnalyticsConfig)
     const moduleConfigs = await garden.getRawModuleConfigs()
 
-    let cloudUser: UserResponse | undefined
+    let cloudUser: UserResult | undefined
     if (garden.cloudApi) {
       try {
         cloudUser = await garden.cloudApi?.getProfile()
@@ -432,7 +432,7 @@ export class AnalyticsHandler {
     }
   }
 
-  static makeCloudUserId(cloudUser: UserResponse) {
+  static makeCloudUserId(cloudUser: UserResult) {
     return `${cloudUser.organization.name}_${cloudUser.id}`
   }
 

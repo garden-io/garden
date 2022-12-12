@@ -17,7 +17,7 @@ import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
-import { GetProjectResponse, GetUserResponse } from "@garden-io/platform-api-types"
+import { GetProjectResponse, GetProfileResponse } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import { ProjectResource } from "../config/project"
@@ -126,7 +126,7 @@ export class CloudApi {
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
   private _project?: GetProjectResponse["data"]
-  private _profile?: GetUserResponse["data"]
+  private _profile?: GetProfileResponse["data"]
   public domain: string
   public projectId: string | undefined
 
@@ -576,7 +576,7 @@ export class CloudApi {
       return this._profile
     }
 
-    const res = await this.get<GetUserResponse>(`/profile`)
+    const res = await this.get<GetProfileResponse>(`/profile`)
     this._profile = res.data
     return this._profile
   }
