@@ -202,7 +202,7 @@ export class DeployTask extends BaseTask {
     }
 
     for (const ingress of status.ingresses || []) {
-      log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+      log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
     }
 
     if (this.garden.persistent) {
@@ -219,7 +219,7 @@ export class DeployTask extends BaseTask {
 
         log.info(
           chalk.gray(
-            `→ Forward: ` +
+            `Port forward: ` +
               chalk.underline(proxy.localUrl) +
               ` → ${targetHost}:${proxy.spec.targetPort}` +
               (proxy.spec.name ? ` (${proxy.spec.name})` : "")
