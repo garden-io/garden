@@ -20,6 +20,7 @@ import {
   renderSection,
   SECTION_PADDING,
   renderData,
+  padSection,
 } from "../../../../src/logger/renderers"
 import { GardenError } from "../../../../src/exceptions"
 import dedent = require("dedent")
@@ -28,6 +29,7 @@ import logSymbols = require("log-symbols")
 import stripAnsi = require("strip-ansi")
 import { highlightYaml, safeDumpYaml } from "../../../../src/util/util"
 import { freezeTime } from "../../../helpers"
+import chalk = require("chalk")
 
 const logger: Logger = getLogger()
 
@@ -182,21 +184,47 @@ describe("renderers", () => {
       const entryData = logger.info({ data: { some: "data" } })
       expect(formatForTerminal(entryData, "fancy")).contains("\n")
     })
-    context("active entry with no symbol", () => {
-      it("should render an info symbol for basic entries", () => {
-        const entry = logger.info({ status: "active", msg: "" })
-        expect(formatForTerminal(entry, "basic")).to.eql(logSymbols.info + " \n")
-      })
-      it("should not render anything for fancy entries", () => {
-        const entry = logger.info({ status: "active", msg: "" })
-        expect(formatForTerminal(entry, "fancy")).to.eql("\n")
-      })
-    })
     context("basic", () => {
-      it("should render an info symbol for active log entries", () => {
-        const entry = logger.info({ msg: "hello world", status: "active" })
+      it("should always render a symbol with sections", () => {
+        const entry = logger.info({ msg: "hello world", section: "foo" })
 
-        expect(formatForTerminal(entry, "basic")).to.equal(`${logSymbols["info"]} ${msgStyle("hello world")}\n`)
+        expect(formatForTerminal(entry, "basic")).to.equal(
+          `${logSymbols["info"]} ${renderSection(entry)}${msgStyle("hello world")}\n`
+        )
+      })
+      it("should print the log level if it's higher then 'info'", () => {
+        const entry = logger.debug({ msg: "hello world" })
+
+        expect(formatForTerminal(entry, "basic")).to.equal(`${chalk.gray("[debug]")} ${msgStyle("hello world")}\n`)
+      })
+      it("should print the log level if it's higher then 'info' after the section if there is one", () => {
+        const entry = logger.debug({ msg: "hello world", section: "foo" })
+
+        const section = `foo ${chalk.gray("[debug]")}`
+        expect(formatForTerminal(entry, "basic")).to.equal(
+          `${logSymbols["info"]} ${chalk.cyan.italic(padSection(section))} → ${msgStyle("hello world")}\n`
+        )
+      })
+      it("should find the nearest parent section if child doesn't have one", () => {
+        const parent = logger.info({ msg: "parent", section: "parent" })
+        const childWithoutSection = parent.info({ msg: "child without section" })
+        const childWithSection = parent.info({ msg: "child with section", section: "child" })
+        const deepChildWithoutSection = parent.info({ msg: "deep child without section", section: "parent" })
+
+        expect(formatForTerminal(parent, "basic")).to.equal(
+          `${logSymbols["info"]} ${chalk.cyan.italic(padSection("parent"))} → ${msgStyle("parent")}\n`
+        )
+        expect(formatForTerminal(childWithoutSection, "basic")).to.equal(
+          `${logSymbols["info"]} ${chalk.cyan.italic(padSection("parent"))} → ${msgStyle("child without section")}\n`
+        )
+        expect(formatForTerminal(childWithSection, "basic")).to.equal(
+          `${logSymbols["info"]} ${chalk.cyan.italic(padSection("child"))} → ${msgStyle("child with section")}\n`
+        )
+        expect(formatForTerminal(deepChildWithoutSection, "basic")).to.equal(
+          `${logSymbols["info"]} ${chalk.cyan.italic(padSection("parent"))} → ${msgStyle(
+            "deep child without section"
+          )}\n`
+        )
       })
     })
     context("logger.showTimestamps is set to true", () => {

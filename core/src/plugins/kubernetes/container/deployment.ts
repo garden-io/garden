@@ -102,6 +102,9 @@ export async function startContainerDevSync({
 
   log.info({
     section: service.name,
+    // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
+    // it's not rendered.
+    symbol: "info",
     msg: chalk.grey(`Deploying in dev mode`),
   })
 

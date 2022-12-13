@@ -139,8 +139,8 @@ export function defer<T>() {
 /**
  * Extracting to a separate function so that we can test output streams
  */
-export function renderOutputStream(msg: string) {
-  return chalk.gray("  → " + msg)
+export function renderOutputStream(msg: string, command?: string) {
+  return command ? chalk.gray(`[${command}]: ${msg}`) : chalk.gray(msg)
 }
 
 /**
