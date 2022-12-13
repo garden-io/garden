@@ -12,7 +12,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
 import { mavenSpec, mvn } from "./maven"
-import { mavendSpec, mvnd } from "./mavend"
+import { mavendSpec } from "./mavend"
 import { gradle, gradleSpec } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
