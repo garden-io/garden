@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetAllGroupsResponse } from "@garden-io/platform-api-types"
+import { ListGroupsResponse } from "@garden-io/platform-api-types"
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
@@ -65,7 +65,7 @@ export class GroupsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const res = await api.get<GetAllGroupsResponse>(`/groups`)
+    const res = await api.get<ListGroupsResponse>(`/groups`)
     const groups: Groups[] = res.data.map((group) => ({
       name: group.name,
       id: group.id,

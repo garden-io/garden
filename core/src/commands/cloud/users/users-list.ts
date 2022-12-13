@@ -7,7 +7,7 @@
  */
 
 import { ConfigurationError } from "../../../exceptions"
-import { GetAllUsersResponse } from "@garden-io/platform-api-types"
+import { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
 import { dedent, deline, renderTable } from "../../../util/string"
@@ -68,7 +68,7 @@ export class UsersListCommand extends Command<{}, Opts> {
     let hasMore = true
     while (hasMore) {
       log.debug(`Fetching page ${page}`)
-      const res = await api.get<GetAllUsersResponse>(`/users?page=${page}`)
+      const res = await api.get<ListUsersResponse>(`/users?page=${page}`)
       if (res.data.length === 0) {
         hasMore = false
       } else {
@@ -105,7 +105,7 @@ export class UsersListCommand extends Command<{}, Opts> {
       return [
         chalk.cyan.bold(u.name),
         String(u.id),
-        u.vcsUsername,
+        u.vcsUsername || "",
         u.groups.map((g) => g.name).join(", "),
         new Date(u.createdAt).toUTCString(),
       ]
