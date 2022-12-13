@@ -11,7 +11,7 @@ import { Command, CommandParams, CommandResult } from "../../base"
 import { printHeader } from "../../../logger/util"
 import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
 import { ensureUserProfile, findConnectedProjectId, noApiMsg } from "../helpers"
-import { GetAllProjectsResponse, ListProjectsResponse, UserResponse } from "@garden-io/platform-api-types"
+import { ListProjectsResponse, GetProfileResponse } from "@garden-io/platform-api-types"
 import { CloudConnectedProject, LocalConfig, localConfigKeys } from "../../../config-store"
 
 export class ProjectsConnectCommand extends Command<{}, {}> {
@@ -36,7 +36,7 @@ export class ProjectsConnectCommand extends Command<{}, {}> {
       throw new ConfigurationError(noApiMsg("connect", "projects"), {})
     }
 
-    const profile: UserResponse = await ensureUserProfile(api)
+    const profile: GetProfileResponse["data"] = await ensureUserProfile(api)
     const organization: string = profile.organization.name
 
     // Check if this project is connected already
@@ -55,14 +55,14 @@ export class ProjectsConnectCommand extends Command<{}, {}> {
     }
 
     log.debug(`Fetching all projects for ${organization}.`)
-    const response = await api.get<GetAllProjectsResponse>(`/projects`)
+    const response = await api.get<ListProjectsResponse>(`/projects`)
 
     if (response.status === "error") {
       log.debug(`Attempt to retrieve projects failed with ${response.error}`)
       throw new EnterpriseApiError(`Failed to retrieve projects for the organization ${organization}`, {})
     }
 
-    const projects: ListProjectsResponse[] = response.data
+    const projects: ListProjectsResponse["data"] = response.data
 
     if (projects.length === 0) {
       log.info("No projects found in organization.")
@@ -73,7 +73,7 @@ export class ProjectsConnectCommand extends Command<{}, {}> {
 
     log.debug(`Trying to connect ${organization}/${projectName}.`)
 
-    let project: ListProjectsResponse
+    let project: ListProjectsResponse["data"][0]
 
     try {
       project = projects.find((p) => p.name === projectName)!
