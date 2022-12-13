@@ -52,7 +52,9 @@ export class GetConfigCommand extends Command<{}, Opts> {
         .object()
         .keys({
           Build: joiStringMap(buildActionConfigSchema()).optional().description("Build action configs in the project."),
-          Deploy: joiStringMap(deployActionConfigSchema()).optional().description("Deploy action configs in the project."),
+          Deploy: joiStringMap(deployActionConfigSchema())
+            .optional()
+            .description("Deploy action configs in the project."),
           Run: joiStringMap(runActionConfigSchema()).optional().description("Run action configs in the project."),
           Test: joiStringMap(testActionConfigSchema()).optional().description("Test action configs in the project."),
         })
