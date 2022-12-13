@@ -30,7 +30,14 @@ import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 import { Resolved } from "../../../actions/types"
 import { ConfigurationError } from "../../../exceptions"
-import { SyncableKind, syncableKinds, SyncableResource, KubernetesWorkload, KubernetesResource, SupportedRuntimeActions } from "../types"
+import {
+  SyncableKind,
+  syncableKinds,
+  SyncableResource,
+  KubernetesWorkload,
+  KubernetesResource,
+  SupportedRuntimeActions,
+} from "../types"
 import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 
 export const DEFAULT_CPU_REQUEST = "10m"

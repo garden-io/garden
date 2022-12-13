@@ -208,7 +208,7 @@ describe("buildkit build", () => {
       const projectRoot = getDataDir("test-project-container")
       const garden = await makeTestGarden(projectRoot)
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const act =  await graph.getBuild("module-a")
+      const act = await graph.getBuild("module-a")
       const module = await garden.resolveAction({ action: act, graph, log: garden.log })
 
       module.getSpec().build.targetImage = "foo"
