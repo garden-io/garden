@@ -8,7 +8,7 @@
 
 import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
-import { joi, joiArray, joiIdentifier, joiIdentifierMap } from "../../../config/common"
+import { joi, joiArray, joiIdentifierMap } from "../../../config/common"
 import { baseModuleSpecSchema } from "../../../config/module"
 import { providerSchema, ProviderMap } from "../../../config/provider"
 import { BaseAction, baseActionConfigSchema } from "../../../actions/base"

@@ -7,12 +7,12 @@
  */
 
 import { ensureFile } from "fs-extra"
-import { cloneDeep, omit } from "lodash"
+import { omit } from "lodash"
 import { join } from "path"
 import { BaseRuntimeActionConfig } from "../../../../src/actions/base"
 import { BuildActionConfig } from "../../../../src/actions/build"
 import { joi, CustomObjectSchema } from "../../../../src/config/common"
-import { defaultNamespace, ProjectConfig } from "../../../../src/config/project"
+import { defaultNamespace } from "../../../../src/config/project"
 import { validateSchema } from "../../../../src/config/validation"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
@@ -129,7 +129,7 @@ function getRouterUnitTestPlugins() {
           name: "base-action-type",
           docs: "asd",
           handlers: {
-            getStatus: async (props) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
+            getStatus: async (_props) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
           },
           schema: joi.object(),
         },

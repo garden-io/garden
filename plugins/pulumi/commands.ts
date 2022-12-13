@@ -26,8 +26,6 @@ import {
   getModifiedPlansDirPath,
   getPlanFileName,
   getPreviewDirPath,
-  OperationCounts,
-  PreviewResult,
   previewStack,
   PulumiParams,
   refreshResources,

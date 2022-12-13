@@ -230,15 +230,6 @@ describe("BuildStaging", () => {
 describe("BuildStagingRsync", () => {
   let garden: TestGarden
 
-  function expectCommonRsyncVersionErrorMsg(err) {
-    expect(err.message).to.include(
-      `Please make sure rsync (version ${minRsyncVersion} or later) is installed and on your PATH.`
-    )
-    expect(err.message).to.include(
-      "More about garden installation and requirements can be found in our documentation at https://docs.garden.io/getting-started/1-installation#requirements"
-    )
-  }
-
   before(async () => {
     garden = await makeGarden({ legacyBuildSync: true })
   })
@@ -308,6 +299,7 @@ describe("BuildStagingRsync", () => {
       process.env.PATH = getDataDir("dummy-rsync", "invalid")
       await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
         contains:
+          // tslint:disable-next-line: max-line-length
           "Could not detect rsync version. Please make sure rsync version 3.1.0 or later is installed and on your PATH.",
       })
     } finally {

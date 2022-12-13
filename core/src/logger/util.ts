@@ -11,10 +11,8 @@ import chalk, { Chalk } from "chalk"
 import { LogLevel } from "./logger"
 import { Logger } from "./logger"
 import { LogEntry, LogEntryParams, EmojiName, LogEntryMessage } from "./log-entry"
-import { deepMap, deepFilter, safeDumpYaml } from "../util/util"
-import { padEnd, isEmpty, isPlainObject } from "lodash"
+import { padEnd } from "lodash"
 import hasAnsi from "has-ansi"
-import { GardenError } from "../exceptions"
 import dedent from "dedent"
 
 // Add platforms/terminals?

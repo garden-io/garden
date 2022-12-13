@@ -17,7 +17,6 @@ import { ModuleConfigContext } from "../../../../../src/config/template-contexts
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
 import { GardenModule } from "../../../../../src/types/module"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { GraphResults } from "../../../../../src/graph/results"
 import { DeployAction } from "../../../../../src/actions/deploy"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
@@ -145,6 +144,7 @@ describe("ModuleConfigContext", () => {
     before(async () => {
       const modules = graph.getModules()
       deployA = graph.getDeploy("service-a")
+      // tslint:disable-next-line: no-unused
       const deployB = graph.getDeploy("service-b")
       // const testB = graph.getTest("test-b")
       module = graph.getModule("module-b")

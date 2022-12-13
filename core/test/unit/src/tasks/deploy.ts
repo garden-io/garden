@@ -12,7 +12,7 @@ import execa from "execa"
 import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { GardenPlugin } from "../../../../src/plugin/plugin"
+// import { GardenPlugin } from "../../../../src/plugin/plugin"
 import { DeployTask } from "../../../../src/tasks/deploy"
 import { expect } from "chai"
 import { customizedTestPlugin, TestGarden } from "../../../helpers"
@@ -23,7 +23,7 @@ describe("DeployTask", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let config: ProjectConfig
-  let testPlugin: GardenPlugin
+  // let testPlugin: GardenPlugin
 
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })

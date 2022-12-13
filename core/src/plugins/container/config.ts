@@ -31,7 +31,6 @@ import { DeployAction, DeployActionConfig } from "../../actions/deploy"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { RunAction, RunActionConfig } from "../../actions/run"
 import { defaultDockerfileName } from "./helpers"
-import { baseServiceSpecSchema } from "../../config/service"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU

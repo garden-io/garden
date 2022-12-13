@@ -63,6 +63,7 @@ describe("BuildCommand", () => {
       },
     })
 
+    // tslint:disable-next-line: no-shadowed-variable
     function getBuildModuleResultVersion(result: ProcessCommandResult, moduleName: string): string {
       const buildActionResults = result!.graphResults
       const moduleKey = nodeKey("build", moduleName)

@@ -57,7 +57,6 @@ describe("runContainerTask", () => {
     const ctx = await garden.getPluginContext(provider)
     await clearTaskResult({ ctx, log: garden.log, action })
 
-    const key = testTask.getBaseKey()
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
     const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "task")

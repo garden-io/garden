@@ -70,7 +70,6 @@ describe("provider actions", async () => {
         providers,
       })
 
-      const name = "added-by-test-plugin"
       expect(result.addDependencies).to.eql([
         {
           by: {

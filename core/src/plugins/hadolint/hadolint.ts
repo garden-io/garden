@@ -13,7 +13,7 @@ import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../..
 import { joi } from "../../config/common"
 import { dedent, splitLines, naturalList } from "../../util/string"
 import { STATIC_DIR } from "../../constants"
-import { padStart, padEnd, omit } from "lodash"
+import { padStart, padEnd } from "lodash"
 import chalk from "chalk"
 import { ConfigurationError } from "../../exceptions"
 import { defaultDockerfileName } from "../container/helpers"

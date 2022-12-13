@@ -11,7 +11,6 @@ import { it } from "mocha"
 import { join } from "path"
 import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { keyBy } from "lodash"
 import { withDefaultGlobalOpts, dataDir, makeTestGarden } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { cloneDeep } from "lodash"
@@ -80,7 +79,7 @@ const testProvider = createGardenPlugin({
               outputs: {},
             }
           },
-          build: async (params) => defaultHandlerReturn,
+          build: async (_params) => defaultHandlerReturn,
         },
       },
     ],

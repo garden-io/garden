@@ -6,37 +6,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { expect } from "chai"
-import { resolve, join } from "path"
-import { cloneDeep } from "lodash"
+import { resolve } from "path"
 import td from "testdouble"
 
 import { Garden } from "../../../../../src/garden"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
-import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
-import { moduleFromConfig } from "../../../../../src/types/module"
+import { dataDir, makeTestGarden } from "../../../../helpers"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { defaultDeploymentStrategy } from "../../../../../src/plugins/container/config"
-import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
-import {
-  containerHelpers as helpers,
-  minDockerVersion,
-  DEFAULT_BUILD_TIMEOUT,
-  defaultDockerfileName,
-} from "../../../../../src/plugins/container/helpers"
-import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
-import { actionFromConfig } from "../../../../../src/graph/actions"
-import { BuildAction } from "../../../../../src/actions/build"
-import { ModuleConfig } from "../../../../../src/config/module"
+// import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
+// import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 
 describe("plugins.container", () => {
   const projectRoot = resolve(dataDir, "test-project-container")
-  const modulePath = resolve(dataDir, "test-project-container", "module-a")
-  const relDockerfilePath = "docker-dir/Dockerfile"
+  // const modulePath = resolve(dataDir, "test-project-container", "module-a")
+  // const relDockerfilePath = "docker-dir/Dockerfile"
 
-  const plugin = gardenPlugin()
-  const handlers = plugin.createActionTypes!.Build[0].handlers
+  // const plugin = gardenPlugin()
+  // const handlers = plugin.createActionTypes!.Build[0].handlers
+  /*
   const configure = handlers.configure!
   const build = handlers.build!
   const publishModule = handlers.publish!
@@ -72,9 +60,11 @@ describe("plugins.container", () => {
     taskConfigs: [],
     testConfigs: [],
   }
-
+  */
   let garden: Garden
+  // tslint:disable-next-line: no-unused
   let ctx: PluginContext
+  // tslint:disable-next-line: no-unused
   let log: LogEntry
   let containerProvider: ContainerProvider
 

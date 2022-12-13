@@ -19,7 +19,6 @@ import { BuildState } from "./plugin/handlers/build/get-status"
 import { ActionReference } from "./config/common"
 import { GraphResult } from "./graph/results"
 import { sanitizeObject } from "./logger/logger"
-import { ModuleVersion } from "./vcs/vcs"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
