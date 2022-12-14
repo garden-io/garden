@@ -29,6 +29,7 @@ interface JibBuildSpec {
   mavenPath?: string
   mavendPath?: string
   mavenPhases: string[]
+  concurrentMavenBuilds?: boolean
   gradlePath?: string
 }
 

@@ -120,6 +120,7 @@ export async function mvnd({
   log,
   openJdkPath,
   binaryPath,
+  concurrentMavenBuilds,
   outputStream,
 }: BuildToolParams) {
   let mvndPath: string
@@ -142,7 +143,11 @@ export async function mvnd({
 
   log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
   const params = { binaryPath: mvndPath, args, cwd, openJdkPath, outputStream }
-  return buildLock.acquire("mvnd", async () => {
+  if (concurrentMavenBuilds) {
     return runBuildTool(params)
-  })
+  } else {
+    return buildLock.acquire("mvnd", async () => {
+      return runBuildTool(params)
+    })
+  }
 }

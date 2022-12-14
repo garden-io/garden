@@ -121,6 +121,18 @@ const jibBuildSchemaKeys = () => ({
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven Daemon.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
       `),
+  concurrentMavenBuilds: joi
+    .boolean()
+    .optional()
+    .default(false)
+    .description(
+      dedent`
+      [EXPERIMENTAL] Enable/disable concurrent Maven and Maven Daemon builds.
+
+      Note! Concurrent builds can be unstable. This option is disabled by default.
+      This option must be configured for each Build action individually.`
+    )
+    .meta({ experimental: true }),
   extraFlags: joi
     .sparseArray()
     .items(joi.string())
@@ -175,7 +187,15 @@ export const gardenPlugin = () =>
             build: async (params) => {
               const { ctx, log, action } = params
               const spec = action.getSpec() as JibBuildActionSpec
-              const { jdkVersion, jdkPath, mavenPhases, mavenPath, mavendPath, gradlePath } = spec
+              const {
+                jdkVersion,
+                jdkPath,
+                mavenPhases,
+                mavenPath,
+                mavendPath,
+                concurrentMavenBuilds,
+                gradlePath,
+              } = spec
 
               let openJdkPath: string
               if (!!jdkPath) {
@@ -226,6 +246,7 @@ export const gardenPlugin = () =>
                   args: [...mavenPhases, ...args],
                   openJdkPath,
                   binaryPath: mavenPath,
+                  concurrentMavenBuilds,
                   outputStream,
                 })
               } else if (projectType === "mavend") {
@@ -236,6 +257,7 @@ export const gardenPlugin = () =>
                   args: [...mavenPhases, ...args],
                   openJdkPath,
                   binaryPath: mavendPath,
+                  concurrentMavenBuilds,
                   outputStream,
                 })
               } else {
