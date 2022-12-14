@@ -20,6 +20,7 @@ interface JibModuleBuildSpec extends ContainerBuildSpec {
   tarOnly?: boolean
   tarFormat: "docker" | "oci"
   mavenPath?: string
+  mavendPath?: string
   mavenPhases: string[]
   gradlePath?: string
 }
@@ -29,7 +30,7 @@ interface JibModuleSpec extends ContainerModuleSpec {
 }
 
 export type JibContainerModule = GardenModule<JibModuleSpec>
-export type JibPluginType = "gradle" | "maven"
+export type JibPluginType = "gradle" | "maven" | "mavend"
 
 const gradlePaths = [
   "build.gradle",
@@ -41,6 +42,7 @@ const gradlePaths = [
   "gradlew.cmd",
 ]
 const mavenPaths = ["pom.xml", ".mvn"]
+const mavendPaths = ["pom.xml", ".mvnd"]
 
 export function detectProjectType(module: GardenModule): JibPluginType {
   const moduleFiles = module.version.files
@@ -58,6 +60,13 @@ export function detectProjectType(module: GardenModule): JibPluginType {
     const path = resolve(module.path, filename)
     if (moduleFiles.includes(path)) {
       return "maven"
+    }
+  }
+
+  for (const filename of mavendPaths) {
+    const path = resolve(module.path, filename)
+    if (moduleFiles.includes(path)) {
+      return "mavend"
     }
   }
 
