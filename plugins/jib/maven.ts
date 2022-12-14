@@ -82,7 +82,16 @@ async function verifyMavenPath(params: VerifyBinaryParams) {
 /**
  * Run maven with the specified args in the specified directory.
  */
-export async function mvn({ ctx, args, cwd, log, openJdkPath, binaryPath, outputStream }: BuildToolParams) {
+export async function mvn({
+  ctx,
+  args,
+  cwd,
+  log,
+  openJdkPath,
+  binaryPath,
+  concurrentMavenBuilds,
+  outputStream,
+}: BuildToolParams) {
   let mvnPath: string
   if (!!binaryPath) {
     log.verbose(`Using explicitly specified Maven binary from ${binaryPath}`)
@@ -101,9 +110,13 @@ export async function mvn({ ctx, args, cwd, log, openJdkPath, binaryPath, output
 
   log.debug(`Execing ${mvnPath} ${args.join(" ")}`)
   const params = { binaryPath: mvnPath, args, cwd, openJdkPath, outputStream }
-  // Maven has issues when running concurrent processes, so we're working around that with a lock.
-  // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
-  return buildLock.acquire("mvn", async () => {
+  if (concurrentMavenBuilds) {
     return runBuildTool(params)
-  })
+  } else {
+    // Maven has issues when running concurrent processes, so we're working around that with a lock.
+    // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
+    return buildLock.acquire("mvn", async () => {
+      return runBuildTool(params)
+    })
+  }
 }

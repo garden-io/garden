@@ -120,6 +120,12 @@ build:
   # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
   mavendPath:
 
+  # [EXPERIMENTAL] Enable/disable concurrent Maven and Maven Daemon builds.
+  #
+  # Note! Concurrent builds can be unstable. This option is disabled by default.
+  # This option must be configured for each Build action individually.
+  concurrentMavenBuilds: false
+
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
 
@@ -1040,6 +1046,23 @@ To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `build.concurrentMavenBuilds`
+
+[build](#build) > concurrentMavenBuilds
+
+{% hint style="warning" %}
+**Experimental**: this is an experimental feature and the API might change in the future.
+{% endhint %}
+
+[EXPERIMENTAL] Enable/disable concurrent Maven and Maven Daemon builds.
+
+Note! Concurrent builds can be unstable. This option is disabled by default.
+This option must be configured for each Build action individually.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `build.extraFlags[]`
 

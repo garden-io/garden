@@ -112,7 +112,16 @@ async function verifyMavendPath(params: VerifyBinaryParams) {
 /**
  * Run mavend with the specified args in the specified directory.
  */
-export async function mvnd({ ctx, args, cwd, log, openJdkPath, binaryPath, outputStream }: BuildToolParams) {
+export async function mvnd({
+  ctx,
+  args,
+  cwd,
+  log,
+  openJdkPath,
+  binaryPath,
+  concurrentMavenBuilds,
+  outputStream,
+}: BuildToolParams) {
   let mvndPath: string
   if (!!binaryPath) {
     log.verbose(`Using explicitly specified Maven Daemon binary from ${binaryPath}`)
@@ -133,7 +142,11 @@ export async function mvnd({ ctx, args, cwd, log, openJdkPath, binaryPath, outpu
 
   log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
   const params = { binaryPath: mvndPath, args, cwd, openJdkPath, outputStream }
-  return buildLock.acquire("mvnd", async () => {
+  if (concurrentMavenBuilds) {
     return runBuildTool(params)
-  })
+  } else {
+    return buildLock.acquire("mvnd", async () => {
+      return runBuildTool(params)
+    })
+  }
 }
