@@ -12,7 +12,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
 import { mavenSpec, mvn } from "./maven"
-import { mavendSpec } from "./mavend"
+import { mavendSpec, mvnd } from "./mavend"
 import { gradle, gradleSpec } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
@@ -199,6 +199,15 @@ export const gardenPlugin = () =>
                   args: [...mavenPhases, ...args],
                   openJdkPath,
                   mavenPath,
+                  outputStream,
+                })
+              } else if (projectType === "mavend") {
+                await mvnd({
+                  ctx,
+                  log,
+                  cwd: action.basePath(),
+                  args: [...mavenPhases, ...args],
+                  openJdkPath,
                   outputStream,
                 })
               } else {
