@@ -3,173 +3,138 @@ order: 4
 title: Minimal RBAC Configuration for Development Clusters
 ---
 
-The following describes the minimal RBAC roles and permissions required for day-to-day use by developers for Garden when using the `kubernetes` plugin. These should be created along with the kubeconfig/kubecontext for the user in their namespace, replacing the `<username>`, `<service-accounts-namespace>` and `<project-namespace>` values as appropriate.
+If there is no dedicated development k8s cluster, the following configurations can be used to limit the permissions, of developers on a shared cluster using RBAC (Role-Based Access Control), to specific dev namespaces only. This can help to ensure that developers have the appropriate access to resources on the shared cluster.
 
-```
----
-# The user service account
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: user-<username>
-  namespace: <service-accounts-namespace>
+> We have verified to ensure that the following configuration is effective for an Azure IAM group that includes all developers. Similar approach can be followed for any other k8s group mapping. (Contributions, to this doc, are welcome)
 
----
+In order to achieve scoped permissions for desired namespaces only, we are using benefits of [hierarchical namespaces](https://kubernetes.io/blog/2020/08/14/introducing-hierarchical-namespaces/)
 
-# Project namespaces
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: <project-namespace>
-  # Some required annotations
-  annotations:
-    garden.io/version: "0.11.3"
+1. Install hierarchical namespace controller in the k8s cluster.
+    ```
+    kubectl apply -f https://github.com/kubernetes-sigs/hierarchical-namespaces/releases/download/v1.0.0/default.yaml
+    ```
+2.  Create an Azure IAM group for the developers who are allowed to deploy to dev namespaces only. Add all the Users to the group and note the group ID.
 
----
+3. Create a root namespace (`webdev-root` for example) which will have a role that can be inherited by sub-namespaces (all dev namespaces).
 
-# Allow reading namespaces and persistent volumes, which are cluster-scoped
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: user-<username>
-rules:
-- apiGroups: [""]
-  resources: ["namespaces", "persistentvolumes"]
-  verbs: ["get", "list"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: user-<username>
-  namespace: <service-accounts-namespace>
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: user-<username>
-subjects:
-- namespace: <service-accounts-namespace>
-  kind: ServiceAccount
-  name: user-<username>
+4. Create a clusterRole and ClusterRoleBinding.
+    ```
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: namespacesAndPVCsCreateAndList
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - namespaces
+      - persistenvolumes
+      verbs:
+      - create
+      - get
+      - list
+      - watch
+    ---
 
----
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: webdevsClusterRoleBinding
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: namespacesAndPVCsCreateAndList
+    subjects:
+    - apiGroup: rbac.authorization.k8s.io
+      kind: Group
+      name: <Azure IAM group ID>
+    ```
+5. Create a Role and RoleBinding in the root namespace (`webdev-root` for example). This will allow all the members of group to have full access to all sub-namespaces.
+    ```
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: webdevNamespacesFullAccess
+      namespace: webdev-root
+    rules:
+      - apiGroups: ["*"]
+        resources: ["*"]
+        verbs: ["*"]
+    ---
 
-# Full permissions within the <project-namespace>
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: <project-namespace>
-  namespace: <project-namespace>
-rules:
-- apiGroups: ["*"]
-  resources: ["*"]
-  verbs: ["*"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: <project-namespace>
-  namespace: <project-namespace>
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: <project-namespace>
-subjects:
-- namespace: <service-accounts-namespace>
-  kind: ServiceAccount
-  name: user-<username>
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: webdevsRoleBinding
+      namespace: webdev-root
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: webdevNamespaceFullAccess
+    subjects:
+    - apiGroup: rbac.authorization.k8s.io
+      kind: Group
+      name: <Azure IAM group ID>
+    ```
+6. Create Role and RoleBinding for providing full access to `garden-system namespace`.
+    ```
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: gardenSystemFullAccess
+      namespace: garden-system
+    rules:
+      - apiGroups: ["*"]
+        resources: ["*"]
+        verbs: ["*"]
+    ---
 
----
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: gardenSystemFullAccessRoleBinding
+      namespace: garden-system
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: gardenSystemFullAccess
+    subjects:
+    - apiGroup: rbac.authorization.k8s.io
+      kind: Group
+      name: <Azure IAM group ID>
+    ```
 
-# Required access for the garden-system namespace
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: garden-system
-  name: user-<username>-common
-rules:
-  # Allow port forward to build-sync services
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list"]
-  # Note: An upcoming release will remove the requirement
-- apiGroups: [""]
-  resources: ["pods/portforward"]
-  verbs: ["get", "list", "create"]
-  # Allow storing and reading test results
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["get", "list", "create"]
-  # Allow getting status of shared services
-- apiGroups: [""]
-  resources:
-  - "configmaps"
-  - "services"
-  - "serviceaccounts"
-  - "persistentvolumeclaims"
-  - "pods/log"
-  verbs: ["get", "list"]
-- apiGroups: [""]
-  resources: ["configmaps", "services", "serviceaccounts"]
-  verbs: ["get", "list"]
-- apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["roles", "rolebindings"]
-  verbs: ["get", "list"]
-- apiGroups: ["extensions", "apps"]
-  resources: ["deployments", "daemonsets"]
-  verbs: ["get", "list"]
-  # Note: We do not store anything sensitive in secrets, aside from registry auth,
-  #       which users anyway need to be able to read and push built images.
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["get", "list"]
+7. Update project.garden.yaml in order to make sure that sub-namespaces have an annotation (`hnc.x-k8s.io/subnamespace-of: webdev-root` for example) of root namespace where permissions are inherited from.
+    ```
+    kind: Project
+    name: demo-project
 
----
+    # defaultEnvironment: "remote" # Uncomment if the remote environment is preferred to be the default for this project.
 
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: user-<username>-common
-  namespace: garden-system
-roleRef:
-  kind: Role
-  name: user-<username>-common
-  apiGroup: ""
-subjects:
-- namespace: <service-accounts-namespace>
-  kind: ServiceAccount
-  name: user-<username>
-
----
-
-# Allow building with kaniko in-cluster
-# Note: An upcoming release will remove this required role
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: garden-system
-  name: user-<username>-kaniko
-rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs:
-  - "get"
-  - "list"
-  - "create"
-  - "delete"
-
----
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: user-<username>-kaniko
-  namespace: garden-system
-roleRef:
-  kind: Role
-  name: user-<username>-kaniko
-  apiGroup: ""
-subjects:
-- namespace: <service-accounts-namespace>
-  kind: ServiceAccount
-  name: user-<username>
-```
+    environments:
+      - name: local
+      - name: remote
+        defaultNamespace: webdev-${var.userId}
+    providers:
+      - name: local-kubernetes
+        environments: [local]
+      - name: kubernetes
+        environments: [remote]
+        # Replace the below values as appropriate
+        context: rbac-test
+        namespace:
+          name: webdev-${var.userId}
+          annotations:
+            hnc.x-k8s.io/subnamespace-of: webdev-root
+        defaultHostname: webdev-${var.userId}.sys.garden
+        buildMode: kaniko
+        deploymentRegistry:
+          hostname: eu.gcr.io    # <- set this according to the region in which k8s cluster runs
+          namespace: garden-demo-324810
+        imagePullSecrets:
+          # Make sure this matches with the name and namespace of the imagePullSecret created to authenticate with the registry (if needed)
+          - name: gcr-json-key
+            namespace: webdev-root
+    variables:
+      userId: ${local.username}
+    ```
