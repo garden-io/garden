@@ -11,7 +11,7 @@ import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
-import { mavenSpec, mvn } from "./maven"
+import { mavenSpec, mvn, mvnVersion } from "./maven"
 import { mavendSpec, mvnd } from "./mavend"
 import { gradle, gradleSpec, gradleVersion } from "./gradle"
 
@@ -104,6 +104,8 @@ const jibModuleSchema = () =>
       `),
       mavenPath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Maven binary.
+
+        If not provided, then Maven ${mvnVersion} will be downloaded and used.
 
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.

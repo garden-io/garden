@@ -15,7 +15,7 @@ import execa from "execa"
 
 const buildLock = new AsyncLock()
 
-const mvnVersion = "3.8.5"
+export const mvnVersion = "3.8.5"
 
 const spec = {
   url: `https://archive.apache.org/dist/maven/maven-3/${mvnVersion}/binaries/apache-maven-${mvnVersion}-bin.tar.gz`,
