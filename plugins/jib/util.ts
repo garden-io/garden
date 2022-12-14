@@ -21,6 +21,7 @@ interface JibModuleBuildSpec extends ContainerBuildSpec {
   tarFormat: "docker" | "oci"
   mavenPath?: string
   mavenPhases: string[]
+  gradlePath?: string
 }
 
 interface JibModuleSpec extends ContainerModuleSpec {
