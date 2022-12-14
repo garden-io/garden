@@ -101,6 +101,8 @@ build:
 
   # Defines the location of the custom executable Maven binary.
   #
+  # If not provided, then Maven 3.8.5 will be downloaded and used.
+  #
   # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
   # Maven.
   # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
@@ -993,6 +995,8 @@ To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
 [build](#build) > mavenPath
 
 Defines the location of the custom executable Maven binary.
+
+If not provided, then Maven 3.8.5 will be downloaded and used.
 
 **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
 To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
