@@ -65,6 +65,7 @@ export interface BuildToolParams {
   log: Log
   openJdkPath: string
   binaryPath?: string
+  concurrentMavenBuilds?: boolean
   outputStream?: Writable
 }
 
