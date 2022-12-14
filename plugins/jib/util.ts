@@ -22,6 +22,7 @@ interface JibModuleBuildSpec extends ContainerBuildSpec {
   mavenPath?: string
   mavendPath?: string
   mavenPhases: string[]
+  concurrentMavenBuilds?: boolean
   gradlePath?: string
 }
 
