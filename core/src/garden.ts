@@ -116,6 +116,7 @@ import { getSecrets } from "./cloud/get-secrets"
 import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
+import { findConnectedProjectId } from "./commands/cloud/helpers"
 
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
@@ -187,6 +188,8 @@ export interface GardenParams {
   workingCopyId: string
   forceRefresh?: boolean
   cloudApi?: CloudApi | null
+  localConfigStore: LocalConfigStore
+  globalConfigStore: GlobalConfigStore
 }
 
 @Profile()
@@ -277,6 +280,8 @@ export class Garden {
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
     this.cache = params.cache
+    this.configStore = params.localConfigStore
+    this.globalConfigStore = params.globalConfigStore
 
     this.asyncLock = new AsyncLock()
     this.vcs = new GitHandler(params.projectRoot, params.gardenDirPath, params.dotIgnoreFiles, params.cache)
@@ -1246,6 +1251,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const gitHandler = new GitHandler(projectRoot, gardenDirPath, [], treeCache)
   const vcsInfo = await gitHandler.getPathInfo(log, projectRoot)
 
+  // initialize the config stores
+  const localConfigStore = new LocalConfigStore(gardenDirPath)
+  const globalConfigStore = new GlobalConfigStore()
+
   // Since we iterate/traverse them before fully validating them (which we do after resolving template strings), we
   // validate that `config.environments` and `config.providers` are both arrays.
   // This prevents cryptic type errors when the user mistakely writes down e.g. a map instead of an array.
@@ -1281,13 +1290,26 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
+
   // fall back to get the domain from config if the cloudApi instance failed
   // to login or was not defined
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
-  const cloudProjectId: string | undefined = config.id
+  let cloudProjectId: string | undefined
+
+  const userProfile = await cloudApi?.getProfile()
+
+  if (userProfile) {
+    const localConfig = await localConfigStore.get()
+    cloudProjectId = findConnectedProjectId(localConfig, userProfile?.organization.name, config.name)
+  }
+
+  // fallback to use the optional config id if we couldnt get a connected project
+  if (!cloudProjectId) {
+    cloudProjectId = config.id
+  }
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
@@ -1298,6 +1320,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       // Ensure that the current projectId exists in the remote project
       try {
         const projectUrl = await cloudApi.ensureProject(cloudProjectId)
+        cloudLog.debug(`Connected to project ${cloudProjectId}`)
         cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
       } catch (err) {
         cloudLog.info(`Failed to find a project with the configured project ID ${cloudProjectId}`)
@@ -1391,6 +1414,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     forceRefresh: opts.forceRefresh,
     cloudApi,
     cache: treeCache,
+    localConfigStore,
+    globalConfigStore,
   }
 })
 
