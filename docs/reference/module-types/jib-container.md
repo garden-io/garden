@@ -89,6 +89,16 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
+  # Defines the location of the custom executable Gradle binary.
+  #
+  # If not provided, then the Gradle binary available in the working directory will be used.
+  # If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Gradle.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+  gradlePath:
+
   # Defines the location of the custom executable Maven binary.
   #
   # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
@@ -961,6 +971,22 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | Type     | Allowed Values  | Default    | Required |
 | -------- | --------------- | ---------- | -------- |
 | `string` | "docker", "oci" | `"docker"` | Yes      |
+
+### `build.gradlePath`
+
+[build](#build) > gradlePath
+
+Defines the location of the custom executable Gradle binary.
+
+If not provided, then the Gradle binary available in the working directory will be used.
+If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Gradle.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `build.mavenPath`
 
