@@ -20,6 +20,7 @@ interface JibModuleBuildSpec extends ContainerBuildSpec {
   tarOnly?: boolean
   tarFormat: "docker" | "oci"
   mavenPath?: string
+  mavendPath?: string
   mavenPhases: string[]
   gradlePath?: string
 }

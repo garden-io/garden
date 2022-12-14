@@ -269,6 +269,7 @@ export const gardenPlugin = () =>
                 cwd: module.path,
                 args: [...mavenPhases, ...args],
                 openJdkPath,
+                mavendPath: module.spec.build.mavendPath,
                 outputStream,
               })
             } else {
