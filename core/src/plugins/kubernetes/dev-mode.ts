@@ -27,6 +27,7 @@ import { KubernetesDevModeDefaults, KubernetesPluginContext, KubernetesProvider 
 import { isConfiguredForDevMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
 import { isAbsolute } from "path"
+import { enumerate } from "../../util/enumerate"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -151,9 +152,7 @@ export async function startDevModeSync({
     const k8sProvider = <KubernetesProvider>k8sCtx.provider
     const defaults = k8sProvider.config.devMode?.defaults || {}
 
-    let i = 0
-
-    for (const s of spec.sync) {
+    for (const [i, s] of enumerate(spec.sync)) {
       const key = `${keyBase}-${i}`
 
       const localPath = getLocalSyncPath(s.source, moduleRoot)
@@ -192,8 +191,6 @@ export async function startDevModeSync({
         targetDescription,
         config: makeSyncConfig({ defaults, spec: s, localPath, remoteDestination }),
       })
-
-      i++
     }
   })
 }
