@@ -26,6 +26,7 @@ import {
 import { KubernetesDevModeDefaults, KubernetesPluginContext, KubernetesProvider } from "./config"
 import { isConfiguredForDevMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
+import { isAbsolute } from "path"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -106,6 +107,11 @@ interface StartDevModeSyncParams extends ConfigureDevModeParams {
   serviceName: string
 }
 
+export function getLocalSyncPath(sourcePath: string, moduleRoot: string) {
+  let localPath = isAbsolute(sourcePath) ? sourcePath : joinWithPosix(moduleRoot, sourcePath)
+  return localPath.replace(/ /g, "\\ ") // Escape spaces in path
+}
+
 export async function startDevModeSync({
   containerName,
   ctx,
@@ -150,7 +156,7 @@ export async function startDevModeSync({
     for (const s of spec.sync) {
       const key = `${keyBase}-${i}`
 
-      const localPath = joinWithPosix(moduleRoot, s.source).replace(/ /g, "\\ ") // Escape spaces in path
+      const localPath = getLocalSyncPath(s.source, moduleRoot)
       const remoteDestination = await getKubectlExecDestination({
         ctx: k8sCtx,
         log,
