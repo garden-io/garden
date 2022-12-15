@@ -290,7 +290,7 @@ export async function ensureServiceAccount({
     })
 
     // NOTE: This is here to make sure that we remove annotations in case they are removed in the garden config.
-    // `compareDeployedResources` as of today only checks wether the manifest is a subset of the deployed manifest.
+    // `compareDeployedResources` as of today only checks whether the manifest is a subset of the deployed manifest.
     // The manifest is still a subset of the deployed manifest, if an annotation has been removed. But we want the
     // annotation to be actually removed.
     // NOTE(steffen): I tried to change the behaviour of `compareDeployedResources` to return "outdated" when the
