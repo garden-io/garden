@@ -27,7 +27,7 @@ orbs:
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.3-1
+      - image: gardendev/circleci-runner:14.19.3-2
         environment:
           <<: *shared-env-config
     resource_class: medium
