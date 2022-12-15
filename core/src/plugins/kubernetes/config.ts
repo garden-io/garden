@@ -519,7 +519,7 @@ export const kubernetesConfigBase = () =>
           annotations: annotationsSchema().description(
             "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
           ),
-          serviceAccountAnnotations: annotationsSchema().description(
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
             "Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building."
           ),
         })
@@ -593,6 +593,9 @@ export const kubernetesConfigBase = () =>
             deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
           The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
           ),
+          serviceAccountAnnotations: serviceAccountAnnotationsSchema().description(
+            "Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building."
+          ),
           util: joi.object().keys({
             tolerations: joiSparseArray(tolerationSchema()).description(
               "Specify tolerations to apply to each garden-util pod."
@@ -617,14 +620,14 @@ export const kubernetesConfigBase = () =>
         .allow("rolling", "blue-green")
         .description(
           dedent`
-          Sets the deployment strategy for \`container\` deploy actions.
-
-          Note that this field has been deprecated since 0.13, and has no effect.
-          The \`"rolling"\` will be applied in all cases.
-          The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
-
-          Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
-        `
+            Sets the deployment strategy for \`container\` services.
+  
+            Note that this field has been deprecated since 0.13, and has no effect.
+            The \`"rolling"\` will be applied in all cases.
+            The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
+  
+            Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
+          `
         )
         .meta({
           experimental: true,
@@ -704,6 +707,13 @@ const annotationsSchema = () =>
   joiStringMap(joi.string())
     .example({
       "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
+const serviceAccountAnnotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "eks.amazonaws.com/role-arn": "arn:aws:iam::111122223333:role/my-role",
     })
     .optional()
 

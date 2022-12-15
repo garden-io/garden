@@ -202,6 +202,10 @@ providers:
       # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
       annotations:
 
+      # Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to
+      # set up IRSA with in-cluster building.
+      serviceAccountAnnotations:
+
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -298,6 +302,10 @@ providers:
 
         # Specify the nodeSelector constraints for each garden-util pod.
         nodeSelector:
+
+      # Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up
+      # IRSA with in-cluster building.
+      serviceAccountAnnotations:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -908,6 +916,54 @@ providers:
           cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
 
+### `providers[].clusterBuildkit.serviceAccountAnnotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by cluster-buildkit. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/my-role'
+```
+
+### `providers[].clusterDocker`
+
+[providers](#providers) > clusterDocker
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Configuration options for the `cluster-docker` build mode.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+### `providers[].clusterDocker.enableBuildKit`
+
+[providers](#providers) > [clusterDocker](#providersclusterdocker) > enableBuildKit
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Enable [BuildKit](https://github.com/moby/buildkit) support. This should in most cases work well and be more performant, but we're opting to keep it optional until it's enabled by default in Docker.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `providers[].jib`
 
 [providers](#providers) > jib
@@ -1175,6 +1231,26 @@ Specify the nodeSelector constraints for each garden-util pod.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+### `providers[].kaniko.serviceAccountAnnotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > serviceAccountAnnotations
+
+Specify annotations to apply to the Kubernetes service account used by kaniko. This can be useful to set up IRSA with in-cluster building.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      serviceAccountAnnotations:
+          eks.amazonaws.com/role-arn: 'arn:aws:iam::111122223333:role/my-role'
+```
 
 ### `providers[].defaultHostname`
 
