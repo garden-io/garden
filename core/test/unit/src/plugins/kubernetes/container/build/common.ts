@@ -50,13 +50,14 @@ describe("common build", () => {
 
   describe("getBuilderServiceAccountSpec", () => {
     it("should return the manifest", () => {
-      const result = getBuilderServiceAccountSpec({ "some-annotation": "annotation-value" })
+      const annotation = { "some-annotation": "annotation-value" }
+      const result = getBuilderServiceAccountSpec(annotation)
       expect(result).eql({
         apiVersion: "v1",
         kind: "ServiceAccount",
         metadata: {
           name: inClusterBuilderServiceAccount,
-          annotations: { "some-annotations": "annotation-value" },
+          annotations: annotation,
         },
       })
     })
