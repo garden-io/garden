@@ -27,7 +27,7 @@ orbs:
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.3-1
+      - image: gardendev/circleci-runner:14.19.3-2
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -790,8 +790,8 @@ jobs:
           name: Install gcloud SDK
           command: |
             cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-390.0.0-darwin-x86_64.tar.gz
-            tar xzf google-cloud-sdk-390.0.0-darwin-x86_64.tar.gz
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
+            tar xzf google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
       - configure_remote_cluster

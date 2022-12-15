@@ -72,7 +72,7 @@ export async function prepareEnvironment({ status, log }: PrepareEnvironmentPara
       msg: `Installing gcloud SDK beta components...`,
     })
     await gcloud().call(["components update"])
-    await gcloud().call(["components install beta"])
+    await gcloud().call(["components install beta gke-gcloud-auth-plugin"])
   }
 
   if (!status.detail.sdkInitialized) {

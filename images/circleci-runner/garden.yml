@@ -2,5 +2,5 @@ kind: Module
 type: container
 name: circleci-runner
 description: Used for the core pipeline in CircleCI
-image: gardendev/circleci-runner:14.19.3-1
+image: gardendev/circleci-runner:14.19.3-2
 extraFlags: [ "--platform", "linux/amd64" ]
