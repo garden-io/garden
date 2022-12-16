@@ -16,9 +16,9 @@ import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { EventBus } from "../events"
 import { formatLogEntryForEventStream } from "../cloud/buffered-event-stream"
 import { gardenEnv } from "../constants"
-import CircularJSON from "circular-json"
-import { deepFilter, deepMap, getEnumKeys, safeDumpYaml } from "../util/util"
-import { isEmpty, isPlainObject, range } from "lodash"
+import { deepFilter, getEnumKeys, safeDumpYaml } from "../util/util"
+import { isArray, isEmpty, isPlainObject, mapValues, range } from "lodash"
+import { isPrimitive } from "../config/common"
 
 export type LoggerType = "quiet" | "basic" | "fancy" | "json"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
@@ -57,7 +57,7 @@ export function parseLogLevel(level: string): LogLevel {
 
 // Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
 export function withoutInternalFields(object: any): any {
-  return deepFilter(sanitizeObject(object), (_val, key: string | number) => {
+  return deepFilter(object, (_val, key: string | number) => {
     if (typeof key === "string") {
       return (
         !key.startsWith("_") &&
@@ -76,12 +76,12 @@ export function formatGardenErrorWithDetail(error: GardenError) {
   const { detail, message, stack } = error
   let out = stack || message || ""
 
-  // We recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = withoutInternalFields(detail)
+  // We sanitize and recursively filter out internal fields (i.e. having names starting with _).
+  const filteredDetail = withoutInternalFields(sanitizeValue(detail))
 
   if (!isEmpty(filteredDetail)) {
     try {
-      const yamlDetail = safeDumpYaml(filteredDetail, { noRefs: true })
+      const yamlDetail = safeDumpYaml(filteredDetail, { skipInvalid: true, noRefs: true })
       out += `\n\nError Details:\n\n${yamlDetail}`
     } catch (err) {
       out += `\n\nUnable to render error details:\n${err.message}`
@@ -91,25 +91,55 @@ export function formatGardenErrorWithDetail(error: GardenError) {
 }
 
 /**
- * Strips undefined values and circular references from an object.
+ * Strips undefined values, internal objects and circular references from an object.
  */
-export function sanitizeObject(obj: any) {
-  obj = deepMap(obj, (value: any) => {
-    if (Buffer.isBuffer(value)) {
-      return "<Buffer>"
-    } else if (value instanceof LogEntry) {
-      return "<LogEntry>"
+export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
+  if (!_parents) {
+    _parents = new WeakSet()
+  } else if (_parents.has(value)) {
+    // console.log("CIRCULAR")
+    return "[Circular]"
+  }
+
+  if (value === null || value === undefined) {
+    return value
+  } else if (Buffer.isBuffer(value)) {
+    return "<Buffer>"
+  } else if (value instanceof Logger) {
+    return "<Logger>"
+  } else if (value instanceof LogEntry) {
+    return "<LogEntry>"
+    // This is hacky but fairly reliably identifies a Joi schema object
+  } else if (value.$_root) {
+    // TODO: Identify the schema
+    return "<JoiSchema>"
+  } else if (value.isGarden) {
+    return "<Garden>"
+  } else if (isArray(value)) {
+    _parents.add(value)
+    const out = value.map((v) => sanitizeValue(v, _parents))
+    _parents.delete(value)
+    return out
+  } else if (isPlainObject(value)) {
+    _parents.add(value)
+    const out = mapValues(value, (v) => sanitizeValue(v, _parents))
+    _parents.delete(value)
+    return out
+  } else if (!isPrimitive(value) && value.constructor) {
+    // Looks to be a class instance
+    if (value.toSanitizedValue) {
+      // Special allowance for internal objects
+      return value.toSanitizedValue()
     } else {
-      return value
+      // Any other class. Convert to plain object and sanitize attributes.
+      _parents.add(value)
+      const out = mapValues({ ...value }, (v) => sanitizeValue(v, _parents))
+      _parents.delete(value)
+      return out
     }
-  })
-
-  const cleanedJson = isPlainObject(obj)
-    ? CircularJSON.stringify(obj)
-    : // Handle classes, e.g. Error objects
-      CircularJSON.stringify(obj, Object.getOwnPropertyNames(obj))
-
-  return JSON.parse(cleanedJson)
+  } else {
+    return value
+  }
 }
 
 export const logLevelMap = {

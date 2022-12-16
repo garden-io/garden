@@ -121,6 +121,11 @@ export abstract class BaseConfigGraph<
     this.validate()
   }
 
+  toSanitizedValue() {
+    // TODO-G2
+    return "<ConfigGraph>"
+  }
+
   validate() {
     // TODO-G2
   }

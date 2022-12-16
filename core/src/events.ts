@@ -18,8 +18,7 @@ import { CommandInfo } from "./plugin-context"
 import { BuildState } from "./plugin/handlers/build/get-status"
 import { ActionReference } from "./config/common"
 import { GraphResult } from "./graph/results"
-import { sanitizeObject } from "./logger/logger"
-import { ModuleVersion } from "./vcs/vcs"
+import { sanitizeValue } from "./logger/logger"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -91,7 +90,7 @@ export interface CommandInfoPayload extends CommandInfo {
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
-  const payload = sanitizeObject({
+  const payload = sanitizeValue({
     ...omit(result, "dependencyResults", "task"),
     error: result.error ? String(result.error) : null,
   })
