@@ -104,6 +104,12 @@ const jibModuleSchema = () =>
         .items(joi.string())
         .default(["compile"])
         .description("Defines the Maven phases to be executed during the Garden build step."),
+      mavendPath: joi.string().optional().description(dedent`
+        Defines the location of the custom executable Maven Daemon binary.
+
+        **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
+        To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
+      `),
       extraFlags: joi
         .sparseArray()
         .items(joi.string())

@@ -6,14 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import AsyncLock from "async-lock"
 import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
 import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
 import execa from "execa"
-
-const buildLock = new AsyncLock()
 
 const mvndVersion = "0.8.2"
 const mvndSpec = {
@@ -102,7 +99,6 @@ export function getMvndTool(ctx: PluginContext) {
 const baseErrorMessage = (mvnPath: string): string =>
   `Maven Daemon binary path "${mvnPath}" is incorrect! Please check the \`mavendPath\` configuration option.`
 
-
 async function checkMavenVersion(mvndPath: string) {
   try {
     const res = await execa(mvndPath, ["--version"])
@@ -130,8 +126,8 @@ async function verifyMavendPath(mvndPath: string) {
   }
 
   const versionOutput = await checkMavenVersion(mvndPath)
-  const isMaven = versionOutput.toLowerCase().includes("mavend")
-  if (!isMaven) {
+  const isMavend = versionOutput.toLowerCase().includes("mavend")
+  if (!isMavend) {
     throw new RuntimeError(
       `${baseErrorMessage(mvndPath)} It looks like the Maven Daemon path points to a non-Maven executable binary.`,
       { mvndPath }
@@ -166,25 +162,25 @@ export async function mvnd({
     mvndPath = mavendPath
     await verifyMavendPath(mvndPath)
   } else {
-    log.verbose(`The Maven Daemon binary hasn't been specified explicitly. Maven ${mvndVersion} will be used by default.`)
+    log.verbose(`The Daemon binary hasn't been specified explicitly. Maven ${mvndVersion} will be used by default.`)
     const tool = getMvndTool(ctx)
     mvndPath = await tool.getPath(log)
   }
-  return async () => {
-    log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
+  
+  log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
 
-    const res = execa(mvndPath, args, {
-      cwd,
-      env: {
-        JAVA_HOME: openJdkPath,
-      },
-    })
+  const res = execa(mvndPath, args, {
+    cwd,
+    env: {
+      JAVA_HOME: openJdkPath,
+    },
+  })
 
-    if (outputStream) {
-      res.stdout?.pipe(outputStream)
-      res.stderr?.pipe(outputStream)
-    }
-
-    return res
+  if (outputStream) {
+    res.stdout?.pipe(outputStream)
+    res.stderr?.pipe(outputStream)
   }
+
+  return res
+
 }
