@@ -298,118 +298,9 @@ See below for specific instructions for working with ECR.
 
 ### Using in-cluster building with ECR
 
-### Using in-cluster building with ECR
+For AWS ECR (Elastic Container Registry), you need to enable the ECR credential helper once for the repository by adding an `imagePullSecret` for you ECR repository.
 
-For using Garden with AWS ECR (Elastic Container Registry) we need to
-
-1. Create an IAM policy that allows your Kubernetes worker nodes to pull images from the ECR registry
-2. Create a [web identity IAM role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html), allowing the `garden-in-cluster-builder` service accounts managed by Garden to push images to the ECR registry
-3. Create a Kubernetes secret of type `kubernetes.io/dockerconfigjson` and reference it in the Garden configuration
-
-#### IAM policies and roles
-
-To allow access to the Docker images in your ECR repositories from the Kubernetes worker nodes and from the Garden in-cluster builder Pods, you need to configure an IAM policy and a [web identity IAM role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html). To learn more about ECR IAM policies, please refer to [the AWS documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_id-based-policy-examples.html).
-
-Create this IAM policy to allow the Kubernetes nodes to pull images from your ECR repositories:
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "GardenAllowPull",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": ["arn:aws:iam::<account-id>:role/<k8s-worker-iam-role>"]
-            },
-            "Action": [
-                "ecr:BatchGetImage",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
-            ]
-            "Resource": "arn:aws:ecr:<region>:<account-id>:repository/<ecr-repository>"
-        },
-        {
-            "Sid": "GetAuthorizationToken",
-            "Effect": "Allow",
-            "Action": [
-                "ecr:GetAuthorizationToken"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
-
-Create a [web identity role](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html) to allow pushing images, with the following trust relationship:
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Federated": "arn:aws:iam::<account-id>:oidc-provider/oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>"
-            },
-            "Action": "sts:AssumeRoleWithWebIdentity",
-            "Condition": {
-                "StringEquals": {
-                    "oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>:sub": "system:serviceaccount:*:garden-in-cluster-builder",
-                    "oidc.eks.<region>.amazonaws.com/id/<oidc-provider-id>:aud": "sts.amazonaws.com"
-                }
-            }
-        }
-    ]
-}
-```
-
-Note that this trust relationship allows the Pods associated with the `garden-in-cluster-builder` serviceaccount in all namespaces (`*`) to push images.
-
-Configure the following IAM policy with the web identity role:
-
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "GardenAllowPushPull",
-            "Effect": "Allow",
-            "Action": [
-                "ecr:BatchGetImage",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:CompleteLayerUpload",
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:InitiateLayerUpload",
-                "ecr:PutImage",
-                "ecr:UploadLayerPart"
-            ],
-            "Resource": "arn:aws:ecr:<region>:<account-id>:repository/<ecr-repository>"
-        },
-        {
-            "Sid": "GetAuthorizationToken",
-            "Effect": "Allow",
-            "Action": [
-                "ecr:GetAuthorizationToken"
-            ],
-            "Resource": "*"
-        }
-    ]
-}
-```
-
-NOTE: You need to replace the following placeholders:
-- `<account-id>` is your AWS Account ID
-- `<k8s-worker-iam-role>` is the Node IAM role name (You can find it in your EKS node group)
-- `<region>` AWS region
-- `<ecr-repository>` name of the ECR repositories ([matching multiple names using wildcards](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_resource.html#reference_policies_elements_resource_wildcards) is allowed)
-- `<oidc-provider-id>` Part of the OpenID Connect provider URL
-
-#### Kubernetes Image pull secret
-
-The Kubernetes image pull secret
-
-Create a `config.json` somewhere with the following contents (`<aws-account-id>` and `<region>` are placeholders that you need to replace for your repo):
+First create a `config.json` somewhere with the following contents (`<aws_account_id>` and `<region>` are placeholders that you need to replace for your repo):
 
 ```json
 {
@@ -419,7 +310,7 @@ Create a `config.json` somewhere with the following contents (`<aws-account-id>`
 }
 ```
 
-Next create the _imagePullSecret_ in your cluster (feel free to use a different namespace, just make sure it's correctly referenced in the config below):
+Next create the _imagePullSecret_ in your cluster (feel free to replace the default namespace, just make sure it's correctly referenced in the config below):
 
 ```sh
 kubectl --namespace default create secret generic ecr-config \
@@ -427,9 +318,7 @@ kubectl --namespace default create secret generic ecr-config \
   --type=kubernetes.io/dockerconfigjson
 ```
 
-#### Garden kubernetes provider configuration
-
-Add a reference to the secret in your `kubernetes` provider configuration:
+Finally, add the secret reference to your `kubernetes` provider configuration:
 
 ```yaml
 apiVersion: garden.io/v1
@@ -439,21 +328,41 @@ name: my-project
 providers:
   - name: kubernetes
     ...
-    # If you use the kaniko build mode
-    buildMode: kaniko
-    kaniko:
-      serviceAccountAnnotations:
-        eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/<web-identity-role-name>
-    # If you use the buildkit build mode
-    buildMode: buildkit
-    clusterBuildkit:
-      serviceAccountAnnotations:
-        eks.amazonaws.com/role-arn: arn:aws:iam::<account-id>:role/<web-identity-role-name>
-
     imagePullSecrets:
       - name: ecr-config
         namespace: default
 ```
+
+#### Configuring Access
+
+To grant your service account the right permission to push to ECR, add this policy to each of the repositories in the container registry that you want to use with in-cluster building:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowPushPull",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::<account-id>:role/<k8s_worker_iam_role>"                ]
+            },
+            "Action": [
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:CompleteLayerUpload",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart"
+            ]
+        }
+    ]
+}
+```
+
+To grant developers permission to push and pull directly from a repository, see [the AWS documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/security_iam_id-based-policy-examples.html).
 
 ### Using in-cluster building with GCR
 
