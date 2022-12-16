@@ -255,6 +255,9 @@ export class Garden {
   public readonly disablePortForwards: boolean
   public readonly commandInfo: CommandInfo
 
+  // Used internally for introspection
+  public readonly isGarden: true
+
   constructor(params: GardenParams) {
     this.projectId = params.projectId
     this.enterpriseDomain = params.enterpriseDomain
@@ -286,6 +289,7 @@ export class Garden {
     this.cloudApi = params.cloudApi || null
     this.commandInfo = params.opts.commandInfo
     this.cache = params.cache
+    this.isGarden = true
 
     this.asyncLock = new AsyncLock()
     this.vcs = new GitHandler(params.projectRoot, params.gardenDirPath, params.dotIgnoreFile, params.cache)
