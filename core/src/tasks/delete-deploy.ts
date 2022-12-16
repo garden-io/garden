@@ -36,8 +36,10 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
   }
 
   resolveProcessDependencies() {
+    const resolveTask = this.getResolveTask(this.action)
+
     if (!this.dependantsFirst) {
-      return []
+      return [resolveTask]
     }
 
     // Note: We delete in _reverse_ dependency order, so we query for dependants
@@ -48,7 +50,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
       filter: (depNode) => depNode.kind === "Deploy" && this.deleteDeployNames.includes(depNode.name),
     })
 
-    return deps.filter(isDeployAction).map((action) => {
+    const depTasks = deps.filter(isDeployAction).map((action) => {
       return new DeleteDeployTask({
         ...this.getBaseDependencyParams(),
         action,
@@ -57,6 +59,8 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
         dependantsFirst: true,
       })
     })
+
+    return [resolveTask, ...depTasks]
   }
 
   getName() {

@@ -22,7 +22,7 @@ import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/nam
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { BaseResource, KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
-import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
 import {
   kubernetesDeploy,
   getKubernetesDeployStatus,

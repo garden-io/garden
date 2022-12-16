@@ -18,7 +18,7 @@ import { K8sLogFollower, makeServiceLogEntry } from "../../../../../../src/plugi
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { createWorkloadManifest } from "../../../../../../src/plugins/kubernetes/container/deployment"
 import { sleep } from "../../../../../../src/util/util"
-import { DeleteDeployTask } from "../../../../../../src/tasks/delete-service"
+import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
 import { getDeployedImageId } from "../../../../../../src/plugins/kubernetes/container/util"
 import { ContainerDeployAction } from "../../../../../../src/plugins/container/config"
 
