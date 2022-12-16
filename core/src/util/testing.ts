@@ -149,9 +149,11 @@ export class TestGarden extends Garden {
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
     // Cache the resolved params to save a bunch of time during tests
-    const cacheKey = opts?.noCache
-      ? undefined
-      : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
+    // TODO-G2: re-instate this after we're done refactoring
+    const cacheKey = undefined
+    // const cacheKey = opts?.noCache
+    //   ? undefined
+    //   : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
 
     let params: GardenParams
 

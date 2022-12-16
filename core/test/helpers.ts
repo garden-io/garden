@@ -11,11 +11,6 @@ import { join, relative, resolve } from "path"
 import { cloneDeep, extend, intersection, mapValues, merge, omit, pick } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import {
-  containerModuleSpecSchema,
-  containerModuleTestSchema,
-  containerTaskSchema,
-} from "../src/plugins/container/moduleConfig"
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
 import { joi, joiArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
@@ -41,10 +36,17 @@ import { ConfigurationError } from "../src/exceptions"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
-import { execBuildSpecSchema, ExecModule } from "../src/plugins/exec/moduleConfig"
+import {
+  execBuildSpecSchema,
+  ExecModule,
+  execModuleSpecSchema,
+  execTaskSpecSchema,
+  execTestSchema,
+} from "../src/plugins/exec/moduleConfig"
 import {
   execBuildActionSchema,
   execDeployActionSchema,
+  execDeployCommandSchema,
   ExecRun,
   execRunActionSchema,
   ExecTest,
@@ -56,6 +58,7 @@ import { WrappedActionRouterHandlers } from "../src/router/base"
 import { Resolved } from "../src/actions/types"
 import { defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/module/convert"
+import { baseServiceSpecSchema } from "../src/config/service"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -94,13 +97,13 @@ export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
-const testModuleTestSchema = () => containerModuleTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
-
-const testModuleTaskSchema = () => containerTaskSchema().keys({ command: joi.sparseArray().items(joi.string()) })
+const testModuleTestSchema = () => execTestSchema()
+const testModuleTaskSchema = () => execTaskSpecSchema()
 
 export const testModuleSpecSchema = () =>
-  containerModuleSpecSchema().keys({
+  execModuleSpecSchema().keys({
     build: execBuildSpecSchema(),
+    services: joiArray(baseServiceSpecSchema()),
     tests: joiArray(testModuleTestSchema()),
     tasks: joiArray(testModuleTaskSchema()),
   })
@@ -224,7 +227,10 @@ export const testPlugin = () =>
         {
           name: "test",
           docs: "Test Deploy action",
-          schema: execDeployActionSchema(),
+          schema: execDeployActionSchema().keys({
+            // Making this optional for tests
+            deployCommand: execDeployCommandSchema(),
+          }),
           handlers: {
             deploy: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
@@ -279,7 +285,12 @@ export const testPlugin = () =>
           // We want all the actions from the exec conversion.
           convert: async (params: ConvertModuleParams) => {
             const module: ExecModule = params.module
-            return convertExecModule({ ...params, module })
+            const result = await convertExecModule({ ...params, module })
+            // Override action type
+            for (const action of result.group.actions) {
+              action.type = <any>"test"
+            }
+            return result
           },
           configure: configureTestModule,
 
