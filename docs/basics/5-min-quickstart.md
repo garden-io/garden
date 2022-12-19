@@ -196,7 +196,7 @@ If you'd like to better understand how a Garden project is configured when using
 through our [detailed Getting Started guide](../getting-started/0-introduction.md) which walks you through configuring a Garden project step-by-step.
 
 If you like to dive right in and configure your own project for Garden, we recommend using our [example
-projects on GitHub](https://github.com/garden-io/garden/tree/0.12.47/examples) for reference and reading through the different pages
+projects on GitHub](https://github.com/garden-io/garden/tree/0.12.48/examples) for reference and reading through the different pages
 of the [Using Garden section](../using-garden/configuration-overview.md) of our docs.
 
 And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/gxeuDgp6Xt)!

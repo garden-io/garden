@@ -93,7 +93,7 @@ Generally, you can use any template strings available for module configs for the
 
 In the case of Kubernetes, Garden will take the simplified `container` service specification and convert it to the corresponding Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/0.12.47/examples/demo-project):
+Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/0.12.48/examples/demo-project):
 
 ```yaml
 kind: Module
@@ -177,7 +177,7 @@ kubectl --namespace <my-app-namespace> create secret generic --from-literal=some
 
 Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the official [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
 
-Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/0.12.47/examples/kubernetes-secrets) for a working example.
+Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/0.12.48/examples/kubernetes-secrets) for a working example.
 
 ## Running tests
 
