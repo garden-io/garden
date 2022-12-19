@@ -1,4 +1,24 @@
 
+<a name="0.12.48-0"></a>
+## [0.12.48-0](https://github.com/garden-io/garden/compare/0.12.47...0.12.48-0) (2022-12-16)
+
+### Bug Fixes
+
+* send a periodic ping over the websocket for exec ([#3395](https://github.com/garden-io/garden/issues/3395)) ([f716084a1](https://github.com/garden-io/garden/commit/f716084a1))
+* kubernetes endpoints over plain http ([2f499107e](https://github.com/garden-io/garden/commit/2f499107e))
+* **dev-mode:** proper support of absolute source paths ([e9b043fa7](https://github.com/garden-io/garden/commit/e9b043fa7))
+* **k8s:** fix error detail format in `PodRunner.exec()` ([#3430](https://github.com/garden-io/garden/issues/3430)) ([cd2711794](https://github.com/garden-io/garden/commit/cd2711794))
+* **k8s:** fixed error handling in image builders ([8741c87ed](https://github.com/garden-io/garden/commit/8741c87ed))
+* **k8s:** support local builds in microk8s in multipass ([#3423](https://github.com/garden-io/garden/issues/3423)) ([a0a4fdefe](https://github.com/garden-io/garden/commit/a0a4fdefe))
+* **logger:** always show sections with basic logger ([476d7bf56](https://github.com/garden-io/garden/commit/476d7bf56))
+* **server:** send better close codes on ws connection close ([b641ae1ce](https://github.com/garden-io/garden/commit/b641ae1ce))
+
+### Improvements
+
+* decoupled the cloud api login from project configuration and verification ([#3413](https://github.com/garden-io/garden/issues/3413)) ([5ceb762d2](https://github.com/garden-io/garden/commit/5ceb762d2))
+* **jib:** configurable gradle binary ([871a3ff7f](https://github.com/garden-io/garden/commit/871a3ff7f))
+* **k8s:** better error handling and logging in `PodRunner` ([#3388](https://github.com/garden-io/garden/issues/3388)) ([36ea78430](https://github.com/garden-io/garden/commit/36ea78430))
+
 <a name="0.12.47"></a>
 ## [0.12.47](https://github.com/garden-io/garden/compare/0.12.46...0.12.47) (2022-12-02)
 
