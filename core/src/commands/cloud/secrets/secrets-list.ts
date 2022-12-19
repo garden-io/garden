@@ -7,7 +7,7 @@
  */
 
 import { stringify } from "query-string"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
 import { ListSecretsResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -64,6 +64,10 @@ export class SecretsListCommand extends Command<{}, Opts> {
     }
 
     const project = await api.getProject()
+
+    if (!project) {
+      throw new EnterpriseApiError(`Project ${garden.projectName} is not a Garden Cloud project`, {})
+    }
 
     let page = 0
     let secrets: SecretResult[] = []

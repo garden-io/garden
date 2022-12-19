@@ -126,6 +126,11 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const project = await api.getProject()
+
+    if (!project) {
+      throw new EnterpriseApiError(`Project ${garden.projectName} is not a Garden Cloud project`, {})
+    }
+
     let environmentId: number | undefined
 
     if (envName) {

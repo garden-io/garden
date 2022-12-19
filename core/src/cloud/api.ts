@@ -17,7 +17,12 @@ import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
-import { GetProjectResponse, GetProfileResponse } from "@garden-io/platform-api-types"
+import {
+  GetProjectResponse,
+  GetProfileResponse,
+  CreateProjectsForRepoResponse,
+  ListProjectsResponse,
+} from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import { ProjectResource } from "../config/project"
@@ -94,6 +99,39 @@ export interface RegisterSessionResponse {
   namespaceId: number
 }
 
+// Represents a cloud environment
+export interface CloudEnvironment {
+  id: number
+  name: string
+}
+
+// Represents a cloud project
+export interface CloudProject {
+  id: number
+  uid: string
+  name: string
+  repositoryUrl: string
+  environments: CloudEnvironment[]
+}
+
+function toCloudProject(
+  project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
+): CloudProject {
+  const environments: CloudEnvironment[] = []
+
+  for (const environment of project.environments) {
+    environments.push({ id: environment.id, name: environment.name })
+  }
+
+  return {
+    id: project.id,
+    uid: project.uid,
+    name: project.name,
+    repositoryUrl: project.repositoryUrl,
+    environments,
+  }
+}
+
 /**
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
@@ -125,7 +163,7 @@ export class CloudApi {
   private log: LogEntry
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
-  private _project?: GetProjectResponse["data"]
+  private _project?: CloudProject
   private _profile?: GetProfileResponse["data"]
   public domain: string
   public projectId: string | undefined
@@ -323,15 +361,95 @@ export class CloudApi {
     }
   }
 
-  async ensureProject(projectId: string) {
+  /**
+   * Verifies the projectId against Garden Cloud and assigns it
+   * to the active API instance. Returns the project metadata or throws
+   * an error if the project does not exist.
+   */
+  async verifyAndConfigureProject(projectId: string): Promise<CloudProject> {
+    let project: CloudProject | undefined
     try {
       this.projectId = projectId
-      const project = await this.getProject()
-      return new URL(`/projects/${project.id}`, this.domain)
+      project = await this.getProject()
     } catch (err) {
       this.projectId = undefined
       throw err
     }
+
+    if (!project) {
+      throw new EnterpriseApiError(`Garden Cloud has no project with ${projectId}`, {})
+    }
+
+    return project
+  }
+
+  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+    let response: ListProjectsResponse
+
+    try {
+      response = await this.get<ListProjectsResponse>(`/projects`)
+    } catch (err) {
+      this.log.debug(`Attempt to list all projects failed with ${err}`)
+      throw err
+    }
+
+    if (response.status === "error") {
+      this.log.debug(`Attempt to retrieve projects failed with ${response.error}`)
+      throw new EnterpriseApiError(`Failed to retrieve projects for the organization`, {})
+    }
+
+    let projects: ListProjectsResponse["data"] = response.data
+    let project: ListProjectsResponse["data"][0] | undefined
+
+    project = projects.find((p) => p.name === projectName)
+
+    if (!project) {
+      return undefined
+    }
+
+    return toCloudProject(project)
+  }
+
+  async getOrCreateProject(projectName: string): Promise<CloudProject> {
+    let project: CloudProject | undefined = await this.getProjectByName(projectName)
+
+    if (!project) {
+      project = await this.createProject(projectName)
+    }
+
+    // This is necessary to internally configure the project for this instance
+    this._project = project
+    this.projectId = project.uid
+
+    return project
+  }
+
+  async createProject(projectName: string): Promise<CloudProject> {
+    let response: CreateProjectsForRepoResponse
+
+    try {
+      const createRequest = {
+        name: projectName,
+        repositoryUrl: "",
+        relativeProjectRootPath: "",
+        importFromVcsProvider: false,
+      }
+
+      response = await this.post<CreateProjectsForRepoResponse>(`/projects/`, {
+        body: createRequest,
+      })
+    } catch (err) {
+      this.log.debug(`Create project request failed with error, ${err}`)
+      throw err
+    }
+
+    if (response.status === "error" || (response.status === "success" && response.data.length !== 1)) {
+      this.log.debug(`Attempt to create a project failed with ${response.error}`)
+      throw new EnterpriseApiError(`Failed to create the project ${this.domain}/${projectName}`, {})
+    }
+
+    const project: CreateProjectsForRepoResponse["data"][0] = response.data[0]
+    return toCloudProject(project)
   }
 
   private async refreshTokenIfExpired() {
@@ -531,7 +649,7 @@ export class CloudApi {
         environment,
         namespace,
       }
-      this.log.debug("Registering session with Garden Cloud.")
+      this.log.debug(`Registering session with Garden Cloud for ${this.projectId} in ${environment} and ${namespace}.`)
       const res: RegisterSessionResponse = await this.post("sessions", {
         body,
         retry: true,
@@ -557,7 +675,12 @@ export class CloudApi {
     this.sessionRegistered = true
   }
 
-  async getProject() {
+  async getProject(): Promise<CloudProject | undefined> {
+    if (!this.projectId) {
+      this.log.debug(`Could not retrieve a project which has not yet been configured`)
+      return
+    }
+
     // If we are using a new project ID, retrieve again from the API
     // NOTE: If we wan't to use this with multiple project IDs we need
     // a cache supporting that + check if the remote project metadata
@@ -567,7 +690,10 @@ export class CloudApi {
     }
 
     const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
-    this._project = res.data
+    const project: GetProjectResponse["data"] = res.data
+
+    this._project = toCloudProject(project)
+
     return this._project
   }
 

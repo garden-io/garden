@@ -108,7 +108,7 @@ import {
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
-import { CloudApi, getGardenCloudDomain } from "./cloud/api"
+import { CloudApi, CloudProject, getGardenCloudDomain } from "./cloud/api"
 import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
@@ -1287,27 +1287,50 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
-  const cloudProjectId: string | undefined = config.id
+  let cloudProjectId: string | undefined = config.id
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
     const cloudLog = log.info({ section, msg: "Initializing...", status: "active" })
 
+    let project: CloudProject | undefined
+
     if (cloudProjectId) {
       // Ensure that the current projectId exists in the remote project
       try {
-        const projectUrl = await cloudApi.ensureProject(cloudProjectId)
-        cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+        project = await cloudApi.verifyAndConfigureProject(cloudProjectId)
+        cloudLog.silly(`Verified project through API ${project.uid}, ${projectName}`)
       } catch (err) {
-        cloudLog.info(`Failed to find a project with the configured project ID ${cloudProjectId}`)
         cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
       }
+    }
 
-      // Only fetch secrets if the projectId exists in the cloud API instance
+    if (!project && !cloudProjectId && !config.domain) {
+      // Create a new project in case the project does not exist
+      // and the user is logged in to a default domain.
+      // Note: excluding projects with a domain is for backwards compatibility
+      cloudLog.debug(`Creating or retrieving a Garden Cloud project called ${projectName}.`)
+
+      try {
+        project = await cloudApi.getOrCreateProject(projectName)
+        cloudLog.silly(`Created or retrieved project through API ${project.uid}, ${projectName}`)
+      } catch (err) {
+        cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+      }
+    }
+
+    if (project) {
+      const projectUrl = new URL(`/projects/${project.id}`, cloudDomain)
+      cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+
       if (cloudApi.projectId) {
+        // ensure we use the fetched/created project ID
+        cloudProjectId = cloudApi.projectId
+
+        // Only fetch secrets if the projectId exists in the cloud API instance
         try {
-          secrets = await getSecrets({ log: cloudLog, projectId: cloudProjectId, environmentName, cloudApi })
+          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
           cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
           cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
@@ -1316,7 +1339,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         }
       }
     } else {
-      cloudLog.info(`Logged in to ${distroName}, but failed to find a configured project ID`)
+      cloudLog.info(`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project`)
     }
   }
 

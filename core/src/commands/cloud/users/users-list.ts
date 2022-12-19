@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
 import { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -56,6 +56,11 @@ export class UsersListCommand extends Command<{}, Opts> {
     }
 
     const project = await api.getProject()
+
+    if (!project) {
+      throw new EnterpriseApiError(`Project ${garden.projectName} is not a Garden Cloud project`, {})
+    }
+
     // Make a best effort VCS provider guess. We should have an API endpoint for this or return with the response.
     const vcsProviderTitle = project.repositoryUrl.includes("github.com")
       ? "GitHub"
