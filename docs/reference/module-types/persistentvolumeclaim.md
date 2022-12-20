@@ -9,7 +9,7 @@ tocTitle: "`persistentvolumeclaim`"
 
 Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-See the [Mounting volumes](../../guides/container-modules.md#mounting-volumes) guide for more info and usage examples.
+See the [PersistentVolumeClaim](../../plugins/kubernetes/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).

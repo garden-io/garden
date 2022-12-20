@@ -11,6 +11,14 @@
       "reason": "Ignore example URL"
     },
     {
+      "pattern": "^http",
+      "reason": "Skip remote URLs for now"
+    },
+    {
+      "pattern": "^https",
+      "reason": "Skip remote URLs for now"
+    },
+    {
       "pattern": "^https://docs\\.github\\.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads$",
       "reason": "Ignore this particular GitHub URL, it fails consistently with HTTP 403 code despite the link works fine"
     }

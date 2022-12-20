@@ -637,7 +637,7 @@ values:
   namespace: `${providers.kubernetes.outputs.app-namespace}`
 ```
 
-Another good example is referencing outputs from Terraform stacks, via the [Terraform provider](../advanced/terraform.md):
+Another good example is referencing outputs from Terraform stacks, via the [Terraform provider](../plugins/terraform/README.md):
 
 ```yaml
 kind: Module

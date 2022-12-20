@@ -5,17 +5,16 @@
 ## 🌳 Basics
 
 * [How Garden Works](./basics/how-garden-works.md)
+* [Quickstart Guide](./basics/quickstart.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
-* [5 Minute Quickstart Guide](./basics/5-min-quickstart.md)
 
-## 🌻 Getting Started
+## 🌻 Tutorials
 
-* [0. Introduction](./getting-started/0-introduction.md)
-* [1. Installation](./getting-started/1-installation.md)
-* [2. Initialize a Project](./getting-started/2-initialize-a-project.md)
-* [3. Connect to a Cluster](./getting-started/3-connect-to-a-cluster.md)
-* [4. Deploy and Test](./getting-started/4-deploy-and-test.md)
-* [5. Configure Your Project](./getting-started/5-configure-your-project.md)
+* [Your First Project](./tutorials/your-first-project/README.md)
+  * [1. Initialize a Project](./tutorials/your-first-project/1-initialize-a-project.md)
+  * [2. Connect to a Cluster](./tutorials/your-first-project/2-connect-to-a-cluster.md)
+  * [3. Deploy and Test](./tutorials/your-first-project/3-deploy-and-test.md)
+  * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
 
 ## 💐 Using Garden
 
@@ -28,34 +27,62 @@
 * [Workflows](./using-garden/workflows.md)
 * [Variables and templating](./using-garden/variables-and-templating.md)
 * [Module Templates](./using-garden/module-templates.md)
-* [Cloud Permissions for Cluster Access](./using-garden/iam-permissions.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
-## 🌿 Guides
+## 🌿 Plugins
 
-* [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
+* [Kubernetes](./plugins/kubernetes/README.md)
+  * [Remote K8s Plugin Configuration](./plugins/kubernetes/remote-k8s/README.md)
+    * [1. Create a Cluster](./plugins/kubernetes/remote-k8s/create-cluster/README.md)
+      * [AWS](./plugins/kubernetes/remote-k8s/create-cluster/aws.md)
+      * [GCP](./plugins/kubernetes/remote-k8s/create-cluster/gcp.md)
+      * [Azure](./plugins/kubernetes/remote-k8s/create-cluster/azure.md)
+    * [2. Configure Container Registry (Optional)](./plugins/kubernetes/remote-k8s/configure-registry/README.md)
+      * [AWS](./plugins/kubernetes/remote-k8s/configure-registry/aws.md)
+      * [GCP](./plugins/kubernetes/remote-k8s/configure-registry/gcp.md)
+      * [Azure](./plugins/kubernetes/remote-k8s/configure-registry/azure.md)
+    * [3. Set Up Ingress, TLS and DNS](./plugins/kubernetes/remote-k8s/ingress-and-dns.md)
+    * [4. Configure the Plugin](./plugins/kubernetes/remote-k8s/configure-plugin.md)
+  * [Local K8s Plugin Configuration](./plugins/kubernetes/local-k8s/README.md)
+    * [1. Install Local Kubernetes](./plugins/kubernetes/local-k8s/install.md)
+    * [2. Configure the Plugin](./plugins/kubernetes/local-k8s/configure-plugin.md)
+  * [Module Configuration](./plugins/kubernetes/module-types/README.md)
+    * [Container](./plugins/kubernetes/module-types/container.md)
+    * [Kubernetes](./plugins/kubernetes/module-types/kubernetes.md)
+    * [Helm](./plugins/kubernetes/module-types/helm.md)
+    * [PersitentVolumeClaim](./plugins/kubernetes/module-types/persistentvolumeclaim.md)
+    * [ConfigMap](./plugins/kubernetes/module-types/configmap.md)
+  * [Advanced](./plugins/kubernetes/advanced/README.md)
+    * [In-Cluster Building](./plugins/kubernetes/advanced/in-cluster-building.md)
+    * [Minimal RBAC Configuration for Development Clusters](./plugins/kubernetes/advanced/rbac-config.md)
+    * [Deploying to Production](./plugins/kubernetes/advanced/deploying-to-production.md)
+* [Terraform](./plugins/terraform/README.md)
+  * [Plugin Configuration](./plugins/terraform/configure-plugin.md)
+  * [Module Configuration](./plugins/terraform/configure-modules.md)
+* [Pulumi](./plugins/pulumi/README.md)
+  * [Plugin Configuration](./plugins/pulumi/configure-plugin.md)
+  * [Module Configuration](./plugins/pulumi/configure-modules.md)
+* [Container](./plugins/container.md)
+* [Exec](./plugins/exec.md)
+
+## 🌺 Guides
+
+* [Installing Garden](./guides/installation.md)
+* [Adopting Garden](./guides/adopting-garden.md)
 * [Code Synchronization (Dev Mode)](./guides/code-synchronization-dev-mode.md)
-* [Connecting a local service to a k8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
-* [Container Modules](./guides/container-modules.md)
+* [Connecting a local service to a K8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
-* [Helm Charts](./guides/using-helm-charts.md)
 * [Hot Reload](./guides/hot-reload.md)
-* [In-Cluster Building](./guides/in-cluster-building.md)
-* [Local Kubernetes](./guides/local-kubernetes.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
-* [Remote Kubernetes](./guides/remote-kubernetes.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
-## 🌺 Advanced
+## ☘️ Advanced
 
 * [cert-manager Integration](./advanced/cert-manager-integration.md)
-* [Terraform](./advanced/terraform.md)
 * [Using Remote Sources](./advanced/using-remote-sources.md)
-* [Minimal RBAC Configuration for Development Clusters](./advanced/rbac-config.md)
 * [Custom Commands](./advanced/custom-commands.md)
-* [Pulumi](./advanced/pulumi.md)
 
-## ☘️ Reference
+## 🌹 Reference
 
 * [Providers](./reference/providers/README.md)
   * [`conftest-container`](./reference/providers/conftest-container.md)
@@ -103,7 +130,7 @@
 * [Module Template Configuration](./reference/module-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
 
-## 🌹 Misc
+## 🌼 Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)
