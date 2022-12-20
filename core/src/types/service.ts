@@ -145,7 +145,7 @@ export const ingressHostnameSchema = () =>
 
 export const linkUrlSchema = () =>
   joi.string().uri().description(dedent`
-    The link URL for the ingress to show in the console and on the dashboard. Also used when calling the service with the \`call\` command.
+    The link URL for the ingress to show in the console and in dashboards. Also used when calling the service with the \`call\` command.
 
     Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load balancer in front of the service that rewrites the paths.
 

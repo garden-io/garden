@@ -20,7 +20,7 @@ import { omit } from "lodash"
 
 import { Garden } from "../garden"
 import { prepareCommands, parseRequest } from "./commands"
-import { DASHBOARD_STATIC_DIR, gardenEnv } from "../constants"
+import { gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
@@ -33,7 +33,7 @@ import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
 
-// Note: This is different from the `garden dashboard` default port.
+// Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
 export const defaultWatchServerPort = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
@@ -49,7 +49,7 @@ const notReadyMessage = "Waiting for Garden instance to initialize"
  * run a shared service across commands.
  */
 export async function startServer({ log, port }: { log: LogEntry; port?: number }) {
-  // Start HTTP API and dashboard server.
+  // Start HTTP API server.
   // allow overriding automatic port picking
   if (!port) {
     port = gardenEnv.GARDEN_SERVER_PORT || undefined
@@ -84,15 +84,15 @@ export class GardenServer {
     this.activePersistentRequests = {}
 
     this.serversUpdatedListener = ({ servers }) => {
-      // Update status log line with new `garden dashboard` server, if any
+      // Update status log line with new `garden serve` server, if any
       for (const { host, command, serverAuthKey } of servers) {
-        if (command === "dashboard") {
+        if (command === "serve") {
           this.showUrl(`${host}?key=${serverAuthKey}`)
           return
         }
       }
 
-      // No active explicit dashboard processes, show own URL instead
+      // No other active explicit server processes, show own URL instead
       this.showUrl(this.getUrl())
     }
   }
@@ -132,7 +132,7 @@ export class GardenServer {
   showUrl(url?: string) {
     this.statusLog.setState({
       emoji: "sunflower",
-      msg: chalk.cyan("Garden dashboard running at ") + chalk.blueBright(url || this.getUrl()),
+      msg: chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()),
     })
   }
 
@@ -151,7 +151,7 @@ export class GardenServer {
     // Serve artifacts as static assets
     this.app.use(mount("/artifacts", serve(garden.artifactsPath)))
 
-    // Listen for new dashboard servers
+    // Listen for new servers
     garden.events.on("serversUpdated", this.serversUpdatedListener)
   }
 
@@ -225,6 +225,7 @@ export class GardenServer {
       ctx.response.body = result
     })
 
+    // TODO-G2: remove this once it has another place
     /**
      * Resolves the URL for the given provider dashboard page, and redirects to it.
      */
@@ -272,13 +273,6 @@ export class GardenServer {
     app.on("error", (err, ctx) => {
       this.debugLog.info(`API server request failed with status ${ctx.status}: ${err.message}`)
     })
-
-    // This enables navigating straight to a nested route, e.g. "localhost:<PORT>/graph".
-    // FIXME: We need to be able to do this for any route, instead of hard coding the routes like this.
-    const routes = ["/", "/graph", "/logs"]
-    for (const route of routes) {
-      app.use(mount(route, serve(DASHBOARD_STATIC_DIR)))
-    }
 
     this.addWebsocketEndpoint(app)
 

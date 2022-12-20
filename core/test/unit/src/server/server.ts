@@ -44,7 +44,7 @@ describe("GardenServer", () => {
     expect(line.getLatestMessage().msg).to.be.undefined
   })
 
-  it("should update dashboard URL with own if the external dashboard goes down", async () => {
+  it("should update server URL with own if the external server goes down", async () => {
     gardenServer.showUrl("http://foo")
     garden.events.emit("serversUpdated", {
       servers: [],
@@ -52,27 +52,18 @@ describe("GardenServer", () => {
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
     const status = stripAnsi(line.getLatestMessage().msg || "")
-    expect(status).to.equal(`Garden dashboard running at ${gardenServer.getUrl()}`)
+    expect(status).to.equal(`Garden server running at ${gardenServer.getUrl()}`)
   })
 
-  it("should update dashboard URL with new one if another is started", async () => {
+  it("should update server URL with new one if another is started", async () => {
     gardenServer.showUrl("http://foo")
     garden.events.emit("serversUpdated", {
-      servers: [{ host: "http://localhost:9800", command: "dashboard", serverAuthKey: "foo" }],
+      servers: [{ host: "http://localhost:9800", command: "serve", serverAuthKey: "foo" }],
     })
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
     const status = stripAnsi(line.getLatestMessage().msg || "")
-    expect(status).to.equal(`Garden dashboard running at http://localhost:9800?key=foo`)
-  })
-
-  describe("GET /", () => {
-    it("should return the dashboard index page", async () => {
-      await request(server)
-        .get("/")
-        .set({ [authTokenHeader]: gardenServer.authKey })
-        .expect(200)
-    })
+    expect(status).to.equal(`Garden server running at http://localhost:9800?key=foo`)
   })
 
   describe("POST /api", () => {

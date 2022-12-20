@@ -461,7 +461,7 @@ export class AnalyticsHandler {
   }
 
   /**
-   *  Tracks an Api call generated from within the Dashboard.
+   *  Tracks an API call sent to the core server.
    *
    * @param {string} method The HTTP method of the request
    * @param {string} path The path of the request

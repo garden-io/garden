@@ -12,7 +12,7 @@ import { partition, find, isMatch } from "lodash"
 
 /**
  * Each GardenProcess entry maps to a running Garden process. We use this to keep track of active processes,
- * and to allow one process to find another, e.g. a running dashboard process for a project/env.
+ * and to allow one process to find another, e.g. a running server process for a project/env.
  */
 @Entity()
 export class GardenProcess extends GardenEntity {
@@ -87,12 +87,12 @@ export class GardenProcess extends GardenEntity {
   }
 
   /**
-   * Finds a running dashboard process for the given project, environment and namespace, returns undefined otherwise.
+   * Finds a running server process for the given project, environment and namespace, returns undefined otherwise.
    *
    * @param runningProcesses - List of running processes, as returned by `getActiveProcesses()`
    * @param scope - Project information to match on
    */
-  static getDashboardProcess(
+  static getServerProcess(
     runningProcesses: GardenProcess[],
     scope: {
       projectRoot: string
@@ -103,7 +103,7 @@ export class GardenProcess extends GardenEntity {
   ): GardenProcess | undefined {
     return find(
       runningProcesses,
-      (p) => !!p.serverHost && !!p.serverAuthKey && isMatch(p, { ...scope, command: "dashboard", persistent: true })
+      (p) => !!p.serverHost && !!p.serverAuthKey && isMatch(p, { ...scope, command: "serve", persistent: true })
     )
   }
 
