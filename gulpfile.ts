@@ -13,8 +13,6 @@ const sources = [
   "core/src/**/*.ts",
   "core/test/**/*.ts",
   "core/src/**/*.pegjs",
-  "dashboard/src/**/*.ts*",
-  "dashboard/src/**/*.scss",
   "plugins/**/*.ts",
   "sdk/**/*.ts",
 ]

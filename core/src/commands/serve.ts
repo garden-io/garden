@@ -16,42 +16,41 @@ import chalk = require("chalk")
 import { Garden } from "../garden"
 import { processActions } from "../process"
 
-export const defaultDashboardPort = 9700
+export const defaultServerPort = 9700
 
-const dashboardArgs = {}
+const serveArgs = {}
 
-const dashboardOpts = {
+const serveOpts = {
   port: new IntegerParameter({
-    help: `The port number for the Garden dashboard to listen on.`,
-    defaultValue: defaultDashboardPort,
+    help: `The port number for the server to listen on.`,
+    defaultValue: defaultServerPort,
   }),
 }
 
-type Args = typeof dashboardArgs
-type Opts = typeof dashboardOpts
+type Args = typeof serveArgs
+type Opts = typeof serveOpts
 
-export class DashboardCommand extends Command<Args, Opts> {
-  name = "dashboard"
-  aliases = ["serve"]
-  help = "Starts the Garden dashboard for the current project and environment."
+export class ServeCommand extends Command<Args, Opts> {
+  name = "serve"
+  aliases = ["dashboard"]
+  help = "Starts the Garden Core API server for the current project and environment."
 
   cliOnly = true
   streamEvents = true
+  hidden = true
   private garden?: Garden
 
   description = dedent`
-    Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
+    Starts the Garden Core API servier for the current project, and your selected environment+namespace.
 
-    The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
-
-    Note: You must currently run one dashboard per-environment and namespace.
+    Note: You must currently run one server per environment and namespace.
   `
 
-  arguments = dashboardArgs
-  options = dashboardOpts
+  arguments = serveArgs
+  options = serveOpts
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Dashboard", "bar_chart")
+    printHeader(headerLog, "Server", "bar_chart")
   }
 
   terminate() {
@@ -70,7 +69,7 @@ export class DashboardCommand extends Command<Args, Opts> {
       if (err.errno === "EADDRINUSE" && err.port === opts.port) {
         log.error({
           msg: dedent`
-          Port ${opts.port} is already in use, possibly by another dashboard process.
+          Port ${opts.port} is already in use, possibly by another Garden server process.
           Either terminate the other process, or choose another port using the --port parameter.
           `,
         })
@@ -106,7 +105,6 @@ export class DashboardCommand extends Command<Args, Opts> {
       skipWatch: allActions,
       skipWatchModules: allModules,
       changeHandler: async () => [],
-      overRideWatchStatusLine: "Dashboard running...",
     })
 
     return {}

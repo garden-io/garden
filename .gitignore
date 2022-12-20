@@ -47,7 +47,6 @@ gulpfile.js
 *.tsbuildinfo
 build/
 dist/
-static/dashboard/
 static/**/.garden-version
 
 #debug files

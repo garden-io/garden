@@ -13,21 +13,21 @@ import { isEqual } from "lodash"
 const targetUpdateIntervalMsec = 1000
 
 @Profile()
-export class DashboardEventStream extends BufferedEventStream {
+export class CoreEventStream extends BufferedEventStream {
   protected intervalMsec = 250
 
   private targetPollIntervalId?: NodeJS.Timeout
   private ignoreHost: string | undefined
 
   connect(params: ConnectBufferedEventStreamParams & { ignoreHost?: string }) {
-    // Need this so the dashboard command doesn't try to send events to itself.
+    // Need this so the serve command doesn't try to send events to itself.
     // We can't ignore by PID because we wouldn't be able to unit test easily.
     this.ignoreHost = params.ignoreHost
     super.connect(params)
   }
 
   /**
-   * Updates the list of active dashboard servers to stream events to.
+   * Updates the list of active servers to stream events to.
    * Returns the list of Garden processes matching the current project/env that are active servers.
    */
   async updateTargets() {
@@ -59,7 +59,7 @@ export class DashboardEventStream extends BufferedEventStream {
 
     // Notify of updates
     if (this.garden && !isEqual(currentHosts, newHosts)) {
-      this.log.debug(`Updated list of running dashboard servers: ${servers.map((p) => p.serverHost).join(", ")}`)
+      this.log.debug(`Updated list of running servers: ${servers.map((p) => p.serverHost).join(", ")}`)
 
       this.garden.events.emit("serversUpdated", {
         servers: servers.map((p) => ({
@@ -74,7 +74,7 @@ export class DashboardEventStream extends BufferedEventStream {
   }
 
   /**
-   * Poll for running dashboard servers
+   * Poll for running servers
    */
   startInterval() {
     super.startInterval()

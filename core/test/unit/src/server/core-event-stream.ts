@@ -9,14 +9,14 @@
 import { expect } from "chai"
 import { makeTestGardenA, TestEventBus, TestGarden } from "../../../helpers"
 import { GardenServer } from "../../../../src/server/server"
-import { DashboardEventStream } from "../../../../src/server/dashboard-event-stream"
+import { CoreEventStream } from "../../../../src/server/core-event-stream"
 import { GardenProcess } from "../../../../src/db/entities/garden-process"
 import { randomString } from "../../../../src/util/string"
 import { ensureConnected, getConnection } from "../../../../src/db/connection"
 import pEvent from "p-event"
 
-describe("DashboardEventStream", () => {
-  let streamer: DashboardEventStream
+describe("CoreEventStream", () => {
+  let streamer: CoreEventStream
   let garden: TestGarden
 
   const testArg = "test-" + randomString(10)
@@ -61,7 +61,7 @@ describe("DashboardEventStream", () => {
     serverA.setGarden(garden)
     serverB.setGarden(garden)
 
-    streamer = new DashboardEventStream({
+    streamer = new CoreEventStream({
       log: garden.log,
       sessionId: garden.sessionId!,
     })
@@ -89,7 +89,7 @@ describe("DashboardEventStream", () => {
       // Correctly matched
       const recordA = await GardenProcess.register([testArg])
       const values = {
-        command: "dashboard",
+        command: "serve",
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -113,7 +113,7 @@ describe("DashboardEventStream", () => {
         namespace: "foo",
       })
 
-      streamer = new DashboardEventStream({
+      streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
       })
@@ -134,7 +134,7 @@ describe("DashboardEventStream", () => {
       // Correctly matched
       const record = await GardenProcess.register([testArg])
       const values = {
-        command: "dashboard",
+        command: "serve",
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -146,7 +146,7 @@ describe("DashboardEventStream", () => {
       }
       await record.setCommand(values)
 
-      streamer = new DashboardEventStream({
+      streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
       })
@@ -167,7 +167,7 @@ describe("DashboardEventStream", () => {
     it("emits a serversUpdated event when a server is added", async () => {
       const record = await GardenProcess.register([testArg])
       const values = {
-        command: "dashboard",
+        command: "serve",
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -178,7 +178,7 @@ describe("DashboardEventStream", () => {
         namespace: garden.namespace,
       }
 
-      streamer = new DashboardEventStream({
+      streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
       })
@@ -194,14 +194,14 @@ describe("DashboardEventStream", () => {
       await streamer.updateTargets()
 
       garden.events.expectEvent("serversUpdated", {
-        servers: [{ host: values.serverHost, command: "dashboard", serverAuthKey: "foo" }],
+        servers: [{ host: values.serverHost, command: "serve", serverAuthKey: "foo" }],
       })
     })
 
     it("ignores servers matching ignoreHost", async () => {
       const record = await GardenProcess.register([testArg])
       const values = {
-        command: "dashboard",
+        command: "serve",
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -212,7 +212,7 @@ describe("DashboardEventStream", () => {
         namespace: garden.namespace,
       }
 
-      streamer = new DashboardEventStream({
+      streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
       })
@@ -231,7 +231,7 @@ describe("DashboardEventStream", () => {
     })
 
     it("returns an empty list when no Garden instance is connected", async () => {
-      streamer = new DashboardEventStream({
+      streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
       })
@@ -242,7 +242,7 @@ describe("DashboardEventStream", () => {
 
   it("polls to update the list of target hosts", async () => {
     // Start with no targets and initiate polling
-    streamer = new DashboardEventStream({
+    streamer = new CoreEventStream({
       log: garden.log,
       sessionId: garden.sessionId!,
     })
@@ -256,7 +256,7 @@ describe("DashboardEventStream", () => {
     // Create a new process record
     const record = await GardenProcess.register([testArg])
     await record.setCommand({
-      command: "dashboard",
+      command: "serve",
       sessionId: garden.sessionId,
       persistent: true,
       serverHost: "http://localhost:123456",

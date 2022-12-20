@@ -29,15 +29,6 @@ const logActivityIntervalMsec = 60 * 1000 // How frequently to log a message whi
 
 // tslint:disable: no-console
 
-export function dashboardUpStep(): WatchTestStep {
-  return {
-    description: "dashboard up",
-    condition: async (logEntries: JsonLogEntry[]) => {
-      return searchLog(logEntries, /Garden dashboard and API server running/)
-    },
-  }
-}
-
 export function waitingForChangesStep(): WatchTestStep {
   return {
     description: "tasks completed, waiting for code changes",
@@ -194,7 +185,7 @@ export type WatchTestAction = (logEntries: JsonLogEntry[]) => Promise<void>
  * The testSteps passed to the run method specify the conditions (roughly, waiting for things to appear in the log)
  * and actions (e.g. modifying files to trigger watch changes) that define the test case in question.
  *
- * This can be used to set up test cases like "run garden dev inside this project, wait for the dashboard to come up,
+ * This can be used to set up test cases like "run garden dev inside this project,
  * modify a file, then wait for a build task to appear for its module".
  *
  * GardenWatch starts with the first step in testSteps and proceeds through them one by one.
