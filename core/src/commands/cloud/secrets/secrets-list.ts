@@ -17,6 +17,7 @@ import { applyFilter, makeSecretFromResponse, noApiMsg, SecretResult } from "../
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
+import { getCloudDistributionName } from "../../../util/util"
 
 const pageLimit = 100
 
@@ -66,7 +67,10 @@ export class SecretsListCommand extends Command<{}, Opts> {
     const project = await api.getProject()
 
     if (!project) {
-      throw new EnterpriseApiError(`Project ${garden.projectName} is not a Garden Cloud project`, {})
+      throw new EnterpriseApiError(
+        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        {}
+      )
     }
 
     let page = 0

@@ -87,7 +87,7 @@ import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./actions"
 import { RuntimeContext } from "./runtime-context"
 import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin } from "./plugins"
-import { deline, naturalList } from "./util/string"
+import { deline, naturalList, wordWrap } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile, profileAsync } from "./util/profiling"
@@ -108,7 +108,7 @@ import {
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
-import { CloudApi, CloudProject, getGardenCloudDomain } from "./cloud/api"
+import { CloudApi, CloudProject, EnterpriseApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
@@ -1300,7 +1300,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       // Ensure that the current projectId exists in the remote project
       try {
         project = await cloudApi.verifyAndConfigureProject(cloudProjectId)
-        cloudLog.silly(`Verified project through API ${project.uid}, ${projectName}`)
       } catch (err) {
         cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
       }
@@ -1310,13 +1309,16 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       // Create a new project in case the project does not exist
       // and the user is logged in to a default domain.
       // Note: excluding projects with a domain is for backwards compatibility
-      cloudLog.debug(`Creating or retrieving a Garden Cloud project called ${projectName}.`)
+      cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
 
       try {
         project = await cloudApi.getOrCreateProject(projectName)
-        cloudLog.silly(`Created or retrieved project through API ${project.uid}, ${projectName}`)
       } catch (err) {
-        cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+        if (err instanceof EnterpriseApiDuplicateProjectsError) {
+          cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
+        } else {
+          cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+        }
       }
     }
 
@@ -1339,7 +1341,15 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         }
       }
     } else {
-      cloudLog.info(`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project`)
+      cloudLog.info(
+        chalk.yellow(
+          wordWrap(
+            deline`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project.
+            Continuing without ${distroName} features ...`,
+            120
+          )
+        )
+      )
     }
   }
 

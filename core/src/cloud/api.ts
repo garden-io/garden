@@ -30,6 +30,8 @@ import { ProjectResource } from "../config/project"
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
 
+export class EnterpriseApiDuplicateProjectsError extends EnterpriseApiError {}
+
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
 export const authTokenHeader =
@@ -393,35 +395,27 @@ export class CloudApi {
       throw err
     }
 
-    if (response.status === "error") {
-      this.log.debug(`Attempt to retrieve projects failed with ${response.error}`)
-      throw new EnterpriseApiError(`Failed to retrieve projects for the organization`, {})
+    let projects: ListProjectsResponse["data"] = response.data
+
+    projects = projects.filter((p) => p.name === projectName)
+
+    // Expect a single project, otherwise we fail with an error
+    if (projects.length > 1) {
+      throw new EnterpriseApiDuplicateProjectsError(
+        deline`Found an unexpected state with multiple projects using the same name, ${projectName}.
+        Please make sure there is only one project with the given name.
+        Projects can be deleted through the Garden Cloud UI at ${this.domain}`,
+        {}
+      )
     }
 
-    let projects: ListProjectsResponse["data"] = response.data
-    let project: ListProjectsResponse["data"][0] | undefined
-
-    project = projects.find((p) => p.name === projectName)
+    let project: ListProjectsResponse["data"][0] | undefined = projects[0]
 
     if (!project) {
       return undefined
     }
 
     return toCloudProject(project)
-  }
-
-  async getOrCreateProject(projectName: string): Promise<CloudProject> {
-    let project: CloudProject | undefined = await this.getProjectByName(projectName)
-
-    if (!project) {
-      project = await this.createProject(projectName)
-    }
-
-    // This is necessary to internally configure the project for this instance
-    this._project = project
-    this.projectId = project.uid
-
-    return project
   }
 
   async createProject(projectName: string): Promise<CloudProject> {
@@ -443,13 +437,22 @@ export class CloudApi {
       throw err
     }
 
-    if (response.status === "error" || (response.status === "success" && response.data.length !== 1)) {
-      this.log.debug(`Attempt to create a project failed with ${response.error}`)
-      throw new EnterpriseApiError(`Failed to create the project ${this.domain}/${projectName}`, {})
-    }
-
     const project: CreateProjectsForRepoResponse["data"][0] = response.data[0]
     return toCloudProject(project)
+  }
+
+  async getOrCreateProject(projectName: string): Promise<CloudProject> {
+    let project: CloudProject | undefined = await this.getProjectByName(projectName)
+
+    if (!project) {
+      project = await this.createProject(projectName)
+    }
+
+    // This is necessary to internally configure the project for this instance
+    this._project = project
+    this.projectId = project.uid
+
+    return project
   }
 
   private async refreshTokenIfExpired() {
@@ -649,7 +652,7 @@ export class CloudApi {
         environment,
         namespace,
       }
-      this.log.debug(`Registering session with Garden Cloud for ${this.projectId} in ${environment} and ${namespace}.`)
+      this.log.debug(`Registering session with Garden Cloud for ${this.projectId} in ${environment}/${namespace}.`)
       const res: RegisterSessionResponse = await this.post("sessions", {
         body,
         retry: true,

@@ -41,7 +41,6 @@ export async function getSecrets({ log, projectId, environmentName, cloudApi }: 
         in the system.
       `)
     } else {
-      log.error("An error occurred while fetching secrets for the project.")
       throw err
     }
   }
