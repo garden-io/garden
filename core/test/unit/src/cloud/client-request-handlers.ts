@@ -27,24 +27,20 @@ describe("clientRequestHandlers", () => {
 
   describe("build", () => {
     it("should return a build task for the requested module", async () => {
-      const tasks = await clientRequestHandlers.build({
+      const buildTask = await clientRequestHandlers.build({
         ...params,
         request: { moduleName: "module-a", force: false },
       })
-      expect(tasks.length).to.eql(1)
-      const buildTask = tasks.find((t) => t.type === "build")
       expect(buildTask).to.exist
       expect(buildTask!.getName()).to.eql("module-a")
       expect(buildTask!.force).to.eql(false)
     })
 
     it("should optionally return a build task with force = true for the requested module", async () => {
-      const tasks = await clientRequestHandlers.build({
+      const buildTask = await clientRequestHandlers.build({
         ...params,
         request: { moduleName: "module-a", force: true },
       })
-      expect(tasks.length).to.eql(1)
-      const buildTask = tasks.find((t) => t.type === "build")
       expect(buildTask).to.exist
       expect(buildTask!.getName()).to.eql("module-a")
       expect(buildTask!.force).to.eql(true)
@@ -134,14 +130,12 @@ describe("clientRequestHandlers", () => {
 
   describe("run", () => {
     it("should return test tasks for the requested module", async () => {
-      const taskTasks = await clientRequestHandlers.run({
+      const runTask = await clientRequestHandlers.run({
         ...params,
         request: { taskName: "task-a", force: false, forceBuild: false },
       })
 
-      expect(taskTasks.length).to.eql(1)
-      const taskTask = taskTasks[0]
-      expect(taskTask.action.name).to.eql("task-a")
+      expect(runTask.action.name).to.eql("task-a")
     })
   })
 })

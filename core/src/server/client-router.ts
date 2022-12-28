@@ -9,13 +9,12 @@
 import { Garden } from ".."
 import { EmojiName, LogEntry } from "../logger/log-entry"
 import chalk from "chalk"
-import { ConfigGraph } from "../config-graph"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
-import { TaskTask } from "../tasks/task"
 import { filterTestConfigs, TestTask } from "../tasks/test"
-import { testFromConfig } from "../types/test"
 import { naturalList } from "../util/string"
+import { ConfigGraph } from "../graph/config-graph"
+import { RunTask } from "../tasks/run"
 
 export class ClientRouter {
   private garden: Garden
@@ -60,8 +59,8 @@ export class ClientRouter {
     try {
       garden.clearCaches()
       const graph = await garden.getConfigGraph({ log, emit: false })
-      const tasks = await clientRequestHandlers.build({ log, request: req, graph, garden })
-      await garden.processTasks(tasks)
+      const task = await clientRequestHandlers.build({ log, request: req, graph, garden })
+      await garden.processTasks({ log, tasks: [task] })
     } catch (err) {
       log.error(err.message)
     }
@@ -95,7 +94,7 @@ export class ClientRouter {
       garden.clearCaches()
       const graph = await garden.getConfigGraph({ log, emit: false })
       const deployTask = await clientRequestHandlers.deploy({ log, request: req, graph, garden })
-      await garden.processTasks([deployTask])
+      await garden.processTasks({ log, tasks: [deployTask] })
     } catch (err) {
       log.error(err.message)
     }
@@ -116,7 +115,7 @@ export class ClientRouter {
       garden.clearCaches()
       const graph = await garden.getConfigGraph({ log, emit: false })
       const testTasks = await clientRequestHandlers.test({ log, request: req, graph, garden })
-      await garden.processTasks(testTasks)
+      await garden.processTasks({ log, tasks: testTasks })
     } catch (err) {
       log.error(err.message)
     }
@@ -132,7 +131,7 @@ export class ClientRouter {
       garden.clearCaches()
       const graph = await garden.getConfigGraph({ log, emit: false })
       const taskTask = await clientRequestHandlers.run({ log, request: req, graph, garden })
-      await garden.processTasks([taskTask])
+      await garden.processTasks({ log, tasks: [taskTask] })
     } catch (err) {
       log.error(err.message)
     }
@@ -198,12 +197,15 @@ export const clientRequestHandlers = {
   build: async (params: ClientRequestHandlerCommonParams & { request: ClientRequests["build"] }) => {
     const { garden, graph, log } = params
     const { moduleName, force } = params.request
-    const tasks = await BuildTask.factory({
+    const tasks = new BuildTask({
       garden,
       log,
       graph,
-      module: graph.getModule(moduleName),
+      action: graph.getBuild(moduleName),
       force,
+      devModeDeployNames: [],
+      localModeDeployNames: [],
+      fromWatch: true,
     })
     return tasks
   },
@@ -214,14 +216,13 @@ export const clientRequestHandlers = {
       garden,
       log,
       graph,
-      service: graph.getService(serviceName),
+      action: graph.getDeploy(serviceName),
       force,
       forceBuild,
       fromWatch: true,
       skipRuntimeDependencies: params.request.skipDependencies,
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
+      devModeDeployNames: [],
+      localModeDeployNames: [],
     })
   },
   test: async (params: ClientRequestHandlerCommonParams & { request: ClientRequests["test"] }) => {
@@ -235,27 +236,27 @@ export const clientRequestHandlers = {
         log,
         force,
         forceBuild,
-        test: testFromConfig(module, config, graph),
+        action: graph.getTest(config.name),
         skipRuntimeDependencies: params.request.skipDependencies,
-        devModeServiceNames: [],
-        hotReloadServiceNames: [],
-        localModeServiceNames: [],
+        devModeDeployNames: [],
+        fromWatch: true,
+        localModeDeployNames: [],
       })
     })
   },
   run: async (params: ClientRequestHandlerCommonParams & { request: ClientRequests["task"] }) => {
     const { garden, graph, log } = params
     const { taskName, force, forceBuild } = params.request
-    return new TaskTask({
+    return new RunTask({
       garden,
       log,
       graph,
-      task: graph.getTask(taskName),
-      devModeServiceNames: [],
-      hotReloadServiceNames: [],
-      localModeServiceNames: [],
+      action: graph.getRun(taskName),
       force,
       forceBuild,
+      devModeDeployNames: [],
+      fromWatch: true,
+      localModeDeployNames: [],
     })
   },
 }

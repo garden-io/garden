@@ -191,7 +191,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(result).to.exist
     expect(errors).to.not.exist
-    expectFuzzyMatch(result?.steps["step-1"].log!.trim(), "echo OK")
+    expectFuzzyMatch(result?.steps["step-1"].log!.trim()!, "echo OK")
   })
 
   it("should abort subsequent steps if a command returns an error", async () => {
