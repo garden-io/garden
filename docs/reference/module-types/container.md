@@ -225,7 +225,8 @@ services:
       # 1 CPU)
       min: 10
 
-      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result
+      # in no limit being set.
       max: 1000
 
     memory:
@@ -233,8 +234,9 @@ services:
       # 1 GB)
       min: 90
 
-      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when starting the container.
     #
@@ -442,27 +444,6 @@ services:
     # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
     timeout: 300
 
-<<<<<<< HEAD
-=======
-    cpu:
-      # The minimum amount of CPU the service needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
-      # CPU)
-      min: 10
-
-      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in
-      # no limit being set.
-      max: 1000
-
-    memory:
-      # The minimum amount of RAM the service needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
-      # GB)
-      min: 90
-
-      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
-      # no limit being set.
-      max: 1024
-
->>>>>>> main
     # List of ports that the service container exposes.
     ports:
       - # The name of the port (used when referencing the port elsewhere in the service configuration).
@@ -540,12 +521,8 @@ tests:
       # 1 CPU)
       min: 10
 
-<<<<<<< HEAD
-      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
-=======
-      # The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no
-      # limit being set.
->>>>>>> main
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result
+      # in no limit being set.
       max: 1000
 
     memory:
@@ -553,14 +530,9 @@ tests:
       # 1 GB)
       min: 90
 
-<<<<<<< HEAD
-      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
-=======
-      # The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no
-      # limit being set.
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
       max: 1024
->>>>>>> main
 
     # List of volumes that should be mounted when starting the container.
     #
@@ -664,12 +636,8 @@ tasks:
       # 1 CPU)
       min: 10
 
-<<<<<<< HEAD
-      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
-=======
-      # The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no
-      # limit being set.
->>>>>>> main
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result
+      # in no limit being set.
       max: 1000
 
     memory:
@@ -677,14 +645,9 @@ tasks:
       # 1 GB)
       min: 90
 
-<<<<<<< HEAD
-      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
-=======
-      # The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no
-      # limit being set.
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
       max: 1024
->>>>>>> main
 
     # List of volumes that should be mounted when starting the container.
     #
@@ -1218,7 +1181,7 @@ The minimum amount of CPU the container needs to be available for it to be deplo
 
 [services](#services) > [cpu](#servicescpu) > max
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1246,11 +1209,11 @@ The minimum amount of RAM the container needs to be available for it to be deplo
 
 [services](#services) > [memory](#servicesmemory) > max
 
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `services[].volumes[]`
 
@@ -1884,65 +1847,6 @@ The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
 | -------- | -------- |
 | `number` | No       |
 
-<<<<<<< HEAD
-=======
-### `services[].cpu`
-
-[services](#services) > cpu
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
-
-### `services[].cpu.min`
-
-[services](#services) > [cpu](#servicescpu) > min
-
-The minimum amount of CPU the service needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
-### `services[].cpu.max`
-
-[services](#services) > [cpu](#servicescpu) > max
-
-The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `services[].memory`
-
-[services](#services) > memory
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
-
-### `services[].memory.min`
-
-[services](#services) > [memory](#servicesmemory) > min
-
-The minimum amount of RAM the service needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `services[].memory.max`
-
-[services](#services) > [memory](#servicesmemory) > max
-
-The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1024`  | No       |
-
->>>>>>> main
 ### `services[].ports[]`
 
 [services](#services) > ports
@@ -2203,7 +2107,7 @@ The minimum amount of CPU the container needs to be available for it to be deplo
 
 [tests](#tests) > [cpu](#testscpu) > max
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2231,11 +2135,11 @@ The minimum amount of RAM the container needs to be available for it to be deplo
 
 [tests](#tests) > [memory](#testsmemory) > max
 
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tests[].volumes[]`
 
@@ -2413,167 +2317,7 @@ tests:
 
 [tests](#tests) > image
 
-<<<<<<< HEAD
 Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
-=======
-The command/entrypoint used to run the test inside the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tests:
-  - command:
-      - /bin/sh
-      - '-c'
-```
-
-### `tests[].env`
-
-[tests](#tests) > env
-
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-tests:
-  - env:
-        - MY_VAR: some-value
-          MY_SECRET_VAR:
-            secretRef:
-              name: my-secret
-              key: some-key
-        - {}
-```
-
-### `tests[].cpu`
-
-[tests](#tests) > cpu
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
-
-### `tests[].cpu.min`
-
-[tests](#tests) > [cpu](#testscpu) > min
-
-The minimum amount of CPU the test needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
-### `tests[].cpu.max`
-
-[tests](#tests) > [cpu](#testscpu) > max
-
-The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `tests[].memory`
-
-[tests](#tests) > memory
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
-
-### `tests[].memory.min`
-
-[tests](#tests) > [memory](#testsmemory) > min
-
-The minimum amount of RAM the test needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `tests[].memory.max`
-
-[tests](#tests) > [memory](#testsmemory) > max
-
-The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1024`  | No       |
-
-### `tests[].volumes[]`
-
-[tests](#tests) > volumes
-
-List of volumes that should be mounted when deploying the test.
-
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `tests[].volumes[].name`
-
-[tests](#tests) > [volumes](#testsvolumes) > name
-
-The name of the allocated volume.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `tests[].volumes[].containerPath`
-
-[tests](#tests) > [volumes](#testsvolumes) > containerPath
-
-The path where the volume should be mounted in the container.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `tests[].volumes[].hostPath`
-
-[tests](#tests) > [volumes](#testsvolumes) > hostPath
-
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-and providers. Some providers may not support it at all._
-
-A local path or path on the node that's running the container, to mount in the container, relative to the
-module source path (or absolute).
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-Example:
-
-```yaml
-tests:
-  - volumes:
-      - hostPath: "/some/dir"
-```
-
-### `tests[].volumes[].module`
-
-[tests](#tests) > [volumes](#testsvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
->>>>>>> main
 
 | Type     | Required |
 | -------- | -------- |
@@ -2724,7 +2468,7 @@ The minimum amount of CPU the container needs to be available for it to be deplo
 
 [tasks](#tasks) > [cpu](#taskscpu) > max
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2752,11 +2496,11 @@ The minimum amount of RAM the container needs to be available for it to be deplo
 
 [tasks](#tasks) > [memory](#tasksmemory) > max
 
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tasks[].volumes[]`
 
@@ -2950,205 +2694,6 @@ Set to false if you don't want the task's result to be cached. Use this if the t
 | --------- | ------- | -------- |
 | `boolean` | `true`  | No       |
 
-<<<<<<< HEAD
-=======
-### `tasks[].command[]`
-
-[tasks](#tasks) > command
-
-The command/entrypoint used to run the task inside the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-tasks:
-  - command:
-      - /bin/sh
-      - '-c'
-```
-
-### `tasks[].env`
-
-[tasks](#tasks) > env
-
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-tasks:
-  - env:
-        - MY_VAR: some-value
-          MY_SECRET_VAR:
-            secretRef:
-              name: my-secret
-              key: some-key
-        - {}
-```
-
-### `tasks[].cpu`
-
-[tasks](#tasks) > cpu
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
-
-### `tasks[].cpu.min`
-
-[tasks](#tasks) > [cpu](#taskscpu) > min
-
-The minimum amount of CPU the task needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
-### `tasks[].cpu.max`
-
-[tasks](#tasks) > [cpu](#taskscpu) > max
-
-The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `tasks[].memory`
-
-[tasks](#tasks) > memory
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
-
-### `tasks[].memory.min`
-
-[tasks](#tasks) > [memory](#tasksmemory) > min
-
-The minimum amount of RAM the task needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `tasks[].memory.max`
-
-[tasks](#tasks) > [memory](#tasksmemory) > max
-
-The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1024`  | No       |
-
-### `tasks[].volumes[]`
-
-[tasks](#tasks) > volumes
-
-List of volumes that should be mounted when deploying the task.
-
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `tasks[].volumes[].name`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > name
-
-The name of the allocated volume.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `tasks[].volumes[].containerPath`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > containerPath
-
-The path where the volume should be mounted in the container.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `tasks[].volumes[].hostPath`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > hostPath
-
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-and providers. Some providers may not support it at all._
-
-A local path or path on the node that's running the container, to mount in the container, relative to the
-module source path (or absolute).
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-Example:
-
-```yaml
-tasks:
-  - volumes:
-      - hostPath: "/some/dir"
-```
-
-### `tasks[].volumes[].module`
-
-[tasks](#tasks) > [volumes](#tasksvolumes) > module
-
-The name of a _volume module_ that should be mounted at `containerPath`. The supported module types will depend on which provider you are using. The `kubernetes` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
-
-When a `module` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `tasks[].privileged`
-
-[tasks](#tasks) > privileged
-
-If true, run the task's main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
-
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
-
-### `tasks[].addCapabilities[]`
-
-[tasks](#tasks) > addCapabilities
-
-POSIX capabilities to add to the running task's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `tasks[].dropCapabilities[]`
-
-[tasks](#tasks) > dropCapabilities
-
-POSIX capabilities to remove from the running task's main container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
->>>>>>> main
 
 ## Outputs
 

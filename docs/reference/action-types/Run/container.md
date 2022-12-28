@@ -172,7 +172,8 @@ spec:
     # CPU)
     min: 10
 
-    # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+    # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in
+    # no limit being set.
     max: 1000
 
   memory:
@@ -180,8 +181,9 @@ spec:
     # GB)
     min: 90
 
-    # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
-    max: 90
+    # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+    # no limit being set.
+    max: 1024
 
   # List of volumes that should be mounted when starting the container.
   #
@@ -568,7 +570,7 @@ The minimum amount of CPU the container needs to be available for it to be deplo
 
 [spec](#spec) > [cpu](#speccpu) > max
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -596,11 +598,11 @@ The minimum amount of RAM the container needs to be available for it to be deplo
 
 [spec](#spec) > [memory](#specmemory) > max
 
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `spec.volumes[]`
 
