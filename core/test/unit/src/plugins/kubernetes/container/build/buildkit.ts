@@ -368,32 +368,6 @@ describe("buildkit build", () => {
       ])
     })
 
-    it("uses registry.insecure=true with the in-cluster registry", async () => {
-      const registry = inClusterRegistryHostname
-
-      const moduleOutputs = {
-        "local-image-id": "name:v-xxxxxx",
-        "local-image-name": "name",
-        "deployment-image-id": `${registry}/namespace/name:v-xxxxxx`,
-        "deployment-image-name": `${registry}/namespace/name`,
-      }
-
-      const flags = getBuildkitImageFlags(
-        defaultConfig,
-        moduleOutputs,
-        true // deploymentRegistryInsecure
-      )
-
-      expect(flags).to.eql([
-        "--output",
-        `type=image,"name=${registry}/namespace/name:v-xxxxxx",push=true,registry.insecure=true`,
-        "--import-cache",
-        `type=registry,ref=${registry}/namespace/name:_buildcache,registry.insecure=true`,
-        "--export-cache",
-        `type=registry,ref=${registry}/namespace/name:_buildcache,mode=max,registry.insecure=true`,
-      ])
-    })
-
     it("returns correct flags with separate cache registry", async () => {
       const deploymentRegistry = "gcr.io/deploymentRegistry"
       const cacheRegistry = "pkg.dev/cacheRegistry"
