@@ -27,7 +27,7 @@ import { ConfigGraph } from "../graph/config-graph"
 import { SolveParams } from "../graph/solver"
 import { GraphResults } from "../graph/results"
 import { expect } from "chai"
-import { ActionKind, BaseActionConfig } from "../actions/types"
+import { ActionConfig } from "../actions/types"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -149,9 +149,11 @@ export class TestGarden extends Garden {
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
     // Cache the resolved params to save a bunch of time during tests
-    const cacheKey = opts?.noCache
-      ? undefined
-      : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
+    // TODO-G2: re-instate this after we're done refactoring
+    const cacheKey = undefined
+    // const cacheKey = opts?.noCache
+    //   ? undefined
+    //   : hashString(serializeObject([currentDirectory, { ...opts, log: undefined }]))
 
     let params: GardenParams
 
@@ -227,7 +229,7 @@ export class TestGarden extends Garden {
     return await super.getRepoRoot()
   }
 
-  setActionConfigs(moduleConfigs: PartialModuleConfig[], actionConfigs?: BaseActionConfig<ActionKind>[]) {
+  setActionConfigs(moduleConfigs: PartialModuleConfig[], actionConfigs?: ActionConfig[]) {
     this.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
     if (actionConfigs) {

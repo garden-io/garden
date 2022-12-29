@@ -615,7 +615,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
       spec: {
-        ...omit(task.spec, ["name", "dependencies", "disabled"]),
+        ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
         env: prepareEnv(task.spec.env),
       },
     })
@@ -634,7 +634,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
       spec: {
-        ...omit(test.spec, ["name", "dependencies", "disabled"]),
+        ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
         env: prepareEnv(test.spec.env),
       },
     })

@@ -225,13 +225,6 @@ tests:
     outputs:
       <name>:
 
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
-
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
 
@@ -844,13 +837,6 @@ tests:
     # dependencies and in templating.
     outputs:
       <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
@@ -3115,13 +3101,6 @@ actions:
         outputs:
           <name>:
 
-        # The name of the test that was run.
-        testName:
-
-        # The test run's version, as a string. In addition to the parent module's version, this also factors in the
-        # module versions of the test's runtime dependencies (if any).
-        version:
-
       # Structured outputs from the execution, as defined by individual action/module types, to be made available for
       # dependencies and in templating.
       outputs:
@@ -3271,13 +3250,6 @@ namespaceStatus:
 # dependencies and in templating.
 outputs:
   <name>:
-
-# The name of the test that was run.
-testName:
-
-# The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-# versions of the test's runtime dependencies (if any).
-version:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
@@ -3726,13 +3698,6 @@ tests:
     outputs:
       <name>:
 
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
-
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
 
@@ -3977,13 +3942,6 @@ result:
   # dependencies and in templating.
   outputs:
     <name>:
-
-  # The name of the test that was run.
-  testName:
-
-  # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-  # versions of the test's runtime dependencies (if any).
-  version:
 
   # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
   aborted:
@@ -4286,13 +4244,6 @@ tests:
     # dependencies and in templating.
     outputs:
       <name>:
-
-    # The name of the test that was run.
-    testName:
-
-    # The test run's version, as a string. In addition to the parent module's version, this also factors in the module
-    # versions of the test's runtime dependencies (if any).
-    version:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:

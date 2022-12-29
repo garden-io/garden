@@ -121,6 +121,11 @@ export abstract class BaseConfigGraph<
     this.validate()
   }
 
+  toSanitizedValue() {
+    // TODO-G2
+    return "<ConfigGraph>"
+  }
+
   validate() {
     // TODO-G2
   }
@@ -158,9 +163,9 @@ export abstract class BaseConfigGraph<
     }
   }
 
-  getActionByRef(refOrString: ActionReference | string): A {
+  getActionByRef(refOrString: ActionReference | string, opts?: GetActionOpts): A {
     const ref = parseActionReference(refOrString)
-    return <A>(<unknown>this.getActionByKind(ref.kind, ref.name))
+    return <A>(<unknown>this.getActionByKind(ref.kind, ref.name, opts))
   }
 
   getActionByKind<K extends ActionKind>(

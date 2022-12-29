@@ -67,21 +67,23 @@ export interface ExecDeployActionSpec {
 export type ExecDeployConfig = DeployActionConfig<"exec", ExecDeployActionSpec>
 export type ExecDeploy = DeployAction<ExecDeployConfig, {}>
 
+export const execDeployCommandSchema = () =>
+  joi
+    .sparseArray()
+    .items(joi.string().allow(""))
+    .description(
+      dedent`
+      The command to run to perform the deployment.
+
+      ${execPathDoc}
+      `
+    )
+
 export const execDeployActionSchema = () =>
   joi
     .object()
     .keys({
-      deployCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          The command to run to perform the deployment.
-
-          ${execPathDoc}
-          `
-        )
-        .required(),
+      deployCommand: execDeployCommandSchema().required(),
       statusCommand: joi
         .sparseArray()
         .items(joi.string().allow(""))

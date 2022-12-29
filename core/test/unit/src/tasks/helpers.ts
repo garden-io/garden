@@ -34,58 +34,25 @@ describe("TaskHelpers", () => {
    * getDependencies methods of the task classes in question.
    */
   describe("getActionWatchTasks", () => {
-    it("should return no deploy tasks for a disabled action, but include its dependants", async () => {
+    it("should return tasks for an action", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          allowPublish: false,
-          build: { dependencies: [] },
-          disabled: true, // <---------------
-          name: "module-a",
-          include: [],
-          path: garden.projectRoot,
-          serviceConfigs: [],
-          taskConfigs: [],
-          spec: {
-            services: [
-              {
-                name: "service-a",
-                dependencies: [],
-                disabled: false,
-              },
-            ],
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            name: "test-action",
+            kind: "Deploy",
+            type: "test",
+            internal: {
+              basePath: "foo",
+            },
+            spec: {},
           },
-          testConfigs: [],
-          type: "test",
-        },
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          allowPublish: false,
-          build: { dependencies: [{ name: "module-a", copy: [] }] },
-          disabled: false,
-          name: "module-b",
-          include: [],
-          path: garden.projectRoot,
-          serviceConfigs: [],
-          taskConfigs: [],
-          spec: {
-            services: [
-              {
-                name: "service-b",
-                dependencies: [],
-                disabled: false,
-              },
-            ],
-          },
-          testConfigs: [],
-          type: "test",
-        },
-      ])
-
+        ]
+      )
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("service-a", { includeDisabled: true })
+      const action = graph.getDeploy("test-action")
 
       const tasks = await getActionWatchTasks({
         garden,
@@ -98,61 +65,40 @@ describe("TaskHelpers", () => {
         testsWatched: [],
       })
 
-      expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-b"])
+      expect(sortedBaseKeys(tasks)).to.eql(["deploy.test-action"])
     })
 
-    it("should omit tasks for disabled dependant modules", async () => {
+    it("should return no tasks for a disabled action, but include its dependants", async () => {
       const garden = await makeTestGardenA()
 
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          allowPublish: false,
-          build: { dependencies: [] },
-          disabled: false,
-          name: "module-a",
-          include: [],
-          path: garden.projectRoot,
-          serviceConfigs: [],
-          taskConfigs: [],
-          spec: {
-            services: [
-              {
-                name: "service-a",
-                dependencies: [],
-                disabled: false,
-              },
-            ],
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            name: "disabled-action",
+            internal: {
+              basePath: "foo",
+            },
+            kind: "Deploy",
+            spec: {},
+            type: "test",
+            disabled: true,
           },
-          testConfigs: [],
-          type: "test",
-        },
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          allowPublish: false,
-          build: { dependencies: [{ name: "module-a", copy: [] }] },
-          disabled: true, // <---------------
-          name: "module-b",
-          include: [],
-          path: garden.projectRoot,
-          serviceConfigs: [],
-          taskConfigs: [],
-          spec: {
-            services: [
-              {
-                name: "service-b",
-                dependencies: [],
-                disabled: false,
-              },
-            ],
+          {
+            name: "not-disabled-dependant",
+            internal: {
+              basePath: "foo",
+            },
+            dependencies: ["deploy.disabled-action"],
+            kind: "Deploy",
+            spec: {},
+            type: "test",
           },
-          testConfigs: [],
-          type: "test",
-        },
-      ])
+        ]
+      )
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("service-a", { includeDisabled: true })
+      const action = graph.getDeploy("disabled-action", { includeDisabled: true })
 
       const tasks = await getActionWatchTasks({
         garden,
@@ -165,7 +111,53 @@ describe("TaskHelpers", () => {
         testsWatched: [],
       })
 
-      expect(sortedBaseKeys(tasks)).to.eql(["deploy.service-a"])
+      expect(sortedBaseKeys(tasks)).to.eql(["deploy.not-disabled-dependant"])
+    })
+
+    it("should omit tasks for disabled dependant actions", async () => {
+      const garden = await makeTestGardenA()
+
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            name: "disabled-dependant-action",
+            internal: {
+              basePath: "foo",
+            },
+            kind: "Deploy",
+            spec: {},
+            type: "test",
+            disabled: true,
+            dependencies: ["deploy.not-disabled-dependency-action"],
+          },
+          {
+            name: "not-disabled-dependency-action",
+            internal: {
+              basePath: "foo",
+            },
+            kind: "Deploy",
+            spec: {},
+            type: "test",
+          },
+        ]
+      )
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = graph.getDeploy("not-disabled-dependency-action")
+
+      const tasks = await getActionWatchTasks({
+        garden,
+        graph,
+        log,
+        updatedAction: action,
+        deploysWatched: graph.getDeploys().map((s) => s.name),
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        testsWatched: [],
+      })
+
+      expect(sortedBaseKeys(tasks)).to.eql(["deploy.not-disabled-dependency-action"])
     })
 
     context("without hot reloading enabled", () => {
@@ -206,7 +198,7 @@ describe("TaskHelpers", () => {
       for (const { moduleName, expectedTasks } of expectedBaseKeysByChangedModule) {
         it(`returns the correct set of tasks for ${moduleName} with dependants`, async () => {
           const graph = await depGarden.getConfigGraph({ log: depGarden.log, emit: false })
-          const action = graph.getDeploy(<string>moduleName)
+          const action = graph.getBuild(<string>moduleName)
 
           const tasks = await getActionWatchTasks({
             garden: depGarden,
