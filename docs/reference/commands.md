@@ -644,17 +644,17 @@ Optionally stays running and automatically re-builds and re-deploys if sources
 Examples:
 
     garden deploy                      # deploy everything in the project
-    garden deploy my-service           # only deploy my-service
-    garden deploy service-a,service-b  # only deploy service-a and service-b
+    garden deploy my-deploy            # only deploy my-deploy
+    garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
     garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
     garden deploy --watch              # watch for changes to code
-    garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
-    garden deploy --dev                # deploys all compatible services with dev mode enabled
-    garden deploy --local=my-service   # deploys all services, with local mode enabled for my-service
-    garden deploy --local              # deploys all compatible services with local mode enabled
-    garden deploy --env stage          # deploy your services to an environment called stage
-    garden deploy --skip service-b     # deploy all services except service-b
-    garden deploy --forward            # deploy all services and start port forwards without watching for changes
+    garden deploy --dev=my-deploy      # deploys all deploys, with dev mode enabled for my-deploy
+    garden deploy --dev                # deploys all compatible deploys with dev mode enabled
+    garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
+    garden deploy --local              # deploys all compatible deploys with local mode enabled
+    garden deploy --env stage          # deploy your deploys to an environment called stage
+    garden deploy --skip deploy-b      # deploy all deploys except deploy-b
+    garden deploy --forward            # deploy all deploys and start port forwards without watching for changes
 
 #### Usage
 
@@ -664,7 +664,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to deploy (skip to deploy everything). Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything). Use comma as a separator to specify multiple names.
 
 #### Options
 
@@ -674,8 +674,8 @@ Examples:
   | `--force-build` |  | boolean | Force re-build of build dependencies.
   | `--watch` | `-w` | boolean | Watch for changes and auto-deploy.
   | `--dev-mode` | `--dev` | array:string | The name(s) of the deploys to deploy with dev mode enabled. Use comma as a separator to specify multiple names. Use * to deploy all with dev mode enabled. Implicitly sets the --watch/-w flag.
-  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
-This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
+  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple deploys. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
+This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
   | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev mode.
