@@ -21,6 +21,7 @@ import {
   joiUserIdentifier,
   joiVariables,
   parseActionReference,
+  createSchema,
 } from "../config/common"
 import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
@@ -87,12 +88,13 @@ const actionSourceSpecSchema = () =>
       `
     )
     .xor("path", "repository")
-    .meta({ advanced: true, templateContext: ActionConfigContext })
+    .meta({ name: "action-source", advanced: true, templateContext: ActionConfigContext })
 
 export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
 
-export const baseActionConfigSchema = () =>
-  joi.object().keys({
+export const baseActionConfigSchema = createSchema({
+  name: "action-config-base",
+  keys: {
     // Basics
     apiVersion: apiVersionSchema().meta({ templateContext: null }),
     kind: joi
@@ -219,28 +221,32 @@ export const baseActionConfigSchema = () =>
       .unknown(true)
       .description("The spec for the specific action type.")
       .meta({ templateContext: ActionConfigContext }),
-  })
+  },
+})
 
 export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any>
   extends BaseActionConfig<K, N, S> {
   build?: string
 }
 
-export const baseRuntimeActionConfigSchema = () =>
-  baseActionConfigSchema().keys({
+export const baseRuntimeActionConfigSchema = createSchema({
+  name: "runtime-action-base",
+  keys: {
     build: joiUserIdentifier()
       .description(
         dedent(
           `Specify a _Build_ action, and resolve this action from the context of that Build.
 
-        For example, you might create an \`exec\` Build which prepares some manifests, and then reference that in a \`kubernetes\` _Deploy_ action, and the resulting manifests from the Build.
+      For example, you might create an \`exec\` Build which prepares some manifests, and then reference that in a \`kubernetes\` _Deploy_ action, and the resulting manifests from the Build.
 
-        This would mean that instead of looking for manifest files relative to this action's location in your project structure, the output directory for the referenced \`exec\` Build would be the source.
-        `
+      This would mean that instead of looking for manifest files relative to this action's location in your project structure, the output directory for the referenced \`exec\` Build would be the source.
+      `
         )
       )
       .meta({ templateContext: ActionConfigContext }),
-  })
+  },
+  extend: baseActionConfigSchema,
+})
 
 export const actionStatusSchema = (detailSchema?: Joi.ObjectSchema) =>
   joi.object().keys({

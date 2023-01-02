@@ -12,7 +12,7 @@ import { cloneDeep, extend, intersection, mapValues, merge, omit, pick } from "l
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
-import { joi, joiArray } from "../src/config/common"
+import { createSchema, joiArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
@@ -63,6 +63,8 @@ import { baseServiceSpecSchema } from "../src/config/service"
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
 
+// TODO-G2: split test plugin into new module
+
 export const dataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
 export const testNow = new Date()
 export const testModuleVersionString = "v-1234512345"
@@ -107,6 +109,25 @@ export const testModuleSpecSchema = () =>
     tests: joiArray(testModuleTestSchema()),
     tasks: joiArray(testModuleTaskSchema()),
   })
+
+export const testDeploySchema = createSchema({
+  name: "test.Deploy",
+  extend: execDeployActionSchema,
+  keys: {
+    // Making this optional for tests
+    deployCommand: execDeployCommandSchema().optional(),
+  },
+})
+export const testRunSchema = createSchema({
+  name: "test.Run",
+  extend: execRunActionSchema,
+  keys: {},
+})
+export const testTestSchema = createSchema({
+  name: "test.Test",
+  extend: execTestActionSchema,
+  keys: {},
+})
 
 export async function configureTestModule({ moduleConfig }: ConfigureModuleParams) {
   // validate services
@@ -227,10 +248,7 @@ export const testPlugin = () =>
         {
           name: "test",
           docs: "Test Deploy action",
-          schema: execDeployActionSchema().keys({
-            // Making this optional for tests
-            deployCommand: execDeployCommandSchema(),
-          }),
+          schema: testDeploySchema(),
           handlers: {
             deploy: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
@@ -257,7 +275,7 @@ export const testPlugin = () =>
         {
           name: "test",
           docs: "Test Run action",
-          schema: execRunActionSchema(),
+          schema: testRunSchema(),
           handlers: {
             run: runTest,
           },
@@ -267,7 +285,7 @@ export const testPlugin = () =>
         {
           name: "test",
           docs: "Test Test action",
-          schema: execTestActionSchema(),
+          schema: testTestSchema(),
           handlers: {
             run: <TestActionHandler<"run", ExecTest>>(<unknown>runTest),
           },

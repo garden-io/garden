@@ -142,6 +142,7 @@ export const execDeployActionSchema = () =>
       }),
     })
     .description("Deploy using shell commands.")
+    .meta({ name: "exec.Deploy" })
 
 // RUN //
 
