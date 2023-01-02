@@ -45,11 +45,13 @@ interface Params extends TaskParams {
 
 interface CachedStatus extends EnvironmentStatus {
   configHash: string
+  environmentName: string
   resolvedAt: Date
 }
 
 const cachedStatusSchema = environmentStatusSchema().keys({
   configHash: joi.string().required(),
+  environmentName: joi.string().required(),
   resolvedAt: joi.date().required(),
 })
 
@@ -253,7 +255,6 @@ export class ResolveProviderTask extends BaseTask {
     return getProviderStatusCachePath({
       gardenDirPath: this.garden.gardenDirPath,
       pluginName: this.plugin.name,
-      environmentName: this.garden.environmentName,
     })
   }
 
@@ -282,6 +283,11 @@ export class ResolveProviderTask extends BaseTask {
       return null
     }
 
+    if (cachedStatus.environmentName !== this.garden.environmentName) {
+      this.log.silly(`Cached environment name at ${cachePath} does not match the current environmnent name`)
+      return null
+    }
+
     const configHash = this.hashConfig(config)
 
     if (cachedStatus.configHash !== configHash) {
@@ -297,7 +303,7 @@ export class ResolveProviderTask extends BaseTask {
       return null
     }
 
-    return omit(cachedStatus, ["configHash", "resolvedAt"])
+    return omit(cachedStatus, ["configHash", "resolvedAt", "environmentName"])
   }
 
   private async setCachedStatus(config: GenericProviderConfig, status: EnvironmentStatus) {
@@ -381,11 +387,9 @@ export class ResolveProviderTask extends BaseTask {
 export function getProviderStatusCachePath({
   gardenDirPath,
   pluginName,
-  environmentName,
 }: {
   gardenDirPath: string
   pluginName: string
-  environmentName: string
 }) {
-  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.${environmentName}.json`)
+  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.json`)
 }
