@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi from "@hapi/joi"
+import Joi, { SchemaMap } from "@hapi/joi"
 import Ajv from "ajv"
 import { splitLast } from "../util/util"
 import { deline, dedent, naturalList, titleize } from "../util/string"
@@ -14,7 +14,7 @@ import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
-import { ConfigurationError } from "../exceptions"
+import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
@@ -48,6 +48,8 @@ export const enumToArray = (Enum: any) => Object.values(Enum).filter((k) => type
 
 // Extend the Joi module with our custom rules
 interface MetadataKeys {
+  // Unique name to identify in error messages etc
+  name?: string
   // Flag as an advanced feature, to be advised in generated docs
   advanced?: boolean
   // Flag as deprecated. Set to a string to provide a deprecation message for docs.
@@ -56,6 +58,8 @@ interface MetadataKeys {
   enterprise?: boolean
   // Indicate this schema is expected to be extended by e.g. plugins
   extendable?: boolean
+  // Usually applied automatically via createSchema. Indicates which schema this extends.
+  extends?: string
   // Flag as experimental in docs
   experimental?: boolean
   // Used for clarity in documentation on key/value mapping fields
@@ -765,3 +769,79 @@ export function allowUnknown<T extends Joi.Schema>(schema: T) {
 export const artifactsTargetDescription = dedent`
   A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at \`.garden/artifacts\`.
 `
+
+export interface CreateSchemaParams {
+  name: string
+  keys: SchemaMap
+  extend?: () => Joi.ObjectSchema
+  meta?: MetadataKeys
+}
+
+export interface CreateSchemaOutput {
+  (): Joi.ObjectSchema
+}
+
+interface SchemaRegistry {
+  [name: string]: {
+    spec: CreateSchemaParams
+    schema?: Joi.ObjectSchema
+  }
+}
+
+const schemaRegistry: SchemaRegistry = {}
+
+export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
+  const { name, keys } = spec
+
+  if (schemaRegistry[name]) {
+    throw new InternalError(`Object schema ${name} defined multiple times`, { name, keys })
+  }
+
+  schemaRegistry[name] = { spec }
+
+  return () => {
+    let schema = schemaRegistry[name].schema
+    if (!schema) {
+      const meta: MetadataKeys = { ...spec.meta }
+      meta.name = name
+
+      if (spec.extend) {
+        const base = spec.extend()
+
+        if (Object.keys(keys).length > 0) {
+          schema = base.keys(keys)
+        } else {
+          schema = base
+        }
+
+        const description = base.describe()
+        const baseMeta = metadataFromDescription(description)
+        if (baseMeta.name) {
+          meta.extends = baseMeta.name
+        }
+      } else {
+        schema = joi.object().keys(keys)
+      }
+
+      schema = schema.meta(meta)
+
+      schemaRegistry[name].schema = schema
+    }
+    return schema
+  }
+}
+
+// Just used for tests
+export function removeSchema(name: string) {
+  if (schemaRegistry[name]) {
+    delete schemaRegistry[name]
+  }
+}
+
+export function metadataFromDescription(desc: Joi.Description) {
+  let meta: MetadataKeys = {}
+  for (const m of desc.metas || []) {
+    meta = { ...meta, ...m }
+  }
+  return meta
+}

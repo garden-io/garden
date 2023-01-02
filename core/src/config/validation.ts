@@ -11,6 +11,7 @@ import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
 import { uuidv4 } from "../util/util"
+import { metadataFromDescription } from "./common"
 
 export const joiPathPlaceholder = uuidv4()
 const joiPathPlaceholderRegex = new RegExp(joiPathPlaceholder, "g")
@@ -131,7 +132,10 @@ export function validateSchema<T>(
     const msgPrefix = context ? `Error validating ${context}` : "Validation error"
     let errorDescription = errorDetails.map((e) => e.message).join(", ")
 
-    if (schema.describe().keys) {
+    const schemaDescription = schema.describe()
+    const schemaMetadata = metadataFromDescription(schemaDescription)
+
+    if (schemaDescription.keys) {
       // Not the case e.g. for array schemas
       errorDescription += `. Available keys: ${Object.keys(schema.describe().keys).join(", ")})`
     }
@@ -139,6 +143,7 @@ export function validateSchema<T>(
     throw new ErrorClass(`${msgPrefix}: ${errorDescription}`, {
       value,
       context,
+      schemaMetadata,
       errorDescription,
       errorDetails,
     })
