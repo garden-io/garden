@@ -83,6 +83,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.inProgress = {}
 
     this.on("start", () => {
+      this.log.silly(`GraphSolver: start`)
+      this.emit("loop", {})
+    })
+
+    this.on("loop", () => {
+      this.log.silly(`GraphSolver: loop`)
       this.loop()
     })
   }
@@ -312,11 +318,16 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         const key = node.getKey()
         this.inProgress[key] = node
         const startedAt = new Date()
-        this.processNode(node, startedAt).catch((error) => {
-          this.garden.events.emit("internalError", { error, timestamp: new Date() })
-          this.logInternalError(node, error)
-          node.complete({ startedAt, error, aborted: true, result: null })
-        })
+        this.processNode(node, startedAt)
+          .then(() => {
+            this.emit("loop", {})
+          })
+          .catch((error) => {
+            this.garden.events.emit("internalError", { error, timestamp: new Date() })
+            this.logInternalError(node, error)
+            node.complete({ startedAt, error, aborted: true, result: null })
+            this.emit("loop", {})
+          })
       }
     } finally {
       // TODO-G2: clean up pending tasks with no dependant requests
@@ -329,36 +340,32 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
    */
   private async processNode(node: TaskNode, startedAt: Date) {
     // Errors thrown in this outer try block are caught in loop().
+    const task = node.task
+    const name = task.getName()
+    const type = task.type
+    const key = node.getKey()
+
+    this.logTask(node)
+
+    let result: GraphResult
+
     try {
-      const task = node.task
-      const name = task.getName()
-      const type = task.type
-      const key = node.getKey()
+      this.garden.events.emit("taskProcessing", {
+        name,
+        type,
+        key,
+        startedAt: new Date(),
+        versionString: task.version,
+      })
 
-      this.logTask(node)
-
-      let result: GraphResult
-
-      try {
-        this.garden.events.emit("taskProcessing", {
-          name,
-          type,
-          key,
-          startedAt: new Date(),
-          versionString: task.version,
-        })
-
-        const processResult = await node.execute()
-        result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
-      } catch (error) {
-        result = this.completeTask({ startedAt, error, result: null, node, aborted: false })
-        this.garden.events.emit("taskError", toGraphResultEventPayload(result))
-        if (!node.task.interactive) {
-          this.logTaskError(node, error)
-        }
+      const processResult = await node.execute()
+      result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
+    } catch (error) {
+      result = this.completeTask({ startedAt, error, result: null, node, aborted: false })
+      this.garden.events.emit("taskError", toGraphResultEventPayload(result))
+      if (!node.task.interactive) {
+        this.logTaskError(node, error)
       }
-    } finally {
-      this.loop()
     }
   }
 
