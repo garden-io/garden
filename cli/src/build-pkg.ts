@@ -24,7 +24,6 @@ const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
-const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
 const prebuildInstallPath = resolve(repoRoot, "node_modules", ".bin", "prebuild-install")
 const distPath = resolve(repoRoot, "dist")
 const sqliteBinFilename = "better_sqlite3.node"
@@ -142,15 +141,6 @@ async function buildBinaries(args: string[]) {
   const cliPath = resolve(tmpDir, workspaces["@garden-io/cli"].location)
   await exec("yarn", ["--production"], { cwd: cliPath })
 
-  console.log(chalk.cyan("Fetching pkg base binaries"))
-
-  // Work around concurrency bug in pkg...
-  for (const [targetName, spec] of Object.entries(selected)) {
-    await exec(pkgFetchPath, spec.pkgType.split("-"))
-    console.log(chalk.green(" ✓ " + targetName))
-    await sleep(5000) // Work around concurrency bug in pkg...
-  }
-
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
 
@@ -258,17 +248,24 @@ async function pkgCommon({
   await remove(targetPath)
   await mkdirp(targetPath)
 
+  const pkgFetchTmpDir = resolve(repoRoot, "tmp", "pkg-fetch", targetName)
+  await mkdirp(pkgFetchTmpDir)
+
   console.log(` - ${targetName} -> pkg`)
-  await exec(pkgPath, [
-    "--target",
-    pkgType,
-    sourcePath,
-    "--public",
-    "--options",
-    nodeOptions.join(","),
-    "--output",
-    resolve(targetPath, binFilename),
-  ])
+  await exec(
+    pkgPath,
+    [
+      "--target",
+      pkgType,
+      sourcePath,
+      "--public",
+      "--options",
+      nodeOptions.join(","),
+      "--output",
+      resolve(targetPath, binFilename),
+    ],
+    { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
+  )
 
   console.log(` - ${targetName} -> ${sqliteBinFilename}`)
 
