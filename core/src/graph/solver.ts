@@ -34,7 +34,6 @@ import {
 import AsyncLock from "async-lock"
 
 const taskStyle = chalk.cyan.bold
-const lock = new AsyncLock()
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -65,6 +64,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   private inLoop: boolean
 
   private log: LogEntry
+  private lock: AsyncLock
 
   constructor(
     private garden: Garden,
@@ -80,6 +80,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.nodes = {}
     this.pendingNodes = {}
     this.inProgress = {}
+    this.lock = new AsyncLock()
 
     this.on("start", () => {
       this.log.silly(`GraphSolver: start`)
@@ -107,7 +108,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     }
 
     // TODO-G2: remove this lock and test with concurrent execution
-    return lock.acquire("solve", async () => {
+    return this.lock.acquire("solve", async () => {
       const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
           tasks.map((t) => {
