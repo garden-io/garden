@@ -785,7 +785,7 @@ export class PodRunner extends PodRunnerParams {
     })
     return new K8sLogFollower({
       defaultNamespace: this.namespace,
-      retryIntervalMs: 10,
+      retryIntervalMs: 10000,
       stream,
       log,
       entryConverter: makeRunLogEntry,
