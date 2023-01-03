@@ -265,11 +265,13 @@ export class K8sLogFollower<T> {
     }
 
     // There's no need to log the closed event that happens after an error event
-    if (!(prevStatus === "error" && status === "closed")) {
-      this.log.silly(
-        `<Lost connection to container '${conn.containerName}' in Pod '${conn.pod.metadata.name}'. Reason: ${reason}. Will retry in background...>`
-      )
+    if (prevStatus === "error" && status === "closed") {
+      return
     }
+
+    this.log.silly(
+      `<Lost connection to container '${conn.containerName}' in Pod '${conn.pod.metadata.name}'. Reason: ${reason}. Will retry in background...>`
+    )
   }
 
   private async createConnections({ tail, since, limitBytes }: LogOpts) {
