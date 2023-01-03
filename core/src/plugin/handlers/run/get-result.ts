@@ -16,7 +16,7 @@ import { memoize } from "lodash"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
-export type GetRunResult<T extends RunAction = RunAction> = ActionStatus<T, RunResult>
+export interface GetRunResult<T extends RunAction = RunAction> extends ActionStatus<T, RunResult> {}
 
 export interface RunStatusMap extends ActionStatusMap<RunAction> {
   [key: string]: GetRunResult

@@ -17,6 +17,7 @@ import type { ExecutedTestAction, ResolvedTestAction, TestAction, TestActionConf
 import type { ActionKind } from "../plugin/action-types"
 import type { GraphResults } from "../graph/results"
 import type { BaseAction } from "./base"
+import { ValidResultType } from "../tasks/base"
 
 // TODO-G2: split this file
 
@@ -110,7 +111,7 @@ export interface ActionStatus<
   T extends BaseAction = BaseAction,
   D extends {} = any,
   O extends {} = GetActionOutputType<T>
-> {
+> extends ValidResultType {
   state: ActionState
   detail: D | null
   outputs: O

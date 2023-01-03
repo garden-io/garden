@@ -41,7 +41,7 @@ export const buildResultSchema = () =>
     details: joi.object().description("Additional information, specific to the provider."),
   })
 
-export type BuildStatus<T extends BuildAction = BuildAction, D = BuildResult> = ActionStatus<T, D>
+export interface BuildStatus<T extends BuildAction = BuildAction, D = BuildResult> extends ActionStatus<T, D> {}
 
 export interface BuildStatusMap extends ActionStatusMap<BuildAction> {
   [key: string]: BuildStatus

@@ -78,6 +78,10 @@ export type Task =
 
 export type ExecuteTask = BuildTask | DeployTask | RunTask | TestTask
 
+export interface ResolveProcessDependenciesParams<S extends ValidResultType> {
+  status: S | null
+}
+
 @Profile()
 export abstract class BaseTask<O extends ValidResultType = ValidResultType, S extends ValidResultType = O> {
   abstract type: string
@@ -113,7 +117,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   // Which dependencies must be resolved to call this task's getStatus method
   abstract resolveStatusDependencies(): BaseTask[]
   // Which dependencies must be resolved to call this task's process method, in addition to the above
-  abstract resolveProcessDependencies(): BaseTask[]
+  abstract resolveProcessDependencies(params: ResolveProcessDependenciesParams<S>): BaseTask[]
 
   abstract getDescription(): string
   abstract getStatus(params: TaskProcessParams): Promise<S | null>
@@ -131,11 +135,11 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
    * Wrapper around resolveProcessDependencies() that memoizes the results and applies filters.
    */
   @Memoize()
-  getProcessDependencies(): BaseTask[] {
+  getProcessDependencies(params: ResolveProcessDependenciesParams<S>): BaseTask[] {
     if (this.skipDependencies) {
       return []
     }
-    return this.resolveProcessDependencies()
+    return this.resolveProcessDependencies(params)
   }
 
   /**
@@ -217,8 +221,12 @@ export abstract class BaseActionTask<
     return [this.getResolveTask(this.action)]
   }
 
-  resolveProcessDependencies(): BaseTask[] {
+  resolveProcessDependencies({ status }: ResolveProcessDependenciesParams<ValidResultType>): BaseTask[] {
     const resolveTask = this.getResolveTask(this.action)
+
+    if (status?.state === "ready" && !this.force) {
+      return [resolveTask]
+    }
 
     const deps = this.action.getDependencyReferences().flatMap((dep): BaseTask[] => {
       const action = this.graph.getActionByRef(dep)
@@ -323,7 +331,7 @@ interface ExecuteActionOutputs<T extends Action> {
 
 export abstract class ExecuteActionTask<
   T extends Action,
-  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"] },
+  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any },
   S extends ValidResultType = O
 > extends BaseActionTask<T, O, S> {
   _resultType: O & { executedAction: Executed<T> }

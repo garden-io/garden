@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseTask, BaseTaskParams, TaskProcessParams } from "./base"
+import { BaseTask, BaseTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
   Provider,
@@ -89,7 +89,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return []
   }
 
-  resolveProcessDependencies() {
+  resolveProcessDependencies({ status }: ResolveProcessDependenciesParams<Provider>) {
+    if (status?.state === "ready" && !this.force) {
+      return []
+    }
+
     const pluginDeps = this.plugin.dependencies
     const explicitDeps = (this.config.dependencies || []).map((name) => ({ name }))
     const implicitDeps = getProviderTemplateReferences(this.config).map((name) => ({ name }))

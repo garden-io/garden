@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { cloneDeep, extend, intersection, mapValues, merge, omit, pick } from "lodash"
+import { cloneDeep, extend, intersection, mapValues, merge, omit, pick, uniq } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
@@ -59,6 +59,7 @@ import { Resolved } from "../src/actions/types"
 import { defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
+import { GraphResultMap } from "../src/graph/results"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -512,6 +513,21 @@ export function stubRouterAction<K extends ActionKind, H extends keyof WrappedAc
 ) {
   const actionKindHandlers: WrappedActionRouterHandlers<K> = actionRouter.getRouterForActionKind(actionKind)
   actionKindHandlers[handlerType] = handler
+}
+
+/**
+ * Returns an alphabetically sorted list of all processed actions including dependencies from a GraphResultMap.
+ */
+export function listAllProcessedActions(results: GraphResultMap) {
+  const all = Object.keys(results)
+
+  for (const r of Object.values(results)) {
+    if (r?.dependencyResults) {
+      all.push(...listAllProcessedActions(r.dependencyResults))
+    }
+  }
+
+  return uniq(all).sort()
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {

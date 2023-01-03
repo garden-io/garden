@@ -337,10 +337,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
    * Verbose string description of the action. Useful for logging and error messages.
    */
   longDescription(): string {
-    let d = `${this.type} ${this.kind} ${chalk.bold.white(this.name)}`
+    let d = `${chalk.white(this.kind)} type=${chalk.bold.white(this.type)} name=${chalk.bold.white(this.name)}`
 
     if (this._moduleName) {
-      d += `(from module ${chalk.bold.white(this.name)})`
+      d += ` (from module ${chalk.bold.white(this.name)})`
     }
 
     return d
