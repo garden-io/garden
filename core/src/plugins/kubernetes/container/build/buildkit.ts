@@ -35,7 +35,7 @@ import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, millicpuToString, megabytesToString } from "../../util"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
-import { defaultDockerfileName } from "../../../container/helpers"
+import { defaultDockerfileName } from "../../../container/config"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { Resolved } from "../../../../actions/types"
 
@@ -136,7 +136,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   ]
 
   // Execute the build
-  const buildTimeout = spec.timeout
+  const buildTimeout = action.getConfig("timeout")
 
   const pod = await getRunningDeploymentPod({ api, deploymentName: buildkitDeploymentName, namespace })
 

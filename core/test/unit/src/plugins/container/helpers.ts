@@ -20,12 +20,12 @@ import { dataDir, expectError, getPropertyName, makeTestGarden } from "../../../
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ContainerModuleSpec, ContainerModuleConfig } from "../../../../../src/plugins/container/moduleConfig"
 import {
-  containerHelpers as helpers,
+  ContainerModuleSpec,
+  ContainerModuleConfig,
   defaultDockerfileName,
-  DEFAULT_BUILD_TIMEOUT,
-} from "../../../../../src/plugins/container/helpers"
+} from "../../../../../src/plugins/container/moduleConfig"
+import { containerHelpers as helpers, DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"

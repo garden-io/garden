@@ -7,7 +7,7 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { ContainerBuildAction } from "../../../container/moduleConfig"
+import { ContainerBuildAction, defaultDockerfileName } from "../../../container/moduleConfig"
 import { millicpuToString, megabytesToString, makePodName } from "../../util"
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
@@ -39,7 +39,6 @@ import split2 from "split2"
 import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
-import { defaultDockerfileName } from "../../../container/helpers"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
