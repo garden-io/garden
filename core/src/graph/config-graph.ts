@@ -423,6 +423,14 @@ export abstract class BaseConfigGraph<
     }
   }
 
+  toMutableGraph() {
+    return new MutableConfigGraph({
+      actions: this.getActions(),
+      moduleGraph: this.moduleGraph,
+      groups: Object.values(this.groups),
+    })
+  }
+
   protected addActionInternal<K extends ActionKind>(action: Action) {
     this.actions[action.kind][action.name] = <PickTypeByKind<K, B, D, R, T>>action
     const node = this.getNode(action.kind, action.name, action.isDisabled())
@@ -469,6 +477,7 @@ export abstract class BaseConfigGraph<
 }
 
 export class ConfigGraph extends BaseConfigGraph<Action, BuildAction, DeployAction, RunAction, TestAction> {}
+
 export class ResolvedConfigGraph extends BaseConfigGraph<
   ResolvedAction,
   Resolved<BuildAction>,

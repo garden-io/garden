@@ -229,12 +229,25 @@ export class TestGarden extends Garden {
     return await super.getRepoRoot()
   }
 
+  /**
+   * Public wrapper around this.addActionConfig()
+   */
+  addAction(config: ActionConfig) {
+    this.addActionConfig(config)
+  }
+
   setActionConfigs(moduleConfigs: PartialModuleConfig[], actionConfigs?: ActionConfig[]) {
     this.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
+    this.actionConfigs = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
     if (actionConfigs) {
       actionConfigs.forEach((ac) => {
-        this.actionConfigs[ac.kind][ac.name] = ac
+        this.addActionConfig(ac)
       })
     }
   }

@@ -1184,7 +1184,7 @@ export class Garden {
   /**
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  private addActionConfig(config: BaseActionConfig) {
+  protected addActionConfig(config: BaseActionConfig) {
     this.log.silly(`Adding ${config.kind} action ${config.name}`)
     const existing = this.actionConfigs[config.kind][config.name]
 
