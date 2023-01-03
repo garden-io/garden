@@ -231,6 +231,7 @@ export class K8sLogFollower<T> {
     await this.createConnections(opts)
 
     this.intervalId = setInterval(async () => {
+      this.log.silly(`calling createConnections again with retryIntervalMs: ${this.retryIntervalMs}`)
       await this.createConnections(opts)
     }, this.retryIntervalMs)
 
