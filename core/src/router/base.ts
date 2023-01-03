@@ -199,6 +199,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
   constructor(protected readonly kind: K, params: BaseRouterParams) {
     super(params)
+    const { garden } = params
 
     this.handlerDescriptions = <any>getActionTypeHandlerDescriptions(kind)
     const handlerNames: (keyof ActionTypeClasses<K>)[] = <any>Object.keys(this.handlerDescriptions)
@@ -208,6 +209,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     for (const plugin of params.configuredPlugins) {
       const created = <any>plugin.createActionTypes[kind] || []
       for (const spec of created) {
+        garden.log.silly(`Registering ${kind} type ${spec.name}`)
         this.definitions[spec.name] = spec
         for (const handlerType of handlerNames) {
           const handler = spec.handlers[handlerType]
@@ -353,8 +355,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
             }
           )
         }
+        const kind = this.kind
         return validateSchema(result, schema, {
-          context: `${String(handlerType)} ${actionType} output from provider ${pluginName}`,
+          context: `${String(handlerType)} handler output from provider ${pluginName} for ${kind} type ${actionType}`,
         })
       })),
       { handlerType, pluginName, actionType }

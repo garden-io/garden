@@ -65,6 +65,7 @@ export function withoutInternalFields(object: any): any {
         // The buildDependencies map on Module objects explodes outputs, as well as the dependencyVersions field on
         // version objects.
         key !== "dependencyVersions" &&
+        key !== "dependencyResults" &&
         key !== "buildDependencies"
       )
     }
