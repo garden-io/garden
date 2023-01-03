@@ -33,25 +33,26 @@ export const configure = () => ({
   description: dedent`
     Validate and transform the given module configuration.
 
-    Note that this does not need to perform structural schema validation (the framework does that
-    automatically), but should in turn perform semantic validation to make sure the configuration is sane.
+    Note that this does not need to perform structural schema validation (the framework does that automatically), but should in turn perform semantic validation to make sure the configuration is sane.
 
-    This can and should also be used to further specify the semantics of the module, including service
-    configuration and test configuration. Since services and tests are not specified using built-in
-    framework configuration fields, this action needs to specify those via the \`serviceConfigs\` and
-    \`testConfigs\` output keys.
+    This can and should also be used to further specify the semantics of the module, including service configuration and test configuration. Since services and tests are not specified using built-in framework configuration fields, this action needs to specify those via the \`serviceConfigs\` and \`testConfigs\` output keys.
 
-    This action is called on every execution of Garden, so it should return quickly and avoid doing
-    any network calls.
+    This action is called on every execution of Garden, so it should return quickly and avoid doing any network calls.
   `,
 
-  paramsSchema: joi.object().keys({
-    ctx: pluginContextSchema().required(),
-    log: logEntrySchema(),
-    moduleConfig: baseModuleSpecSchema().required(),
-  }),
+  paramsSchema: joi
+    .object()
+    .keys({
+      ctx: pluginContextSchema().required(),
+      log: logEntrySchema(),
+      moduleConfig: baseModuleSpecSchema().required(),
+    })
+    .meta({ name: `handlers.module.configure.params` }),
 
-  resultSchema: joi.object().keys({
-    moduleConfig: moduleConfigSchema(),
-  }),
+  resultSchema: joi
+    .object()
+    .keys({
+      moduleConfig: moduleConfigSchema(),
+    })
+    .meta({ name: `handlers.module.configure.result` }),
 })
