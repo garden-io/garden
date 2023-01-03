@@ -29,6 +29,16 @@ import { mayContainTemplateString } from "../template-string/template-string"
 export const moduleTemplateKind = "ModuleTemplate"
 export const noTemplateFields = ["apiVersion", "kind", "type", "name", "description"]
 
+export const varfileDescription = `
+The format of the files is determined by the configured file's extension:
+
+* \`.env\` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+* \`.yaml\`/\`.yml\` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
+* \`.json\` - JSON. Must contain a single JSON _object_ (not an array).
+
+_NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
+`.trim()
+
 export interface GardenResource {
   apiVersion: string
   kind: string

@@ -11,7 +11,7 @@ import { ActionConfig } from "../actions/types"
 import { baseActionConfigSchema } from "../actions/base"
 import { templateStringLiteral } from "../docs/common"
 import { apiVersionSchema, DeepPrimitiveMap, joi, joiSparseArray, joiUserIdentifier, joiVariables } from "./common"
-import { varfileDescription } from "./project"
+import { varfileDescription } from "./base"
 
 export interface GroupConfig {
   // Basics

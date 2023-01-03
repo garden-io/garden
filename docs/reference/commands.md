@@ -635,7 +635,7 @@ Examples:
 
 **Deploy actions to your environment.**
 
-Deploys all or specified Deploy actions , taking into account dependency order.
+Deploys all or specified Deploy actions, taking into account dependency order.
 Also performs builds and other dependencies if needed.
 
 Optionally stays running and automatically re-builds and re-deploys if sources
@@ -676,7 +676,7 @@ Examples:
   | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
-  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev mode.
 
 #### Outputs
