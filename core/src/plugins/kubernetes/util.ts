@@ -550,29 +550,16 @@ export function matchSelector(selector: { [key: string]: string }, labels: { [ke
  * Returns the `serviceResource` spec on the module. If the module has a base module, the two resource specs
  * are merged using a JSON Merge Patch (RFC 7396).
  *
- * Throws error if no resource spec is configured, or it is empty.
+ * Returns undefined if no resource spec is configured, or it is empty.
  */
-export function getServiceResourceSpec(
-  module: HelmModule | KubernetesModule,
-  baseModule: HelmModule | undefined
-): ServiceResourceSpec {
+export function getServiceResourceSpec(module: HelmModule | KubernetesModule, baseModule: HelmModule | undefined) {
   let resourceSpec = module.spec.serviceResource || {}
 
   if (baseModule) {
     resourceSpec = jsonMerge(cloneDeep(baseModule.spec.serviceResource || {}), resourceSpec)
   }
 
-  if (isEmpty(resourceSpec)) {
-    throw new ConfigurationError(
-      chalk.red(
-        deline`${module.type} module ${chalk.white(module.name)} doesn't specify a ${chalk.underline("serviceResource")}
-        in its configuration. You must specify a resource in the module config in order to use certain Garden features, such as dev mode, local mode, tasks and tests.`
-      ),
-      { resourceSpec }
-    )
-  }
-
-  return <ServiceResourceSpec>resourceSpec
+  return isEmpty(resourceSpec) ? undefined : resourceSpec
 }
 
 interface GetTargetResourceParams {

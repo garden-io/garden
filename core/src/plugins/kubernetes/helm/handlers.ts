@@ -68,7 +68,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
         chart: {
           name: module.spec.chart,
-          path: module.spec.chartPath,
+          path: module.spec.chart ? undefined : module.spec.chartPath,
           repo: module.spec.repo,
           version: module.spec.version,
         },
