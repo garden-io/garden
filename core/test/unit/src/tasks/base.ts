@@ -19,6 +19,8 @@ describe("BaseActionTask", () => {
   let graph: ConfigGraph
   let log: LogEntry
 
+  const projectRoot = resolve(dataDir, "test-project-test-deps")
+
   class TestTask extends BaseActionTask<TestAction, ValidResultType> {
     type = "test"
 
@@ -36,7 +38,25 @@ describe("BaseActionTask", () => {
   }
 
   beforeEach(async () => {
-    garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
+    garden = await makeTestGarden(projectRoot)
+    // Adding this to test dependencies on Test actions
+    garden.addAction({
+      kind: "Test",
+      name: "test-b",
+      type: "test",
+      dependencies: [
+        { kind: "Build", name: "module-a" },
+        { kind: "Deploy", name: "service-b" },
+        { kind: "Run", name: "task-a" },
+        { kind: "Test", name: "module-a-integ" },
+      ],
+      internal: {
+        basePath: projectRoot,
+      },
+      spec: {
+        command: ["echo", "foo"],
+      },
+    })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     log = garden.log
   })
@@ -89,6 +109,32 @@ describe("BaseActionTask", () => {
       ])
     })
 
+    it("includes all runtime dependencies by default", async () => {
+      const action = graph.getTest("test-b")
+
+      const task = new TestTask({
+        garden,
+        log,
+        graph,
+        action,
+        force: true,
+        forceBuild: false,
+        devModeDeployNames: [],
+        localModeDeployNames: [],
+        fromWatch: false,
+      })
+
+      const deps = task.resolveProcessDependencies({ status: null })
+
+      expect(deps.map((d) => d.getBaseKey()).sort()).to.eql([
+        "build.module-a",
+        "deploy.service-b",
+        "resolve-action.test.test-b",
+        "run.task-a",
+        "test.module-a-integ",
+      ])
+    })
+
     it("returns just the resolve task if the status is ready and force=false", async () => {
       const action = graph.getTest("module-a-integ")
 
@@ -110,8 +156,10 @@ describe("BaseActionTask", () => {
     })
 
     context("when skipRuntimeDependencies = true", () => {
-      it("doesn't return deploy or task dependencies", async () => {
-        const action = graph.getTest("module-a-integ")
+      it("doesn't return Deploy, Run or Test dependencies", async () => {
+        graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+        const action = graph.getTest("test-b")
 
         const task = new TestTask({
           garden,
@@ -127,7 +175,14 @@ describe("BaseActionTask", () => {
         })
 
         const deps = task.resolveProcessDependencies({ status: null })
-        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
+
+        expect(deps.map((d) => d.getBaseKey()).sort()).to.eql([
+          "build.module-a",
+          // "deploy.service-b", <----
+          "resolve-action.test.test-b",
+          // "run.task-a", <----
+          // "test.module-a-integ", <----
+        ])
       })
     })
   })

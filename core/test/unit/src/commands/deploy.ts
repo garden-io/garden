@@ -67,7 +67,6 @@ const testProvider = () => {
               return newStatus
             },
             getStatus: async (params) => {
-              console.log("GET STATUS", params.action.name)
               return (
                 testStatuses[params.action.name] || {
                   state: "unknown",
@@ -115,7 +114,7 @@ describe("DeployCommand", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
   // TODO: Test with --watch flag
 
-  it("should build and deploy all modules in a project, and run any task dependencies", async () => {
+  it("should build and deploy everything in a project, and execute Run dependencies", async () => {
     const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
     const log = garden.log
     const command = new DeployCommand()
@@ -178,7 +177,7 @@ describe("DeployCommand", () => {
     const deployServiceBUid = getActionUid("service-b")
     const deployServiceDUid = getActionUid("service-d")
 
-    // Note: tasks A and C should not run or be queried for status because service-a is ready beforehand
+    // Note: Runs A and C should not run or be queried for status because service-a is ready beforehand
     const runTaskBUid = getActionUid("task-b")
     const taskVersionB = getRunVersion("task-b")
 
