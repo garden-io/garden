@@ -11,13 +11,14 @@ import { keyBy, omit } from "lodash"
 
 import { ConfigurationError } from "../../exceptions"
 import { createGardenPlugin } from "../../plugin/plugin"
-import { containerHelpers, defaultDockerfileName } from "./helpers"
+import { containerHelpers } from "./helpers"
 import {
   ContainerActionConfig,
   ContainerBuildActionConfig,
   ContainerModule,
   containerModuleOutputsSchema,
   containerModuleSpecSchema,
+  defaultDockerfileName,
 } from "./moduleConfig"
 import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build"
 import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
@@ -214,13 +215,14 @@ export async function getContainerModuleOutputs({ moduleConfig, version }: GetMo
   }
 }
 
-export function convertContainerModuleRuntimeActions(
+function convertContainerModuleRuntimeActions(
   convertParams: ConvertModuleParams<ContainerModule>,
   buildAction: ContainerBuildActionConfig | ExecBuildConfig | undefined,
   needsContainerBuild: boolean
 ): ContainerActionConfig[] {
   const { module, services, tasks, tests, prepareRuntimeDependencies } = convertParams
   const actions: ContainerActionConfig[] = []
+
   for (const service of services) {
     actions.push({
       kind: "Deploy",
@@ -234,6 +236,7 @@ export function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
+        image: module.spec.image,
       },
     })
   }
@@ -301,6 +304,7 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
       copyFrom: dummyBuild?.copyFrom,
       allowPublish: module.allowPublish,
       dependencies: module.build.dependencies.map(convertBuildDependency),
+      timeout: module.spec.build.timeout,
 
       spec: {
         buildArgs: module.spec.buildArgs,
@@ -309,7 +313,6 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
         localId: module.spec.image,
         publishId: module.spec.image,
         targetStage: module.spec.build.targetImage,
-        timeout: module.spec.build.timeout,
       },
     }
     actions.push(buildAction)

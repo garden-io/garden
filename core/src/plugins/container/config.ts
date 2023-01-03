@@ -17,6 +17,7 @@ import {
   Primitive,
   PrimitiveMap,
   CustomObjectSchema,
+  createSchema,
 } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
@@ -30,8 +31,8 @@ import { BuildAction, BuildActionConfig } from "../../actions/build"
 import { DeployAction, DeployActionConfig } from "../../actions/deploy"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { RunAction, RunActionConfig } from "../../actions/run"
-import { defaultDockerfileName } from "./helpers"
-import { baseServiceSpecSchema } from "../../config/service"
+
+export const defaultDockerfileName = "Dockerfile"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -926,7 +927,6 @@ export interface ContainerBuildActionSpec {
   localId?: string
   publishId?: string
   targetStage?: string
-  timeout: number
 }
 export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
 export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs>
@@ -971,8 +971,11 @@ export const containerCommonBuildSpecKeys = () => ({
     Note that arguments may not be portable across implementations.`),
 })
 
-export const containerBuildSpecSchema = () =>
-  joi.object().keys({
+export const containerBuildSpecSchema = createSchema({
+  name: "container.Build",
+  keys: {
+    ...containerBuildSpecKeys(),
+    ...containerCommonBuildSpecKeys(),
     dockerfile: joi
       .posixPath()
       .subPathOnly()
@@ -985,7 +988,8 @@ export const containerBuildSpecSchema = () =>
     `),
     // TODO: remove in 0.14, keeping around to avoid config failures
     hotReload: joi.any().meta({ internal: true }),
-  })
+  },
+})
 
 export type ContainerActionConfig =
   | ContainerDeployActionConfig

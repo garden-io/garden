@@ -6,14 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerHelpers, defaultDockerfileName } from "./helpers"
+import { containerHelpers } from "./helpers"
 import { ConfigurationError } from "../../exceptions"
 import { LogLevel } from "../../logger/logger"
 import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
-import { ContainerBuildAction, ContainerBuildOutputs } from "./config"
+import { ContainerBuildAction, ContainerBuildOutputs, defaultDockerfileName } from "./config"
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
 
@@ -74,7 +74,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
     statusLine.setState(renderOutputStream(line.toString()))
   })
-  const timeout = spec.timeout
+  const timeout = action.getConfig("timeout")
   const res = await containerHelpers.dockerCli({
     cwd: action.getBuildPath(),
     args: [...cmdOpts, buildPath],
