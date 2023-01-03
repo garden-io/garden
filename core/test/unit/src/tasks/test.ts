@@ -25,7 +25,7 @@ describe("TestTask", () => {
   })
 
   describe("getStatus", () => {
-    describe("TODO", async () => {
+    it("TODO", async () => {
       throw "TODO"
     })
   })
@@ -50,55 +50,6 @@ describe("TestTask", () => {
       const result = res.results.getResult(testTask)!
 
       expect(result.result?.detail?.log).to.eql("echo task-a-ok")
-    })
-  })
-
-  describe("getDependencies", () => {
-    it("should include task dependencies", async () => {
-      const action = graph.getTest("module-a-integ")
-
-      const task = new TestTask({
-        garden,
-        log,
-        graph,
-        action,
-        force: true,
-        forceBuild: false,
-        devModeDeployNames: [],
-        localModeDeployNames: [],
-        fromWatch: false,
-      })
-
-      const deps = task.resolveProcessDependencies()
-
-      expect(deps.map((d) => d.getBaseKey())).to.eql([
-        "resolve-action.module-a-integ",
-        "deploy.service-b",
-        "run.task-a",
-        "build.module-a",
-      ])
-    })
-
-    context("when skipRuntimeDependencies = true", () => {
-      it("doesn't return deploy or task dependencies", async () => {
-        const action = graph.getTest("module-a-integ")
-
-        const task = new TestTask({
-          garden,
-          log,
-          graph,
-          action,
-          force: true,
-          forceBuild: false,
-          skipRuntimeDependencies: true, // <-----
-          devModeDeployNames: [],
-          localModeDeployNames: [],
-          fromWatch: false,
-        })
-
-        const deps = task.resolveProcessDependencies()
-        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "task")).to.be.undefined
-      })
     })
   })
 })

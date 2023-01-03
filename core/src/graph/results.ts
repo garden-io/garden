@@ -22,7 +22,7 @@ export interface TaskEventBase {
 
 export interface GraphResult<R extends ValidResultType = ValidResultType> extends TaskEventBase {
   result: R | null
-  dependencyResults: GraphResults | null
+  dependencyResults: GraphResultMap | null
   startedAt: Date | null
   completedAt: Date | null
   error: Error | null

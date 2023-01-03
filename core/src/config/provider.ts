@@ -25,6 +25,7 @@ import { EnvironmentStatus } from "../plugin/handlers/provider/getEnvironmentSta
 import { environmentStatusSchema } from "./status"
 import { DashboardPage, dashboardPagesSchema } from "../plugin/handlers/provider/getDashboardPage"
 import type { ActionState } from "../actions/types"
+import { ValidResultType } from "../tasks/base"
 
 export interface BaseProviderConfig {
   name: string
@@ -58,7 +59,7 @@ const providerFixedFieldsSchema = () =>
 export const providerConfigBaseSchema = () =>
   providerFixedFieldsSchema().unknown(true).meta({ extendable: true }).id("providerConfig")
 
-export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> {
+export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> extends ValidResultType {
   name: string
   dependencies: { [name: string]: Provider }
   environments?: string[]

@@ -53,7 +53,7 @@ describe("DeployTask", () => {
             docs: "asd",
             schema: joi.object(),
             handlers: {
-              build: async (params) => ({ state: "ready", detail: {}, outputs: {} }),
+              build: async () => ({ state: "ready", detail: {}, outputs: {} }),
             },
           },
         ],
@@ -169,7 +169,8 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      expect(forcedDeployTask.resolveProcessDependencies().find((dep) => dep.type === "run")!.force).to.be.false
+      expect(forcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force).to
+        .be.false
 
       const unforcedDeployTask = new DeployTask({
         garden,
@@ -183,7 +184,8 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      expect(unforcedDeployTask.resolveProcessDependencies().find((dep) => dep.type === "run")!.force).to.be.false
+      expect(unforcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)
+        .to.be.false
 
       const deployTaskFromWatch = new DeployTask({
         garden,
@@ -197,7 +199,12 @@ describe("DeployTask", () => {
         localModeDeployNames: [],
       })
 
-      expect(deployTaskFromWatch.resolveProcessDependencies().find((dep) => dep.type === "run")!.force).to.be.false
+      expect(deployTaskFromWatch.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)
+        .to.be.false
+    })
+
+    it("returns just the resolve task if the status is ready", async () => {
+      throw "TODO"
     })
 
     context("when skipRuntimeDependencies = true", () => {
@@ -217,7 +224,7 @@ describe("DeployTask", () => {
           localModeDeployNames: [],
         })
 
-        const deps = deployTask.resolveProcessDependencies()
+        const deps = deployTask.resolveProcessDependencies({ status: null })
         expect(deps.find((dep) => dep.type === "deploy" || dep.type === "run")).to.be.undefined
       })
     })

@@ -124,7 +124,7 @@ export abstract class TaskNode<T extends Task = Task> {
       key: task.getKey(),
       name: task.getName(),
       result,
-      dependencyResults: this.getDependencyResults(),
+      dependencyResults: this.getDependencyResults().getMap(),
       aborted,
       startedAt,
       completedAt: new Date(),
@@ -136,21 +136,14 @@ export abstract class TaskNode<T extends Task = Task> {
     }
 
     if (aborted || error) {
+      // Fail every dependant
       for (const d of Object.values(this.dependants)) {
-        // TODO-G2: Replace with commented version once unit tests are passing
-        let failureDescription = aborted ? "was aborted" : "failed"
-        if (error) {
-          failureDescription += ` due to an error: ${chalk.red(error.message)}`
-        }
-        // const failureDescription = aborted ? "was aborted" : "failed"
         d.complete({
           startedAt,
-          aborted,
+          aborted: true,
           result: null,
-          error: new GraphNodeError(
-            `Aborted ${d.describe()} because dependency (${this.describe()}) ${failureDescription}.`,
-            this.result
-          ),
+          // Note: The error message is constructed in the error constructor
+          error: new GraphNodeError({ ...this.result, aborted: true, node: d }),
         })
       }
     }
@@ -230,22 +223,16 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
   }
 
   getDependencies() {
-    if (!this.task.force) {
-      // Not forcing execution, so we first resolve the status
-      const statusTask = this.getNode("status", this.task)
-      const statusResult = this.getDependencyResult(statusTask)
+    const statusTask = this.getNode("status", this.task)
+    const statusResult = this.getDependencyResult(statusTask) as GraphResult<any>
 
-      if (statusResult === undefined) {
-        // Status is still missing
-        return [statusTask]
-      } else if (statusResult.result?.state === "ready") {
-        // No dependencies needed if status is ready and not forcing
-        return []
-      }
+    if (statusResult === undefined) {
+      // Status is still missing
+      return [statusTask]
     }
 
     // Either forcing, or status is not ready
-    const processDeps = this.task.getProcessDependencies()
+    const processDeps = this.task.getProcessDependencies({ status: statusResult.result })
     return processDeps.map((task) => this.getNode("process", task))
   }
 
@@ -301,8 +288,51 @@ export interface CompleteTaskParams<R = any> {
   aborted: boolean
 }
 
-export interface GraphNodeErrorDetail extends GraphResult {}
+export interface GraphNodeErrorDetail extends GraphResult {
+  node: TaskNode
+  failedDependency?: TaskNode
+}
+
+export interface GraphNodeErrorParams extends GraphNodeErrorDetail {}
 
 export class GraphNodeError extends GardenBaseError<GraphNodeErrorDetail> {
   type = "graph"
+
+  constructor(params: GraphNodeErrorParams) {
+    const { node, failedDependency, error } = params
+
+    let message = ""
+
+    if (failedDependency) {
+      message = `${node.describe()} aborted because a dependency could not be completed:`
+
+      let nextDep: TaskNode | null = failedDependency
+
+      while (nextDep) {
+        const result = nextDep.getResult()
+
+        if (!result) {
+          nextDep = null
+        } else if (result?.aborted) {
+          message += chalk.yellow(`\n↳ ${nextDep.describe()} [ABORTED]`)
+          if (result.error instanceof GraphNodeError && result.error.detail.failedDependency) {
+            nextDep = result.error.detail.failedDependency
+          } else {
+            nextDep = null
+          }
+        } else if (result?.error) {
+          message += chalk.red.bold(`\n↳ ${nextDep.describe()} [FAILED] - ${result.error.message}`)
+          nextDep = null
+        }
+      }
+    } else {
+      message = `${node.describe()} failed: ${error}`
+    }
+
+    super(message, params)
+  }
+
+  aborted() {
+    return this.detail.aborted
+  }
 }

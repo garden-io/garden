@@ -17,7 +17,7 @@ export interface GardenError<D extends object = any> {
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
-  detail: D
+  readonly detail: D
 
   constructor(message: string, detail: D) {
     super(message)

@@ -67,6 +67,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const router = await this.garden.getActionRouter()
 
+    // TODO-G2: move status check entirely to getStatus()
     const devModeSkipRedeploy = status.detail?.devMode && devMode
     const localModeSkipRedeploy = status.detail?.localMode && localMode
 
