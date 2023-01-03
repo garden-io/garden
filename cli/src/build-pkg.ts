@@ -258,6 +258,8 @@ async function pkgCommon({
       "--target",
       pkgType,
       sourcePath,
+      "--compress",
+      "Brotli",
       "--public",
       "--options",
       nodeOptions.join(","),
