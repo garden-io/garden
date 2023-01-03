@@ -569,7 +569,7 @@ describe("kubernetes Pod runner functions", () => {
         log: helmLog,
       })
       helmBaseModule = getBaseModule(helmModule)
-      helmResourceSpec = getServiceResourceSpec(helmModule, helmBaseModule)
+      helmResourceSpec = getServiceResourceSpec(helmModule, helmBaseModule) as ServiceResourceSpec
       helmNamespace = await getActionNamespace({
         ctx: helmCtx,
         log: helmLog,
