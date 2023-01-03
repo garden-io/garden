@@ -45,13 +45,11 @@ interface Params extends TaskParams {
 
 interface CachedStatus extends EnvironmentStatus {
   configHash: string
-  environmentName: string
   resolvedAt: Date
 }
 
 const cachedStatusSchema = environmentStatusSchema().keys({
   configHash: joi.string().required(),
-  environmentName: joi.string().required(),
   resolvedAt: joi.date().required(),
 })
 
@@ -283,11 +281,6 @@ export class ResolveProviderTask extends BaseTask {
       return null
     }
 
-    if (cachedStatus.environmentName !== this.garden.environmentName) {
-      this.log.silly(`Cached environment name at ${cachePath} does not match the current environmnent name`)
-      return null
-    }
-
     const configHash = this.hashConfig(config)
 
     if (cachedStatus.configHash !== configHash) {
@@ -303,7 +296,7 @@ export class ResolveProviderTask extends BaseTask {
       return null
     }
 
-    return omit(cachedStatus, ["configHash", "resolvedAt", "environmentName"])
+    return omit(cachedStatus, ["configHash", "resolvedAt"])
   }
 
   private async setCachedStatus(config: GenericProviderConfig, status: EnvironmentStatus) {
