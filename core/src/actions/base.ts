@@ -23,7 +23,6 @@ import {
   parseActionReference,
   createSchema,
 } from "../config/common"
-import { varfileDescription } from "../config/project"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList, stableStringify } from "../util/string"
 import { hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
@@ -54,6 +53,7 @@ import {
   ResolvedAction,
   ResolvedActionWrapperParams,
 } from "./types"
+import { varfileDescription } from "../config/base"
 
 // TODO-G2: split this file
 

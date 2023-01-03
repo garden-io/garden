@@ -35,7 +35,7 @@ import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
 import { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
-import { loadVarfile } from "./base"
+import { loadVarfile, varfileDescription } from "./base"
 import chalk = require("chalk")
 
 export const defaultVarfilePath = "garden.env"
@@ -59,16 +59,6 @@ export interface EnvironmentConfig {
   variables: DeepPrimitiveMap
   production?: boolean
 }
-
-export const varfileDescription = `
-The format of the files is determined by the configured file's extension:
-
-* \`.env\` - Standard "dotenv" format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-* \`.yaml\`/\`.yml\` - YAML. The file must consist of a YAML document, which must be a map (dictionary). Keys may contain any value type.
-* \`.json\` - JSON. Must contain a single JSON _object_ (not an array).
-
-_NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
-`.trim()
 
 export const environmentNameSchema = () =>
   joiUserIdentifier().required().description("The name of the environment.").example("dev")

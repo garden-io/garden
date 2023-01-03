@@ -196,12 +196,26 @@ exclude:
 timeout:
 
 spec:
-  # POSIX-style name of a Dockerfile, relative to the action's source root.
-  dockerfile: Dockerfile
+  # Specify an image ID to use when building locally, instead of the default of using the action name. Must be a valid
+  # Docker image identifier. **Note that the image _tag_ is always set to the action version.**
+  localId:
+
+  # Specify an image ID to use when publishing the image (via the `garden publish` command), instead of the default of
+  # using the action name. Must be a valid Docker image identifier.
+  publishId:
 
   # For multi-stage Dockerfiles, specify which image/stage to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
   targetStage:
+
+  # Specify build arguments to use when building the container image.
+  #
+  # Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the
+  # module/build version at build time.
+  buildArgs: {}
+
+  # POSIX-style name of a Dockerfile, relative to the action's source root.
+  dockerfile: Dockerfile
 
   # The type of project to build. Defaults to auto-detecting between gradle and maven (based on which
   # files/directories are found in the module root), but in some cases you may need to specify it.
@@ -517,15 +531,25 @@ Set a timeout for the build to complete, in seconds.
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.dockerfile`
+### `spec.localId`
 
-[spec](#spec) > dockerfile
+[spec](#spec) > localId
 
-POSIX-style name of a Dockerfile, relative to the action's source root.
+Specify an image ID to use when building locally, instead of the default of using the action name. Must be a valid Docker image identifier. **Note that the image _tag_ is always set to the action version.**
 
-| Type        | Default        | Required |
-| ----------- | -------------- | -------- |
-| `posixPath` | `"Dockerfile"` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.publishId`
+
+[spec](#spec) > publishId
+
+Specify an image ID to use when publishing the image (via the `garden publish` command), instead of the default of using the action name. Must be a valid Docker image identifier.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `spec.targetStage`
 
@@ -536,6 +560,28 @@ For multi-stage Dockerfiles, specify which image/stage to build (see https://doc
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.buildArgs`
+
+[spec](#spec) > buildArgs
+
+Specify build arguments to use when building the container image.
+
+Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build version at build time.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+### `spec.dockerfile`
+
+[spec](#spec) > dockerfile
+
+POSIX-style name of a Dockerfile, relative to the action's source root.
+
+| Type        | Default        | Required |
+| ----------- | -------------- | -------- |
+| `posixPath` | `"Dockerfile"` | No       |
 
 ### `spec.projectType`
 
