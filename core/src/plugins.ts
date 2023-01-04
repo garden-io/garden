@@ -267,8 +267,8 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
     }
   }
 
-  // If the base is not expressly configured for the environment, we pull and coalesce its module declarations.
-  // We also make sure the plugin doesn't redeclare a module type from the base.
+  // If the base is not expressly configured for the environment, we pull and coalesce its module+action declarations.
+  // We also make sure the plugin doesn't redeclare a module or action type from the base.
   resolved.createModuleTypes = [...plugin.createModuleTypes]
   resolved.extendModuleTypes = [...plugin.extendModuleTypes]
 
@@ -283,8 +283,35 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
     }
   }
 
+  resolved.createActionTypes = {
+    Build: [...plugin.createActionTypes.Build],
+    Deploy: [...plugin.createActionTypes.Deploy],
+    Run: [...plugin.createActionTypes.Run],
+    Test: [...plugin.createActionTypes.Test],
+  }
+
+  resolved.extendActionTypes = {
+    Build: [...plugin.extendActionTypes.Build],
+    Deploy: [...plugin.extendActionTypes.Deploy],
+    Run: [...plugin.extendActionTypes.Run],
+    Test: [...plugin.extendActionTypes.Test],
+  }
+
+  for (const kind of actionKinds) {
+    for (const spec of base.createActionTypes[kind]) {
+      if (findByName(<any>plugin.createActionTypes[kind], spec.name)) {
+        throw new PluginError(
+          `Plugin '${plugin.name}' redeclares the '${spec.name}' ${kind} type, already declared by its base.`,
+          { plugin, base }
+        )
+      } else if (!baseIsConfigured) {
+        resolved.createActionTypes[kind].push(<any>spec)
+      }
+    }
+  }
+
   if (!baseIsConfigured) {
-    // Base is not explicitly configured, so we coalesce the module type extensions
+    // Base is not explicitly configured, so we coalesce the module+action type extensions
     for (const baseSpec of base.extendModuleTypes) {
       const spec = findByName(plugin.extendModuleTypes, baseSpec.name)
       if (spec) {
@@ -298,6 +325,24 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
       } else {
         // Only base has the extension for this type, pull it directly
         resolved.extendModuleTypes.push(baseSpec)
+      }
+    }
+
+    for (const kind of actionKinds) {
+      for (const baseSpec of base.extendActionTypes[kind]) {
+        const spec = findByName(<any>plugin.extendActionTypes[kind], baseSpec.name)
+        if (spec) {
+          // Both plugin and base extend the module type, coalesce them
+          for (const [name, baseHandler] of Object.entries(baseSpec.handlers)) {
+            // Pull in handler from base, if it's not specified in the plugin
+            if (!spec.handlers[name]) {
+              spec.handlers[name] = cloneHandler(baseHandler)
+            }
+          }
+        } else {
+          // Only base has the extension for this type, pull it directly
+          resolved.extendActionTypes[kind].push(<any>baseSpec)
+        }
       }
     }
   }
