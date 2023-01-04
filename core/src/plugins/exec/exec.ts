@@ -41,21 +41,14 @@ import {
   ExecRun,
   ExecTest,
   execTestActionSchema,
+  ResolvedExecAction,
 } from "./config"
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
-import {
-  BuildActionHandler,
-  DeployActionHandler,
-  RunActionDefinition,
-  RunActionHandler,
-  TestActionDefinition,
-  TestActionHandler,
-} from "../../plugin/action-types"
-import { Action } from "../../actions/types"
+import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
 import { runResultToActionState } from "../../actions/base"
-import { ResolvedBuildAction } from "../../actions/build"
 import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
 import { BuildStatus } from "../../plugin/handlers/build/get-status"
+import { Resolved } from "../../actions/types"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -71,12 +64,13 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
   return join(projectRoot, localLogsDir, `${deployName}.jsonl`)
 }
 
-function getDefaultEnvVars(action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action) {
+function getDefaultEnvVars(action: ResolvedExecAction) {
   return {
     ...process.env,
     GARDEN_MODULE_VERSION: action.versionString(),
     // Workaround for https://github.com/vercel/pkg/issues/897
     PKG_EXECPATH: "",
+    ...action.getSpec().env,
   }
 }
 
@@ -98,7 +92,7 @@ function runPersistent({
   opts = {},
 }: {
   command: string[]
-  action: Action
+  action: ResolvedExecAction
   log: LogEntry
   serviceName: string
   logFilePath: string
@@ -151,7 +145,7 @@ async function run({
 }: {
   command: string[]
   ctx: PluginContext
-  action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action
+  action: ResolvedExecAction
   log: LogEntry
   env?: PrimitiveMap
   opts?: ExecOpts
@@ -428,7 +422,7 @@ async function deployPersistentExecService({
   serviceName: string
   log: LogEntry
   devModeSpec: ExecDevModeSpec
-  action: ExecDeploy
+  action: Resolved<ExecDeploy>
   env: { [key: string]: string }
 }): Promise<DeployStatus> {
   ctx.events.on("abort", () => {

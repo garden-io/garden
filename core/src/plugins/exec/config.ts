@@ -10,6 +10,7 @@ import { BuildAction, BuildActionConfig } from "../../actions/build"
 import { DeployAction, DeployActionConfig } from "../../actions/deploy"
 import { RunAction, RunActionConfig } from "../../actions/run"
 import { TestAction, TestActionConfig } from "../../actions/test"
+import { Resolved } from "../../actions/types"
 import { artifactsTargetDescription, joi, joiEnvVars, joiSparseArray, StringMap } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { dedent } from "../../util/string"
@@ -204,6 +205,8 @@ export const execTestActionSchema = () =>
 // MISC //
 
 export type ExecActionConfig = ExecBuildConfig | ExecDeployConfig | ExecTestConfig | ExecRunConfig
+export type ExecAction = ExecBuild | ExecDeploy | ExecTest | ExecRun
+export type ResolvedExecAction = Resolved<ExecAction>
 
 const artifactSchema = () =>
   joi.object().keys({
