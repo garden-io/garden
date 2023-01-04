@@ -134,6 +134,7 @@
     "strip-ansi": "^6.0.0",
     "supertest": "^4.0.2",
     "tar": "^6.1.9",
+    "tempy": "^1.0.1",
     "terminal-link": "^2.1.1",
     "titleize": "^2.1.0",
     "tmp-promise": "^3.0.2",

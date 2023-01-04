@@ -377,14 +377,14 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   })
 }
 
-export async function dumpYaml(yamlPath, data) {
+export async function dumpYaml(yamlPath: string, data: any) {
   return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
 }
 
 /**
  * Wraps safeDump and enforces that invalid values are skipped
  */
-export function safeDumpYaml(data, opts: DumpOptions = {}) {
+export function safeDumpYaml(data: any, opts: DumpOptions = {}) {
   return safeDump(data, { ...opts, skipInvalid: true })
 }
 

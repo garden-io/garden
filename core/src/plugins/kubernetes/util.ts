@@ -27,17 +27,12 @@ import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util
 import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
-import {
-  ServiceResourceSpec,
-  KubernetesProvider,
-  KubernetesPluginContext,
-  KubernetesTargetResourceSpec,
-} from "./config"
+import { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/module-config"
 import { KubernetesModule } from "./kubernetes-type/module-config"
-import { getChartPath, renderHelmTemplateString } from "./helm/common"
+import { prepareTemplates, renderHelmTemplateString } from "./helm/common"
 import { SyncableResource } from "./types"
 import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
@@ -630,9 +625,17 @@ export async function getTargetResource({
 
     if (targetKind && targetName) {
       if (action.type === "helm" && targetName.includes("{{")) {
-        // need to resolve the template string
-        const chartPath = await getChartPath(action)
-        targetName = await renderHelmTemplateString(ctx, log, action, chartPath, targetName)
+        // need to resolve the Helm template string
+        const { chartPath, valuesPath, reference } = await prepareTemplates({ ctx: k8sCtx, action, log })
+        targetName = await renderHelmTemplateString({
+          ctx,
+          log,
+          action,
+          chartPath,
+          reference,
+          value: targetName,
+          valuesPath,
+        })
       }
 
       target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
