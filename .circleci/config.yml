@@ -35,8 +35,8 @@ orbs:
   # Configuration for release jobs
   release-config: &release-config
     docker:
-      # Image that contains ghr for publishing releases to Github
-      - image: cibuilds/github:0.12.2
+      # Image that contains ghr and gh utilities for publishing releases to Github
+      - image: gardendev/circleci-release:0.12.2-0
 
   # Attaches the current saved workspace
   attach-workspace: &attach-workspace
@@ -545,14 +545,26 @@ jobs:
       - run:
           name: Publish a pre-release on GitHub with the tag 'edge'
           command: |
+            # We assume that the tag already exists. We update the existing tag
+            # using the gh cli, and then we upload the artifacts using ghr.
+            # We do not create a new release here, as this would spam our fellow coder's
+            # GitHub timelines
             VERSION=edge
+
+            # Update the release hash
+            gh release edit ${VERSION} \
+              -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
+              --prerelease \
+              --target ${CIRCLE_SHA1}
+
+            # Replace release artifacts
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
               -r ${CIRCLE_PROJECT_REPONAME} \
               -c ${CIRCLE_SHA1} \
               -n ${VERSION} \
-              -delete \
+              -replace \
               -prerelease \
               ${VERSION} ./dist
   test-dist:
