@@ -30,7 +30,7 @@ import { DeployAction, deployActionConfigSchema } from "../actions/deploy"
 import { RunAction, runActionConfigSchema } from "../actions/run"
 import { TestAction, testActionConfigSchema } from "../actions/test"
 import { noTemplateFields } from "../config/base"
-import { ActionReference, parseActionReference } from "../config/common"
+import { ActionReference, describeSchema, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { ProjectConfigContext } from "../config/template-contexts/project"
@@ -445,14 +445,14 @@ function dependenciesFromActionConfig(
 
   // Action template references in spec/variables
   // -> We avoid depending on action execution when referencing static output keys
-  const staticKeys = definition.outputs?.staticKeys
+  const staticKeys = definition.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config)) {
     let needsExecuted = false
 
     const outputKey = ref.fullRef[3]
 
-    if (ref.fullRef[2] === "outputs" && outputKey && staticKeys !== true && !staticKeys?.includes(<string>outputKey)) {
+    if (ref.fullRef[2] === "outputs" && outputKey && !staticKeys?.includes(<string>outputKey)) {
       needsExecuted = true
     }
 

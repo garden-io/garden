@@ -124,9 +124,7 @@ export const gardenPlugin = () =>
           See the [Terraform guide](${DOCS_BASE_URL}/advanced/terraform) for a high-level introduction to the \`terraform\` provider.
           `,
           schema: terraformModuleSchema(),
-          outputs: {
-            schema: terraformDeployOutputsSchema(),
-          },
+          runtimeOutputsSchema: terraformDeployOutputsSchema(),
           handlers: {
             configure: async ({ ctx, config }) => {
               const provider = ctx.provider as TerraformProvider

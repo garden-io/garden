@@ -169,14 +169,18 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // Get outputs and assign to the resolved action
     const router = await this.garden.getActionRouter()
-    const staticOutputs = await router.getActionOutputs({
+    const { outputs: staticOutputs } = await router.getActionOutputs({
       action: resolvedAction,
       graph: this.graph,
       log: this.log,
     })
-    // TODO-G2: validate the outputs
+
+    // Validate the outputs
+    const actionRouter = router.getRouterForActionKind(resolvedAction.kind)
+    await actionRouter.validateActionOutputs(resolvedAction, "static", staticOutputs)
+
     // TODO-G2B: avoid this private assignment
-    resolvedAction["_outputs"] = staticOutputs
+    resolvedAction["_staticOutputs"] = staticOutputs
 
     return {
       state: "ready",

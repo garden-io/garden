@@ -60,9 +60,7 @@ export const gardenPlugin = () =>
           Stack outputs are made available as action outputs. These can then be referenced by other actions under \`${actionOutputsTemplateString}\`. You can template in those values as e.g. command arguments or environment variables for other services.
           `,
           schema: pulumiDeploySpecSchema(),
-          outputs: {
-            schema: outputsSchema(),
-          },
+          runtimeOutputsSchema: outputsSchema(),
           handlers: {
             configure: async ({ ctx, config }) => {
               const provider = ctx.provider as PulumiProvider

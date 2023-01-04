@@ -57,7 +57,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       const result = await router.callHandler({ params, handlerType: "deploy" })
 
-      await router.validateActionOutputs(action, result.outputs)
+      // TODO-G2: only validate if state is ready?
+      await router.validateActionOutputs(action, "runtime", result.outputs)
 
       garden.events.emit("serviceStatus", {
         actionName,
@@ -164,7 +165,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
-      await router.validateActionOutputs(action, result.outputs)
+      // TODO-G2: only validate if state is not missing?
+      await router.validateActionOutputs(action, "runtime", result.outputs)
 
       return result
     },

@@ -311,21 +311,25 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     return result
   }
 
-  async validateActionOutputs<T extends BaseAction>(action: T, outputs: any) {
+  async validateActionOutputs<T extends BaseAction>(action: T, type: "static" | "runtime", outputs: any) {
     const actionTypes = await this.garden.getActionTypes()
     const spec: ActionTypeDefinition<any> = actionTypes[action.kind][action.type]
 
-    if (spec.outputs?.schema) {
-      outputs = validateSchema(outputs, spec.outputs.schema, {
-        context: `outputs from ${action.kind} '${action.name}'`,
+    const schema = type === "static" ? spec.staticOutputsSchema : spec.runtimeOutputsSchema
+
+    if (schema) {
+      outputs = validateSchema(outputs, schema, {
+        context: `action outputs from ${action.kind} '${action.name}'`,
         ErrorClass: PluginError,
       })
     }
 
     for (const base of getActionTypeBases(spec, actionTypes[action.kind])) {
-      if (base.outputs?.schema) {
-        outputs = validateSchema(outputs, base.outputs.schema.unknown(true), {
-          context: `outputs from ${action.kind} '${action.name}' (base schema from '${base.name}' plugin)`,
+      const baseSchema = type === "static" ? base.staticOutputsSchema : base.runtimeOutputsSchema
+
+      if (baseSchema) {
+        outputs = validateSchema(outputs, baseSchema.unknown(true), {
+          context: `action outputs from ${action.kind} '${action.name}' (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
       }

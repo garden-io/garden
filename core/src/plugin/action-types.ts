@@ -125,10 +125,8 @@ export type ActionTypeDefinition<H extends ActionHandlers> = ActionTypeExtension
   docs: string
   // TODO: specify the schemas using primitives (e.g. JSONSchema/OpenAPI) and not Joi objects
   schema: Joi.ObjectSchema
-  outputs?: {
-    schema?: Joi.ObjectSchema
-    staticKeys?: string[] | true
-  }
+  staticOutputsSchema?: Joi.ObjectSchema
+  runtimeOutputsSchema?: Joi.ObjectSchema
   title?: string
 }
 
@@ -322,7 +320,10 @@ export type ActionTypeDefinitions = {
   Test: TestActionDefinition
 }
 export type ManyActionTypeDefinitions = {
-  [K in ActionKind]: ActionTypeDefinitions[K][]
+  Build: BuildActionDefinition[]
+  Deploy: DeployActionDefinition[]
+  Run: RunActionDefinition[]
+  Test: TestActionDefinition[]
 }
 
 const createActionTypeSchema = (kind: ActionKind) => {
@@ -359,25 +360,38 @@ const createActionTypeSchema = (kind: ActionKind) => {
         fields), _or_ specify a \`configure\` handler that returns a module config compatible with the base's
         schema. This is to ensure that plugin handlers made for the base type also work with this action type.
       `),
-      outputs: joi.object().keys({
-        schema: joiSchema().description(dedent`
-          A valid Joi schema describing the keys that each action of this type outputs at config resolution time,
-          for use in template strings (e.g. ${templateStringLiteral(`${kind}.my-${kind}.outputs.some-key`)}).
+      staticOutputsSchema: joiSchema().description(dedent`
+        A valid Joi schema describing the keys that each action of this type outputs at config resolution time,
+        i.e. those returned by the \`getOutputs\` handler.
 
-          ${outputSchemaDocs}
-        `),
-        staticKeys: joi
-          .array()
-          .items(joi.string())
-          .allow(true)
-          .description(
-            dedent`
-            A list of keys that are resolved statically when resolving the configuration, as opposed to at runtime. Specifying these allows for more efficient processing of the graph when outputs are referenced, since the action may not need to be executed before resolving dependants that reference outputs from it.
+        These can be referenced in template strings
+        (e.g. ${templateStringLiteral(`${kind}.my-${kind}.outputs.some-key`)}).
 
-            You may also set this to \`true\` to indicate that every output key is statically resolvable.
-            `
-          ),
-      }),
+        It is strongly preferred for outputs to be statically output by the \`getOutputs\` handler and defined here
+        whenever possible, since this avoids having to execute the action ahead of resolving any actions that reference
+        these outputs.
+
+        The keys in this schema should never overlap with those defined in \`runtimeOutputsSchema\`, and the schema
+        should not allow unknown keys.
+
+        ${outputSchemaDocs}
+      `),
+      runtimeOutputsSchema: joiSchema().description(dedent`
+        A valid Joi schema describing the keys that each action of this type outputs after execution,
+        i.e. those returned by the \`getStatus\` handler when the action is ready, or the relevant execution handler
+        (\`build\`, \`deploy\`, \`run\` etc.).
+
+        These can be referenced in template strings
+        (e.g. ${templateStringLiteral(`${kind}.my-${kind}.outputs.some-key`)}).
+
+        Note that when these outputs are referenced by other actions, this action needs to be ready or executed before
+        resolving the dependant action, so it is preferable to use static outputs (see \`staticOutputsSchema\`)
+        whenever possible.
+
+        The keys in this schema should never overlap with those defined in \`staticOutputsSchema\`.
+
+        ${outputSchemaDocs}
+      `),
       handlers,
     })
     .description(`Define a ${titleKind} action.`)
