@@ -164,6 +164,7 @@ export class ResolvedBuildAction<
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies
     this.resolved = true
+    this._staticOutputs = params.staticOutputs
   }
   getExecutedDependencies() {
     return this.executedDependencies

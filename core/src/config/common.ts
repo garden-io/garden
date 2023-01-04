@@ -845,3 +845,18 @@ export function metadataFromDescription(desc: Joi.Description) {
   }
   return meta
 }
+
+// TODO: expand this definition as needed
+interface SchemaDescription {
+  keys: string[]
+  metadata: MetadataKeys
+}
+
+export function describeSchema(schema: Joi.ObjectSchema): SchemaDescription {
+  const desc = schema.describe()
+
+  return {
+    keys: Object.keys(desc.keys || {}),
+    metadata: metadataFromDescription(desc),
+  }
+}

@@ -26,7 +26,8 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
 
-      await router.validateActionOutputs(action, status.outputs)
+      // TODO-G2: only validate if state is ready?
+      await router.validateActionOutputs(action, "runtime", status.outputs)
 
       if (status.state === "ready") {
         // Then an actual build won't take place, so we emit a build status event to that effect.
@@ -99,7 +100,8 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           defaultHandler: async () => ({ state: <ActionState>"unknown", outputs: {}, detail: {} }),
         })
 
-        await router.validateActionOutputs(action, result.outputs)
+        // TODO-G2: only validate if state is ready?
+        await router.validateActionOutputs(action, "runtime", result.outputs)
 
         emitBuildStatusEvent("built")
         return result

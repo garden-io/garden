@@ -7,12 +7,12 @@
  */
 
 import { ensureFile } from "fs-extra"
-import { cloneDeep, omit } from "lodash"
+import { omit } from "lodash"
 import { join } from "path"
 import { BaseRuntimeActionConfig } from "../../../../src/actions/base"
 import { BuildActionConfig } from "../../../../src/actions/build"
 import { joi, CustomObjectSchema } from "../../../../src/config/common"
-import { defaultNamespace, ProjectConfig } from "../../../../src/config/project"
+import { defaultNamespace } from "../../../../src/config/project"
 import { validateSchema } from "../../../../src/config/validation"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
@@ -105,12 +105,15 @@ function getRouterUnitTestPlugins() {
   const baseOutputsSchema = () => joi.object().keys({ base: joi.string() })
   const testOutputSchema = () => baseOutputsSchema().keys({ foo: joi.string() })
 
-  const outputsCfg = {
-    schema: joi.object().keys({
-      base: joi.string(),
-      foo: joi.string(),
-    }),
-  }
+  const staticOutputsSchema = joi.object().keys({
+    base: joi.string(),
+    foo: joi.string(),
+  })
+
+  const runtimeOutputsSchema = joi.object().keys({
+    base: joi.string(),
+    foo: joi.string(),
+  })
 
   const basePlugin = createGardenPlugin({
     name: "base",
@@ -129,7 +132,7 @@ function getRouterUnitTestPlugins() {
           name: "base-action-type",
           docs: "asd",
           handlers: {
-            getStatus: async (props) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
+            getStatus: async (_) => ({ state: "ready", detail: {}, outputs: { foo: "bar", plugin: "base" } }),
           },
           schema: joi.object(),
         },
@@ -395,7 +398,8 @@ function getRouterUnitTestPlugins() {
           name: "test",
           docs: "Test Build action",
           schema: joi.object(),
-          outputs: { schema: joi.object() },
+          staticOutputsSchema,
+          runtimeOutputsSchema,
           base: "base-action-type",
           handlers: {
             getStatus: async (_params) => {
@@ -446,7 +450,8 @@ function getRouterUnitTestPlugins() {
           name: "test",
           docs: "Test Deploy action",
           schema: joi.object(),
-          outputs: outputsCfg,
+          staticOutputsSchema,
+          runtimeOutputsSchema,
           handlers: {
             getStatus: async (params) => {
               return {
@@ -512,7 +517,8 @@ function getRouterUnitTestPlugins() {
           name: "test",
           docs: "Test Run action",
           schema: joi.object(),
-          outputs: outputsCfg,
+          staticOutputsSchema,
+          runtimeOutputsSchema,
           handlers: {
             getResult: async (params) => {
               return {

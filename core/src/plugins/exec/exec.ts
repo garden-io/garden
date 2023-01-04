@@ -706,7 +706,7 @@ export const execPlugin = () =>
         },
       ],
       Run: [
-        <RunActionDefinition<ExecRun>>{
+        {
           name: "exec",
           docs: dedent`
             A simple Run action which runs a command locally with a shell command.
@@ -718,7 +718,7 @@ export const execPlugin = () =>
         },
       ],
       Test: [
-        <TestActionDefinition<ExecTest>>{
+        {
           name: "exec",
           docs: dedent`
             A simple Test action which runs a command locally with a shell command.
