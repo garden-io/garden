@@ -231,11 +231,14 @@ commands:
       - npm_install
       - *attach-workspace
       - run:
-          environment:
-            # pkg doesn't use a normal cache directory by default
-            # see https://github.com/vercel/pkg/issues/1225
-            PKG_CACHE_PATH: tmp/pkg/
-          name: Run dist command with the appropriate argument
+          # Need this to make sure pkg cache is scoped to specific pkg version
+          name: Get pkg version
+          command: jq '.devDependencies.pkg' cli/package.json > .pkgversion
+      - restore_cache:
+          keys:
+            - pkg-v1-{{ checksum ".pkgversion" }}
+      - run:
+          name: Run dist script
           command: yarn run dist --version "<<parameters.version>>"
       - persist_to_workspace:
           root: ./
@@ -243,6 +246,14 @@ commands:
             - dist/
             # Needed for the alpine docker build
             - tmp/pkg/
+      - save_cache:
+          key: pkg-v1-{{ checksum ".pkgversion" }}
+          paths:
+            - tmp/pkg-fetch
+      - run:
+          # No need to store the raw files as artifacts, we just want the archives
+          name: Cleanup
+          command: rm -rf dist/*-amd64
       - store_artifacts:
           path: dist
           destination: dist
