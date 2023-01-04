@@ -14,7 +14,6 @@ import {
   getBaseModule,
   getChartPath,
   getChartResources,
-  getGardenValuesPath,
   getReleaseName,
   getValueArgs,
   renderTemplates,
@@ -556,25 +555,19 @@ ${expectedIngressOutput}
     })
   })
 
-  describe("getGardenValuesPath", () => {
-    it("should add garden-values.yml to the specified path", () => {
-      expect(getGardenValuesPath(ctx.projectRoot)).to.equal(resolve(ctx.projectRoot, "garden-values.yml"))
-    })
-  })
-
   describe("getValueArgs", () => {
+    const gardenValuesPath = "/tmp/foo"
+
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
-      expect(await getValueArgs(action, false, false)).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
     })
 
     it("should add a --set flag if devMode=true", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
-      expect(await getValueArgs(action, true, false)).to.eql([
+      expect(await getValueArgs({ action, devMode: true, localMode: false, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -585,8 +578,7 @@ ${expectedIngressOutput}
     it("should add a --set flag if localMode=true", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
-      expect(await getValueArgs(action, false, true)).to.eql([
+      expect(await getValueArgs({ action, devMode: false, localMode: true, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -597,8 +589,7 @@ ${expectedIngressOutput}
     it("localMode should always take precedence over devMode when add a --set flag", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
-      expect(await getValueArgs(action, true, true)).to.eql([
+      expect(await getValueArgs({ action, devMode: true, localMode: true, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -609,9 +600,8 @@ ${expectedIngressOutput}
     it("should return a --values arg for each valueFile configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = ["foo.yaml", "bar.yaml"]
-      const gardenValuesPath = getGardenValuesPath(action.getBuildPath())
 
-      expect(await getValueArgs(action, false, false)).to.eql([
+      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         resolve(action.getBuildPath(), "foo.yaml"),
         "--values",
@@ -632,6 +622,46 @@ ${expectedIngressOutput}
     it("should return the configured release name if any", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       expect(getReleaseName(action)).to.equal("api-release")
+    })
+  })
+
+  describe("prepareTemplates", () => {
+    it("writes values to a temp file and returns path", async () => {
+      throw "TODO"
+    })
+
+    context("chart.path is set", () => {
+      it("sets reference to chart path", async () => {
+        throw "TODO"
+      })
+
+      it("updates dependencies for local charts", async () => {
+        throw "TODO"
+      })
+    })
+
+    context("chart.url is set", () => {
+      it("sets reference to chart.url", async () => {
+        throw "TODO"
+      })
+
+      it("adds --version flag if chart.version is set", async () => {
+        throw "TODO"
+      })
+    })
+
+    context("chart.name is set", () => {
+      it("sets reference to chart.name", async () => {
+        throw "TODO"
+      })
+
+      it("adds --version flag if chart.version is set", async () => {
+        throw "TODO"
+      })
+
+      it("adds --repo flag if chart.repo is set", async () => {
+        throw "TODO"
+      })
     })
   })
 })

@@ -9,14 +9,7 @@
 import Bluebird from "bluebird"
 import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
-import {
-  filterManifests,
-  getChartPath,
-  getReleaseName,
-  getValueArgs,
-  prepareManifests,
-  prepareTemplates,
-} from "./common"
+import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common"
 import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status"
 import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
@@ -50,11 +43,9 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const preparedTemplates = await prepareTemplates({
     ctx: k8sCtx,
     action,
-    devMode,
-    localMode,
     log,
   })
-  const chartPath = await getChartPath(action)
+  const { reference } = preparedTemplates
   const releaseName = getReleaseName(action)
   const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, devMode, localMode })
 
@@ -63,7 +54,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     namespace,
     "--timeout",
     spec.timeout.toString(10) + "s",
-    ...(await getValueArgs(action, devMode, localMode)),
+    ...(await getValueArgs({ action, devMode, localMode, valuesPath: preparedTemplates.valuesPath })),
   ]
 
   if (spec.atomicInstall) {
@@ -73,14 +64,14 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
 
   if (releaseStatus.state === "missing") {
     log.silly(`Installing Helm release ${releaseName}`)
-    const installArgs = ["install", releaseName, chartPath, ...commonArgs]
+    const installArgs = ["install", releaseName, ...reference, ...commonArgs]
     if (force && !ctx.production) {
       installArgs.push("--replace")
     }
     await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
-    const upgradeArgs = ["upgrade", releaseName, chartPath, "--install", ...commonArgs]
+    const upgradeArgs = ["upgrade", releaseName, ...reference, "--install", ...commonArgs]
     await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
 
     // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
@@ -113,9 +104,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     action,
     devMode,
     localMode,
-    namespace: preparedTemplates.namespace,
-    releaseName: preparedTemplates.releaseName,
-    chartPath: preparedTemplates.chartPath,
+    ...preparedTemplates,
   })
   const manifests = await filterManifests(preparedManifests)
 

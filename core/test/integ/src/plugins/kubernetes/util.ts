@@ -30,7 +30,7 @@ import {
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { getHelmTestGarden } from "./helm/common"
 import { deline } from "../../../../../src/util/string"
-import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
+import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"

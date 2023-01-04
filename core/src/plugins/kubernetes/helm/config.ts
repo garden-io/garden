@@ -31,6 +31,7 @@ interface HelmDeployActionSpec {
     name?: string // Formerly `chart` on Helm modules
     path?: string // Formerly `chartPath`
     repo?: string // Formerly `repo`
+    url?: string
     version?: string // Formerly `version`
   }
   defaultTarget?: KubernetesTargetResourceSpec
@@ -134,10 +135,13 @@ export const helmDeploySchema = () =>
             "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
           ),
         repo: helmChartRepoSchema(),
+        url: joi.string().uri().description("An absolute URL to a packaged URL."),
         version: helmChartVersionSchema(),
       })
       .with("name", ["version"])
-      .without("path", ["name", "repo", "version"])
+      .without("path", ["name", "repo", "version", "url"])
+      .without("url", ["name", "repo", "version", "path"])
+      .xor("name", "path", "url")
       .description(
         dedent`
         Specify the Helm chart to deploy.
@@ -145,6 +149,10 @@ export const helmDeploySchema = () =>
         If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
 
         If the chart is remote, you must specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
+
+        You may also specify an absolute URL to a packaged chart via \`chart.url\`.
+
+        One of \`chart.name\`, \`chart.path\` or \`chart.url\` must be specified.
         `
       ),
     defaultTarget: defaultTargetSchema(),

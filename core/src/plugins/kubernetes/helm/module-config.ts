@@ -202,7 +202,7 @@ export async function configureHelmModule({
     ]
   }
 
-  const yamlPath = join(module.path, moduleConfig.spec.chartPath, helmChartYamlFilename)
+  const yamlPath = join(module.path, chartPath, helmChartYamlFilename)
   const containsSources = await pathExists(yamlPath)
 
   if (base) {
