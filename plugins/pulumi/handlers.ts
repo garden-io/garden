@@ -76,7 +76,7 @@ export const getPulumiServiceStatus: ServiceActionHandlers["getServiceStatus"] =
   const provider = ctx.provider as PulumiProvider
   const pulumiModule: PulumiModule = module
   const pulumiParams = { log, ctx, provider, module: pulumiModule }
-  const { deployFromPreview, cacheStatus } = pulumiModule.spec
+  const { cacheStatus } = pulumiModule.spec
   const serviceVersion = service.version
 
   if (!cacheStatus) {
@@ -90,14 +90,6 @@ export const getPulumiServiceStatus: ServiceActionHandlers["getServiceStatus"] =
 
   await selectStack(pulumiParams)
   const stackStatus = await getStackStatusFromTag({ ...pulumiParams, serviceVersion })
-  if (deployFromPreview && stackStatus === "up-to-date") {
-    return {
-      state: "ready",
-      version: serviceVersion,
-      outputs: await getStackOutputs(pulumiParams),
-      detail: {},
-    }
-  }
 
   const serviceStatus: ServiceStatus = {
     state: stackStatus === "up-to-date" ? "ready" : "outdated",
