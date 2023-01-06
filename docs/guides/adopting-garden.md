@@ -42,11 +42,11 @@ This plugin is great for kicking the tires and for solo projects that you can co
 
 ### (Remote) Kubernetes
 
-To use the [Kubernetes plugin](../k8s-plugins/remote-k8s/README.md) you'll need access to a Kubernetes cluster so it may require a bit of upfront work.
+To use the [Kubernetes plugin](../k8s-plugins/remote-k8s/README.md) you'll need access to a Kubernetes cluster so it may require a bit of up-front work.
 
 This is a great pick for _teams_ building apps that run on Kubernetes because:
 
-- It allows you develop in remote production like environments that scale with your stack.
+- It allows you develop in remote, production-like environments that scale with your stack.
 - You don't need any dependencies on your laptop, even the builds happen remotely.
 - It allows you to share build and test caches with your entire team and across environments. This can dramatically speed up pipelines and development.
 - It allows you to easily create preview environments that you can share with others,
@@ -67,13 +67,13 @@ Pick this plugin if you're already using Terraform and want to codify the relati
 
 The [Pulumi plugin](../pulumi-plugin/README.md) is very similar to the Terraform plugin (see above) except for use with Pulumi.
 
-### Exec
+### Local scripts (`exec`)
 
 The [Exec plugin](../plugins/exec.md) allows you to execute arbitrary scripts on the host (e.g. your laptop or CI runner).
 
 It's great for executing auth scripts, running services locally, and as a general purpose escape hatch.
 
-It's built-in which means you don't need to specify it in the project level configuration and you can simply add `exec` modules right away.
+It's built in which means you don't need to specify it in the project level configuration and you can simply add `exec` modules right away.
 
 ## Step 2 — Add your modules
 
@@ -87,7 +87,7 @@ Modules are the components that make up your stack and can contain services, tes
 
 How they're configured depends on the module types and plugins you're using.
 
-We recommend putting each module in their own `garden.yml` file and locate it next to the module files. For demonstration purposes, here's what a (slightly simplified) Garden project could look like in a _single file_:
+We recommend putting each module in its own `garden.yml` file and locate it next to any source files. For demonstration purposes, here's what a (slightly simplified) Garden project could look like in a _single file_:
 
 ```yaml
 # At the root of your project.
@@ -137,7 +137,7 @@ Depending on the size of your project, you may want to add a handful of modules 
 
 ## Step 3 — Add more plugins and environments
 
-Garden works great for development and for running tests and creating preview environments in CI. 
+Garden works great during development, and for running tests and creating preview environments in CI. 
 
 We recommend adopting Garden in one part of your software delivery cycle to begin and then gradually introducing more. 
 
@@ -150,7 +150,7 @@ A common path looks something like this:
 4. Use Garden for production deployments or integrate it with your
    existing tools.
 
-At this point, a simplified configuration could look something like this:
+At this point, a simplified configuration could look something like the following:
 
 ```yaml
 # At the root of your project

@@ -9,7 +9,7 @@ Depending on your setup and requirements, you may or may not want to use Garden 
 
 This will protect against accidentally messing with your production environments, by prompting for confirmation before e.g. deploying or running tests in the environment.
 
-The flag is also given to each provider, which may modify behavior accordingly. For the `kubernetes` provider, specifically, it will do the following:
+The flag is also given to each provider, which may modify behavior accordingly. In particular, when used with the `kubernetes` provider, it will do the following:
 
 1. Set the default number of replicas for `container` services to 3 (unless specified by the user).
 2. Set a soft AntiAffinity setting on `container` deployments to try to schedule Pods in a single Deployment across many nodes.

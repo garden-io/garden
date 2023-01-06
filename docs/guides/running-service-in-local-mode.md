@@ -54,11 +54,11 @@ This is the first release of _local mode_ feature which supports [`container`](.
 [`kubernetes`](../reference/module-types/kubernetes.md) and [`helm`](../reference/module-types/helm.md) module types.
 There is a number of functional limitations in this release:
 
-* **Windows compatibility.** The _local mode_ is not supported natively for Windows OS. It should be used with WSL in
+* **Windows compatibility.** _Local mode_ is not supported natively on Windows. It should be used with WSL in
   Windows environments.
 * Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md) or
   [`helm`](../reference/module-types/helm.md) service.
-* The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
+* _Local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected services must
   be re-deployed manually by using `garden deploy`.
 
 The next step is to fully integrate local services into remote clusters and to establish connections to all dependent
