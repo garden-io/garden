@@ -59,8 +59,8 @@ In all cases you'll need at least 2GB of RAM _on top of your own service require
 For the [`cluster-docker`](#cluster-docker) mode, and the (optional) in-cluster image registry, support for `PersistentVolumeClaim`s is required, with enough disk space for layer caches and built images. The in-cluster registry also requires support for `hostPort`, and for reaching `hostPort`s from the node/Kubelet. This should work out-of-the-box in most standard setups, but clusters using Cilium for networking may need to configure this specifically, for example.
 
 You can—_and should_—adjust the allocated resources and storage in the provider configuration, under
-[resources](../../../reference/providers/kubernetes.md#providersresources) and
-[storage](../../../reference/providers/kubernetes.md#providersstorage). See the individual modes below as well for more
+[resources](../../reference/providers/kubernetes.md#providersresources) and
+[storage](../../reference/providers/kubernetes.md#providersstorage). See the individual modes below as well for more
 information on how to allocate resources appropriately.
 
 We also strongly recommend a separate image registry to use for built images. Garden can also—and does by default—deploy an in-cluster registry. The latter is convenient to test things out and may be fine for individual users or small teams. However, we generally recommend using managed container registries (such as ECR, GCR etc.) since they tend to perform better, they scale more easily, and don't need to be operated by your team. See the [Configuring a deployment registry](#configuring-a-deployment-registry) section for more details.
@@ -109,19 +109,19 @@ Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configu
 
 _As of Garden v0.12.22, we also recommend setting `kaniko.namespace: null` in the `kubernetes` provider configuration, so that builder pods are started in the project namespace instead of the `garden-system` namespace, which is the current default. This will become the default in Garden v0.13._
 
-Note the difference in how resources for the builder are allocated between Kaniko and the other modes. For this mode, the resource configuration applies to _each Kaniko pod_. See the [builder resources](../../../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
+Note the difference in how resources for the builder are allocated between Kaniko and the other modes. For this mode, the resource configuration applies to _each Kaniko pod_. See the [builder resources](../../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
 
 {% hint style="info" %}
 If you're using ECR on AWS, you may need to create a cache repository manually for Kaniko to store caches.
 
 That is, if you have a repository like, `my-org/my-image`, you need to manually create a repository next to it called `my-org/my-image/cache`. AWS ECR supports immutable image tags, see the [announcement](https://aws.amazon.com/about-aws/whats-new/2019/07/amazon-ecr-now-supports-immutable-image-tags/) and [documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-tag-mutability.html). Make sure to set the cache repository's image tag mutability setting to `mutable`. By default, Kaniko's TTL on old cache layers is two weeks, and every layer of the image cache must be rebuilt after that if the image tags are `immutable`.
 
-You can also select a different name for the cache repository and pass the path to Kaniko via the `--cache-repo` flag, which you can set via the [`extraFlags`](../../../reference/providers/kubernetes.md#providerskanikoextraFlags) field. See [this GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) in the Kaniko repo for more details.
+You can also select a different name for the cache repository and pass the path to Kaniko via the `--cache-repo` flag, which you can set via the [`extraFlags`](../../reference/providers/kubernetes.md#providerskanikoextraFlags) field. See [this GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) in the Kaniko repo for more details.
 
 This does not appear to be an issue for GCR on GCP. We haven't tested this on other container repositories.
 {% endhint %}
 
-You can provide extra arguments to Kaniko via the [`extraFlags`](../../../reference/providers/kubernetes.md#providerskanikoextraFlags) field. Users with projects with a large number of files should take a look at the `--snapshotMode=redo` and `--use-new-run` options as these can provide [significant performance improvements](https://github.com/GoogleContainerTools/kaniko/releases/tag/v1.0.0). Please refer to the [official docs](https://github.com/GoogleContainerTools/kaniko#additional-flags) for the full list of available flags.
+You can provide extra arguments to Kaniko via the [`extraFlags`](../../reference/providers/kubernetes.md#providerskanikoextraFlags) field. Users with projects with a large number of files should take a look at the `--snapshotMode=redo` and `--use-new-run` options as these can provide [significant performance improvements](https://github.com/GoogleContainerTools/kaniko/releases/tag/v1.0.0). Please refer to the [official docs](https://github.com/GoogleContainerTools/kaniko#additional-flags) for the full list of available flags.
 
 The Kaniko pods will always have the following toleration set:
 
@@ -132,7 +132,7 @@ value: "true",
 effect: "NoSchedule"
 ```
 
-This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../../../reference/providers/kubernetes.md#providerskanikonodeSelector) to serve the same purpose.
+This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../../reference/providers/kubernetes.md#providerskanikonodeSelector) to serve the same purpose.
 
 ### cluster-buildkit
 
@@ -159,7 +159,7 @@ clusterBuildkit:
 
 *Note that not all clusters can currently support rootless operation, and that you may need to configure your cluster with this in mind. Please see the [BuildKits docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for details.*
 
-You should also set the builder resource requests/limits. For this mode, the resource configuration applies to _each BuildKit deployment_, i.e. for _each project namespace_. See the [builder resources](../../../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
+You should also set the builder resource requests/limits. For this mode, the resource configuration applies to _each BuildKit deployment_, i.e. for _each project namespace_. See the [builder resources](../../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
 
 The BuildKit deployments will always have the following toleration set:
 
@@ -170,7 +170,7 @@ value: "true",
 effect: "NoSchedule"
 ```
 
-This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../../../reference/providers/kubernetes.md#providersclusterbuildkitnodeselector) to serve the same purpose.
+This allows you to set corresponding [Taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/) on cluster nodes to control which nodes builder deployments are deployed to. You can also configure a [`nodeSelector`](../../reference/providers/kubernetes.md#providersclusterbuildkitnodeselector) to serve the same purpose.
 
 #### Caching
 
@@ -244,7 +244,7 @@ clusterDocker:
 ```
 
 Make sure your cluster has enough resources and storage to support the required services, and keep in mind that these
-services are shared across all users of the cluster. Please look at the [resources](../../../reference/providers/kubernetes.md#providersresources) and [storage](../../../reference/providers/kubernetes.md#providersstorage) sections in the provider reference for
+services are shared across all users of the cluster. Please look at the [resources](../../reference/providers/kubernetes.md#providersresources) and [storage](../../reference/providers/kubernetes.md#providersstorage) sections in the provider reference for
 details.
 
 ### Local Docker
@@ -531,7 +531,7 @@ providers:
 
 ## Publishing images
 
-You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](../../container.md#publishing-images) section in the [Container Modules guide](../../container.md) for details.
+You can publish images that have been built in your cluster, using the `garden publish` command. See the [Publishing images](../../other-plugins/container.md#publishing-images) section in the [Container Modules guide](../../other-plugins/container.md) for details.
 
 {% hint style="warning" %}
 Note that you currently need to have Docker running locally even when using remote building, and you need to have authenticated with the target registry. When publishing, we pull the image from the remote registry to the local Docker daemon, and then go on to push it from there. We do this to avoid having to (re-)implement all the various authentication methods (and by extension key management) involved in pushing directly from the cluster, and because it's often not desired to give clusters access to directly push to production registries.
@@ -568,7 +568,7 @@ FROM my-private-registry.com/my-image:tag
 
 where `my-private-registry.com` requires authorization.
 
-For this to work, you need to create a registry secret in your cluster (see [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret) and then configure the [imagePullSecrets](../../../reference/providers/kubernetes.md#providersimagepullsecrets) field in your `kubernetes` provider configuration:
+For this to work, you need to create a registry secret in your cluster (see [this guide](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) for how to create the secret) and then configure the [imagePullSecrets](../../reference/providers/kubernetes.md#providersimagepullsecrets) field in your `kubernetes` provider configuration:
 
 ```yaml
 kind: Project

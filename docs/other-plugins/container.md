@@ -95,7 +95,7 @@ Generally, you can use any template strings available for module configs for the
 
 ## Deploying services
 
-The Kubernetes plugins (local or remote) can deploy container modules. You'll find the relevant information in [this guide](./kubernetes/module-types/container.md) and the full spec in our [reference docs](../reference/module-types/container.md#services).
+The Kubernetes plugins (local or remote) can deploy container modules. You'll find the relevant information in [this guide](../k8s-plugins/module-types/container.md) and the full spec in our [reference docs](../reference/module-types/container.md#services).
 
 ## Running tests
 
@@ -175,7 +175,7 @@ For a full list of keys that are available for the `container` module type, tak
 
 `container` services, tasks and tests can all mount volumes and Kubernetes Configmaps.
 
-For mounting volumes, check out our guide on the [`persistentvolumeclaim` module type](./kubernetes/module-types/persistentvolumeclaim.md), supported by the `kubernetes` provider.
+For mounting volumes, check out our guide on the [`persistentvolumeclaim` module type](../k8s-plugins/module-types/persistentvolumeclaim.md), supported by the `kubernetes` provider.
 
-And for ConfigMaps, check out this guide on the [`configmap` module type](./kubernetes/module-types/configmap.md), also supported by the `kubernetes` provider.
+And for ConfigMaps, check out this guide on the [`configmap` module type](../k8s-plugins/module-types/configmap.md), also supported by the `kubernetes` provider.
 

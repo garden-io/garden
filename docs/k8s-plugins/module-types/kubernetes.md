@@ -11,7 +11,7 @@ many cases you'll want to use a `kubernetes` module to deploy a `container` modu
 The `kubernetes` module works very similar to the [`helm`](./helm.md) module and
 you'll find a lot of similarities between the two guides.
 
-You'll find the full spec for the `kubernetes` module in our [reference docs](../../../reference/module-types/kubernetes.md).
+You'll find the full spec for the `kubernetes` module in our [reference docs](../../reference/module-types/kubernetes.md).
 
 ## Basics
 
@@ -233,7 +233,7 @@ Here the `api` module specifies the image as a build dependency, and additionall
 
 ## Code Synchronization (Dev Mode)
 
-When your project contains the `container` module referenced by a `kubernetes` module, you can even use Garden's [live code synchronization (dev mode)](../../../guides/code-synchronization-dev-mode.md) feature for a Kubernetes manifest. For example:
+When your project contains the `container` module referenced by a `kubernetes` module, you can even use Garden's [live code synchronization (dev mode)](../../guides/code-synchronization-dev-mode.md) feature for a Kubernetes manifest. For example:
 
 ```yaml
 kind: Module
@@ -258,11 +258,11 @@ For the above example, you could then run `garden deploy -w --dev=api` to start 
 
 ## Production environments
 
-You can define a remote environment as a `production` environment by setting the [production flag](../../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when deploying `kubernetes`  modules. See the [Deploying to production](../advanced/deploying-to-production.md) guide for details.
+You can define a remote environment as a `production` environment by setting the [production flag](../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when deploying `kubernetes`  modules. See the [Deploying to production](../advanced/deploying-to-production.md) guide for details.
 
 ## Next steps
 
-Check out the full [Kubernetes module reference](../../../reference/module-types/kubernetes.md).
+Check out the full [Kubernetes module reference](../../reference/module-types/kubernetes.md).
 
 Also check out the [Helm module](./helm.md) for a more flexible alternative.
 

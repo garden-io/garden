@@ -53,7 +53,7 @@ The _precise_ semantics that go into a Garden version vary a bit by the module t
 2. A _service_ has a version that factors in the _module version_ of the module that defines it, as well as any specific configuration needed to deploy the service. This might for example include environment variables, hostnames etc. that wouldn't impact how the underlying code is _built_, but it does change how the service is deployed.
 3. _Tests_ and _tasks_ have a version that factors in the _module version_ of the module that defines it, as well as any specific configuration needed to run the task or test.
 
-A simple example would be a [Container Module](../plugins/container.md) with a `Dockerfile` next to it, as well as any number of services, tests and tasks. The _module version_ will reflect the source code and build arguments involved, and will be visible in the image tag. The services, tasks and tests will each have separate versions because those also factor in the service configuration, test commands, environment variables and so forth.
+A simple example would be a [Container Module](../other-plugins/container.md) with a `Dockerfile` next to it, as well as any number of services, tests and tasks. The _module version_ will reflect the source code and build arguments involved, and will be visible in the image tag. The services, tasks and tests will each have separate versions because those also factor in the service configuration, test commands, environment variables and so forth.
 
 ## Next Steps
 

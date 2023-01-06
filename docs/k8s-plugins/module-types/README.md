@@ -35,10 +35,10 @@ In this case, Garden will generate the Kubernetes manifests for you, based on th
 
 This is a good choice when getting started.
 
-[See here](../../container.md) for how to use the `container` module
+[See here](./container.md) for how to use the `container` module
 type with the Kubernetes plugin.
 
-There's also a [separate in-depth guide](../../container.md) on the module type itself.
+There's also a [separate in-depth guide](../../other-plugins/container.md) on the module type itself.
 
 ### The `persistentvolumeclaim` and `configmap` module types
 

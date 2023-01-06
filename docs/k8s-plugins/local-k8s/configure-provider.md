@@ -22,5 +22,5 @@ If you happen to have installed both Minikube and a version of Docker for Mac wi
 is set as the current context, the first available context is used.
 
 (If you're not yet familiar with Garden configuration files, see:
-[Configuration files](../../../using-garden/configuration-overview.md))
+[Configuration files](../../using-garden/configuration-overview.md))
 

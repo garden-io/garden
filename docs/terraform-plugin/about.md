@@ -88,6 +88,6 @@ Now when you deploy a new Terraformed environment, the new backend statefile wil
 
 ## Next steps
 
-Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.48/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../../reference/providers/terraform.md) and the [Terraform module type reference](../../reference/module-types/terraform.md) for details on all the configuration parameters.
+Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.48/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../reference/providers/terraform.md) and the [Terraform module type reference](../reference/module-types/terraform.md) for details on all the configuration parameters.
 
 If you're having issues with Terraform itself, please refer to the [official docs](https://www.terraform.io/docs/index.html).

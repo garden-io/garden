@@ -23,5 +23,5 @@ pulumiVariables:
 # order (and take precedence over variables defined in this module's pulumiVariables).
 pulumiVarfiles: [my-default-varfile.yaml, dev.yaml]
 ```
-See the [reference docs for the pulumi module type](../../reference/module-types/pulumi.md) for more info on each available config field (and how/when to use them).
+See the [reference docs for the pulumi module type](../reference/module-types/pulumi.md) for more info on each available config field (and how/when to use them).
 

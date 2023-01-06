@@ -9,7 +9,7 @@ The [Helm](https://helm.sh/) package manager is one of the most commonly used to
 
 In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/0.12.48/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
-You may also want to check out the full [helm module reference](../../../reference/module-types/helm.md).
+You may also want to check out the full [helm module reference](../../reference/module-types/helm.md).
 
 _Note: If you only need a way to deploy some Kubernetes manifests and don't need all the features of Helm, you can_
 _use the simpler `kubernetes` module type instead. Check out the_
@@ -192,7 +192,7 @@ Notice that this can also work if you have multiple containers in a single chart
 
 ## Code Synchronization (Dev Mode)
 
-When your project contains the `container` module referenced by a `helm` module, you can even use Garden's [live code synchronization (dev mode)](../../../guides/code-synchronization-dev-mode.md) feature for a Helm chart. Going back to the `vote` module example:
+When your project contains the `container` module referenced by a `helm` module, you can even use Garden's [live code synchronization (dev mode)](../../guides/code-synchronization-dev-mode.md) feature for a Helm chart. Going back to the `vote` module example:
 
 ```yaml
 kind: Module
@@ -311,11 +311,11 @@ a lot of flexibility in how you organize your charts.
 
 ## Production environments
 
-You can define a remote environment as a `production` environment by setting the [production flag](../../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when deploying `helm`  modules. See the [Deploying to production](../advanced/deploying-to-production.md) guide for details.
+You can define a remote environment as a `production` environment by setting the [production flag](../../reference/project-config.md#environmentsproduction) to `true`. This affects some default behavior when deploying `helm`  modules. See the [Deploying to production](../advanced/deploying-to-production.md) guide for details.
 
 ## Next steps
 
-Check out the full [helm module reference](../../../reference/module-types/helm.md) for more details, and the [vote-helm](https://github.com/garden-io/garden/tree/0.12.48/examples/vote-helm) example project for a full project that showcases Garden's Helm support.
+Check out the full [helm module reference](../../reference/module-types/helm.md) for more details, and the [vote-helm](https://github.com/garden-io/garden/tree/0.12.48/examples/vote-helm) example project for a full project that showcases Garden's Helm support.
 
 Also check out the [Kubernetes module](./kubernetes.md)
 example for a simpler alternative, if you don't need all the features of Helm.

@@ -38,8 +38,8 @@ This will mount the `my-volume` PVC at `/volume` in the `my-service` service whe
 Notice the `accessModes` field in the volume module above. The default storage classes in Kubernetes generally don't support being mounted by multiple Pods at the same time. If your volume module doesn't support the `ReadWriteMany` access mode, you must take care not to use the same volume in multiple services, tasks or tests, or multiple replicas. See [Shared volumes](#shared-volumes) below for how to share a single volume with multiple Pods.
 {% endhint %}
 
-You can do the same for tests and tasks using the [`tests.volumes`](../../../reference/module-types/container.md#testsvolumes) and [`tasks.volumes`](../../../reference/module-types/container.md#tasksvolumes) fields. `persistentvolumeclaim` volumes can of course also be referenced in `kubernetes` and
+You can do the same for tests and tasks using the [`tests.volumes`](../../reference/module-types/container.md#testsvolumes) and [`tasks.volumes`](../../reference/module-types/container.md#tasksvolumes) fields. `persistentvolumeclaim` volumes can of course also be referenced in `kubernetes` and
 `helm` modules, since they are deployed as standard PersistentVolumeClaim resources.
 
-Take a look at the [`persistentvolumeclaim`](../../../reference/module-types/persistentvolumeclaim.md) and [`container` module](../../../reference/module-types/container.md#servicesvolumes) reference docs for more details.
+Take a look at the [`persistentvolumeclaim`](../../reference/module-types/persistentvolumeclaim.md) and [`container` module](../../reference/module-types/container.md#servicesvolumes) reference docs for more details.
 

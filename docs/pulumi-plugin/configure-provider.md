@@ -13,4 +13,4 @@ providers:
   - name: pulumi # <----
   ...
 ```
-There are several configuration options you can set on the provider—see the [reference docs for the pulumi provider](../../reference/providers/pulumi.md) for details.
+There are several configuration options you can set on the provider—see the [reference docs for the pulumi provider](../reference/providers/pulumi.md) for details.

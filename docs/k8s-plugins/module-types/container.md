@@ -4,7 +4,7 @@ order: 1
 ---
 
 {% hint style="info" %}
-The `container` module type is an abstraction that can be used by multiple plugins. [See here](../../container.md) for an in-depth guide on the module type itself. Continue reading for how to deploy it with the Kubernetes plugin.
+The `container` module type is an abstraction that can be used by multiple plugins. [See here](../../other-plugins/container.md) for an in-depth guide on the module type itself. Continue reading for how to deploy it with the Kubernetes plugin.
 {% endhint %}
 
 The Kubernetes plugins can deploy `container` modules that define one or more `services`.
@@ -37,7 +37,7 @@ services:
 ...
 ```
 
-This, first of all, tells Garden that it should deploy the built `frontend` container as a service with the same name. We also configure a health check, a couple of ingress endpoints, and specify that this service depends on the `backend` service. There is a number of other options, which you can find in the `container` module [reference](../../../reference/module-types/container.md#services).
+This, first of all, tells Garden that it should deploy the built `frontend` container as a service with the same name. We also configure a health check, a couple of ingress endpoints, and specify that this service depends on the `backend` service. There is a number of other options, which you can find in the `container` module [reference](../../reference/module-types/container.md#services).
 
 If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific module types (e.g. `kubernetes` or `helm`). The `container` module type is not intended to capture all those features.
 
@@ -59,7 +59,7 @@ services:
 ...
 ```
 
-`env` is a simple mapping of "name: value". Above, we see a simple example with a string value, but you'll also commonly use [template strings](../../../using-garden/variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
+`env` is a simple mapping of "name: value". Above, we see a simple example with a string value, but you'll also commonly use [template strings](../../using-garden/variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
 
 #### Secrets
 

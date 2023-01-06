@@ -69,7 +69,7 @@ The [Pulumi plugin](../pulumi-plugin/README.md) is very similar to the Terraform
 
 ### Local scripts (`exec`)
 
-The [Exec plugin](../plugins/exec.md) allows you to execute arbitrary scripts on the host (e.g. your laptop or CI runner).
+The [Exec plugin](../other-plugins/exec.md) allows you to execute arbitrary scripts on the host (e.g. your laptop or CI runner).
 
 It's great for executing auth scripts, running services locally, and as a general purpose escape hatch.
 
