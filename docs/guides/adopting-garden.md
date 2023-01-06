@@ -9,7 +9,7 @@ This page contains a high-level overview of the steps required to adopt Garden. 
 
 ## Step 1 — Pick your plugins
 
-The first thing you do when adopting Garden is to pick the plugins you want to use and list them in your project level Garden configuration.
+The first thing you do when adopting Garden is to pick the plugins you want to use and list them in your project configuration.
 
 The configuration will look something like this, depending on the plugins you're using (we're omitting some details here):
 
