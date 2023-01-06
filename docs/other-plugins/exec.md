@@ -1,5 +1,5 @@
 ---
-title: Exec
+title: Exec (local scripts)
 order: 2
 ---
 

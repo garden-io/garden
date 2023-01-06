@@ -72,7 +72,7 @@
 ## 🌹 Other Plugins
 
 * [Container](./other-plugins/container.md)
-* [Exec](./other-plugins/exec.md)
+* [Exec (local scripts)](./other-plugins/exec.md)
 
 ## 🌼 Guides
 
