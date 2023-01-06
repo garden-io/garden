@@ -42,10 +42,10 @@
     * [GCP](./k8s-plugins/remote-k8s/configure-registry/gcp.md)
     * [Azure](./k8s-plugins/remote-k8s/configure-registry/azure.md)
   * [3. Set Up Ingress, TLS and DNS](./k8s-plugins/remote-k8s/ingress-and-dns.md)
-  * [4. Configure the Plugin](./k8s-plugins/remote-k8s/configure-plugin.md)
+  * [4. Configure the Provider](./k8s-plugins/remote-k8s/configure-provider.md)
 * [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
   * [1. Install Local Kubernetes](./k8s-plugins/local-k8s/install.md)
-  * [2. Configure the Plugin](./k8s-plugins/local-k8s/configure-plugin.md)
+  * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
 * [Module Configuration](./k8s-plugins/module-types/README.md)
   * [Container](./k8s-plugins/module-types/container.md)
   * [Kubernetes](./k8s-plugins/module-types/kubernetes.md)
@@ -60,13 +60,13 @@
 ## 🌺 Terraform Plugin
 
 * [About](./terraform-plugin/about.md)
-* [Plugin Configuration](./terraform-plugin/configure-plugin.md)
+* [Provider Configuration](./terraform-plugin/configure-provider.md)
 * [Module Configuration](./terraform-plugin/configure-modules.md)
 
 ## ☘️ Pulumi Plugin
 
 * [About](./pulumi-plugin/about.md)
-* [Plugin Configuration](./pulumi-plugin/configure-plugin.md)
+* [Provider Configuration](./pulumi-plugin/configure-provider.md)
 * [Module Configuration](./pulumi-plugin/configure-modules.md)
 
 ## 🌹 Other Plugins

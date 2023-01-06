@@ -1,9 +1,9 @@
 ---
-title: 4. Configure the Plugin
+title: 4. Configure the Provider
 order: 4
 ---
 
-# 4. Configure the Plugin
+# 4. Configure the Provider
 
 Once you've completed steps 1-3 on the previous pages you should have all the values at hand to configure Garden's Kubernetes plugin.
 

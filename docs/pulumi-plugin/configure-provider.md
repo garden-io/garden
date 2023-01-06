@@ -1,9 +1,9 @@
 ---
-title: Plugin Configuration
+title: Provider Configuration
 order: 1
 ---
 
-# Plugin Configuration
+# Provider Configuration
 
 First, you need to enable the pulumi provider in your project configuration. This is as simple as placing it in your list of providers:
 ```yaml
@@ -14,4 +14,3 @@ providers:
   ...
 ```
 There are several configuration options you can set on the provider—see the [reference docs for the pulumi provider](../../reference/providers/pulumi.md) for details.
-
