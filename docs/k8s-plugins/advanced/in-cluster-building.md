@@ -236,8 +236,6 @@ Enable this mode by setting `buildMode: cluster-docker` in your `kubernetes` pro
 
 After enabling this mode, you will need to run `garden plugins kubernetes cluster-init --env=<env-name>` for each applicable environment, in order to install the required cluster-wide services. Those services include the Docker daemon itself, as well as an image registry, a sync service for receiving build contexts, two persistent volumes, an NFS volume provisioner for one of those volumes, and a couple of small utility services.
 
-By default, Garden will install an NFS volume provisioner into `garden-system` in order to be able to efficiently synchronize build sources to the cluster and then attaching those to the Kaniko pods. You can also [specify a storageClass](../../../reference/providers/kubernetes.md#providersstoragesyncstorageclass) to provide another _ReadWriteMany_ capable storage class to use instead of NFS. This may be advisable if your cloud provider provides a good alternative, or if you already have such a provisioner installed.
-
 Optionally, you can also enable [BuildKit](https://github.com/moby/buildkit) to be used by the Docker daemon. _This is not to be confused with the [`cluster-buildkit`](#cluster-buildkit) build mode, which doesn't use Docker at all._ In most cases, this should work well and offer a bit of added performance, but it remains optional for now. If you have `cluster-docker` set as your `buildMode` you can enable BuildKit for an environment by adding the following to your `kubernetes` provider configuration:
 
 ```yaml
