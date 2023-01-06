@@ -9,7 +9,7 @@ One of Garden's most powerful features is the ability to build images in your Ku
 avoiding the need for local Kubernetes clusters. This guide covers the requirements for in-cluster building and how
 to set it up.
 
-This guide assumes you've already configured the [Remote Kubernetes plugin](../remote-k8s/README.md) guide.
+This guide assumes you've already configured the [Remote Kubernetes plugin](../remote-k8s/README.md).
 
 ## tl;dr
 
@@ -116,7 +116,7 @@ If you're using ECR on AWS, you may need to create a cache repository manually f
 
 That is, if you have a repository like, `my-org/my-image`, you need to manually create a repository next to it called `my-org/my-image/cache`. AWS ECR supports immutable image tags, see the [announcement](https://aws.amazon.com/about-aws/whats-new/2019/07/amazon-ecr-now-supports-immutable-image-tags/) and [documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/image-tag-mutability.html). Make sure to set the cache repository's image tag mutability setting to `mutable`. By default, Kaniko's TTL on old cache layers is two weeks, and every layer of the image cache must be rebuilt after that if the image tags are `immutable`.
 
-You can also select a different name for the cache repository and pass the path to Kaniko via the `--cache-repo` flag, which you can set on the [`extraFlags`](../../../reference/providers/kubernetes.md#providerskanikoextraFlags) field. See [this GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) in the Kaniko repo for more details.
+You can also select a different name for the cache repository and pass the path to Kaniko via the `--cache-repo` flag, which you can set via the [`extraFlags`](../../../reference/providers/kubernetes.md#providerskanikoextraFlags) field. See [this GitHub comment](https://github.com/GoogleContainerTools/kaniko/issues/410#issuecomment-433229841) in the Kaniko repo for more details.
 
 This does not appear to be an issue for GCR on GCP. We haven't tested this on other container repositories.
 {% endhint %}
@@ -251,7 +251,7 @@ details.
 
 ### Local Docker
 
-This is the default build mode. It is the least efficient one for remote clusters, but requires no additional services
+This is the default build mode. It is usually the least efficient one for remote clusters, but requires no additional services
 to be deployed to the cluster. For remote clusters, you do however need to explicitly configure a _deployment registry_,
 and to have Docker running locally. For development clusters, you
 may in fact get set up quicker if you use the in-cluster build
