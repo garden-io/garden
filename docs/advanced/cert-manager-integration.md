@@ -7,7 +7,7 @@ title: cert-manager Integration
 
 When starting a new Kubernetes project or when maintaining your existing ones, dealing with the creation and renewal of TLS certificates can easily become a headache. A popular tool to help automate certficate generation and renewal is [cert-manager](https://github.com/jetstack/cert-manager).
 
-The [kubernetes](../guides/remote-kubernetes.md) and [local-kubernetes](../guides/local-kubernetes.md) providers include an integration with cert-manager. The goal of the integration is to give you a head start when setting up TLS certificates for your project, providing an easy way to install it, and some sensible defaults.
+The [kubernetes](../k8s-plugins/remote-k8s/README.md) and [local-kubernetes](../k8s-plugins/local-k8s/README.md) providers include an integration with cert-manager. The goal of the integration is to give you a head start when setting up TLS certificates for your project, providing an easy way to install it, and some sensible defaults.
 We don't aim to support all the features of cert-manager, but rather accommodate the most common use case, while still allowing full control of the underlying setup when needed.
 
 ## Requirements
