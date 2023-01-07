@@ -1,0 +1,8 @@
+kind: Project
+name: local-exec
+environments:
+  - name: local
+providers:
+  # Note: the exec provider is loaded by default
+  - name: container
+  - name: local-kubernetes

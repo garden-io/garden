@@ -30,7 +30,7 @@ import { deline, stripQuotes } from "../../util/string"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/vcs"
 import { SpawnParams } from "../../util/ext-tools"
-import { ContainerBuildAction } from "./config"
+import { ContainerBuildAction, defaultDockerfileName } from "./config"
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
 
@@ -40,7 +40,6 @@ interface DockerVersion {
 }
 
 export const DEFAULT_BUILD_TIMEOUT = 600
-export const defaultDockerfileName = "Dockerfile"
 
 export const minDockerVersion: DockerVersion = {
   client: "19.03.0",

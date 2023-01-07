@@ -61,7 +61,7 @@
     "wrap-ansi": "^7.0.0"
   },
   "scripts": {
-    "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path dashboard/src:core/src:core/test --output-dir .",
+    "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",
     "bootstrap": "yarn",
     "build": "yarn run clean && yarn run bootstrap && ./scripts/run-script.ts build",
     "build-containers": "yarn run dist && ./scripts/build-containers.sh",
@@ -95,7 +95,6 @@
   "workspaces": [
     "cli",
     "core",
-    "dashboard",
     "e2e",
     "plugins/*",
     "sdk"

@@ -40,7 +40,6 @@ First, you need to prepare the release binaries and run some manual tests:
    - On a **Windows** machine, run `garden deploy --dev vote --env remote` in the `vote` example project.
    - If there are any issues with syncing, consider changing the `services[].devMode.sync[].mode` value(s) to `one-way-replica` and restarting Garden.
    - Change a file in the `vote` service and verify that the code synchronization was successful.
-   - Open the dashboard, verify that the initial page loads without errors.
 4. You might need to include some additional commits here. For example, if any other fix(es) should be included from `main`, or if there are any test failures. In that case ypou need a new pre-release:
    - Checkout to the most recent pre-release branch, e.g. `1.2.3-0`, and cherry-pick the appropriate commits from `main`.
    - Run `./scripts/release.ts prerelease` - it will generate a new pre-release `1.2.3-1`.

@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseTask, BaseTaskParams, TaskProcessParams } from "./base"
+import { BaseTask, BaseTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
   Provider,
@@ -89,7 +89,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return []
   }
 
-  resolveProcessDependencies() {
+  resolveProcessDependencies({ status }: ResolveProcessDependenciesParams<Provider>) {
+    if (status?.state === "ready" && !this.force) {
+      return []
+    }
+
     const pluginDeps = this.plugin.dependencies
     const explicitDeps = (this.config.dependencies || []).map((name) => ({ name }))
     const implicitDeps = getProviderTemplateReferences(this.config).map((name) => ({ name }))
@@ -263,7 +267,6 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return getProviderStatusCachePath({
       gardenDirPath: this.garden.gardenDirPath,
       pluginName: this.plugin.name,
-      environmentName: this.garden.environmentName,
     })
   }
 
@@ -391,11 +394,9 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 export function getProviderStatusCachePath({
   gardenDirPath,
   pluginName,
-  environmentName,
 }: {
   gardenDirPath: string
   pluginName: string
-  environmentName: string
 }) {
-  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.${environmentName}.json`)
+  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.json`)
 }

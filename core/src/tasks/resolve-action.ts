@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams, BaseTask } from "./base"
+import { BaseActionTask, ActionTaskProcessParams, ActionTaskStatusParams, BaseTask, ValidResultType } from "./base"
 import { Profile } from "../util/profiling"
 import { Action, ActionState, ExecutedAction, Resolved, ResolvedAction } from "../actions/types"
 import { ActionSpecContext } from "../config/template-contexts/actions"
@@ -18,11 +18,12 @@ import { merge } from "lodash"
 import { resolveVariables } from "../graph/common"
 import { resolveAction } from "../actions/helpers"
 
-export interface ResolveActionResults<T extends Action> {
+export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
   outputs: {
     resolvedAction: Resolved<T>
   }
+  detail: null
 }
 
 @Profile()
@@ -31,6 +32,10 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
   getDescription() {
     return `resolve ${this.action.longDescription()}`
+  }
+
+  getName() {
+    return this.action.key()
   }
 
   async getStatus({}: ActionTaskStatusParams<T>) {
@@ -164,20 +169,25 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
     // Get outputs and assign to the resolved action
     const router = await this.garden.getActionRouter()
-    const staticOutputs = await router.getActionOutputs({
+    const { outputs: staticOutputs } = await router.getActionOutputs({
       action: resolvedAction,
       graph: this.graph,
       log: this.log,
     })
-    // TODO-G2: validate the outputs
+
+    // Validate the outputs
+    const actionRouter = router.getRouterForActionKind(resolvedAction.kind)
+    await actionRouter.validateActionOutputs(resolvedAction, "static", staticOutputs)
+
     // TODO-G2B: avoid this private assignment
-    resolvedAction["_outputs"] = staticOutputs
+    resolvedAction["_staticOutputs"] = staticOutputs
 
     return {
       state: "ready",
       outputs: {
         resolvedAction,
       },
+      detail: null,
     }
   }
 

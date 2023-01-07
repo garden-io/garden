@@ -99,7 +99,7 @@ test_release() {
   timeout 1m ${garden_release} dev
 
   echo ""
-  echo "→ Running 'garden serve' in disabled-configs project - exits after 1 minute. Use the chance to test that the dashboard works."
+  echo "→ Running 'garden serve' in disabled-configs project - exits after 1 minute."
   echo "→ The disabled module and test should be flagged appropriately on the Overview and Stack Graph pages."
   echo ""
   cd ..

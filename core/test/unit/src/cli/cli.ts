@@ -443,7 +443,7 @@ describe("cli", () => {
       }
     })
 
-    it("connects the process to an external dashboard instance if available", async () => {
+    it("connects the process to an external server instance if available", async () => {
       // Spin up test server and register.
       // Note: We're using test-project-a and the default env+namespace both here and in the CLI run
       const serverGarden = await makeTestGardenA()
@@ -453,9 +453,9 @@ describe("cli", () => {
       await server.start()
       server.setGarden(serverGarden)
 
-      const record = await GardenProcess.register(["dashboard"])
+      const record = await GardenProcess.register(["serve"])
       await record.setCommand({
-        command: "dashboard",
+        command: "serve",
         sessionId: serverGarden.sessionId,
         persistent: true,
         serverHost: server.getBaseUrl(),
@@ -493,7 +493,7 @@ describe("cli", () => {
       serverEventBus.expectEvent("_test", "funky functional test")
     })
 
-    it("tells the DashboardEventStream to ignore the local server URL", async () => {
+    it("tells the CoreEventStream to ignore the local server URL", async () => {
       const testEventBus = new TestEventBus()
 
       class TestCommand extends Command {
@@ -521,89 +521,8 @@ describe("cli", () => {
       expect(testEventBus.eventLog).to.eql([])
     })
 
-    it("shows the URL of local server if no external dashboard is found", async () => {
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-
-        isPersistent() {
-          return true
-        }
-
-        async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
-        }
-
-        printHeader() {}
-        async action() {
-          return { result: {} }
-        }
-      }
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      const args = ["test-command", "--root", projectRootA]
-
-      await cli.run({ args, exitOnError: false })
-
-      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
-      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${cmd.server!.getUrl()}`)
-    })
-
-    it("shows the URL of an external dashboard if applicable, instead of the built-in server URL", async () => {
-      // Spin up test server and register.
-      // Note: We're using test-project-a and the default env+namespace both here and in the CLI run
-      const serverGarden = await makeTestGardenA()
-      const serverEventBus = new TestEventBus()
-      const server = new GardenServer({ log: serverGarden.log })
-      server["incomingEvents"] = serverEventBus
-      await server.start()
-      server.setGarden(serverGarden)
-
-      const record = await GardenProcess.register(["dashboard"])
-      await record.setCommand({
-        command: "dashboard",
-        sessionId: serverGarden.sessionId,
-        persistent: true,
-        serverHost: server.getBaseUrl(),
-        serverAuthKey: server.authKey,
-        projectRoot: serverGarden.projectRoot,
-        projectName: serverGarden.projectName,
-        environmentName: serverGarden.environmentName,
-        namespace: serverGarden.namespace,
-      })
-
-      class TestCommand extends Command {
-        name = "test-command"
-        help = "halp!"
-
-        isPersistent() {
-          return true
-        }
-
-        async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
-        }
-
-        printHeader() {}
-        async action({}: CommandParams) {
-          return { result: {} }
-        }
-      }
-      const cmd = new TestCommand()
-      cli.addCommand(cmd)
-
-      const args = ["test-command", "--root", serverGarden.projectRoot]
-
-      try {
-        await cli.run({ args, exitOnError: false })
-      } finally {
-        await record.remove()
-        await server.close()
-      }
-
-      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
-      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${server.getUrl()}`)
+    it("shows the URL of the Garden Cloud dashboard", async () => {
+      throw "TODO-G2"
     })
 
     it("picks and runs a subcommand in a group", async () => {

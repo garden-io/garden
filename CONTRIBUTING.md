@@ -26,7 +26,6 @@ The project code is composed of several components, most of which are written in
 | `bin` | Executable commands, to use for development. _Note that you need to build the project before these work._ |
 | `cli` | The Garden CLI package, which composes code from different packages into the final CLI executable. |
 | `core` | The bulk of the Garden code and tests live here. |
-| `dashboard` | The Garden web dashboard, which is bundled with the CLI. |
 | `docs` | Markdown documentation, which is used to generate [docs.garden.io](https://docs.garden.io). _Note that the reference docs are auto-generated, and should not be edited by hand!._ |
 | `examples` | Various Garden example projects. |
 | `images` | Supporting container images, used by e.g. the `kubernetes` provider. |
@@ -75,7 +74,7 @@ If you are an [asdf](https://asdf-vm.com/) user, running `./scripts/install-asdf
 
 ### Step 4: Bootstrap project
 
-Install Node modules for the root package, and the `dashboard` and `core` packages:
+Install Node modules for the root package, and `core` package:
 
 ```sh
 yarn install # To install root dependencies
@@ -101,7 +100,7 @@ Before running Garden for the first time, you need to do an initial build by run
 yarn build
 ```
 
-from the root directory. This ensures that the dashboard is built and ready to serve and that version files are in place.
+from the root directory.
 
 ### Developing
 
@@ -120,8 +119,6 @@ Also, you might like to add a couple of shorthands:
 alias g='garden'
 alias k='kubectl'
 ```
-
-For developing the dashboard, please refer to the [dashboard docs](./dashboard/README.md).
 
 ### Formatting
 

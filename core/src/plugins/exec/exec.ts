@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { mapValues, omit } from "lodash"
+import { mapValues } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
 import { joi, PrimitiveMap, StringMap } from "../../config/common"
@@ -28,34 +28,27 @@ import { ensureFile, remove } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
-import { runResultToActionState } from "../../actions/base"
-import { ResolvedBuildAction } from "../../actions/build"
-import { Action } from "../../actions/types"
-import {
-  BuildActionHandler,
-  TestActionHandler,
-  RunActionHandler,
-  DeployActionHandler,
-  RunActionDefinition,
-  TestActionDefinition,
-} from "../../plugin/action-types"
-import { BuildStatus } from "../../plugin/handlers/build/get-status"
-import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
 import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
 import {
-  ExecBuildConfig,
-  ExecBuild,
-  ExecTest,
-  ExecRun,
-  ExecDeploy,
-  ExecDevModeSpec,
   ExecActionConfig,
+  ExecBuild,
   execBuildActionSchema,
+  ExecBuildConfig,
+  ExecDeploy,
   execDeployActionSchema,
+  ExecDevModeSpec,
   execRunActionSchema,
+  ExecRun,
+  ExecTest,
   execTestActionSchema,
+  ResolvedExecAction,
 } from "./config"
-import { ExecModule, execModuleSpecSchema, configureExecModule } from "./moduleConfig"
+import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
+import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
+import { runResultToActionState } from "../../actions/base"
+import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
+import { BuildStatus } from "../../plugin/handlers/build/get-status"
+import { Resolved } from "../../actions/types"
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -71,12 +64,13 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
   return join(projectRoot, localLogsDir, `${deployName}.jsonl`)
 }
 
-function getDefaultEnvVars(action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action) {
+function getDefaultEnvVars(action: ResolvedExecAction) {
   return {
     ...process.env,
     GARDEN_MODULE_VERSION: action.versionString(),
     // Workaround for https://github.com/vercel/pkg/issues/897
     PKG_EXECPATH: "",
+    ...action.getSpec().env,
   }
 }
 
@@ -98,7 +92,7 @@ function runPersistent({
   opts = {},
 }: {
   command: string[]
-  action: Action
+  action: ResolvedExecAction
   log: LogEntry
   serviceName: string
   logFilePath: string
@@ -151,7 +145,7 @@ async function run({
 }: {
   command: string[]
   ctx: PluginContext
-  action: ResolvedBuildAction<ExecBuildConfig> | ExecBuild | Action
+  action: ResolvedExecAction
   log: LogEntry
   env?: PrimitiveMap
   opts?: ExecOpts
@@ -428,7 +422,7 @@ async function deployPersistentExecService({
   serviceName: string
   log: LogEntry
   devModeSpec: ExecDevModeSpec
-  action: ExecDeploy
+  action: Resolved<ExecDeploy>
   env: { [key: string]: string }
 }): Promise<DeployStatus> {
   ctx.events.on("abort", () => {
@@ -596,7 +590,11 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       dependencies: prepRuntimeDeps(service.spec.dependencies),
 
       spec: {
-        ...omit(service.spec, ["name", "dependencies", "disabled"]),
+        cleanupCommand: service.spec.cleanupCommand,
+        deployCommand: service.spec.deployCommand,
+        statusCommand: service.spec.statusCommand,
+        devMode: service.spec.devMode,
+        timeout: service.spec.timeout,
         env: prepareEnv(service.spec.env),
       },
     })
@@ -615,7 +613,8 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
       spec: {
-        ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
+        command: task.spec.command,
+        artifacts: task.spec.artifacts,
         env: prepareEnv(task.spec.env),
       },
     })
@@ -634,7 +633,8 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
       spec: {
-        ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
+        command: test.spec.command,
+        artifacts: test.spec.artifacts,
         env: prepareEnv(test.spec.env),
       },
     })
@@ -700,7 +700,7 @@ export const execPlugin = () =>
         },
       ],
       Run: [
-        <RunActionDefinition<ExecRun>>{
+        {
           name: "exec",
           docs: dedent`
             A simple Run action which runs a command locally with a shell command.
@@ -712,7 +712,7 @@ export const execPlugin = () =>
         },
       ],
       Test: [
-        <TestActionDefinition<ExecTest>>{
+        {
           name: "exec",
           docs: dedent`
             A simple Test action which runs a command locally with a shell command.

@@ -196,7 +196,7 @@ export class ModuleRouter extends BaseRouter {
           )
         }
         return validateSchema(result, schema, {
-          context: `${handlerType} ${moduleType} output from provider ${pluginName}`,
+          context: `${handlerType} handler output from provider ${pluginName} for module type ${moduleType} `,
         })
       }),
       { handlerType, pluginName, moduleType, wrapped: handler }

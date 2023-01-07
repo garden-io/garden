@@ -33,10 +33,10 @@ import { renderOutputStream, sleep } from "../../../../util/util"
 import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
 import { Resolved } from "../../../../actions/types"
-import { defaultDockerfileName } from "../../../container/helpers"
 import { PodRunner } from "../../run"
 import { prepareSecrets } from "../../secrets"
 import { getRunningDeploymentPod } from "../../util"
+import { defaultDockerfileName } from "../../../container/config"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
 export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
@@ -136,7 +136,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   ]
 
   // Execute the build
-  const buildTimeout = spec.timeout
+  const buildTimeout = action.getConfig("timeout")
 
   const pod = await getRunningDeploymentPod({ api, deploymentName: buildkitDeploymentName, namespace })
 

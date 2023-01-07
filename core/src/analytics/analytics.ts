@@ -526,7 +526,7 @@ export class AnalyticsHandler {
   }
 
   /**
-   * Tracks an Api call generated from within the Dashboard.
+   * Tracks an API call sent to the core server.
    *
    * NOTE: for privacy issues we only collect the 'command' from the body
    */

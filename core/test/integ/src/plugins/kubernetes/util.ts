@@ -30,7 +30,7 @@ import {
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { getHelmTestGarden } from "./helm/common"
 import { deline } from "../../../../../src/util/string"
-import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
+import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"
@@ -228,36 +228,11 @@ describe("util", () => {
       })
     })
 
-    it("should throw if there is no base module and the module has no serviceResource spec", async () => {
+    it("returns undefined if there is no serviceResource spec", async () => {
       const module = helmGraph.getModule("api")
       delete module.spec.serviceResource
-      await expectError(
-        () => getServiceResourceSpec(module, undefined),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            deline`helm module api doesn't specify a serviceResource in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as dev mode, local mode, tasks and tests.`
-          )
-      )
-    })
-
-    it("should throw if there is a base module but neither module has a spec", async () => {
-      const module = helmGraph.getModule("api")
-      const baseModule = helmGraph.getModule("postgres")
-      module.spec.base = "postgres"
-      module.buildDependencies = { postgres: baseModule }
-      delete module.spec.serviceResource
-      delete baseModule.spec.serviceResource
-      await expectError(
-        () => getServiceResourceSpec(module, getBaseModule(module)),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            deline`helm module api doesn't specify a serviceResource in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as dev mode, local mode, tasks and tests.`
-          )
-      )
+      const spec = getServiceResourceSpec(module, undefined)
+      expect(spec).to.be.undefined
     })
   })
 

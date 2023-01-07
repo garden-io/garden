@@ -51,7 +51,7 @@ import { AnalyticsHandler } from "../analytics/analytics"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { GardenProcess } from "../db/entities/garden-process"
-import { DashboardEventStream } from "../server/dashboard-event-stream"
+import { CoreEventStream } from "../server/core-event-stream"
 import { GardenPluginReference } from "../plugin/plugin"
 import { renderError } from "../logger/renderers"
 import { CloudApi, getGardenCloudDomain } from "../cloud/api"
@@ -310,7 +310,7 @@ ${renderCommands(commands)}
       }
     })
 
-    const dashboardEventStream = new DashboardEventStream({ log, sessionId })
+    const coreEventStream = new CoreEventStream({ log, sessionId })
 
     const commandInfo = {
       name: command.getFullName(),
@@ -389,14 +389,10 @@ ${renderCommands(commands)}
             })
           }
 
-          // Connect the dashboard event streamer (making sure it doesn't stream to the local server)
-          dashboardEventStream.connect({
-            garden,
-            ignoreHost: command.server?.getBaseUrl(),
-            streamEvents,
-            streamLogEntries,
-          })
-          const runningServers = await dashboardEventStream.updateTargets()
+          // Connect the core server event streamer (making sure it doesn't stream to the local server)
+          const commandServerUrl = command.server?.getBaseUrl() || undefined
+          coreEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
+          await coreEventStream.updateTargets()
 
           if (cloudApi && garden.projectId && !cloudApi.sessionRegistered && command.streamEvents) {
             // Note: If a config change during a watch-mode command's execution results in the resolved environment
@@ -436,29 +432,6 @@ ${renderCommands(commands)}
               ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
             `
             footerLog.setState(msg)
-          }
-
-          // TODO: "Tone down" dashboard link when connected to Garden Cloud.
-          if (persistent && command.server) {
-            // If there is an explicit `garden dashboard` process running for the current project+env, and a server
-            // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
-
-            // Note: Lazy-loading for startup performance
-            const { GardenProcess: GP } = require("../db/entities/garden-process")
-
-            const dashboardProcess = GP.getDashboardProcess(runningServers, {
-              projectRoot: garden.projectRoot,
-              projectName: garden.projectName,
-              environmentName: garden.environmentName,
-              namespace: garden.namespace,
-            })
-
-            let url: string | undefined
-            if (dashboardProcess) {
-              url = `${dashboardProcess.serverHost}?key=${dashboardProcess.serverAuthKey}`
-            }
-
-            command.server.showUrl(url)
           }
         }
 
@@ -546,7 +519,7 @@ ${renderCommands(commands)}
         throw err
       } finally {
         if (!result.restartRequired) {
-          await dashboardEventStream.close()
+          await coreEventStream.close()
           await command.server?.close()
           cloudApi?.close()
         }

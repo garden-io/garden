@@ -635,7 +635,7 @@ Examples:
 
 **Deploy actions to your environment.**
 
-Deploys all or specified Deploy actions , taking into account dependency order.
+Deploys all or specified Deploy actions, taking into account dependency order.
 Also performs builds and other dependencies if needed.
 
 Optionally stays running and automatically re-builds and re-deploys if sources
@@ -677,7 +677,7 @@ Examples:
   | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple deploys. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
-  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev mode.
 
 #### Outputs
@@ -3987,27 +3987,6 @@ Examples:
 
     garden scan 
 
-
-
-### garden dashboard
-
-**Starts the Garden dashboard for the current project and environment.**
-
-Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
-
-The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
-
-Note: You must currently run one dashboard per-environment and namespace.
-
-#### Usage
-
-    garden dashboard [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--port` |  | number | The port number for the Garden dashboard to listen on.
 
 
 ### garden self-update

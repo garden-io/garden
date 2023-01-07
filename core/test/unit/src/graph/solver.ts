@@ -203,6 +203,26 @@ describe("GraphSolver", () => {
     expect(resultB?.outputs.callbackResult).to.equal(taskA.getId())
   })
 
+  it("processes a complex graph correctly", async () => {
+    throw "TODO"
+  })
+
+  it("returns an error when task processing fails", async () => {
+    throw "TODO"
+  })
+
+  it("returns an error when task status fails", async () => {
+    throw "TODO"
+  })
+
+  it("cascades an error from dependency to dependant and fails the execution", async () => {
+    throw "TODO"
+  })
+
+  it("cascades an error recursively from dependency and fails the execution", async () => {
+    throw "TODO"
+  })
+
   // it("should emit a taskPending event when adding a task", async () => {
   //   const now = freezeTime()
 
@@ -313,7 +333,7 @@ describe("GraphSolver", () => {
   //         versionString: task.version,
   //       },
   //     },
-  //     { name: "taskError", payload: sanitizeObject(result["a"]) },
+  //     { name: "taskError", payload: sanitizeValue(result["a"]) },
   //     { name: "taskGraphComplete", payload: { completedAt: now } },
   //   ])
   // })

@@ -80,6 +80,24 @@ describe("plugins.container", () => {
   it("TODO-G2", () => {
     throw "TODO-G2 (all tests need updating)"
   })
+
+  describe("convertContainerModule", () => {
+    it("creates a Build action if there is a Dockerfile detected", async () => {
+      throw "TODO"
+    })
+
+    it("creates a Build action if there is a Dockerfile explicitly configured", async () => {
+      throw "TODO"
+    })
+
+    it("returns the dummy Build action if no Dockerfile and an exec Build is needed", async () => {
+      throw "TODO"
+    })
+
+    it("sets spec.image from module image field", async () => {
+      throw "TODO"
+    })
+  })
 })
 
 //   async function getTestModule(moduleConfig: ContainerModuleConfig) {

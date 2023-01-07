@@ -98,7 +98,7 @@ describe("GardenProcess", () => {
     })
   })
 
-  describe("getDashboardProcess", () => {
+  describe("getServerProcess", () => {
     const scope = {
       projectRoot: "/tmp",
       projectName: testCommand + "-project",
@@ -121,42 +121,42 @@ describe("GardenProcess", () => {
       startedAt: new Date(),
       ...values,
     }
-    const dashboardCommand = {
-      command: "dashboard",
+    const serveCommand = {
+      command: "serve",
       pid: 2,
       startedAt: new Date(),
       ...values,
     }
-    const otherProjectDashboard = {
-      command: "dashboard",
+    const otherProjectProcess = {
+      command: "serve",
       pid: 3,
       startedAt: new Date(),
       ...values,
       projectName: "other-project",
     }
-    const otherNamespaceDashboard = {
-      command: "dashboard",
+    const otherNamespaceProcess = {
+      command: "serve",
       pid: 4,
       startedAt: new Date(),
       ...values,
       namespace: "other-namespace",
     }
 
-    it("picks a Garden dashboard process for a project+env", async () => {
-      const commands = [buildCommand, dashboardCommand, otherProjectDashboard, otherNamespaceDashboard].map((spec) =>
+    it("picks a Garden server process for a project+env", async () => {
+      const commands = [buildCommand, serveCommand, otherProjectProcess, otherNamespaceProcess].map((spec) =>
         GardenProcess.create(spec)
       )
 
-      const result = GardenProcess.getDashboardProcess(commands, scope)
+      const result = GardenProcess.getServerProcess(commands, scope)
       expect(result?.pid).to.equal(2)
     })
 
     it("returns undefined if no running Garden process is found for the project+env", async () => {
-      const commands = [buildCommand, otherProjectDashboard, otherNamespaceDashboard].map((spec) =>
+      const commands = [buildCommand, otherProjectProcess, otherNamespaceProcess].map((spec) =>
         GardenProcess.create(spec)
       )
 
-      const result = GardenProcess.getDashboardProcess(commands, scope)
+      const result = GardenProcess.getServerProcess(commands, scope)
       expect(result).to.be.undefined
     })
   })

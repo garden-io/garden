@@ -137,7 +137,7 @@ export const pluginSchema = () =>
       `),
 
       outputsSchema: joiSchema().unknown(true).description(dedent`
-        The schema for the provider configuration (which the user specifies in the Garden Project configuration).
+        The schema for the outputs from the provider.
 
         If the provider has a \`base\` configured, this schema must describe a superset of the base plugin
         \`outputsSchema\`.

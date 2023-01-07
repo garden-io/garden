@@ -62,7 +62,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
         const result = await router.callHandler({ params: { ...params, artifactsPath }, handlerType: "run" })
 
-        await router.validateActionOutputs(action, result.outputs)
+        await router.validateActionOutputs(action, "runtime", result.outputs)
 
         // Emit status
         garden.events.emit("testStatus", {
@@ -116,7 +116,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       })
 
       if (result) {
-        await router.validateActionOutputs(action, result.outputs)
+        await router.validateActionOutputs(action, "runtime", result.outputs)
       }
 
       return result

@@ -13,7 +13,7 @@ import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, hashString, isPromise, serializeObject, uuidv4, ValueOf } from "./util"
+import { findByName, getNames, isPromise, uuidv4, ValueOf } from "./util"
 import { GardenBaseError, GardenError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
@@ -229,12 +229,25 @@ export class TestGarden extends Garden {
     return await super.getRepoRoot()
   }
 
+  /**
+   * Public wrapper around this.addActionConfig()
+   */
+  addAction(config: ActionConfig) {
+    this.addActionConfig(config)
+  }
+
   setActionConfigs(moduleConfigs: PartialModuleConfig[], actionConfigs?: ActionConfig[]) {
     this.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
+    this.actionConfigs = {
+      Build: {},
+      Deploy: {},
+      Run: {},
+      Test: {},
+    }
     if (actionConfigs) {
       actionConfigs.forEach((ac) => {
-        this.actionConfigs[ac.kind][ac.name] = ac
+        this.addActionConfig(ac)
       })
     }
   }
@@ -284,7 +297,10 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
   samples.forEach((s) => expect(errorMessageNonAnsi.toLowerCase()).to.contain(s.toLowerCase()))
 }
 
-type ExpectErrorAssertion = string | ((err: any) => void) | { type?: string; contains?: string | string[] }
+type ExpectErrorAssertion =
+  | string
+  | ((err: any) => void)
+  | { type?: string; contains?: string | string[]; message?: string }
 
 export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
   const handleError = (err: GardenError) => {
@@ -299,6 +315,7 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
 
     const type = typeof assertion === "string" ? assertion : assertion.type
     const contains = typeof assertion === "object" && assertion.contains
+    const message = typeof assertion === "object" && assertion.message
 
     if (type) {
       if (!err.type) {
@@ -315,6 +332,10 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
 
     if (contains) {
       expectFuzzyMatch(err.message, contains)
+    }
+
+    if (message) {
+      return err.message === message
     }
 
     return true

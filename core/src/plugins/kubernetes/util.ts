@@ -27,17 +27,12 @@ import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util
 import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
-import {
-  ServiceResourceSpec,
-  KubernetesProvider,
-  KubernetesPluginContext,
-  KubernetesTargetResourceSpec,
-} from "./config"
+import { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/module-config"
 import { KubernetesModule } from "./kubernetes-type/module-config"
-import { getChartPath, renderHelmTemplateString } from "./helm/common"
+import { prepareTemplates, renderHelmTemplateString } from "./helm/common"
 import { SyncableResource } from "./types"
 import { ProviderMap } from "../../config/provider"
 import { PodRunner } from "./run"
@@ -550,29 +545,16 @@ export function matchSelector(selector: { [key: string]: string }, labels: { [ke
  * Returns the `serviceResource` spec on the module. If the module has a base module, the two resource specs
  * are merged using a JSON Merge Patch (RFC 7396).
  *
- * Throws error if no resource spec is configured, or it is empty.
+ * Returns undefined if no resource spec is configured, or it is empty.
  */
-export function getServiceResourceSpec(
-  module: HelmModule | KubernetesModule,
-  baseModule: HelmModule | undefined
-): ServiceResourceSpec {
+export function getServiceResourceSpec(module: HelmModule | KubernetesModule, baseModule: HelmModule | undefined) {
   let resourceSpec = module.spec.serviceResource || {}
 
   if (baseModule) {
     resourceSpec = jsonMerge(cloneDeep(baseModule.spec.serviceResource || {}), resourceSpec)
   }
 
-  if (isEmpty(resourceSpec)) {
-    throw new ConfigurationError(
-      chalk.red(
-        deline`${module.type} module ${chalk.white(module.name)} doesn't specify a ${chalk.underline("serviceResource")}
-        in its configuration. You must specify a resource in the module config in order to use certain Garden features, such as dev mode, local mode, tasks and tests.`
-      ),
-      { resourceSpec }
-    )
-  }
-
-  return <ServiceResourceSpec>resourceSpec
+  return isEmpty(resourceSpec) ? undefined : resourceSpec
 }
 
 interface GetTargetResourceParams {
@@ -643,9 +625,17 @@ export async function getTargetResource({
 
     if (targetKind && targetName) {
       if (action.type === "helm" && targetName.includes("{{")) {
-        // need to resolve the template string
-        const chartPath = await getChartPath(action)
-        targetName = await renderHelmTemplateString(ctx, log, action, chartPath, targetName)
+        // need to resolve the Helm template string
+        const { chartPath, valuesPath, reference } = await prepareTemplates({ ctx: k8sCtx, action, log })
+        targetName = await renderHelmTemplateString({
+          ctx,
+          log,
+          action,
+          chartPath,
+          reference,
+          value: targetName,
+          valuesPath,
+        })
       }
 
       target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!

@@ -11,7 +11,7 @@ import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 import { LogEntry } from "../../../logger/log-entry"
 import { BaseActionConfig } from "../../../actions/types"
-import { baseActionConfigSchema } from "../../../actions/base"
+import { baseActionConfigSchema, baseRuntimeActionConfigSchema } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"
 import { pluginContextSchema } from "../../../plugin-context"
 import { noTemplateFields } from "../../../config/base"
@@ -64,6 +64,7 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
 
   resultSchema = () =>
     joi.object().keys({
-      config: baseActionConfigSchema(),
+      // Using runtime action schema here because it's a superset of baseActionSchema
+      config: baseRuntimeActionConfigSchema(),
     })
 }

@@ -19,12 +19,11 @@ import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
 import { renderError } from "../logger/renderers"
-import { renderMessageWithDivider } from "../logger/util"
+import { renderDivider, renderMessageWithDivider } from "../logger/util"
 import chalk from "chalk"
 import {
   CompleteTaskParams,
   getNodeKey,
-  GraphNodeError,
   InternalNodeTypes,
   ProcessTaskNode,
   RequestTaskNode,
@@ -35,7 +34,6 @@ import {
 import AsyncLock from "async-lock"
 
 const taskStyle = chalk.cyan.bold
-const lock = new AsyncLock()
 
 export interface SolveOpts {
   statusOnly?: boolean
@@ -66,6 +64,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   private inLoop: boolean
 
   private log: LogEntry
+  private lock: AsyncLock
 
   constructor(
     private garden: Garden,
@@ -81,8 +80,15 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.nodes = {}
     this.pendingNodes = {}
     this.inProgress = {}
+    this.lock = new AsyncLock()
 
     this.on("start", () => {
+      this.log.silly(`GraphSolver: start`)
+      this.emit("loop", {})
+    })
+
+    this.on("loop", () => {
+      this.log.silly(`GraphSolver: loop`)
       this.loop()
     })
   }
@@ -102,7 +108,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     }
 
     // TODO-G2: remove this lock and test with concurrent execution
-    return lock.acquire("solve", async () => {
+    return this.lock.acquire("solve", async () => {
       const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
           tasks.map((t) => {
@@ -112,7 +118,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         )
 
         function completeHandler(result: GraphResult) {
-          log.silly(`Complete handler for batch ${batchId} called with ${resultToString(result)}`)
+          log.silly(`GraphSolver: Complete handler for batch ${batchId} called with ${resultToString(result)}`)
 
           if (aborted) {
             return
@@ -127,15 +133,15 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             return
           }
 
-          log.silly(`Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
+          log.silly(`GraphSolver: Complete handler for batch ${batchId} matched with request ${request.getKey()}`)
+
+          results.setResult(request.task, result)
 
           if (throwOnError && result.error) {
             cleanup()
-            reject(new GraphNodeError(`Failed to ${result.description}: ${result.error}`, result))
+            reject(new GraphError(`Failed to ${result.description}: ${result.error}`, { results }))
             return
           }
-
-          results.setResult(request.task, result)
 
           const missingCount = results.getMissing().length
 
@@ -152,13 +158,13 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
           if (failed.length > 0) {
             // TODO-G2: better aggregate error output
-            let msg = `Failed to complete ${failed.length} tasks:\n`
+            let msg = `Failed to complete ${failed.length}/${tasks.length} tasks:`
 
             for (const [_, r] of failed) {
               if (!r) {
                 continue
               }
-              msg += `- ${r.description}: ${r?.error || "ABORTED"}\n`
+              msg += `\n ↳ ${r.description}: ${r?.error ? r.error.message : "[ABORTED]"}`
             }
 
             error = new GraphError(msg, { results })
@@ -167,7 +173,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           cleanup()
 
           if (error) {
-            log.silly(`Batch ${batchId} failed: ${error}`)
+            log.silly(`Batch ${batchId} failed: ${error.message}`)
           } else {
             log.silly(`Batch ${batchId} completed`)
           }
@@ -312,11 +318,16 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         const key = node.getKey()
         this.inProgress[key] = node
         const startedAt = new Date()
-        this.processNode(node, startedAt).catch((error) => {
-          this.garden.events.emit("internalError", { error, timestamp: new Date() })
-          this.logInternalError(node, error)
-          node.complete({ startedAt, error, aborted: true, result: null })
-        })
+        this.processNode(node, startedAt)
+          .then(() => {
+            this.emit("loop", {})
+          })
+          .catch((error) => {
+            this.garden.events.emit("internalError", { error, timestamp: new Date() })
+            this.logInternalError(node, error)
+            node.complete({ startedAt, error, aborted: true, result: null })
+            this.emit("loop", {})
+          })
       }
     } finally {
       // TODO-G2: clean up pending tasks with no dependant requests
@@ -329,36 +340,32 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
    */
   private async processNode(node: TaskNode, startedAt: Date) {
     // Errors thrown in this outer try block are caught in loop().
+    const task = node.task
+    const name = task.getName()
+    const type = task.type
+    const key = node.getKey()
+
+    this.logTask(node)
+
+    let result: GraphResult
+
     try {
-      const task = node.task
-      const name = task.getName()
-      const type = task.type
-      const key = node.getKey()
+      this.garden.events.emit("taskProcessing", {
+        name,
+        type,
+        key,
+        startedAt: new Date(),
+        versionString: task.version,
+      })
 
-      this.logTask(node)
-
-      let result: GraphResult
-
-      try {
-        this.garden.events.emit("taskProcessing", {
-          name,
-          type,
-          key,
-          startedAt: new Date(),
-          versionString: task.version,
-        })
-
-        const processResult = await node.execute()
-        result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
-      } catch (error) {
-        result = this.completeTask({ startedAt, error, result: null, node, aborted: false })
-        this.garden.events.emit("taskError", toGraphResultEventPayload(result))
-        if (!node.task.interactive) {
-          this.logTaskError(node, error)
-        }
+      const processResult = await node.execute()
+      result = this.completeTask({ startedAt, error: null, result: processResult, node, aborted: false })
+    } catch (error) {
+      result = this.completeTask({ startedAt, error, result: null, node, aborted: false })
+      this.garden.events.emit("taskError", toGraphResultEventPayload(result))
+      if (!node.task.interactive) {
+        this.logTaskError(node, error)
       }
-    } finally {
-      this.loop()
     }
   }
 
@@ -474,7 +481,8 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const msg = renderMessageWithDivider(errMessagePrefix, errorMessage, true)
     // TODO-G2: pass along log entry here instead of using Garden logger
     const entry = log.error({ msg, error })
-    log.silly({ msg: renderError(entry) })
+    const divider = renderDivider()
+    log.silly({ msg: chalk.gray(`Full error with stack trace:\n${divider}\n${renderError(entry)}\n${divider}`) })
   }
 
   // // Overriding to ease debugging

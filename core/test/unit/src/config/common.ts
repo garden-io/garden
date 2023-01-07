@@ -17,6 +17,9 @@ import {
   joiPrimitive,
   joiSparseArray,
   allowUnknown,
+  createSchema,
+  metadataFromDescription,
+  removeSchema,
 } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
 import { expectError } from "../../../helpers"
@@ -550,5 +553,91 @@ describe("allowUnknown", () => {
     const loose = allowUnknown(schema)
     const result = loose.validate([{ foo: 123 }])
     expect(result.error).to.be.undefined
+  })
+})
+
+describe("createSchema", () => {
+  afterEach(() => {
+    removeSchema("foo")
+    removeSchema("bar")
+  })
+
+  it("creates an object schema and sets its name", () => {
+    const schema = createSchema({
+      name: "foo",
+      keys: {
+        foo: joi.boolean(),
+      },
+    })
+    // This will only work with a schema
+    const metadata = metadataFromDescription(schema().describe())
+    expect(metadata).to.eql({
+      name: "foo",
+    })
+  })
+
+  it("throws if a schema name is used twice", () => {
+    createSchema({
+      name: "foo",
+      keys: {
+        foo: joi.boolean(),
+      },
+    })
+    return expectError(
+      () =>
+        createSchema({
+          name: "foo",
+          keys: {
+            foo: joi.boolean(),
+          },
+        }),
+      { contains: "Object schema foo defined multiple times" }
+    )
+  })
+
+  it("applies metadata to schemas", () => {
+    const schema = createSchema({
+      name: "foo",
+      keys: {
+        foo: joi.boolean(),
+      },
+      meta: {
+        internal: true,
+      },
+    })
+    const metadata = metadataFromDescription(schema().describe())
+    expect(metadata).to.eql({
+      name: "foo",
+      internal: true,
+    })
+  })
+
+  it("extends another schema", () => {
+    const base = createSchema({
+      name: "foo",
+      keys: {
+        foo: joi.boolean(),
+      },
+    })
+    const schema = createSchema({
+      name: "bar",
+      keys: {
+        bar: joi.string(),
+      },
+      extend: base,
+    })
+    validateSchema({ foo: true, bar: "baz" }, schema())
+  })
+
+  it("caches the created schema", () => {
+    const f = createSchema({
+      name: "bar",
+      keys: {
+        bar: joi.string(),
+      },
+    })
+    const a = f()
+    const b = f()
+    expect(a).to.equal(b)
   })
 })

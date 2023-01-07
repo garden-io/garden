@@ -429,4 +429,22 @@ describe("BaseActionRouter", () => {
       expect(result.outputs.resolvedActionVersion).to.equal("a valid version string")
     })
   })
+
+  describe("validateActionOutputs", () => {
+    it("validates static outputs", async () => {
+      throw "TODO"
+    })
+
+    it("validates runtime outputs", async () => {
+      throw "TODO"
+    })
+
+    it("throws if no schema is set and a key is set", async () => {
+      throw "TODO"
+    })
+
+    it("validates against base schemas", async () => {
+      throw "TODO"
+    })
+  })
 })

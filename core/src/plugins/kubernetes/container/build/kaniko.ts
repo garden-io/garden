@@ -38,10 +38,9 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
-import { defaultDockerfileName } from "../../../container/helpers"
 import { stringifyResources } from "../util"
 import { makePodName } from "../../util"
-import { ContainerBuildAction } from "../../../container/config"
+import { defaultDockerfileName, ContainerBuildAction } from "../../../container/config"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 

@@ -39,7 +39,9 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
   const templatePath = resolve(TEMPLATES_DIR, "action-type.hbs")
   const { markdownReference, yaml } = renderConfigReference(fullSchema)
 
-  const outputsSchema = desc.outputs?.schema || joi.object()
+  const staticOutputsSchema = desc.staticOutputsSchema || joi.object()
+  const runtimeOutputsSchema = desc.runtimeOutputsSchema || joi.object()
+  const outputsSchema = staticOutputsSchema.concat(runtimeOutputsSchema)
 
   const outputsReference = renderTemplateStringReference({
     schema: ModuleReferenceContext.getSchema().keys({

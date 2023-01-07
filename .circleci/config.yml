@@ -72,7 +72,7 @@ orbs:
 commands:
   npm_install:
     description: |
-      Installs npm packages for root, core, and dashboard and loads and saves the caches as appropriate
+      Installs npm packages and loads and saves the caches as appropriate
     parameters:
       context:
         description: Set this to vm if installing in a VM, to avoid conflicting caches with the docker runs
@@ -270,7 +270,6 @@ jobs:
             # Save the built output for future
             - cli/build/
             - core/build/
-            - dashboard/build/
             - static/
             # TODO: see if we can make this somewhat more specific
             - sdk/

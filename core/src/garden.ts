@@ -918,7 +918,7 @@ export class Garden {
 
       let updated = false
 
-      // TODO-G2
+      // TODO-G2: review and add tests
       // Resolve modules from specs and add to the list
       await Bluebird.map(addActions || [], async (config) => {
         // There is no actual config file for plugin modules (which the prepare function assumes)
@@ -1184,7 +1184,7 @@ export class Garden {
   /**
    * Add an action config to the context, after validating and calling the appropriate configure plugin handler.
    */
-  private addActionConfig(config: BaseActionConfig) {
+  protected addActionConfig(config: BaseActionConfig) {
     this.log.silly(`Adding ${config.kind} action ${config.name}`)
     const existing = this.actionConfigs[config.kind][config.name]
 

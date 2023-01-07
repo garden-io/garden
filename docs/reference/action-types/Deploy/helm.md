@@ -211,6 +211,10 @@ spec:
   #
   # If the chart is remote, you must specify `chart.name` and `chart.version\, and optionally `chart.repo` (if the
   # chart is not in the default "stable" repo).
+  #
+  # You may also specify an absolute URL to a packaged chart via `chart.url`.
+  #
+  # One of `chart.name`, `chart.path` or `chart.url` must be specified.
   chart:
     # A valid Helm chart name or URI (same as you'd input to `helm install`) Required if the module doesn't contain
     # the Helm chart itself.
@@ -221,6 +225,9 @@ spec:
 
     # The repository URL to fetch the chart from. Defaults to the "stable" helm repo (https://charts.helm.sh/stable).
     repo:
+
+    # An absolute URL to a packaged URL.
+    url:
 
     # The chart version to deploy.
     version:
@@ -797,6 +804,10 @@ If the chart is defined in the same directory as the action, you can skip this, 
 
 If the chart is remote, you must specify `chart.name` and `chart.version\, and optionally `chart.repo` (if the chart is not in the default "stable" repo).
 
+You may also specify an absolute URL to a packaged chart via `chart.url`.
+
+One of `chart.name`, `chart.path` or `chart.url` must be specified.
+
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
@@ -836,6 +847,16 @@ The path, relative to the action path, to the chart sources (i.e. where the Char
 [spec](#spec) > [chart](#specchart) > repo
 
 The repository URL to fetch the chart from. Defaults to the "stable" helm repo (https://charts.helm.sh/stable).
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.chart.url`
+
+[spec](#spec) > [chart](#specchart) > url
+
+An absolute URL to a packaged URL.
 
 | Type     | Required |
 | -------- | -------- |

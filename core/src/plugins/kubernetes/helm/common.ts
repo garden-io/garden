@@ -9,6 +9,7 @@
 import { flatten, isPlainObject } from "lodash"
 import { join, resolve } from "path"
 import { pathExists, readFile, remove, writeFile } from "fs-extra"
+import tempy from "tempy"
 import cryptoRandomString = require("crypto-random-string")
 
 import { PluginContext } from "../../../plugin-context"
@@ -24,11 +25,10 @@ import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { dumpYaml } from "../../../util/util"
+import { safeDumpYaml } from "../../../util/util"
 import { HelmDeployAction } from "./config"
 import { Resolved } from "../../../actions/types"
 
-const gardenValuesFilename = "garden-values.yml"
 export const helmChartYamlFilename = "Chart.yaml"
 
 interface Chart {
@@ -45,18 +45,15 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, nam
   })
 }
 
-interface GetChartResourcesParams {
+interface PrepareTemplatesParams {
   ctx: KubernetesPluginContext
   action: Resolved<HelmDeployAction>
-  devMode: boolean
-  localMode: boolean
   log: LogEntry
 }
 
-type PrepareManifestsParams = GetChartResourcesParams & {
-  namespace: string
-  releaseName: string
-  chartPath: string
+interface GetChartResourcesParams extends PrepareTemplatesParams {
+  devMode: boolean
+  localMode: boolean
 }
 
 /**
@@ -71,7 +68,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
   const { ctx, action, devMode, localMode, log } = params
-  const { namespace, releaseName, chartPath } = await prepareTemplates(params)
+  const prepareResult = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
 
@@ -81,22 +78,24 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
     devMode,
     localMode,
     log,
-    namespace,
-    releaseName,
-    chartPath,
+    ...prepareResult,
   })
 }
 
-export async function prepareTemplates({
-  ctx,
-  action,
-  log,
-}: GetChartResourcesParams): Promise<{ namespace: string; releaseName: string; chartPath: string }> {
+interface PrepareTemplatesOutput {
+  chartPath?: string
+  namespace: string
+  reference: string[]
+  releaseName: string
+  valuesPath: string
+}
+
+export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesParams): Promise<PrepareTemplatesOutput> {
   const chartPath = await getChartPath(action)
 
   // create the values.yml file (merge the configured parameters into the default values)
   // Merge with the base module's values, if applicable
-  const { values } = action.getSpec()
+  const { chart, values } = action.getSpec()
 
   // Add Garden metadata
   values[".garden"] = {
@@ -105,9 +104,8 @@ export async function prepareTemplates({
     version: action.versionString(),
   }
 
-  const valuesPath = getGardenValuesPath(chartPath)
-  log.silly(`Writing chart values to ${valuesPath}`)
-  await dumpYaml(valuesPath, values)
+  const valuesPath = await tempy.write(safeDumpYaml(values))
+  log.silly(`Wrote chart values to ${valuesPath}`)
 
   const releaseName = getReleaseName(action)
   const namespace = await getActionNamespace({
@@ -118,23 +116,52 @@ export async function prepareTemplates({
     skipCreate: true,
   })
 
-  if (await pathExists(join(chartPath, "requirements.yaml"))) {
-    await dependencyUpdate(ctx, log, namespace, chartPath)
-  }
+  let reference: string[]
 
-  const chartYaml = join(chartPath, helmChartYamlFilename)
-  if (await pathExists(chartYaml)) {
-    const chart = <Chart[]>loadTemplate((await readFile(chartYaml)).toString())
-    if (chart[0].dependencies?.length) {
+  if (chartPath) {
+    reference = [chartPath]
+
+    // This only applies for local charts
+    if (await pathExists(join(chartPath, "requirements.yaml"))) {
       await dependencyUpdate(ctx, log, namespace, chartPath)
     }
+
+    const chartYaml = join(chartPath, helmChartYamlFilename)
+    if (await pathExists(chartYaml)) {
+      const chartTemplate = <Chart[]>loadTemplate((await readFile(chartYaml)).toString())
+      if (chartTemplate[0].dependencies?.length) {
+        await dependencyUpdate(ctx, log, namespace, chartPath)
+      }
+    }
+  } else if (chart?.url) {
+    reference = [chart.url]
+    if (chart.version) {
+      reference.push("--version", chart.version)
+    }
+  } else if (chart?.name) {
+    reference = [chart.name]
+    if (chart.version) {
+      reference.push("--version", chart.version)
+    }
+    if (chart.repo) {
+      reference.push("--repo", chart.repo)
+    }
+  } else {
+    // This will generally be caught at schema validation
+    throw new ConfigurationError(`${action.longDescription()} specifies none of chart.name, chart.path nor chart.url`, {
+      chartSpec: chart,
+    })
   }
-  return { namespace, releaseName, chartPath }
+
+  return { namespace, releaseName, chartPath, valuesPath, reference }
 }
 
+type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
+
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, action, devMode, localMode, log, namespace, releaseName, chartPath } = params
+  const { ctx, action, devMode, localMode, log, namespace, releaseName, valuesPath, reference } = params
   const timeout = action.getSpec("timeout")
+
   const res = await helm({
     ctx,
     log,
@@ -142,7 +169,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
     args: [
       "install",
       releaseName,
-      chartPath,
+      ...reference,
       "--dry-run",
       "--namespace",
       namespace,
@@ -151,7 +178,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "json",
       "--timeout",
       timeout.toString(10) + "s",
-      ...(await getValueArgs(action, devMode, localMode)),
+      ...(await getValueArgs({ action, devMode, localMode, valuesPath })),
     ],
   })
 
@@ -211,7 +238,7 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
 }
 
 /**
- * Get the full absolute path to the chart, within the action build path.
+ * Get the full absolute path to the chart, within the action build path, if applicable.
  */
 export async function getChartPath(action: Resolved<HelmDeployAction>) {
   const chartSpec = action.getSpec("chart") || {}
@@ -230,9 +257,8 @@ export async function getChartPath(action: Resolved<HelmDeployAction>) {
     }
     return chartDir
   } else if (chartSpec.name) {
-    // Remote chart is specified. We set the chart path to the chart name in the build directory.
-    const splitName = chartSpec.name.split("/")
-    return join(action.getBuildPath(), splitName[splitName.length - 1])
+    // Remote chart is specified. Return undefined.
+    return
   } else if (chartExists) {
     // Chart exists at the module build path
     return chartDir
@@ -245,25 +271,25 @@ export async function getChartPath(action: Resolved<HelmDeployAction>) {
 }
 
 /**
- * Get the path to the values file that we generate (garden-values.yml) within the chart directory.
- */
-export function getGardenValuesPath(chartPath: string) {
-  return join(chartPath, gardenValuesFilename)
-}
-
-/**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs(action: Resolved<HelmDeployAction>, devMode: boolean, localMode: boolean) {
-  const chartPath = await getChartPath(action)
-  const gardenValuesPath = getGardenValuesPath(chartPath)
-
+export async function getValueArgs({
+  action,
+  devMode,
+  localMode,
+  valuesPath,
+}: {
+  action: Resolved<HelmDeployAction>
+  devMode: boolean
+  localMode: boolean
+  valuesPath: string
+}) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
   const valueFiles = action
     .getSpec("valueFiles")
     .map((f) => resolve(action.getBuildPath(), f))
-    .concat([gardenValuesPath])
+    .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
@@ -288,13 +314,31 @@ export function getReleaseName(action: Resolved<HelmDeployAction>) {
  * This is a dirty hack that allows us to resolve Helm template strings ad-hoc.
  * Basically this writes a dummy file to the chart, has Helm resolve it, and then deletes the file.
  */
-export async function renderHelmTemplateString(
-  ctx: PluginContext,
-  log: LogEntry,
-  action: Resolved<HelmDeployAction>,
-  chartPath: string,
+export async function renderHelmTemplateString({
+  ctx,
+  log,
+  action,
+  chartPath,
+  value,
+  valuesPath,
+  reference,
+}: {
+  ctx: PluginContext
+  log: LogEntry
+  action: Resolved<HelmDeployAction>
+  chartPath?: string
   value: string
-): Promise<string> {
+  valuesPath: string
+  reference: string[]
+}): Promise<string> {
+  // TODO-G2: see if we can lift this limitation
+  if (!chartPath) {
+    throw new ConfigurationError(
+      `Referencing Helm template strings is currently only supported for local Helm charts`,
+      {}
+    )
+  }
+
   const relPath = join("templates", cryptoRandomString({ length: 16 }) + ".yaml")
   const tempFilePath = join(chartPath, relPath)
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -322,10 +366,10 @@ export async function renderHelmTemplateString(
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs(action, false, false)),
+          ...(await getValueArgs({ action, devMode: false, localMode: false, valuesPath })),
           "--show-only",
           relPath,
-          chartPath,
+          ...reference,
         ],
       })
     )
