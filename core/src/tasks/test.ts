@@ -13,9 +13,9 @@ import minimatch = require("minimatch")
 import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
+import { executeAction } from "../actions/helpers"
 import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/test/get-result"
-import { executeAction } from "../actions/helpers"
 
 class TestError extends Error {
   toString() {

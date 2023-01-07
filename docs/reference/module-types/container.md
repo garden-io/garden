@@ -225,7 +225,8 @@ services:
       # 1 CPU)
       min: 10
 
-      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result
+      # in no limit being set.
       max: 1000
 
     memory:
@@ -233,8 +234,9 @@ services:
       # 1 GB)
       min: 90
 
-      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when starting the container.
     #
@@ -400,7 +402,7 @@ services:
         # Note that if you're developing locally you may need to add this hostname to your hosts file.
         hostname:
 
-        # The link URL for the ingress to show in the console and on the dashboard. Also used when calling the service
+        # The link URL for the ingress to show in the console and in dashboards. Also used when calling the service
         # with the `call` command.
         #
         # Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load
@@ -519,7 +521,8 @@ tests:
       # 1 CPU)
       min: 10
 
-      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result
+      # in no limit being set.
       max: 1000
 
     memory:
@@ -527,8 +530,9 @@ tests:
       # 1 GB)
       min: 90
 
-      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when starting the container.
     #
@@ -632,7 +636,8 @@ tasks:
       # 1 CPU)
       min: 10
 
-      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result
+      # in no limit being set.
       max: 1000
 
     memory:
@@ -640,8 +645,9 @@ tasks:
       # 1 GB)
       min: 90
 
-      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when starting the container.
     #
@@ -1175,7 +1181,7 @@ The minimum amount of CPU the container needs to be available for it to be deplo
 
 [services](#services) > [cpu](#servicescpu) > max
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1203,11 +1209,11 @@ The minimum amount of RAM the container needs to be available for it to be deplo
 
 [services](#services) > [memory](#servicesmemory) > max
 
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `services[].volumes[]`
 
@@ -1671,7 +1677,7 @@ Note that if you're developing locally you may need to add this hostname to your
 
 [services](#services) > [ingresses](#servicesingresses) > linkUrl
 
-The link URL for the ingress to show in the console and on the dashboard. Also used when calling the service with the `call` command.
+The link URL for the ingress to show in the console and in dashboards. Also used when calling the service with the `call` command.
 
 Use this if the actual URL is different from what's specified in the ingress, e.g. because there's a load balancer in front of the service that rewrites the paths.
 
@@ -2101,7 +2107,7 @@ The minimum amount of CPU the container needs to be available for it to be deplo
 
 [tests](#tests) > [cpu](#testscpu) > max
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2129,11 +2135,11 @@ The minimum amount of RAM the container needs to be available for it to be deplo
 
 [tests](#tests) > [memory](#testsmemory) > max
 
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tests[].volumes[]`
 
@@ -2462,7 +2468,7 @@ The minimum amount of CPU the container needs to be available for it to be deplo
 
 [tasks](#tasks) > [cpu](#taskscpu) > max
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2490,11 +2496,11 @@ The minimum amount of RAM the container needs to be available for it to be deplo
 
 [tasks](#tasks) > [memory](#tasksmemory) > max
 
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tasks[].volumes[]`
 

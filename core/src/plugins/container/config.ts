@@ -104,11 +104,11 @@ export interface ServiceLimitSpec {
 export interface ContainerResourcesSpec {
   cpu: {
     min: number
-    max: number
+    max: number | null
   }
   memory: {
     min: number
-    max: number
+    max: number | null
   }
 }
 
@@ -495,14 +495,14 @@ const limitsSchema = () =>
 export const containerCpuSchema = () =>
   joi.object().keys({
     min: joi.number().default(defaultContainerResources.cpu.min).description(deline`
-          The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus
-          (i.e. 1000 = 1 CPU)
-        `),
-    max: joi
-      .number()
-      .default(defaultContainerResources.cpu.max)
-      .min(10)
-      .description(`The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU)`),
+        The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus
+        (i.e. 1000 = 1 CPU)
+      `),
+    max: joi.number().default(defaultContainerResources.cpu.max).min(defaultContainerResources.cpu.min).allow(null)
+      .description(deline`
+        The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU).
+        If set to null will result in no limit being set.
+      `),
   })
 
 export const containerMemorySchema = () =>
@@ -511,11 +511,10 @@ export const containerMemorySchema = () =>
         The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes
         (i.e. 1024 = 1 GB)
       `),
-    max: joi
-      .number()
-      .default(defaultContainerResources.memory.min)
-      .min(64)
-      .description(`The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)`),
+    max: joi.number().default(defaultContainerResources.memory.max).allow(null).min(64).description(deline`
+        The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB)
+        If set to null will result in no limit being set.
+      `),
   })
 
 export const portSchema = () =>

@@ -10,7 +10,7 @@ import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { LogEntry } from "../../../logger/log-entry"
-import { KubernetesPluginContext, KubernetesProvider } from "../config"
+import { KuberetesResourceConfig, KubernetesPluginContext, KubernetesProvider, KubernetesResourceSpec } from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
 import {
@@ -20,10 +20,10 @@ import {
   ServiceLimitSpec,
 } from "../../container/moduleConfig"
 import { V1ResourceRequirements, V1SecurityContext } from "@kubernetes/client-node"
-import { kilobytesToString, millicpuToString } from "../util"
 import { ConfigurationError } from "../../../exceptions"
 import { Resolved } from "../../../actions/types"
 import { containerHelpers } from "../../container/helpers"
+import { kilobytesToString, megabytesToString, millicpuToString } from "../util"
 
 export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, provider: KubernetesProvider): string {
   const explicitImage = action.getSpec().image
@@ -72,16 +72,24 @@ export function getResourceRequirements(
 ): V1ResourceRequirements {
   const maxCpu = limits?.cpu || resources.cpu.max
   const maxMemory = limits?.memory || resources.memory.max
-  return {
+
+  const resourceReq: V1ResourceRequirements = {
     requests: {
       cpu: millicpuToString(resources.cpu.min),
       memory: kilobytesToString(resources.memory.min * 1024),
     },
-    limits: {
-      cpu: millicpuToString(maxCpu),
-      memory: kilobytesToString(maxMemory * 1024),
-    },
   }
+  if (maxMemory || maxCpu) {
+    resourceReq.limits = {}
+  }
+  if (maxMemory) {
+    resourceReq.limits!.memory = kilobytesToString(maxMemory * 1024)
+  }
+  if (maxCpu) {
+    resourceReq.limits!.cpu = millicpuToString(maxCpu)
+  }
+
+  return resourceReq
 }
 
 export function getSecurityContext(
@@ -103,4 +111,17 @@ export function getSecurityContext(
     ctx.capabilities = { ...(ctx.capabilities || {}), drop: dropCapabilities }
   }
   return ctx
+}
+
+export function stringifyResources(resources: KubernetesResourceSpec) {
+  const stringify = (r: KuberetesResourceConfig) => ({
+    cpu: millicpuToString(r.cpu),
+    memory: megabytesToString(r.memory),
+    ...(r.ephemeralStorage ? { "ephemeral-storage": megabytesToString(r.ephemeralStorage) } : {}),
+  })
+
+  return {
+    limits: stringify(resources.limits),
+    requests: stringify(resources.requests),
+  }
 }

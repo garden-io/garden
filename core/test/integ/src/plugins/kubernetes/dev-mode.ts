@@ -16,7 +16,7 @@ import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/
 import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
-import { DeployTask } from "../../../../../src/tasks/deploy"
+// import { DeployTask } from "../../../../../src/tasks/deploy"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
 import { TestGarden } from "../../../../helpers"
@@ -67,20 +67,20 @@ describe("dev mode deployments and sync behavior", () => {
     await init("local")
     const action = graph.getDeploy("dev-mode")
     const log = garden.log
-    const deployTask = new DeployTask({
-      garden,
-      graph,
-      log,
-      action,
-      force: true,
-      fromWatch: false,
-      devModeDeployNames: [action.name],
-      localModeDeployNames: [],
-    })
+    // const deployTask = new DeployTask({
+    //   garden,
+    //   graph,
+    //   log,
+    //   action,
+    //   force: true,
+    //   fromWatch: false,
+    //   devModeDeployNames: [action.name],
+    //   localModeDeployNames: [],
+    // })
 
     // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const resolvedAction = await garden.resolveAction({
-      action: action,
+      action,
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
     })
@@ -132,20 +132,20 @@ describe("dev mode deployments and sync behavior", () => {
     action.getConfig().spec.devMode!.sync[0].mode = "one-way-replica"
     action.getConfig().spec.devMode!.sync[0].exclude = ["somedir"]
     const log = garden.log
-    const deployTask = new DeployTask({
-      garden,
-      graph,
-      log,
-      action,
-      force: true,
-      fromWatch: false,
-      devModeDeployNames: [action.name],
-      localModeDeployNames: [],
-    })
+    // const deployTask = new DeployTask({
+    //   garden,
+    //   graph,
+    //   log,
+    //   action,
+    //   force: true,
+    //   fromWatch: false,
+    //   devModeDeployNames: [action.name],
+    //   localModeDeployNames: [],
+    // })
 
     // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const resolvedAction = await garden.resolveAction({
-      action: action,
+      action,
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
     })

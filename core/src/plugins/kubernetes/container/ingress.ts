@@ -17,7 +17,7 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
 import { KubernetesResource } from "../types"
-import { ExtensionsV1beta1Ingress, V1Ingress, V1Secret } from "@kubernetes/client-node"
+import { V1Ingress, V1Secret } from "@kubernetes/client-node"
 import { LogEntry } from "../../../logger/log-entry"
 import chalk from "chalk"
 import { Resolved } from "../../../actions/types"
@@ -132,7 +132,7 @@ export async function createIngressResources(
 
       extend(annotations, ingress.spec.annotations)
 
-      const ingressResource: KubernetesResource<ExtensionsV1beta1Ingress> = {
+      const ingressResource: KubernetesResource<any> = {
         apiVersion: apiVersion!,
         kind: "Ingress",
         metadata: {

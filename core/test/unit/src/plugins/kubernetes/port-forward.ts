@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { KubernetesService } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
+// import { KubernetesService } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
 import { getForwardablePorts } from "../../../../../src/plugins/kubernetes/port-forward"
 
 describe("getForwardablePorts", () => {
@@ -39,7 +39,7 @@ describe("getForwardablePorts", () => {
   })
 
   it("returns explicitly configured port forwards if set", () => {
-    const service: KubernetesService = {
+    /* const service: KubernetesService = {
       name: "foo",
       config: <any>{}, // Not needed here
       disabled: false,
@@ -61,7 +61,7 @@ describe("getForwardablePorts", () => {
         tests: [],
       },
       version: <any>{}, // Not needed here
-    }
+    } */
 
     const ports = getForwardablePorts(
       [

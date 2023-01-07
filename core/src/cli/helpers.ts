@@ -24,7 +24,6 @@ import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import { got } from "../util/http"
-import { getUserId } from "../analytics/analytics"
 import minimist = require("minimist")
 import { renderTable, tablePresets, naturalList } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
@@ -90,9 +89,9 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     platformVersion: release(),
   }
 
-  const globalConfig = await config.get()
+  const userId = (await config.get())?.analytics?.anonymousUserId || "unknown"
   const headers = {}
-  headers["X-user-id"] = getUserId(globalConfig)
+  headers["X-user-id"] = userId
   headers["X-ci-check"] = ci.isCI
   if (ci.isCI) {
     headers["X-ci-name"] = ci.name

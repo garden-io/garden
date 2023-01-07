@@ -7,7 +7,7 @@ tocTitle: "`jib-container` Build"
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.45/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.47/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -222,7 +222,17 @@ spec:
   projectType: auto
 
   # The JDK version to use.
+  #
+  # The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and
+  # Maven.
+  #
+  # To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
   jdkVersion: 11
+
+  # The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+  #
+  # The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+  jdkPath:
 
   # Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).
   dockerBuild: false
@@ -589,9 +599,9 @@ POSIX-style name of a Dockerfile, relative to the action's source root.
 
 The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
 
-| Type     | Default  | Required |
-| -------- | -------- | -------- |
-| `string` | `"auto"` | No       |
+| Type     | Allowed Values                             | Default  | Required |
+| -------- | ------------------------------------------ | -------- | -------- |
+| `string` | "gradle", "maven", "jib", "auto", "mavend" | `"auto"` | Yes      |
 
 ### `spec.jdkVersion`
 
@@ -599,9 +609,33 @@ The type of project to build. Defaults to auto-detecting between gradle and mave
 
 The JDK version to use.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `11`    | No       |
+The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and Maven.
+
+To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
+
+| Type     | Allowed Values | Default | Required |
+| -------- | -------------- | ------- | -------- |
+| `number` | 8, 11, 13, 17  | `11`    | Yes      |
+
+### `spec.jdkPath`
+
+[spec](#spec) > jdkPath
+
+The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+
+The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+spec:
+  ...
+  jdkPath: "${local.env.JAVA_HOME}"
+```
 
 ### `spec.dockerBuild`
 
@@ -629,9 +663,9 @@ Don't load or push the resulting image to a Docker daemon or registry, only buil
 
 Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
 
-| Type     | Default    | Required |
-| -------- | ---------- | -------- |
-| `string` | `"docker"` | No       |
+| Type     | Allowed Values  | Default    | Required |
+| -------- | --------------- | ---------- | -------- |
+| `string` | "docker", "oci" | `"docker"` | Yes      |
 
 ### `spec.mavenPath`
 

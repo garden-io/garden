@@ -21,7 +21,7 @@ import { Resolved } from "@garden-io/core/build/src/actions/types"
 
 interface JibBuildSpec {
   dockerBuild?: boolean
-  projectType: "gradle" | "maven" | "auto"
+  projectType: "gradle" | "maven" | "mavend" | "auto"
   jdkVersion: number
   jdkPath?: string
   tarOnly?: boolean
@@ -82,7 +82,7 @@ export function getBuildFlags(action: Resolved<JibBuildAction>, projectType: Jib
   let targetDir: string
   let target: string
 
-  if (projectType === "maven") {
+  if (projectType === "maven" || projectType === "mavend") {
     targetDir = "target"
     if (tarOnly) {
       target = "jib:buildTar"

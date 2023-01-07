@@ -88,7 +88,7 @@ describe("pull-image plugin command", () => {
         localId: action._outputs["local-image-id"],
         remoteId: action._outputs["deployment-image-id"],
         ctx: ctx as KubernetesPluginContext,
-        action: action,
+        action,
         log: garden.log,
       })
       await ensureImagePulled(action)

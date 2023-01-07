@@ -47,7 +47,7 @@ import { keyBy, set, mapValues, omit } from "lodash"
 import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
-import { dedent, deline, randomString } from "../../../src/util/string"
+import { dedent, randomString } from "../../../src/util/string"
 import execa from "execa"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { safeDump } from "js-yaml"
@@ -104,7 +104,7 @@ describe("Garden", () => {
 
   describe("factory", () => {
     function getProviderActionHandler(router: ActionRouter, handlerType: ProviderActionName, pluginName: string) {
-      return router.provider.getPluginHandler({ handlerType, pluginName: pluginName })
+      return router.provider.getPluginHandler({ handlerType, pluginName })
     }
 
     function ensureProviderActionHandlers(router: ActionRouter, pluginName: string) {
@@ -3832,6 +3832,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
+          // tslint:disable-next-line: max-line-length
           "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin): key .base is required",
         ],
       })

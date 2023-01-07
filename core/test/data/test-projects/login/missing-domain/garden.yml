@@ -1,4 +1,4 @@
 kind: Project
 name: login
 environments:
-  - test
+  - name: test

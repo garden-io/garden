@@ -112,8 +112,16 @@ test_release() {
   fi
 
   cd $garden_root
-  echo "Done! Make sure to revert any changes that were made during the test run."
+  echo "Done!"
+}
+
+cleanup() {
+  echo ""
+  echo "Reverting git changes"
+  git checkout .
+  echo "Done!"
 }
 
 download_release
 test_release
+cleanup

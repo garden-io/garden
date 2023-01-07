@@ -54,7 +54,7 @@ import type { GardenProcess } from "../db/entities/garden-process"
 import { CoreEventStream } from "../server/core-event-stream"
 import { GardenPluginReference } from "../plugin/plugin"
 import { renderError } from "../logger/renderers"
-import { CloudApi } from "../cloud/api"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
@@ -286,7 +286,14 @@ ${renderCommands(commands)}
     // Init Cloud API
     let cloudApi: CloudApi | null = null
     if (!command.noProject) {
-      cloudApi = await CloudApi.factory({ log, currentDirectory: workingDir })
+      const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
+      const cloudDomain: string | undefined = getGardenCloudDomain(config)
+
+      if (cloudDomain) {
+        cloudApi = await CloudApi.factory({ log, cloudDomain })
+      } else {
+        log.debug("Cloud/Enterprise domain not configured. Aborting.")
+      }
     }
 
     // Init event & log streaming.
@@ -383,11 +390,11 @@ ${renderCommands(commands)}
           }
 
           // Connect the core server event streamer (making sure it doesn't stream to the local server)
-          const commandServerUrl = command.server?.getUrl() || undefined
+          const commandServerUrl = command.server?.getBaseUrl() || undefined
           coreEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
           await coreEventStream.updateTargets()
 
-          if (cloudApi && !cloudApi.sessionRegistered && command.streamEvents) {
+          if (cloudApi && garden.projectId && !cloudApi.sessionRegistered && command.streamEvents) {
             // Note: If a config change during a watch-mode command's execution results in the resolved environment
             // and/or namespace name changing, we don't change the session ID, environment ID or namespace ID used when
             // streaming events.
@@ -428,7 +435,7 @@ ${renderCommands(commands)}
           }
         }
 
-        if (cloudApi) {
+        if (cloudApi && garden.projectId) {
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           const connectParams: ConnectBufferedEventStreamParams = {
             garden,
@@ -447,7 +454,7 @@ ${renderCommands(commands)}
               environmentName: garden.environmentName,
               environmentId: cloudApi.environmentId,
               projectName: garden.projectName,
-              projectId: cloudApi.projectId,
+              projectId: garden.projectId,
               namespaceName: garden.namespace,
               namespaceId: cloudApi.namespaceId,
               coreVersion: getPackageVersion(),
@@ -722,7 +729,7 @@ ${renderCommands(commands)}
   }
 
   @pMemoizeDecorator()
-  private async getProjectConfig(workingDir: string): Promise<ProjectResource | undefined> {
+  async getProjectConfig(workingDir: string): Promise<ProjectResource | undefined> {
     return findProjectConfig(workingDir)
   }
 

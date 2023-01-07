@@ -7,8 +7,6 @@
  */
 
 import { V1PodSpec } from "@kubernetes/client-node"
-import { ContainerBuildAction, defaultDockerfileName } from "../../../container/moduleConfig"
-import { millicpuToString, megabytesToString, makePodName } from "../../util"
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
 import { LogEntry } from "../../../../logger/log-entry"
@@ -40,6 +38,9 @@ import { LogLevel } from "../../../../logger/logger"
 import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
+import { stringifyResources } from "../util"
+import { makePodName } from "../../util"
+import { defaultDockerfileName, ContainerBuildAction } from "../../../container/config"
 
 export const DEFAULT_KANIKO_FLAGS = ["--cache=true"]
 
@@ -228,42 +229,29 @@ interface RunKanikoParams {
   args: string[]
 }
 
-async function runKaniko({
-  ctx,
+export function getKanikoBuilderPodManifest({
   provider,
   kanikoNamespace,
-  utilNamespace,
   authSecretName,
-  log,
-  action,
-  args,
-}: RunKanikoParams): Promise<RunResult> {
-  const api = await KubeApi.factory(log, ctx, provider)
-
-  const podName = makePodName("kaniko", action.name)
-
-  // Escape the args so that we can safely interpolate them into the kaniko command
-  const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
-
-  let commandStr = dedent`
-    /kaniko/executor ${argsStr};
-    export exitcode=$?;
-    touch ${sharedMountPath}/done;
-    exit $exitcode;
-  `
-
+  syncArgs,
+  imagePullSecrets,
+  sourceUrl,
+  podName,
+  commandStr,
+}: {
+  provider: KubernetesProvider
+  kanikoNamespace: string
+  authSecretName: string
+  syncArgs: string[]
+  imagePullSecrets: {
+    name: string
+  }[]
+  sourceUrl: string
+  podName: string
+  commandStr: string
+}) {
   const kanikoImage = provider.config.kaniko?.image || DEFAULT_KANIKO_IMAGE
   const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
-  const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
-  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
-  const imagePullSecrets = await prepareSecrets({
-    api,
-    namespace: kanikoNamespace,
-    secrets: provider.config.imagePullSecrets,
-    log,
-  })
-
-  const syncArgs = [...commonSyncArgs, sourceUrl, contextPath]
 
   const spec: V1PodSpec = {
     shareProcessNamespace: true,
@@ -329,22 +317,7 @@ async function runKaniko({
             mountPath: sharedMountPath,
           },
         ],
-        resources: {
-          limits: {
-            cpu: millicpuToString(provider.config.resources.builder.limits.cpu),
-            memory: megabytesToString(provider.config.resources.builder.limits.memory),
-            ...(provider.config.resources.builder.limits.ephemeralStorage
-              ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.limits.ephemeralStorage) }
-              : {}),
-          },
-          requests: {
-            cpu: millicpuToString(provider.config.resources.builder.requests.cpu),
-            memory: megabytesToString(provider.config.resources.builder.requests.memory),
-            ...(provider.config.resources.builder.requests.ephemeralStorage
-              ? { "ephemeral-storage": megabytesToString(provider.config.resources.builder.requests.ephemeralStorage) }
-              : {}),
-          },
-        },
+        resources: stringifyResources(provider.config.resources.builder),
       },
     ],
     tolerations: kanikoTolerations,
@@ -356,9 +329,59 @@ async function runKaniko({
     metadata: {
       name: podName,
       namespace: kanikoNamespace,
+      annotations: provider.config.kaniko?.annotations,
     },
     spec,
   }
+
+  return pod
+}
+
+async function runKaniko({
+  ctx,
+  provider,
+  kanikoNamespace,
+  utilNamespace,
+  authSecretName,
+  log,
+  action,
+  args,
+}: RunKanikoParams): Promise<RunResult> {
+  const api = await KubeApi.factory(log, ctx, provider)
+
+  const podName = makePodName("kaniko", action.name)
+
+  // Escape the args so that we can safely interpolate them into the kaniko command
+  const argsStr = args.map((arg) => JSON.stringify(arg)).join(" ")
+
+  let commandStr = dedent`
+    /kaniko/executor ${argsStr};
+    export exitcode=$?;
+    touch ${sharedMountPath}/done;
+    exit $exitcode;
+  `
+
+  const utilHostname = `${utilDeploymentName}.${utilNamespace}.svc.cluster.local`
+  const sourceUrl = `rsync://${utilHostname}:${utilRsyncPort}/volume/${ctx.workingCopyId}/${action.name}/`
+  const imagePullSecrets = await prepareSecrets({
+    api,
+    namespace: kanikoNamespace,
+    secrets: provider.config.imagePullSecrets,
+    log,
+  })
+
+  const syncArgs = [...commonSyncArgs, sourceUrl, contextPath]
+
+  const pod = getKanikoBuilderPodManifest({
+    provider,
+    podName,
+    sourceUrl,
+    syncArgs,
+    imagePullSecrets,
+    commandStr,
+    kanikoNamespace,
+    authSecretName,
+  })
 
   // Set the configured nodeSelector, if any
   if (!isEmpty(provider.config.kaniko?.nodeSelector)) {

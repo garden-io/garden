@@ -191,7 +191,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(result).to.exist
     expect(errors).to.not.exist
-    expectFuzzyMatch((result?.steps["step-1"].log!).trim(), "echo OK")
+    expectFuzzyMatch(result?.steps["step-1"].log!.trim()!, "echo OK")
   })
 
   it("should abort subsequent steps if a command returns an error", async () => {
@@ -280,7 +280,7 @@ describe("RunWorkflowCommand", () => {
                   outputs: { log: "" },
                 }
               },
-              getResult: async (params) => {
+              getResult: async (_params) => {
                 return {
                   state: "failed",
                   detail: null,
@@ -296,7 +296,7 @@ describe("RunWorkflowCommand", () => {
             docs: "test",
             schema: joi.object().keys({ log: joi.string() }),
             handlers: {
-              run: async (params) => {
+              run: async (_params) => {
                 testModuleLog.push("tests have been run")
                 const now = new Date()
                 return {
@@ -314,7 +314,7 @@ describe("RunWorkflowCommand", () => {
                   outputs: { log: "" },
                 }
               },
-              getResult: async (params) => {
+              getResult: async (_params) => {
                 return {
                   state: "ready",
                   detail: null,

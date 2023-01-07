@@ -11,7 +11,7 @@ import { TestGarden } from "../../helpers"
 import { resolveProjectOutputs } from "../../../src/outputs"
 import { expect } from "chai"
 import { realpath } from "fs-extra"
-import { createGardenPlugin, RunResult } from "../../../src/plugin/plugin"
+import { createGardenPlugin } from "../../../src/plugin/plugin"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { exec } from "../../../src/util/util"
@@ -90,7 +90,7 @@ describe("resolveProjectOutputs", () => {
             async getModuleOutputs({ moduleConfig }) {
               return { outputs: moduleConfig.spec.outputs }
             },
-            convert: async (params) => ({}),
+            convert: async (_params) => ({}),
           },
         },
       ],
@@ -137,7 +137,7 @@ describe("resolveProjectOutputs", () => {
           name: "test",
           needsBuild: false,
           handlers: {
-            convert: async (params) => ({}),
+            convert: async (_params) => ({}),
           },
         },
       ],
@@ -211,7 +211,7 @@ describe("resolveProjectOutputs", () => {
           name: "test",
           needsBuild: false,
           handlers: {
-            convert: async (params) => ({}),
+            convert: async (_params) => ({}),
           },
         },
       ],
@@ -223,8 +223,8 @@ describe("resolveProjectOutputs", () => {
             schema: joi.object(),
             handlers: {
               getOutputs: async (params) => ({ outputs: params.action.getSpec().outputs }),
-              run: async (params) => result,
-              getResult: async (params) => result,
+              run: async (_params) => result,
+              getResult: async (_params) => result,
             },
           },
         ],

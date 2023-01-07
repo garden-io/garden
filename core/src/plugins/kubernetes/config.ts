@@ -158,21 +158,21 @@ export interface CertManagerConfig {
   acmeServer?: LetsEncryptServerType
 }
 
-interface KubernetesResourceSpec {
-  limits: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
-  requests: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
+export interface KuberetesResourceConfig {
+  cpu: number
+  memory: number
+  ephemeralStorage?: number
+}
+
+export interface KubernetesResourceSpec {
+  limits: KuberetesResourceConfig
+  requests: KuberetesResourceConfig
 }
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
+  sync: KubernetesResourceSpec
+  util: KubernetesResourceSpec
 }
 
 interface KubernetesStorageSpec {
@@ -210,6 +210,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
     rootless?: boolean
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    annotations?: StringMap
   }
   jib?: {
     pushViaCluster?: boolean
@@ -220,6 +221,12 @@ export interface KubernetesConfig extends BaseProviderConfig {
     namespace?: string | null
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    annotations?: StringMap
+    util?: {
+      tolerations?: V1Toleration[]
+      annotations?: StringMap
+      nodeSelector?: StringMap
+    }
   }
   context: string
   defaultHostname?: string
@@ -259,6 +266,26 @@ export const defaultResources: KubernetesResources = {
     },
     requests: {
       cpu: 100,
+      memory: 512,
+    },
+  },
+  sync: {
+    limits: {
+      cpu: 500,
+      memory: 512,
+    },
+    requests: {
+      cpu: 100,
+      memory: 90,
+    },
+  },
+  util: {
+    limits: {
+      cpu: 256,
+      memory: 512,
+    },
+    requests: {
+      cpu: 256,
       memory: 512,
     },
   },
@@ -572,6 +599,9 @@ export const kubernetesConfigBase = () =>
         tolerations: joiSparseArray(tolerationSchema()).description(
           "Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds."
         ),
+        annotations: annotationsSchema().description(
+          "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
+        ),
       })
       .default(() => ({}))
       .description("Configuration options for the `cluster-buildkit` build mode."),
@@ -612,14 +642,30 @@ export const kubernetesConfigBase = () =>
           ),
         nodeSelector: joiStringMap(joi.string()).description(
           dedent`
-            Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+            Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under \`util.nodeSelector\`.
 
-            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
           `
         ),
         tolerations: joiSparseArray(tolerationSchema()).description(
-          "Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds."
+          deline`Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds.
+          The same tolerations will be used for each util pod unless they are specifically set under \`util.tolerations\``
         ),
+        annotations: annotationsSchema().description(
+          deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+          The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+        ),
+        util: joi.object().keys({
+          tolerations: joiSparseArray(tolerationSchema()).description(
+            "Specify tolerations to apply to each garden-util pod."
+          ),
+          annotations: annotationsSchema().description(
+            "Specify annotations to apply to each garden-util pod and deployments."
+          ),
+          nodeSelector: joiStringMap(joi.string()).description(
+            "Specify the nodeSelector constraints for each garden-util pod."
+          ),
+        }),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),
@@ -679,6 +725,23 @@ export const kubernetesConfigBase = () =>
 
             When \`buildMode\` is \`cluster-buildkit\`, this applies to the BuildKit deployment created in _each project namespace_. So think of this as the resource spec for each individual user or project namespace.
           `),
+        util: resourceSchema(defaultResources.util, false).description(dedent`
+            Resource requests and limits for the util pod for in-cluster builders.
+            This pod is used to get, start, stop and inquire the status of the builds.
+
+            This pod is created in each garden namespace.
+          `),
+        sync: resourceSchema(defaultResources.sync, true)
+          .description(
+            dedent`
+            Resource requests and limits for the code sync service, which we use to sync build contexts to the cluster
+            ahead of building images. This generally is not resource intensive, but you might want to adjust the
+            defaults if you have many concurrent users.
+          `
+          )
+          .meta({
+            deprecated: "The sync service is only used for the cluster-docker build mode, which is being deprecated.",
+          }),
       })
       .default(defaultResources).description(deline`
         Resource requests and limits for the in-cluster builder..
@@ -765,13 +828,18 @@ export const tolerationSchema = () =>
         `),
   })
 
+const annotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
 export const namespaceSchema = () =>
   joi.alternatives(
     joi.object().keys({
       name: namespaceNameSchema(),
-      annotations: joiStringMap(joi.string()).description(
-        "Map of annotations to apply to the namespace when creating it."
-      ),
+      annotations: annotationsSchema().description("Map of annotations to apply to the namespace when creating it."),
       labels: joiStringMap(joi.string()).description("Map of labels to apply to the namespace when creating it."),
     }),
     namespaceNameSchema()

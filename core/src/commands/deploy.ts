@@ -32,7 +32,7 @@ import { Garden } from "../garden"
 
 export const deployArgs = {
   names: new StringsParameter({
-    help: deline`The name(s) of the deploy(s) (or services if using modules) to deploy (skip to deploy everything).
+    help: deline`The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything).
       Use comma as a separator to specify multiple names.`,
   }),
 }
@@ -53,13 +53,13 @@ export const deployOpts = {
     alias: "dev",
   }),
   "local-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
-    Use comma as a separator to specify multiple services. Use * to deploy all
-    services with local mode enabled. When this option is used,
+    help: deline`[EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple deploys. Use * to deploy all
+    deploys with local mode enabled. When this option is used,
     the command is run in persistent mode.
 
     This always takes the precedence over the dev mode if there are any conflicts,
-    i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
+    i.e. if the same deploys are passed to both \`--dev\` and \`--local\` options.
     `,
     alias: "local",
   }),
@@ -99,16 +99,17 @@ export class DeployCommand extends Command<Args, Opts> {
     Examples:
 
         garden deploy                      # deploy everything in the project
-        garden deploy my-service           # only deploy my-service
-        garden deploy service-a,service-b  # only deploy service-a and service-b
+        garden deploy my-deploy            # only deploy my-deploy
+        garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
         garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
         garden deploy --watch              # watch for changes to code
-        garden deploy --dev=my-service     # deploys everything with dev mode enabled for my-service
-        garden deploy --dev                # deploys everything, enabling dev mode on all applicable actions
-        garden deploy --local=my-service   # deploys everything with local mode enabled for my-service
-        garden deploy --local              # deploys everything, enabling local mode on all applicable actions
-        garden deploy --env stage          # deploy to an environment called stage
-        garden deploy --skip service-b     # deploy everything except service-b
+        garden deploy --dev=my-deploy      # deploys all deploys, with dev mode enabled for my-deploy
+        garden deploy --dev                # deploys all compatible deploys with dev mode enabled
+        garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
+        garden deploy --local              # deploys all compatible deploys with local mode enabled
+        garden deploy --env stage          # deploy your deploys to an environment called stage
+        garden deploy --skip deploy-b      # deploy all deploys except deploy-b
+        garden deploy --forward            # deploy all deploys and start port forwards without watching for changes
   `
 
   arguments = deployArgs
@@ -166,7 +167,7 @@ export class DeployCommand extends Command<Args, Opts> {
     actions = actions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
 
     if (actions.length === 0) {
-      log.error({ msg: "No services to deploy. Aborting." })
+      log.error({ msg: "No deploys to deploy. Aborting." })
       return { result: { aborted: true, success: true, graphResults: {} } }
     }
 

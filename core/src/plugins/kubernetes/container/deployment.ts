@@ -18,16 +18,6 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { ConfigurationError, RuntimeError } from "../../../exceptions"
-import {
-  KubernetesResource,
-  KubernetesWorkload,
-  SyncableKind,
-  SupportedRuntimeActions,
-  syncableKinds,
-  SyncableResource,
-} from "../types"
-import { ContainerServiceStatus, k8sGetContainerDeployStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
@@ -39,6 +29,16 @@ import { getDeployedImageId, getResourceRequirements, getSecurityContext } from 
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 import { Resolved } from "../../../actions/types"
+import { ConfigurationError } from "../../../exceptions"
+import {
+  SyncableKind,
+  syncableKinds,
+  SyncableResource,
+  KubernetesWorkload,
+  KubernetesResource,
+  SupportedRuntimeActions,
+} from "../types"
+import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -551,7 +551,7 @@ export async function createWorkloadManifest({
 
     const deploymentStrategy = spec.deploymentStrategy
     if (deploymentStrategy === "RollingUpdate") {
-      // Need the any cast because the library types are busted
+      // Need the <any> cast because the library types are busted
       deployment.spec!.strategy = <any>{
         type: deploymentStrategy,
         rollingUpdate: {
@@ -565,8 +565,8 @@ export async function createWorkloadManifest({
         type: deploymentStrategy,
       }
     } else {
-      // defensive type-check, the actual type here must be 'never'
-      throw new RuntimeError(`Unsupported deployment strategy: ${deploymentStrategy}`, { deploymentStrategy })
+      const _exhaustiveCheck: never = deploymentStrategy
+      return _exhaustiveCheck
     }
 
     workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
@@ -781,7 +781,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
   } else if (spec.healthCheck?.tcpPort) {
     container.readinessProbe.tcpSocket = {
       // For some reason the field is an object type
-      port: (portsByName[spec.healthCheck.tcpPort].containerPort as unknown) as object,
+      port: portsByName[spec.healthCheck.tcpPort].containerPort,
     }
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {

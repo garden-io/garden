@@ -12,6 +12,7 @@ import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
 import { mavenSpec, mvn } from "./maven"
+import { mavendSpec } from "./mavend"
 import { gradle, gradleSpec } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
@@ -43,14 +44,38 @@ const systemJdkGardenEnvVar = "${local.env.JAVA_HOME}"
 const jibBuildSchemaKeys = () => ({
   projectType: joi
     .string()
-    .allow("gradle", "maven", "jib", "auto")
+    .valid("gradle", "maven", "jib", "auto", "mavend")
     .default("auto")
     .description(
       dedent`
-        The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
-        `
+            The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
+            `
     ),
-  jdkVersion: joi.number().integer().allow(8, 11, 13).default(11).description("The JDK version to use."),
+  jdkVersion: joi
+    .number()
+    .integer()
+    .valid(8, 11, 13, 17)
+    .default(11)
+    .description(
+      dedent`
+            The JDK version to use.
+
+            The chosen version will be downloaded by Garden and used to define \`JAVA_HOME\` environment variable for Gradle and Maven.
+
+            To use an arbitrary JDK distribution, please use the \`jdkPath\` configuration option.
+            `
+    ),
+  jdkPath: joi
+    .string()
+    .optional()
+    .description(
+      dedent`
+            The JDK home path. This **always overrides** the JDK defined in \`jdkVersion\`.
+
+            The value will be used as \`JAVA_HOME\` environment variable for Gradle and Maven.
+            `
+    )
+    .example(systemJdkGardenEnvVar),
   dockerBuild: joi
     .boolean()
     .default(false)
@@ -63,15 +88,15 @@ const jibBuildSchemaKeys = () => ({
     .description("Don't load or push the resulting image to a Docker daemon or registry, only build it as a tar file."),
   tarFormat: joi
     .string()
-    .allow("docker", "oci")
+    .valid("docker", "oci")
     .default("docker")
     .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
   mavenPath: joi.string().optional().description(dedent`
-      Defines the location of the custom executable Maven binary.
+        Defines the location of the custom executable Maven binary.
 
-      **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
-      To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
-    `),
+        **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
+        To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
+      `),
   mavenPhases: joi
     .array()
     .items(joi.string())
@@ -118,7 +143,7 @@ export const gardenPlugin = () =>
     `,
     dependencies: [{ name: "container" }],
     configSchema: configSchema(),
-    tools: [mavenSpec, gradleSpec, ...openJdkSpecs],
+    tools: [mavenSpec, gradleSpec, mavendSpec, ...openJdkSpecs],
 
     createActionTypes: {
       Build: [

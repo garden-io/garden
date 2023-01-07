@@ -26,8 +26,6 @@ import {
   getModifiedPlansDirPath,
   getPlanFileName,
   getPreviewDirPath,
-  OperationCounts,
-  PreviewResult,
   previewStack,
   PulumiParams,
   refreshResources,
@@ -65,22 +63,23 @@ interface PulumiCommandSpec {
   }) => Promise<any>
 }
 
-interface TotalSummary {
-  /**
-   * The ISO timestamp of when the plan was completed.
-   */
-  completedAt: string
-  /**
-   * The total number of operations by step type (excluding `same` steps).
-   */
-  totalStepCounts: OperationCounts
-  /**
-   * A more detailed summary for each pulumi service affected by the plan.
-   */
-  results: {
-    [serviceName: string]: PreviewResult
-  }
-}
+// TODO-G2-thor: Re-enable and test when 0.13 is stable enough to run commands.
+// interface TotalSummary {
+//   /**
+//    * The ISO timestamp of when the plan was completed.
+//    */
+//   completedAt: string
+//   /**
+//    * The total number of operations by step type (excluding `same` steps).
+//    */
+//   totalStepCounts: OperationCounts
+//   /**
+//    * A more detailed summary for each pulumi service affected by the plan.
+//    */
+//   results: {
+//     [serviceName: string]: PreviewResult
+//   }
+// }
 
 const pulumiCommandSpecs: PulumiCommandSpec[] = [
   {

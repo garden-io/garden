@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { expectError, getDataDir, cleanupAuthTokens, makeCommandParams } from "../../../helpers"
+import { expectError, getDataDir, cleanupAuthTokens, makeCommandParams, TestGardenCli } from "../../../helpers"
 import { AuthRedirectServer } from "../../../../src/cloud/auth"
 
 import { LoginCommand } from "../../../../src/commands/login"
@@ -37,6 +37,32 @@ describe("LoginCommand", () => {
     await cleanupAuthTokens()
   })
 
+  it("should log in if the project has a domain without an id", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+    const command = new LoginCommand()
+    const cli = new TestGardenCli()
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"), {
+      noEnterprise: false,
+      commandInfo: { name: "foo", args: {}, opts: {} },
+    })
+
+    setTimeout(() => {
+      garden.events.emit("receivedToken", testToken)
+    }, 500)
+
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
+
+    const savedToken = await ClientAuthToken.findOne()
+    expect(savedToken).to.exist
+    expect(savedToken!.token).to.eql(testToken.token)
+    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+  })
+
   it("should log in if the project has a domain and an id", async () => {
     const postfix = randomString()
     const testToken = {
@@ -45,6 +71,7 @@ describe("LoginCommand", () => {
       tokenValidity: 60,
     }
     const command = new LoginCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -54,7 +81,7 @@ describe("LoginCommand", () => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const savedToken = await ClientAuthToken.findOne()
     expect(savedToken).to.exist
@@ -71,6 +98,7 @@ describe("LoginCommand", () => {
     }
 
     const command = new LoginCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -80,7 +108,7 @@ describe("LoginCommand", () => {
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
 
-    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const savedToken = await ClientAuthToken.findOne()
     expect(savedToken).to.exist
@@ -98,6 +126,11 @@ describe("LoginCommand", () => {
       tokenValidity: 60,
     }
     const command = new LoginCommand()
+    const cli = new TestGardenCli()
+
+    // NOTE: if we use the garden instance from the TestGardenCli instead of makeDummyGarden
+    // it would try to fully resolve the secrets which are not available unless we mock the
+    // cloud API instance.
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -107,7 +140,7 @@ describe("LoginCommand", () => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
     const savedToken = await ClientAuthToken.findOne()
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
@@ -115,13 +148,15 @@ describe("LoginCommand", () => {
   })
 
   it("should throw if the project doesn't have a domain", async () => {
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"), {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
     const command = new LoginCommand()
+
     await expectError(
-      () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
-      (err) => expect(stripAnsi(err.message)).to.match(/Project config is missing a cloud domain and\/or a project ID./)
+      () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
+      (err) => expect(stripAnsi(err.message)).to.match(/Project config is missing a cloud domain./)
     )
   })
 
@@ -134,6 +169,7 @@ describe("LoginCommand", () => {
     }
 
     const command = new LoginCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -151,7 +187,7 @@ describe("LoginCommand", () => {
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await expectError(
-      () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
+      () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
       (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
     )
   })
@@ -165,6 +201,7 @@ describe("LoginCommand", () => {
     }
 
     const command = new LoginCommand()
+    const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
@@ -182,7 +219,7 @@ describe("LoginCommand", () => {
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await expectError(
-      () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
+      () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
       (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
     )
 
@@ -202,6 +239,7 @@ describe("LoginCommand", () => {
 
     it("should be a no-op if the user has a valid auth token in the environment", async () => {
       const command = new LoginCommand()
+      const cli = new TestGardenCli()
       const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
         noEnterprise: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
@@ -209,7 +247,7 @@ describe("LoginCommand", () => {
 
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
 
-      await command.action(makeCommandParams({ garden, args: {}, opts: {} }))
+      await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
@@ -218,6 +256,7 @@ describe("LoginCommand", () => {
 
     it("should throw if the user has an invalid auth token in the environment", async () => {
       const command = new LoginCommand()
+      const cli = new TestGardenCli()
       const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
         noEnterprise: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
@@ -226,7 +265,7 @@ describe("LoginCommand", () => {
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
 
       await expectError(
-        () => command.action(makeCommandParams({ garden, args: {}, opts: {} })),
+        () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
         (err) =>
           expect(stripAnsi(err.message)).to.match(
             /The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI./
@@ -236,6 +275,73 @@ describe("LoginCommand", () => {
 
     after(() => {
       gardenEnv.GARDEN_AUTH_TOKEN = saveEnv
+    })
+  })
+
+  context("GARDEN_CLOUD_DOMAIN set in env", () => {
+    const saveEnv = gardenEnv.GARDEN_CLOUD_DOMAIN
+    before(() => {
+      gardenEnv.GARDEN_CLOUD_DOMAIN = "https://gardencloud.example.com"
+    })
+
+    it("should log in even if the project config domain is empty", async () => {
+      const postfix = randomString()
+      const testToken = {
+        token: `dummy-token-${postfix}`,
+        refreshToken: `dummy-refresh-token-${postfix}`,
+        tokenValidity: 60,
+      }
+      const command = new LoginCommand()
+      const cli = new TestGardenCli()
+      const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"), {
+        noEnterprise: false,
+        commandInfo: { name: "foo", args: {}, opts: {} },
+      })
+
+      setTimeout(() => {
+        garden.events.emit("receivedToken", testToken)
+      }, 500)
+
+      await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
+
+      const savedToken = await ClientAuthToken.findOne()
+      expect(savedToken).to.exist
+      expect(savedToken!.token).to.eql(testToken.token)
+      expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+    })
+
+    it("should log in using the domain in GARDEN_CLOUD_DOMAIN", async () => {
+      const postfix = randomString()
+      const testToken = {
+        token: `dummy-token-${postfix}`,
+        refreshToken: `dummy-refresh-token-${postfix}`,
+        tokenValidity: 60,
+      }
+      const command = new LoginCommand()
+      const cli = new TestGardenCli()
+      const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"), {
+        noEnterprise: false,
+        commandInfo: { name: "foo", args: {}, opts: {} },
+      })
+
+      setTimeout(() => {
+        garden.events.emit("receivedToken", testToken)
+      }, 500)
+
+      await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
+
+      const savedToken = await ClientAuthToken.findOne()
+      expect(savedToken).to.exist
+      expect(savedToken!.token).to.eql(testToken.token)
+      expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
+
+      const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
+
+      expect(logOutput).to.include(`Logging in to ${gardenEnv.GARDEN_CLOUD_DOMAIN}`)
+    })
+
+    after(() => {
+      gardenEnv.GARDEN_CLOUD_DOMAIN = saveEnv
     })
   })
 })

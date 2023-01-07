@@ -1,7 +1,7 @@
 ARG TAG=latest
 FROM gardendev/garden:${TAG}-gcloud
 
-ENV KUBELOGIN_VERSION=v0.0.9
+ENV KUBELOGIN_VERSION=v0.0.24
 
 RUN pip install awscli==1.22.77 --upgrade
 

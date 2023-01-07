@@ -187,7 +187,7 @@ commands:
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
             sudo npm install -g yarn
 
-  configure_kubectl_context:
+  configure_remote_cluster:
     description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
     steps:
       - run:
@@ -201,6 +201,19 @@ commands:
             gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet auth configure-docker
+
+  cleanup_remote_cluster:
+    description: Clean up namespaces in the ci cluster on gcloud (to be used with configure_remote_cluster)
+    steps:
+      - run:
+          name: Delete current namespace
+          command: kubectl get ns | grep ${CIRCLE_BUILD_NUM} | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          when: always
+      - run:
+          name: Delete namespaces older than 1 hour
+          # hack: find namespaces that contain '-ci' and their age ends with h or d, e.g. 1d5h or 24h
+          command: kubectl get ns | grep -E '(d|h)$' | grep -- '-ci' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          when: always
 
   build_dist:
     description: Package built code into executables and persist to dist directory
@@ -339,7 +352,7 @@ jobs:
     steps:
       - checkout
       - npm_install
-      - configure_kubectl_context
+      - configure_remote_cluster
       - docker_login
       - *attach-workspace
       - run:
@@ -349,10 +362,7 @@ jobs:
           name: Run e2e test
           command: |
             yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>>
-      - run:
-          name: Cleanup
-          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
-          when: always
+      - cleanup_remote_cluster
 
   build-docker-alpine:
     <<: *node-config
@@ -468,16 +478,13 @@ jobs:
     steps:
       # Need to checkout to run example project
       - checkout
-      - configure_kubectl_context
+      - configure_remote_cluster
       - *attach-workspace
       - run:
           name: Deploy demo-project with container
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
-      - run:
-          name: Cleanup
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker kubectl delete --wait=false $(kubectl get ns -o name | grep demo-project-$CIRCLE_BUILD_NUM) || true
-          when: always
+      - cleanup_remote_cluster
 
   release-service-docker:
     <<: *node-config
@@ -545,7 +552,7 @@ jobs:
     steps:
       # Need to checkout to run example project
       - checkout
-      - configure_kubectl_context
+      - configure_remote_cluster
       - *attach-workspace
       - run:
           name: Test that the binary works with the fancy logger enabled
@@ -561,10 +568,7 @@ jobs:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
-      - run:
-          name: Cleanup
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep demo-project-$CIRCLE_BUILD_NUM) || true
-          when: always
+      - cleanup_remote_cluster
 
   test-plugins:
     machine:
@@ -789,14 +793,11 @@ jobs:
             tar xzf google-cloud-sdk-390.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
-      - configure_kubectl_context
+      - configure_remote_cluster
       - run:
           name: Deploy demo-project
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-macos dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic --env remote
-      - run:
-          name: Cleanup
-          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM-macos) || true
-          when: always
+      - cleanup_remote_cluster
 
   test-windows:
     executor: win/default
@@ -1024,17 +1025,16 @@ workflows:
 
       ### MAIN ONLY ###
 
-      # TODO: Re-enable this if we can figure out a way to not spam users who have starred the repo.
-      # - build-dist-edge:
-      #     <<: *only-main
-      #     requires: [build]
-      # - release-service-docker:
-      #     <<: *only-main
-      #     context: docker
-      #     requires: [build-dist-edge]
-      # - release-service-dist-edge:
-      #     <<: *only-main
-      #     requires: [build-dist-edge]
+      - build-dist-edge:
+          <<: *only-main
+          requires: [build]
+      - release-service-docker:
+          <<: *only-main
+          context: docker
+          requires: [build-dist-edge]
+      - release-service-dist-edge:
+          <<: *only-main
+          requires: [build-dist-edge]
 
   tags:
     jobs:

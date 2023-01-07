@@ -40,6 +40,7 @@ import { KubernetesDeployment, KubernetesResource } from "../../types"
 import { BuildActionHandler, BuildActionResults } from "../../../../plugin/action-types"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { Resolved } from "../../../../actions/types"
+import { stringifyResources } from "../util"
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
@@ -430,7 +431,7 @@ function isLocalHostname(hostname: string) {
   return hostname === "localhost" || hostname.startsWith("127.")
 }
 
-export function getUtilContainer(authSecretName: string): V1Container {
+export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {
   return {
     name: utilContainerName,
     image: k8sUtilImageName,
@@ -469,15 +470,24 @@ export function getUtilContainer(authSecretName: string): V1Container {
       timeoutSeconds: 3,
       successThreshold: 2,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+      tcpSocket: { port: rsyncPortName },
     },
-    resources: {
-      // This should be ample
-      limits: {
-        cpu: "256m",
-        memory: "512Mi",
+    lifecycle: {
+      preStop: {
+        exec: {
+          // this preStop command makes sure that we wait for some time if an rsync is still ongoing, before
+          // actually killing the pod. If the transfer takes more than 30 seconds, which is unlikely, the pod
+          // will be killed anyway. The command works by counting the number of rsync processes. This works
+          // because rsync forks for every connection.
+          command: [
+            "/bin/sh",
+            "-c",
+            "until test $(pgrep -fc '^[^ ]+rsync') = 1; do echo waiting for rsync to finish...; sleep 1; done",
+          ],
+        },
       },
     },
+    resources: stringifyResources(provider.config.resources.util),
     securityContext: {
       runAsUser: 1000,
       runAsGroup: 1000,
@@ -490,7 +500,11 @@ export function getUtilManifests(
   authSecretName: string,
   imagePullSecrets: { name: string }[]
 ) {
-  const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
+  const kanikoTolerations = [
+    ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
+    builderToleration,
+  ]
+  const kanikoAnnotations = provider.config.kaniko?.util?.annotations || provider.config.kaniko?.annotations
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -499,6 +513,7 @@ export function getUtilManifests(
         app: utilDeploymentName,
       },
       name: utilDeploymentName,
+      annotations: kanikoAnnotations,
     },
     spec: {
       replicas: 1,
@@ -512,9 +527,10 @@ export function getUtilManifests(
           labels: {
             app: utilDeploymentName,
           },
+          annotations: kanikoAnnotations,
         },
         spec: {
-          containers: [getUtilContainer(authSecretName)],
+          containers: [getUtilContainer(authSecretName, provider)],
           imagePullSecrets,
           volumes: [
             {
@@ -543,8 +559,9 @@ export function getUtilManifests(
   const service = cloneDeep(baseUtilService)
 
   // Set the configured nodeSelector, if any
-  if (!isEmpty(provider.config.kaniko?.nodeSelector)) {
-    deployment.spec!.template.spec!.nodeSelector = provider.config.kaniko?.nodeSelector
+  const nodeSelector = provider.config.kaniko?.util?.nodeSelector || provider.config.kaniko?.nodeSelector
+  if (!isEmpty(nodeSelector)) {
+    deployment.spec!.template.spec!.nodeSelector = nodeSelector
   }
 
   return { deployment, service }
