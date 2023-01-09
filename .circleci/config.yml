@@ -24,10 +24,13 @@ orbs:
       version: 20.10.11
       docker_layer_caching: true
 
+  runner-image: &runner-image
+    image: gardendev/circleci-runner:14.19.3-3
+
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.3-2
+      - <<: *runner-image
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -35,8 +38,7 @@ orbs:
   # Configuration for release jobs
   release-config: &release-config
     docker:
-      # Image that contains ghr and gh utilities for publishing releases to Github
-      - image: gardendev/circleci-release:0.12.2-0
+      - <<: *runner-image
 
   # Attaches the current saved workspace
   attach-workspace: &attach-workspace

@@ -1,6 +1,0 @@
-kind: Module
-type: container
-name: circleci-release
-description: Used for the release steps in CircleCI
-image: gardendev/circleci-release:0.12.2-0
-extraFlags: [ "--platform", "linux/amd64" ]

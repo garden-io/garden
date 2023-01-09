@@ -1,6 +1,9 @@
 #### gcloud base image ####
 FROM google/cloud-sdk:411.0.0 as gcloud
 
+#### ghr utility ####
+FROM cibuilds/github:0.12.2 AS ghr
+
 #### ldid utility ####
 FROM cimg/node:14.19.3 as ldid
 
@@ -21,10 +24,20 @@ RUN cd /tmp && \
 FROM cimg/node:14.19.3
 
 # install system deps
-RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3
+RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3 curl
 
 # install ldid
 COPY --from=ldid /usr/local/bin/ldid /usr/local/bin
+
+# install ghr
+COPY --from=ghr /usr/bin/ghr /usr/bin/
+
+# install gh
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+  && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+  && sudo apt-get update \
+  && sudo apt-get install gh -y
 
 # install gcloud
 ENV CLOUDSDK_PYTHON=python3
