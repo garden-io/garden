@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.46/examples/jib-container) to see it in action.
+Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.48/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -89,7 +89,19 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
+  # Defines the location of the custom executable Gradle binary.
+  #
+  # If not provided, then the Gradle binary available in the working directory will be used.
+  # If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Gradle.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+  gradlePath:
+
   # Defines the location of the custom executable Maven binary.
+  #
+  # If not provided, then Maven 3.8.5 will be downloaded and used.
   #
   # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
   # Maven.
@@ -962,11 +974,29 @@ Specify the image format in the resulting tar file. Only used if `tarOnly: true`
 | -------- | --------------- | ---------- | -------- |
 | `string` | "docker", "oci" | `"docker"` | Yes      |
 
+### `build.gradlePath`
+
+[build](#build) > gradlePath
+
+Defines the location of the custom executable Gradle binary.
+
+If not provided, then the Gradle binary available in the working directory will be used.
+If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Gradle.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
 ### `build.mavenPath`
 
 [build](#build) > mavenPath
 
 Defines the location of the custom executable Maven binary.
+
+If not provided, then Maven 3.8.5 will be downloaded and used.
 
 **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
 To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.

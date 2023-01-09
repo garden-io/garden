@@ -198,6 +198,10 @@ providers:
           # otherwise just a regular string.
           value:
 
+      # Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit.
+      # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+      annotations:
+
     # Setting related to Jib image builds.
     jib:
       # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
@@ -222,14 +226,15 @@ providers:
       namespace: garden-system
 
       # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
-      # pods to only run on particular nodes.
+      # pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
+      # specifically set under `util.nodeSelector`.
       #
       # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
-      # guide to assigning Pods to nodes.
+      # guide to assigning pods to nodes.
       nodeSelector:
 
-      # Specify tolerations to apply to each Kaniko builder Pod. Useful to control which nodes in a cluster can run
-      # builds. Same tolerations will be used for the util pod unless they are specifically set under
+      # Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run
+      # builds. The same tolerations will be used for each util pod unless they are specifically set under
       # `util.tolerations`
       tolerations:
         - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
@@ -257,8 +262,13 @@ providers:
           # otherwise just a regular string.
           value:
 
+      # Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of
+      # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
+      # are specifically set under `util.annotations`
+      annotations:
+
       util:
-        # Specify tolerations to apply to each garden-util Pod.
+        # Specify tolerations to apply to each garden-util pod.
         tolerations:
           - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
             # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -284,6 +294,12 @@ providers:
             # empty,
             # otherwise just a regular string.
             value:
+
+        # Specify annotations to apply to each garden-util pod and deployments.
+        annotations:
+
+        # Specify the nodeSelector constraints for each garden-util pod.
+        nodeSelector:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -948,6 +964,26 @@ otherwise just a regular string.
 | -------- | -------- |
 | `string` | No       |
 
+### `providers[].clusterBuildkit.annotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > annotations
+
+Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
 ### `providers[].clusterDocker`
 
 [providers](#providers) > clusterDocker
@@ -1042,9 +1078,9 @@ Choose the namespace where the Kaniko pods will be run. Set to `null` to use the
 
 [providers](#providers) > [kaniko](#providerskaniko) > nodeSelector
 
-Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under `util.nodeSelector`.
 
-[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1054,7 +1090,7 @@ Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows 
 
 [providers](#providers) > [kaniko](#providerskaniko) > tolerations
 
-Specify tolerations to apply to each Kaniko builder Pod. Useful to control which nodes in a cluster can run builds. Same tolerations will be used for the util pod unless they are specifically set under `util.tolerations`
+Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. The same tolerations will be used for each util pod unless they are specifically set under `util.tolerations`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1118,6 +1154,26 @@ otherwise just a regular string.
 | -------- | -------- |
 | `string` | No       |
 
+### `providers[].kaniko.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > annotations
+
+Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. The same annotations will be used for each util pod unless they are specifically set under `util.annotations`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
 ### `providers[].kaniko.util`
 
 [providers](#providers) > [kaniko](#providerskaniko) > util
@@ -1130,7 +1186,7 @@ otherwise just a regular string.
 
 [providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > tolerations
 
-Specify tolerations to apply to each garden-util Pod.
+Specify tolerations to apply to each garden-util pod.
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1193,6 +1249,38 @@ otherwise just a regular string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `providers[].kaniko.util.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > annotations
+
+Specify annotations to apply to each garden-util pod and deployments.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      util:
+        ...
+        annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].kaniko.util.nodeSelector`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > nodeSelector
+
+Specify the nodeSelector constraints for each garden-util pod.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].defaultHostname`
 
@@ -2671,6 +2759,16 @@ Map of annotations to apply to the namespace when creating it.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - namespace: ''
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
 
 ### `providers[].namespace.labels`
 

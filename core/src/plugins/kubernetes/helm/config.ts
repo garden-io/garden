@@ -225,7 +225,7 @@ export const helmModuleSpecSchema = () =>
       When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
       in \`valueFiles\`).
     `),
-    valueFiles: joiSparseArray(joi.posixPath().subPathOnly()).description(dedent`
+    valueFiles: joiSparseArray(joi.posixPath()).description(dedent`
       Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
       bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
       this list will have the highest precedence.

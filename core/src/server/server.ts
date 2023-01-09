@@ -39,6 +39,30 @@ import { clientRequestNames, ClientRouter } from "./client-router"
 export const defaultWatchServerPort = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
 
+interface WebsocketCloseEvent {
+  code: number
+  message: string
+}
+
+interface WebsocketCloseEvents {
+  notReady: WebsocketCloseEvent
+  unauthorized: WebsocketCloseEvent
+}
+
+// Using the websocket closed private range (4000-4999) for the closed codes
+// and adding normal HTTP status codes. So something that would be a 503 HTTP code translates to 4503.
+// See also: https://www.iana.org/assignments/websocket/websocket.xhtml
+const websocketCloseEvents: WebsocketCloseEvents = {
+  notReady: {
+    code: 4503,
+    message: "Not ready",
+  },
+  unauthorized: {
+    code: 4401,
+    message: "Unauthorized",
+  },
+}
+
 /**
  * Start an HTTP server that exposes commands and events for the given Garden instance.
  *
@@ -308,7 +332,8 @@ export class GardenServer {
 
       if (!this.garden) {
         this.log.debug("Server not ready.")
-        websocket.terminate()
+        const wsNotReadyEvent = websocketCloseEvents.notReady
+        websocket.close(wsNotReadyEvent.code, wsNotReadyEvent.message)
         return
       }
 
@@ -333,12 +358,15 @@ export class GardenServer {
       // TODO: Only allow auth key authentication
       if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
         error(`401 Unauthorized`)
-        websocket.terminate()
+        const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
+        websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
         return
       }
 
       // Set up heartbeat to detect dead connections
       let isAlive = true
+
+      send("serverReady", { message: "Server ready" })
 
       let heartbeatInterval = setInterval(() => {
         if (!isAlive) {
@@ -521,6 +549,9 @@ interface ServerWebsocketMessages {
     requestId: string
     args: object
     opts: object
+  }
+  serverReady: {
+    message: string
   }
   error: {
     requestId?: string

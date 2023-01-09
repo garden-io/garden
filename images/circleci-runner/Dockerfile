@@ -1,5 +1,5 @@
 #### gcloud base image ####
-FROM google/cloud-sdk:390.0.0 as gcloud
+FROM google/cloud-sdk:411.0.0 as gcloud
 
 #### ldid utility ####
 FROM cimg/node:14.19.3 as ldid

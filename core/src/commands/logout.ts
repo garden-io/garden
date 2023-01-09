@@ -8,9 +8,11 @@
 
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import { CloudApi } from "../cloud/api"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
+import { ProjectResource } from "../config/project"
+import { ConfigurationError } from "../exceptions"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -26,7 +28,7 @@ export class LogOutCommand extends Command {
     printHeader(headerLog, "Log out", "cloud")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult> {
+  async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
     // Note: lazy-loading for startup performance
     const { ClientAuthToken } = require("../db/entities/client-auth-token")
 
@@ -41,9 +43,16 @@ export class LogOutCommand extends Command {
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
+      const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
+      const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
+
+      if (!cloudDomain) {
+        throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+      }
+
       const cloudApi = await CloudApi.factory({
         log,
-        currentDirectory: garden.projectRoot,
+        cloudDomain,
         skipLogging: true,
       })
 

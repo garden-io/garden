@@ -2,16 +2,19 @@ kind: Module
 type: container
 name: buildkit
 description: Used for the cluster-buildkit build mode in the kubernetes provider
-image: gardendev/buildkit:v0.10.5-1
+image: gardendev/buildkit:v0.10.5-2
 dockerfile: Dockerfile
 build:
   targetImage: output
+extraFlags: [ "--platform", "linux/amd64" ]
+
 ---
+
 kind: Module
 type: container
 name: buildkit-rootless
 description: Used for the cluster-buildkit build mode in the kubernetes provider, rootless variant
-image: gardendev/buildkit:v0.10.5-1-rootless
+image: gardendev/buildkit:v0.10.5-2-rootless
 dockerfile: Dockerfile
 build:
   dependencies:
@@ -19,3 +22,4 @@ build:
   targetImage: output
 buildArgs:
   BASE_IMAGE_SUFFIX: "-rootless"
+extraFlags: [ "--platform", "linux/amd64" ]

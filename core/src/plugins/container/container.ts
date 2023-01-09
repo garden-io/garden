@@ -24,6 +24,7 @@ import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { isSubdir } from "../../util/util"
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
+import { taskOutputsSchema } from "../kubernetes/task-results"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -60,17 +61,6 @@ export const containerModuleOutputsSchema = () =>
       .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
       .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
   })
-
-const taskOutputsSchema = joi.object().keys({
-  log: joi
-    .string()
-    .allow("")
-    .default("")
-    .description(
-      "The full log from the executed task. " +
-        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-    ),
-})
 
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration

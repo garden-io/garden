@@ -39,7 +39,7 @@ import { prepareSecrets } from "../../secrets"
 import { ContainerModuleOutputs } from "../../../container/container"
 import { stringifyResources } from "../util"
 
-export const buildkitImageName = "gardendev/buildkit:v0.10.5-1"
+export const buildkitImageName = "gardendev/buildkit:v0.10.5-2"
 export const buildkitDeploymentName = "garden-buildkit"
 const buildkitContainerName = "buildkitd"
 
@@ -110,7 +110,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString()))
+    statusLine.setState(renderOutputStream(line.toString(), "buildkit"))
   })
 
   const command = [
@@ -360,6 +360,7 @@ export function getBuildkitDeployment(
         app: buildkitDeploymentName,
       },
       name: buildkitDeploymentName,
+      annotations: provider.config.clusterBuildkit?.annotations,
     },
     spec: {
       replicas: 1,
@@ -373,6 +374,7 @@ export function getBuildkitDeployment(
           labels: {
             app: buildkitDeploymentName,
           },
+          annotations: provider.config.clusterBuildkit?.annotations,
         },
         spec: {
           containers: [

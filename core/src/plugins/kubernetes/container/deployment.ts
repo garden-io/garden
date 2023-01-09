@@ -20,7 +20,7 @@ import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { KubernetesResource, KubernetesWorkload } from "../types"
-import { ConfigurationError, RuntimeError } from "../../../exceptions"
+import { ConfigurationError } from "../../../exceptions"
 import { ContainerServiceStatus, getContainerServiceStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
@@ -102,6 +102,9 @@ export async function startContainerDevSync({
 
   log.info({
     section: service.name,
+    // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
+    // it's not rendered.
+    symbol: "info",
     msg: chalk.grey(`Deploying in dev mode`),
   })
 
@@ -542,7 +545,7 @@ export async function createWorkloadManifest({
 
     const deploymentStrategy = service.spec!.deploymentStrategy
     if (deploymentStrategy === "RollingUpdate") {
-      // Need the any cast because the library types are busted
+      // Need the <any> cast because the library types are busted
       deployment.spec!.strategy = <any>{
         type: deploymentStrategy,
         rollingUpdate: {
@@ -556,8 +559,8 @@ export async function createWorkloadManifest({
         type: deploymentStrategy,
       }
     } else {
-      // defensive type-check, the actual type here must be 'never'
-      throw new RuntimeError(`Unsupported deployment strategy: ${deploymentStrategy}`, { deploymentStrategy })
+      const _exhaustiveCheck: never = deploymentStrategy
+      return _exhaustiveCheck
     }
 
     workload.spec.revisionHistoryLimit = production ? REVISION_HISTORY_LIMIT_PROD : REVISION_HISTORY_LIMIT_DEFAULT
@@ -776,7 +779,7 @@ function configureHealthCheck(
   } else if (spec.healthCheck?.tcpPort) {
     container.readinessProbe.tcpSocket = {
       // For some reason the field is an object type
-      port: (portsByName[spec.healthCheck.tcpPort].containerPort as unknown) as object,
+      port: portsByName[spec.healthCheck.tcpPort].containerPort,
     }
     container.livenessProbe.tcpSocket = container.readinessProbe.tcpSocket
   } else {

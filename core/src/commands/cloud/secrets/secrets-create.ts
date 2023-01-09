@@ -17,6 +17,7 @@ import { dedent, deline } from "../../../util/string"
 import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
 import dotenv = require("dotenv")
+import { getCloudDistributionName } from "../../../util/util"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -126,6 +127,14 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const project = await api.getProject()
+
+    if (!project) {
+      throw new EnterpriseApiError(
+        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        {}
+      )
+    }
+
     let environmentId: number | undefined
 
     if (envName) {

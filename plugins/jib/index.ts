@@ -11,9 +11,9 @@ import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
-import { mavenSpec, mvn } from "./maven"
+import { mavenSpec, mvn, mvnVersion } from "./maven"
 import { mavendSpec, mvnd } from "./mavend"
-import { gradle, gradleSpec } from "./gradle"
+import { gradle, gradleSpec, gradleVersion } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
@@ -93,8 +93,19 @@ const jibModuleSchema = () =>
         .valid("docker", "oci")
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
+      gradlePath: joi.string().optional().description(dedent`
+        Defines the location of the custom executable Gradle binary.
+
+        If not provided, then the Gradle binary available in the working directory will be used.
+        If no Gradle binary found in the working dir, then Gradle ${gradleVersion} will be downloaded and used.
+
+        **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Gradle.
+        To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
+      `),
       mavenPath: joi.string().optional().description(dedent`
         Defines the location of the custom executable Maven binary.
+
+        If not provided, then Maven ${mvnVersion} will be downloaded and used.
 
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
@@ -262,6 +273,7 @@ export const gardenPlugin = () =>
                 cwd: module.path,
                 args,
                 openJdkPath,
+                gradlePath: module.spec.build.gradlePath,
                 outputStream,
               })
             }

@@ -16,8 +16,8 @@ import hasAnsi = require("has-ansi")
 import { LogEntry, LogEntryMessage } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, PickFromUnion, safeDumpYaml } from "../util/util"
-import { printEmoji, formatGardenErrorWithDetail, getAllSections } from "./util"
-import { LoggerType, Logger } from "./logger"
+import { printEmoji, formatGardenErrorWithDetail, getAllSections, findSection } from "./util"
+import { LoggerType, Logger, logLevelMap, LogLevel } from "./logger"
 
 type RenderFn = (entry: LogEntry) => string
 
@@ -90,12 +90,15 @@ export function renderError(entry: LogEntry) {
 }
 
 export function renderSymbolBasic(entry: LogEntry): string {
-  let { symbol, status } = entry.getLatestMessage()
+  let { symbol } = entry.getLatestMessage()
+  const section = findSection(entry)
 
   if (symbol === "empty") {
     return "  "
   }
-  if (status === "active" && !symbol) {
+
+  // Always show symbol with sections
+  if (!symbol && section) {
     symbol = "info"
   }
 
@@ -156,6 +159,39 @@ export function renderData(entry: LogEntry): string {
   return JSON.stringify(data, null, 2)
 }
 
+export function renderSectionBasic(entry: LogEntry): string {
+  const style = chalk.cyan.italic
+  const { msg: msg } = entry.getLatestMessage()
+  let section = findSection(entry)
+
+  // For log levels higher than "info" we print the log level name.
+  // This should technically happen when we render the symbol but it's harder
+  // to deal with the padding that way and we'll be re-doing most of this anyway
+  // with: https://github.com/garden-io/garden/issues/3254
+  const logLevelName = chalk.gray(`[${logLevelMap[entry.level]}]`)
+
+  // Just print the log level name directly without padding. E.g:
+  // ℹ api                       → Deploying version v-37d6c44559...
+  // [verbose] Some verbose level stuff that doesn't have a section
+  if (!section && entry.level > LogLevel.info) {
+    return logLevelName + " "
+  }
+
+  // Print the log level name after the section name to preserve alignment. E.g.:
+  // ℹ api                       → Deploying version v-37d6c44559...
+  // ℹ api [verbose]             → Some verbose level stuff that has a section
+  if (entry.level > LogLevel.info) {
+    section = section ? `${section} ${logLevelName}` : logLevelName
+  }
+
+  if (section && msg) {
+    return `${style(padSection(section))} → `
+  } else if (section) {
+    return style(padSection(section))
+  }
+  return ""
+}
+
 export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
   const { msg: msg, section } = entry.getLatestMessage()
@@ -181,9 +217,8 @@ export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerTyp
   if (type === "basic") {
     return combineRenders(entry, [
       renderTimestamp,
-      leftPad,
       renderSymbolBasic,
-      renderSection,
+      renderSectionBasic,
       renderEmoji,
       renderMsg,
       renderData,
@@ -203,7 +238,7 @@ export function cleanForJSON(input?: string | string[]): string {
   return stripAnsi(inputStr).trim()
 }
 
-export function cleanWhitespace(str) {
+export function cleanWhitespace(str: string) {
   return str.replace(/\s+/g, " ")
 }
 

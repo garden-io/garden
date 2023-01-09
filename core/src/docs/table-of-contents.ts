@@ -124,7 +124,7 @@ function sortTree(tree: FileTree) {
   }
 }
 
-const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷"]
+const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷", "🪷", "🎋"]
 
 function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emojis: Set<string>) {
   const path = tree.path.replace(docsRoot, ".")

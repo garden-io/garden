@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { SecretResponse, UserResponse } from "@garden-io/platform-api-types"
+import { SecretResult as SecretResultApi, UserResult as UserResultApi } from "@garden-io/platform-api-types"
 import { dedent } from "../../util/string"
 
 import { LogEntry } from "../../logger/log-entry"
@@ -49,7 +49,7 @@ export interface UserResult {
   createdAt: string
   updatedAt: string
   name: string
-  vcsUsername: string
+  vcsUsername: string | null | undefined
   groups: {
     id: number
     name: string
@@ -60,7 +60,7 @@ export const noApiMsg = (action: string, resource: string) => dedent`
   Unable to ${action} ${resource}. Make sure the project is configured for Garden Cloud and that you're logged in.
 `
 
-export function makeUserFromResponse(user: UserResponse): UserResult {
+export function makeUserFromResponse(user: UserResultApi): UserResult {
   return {
     id: user.id,
     name: user.name,
@@ -71,7 +71,7 @@ export function makeUserFromResponse(user: UserResponse): UserResult {
   }
 }
 
-export function makeSecretFromResponse(res: SecretResponse): SecretResult {
+export function makeSecretFromResponse(res: SecretResultApi): SecretResult {
   const secret = {
     name: res.name,
     id: res.id,

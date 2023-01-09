@@ -1636,6 +1636,60 @@ describe("resolveTemplateStrings", () => {
         foo: [],
       })
     })
+
+    it("$merge should correctly merge objects with overlapping property names inside $forEach loop", () => {
+      const services = [
+        {
+          "env-overrides": {},
+          "service-props": {
+            name: "tmp",
+            command: ["sh", "run.sh"],
+          },
+        },
+        {
+          "env-overrides": {
+            ENABLE_TMP: "true",
+          },
+          "service-props": {
+            name: "tmp-admin",
+            command: ["sh", "run.sh"],
+          },
+        },
+      ]
+      const obj = {
+        services: {
+          $forEach: "${services}",
+          $return: {
+            $merge: "${item.value.service-props}",
+            env: {
+              ALLOW_DATABASE_RESET: "true",
+              $merge: "${item.value.env-overrides}",
+            },
+          },
+        },
+      }
+
+      const res = resolveTemplateStrings(obj, new TestContext({ services }))
+      expect(res).to.eql({
+        services: [
+          {
+            command: ["sh", "run.sh"],
+            env: {
+              ALLOW_DATABASE_RESET: "true",
+            },
+            name: "tmp",
+          },
+          {
+            command: ["sh", "run.sh"],
+            env: {
+              ALLOW_DATABASE_RESET: "true",
+              ENABLE_TMP: "true",
+            },
+            name: "tmp-admin",
+          },
+        ],
+      })
+    })
   })
 })
 

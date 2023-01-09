@@ -343,19 +343,12 @@ export class K8sLogFollower<T> {
         },
       })
 
-      const doneCallback = (error: any) => {
-        if (error) {
-          this.handleConnectionClose(connectionId, "error", error.message)
-        }
-      }
-
       let req: request.Request
       try {
         req = await this.getPodLogs({
           namespace,
           containerName,
           podName: pod.metadata.name,
-          doneCallback,
           stream: writableStream,
           limitBytes,
           tail,
@@ -364,11 +357,15 @@ export class K8sLogFollower<T> {
           // Otherwise we might end up fetching logs that have already been rendered.
           since: isRetry ? "10s" : since,
         })
+        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
       } catch (err) {
         // Log the error and keep trying.
-        this.log.debug(
-          `<Getting logs for container '${containerName}' in Pod '${pod.metadata.name}' failed with error: ${err?.message}>`
-        )
+        // If the error is "HTTP request failed" most likely the pod is just not up yet
+        if (err.message !== "HTTP request failed") {
+          this.log.debug(
+            `<Getting logs for container '${containerName}' in Pod '${pod.metadata.name}' failed with error: ${err?.message}>`
+          )
+        }
         return
       }
       this.connections[connectionId] = {
@@ -379,9 +376,6 @@ export class K8sLogFollower<T> {
         status: <LogConnection["status"]>"connected",
       }
 
-      req.on("response", async () => {
-        this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
-      })
       req.on("error", (error) => this.handleConnectionClose(connectionId, "error", error.message))
       req.on("close", () => this.handleConnectionClose(connectionId, "closed", "Request closed"))
       req.on("socket", (socket) => {
@@ -405,7 +399,6 @@ export class K8sLogFollower<T> {
     namespace,
     podName,
     containerName,
-    doneCallback,
     stream,
     limitBytes,
     tail,
@@ -420,7 +413,6 @@ export class K8sLogFollower<T> {
     tail?: number
     timestamps?: boolean
     since?: string
-    doneCallback: (err: any) => void
   }) {
     const logger = this.k8sApi.getLogger()
     const sinceSeconds = since ? parseDuration(since, "s") || undefined : undefined
@@ -438,7 +430,7 @@ export class K8sLogFollower<T> {
       opts["limitBytes"] = limitBytes
     }
 
-    return logger.log(namespace, podName, containerName, stream, doneCallback, opts)
+    return logger.log(namespace, podName, containerName, stream, opts)
   }
 
   private getConnectionId(pod: KubernetesPod, containerName: string) {

@@ -521,7 +521,7 @@ name: my-service
 # Here, we use per-environment module varfiles as an optional override for variables (these have a higher precedence
 # than those in the `variables` field below).
 #
-# If no varfile exists, no error is thrown (we simply don't override any variables).
+# If a varfile is defined but not found, an error is thrown in order to prevent misconfigurations silently passing.
 varfile: my-service.${environment.name}.yaml
 variables:
   # This overrides the project-level hostname variable
@@ -637,7 +637,7 @@ values:
   namespace: `${providers.kubernetes.outputs.app-namespace}`
 ```
 
-Another good example is referencing outputs from Terraform stacks, via the [Terraform provider](../advanced/terraform.md):
+Another good example is referencing outputs from Terraform stacks, via the [Terraform provider](../terraform-plugin/README.md):
 
 ```yaml
 kind: Module

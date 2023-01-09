@@ -25,6 +25,18 @@ import { trimRunOutput } from "./helm/common"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants"
 import chalk from "chalk"
 import { GardenTask } from "../../types/task"
+import { joi } from "../../config/common"
+
+export const taskOutputsSchema = joi.object().keys({
+  log: joi
+    .string()
+    .allow("")
+    .default("")
+    .description(
+      "The full log from the executed task. " +
+        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
+    ),
+})
 
 export async function getTaskResult({
   ctx,

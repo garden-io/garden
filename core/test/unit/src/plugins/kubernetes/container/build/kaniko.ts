@@ -10,8 +10,16 @@ import {
   kanikoBuildFailed,
   getKanikoFlags,
   DEFAULT_KANIKO_FLAGS,
+  getKanikoBuilderPodManifest,
 } from "../../../../../../../src/plugins/kubernetes/container/build/kaniko"
 import { expect } from "chai"
+import { DeepPartial } from "typeorm-with-better-sqlite3"
+import {
+  defaultResources,
+  DEFAULT_KANIKO_IMAGE,
+  KubernetesProvider,
+} from "../../../../../../../src/plugins/kubernetes/config"
+import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
 
 describe("kaniko build", () => {
   it("should return as successful when immutable tag already exists in destination", () => {
@@ -58,6 +66,145 @@ describe("kaniko build", () => {
         log: "",
       })
     ).to.be.false
+  })
+
+  describe("getKanikoBuilderPodManifest", () => {
+    const _provider: DeepPartial<KubernetesProvider> = {
+      config: {
+        kaniko: {},
+        resources: {
+          ...defaultResources,
+        },
+      },
+    }
+    let provider = _provider as KubernetesProvider
+    beforeEach(() => {
+      provider = _provider as KubernetesProvider
+    })
+
+    it("should return a Kubernetes Pod manifest for kaniko building", () => {
+      expect(
+        getKanikoBuilderPodManifest({
+          provider,
+          podName: "builder-pod",
+          commandStr: "build command",
+          kanikoNamespace: "namespace",
+          authSecretName: "authSecret",
+          syncArgs: ["arg1", "arg2"],
+          imagePullSecrets: [],
+          sourceUrl: "sourceURL",
+        })
+      ).eql({
+        apiVersion: "v1",
+        kind: "Pod",
+        metadata: {
+          annotations: undefined,
+          name: "builder-pod",
+          namespace: "namespace",
+        },
+        spec: {
+          containers: [
+            {
+              command: ["sh", "-c", "build command"],
+              image: DEFAULT_KANIKO_IMAGE,
+              name: "kaniko",
+              resources: {
+                limits: {
+                  cpu: "4",
+                  memory: "8Gi",
+                },
+                requests: {
+                  cpu: "100m",
+                  memory: "512Mi",
+                },
+              },
+              volumeMounts: [
+                {
+                  mountPath: "/kaniko/.docker",
+                  name: "authSecret",
+                  readOnly: true,
+                },
+                {
+                  mountPath: "/.garden",
+                  name: "comms",
+                },
+              ],
+            },
+          ],
+          imagePullSecrets: [],
+          initContainers: [
+            {
+              command: [
+                "/bin/sh",
+                "-c",
+                'echo "Copying from sourceURL to /.garden/context"\nmkdir -p /.garden/context\nn=0\nuntil [ "$n" -ge 30 ]\ndo\n  rsync arg1 arg2 && break\n  n=$((n+1))\n  sleep 1\ndone\necho "Done!"',
+              ],
+              image: k8sUtilImageName,
+              imagePullPolicy: "IfNotPresent",
+              name: "init",
+              volumeMounts: [
+                {
+                  mountPath: "/.garden",
+                  name: "comms",
+                },
+              ],
+            },
+          ],
+          shareProcessNamespace: true,
+          tolerations: [
+            {
+              effect: "NoSchedule",
+              key: "garden-build",
+              operator: "Equal",
+              value: "true",
+            },
+          ],
+          volumes: [
+            {
+              name: "authSecret",
+              secret: {
+                items: [
+                  {
+                    key: ".dockerconfigjson",
+                    path: "config.json",
+                  },
+                ],
+                secretName: "authSecret",
+              },
+            },
+            {
+              emptyDir: {},
+              name: "comms",
+            },
+          ],
+        },
+      })
+    })
+
+    it("should return a Kubernetes Pod manifest with configured annotations", () => {
+      provider.config.kaniko!.annotations = {
+        builderAnnotation: "is-there",
+      }
+
+      provider.config.kaniko!.util = {
+        annotations: {
+          utilAnnotation: "not-there",
+        },
+      }
+
+      const manifest = getKanikoBuilderPodManifest({
+        provider,
+        podName: "builder-pod",
+        commandStr: "build command",
+        kanikoNamespace: "namespace",
+        authSecretName: "authSecret",
+        syncArgs: ["arg1", "arg2"],
+        imagePullSecrets: [],
+        sourceUrl: "sourceURL",
+      })
+
+      expect(manifest.metadata.annotations).eql(provider.config.kaniko!.annotations)
+    })
   })
 
   describe("getKanikoFlags", () => {

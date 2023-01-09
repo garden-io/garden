@@ -98,7 +98,7 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString()))
+    statusLine.setState(renderOutputStream(line.toString(), "cluster-docker"))
   })
 
   // Prepare the build command

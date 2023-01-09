@@ -59,11 +59,59 @@ export class GlobalPulumi extends CliWrapper {
 }
 
 export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
+  "3.48.0": {
+    name: "pulumi-3-48-0",
+    description: "The pulumi CLI, v3.48.0",
+    type: "binary",
+    _includeInGardenImage: true,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-darwin-x64.tar.gz",
+        sha256: "77c9580af73f8f0e0e4e04e3c791acb43cca8c0eab28ddb54c6d865beab20eff",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-darwin-arm64.tar.gz",
+        sha256: "4963b9a2dbe09eaba2e30f7823dfacbe878023767550ea312668f579a61473fd",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-linux-x64.tar.gz",
+        sha256: "4ef798dff47dce7a45d7799e389cafc199b8eaf7d817b65e49e96aa058e20206",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.48.0/pulumi-v3.48.0-windows-x64.zip",
+        sha256: "d68ff65973094a160f58143dfc2bb682f9a50c73a9cc840397816708fcf51419",
+        extract: {
+          format: "zip",
+          targetPath: "pulumi/bin/pulumi.exe",
+        },
+      },
+    ],
+  },
   "3.40.0": {
     name: "pulumi-3-40-0",
     description: "The pulumi CLI, v3.40.0",
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
@@ -208,5 +256,4 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
 export const supportedVersions = Object.keys(pulumiCliSPecs)
 
 // Default to latest pulumi version
-export const defaultPulumiVersion = "3.40.0"
-// export const defaultPulumiVersion = "3.25.1"
+export const defaultPulumiVersion = "3.48.0"

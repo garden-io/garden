@@ -489,7 +489,7 @@ export function getUtilContainer(authSecretName: string, provider: KubernetesPro
       timeoutSeconds: 3,
       successThreshold: 2,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+      tcpSocket: { port: rsyncPortName },
     },
     lifecycle: {
       preStop: {
@@ -523,6 +523,7 @@ export function getUtilManifests(
     ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
     builderToleration,
   ]
+  const kanikoAnnotations = provider.config.kaniko?.util?.annotations || provider.config.kaniko?.annotations
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -531,6 +532,7 @@ export function getUtilManifests(
         app: utilDeploymentName,
       },
       name: utilDeploymentName,
+      annotations: kanikoAnnotations,
     },
     spec: {
       replicas: 1,
@@ -544,6 +546,7 @@ export function getUtilManifests(
           labels: {
             app: utilDeploymentName,
           },
+          annotations: kanikoAnnotations,
         },
         spec: {
           containers: [getUtilContainer(authSecretName, provider)],
@@ -580,8 +583,9 @@ export function getUtilManifests(
   }
 
   // Set the configured nodeSelector, if any
-  if (!isEmpty(provider.config.kaniko?.nodeSelector)) {
-    deployment.spec!.template.spec!.nodeSelector = provider.config.kaniko?.nodeSelector
+  const nodeSelector = provider.config.kaniko?.util?.nodeSelector || provider.config.kaniko?.nodeSelector
+  if (!isEmpty(nodeSelector)) {
+    deployment.spec!.template.spec!.nodeSelector = nodeSelector
   }
 
   return { deployment, service }
