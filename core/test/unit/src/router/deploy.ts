@@ -25,7 +25,6 @@ describe("deploy actions", () => {
   let actionRouter: ActionRouter
   let resolvedDeployAction: ResolvedDeployAction
   let returnWrongOutputsCfgKey: string
-  let dateUsedForCompleted: Date
 
   before(async () => {
     const data = await getRouterTestData()
@@ -35,7 +34,6 @@ describe("deploy actions", () => {
     actionRouter = data.actionRouter
     resolvedDeployAction = data.resolvedDeployAction
     returnWrongOutputsCfgKey = data.returnWrongOutputsCfgKey
-    dateUsedForCompleted = data.dateUsedForCompleted
   })
 
   after(async () => {
@@ -208,26 +206,6 @@ describe("deploy actions", () => {
         tail: -1,
       })
       expect(result).to.eql({})
-    })
-  })
-
-  describe("deploy.run", () => {
-    it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.deploy.run({
-        log,
-        action: resolvedDeployAction,
-        interactive: true,
-        graph,
-      })
-      expect(result).to.eql({
-        moduleName: resolvedDeployAction.name,
-        command: ["foo"],
-        completedAt: dateUsedForCompleted,
-        log: "bla bla",
-        success: true,
-        startedAt: dateUsedForCompleted,
-        version: resolvedDeployAction.versionString(),
-      })
     })
   })
 })

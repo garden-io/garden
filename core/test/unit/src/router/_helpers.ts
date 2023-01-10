@@ -485,18 +485,6 @@ function getRouterUnitTestPlugins() {
               return {}
             },
 
-            run: async (params) => {
-              return {
-                moduleName: params.action.name,
-                command: ["foo"],
-                completedAt: now,
-                log: "bla bla",
-                success: true,
-                startedAt: now,
-                version: params.action.versionString(),
-              }
-            },
-
             getPortForward: async (params) => {
               validateParams(params, moduleActionDescriptions.getPortForward.paramsSchema)
               return {

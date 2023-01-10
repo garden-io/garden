@@ -18,7 +18,6 @@ import { ExecInDeploy } from "./handlers/deploy/exec"
 import { GetDeployLogs } from "./handlers/deploy/get-logs"
 import { GetDeployPortForward } from "./handlers/deploy/get-port-forward"
 import { GetDeployStatus } from "./handlers/deploy/get-status"
-import { RunDeploy } from "./handlers/deploy/run"
 import { StopDeployPortForward } from "./handlers/deploy/stop-port-forward"
 import { GetRunActionResult } from "./handlers/run/get-result"
 import { RunRunAction } from "./handlers/run/run"
@@ -87,7 +86,6 @@ const actionTypeClasses = {
     getLogs: new GetDeployLogs(),
     getPortForward: new GetDeployPortForward(),
     getStatus: new GetDeployStatus(),
-    run: new RunDeploy(),
     stopPortForward: new StopDeployPortForward(),
   },
   Run: {
@@ -170,7 +168,6 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
   getStatus: GetDeployStatus<C>
-  run: RunDeploy<C>
   stopPortForward: StopDeployPortForward<C>
 }
 

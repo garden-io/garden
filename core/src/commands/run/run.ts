@@ -7,8 +7,6 @@
  */
 
 import { CommandGroup } from "../base"
-import { RunBuildCommand } from "./run-build"
-import { RunDeployCommand } from "./run-deploy"
 import { RunTaskCommand } from "./run-task"
 import { RunTestCommand } from "./run-test"
 import { RunWorkflowCommand } from "./run-workflow"
@@ -17,5 +15,5 @@ export class RunCommand extends CommandGroup {
   name = "run"
   help = "Run ad-hoc instances of your actions, modules or workflows."
 
-  subCommands = [RunBuildCommand, RunDeployCommand, RunTaskCommand, RunTestCommand, RunWorkflowCommand]
+  subCommands = [RunTaskCommand, RunTestCommand, RunWorkflowCommand]
 }
