@@ -55,7 +55,6 @@ import {
 import { ActionKind, RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/run/get-result"
 import { WrappedActionRouterHandlers } from "../src/router/base"
-import { Resolved } from "../src/actions/types"
 import { defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
@@ -256,14 +255,6 @@ export const testPlugin = () =>
             },
             getStatus: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
-            },
-            run: async (params) => {
-              const res = await runTest({
-                ...params,
-                action: <Resolved<ExecRun>>(<unknown>params.action),
-                artifactsPath: "/tmp",
-              })
-              return res.detail!
             },
             exec: async ({ action }) => {
               const { command } = action.getSpec()

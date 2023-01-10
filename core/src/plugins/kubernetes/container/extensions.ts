@@ -32,7 +32,7 @@ import { execInContainer } from "./exec"
 import { k8sGetContainerBuildActionOutputs, validateDeploySpec } from "./handlers"
 import { k8sGetContainerDeployLogs } from "./logs"
 import { k8sPublishContainerBuild } from "./publish"
-import { k8sContainerRun, k8sRunContainerBuild, k8sRunContainerDeploy } from "./run"
+import { k8sContainerRun, k8sRunContainerBuild } from "./run"
 import { k8sGetContainerDeployStatus } from "./status"
 import { k8sContainerTest } from "./test"
 
@@ -79,7 +79,6 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
       return getPortForwardHandler({ ...params, namespace: undefined })
     },
     getStatus: k8sGetContainerDeployStatus,
-    run: k8sRunContainerDeploy,
     validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
       return {}

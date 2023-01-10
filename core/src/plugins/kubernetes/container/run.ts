@@ -6,13 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerBuildAction, ContainerDeployAction, ContainerRunAction } from "../../container/moduleConfig"
+import { ContainerBuildAction, ContainerRunAction } from "../../container/moduleConfig"
 import { runAndCopy } from "../run"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { storeRunResult } from "../run-results"
 import { makePodName } from "../util"
 import { getAppNamespaceStatus } from "../namespace"
-import { BuildActionHandler, DeployActionHandler, RunActionHandler } from "../../../plugin/action-types"
+import { BuildActionHandler, RunActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
 import { runResultToActionState } from "../../../actions/base"
 import { k8sGetContainerBuildActionOutputs } from "./handlers"
@@ -30,38 +30,6 @@ export const k8sRunContainerBuild: BuildActionHandler<"run", ContainerBuildActio
     image: deploymentImageId,
     namespace: namespaceStatus.namespaceName,
     version: action.versionString(),
-  })
-
-  return {
-    ...result,
-    namespaceStatus,
-  }
-}
-
-export const k8sRunContainerDeploy: DeployActionHandler<"run", ContainerDeployAction> = async (params) => {
-  const { action, ctx, log, interactive, timeout } = params
-  const { command, args, env, privileged, addCapabilities, dropCapabilities } = action.getSpec()
-
-  const envVars = { ...action.getEnvVars(), ...env }
-
-  const provider = <KubernetesProvider>ctx.provider
-
-  const image = getDeployedImageId(action, provider)
-  const namespaceStatus = await getAppNamespaceStatus(ctx, log, provider)
-
-  const result = await runAndCopy({
-    ...params,
-    args,
-    command,
-    timeout,
-    image,
-    interactive,
-    envVars,
-    namespace: namespaceStatus.namespaceName,
-    version: action.versionString(),
-    privileged,
-    addCapabilities,
-    dropCapabilities,
   })
 
   return {

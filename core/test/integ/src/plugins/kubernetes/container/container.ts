@@ -14,7 +14,6 @@ import { join, resolve } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { deline } from "../../../../../../src/util/string"
-import { k8sRunContainerDeploy } from "../../../../../../src/plugins/kubernetes/container/run"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { decryptSecretFile } from "../../../../helpers"
@@ -22,7 +21,7 @@ import { GARDEN_CORE_ROOT } from "../../../../../../src/constants"
 import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/types"
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
-import { ContainerDeployAction, ContainerTestAction } from "../../../../../../src/plugins/container/config"
+import { ContainerTestAction } from "../../../../../../src/plugins/container/config"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
@@ -103,11 +102,11 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
 describe("kubernetes container module handlers", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let provider: KubernetesProvider
+  // let provider: KubernetesProvider
 
   before(async () => {
     garden = await makeTestGarden(root)
-    provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
+    // provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
   })
 
   beforeEach(async () => {
@@ -116,42 +115,6 @@ describe("kubernetes container module handlers", () => {
 
   after(async () => {
     await garden.close()
-  })
-
-  describe("k8sRunContainerDeploy", () => {
-    it("should run a service", async () => {
-      const action = await garden.resolveAction<ContainerDeployAction>({
-        action: graph.getDeploy("echo-service"),
-        log: garden.log,
-      })
-
-      const result = await k8sRunContainerDeploy({
-        ctx: await garden.getPluginContext(provider),
-        log: garden.log,
-        action,
-        interactive: false,
-      })
-
-      expect(result.success).to.be.true
-      expect(result.namespaceStatus).to.exist
-      expect(result.log.trim()).to.eql("ok")
-    })
-
-    it("should add configured env vars to the runtime context", async () => {
-      const action = await garden.resolveAction<ContainerDeployAction>({
-        action: graph.getDeploy("env-service"),
-        log: garden.log,
-      })
-
-      const result = await k8sRunContainerDeploy({
-        ctx: await garden.getPluginContext(provider),
-        log: garden.log,
-        action,
-        interactive: false,
-      })
-
-      expect(result.log.trim()).to.eql("foo")
-    })
   })
 
   describe("testContainerModule", () => {

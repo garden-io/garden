@@ -171,13 +171,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return result
     },
 
-    run: async (params) => {
-      const { router } = params
-      const result = await router.callHandler({ params, handlerType: "run" })
-      router.emitNamespaceEvent(result.namespaceStatus)
-      return result
-    },
-
     getPortForward: async (params) => {
       return params.router.callHandler({ params, handlerType: "getPortForward" })
     },
