@@ -148,7 +148,7 @@ garden test my-module --name integ -w
 This is handy for running a single test and streaming the log outputs (`garden test`, in comparison, is more meant to run multiple ones or watch for changes, and is less suitable for getting log output).
 
 ```sh
-garden run test my-module my-test -i
+garden test my-test -i
 ```
 
 ## Tasks

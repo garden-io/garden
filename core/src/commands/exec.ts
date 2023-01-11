@@ -31,6 +31,7 @@ const execOpts = {
   interactive: new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result",
     defaultValue: false,
+    // TODO-G2: consider changing this default
     cliDefault: true,
     cliOnly: true,
   }),
@@ -39,7 +40,7 @@ const execOpts = {
 type Args = typeof execArgs
 type Opts = typeof execOpts
 
-export class ExecCommand extends Command<Args> {
+export class ExecCommand extends Command<Args, Opts> {
   name = "exec"
   help = "Executes a command (such as an interactive shell) in a running service."
 

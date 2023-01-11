@@ -20,8 +20,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { DeleteDeployCommand } from "../../../../src/commands/delete"
 import { GetOutputsCommand } from "../../../../src/commands/get/get-outputs"
 import { TestCommand } from "../../../../src/commands/test"
-import { RunTaskCommand } from "../../../../src/commands/run/run-task"
-import { RunTestCommand } from "../../../../src/commands/run/run-test"
+import { RunCommand } from "../../../../src/commands/run"
 import { PublishCommand } from "../../../../src/commands/publish"
 import { BuildCommand } from "../../../../src/commands/build"
 import { Command } from "../../../../src/commands/base"
@@ -29,6 +28,7 @@ import { LogsCommand } from "../../../../src/commands/logs"
 import { getBuiltinCommands } from "../../../../src/commands/commands"
 import { DeepPrimitiveMap } from "../../../../src/config/common"
 import { getLogLevelChoices, LogLevel, parseLogLevel } from "../../../../src/logger/logger"
+import { ExecCommand } from "../../../../src/commands/exec"
 
 const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]
 
@@ -151,14 +151,14 @@ describe("parseCliArgs", () => {
   })
 
   it("sets prefers cliDefault over defaultValue when cli=true", () => {
-    const cmd = new RunTestCommand()
+    const cmd = new RunCommand()
     const argv = parseCliArgs({ stringArgs: [], command: cmd, cli: true })
 
     expect(argv.interactive).to.be.true
   })
 
   it("sets prefers defaultValue over cliDefault when cli=false", () => {
-    const cmd = new RunTestCommand()
+    const cmd = new RunCommand()
     const argv = parseCliArgs({ stringArgs: [], command: cmd, cli: false })
 
     expect(argv.interactive).to.be.false
@@ -291,7 +291,7 @@ describe("processCliArgs", () => {
   // })
 
   it("throws an error when a required positional argument is missing", () => {
-    const cmd = new RunTaskCommand()
+    const cmd = new RunCommand()
     expectError(() => parseAndProcess([], cmd), { contains: "Missing required argument" })
   })
 
@@ -321,8 +321,8 @@ describe("processCliArgs", () => {
   })
 
   it("ignores cliOnly options when cli=false", () => {
-    const cmd = new RunTestCommand()
-    const { opts } = parseAndProcess(["my-module", "my-test", "--interactive=true"], cmd, false)
+    const cmd = new ExecCommand()
+    const { opts } = parseAndProcess(["my-service", "--interactive=true"], cmd, false)
     expect(opts.interactive).to.be.false
   })
 
@@ -341,19 +341,19 @@ describe("processCliArgs", () => {
   })
 
   it("prefers defaultValue value over cliDefault when cli=false", () => {
-    const cmd = new RunTestCommand()
-    const { opts } = parseAndProcess(["my-module", "my-test"], cmd, false)
+    const cmd = new ExecCommand()
+    const { opts } = parseAndProcess(["my-service"], cmd, false)
     expect(opts.interactive).to.be.false
   })
 
   it("prefers cliDefault value over defaultValue when cli=true", () => {
-    const cmd = new RunTestCommand()
-    const { opts } = parseAndProcess(["my-module", "my-test"], cmd, true)
+    const cmd = new ExecCommand()
+    const { opts } = parseAndProcess(["my-service"], cmd, true)
     expect(opts.interactive).to.be.true
   })
 
   it("throws with all found errors if applicable", () => {
-    const cmd = new RunTestCommand()
+    const cmd = new RunCommand()
     expectError(
       () => parseAndProcess(["--foo=bar", "--interactive=9"], cmd),
       (err) => {
@@ -412,8 +412,8 @@ describe("processCliArgs", () => {
     })
   })
 
-  it("parses args and opts for a RunTaskCommand", async () => {
-    const cmd = new RunTaskCommand()
+  it("parses args and opts for a RunCommand", async () => {
+    const cmd = new RunCommand()
     const { args, opts } = parseAndProcess(["task-b"], cmd)
     await cmd.action({
       ...defaultActionParams,
@@ -422,8 +422,8 @@ describe("processCliArgs", () => {
     })
   })
 
-  it("parses args and opts for a RunTestCommand", async () => {
-    const cmd = new RunTestCommand()
+  it("parses args and opts for a RunCommand", async () => {
+    const cmd = new RunCommand()
     const { args, opts } = parseAndProcess(["module-b", "unit", "--interactive"], cmd)
     await cmd.action({
       ...defaultActionParams,
