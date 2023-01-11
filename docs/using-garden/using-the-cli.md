@@ -192,7 +192,7 @@ garden build my-module -w
 Runs `my-workflow` in `my-namespace` in the `dev` environment.
 
 ```sh
-garden run workflow my-workflow --env=my-namespace.dev
+garden run-workflow my-workflow --env=my-namespace.dev
 ```
 
 ## Logs

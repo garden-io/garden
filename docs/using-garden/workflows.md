@@ -11,6 +11,10 @@ Custom shell scripts can be used for preparation ahead of running Garden command
 
 A sequence of commands executed in a workflow is also generally more efficent than scripting successive runs of Garden CLI commands, since state is cached between the commands, and there is no startup delay between the commands.
 
+{% hint style="warning" %}
+As of Garden 0.13, the CLI command to run a Workflow is `garden run-workflow` (note the dash), instead of `garden run workflow`.
+{% endhint %}
+
 ## How it Works
 
 Workflows are defined with a separate _kind_ of configuration file, with a list of _steps_:
@@ -27,7 +31,7 @@ We suggest making a `workflows.garden.yml` next to your project configuration in
 
 Each step in your workflow can either trigger Garden commands, or run custom scripts. The steps are executed in succession. If a step fails, the remainder of the workflow is aborted.
 
-You can run a workflow by running `garden run workflow <name>`, or have it [trigger automatically](#triggers) via Garden Enterprise.
+You can run a workflow by running `garden run-workflow <name>`, or have it [trigger automatically](#triggers) via Garden Enterprise.
 
 ### Command steps
 

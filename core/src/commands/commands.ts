@@ -20,6 +20,7 @@ import { LogsCommand } from "./logs"
 import { MigrateCommand } from "./migrate"
 import { PublishCommand } from "./publish"
 import { RunCommand } from "./run/run"
+import { RunWorkflowCommand } from "./run-workflow"
 import { ScanCommand } from "./scan"
 import { SetCommand } from "./set"
 import { TestCommand } from "./test"
@@ -57,6 +58,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new PluginsCommand(),
   new PublishCommand(),
   new RunCommand(),
+  new RunWorkflowCommand(),
   new ScanCommand(),
   new ServeCommand(),
   new SelfUpdateCommand(),

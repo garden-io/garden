@@ -18,18 +18,18 @@ import {
   makeTestGarden,
   customizedTestPlugin,
   expectFuzzyMatch,
-} from "../../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { RunWorkflowCommand, shouldBeDropped } from "../../../../../src/commands/run/run-workflow"
-import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { joi } from "../../../../../src/config/common"
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
+} from "../../../helpers"
+import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { RunWorkflowCommand, shouldBeDropped } from "../../../../src/commands/run-workflow"
+import { createGardenPlugin } from "../../../../src/plugin/plugin"
+import { joi } from "../../../../src/config/common"
+import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
 import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
-import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
-import { dedent } from "../../../../../src/util/string"
-import { LogEntry } from "../../../../../src/logger/log-entry"
-import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../../src/config/workflow"
+import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { dedent } from "../../../../src/util/string"
+import { LogEntry } from "../../../../src/logger/log-entry"
+import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
 
 describe("RunWorkflowCommand", () => {
   const cmd = new RunWorkflowCommand()
@@ -302,14 +302,11 @@ describe("RunWorkflowCommand", () => {
                 return {
                   state: "ready",
                   detail: {
-                    moduleName: "",
                     command: [],
                     completedAt: now,
                     log: "",
                     success: true,
                     startedAt: now,
-                    testName: "some-test",
-                    version: "123",
                   },
                   outputs: { log: "" },
                 }

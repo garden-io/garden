@@ -134,9 +134,9 @@ describe("PreReleaseTests", () => {
   if (project === "vote") {
     describe("vote", () => {
       describe("top-level sanity checks", () => {
-        it("runs the run workflow command", async () => {
+        it("runs the run-workflow command", async () => {
           const workflowName = "full-test"
-          const logEntries = await runWithEnv(["run", "workflow", workflowName])
+          const logEntries = await runWithEnv(["run-workflow", workflowName])
           expect(
             searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, `g`)),
             `expected to find "Workflow ${workflowName} completed successfully." in log output.`

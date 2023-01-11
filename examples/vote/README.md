@@ -47,7 +47,7 @@ This example includes a usage example for Garden workflows. The `workflows.garde
 To run the workflow:
 
 ```sh
-garden run workflow full-test
+garden run-workflow full-test
 ```
 
 For more complex use-cases and additional configuration options please refer to the [docs](https://docs.garden.io/using-garden/workflows).

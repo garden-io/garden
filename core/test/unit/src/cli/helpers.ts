@@ -73,8 +73,8 @@ describe("pickCommand", () => {
   })
 
   it("picks a subcommand and returns the rest of arguments", () => {
-    const { command, rest } = pickCommand(commands, ["run", "workflow", "foo", "--force"])
-    expect(command?.getPath()).to.eql(["run", "workflow"])
+    const { command, rest } = pickCommand(commands, ["run-workflow", "foo", "--force"])
+    expect(command?.getPath()).to.eql(["run-workflow"])
     expect(rest).to.eql(["foo", "--force"])
   })
 
