@@ -30,6 +30,7 @@ import { Garden } from "../garden"
 import { ConfigGraph } from "../graph/config-graph"
 import { getNames } from "../util/util"
 import { isTestAction } from "../actions/test"
+import { ParameterError } from "../exceptions"
 
 export const testArgs = {
   names: new StringsParameter({
@@ -55,6 +56,12 @@ export const testOpts = {
     alias: "f",
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of any Build dependencies encountered." }),
+  "interactive": new BooleanParameter({
+    help:
+      "Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
+    alias: "i",
+    cliOnly: true,
+  }),
   "watch": new BooleanParameter({
     help: "Watch for changes in module(s) and auto-test.",
     alias: "w",
@@ -146,6 +153,13 @@ export class TestCommand extends Command<Args, Opts> {
       this.server.setGarden(garden)
     }
 
+    if (opts.interactive && opts.watch) {
+      throw new ParameterError(`The --interactive/-i option cannot be used with the --watch/-w flag.`, {
+        args,
+        opts,
+      })
+    }
+
     const graph = await garden.getConfigGraph({ log, emit: true })
     const skipDependants = opts["skip-dependants"]
     let modules: GardenModule[]
@@ -179,12 +193,20 @@ export class TestCommand extends Command<Args, Opts> {
             devModeDeployNames: [],
             localModeDeployNames: [],
             skipRuntimeDependencies,
+            interactive: opts.interactive,
           })
       )
       .filter(
         (testTask) =>
           skipped.length === 0 || !skipped.some((s) => minimatch(testTask.action.name.toLowerCase(), s.toLowerCase()))
       )
+
+    if (opts.interactive && initialTasks.length !== 1) {
+      throw new ParameterError(`The --interactive/-i option can only be used if a single test is selected.`, {
+        args,
+        opts,
+      })
+    }
 
     const results = await processActions({
       garden,
