@@ -24,7 +24,6 @@ describe("build actions", () => {
   let returnWrongOutputsCfgKey: string
   let resolvedBuildAction: ResolvedBuildAction
   let module: GardenModule
-  let dateUsedForCompleted: Date
 
   before(async () => {
     const data = await getRouterTestData()
@@ -35,7 +34,6 @@ describe("build actions", () => {
     returnWrongOutputsCfgKey = data.returnWrongOutputsCfgKey
     resolvedBuildAction = data.resolvedBuildAction
     module = data.module
-    dateUsedForCompleted = data.dateUsedForCompleted
   })
 
   after(async () => {
@@ -92,32 +90,6 @@ describe("build actions", () => {
       expect(event2.payload.moduleVersion).to.eql(moduleVersion)
       expect(event2.payload.status.state).to.eql("built")
       expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-    })
-  })
-
-  describe("build.run", () => {
-    it("should correctly call the corresponding plugin handler", async () => {
-      const command = ["npm", "run"]
-      const result = await actionRouter.build.run({
-        log,
-        action: await garden.executeAction({
-          action: resolvedBuildAction,
-          log: garden.log,
-          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
-        }),
-        args: command,
-        interactive: true,
-        graph,
-      })
-      expect(result).to.eql({
-        moduleName: module.name,
-        command,
-        completedAt: dateUsedForCompleted,
-        log: "bla bla",
-        success: true,
-        startedAt: dateUsedForCompleted,
-        version: resolvedBuildAction.versionString(),
-      })
     })
   })
 })

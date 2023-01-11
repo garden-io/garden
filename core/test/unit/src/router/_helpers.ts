@@ -430,18 +430,6 @@ function getRouterUnitTestPlugins() {
             publish: async (_params) => {
               return { state: "ready", detail: null, outputs: {} }
             },
-
-            run: async (params) => {
-              return {
-                moduleName: params.action.name,
-                command: params.args,
-                completedAt: now,
-                log: "bla bla",
-                success: true,
-                startedAt: now,
-                version: params.action.versionString(),
-              }
-            },
           },
         },
       ],

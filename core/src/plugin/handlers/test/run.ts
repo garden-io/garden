@@ -9,12 +9,13 @@
 import { dedent } from "../../../util/string"
 import { artifactsPathSchema, PluginTestActionParamsBase } from "../../../plugin/base"
 import { TestAction } from "../../../actions/test"
-import { runBuildBaseSchema } from "../build/run"
 import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
+import { runBaseParams } from "../../base"
 import { GetTestResult, getTestResultSchema } from "./get-result"
 import { CommonRunParams } from "../run/run"
 import { Resolved } from "../../../actions/types"
+import { actionParamsSchema } from "../../plugin"
 
 type TestActionParams<T extends TestAction> = PluginTestActionParamsBase<T> &
   CommonRunParams & {
@@ -35,7 +36,8 @@ export class RunTestAction<T extends TestAction = TestAction> extends ActionType
   `
 
   paramsSchema = () =>
-    runBuildBaseSchema().keys({
+    actionParamsSchema().keys({
+      ...runBaseParams(),
       artifactsPath: artifactsPathSchema(),
       silent: joi.boolean().description("Set to true if no log output should be emitted during execution"),
     })

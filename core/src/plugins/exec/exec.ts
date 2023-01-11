@@ -276,48 +276,6 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
   }
 }
 
-const runExecBuild: BuildActionHandler<"run", ExecBuild> = async (params) => {
-  const startedAt = new Date()
-
-  const { action, ctx, args, interactive, log } = params
-  const env = action.getSpec("env")
-
-  let completedAt: Date
-  let outputLog: string
-  let success = true
-
-  if (args && args.length) {
-    const commandResult = await run({
-      command: args,
-      action,
-      ctx,
-      log,
-      env,
-      opts: { reject: false, stdio: interactive ? "inherit" : undefined },
-    })
-
-    completedAt = new Date()
-    // Despite the types saying otherwise, stdout and stderr can be undefined when in
-    // interactive mode.
-    outputLog = ((commandResult.stdout || "") + (commandResult.stderr || "")).trim()
-    success = commandResult.exitCode === 0
-  } else {
-    completedAt = startedAt
-    outputLog = ""
-  }
-
-  return {
-    moduleName: action.moduleName(),
-    command: [],
-    version: action.versionString(),
-    success,
-    log: outputLog,
-    startedAt,
-    completedAt,
-    outputs: {},
-  }
-}
-
 const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
   const { env, statusCommand } = action.getSpec()
@@ -680,7 +638,6 @@ export const execPlugin = () =>
           schema: execBuildActionSchema(),
           handlers: {
             build: buildExecAction,
-            run: runExecBuild,
           },
         },
       ],
