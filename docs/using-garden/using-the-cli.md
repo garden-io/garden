@@ -156,7 +156,7 @@ garden test my-test -i
 ### Running a specific task
 
 ```sh
-garden run task my-task
+garden run my-task
 ```
 
 ## Building

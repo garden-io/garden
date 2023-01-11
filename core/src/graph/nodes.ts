@@ -133,6 +133,7 @@ export abstract class TaskNode<T extends Task = Task> {
       outputs: result?.outputs,
       task,
       processed: this.executionType === "process",
+      success: !error && !aborted,
     }
 
     if (aborted || error) {

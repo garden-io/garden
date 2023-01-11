@@ -56,20 +56,3 @@ export const taskVersionSchema = () =>
   moduleVersionSchema().description(deline`
     The task run's version. In addition to the parent module's version, this also
     factors in the module versions of the tasks's runtime dependencies (if any).`)
-
-export const taskResultSchema = () =>
-  joi
-    .object()
-    .unknown(true)
-    .keys({
-      moduleName: joi.string().description("The name of the module that the task belongs to, if applicable."),
-      taskName: joi.string().description("The name of the task that was run."),
-      command: joi.sparseArray().items(joi.string().allow("")).required().description("The command that the task ran."),
-      version: joi.string().description("The string version of the task."),
-      success: joi.boolean().required().description("Whether the task was successfully run."),
-      startedAt: joi.date().required().description("When the task run was started."),
-      completedAt: joi.date().required().description("When the task run was completed."),
-      log: joi.string().required().allow("").description("The output log from the run."),
-      outputs: actionOutputsSchema(),
-      namespaceStatus: namespaceStatusSchema().optional(),
-    })

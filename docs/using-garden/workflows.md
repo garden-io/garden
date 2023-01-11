@@ -50,7 +50,7 @@ You can also provide arguments to commands, and even template them:
 kind: Workflow
 name: my-workflow
 steps:
-  - command: [run, task, ${var.task-name}]  # runs a specific task, configured by the `task-name` variable
+  - command: [run, ${var.task-name}]  # runs a specific task, configured by the `task-name` variable
 ```
 
 {% hint style="warning" %}
@@ -118,7 +118,7 @@ The simplest usage pattern for `onError` steps is to place them at the end of yo
 kind: Workflow
 name: my-workflow
 steps:
-  - command: [run, task, my-task]
+  - command: [run, my-task]
   - command: [deploy]
   - command: [test]
   - script: |
@@ -131,12 +131,12 @@ steps:
 
 A more advanced use case is to use `onError` steps to set up "error handling checkpoints" in your workflow.
 
-For example, if the first step (`run task my-task`) fails in this workflow:
+For example, if the first step (`run my-task`) fails in this workflow:
 ```yaml
 kind: Workflow
 name: my-workflow
 steps:
-  - command: [run, task, my-task]
+  - command: [run, my-task]
   - script: |
       echo "Run if my-task step failed"
     when: onError

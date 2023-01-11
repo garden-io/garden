@@ -254,7 +254,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 #### Usage
 
-    garden call <nameAndPath> 
+    garden call <nameAndPath>
 
 #### Arguments
 
@@ -284,7 +284,7 @@ Examples:
 
 #### Usage
 
-    garden config analytics-enabled [enable] 
+    garden config analytics-enabled [enable]
 
 #### Arguments
 
@@ -365,7 +365,7 @@ Examples:
 
 #### Usage
 
-    garden cleanup secret <provider> <key> 
+    garden cleanup secret <provider> <key>
 
 #### Arguments
 
@@ -1010,7 +1010,7 @@ Examples:
 
 #### Usage
 
-    garden cloud secrets delete [ids] 
+    garden cloud secrets delete [ids]
 
 #### Arguments
 
@@ -1094,7 +1094,7 @@ Examples:
 
 #### Usage
 
-    garden cloud users delete [ids] 
+    garden cloud users delete [ids]
 
 #### Arguments
 
@@ -1133,7 +1133,7 @@ Examples:
 
 #### Usage
 
-    garden get graph 
+    garden get graph
 
 
 
@@ -2526,7 +2526,7 @@ domain:
 
 #### Usage
 
-    garden get linked-repos 
+    garden get linked-repos
 
 
 
@@ -2545,7 +2545,7 @@ Examples:
 
 #### Usage
 
-    garden get outputs 
+    garden get outputs
 
 
 #### Outputs
@@ -2886,7 +2886,7 @@ modules:
 
 #### Usage
 
-    garden get status 
+    garden get status
 
 
 #### Outputs
@@ -3114,7 +3114,7 @@ actions:
 
 #### Usage
 
-    garden get runs [names] 
+    garden get runs [names]
 
 #### Arguments
 
@@ -3131,7 +3131,7 @@ actions:
 
 #### Usage
 
-    garden get tests [names] 
+    garden get tests [names]
 
 #### Arguments
 
@@ -3148,7 +3148,7 @@ actions:
 
 #### Usage
 
-    garden get run-result <name> 
+    garden get run-result <name>
 
 #### Arguments
 
@@ -3209,7 +3209,7 @@ artifacts:
 
 #### Usage
 
-    garden get test-result <name> [moduleTestName] 
+    garden get test-result <name> [moduleTestName]
 
 #### Arguments
 
@@ -3288,7 +3288,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get vaccine 
+    garden get vaccine
 
 
 
@@ -3299,7 +3299,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get workflows [workflows] 
+    garden get workflows [workflows]
 
 #### Arguments
 
@@ -3323,7 +3323,7 @@ Examples:
 
 #### Usage
 
-    garden link source <source> <path> 
+    garden link source <source> <path>
 
 #### Arguments
 
@@ -3359,7 +3359,7 @@ Examples:
 
 #### Usage
 
-    garden link module <module> <path> 
+    garden link module <module> <path>
 
 #### Arguments
 
@@ -3462,7 +3462,7 @@ Prints all global options (options that can be applied to any command).
 
 #### Usage
 
-    garden options 
+    garden options
 
 
 
@@ -3487,7 +3487,7 @@ Examples:
 
 #### Usage
 
-    garden plugins [plugin] [command] 
+    garden plugins [plugin] [command]
 
 #### Arguments
 
@@ -3809,7 +3809,7 @@ This is useful for any ad-hoc runs, for example database migrations, or when dev
 
 Examples:
 
-    garden run task my-db-migration   # run my-migration
+    garden run my-db-migration   # run my-migration
 
 #### Usage
 
@@ -3968,7 +3968,7 @@ Examples:
 
 #### Usage
 
-    garden run workflow <workflow> 
+    garden run workflow <workflow>
 
 #### Arguments
 
@@ -3985,7 +3985,7 @@ Examples:
 
 #### Usage
 
-    garden scan 
+    garden scan
 
 
 
@@ -4494,7 +4494,7 @@ Hides the specified warning message. The command and key is generally provided a
 
 #### Usage
 
-    garden util hide-warning <key> 
+    garden util hide-warning <key>
 
 #### Arguments
 
@@ -4512,7 +4512,7 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
 #### Usage
 
-    garden validate 
+    garden validate
 
 
 

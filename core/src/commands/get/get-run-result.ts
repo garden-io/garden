@@ -11,10 +11,9 @@ import { Command, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
-import { taskResultSchema } from "../../types/task"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
-import { GetRunResult } from "../../plugin/handlers/run/get-result"
+import { GetRunResult, getRunResultSchema } from "../../plugin/handlers/run/get-result"
 
 const getRunResultArgs = {
   name: new StringParameter({
@@ -41,7 +40,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
   arguments = getRunResultArgs
 
   outputsSchema = () =>
-    taskResultSchema()
+    getRunResultSchema()
       .keys({
         artifacts: joiArray(joi.string()).description("Local file paths to any exported artifacts from the task run."),
       })
