@@ -12,7 +12,6 @@ import isSubset = require("is-subset")
 import { makeModuleConfig, makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 
-// TODO-G2: rename test cases to match the new graph model semantics
 describe("TestCommand", () => {
   const command = new TestCommand()
 
@@ -35,6 +34,7 @@ describe("TestCommand", () => {
         "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
+        "interactive": false,
       }),
     })
 
@@ -175,6 +175,7 @@ describe("TestCommand", () => {
         "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
+        "interactive": false,
       }),
     })
 
@@ -210,6 +211,7 @@ describe("TestCommand", () => {
         "skip": ["int*"],
         "skip-dependencies": false,
         "skip-dependants": false,
+        "interactive": false,
       }),
     })
 
@@ -244,6 +246,22 @@ describe("TestCommand", () => {
     ).to.be.true
   })
 
+  it("handles --interactive option if single test name is specified", async () => {
+    throw "TODO"
+  })
+
+  it("throws if --interactive option is set and no test name is specified in arguments", async () => {
+    throw "TODO"
+  })
+
+  it("throws if --interactive option is set and multiple test names are specified in arguments", async () => {
+    throw "TODO"
+  })
+
+  it("throws if --interactive option is set along with --watch", async () => {
+    throw "TODO"
+  })
+
   it("should only run integration tests if the option 'name' is specified with a glob", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
@@ -262,6 +280,7 @@ describe("TestCommand", () => {
         "watch": false,
         "skip-dependencies": false,
         "skip-dependants": false,
+        "interactive": false,
       }),
     })
 
@@ -321,6 +340,7 @@ describe("TestCommand", () => {
         "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
+        "interactive": false,
       }),
     })
 
@@ -358,6 +378,7 @@ describe("TestCommand", () => {
         "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
+        "interactive": false,
       }),
     })
 
@@ -426,6 +447,7 @@ describe("TestCommand", () => {
           "skip": [],
           "skip-dependencies": true, // <----
           "skip-dependants": false,
+          "interactive": false,
         }),
       })
 
