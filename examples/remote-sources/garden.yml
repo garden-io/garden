@@ -2,7 +2,7 @@ kind: Project
 name: remote-sources
 sources:
   - name: web-services
-    # use #your-branch to specify a branch or #v0.3.0 to specify a tag
+    # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.4.0
   - name: db-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
