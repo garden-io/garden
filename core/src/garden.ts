@@ -731,7 +731,7 @@ export class Garden {
   }
 
   /**
-   * When running workflows via the `run workflow` command, we only resolve the workflow being executed.
+   * When running workflows via the `run-workflow` command, we only resolve the workflow being executed.
    */
   async getWorkflowConfig(name: string): Promise<WorkflowConfig> {
     return resolveWorkflowConfig(this, await this.getRawWorkflowConfig(name))

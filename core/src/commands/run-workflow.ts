@@ -8,33 +8,33 @@
 
 import chalk from "chalk"
 import { cloneDeep, flatten, last, repeat, size } from "lodash"
-import { printHeader, getTerminalWidth, renderMessageWithDivider } from "../../logger/util"
-import { Command, CommandParams, CommandResult } from "../base"
-import { dedent, wordWrap, deline } from "../../util/string"
-import { Garden } from "../../garden"
-import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../../config/workflow"
-import { LogEntry } from "../../logger/log-entry"
-import { GardenError, WorkflowScriptError } from "../../exceptions"
+import { printHeader, getTerminalWidth, renderMessageWithDivider } from "../logger/util"
+import { Command, CommandParams, CommandResult } from "./base"
+import { dedent, wordWrap, deline } from "../util/string"
+import { Garden } from "../garden"
+import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
+import { LogEntry } from "../logger/log-entry"
+import { GardenError, WorkflowScriptError } from "../exceptions"
 import {
   WorkflowConfigContext,
   WorkflowStepConfigContext,
   WorkflowStepResult,
-} from "../../config/template-contexts/workflow"
-import { resolveTemplateStrings, resolveTemplateString } from "../../template-string/template-string"
-import { ConfigurationError, FilesystemError } from "../../exceptions"
+} from "../config/template-contexts/workflow"
+import { resolveTemplateStrings, resolveTemplateString } from "../template-string/template-string"
+import { ConfigurationError, FilesystemError } from "../exceptions"
 import { posix, join } from "path"
 import { ensureDir, writeFile } from "fs-extra"
 import Bluebird from "bluebird"
-import { getDurationMsec, toEnvVars } from "../../util/util"
-import { runScript } from "../../util/util"
+import { getDurationMsec, toEnvVars } from "../util/util"
+import { runScript } from "../util/util"
 import { ExecaError } from "execa"
-import { formatGardenErrorWithDetail, LogLevel } from "../../logger/logger"
-import { registerWorkflowRun } from "../../cloud/workflow-lifecycle"
-import { parseCliArgs, pickCommand, processCliArgs } from "../../cli/helpers"
-import { globalOptions, StringParameter } from "../../cli/params"
-import { getBuiltinCommands } from "../commands"
-import { getCustomCommands } from "../custom"
-import { GardenCli } from "../../cli/cli"
+import { formatGardenErrorWithDetail, LogLevel } from "../logger/logger"
+import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
+import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
+import { globalOptions, StringParameter } from "../cli/params"
+import { getBuiltinCommands } from "./commands"
+import { getCustomCommands } from "./custom"
+import { GardenCli } from "../cli/cli"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
@@ -50,8 +50,8 @@ interface WorkflowRunOutput {
 }
 
 export class RunWorkflowCommand extends Command<Args, {}> {
-  name = "workflow"
-  help = "Run a workflow."
+  name = "run-workflow"
+  help = "Run a Workflow."
 
   streamEvents = true
   streamLogEntries = true
@@ -61,7 +61,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 
     Examples:
 
-        garden run workflow my-workflow    # run my-workflow
+        garden run-workflow my-workflow
   `
 
   arguments = runWorkflowArgs

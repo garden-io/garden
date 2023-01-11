@@ -29,7 +29,7 @@ export class ValidateCommand extends Command {
     await garden.getConfigGraph({ log, emit: false })
 
     /*
-     * Normally, workflow configs are only resolved when they're run via the `run workflow` command (and only the
+     * Normally, workflow configs are only resolved when they're run via the `run-workflow` command (and only the
      * workflow being run).
      *
      * Here, we want to validate all workflow configs (so we try resolving them all).

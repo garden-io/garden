@@ -203,7 +203,7 @@ class CommandContext extends ConfigContext {
         dedent`
         The currently running Garden CLI command, without positional arguments or option flags. This can be handy to e.g. change some variables based on whether you're running \`garden test\` or some other specific command.
 
-        Note that this will currently always resolve to \`"run workflow"\` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
+        Note that this will currently always resolve to \`"run-workflow"\` when running Workflows, as opposed to individual workflow step commands. This may be revisited at a later time, but currently all configuration is resolved once for all workflow steps.
         `
       )
       .example("deploy")
