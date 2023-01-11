@@ -114,13 +114,6 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
     publish: async (params) => {
       return params.router.callHandler({ params, handlerType: "publish", defaultHandler: dummyPublishHandler })
     },
-
-    run: async (params) => {
-      const { router } = params
-      const result = await router.callHandler({ params, handlerType: "run" })
-      router.emitNamespaceEvent(result.namespaceStatus)
-      return result
-    },
   })
 
 const dummyPublishHandler = async ({ action }): Promise<PublishActionResult> => {

@@ -13,7 +13,6 @@ import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
-import { ExecBuildActionSpec } from "../../../../../src/plugins/exec/config"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
@@ -32,7 +31,6 @@ import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
-import { BuildActionConfig, ExecutedBuildAction } from "../../../../../src/actions/build"
 
 describe("exec plugin", () => {
   const testProjectRoot = resolve(dataDir, "test-project-exec")
@@ -520,35 +518,6 @@ describe("exec plugin", () => {
       })
 
       expect(res.outputs).to.equal(action.versionString())
-    })
-  })
-
-  describe("runExecModule", () => {
-    it("should run the module with the args that are passed through the command", async () => {
-      const router = await garden.getActionRouter()
-      const rawAction = (await actionFromConfig({
-        graph,
-        log,
-        garden,
-        router,
-        configsByKey: {},
-        config: {
-          kind: "Build",
-          name: "build-something",
-          spec: {} as ExecBuildActionSpec,
-          internal: {
-            basePath: "TODO-G2",
-          },
-        } as BuildActionConfig<any, any>,
-      })) as ExecutedBuildAction
-      const res = await router.build.run({
-        action: rawAction,
-        args: [],
-        graph,
-        interactive: false,
-        log,
-      })
-      expect(res.log).to.eql("hello world")
     })
   })
 

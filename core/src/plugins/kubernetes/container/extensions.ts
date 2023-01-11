@@ -32,7 +32,7 @@ import { execInContainer } from "./exec"
 import { k8sGetContainerBuildActionOutputs, validateDeploySpec } from "./handlers"
 import { k8sGetContainerDeployLogs } from "./logs"
 import { k8sPublishContainerBuild } from "./publish"
-import { k8sContainerRun, k8sRunContainerBuild } from "./run"
+import { k8sContainerRun } from "./run"
 import { k8sGetContainerDeployStatus } from "./status"
 import { k8sContainerTest } from "./test"
 
@@ -65,7 +65,6 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
     },
 
     publish: k8sPublishContainerBuild,
-    run: k8sRunContainerBuild,
   },
 })
 

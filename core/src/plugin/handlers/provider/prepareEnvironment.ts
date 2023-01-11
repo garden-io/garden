@@ -27,8 +27,7 @@ export const prepareEnvironment = () => ({
     Make sure the environment is set up for this plugin. Use this action to do any bootstrapping required
     before deploying services.
 
-    Called ahead of any service runtime actions (such as \`deployService\`,
-    \`runModule\` and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\`.
+    Called ahead of any runtime actions (such as \`deployService\`, and \`testModule\`), unless \`getEnvironmentStatus\` returns \`ready: true\`.
   `,
   paramsSchema: projectActionParamsSchema().keys({
     force: joi.boolean().description("Force re-configuration of the environment."),

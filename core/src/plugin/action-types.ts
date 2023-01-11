@@ -12,7 +12,6 @@ import { ActionTypeHandlerSpec, baseHandlerSchema } from "./handlers/base/base"
 import { DoBuildAction } from "./handlers/build/build"
 import { GetBuildActionStatus } from "./handlers/build/get-status"
 import { PublishBuildAction } from "./handlers/build/publish"
-import { RunBuildAction } from "./handlers/build/run"
 import { DeleteDeploy } from "./handlers/deploy/delete"
 import { ExecInDeploy } from "./handlers/deploy/exec"
 import { GetDeployLogs } from "./handlers/deploy/get-logs"
@@ -76,7 +75,6 @@ const actionTypeClasses = {
     build: new DoBuildAction(),
     getStatus: new GetBuildActionStatus(),
     publish: new PublishBuildAction(),
-    run: new RunBuildAction(),
   },
   Deploy: {
     ...baseActionTypeClasses,
@@ -134,7 +132,6 @@ export type BuildActionDescriptions<C extends BuildAction = BuildAction> = BaseH
   build: DoBuildAction<C>
   getStatus: GetBuildActionStatus<C>
   publish: PublishBuildAction<C>
-  run: RunBuildAction<C>
 }
 
 export type BuildActionHandler<
