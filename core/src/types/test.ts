@@ -11,12 +11,10 @@ import { TestConfig, testConfigSchema } from "../config/test"
 import { getEntityVersion, hashStrings, versionStringPrefix } from "../vcs/vcs"
 import { findByName } from "../util/util"
 import { NotFoundError } from "../exceptions"
-import { joi, joiUserIdentifier, versionStringSchema } from "../config/common"
+import { createSchema, joi, joiUserIdentifier, versionStringSchema } from "../config/common"
 import { sortBy } from "lodash"
 import { serializeConfig } from "../config/module"
 import { RunResult, runResultSchema } from "../plugin/base"
-import { deline } from "../util/string"
-import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import { ModuleGraph } from "../graph/modules"
 
 export interface GardenTest<M extends GardenModule = GardenModule> {
@@ -84,7 +82,8 @@ export function testFromModule<M extends GardenModule = GardenModule>(
 
 export interface TestResult extends RunResult {}
 
-export const testResultSchema = () =>
-  runResultSchema().keys({
-    outputs: actionOutputsSchema(),
-  })
+export const testResultSchema = createSchema({
+  name: "test-result",
+  keys: {},
+  extend: runResultSchema,
+})

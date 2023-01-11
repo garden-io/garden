@@ -775,6 +775,7 @@ export interface CreateSchemaParams {
   keys: SchemaMap
   extend?: () => Joi.ObjectSchema
   meta?: MetadataKeys
+  allowUnknown?: boolean
 }
 
 export interface CreateSchemaOutput {
@@ -824,6 +825,10 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
       }
 
       schema = schema.meta(meta)
+
+      if (spec.allowUnknown) {
+        schema = schema.unknown(true)
+      }
 
       schemaRegistry[name].schema = schema
     }

@@ -567,7 +567,7 @@ You can also set variables on the command line, with `--var` flags. Note that wh
 
 ```sh
 # Override two specific variables value and run a task
-garden run task my-task --var my-task-arg=foo,some-numeric-var=123
+garden run my-task --var my-task-arg=foo,some-numeric-var=123
 ```
 
 Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.

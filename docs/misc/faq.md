@@ -174,7 +174,7 @@ The task result is likely cached. Garden won't run tasks with cached results unl
 You can also run it manually with:
 
 ```console
-garden run task <task-name>
+garden run <task-name>
 ```
 
 This will run the task even if the result is cached.
@@ -190,7 +190,7 @@ kubectl delete -n <project-name>--metadata $(kubectl get configmap -n <project-n
 You can also run it manually with:
 
 ```console
-garden run task <task-name>
+garden run <task-name>
 ```
 
 This will run the task even if the result is cached.

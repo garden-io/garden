@@ -19,8 +19,7 @@ import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
-import { GraphResults, GraphResultMap } from "../graph/results"
-import { RunResult } from "../plugin/base"
+import { GraphResultMap } from "../graph/results"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
 import { serviceStatusSchema } from "../types/service"
@@ -29,8 +28,6 @@ import { renderOptions, renderCommands, renderArguments, getCliStyles } from "..
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
-import { TestTask } from "../tasks/test"
-import { RunTask } from "../tasks/run"
 import { buildResultSchema } from "../plugin/handlers/build/get-status"
 
 export interface CommandConstructor {
@@ -378,77 +375,6 @@ export function printResult({
   const prefix = success ? `${capitalize(description)} output:` : `${capitalize(description)} failed with error:`
   const msg = renderMessageWithDivider(prefix, result, !success)
   success ? log.info(chalk.white(msg)) : log.error(msg)
-}
-
-/**
- * Handles the command result and logging for commands that return a result of type RunResult. E.g.
- * the ``run service` command.
- */
-export async function handleRunResult<T extends RunResult>({
-  log,
-  description,
-  graphResults,
-  result,
-  interactive,
-}: {
-  log: LogEntry
-  description: string
-  graphResults: GraphResults
-  result: T
-  interactive: boolean
-}) {
-  if (!interactive && result.log) {
-    printResult({ log, result: result.log, success: result.success, description })
-  }
-
-  if (!result.success) {
-    const error = new RuntimeError(`${capitalize(description)} failed!`, {
-      result,
-    })
-    return { errors: [error] }
-  }
-
-  if (!interactive) {
-    printFooter(log)
-  }
-
-  return { result: { error: null, result, graphResults: graphResults.getMap() } }
-}
-
-/**
- * Handles the command result and logging for commands the return a result of type TaskResult. E.g.
- * the `run task` and `run test` commands.
- */
-export async function handleTaskResult({
-  log,
-  actionDescription,
-  graphResults,
-  task,
-  interactive = false,
-}: {
-  log: LogEntry
-  actionDescription: string
-  graphResults: GraphResults<RunTask | TestTask>
-  task: RunTask | TestTask
-  interactive?: boolean
-}) {
-  const result = graphResults.getResult(task)!
-
-  // If there's an error, the task graph prints it
-  if (!interactive && !result.error && result.result?.detail?.log) {
-    printResult({ log, result: result.result.detail.log, success: true, description: actionDescription })
-  }
-
-  if (result.error) {
-    const error = new RuntimeError(`${capitalize(actionDescription)} failed!`, {
-      result,
-    })
-    return { errors: [error] }
-  }
-
-  printFooter(log)
-
-  return { result: { error: result.error, result, graphResults: graphResults.getMap() } }
 }
 
 // TODO-G2: update

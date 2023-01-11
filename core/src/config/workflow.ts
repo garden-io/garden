@@ -225,7 +225,7 @@ export const workflowStepSchema = () => {
           Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are handled before the individual steps are run.
           `
         )
-        .example(["run", "task", "my-task"]),
+        .example(["run", "my-task"]),
       description: joi.string().description("A description of the workflow step."),
       envVars: joiEnvVars().description(dedent`
         A map of environment variables to use when running script steps. Ignored for \`command\` steps.

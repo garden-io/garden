@@ -29,7 +29,7 @@ Garden caches task results and re-runs the task if its dependencies, have change
 
 Garden does **not re-run tasks** on changes when in watch mode. That is, when running Garden with the `--watch|-w` flag or when running `garden dev`.
 
-You can run a task manually with the `garden run task <task-name>` command. This will run the task regardless of whether or not the result is cached.
+You can run a task manually with the `garden run <task-name>` command. This will run the task regardless of whether or not the result is cached.
 
 You can view task results from the dashboard or by running `garden get task-result <task-name>`.
 
@@ -147,7 +147,7 @@ tasks:
 You can run this task and override the argument variable like this:
 
 ```sh
-garden run task my-task --var my-task-arg="hello!"
+garden run my-task --var my-task-arg="hello!"
 ```
 
 ### Kubernetes Provider

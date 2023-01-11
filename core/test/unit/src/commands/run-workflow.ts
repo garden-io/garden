@@ -63,8 +63,8 @@ describe("RunWorkflowCommand", () => {
           { command: ["get", "outputs"] },
           { command: ["test"] },
           { command: ["deploy", "${var.foo}"] }, // <-- the second (null) element should get filtered out
-          { command: ["run", "test", "module-a", "unit"] },
-          { command: ["run", "task", "task-a"] },
+          { command: ["test", "module-a.unit"] },
+          { command: ["run", "task-a"] },
           { command: ["cleanup", "service", "service-a"] },
           { command: ["cleanup", "namespace"] },
           { command: ["publish"] },
@@ -179,7 +179,7 @@ describe("RunWorkflowCommand", () => {
         resources: defaultWorkflowResources,
         path: garden.projectRoot,
         files: [],
-        steps: [{ command: ["run", "task", "task-a"] }],
+        steps: [{ command: ["run", "task-a"] }],
       },
     ])
 
@@ -381,7 +381,7 @@ describe("RunWorkflowCommand", () => {
         envVars: {},
         resources: defaultWorkflowResources,
         path: garden.projectRoot,
-        steps: [{ command: ["run", "task", "some-task"] }, { command: ["test"] }],
+        steps: [{ command: ["run", "some-task"] }, { command: ["test"] }],
       },
     ])
 
@@ -892,7 +892,7 @@ describe("RunWorkflowCommand", () => {
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
-        steps: [{ command: ["get", "config"] }, { command: ["run", "task", "task-a"] }],
+        steps: [{ command: ["get", "config"] }, { command: ["run", "task-a"] }],
       },
     ])
 
@@ -920,7 +920,7 @@ describe("RunWorkflowCommand", () => {
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
-        steps: [{ name: "test", command: ["run", "task", "task-a"] }],
+        steps: [{ name: "test", command: ["run", "task-a"] }],
       },
     ])
 
@@ -945,7 +945,7 @@ describe("RunWorkflowCommand", () => {
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
-        steps: [{ command: ["get", "outputs"] }, { command: ["run", "task", "${steps.step-1.outputs.taskName}"] }],
+        steps: [{ command: ["get", "outputs"] }, { command: ["run", "${steps.step-1.outputs.taskName}"] }],
       },
     ])
 

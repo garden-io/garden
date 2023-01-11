@@ -30,6 +30,7 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   outputs: R["outputs"]
   task: BaseTask
   processed: boolean
+  success: boolean
 }
 
 export type GraphResultFromTask<T extends Task> = GraphResult<T["_resultType"]>

@@ -78,7 +78,7 @@ describe("GetConfigCommand", () => {
         path: garden.projectRoot,
         envVars: {},
         resources: defaultWorkflowResources,
-        steps: [{ command: ["run", "task", "foo"] }],
+        steps: [{ command: ["run", "foo"] }],
       },
     ]
     garden.setWorkflowConfigs(workflowConfigs)

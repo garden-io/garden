@@ -9,7 +9,7 @@
 import { LogEntry } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema, PluginEventBroker } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
-import { CustomObjectSchema, joi, joiIdentifier } from "../config/common"
+import { createSchema, CustomObjectSchema, joi, joiIdentifier } from "../config/common"
 import { dedent, deline } from "../util/string"
 import { BuildAction } from "../actions/build"
 import { DeployAction } from "../actions/deploy"
@@ -141,18 +141,18 @@ export interface RunResult {
   namespaceStatus?: NamespaceStatus
 }
 
-export const runResultSchema = () =>
-  joi
-    .object()
-    .unknown(true)
-    .keys({
-      success: joi.boolean().required().description("Whether the module was successfully run."),
-      exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
-      startedAt: joi.date().required().description("When the module run was started."),
-      completedAt: joi.date().required().description("When the module run was completed."),
-      log: joi.string().allow("").default("").description("The output log from the run."),
-      namespaceStatus: namespaceStatusSchema().optional(),
-    })
+export const runResultSchema = createSchema({
+  name: "run-result",
+  keys: {
+    success: joi.boolean().required().description("Whether the module was successfully run."),
+    exitCode: joi.number().integer().description("The exit code of the run (if applicable)."),
+    startedAt: joi.date().required().description("When the module run was started."),
+    completedAt: joi.date().required().description("When the module run was completed."),
+    log: joi.string().allow("").default("").description("The output log from the run."),
+    namespaceStatus: namespaceStatusSchema().optional(),
+  },
+  allowUnknown: true,
+})
 
 export const artifactsPathSchema = () =>
   joi.string().required().description("A directory path where the handler should write any exported artifacts to.")

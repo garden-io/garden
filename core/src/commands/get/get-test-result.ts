@@ -12,10 +12,24 @@ import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joi, joiArray } from "../../config/common"
-import { getTestActionFromArgs, runTestArgs } from "../run/run-test"
 import { GetTestResult } from "../../plugin/handlers/test/get-result"
+import { ParameterValues, StringParameter } from "../../cli/params"
+import { ParameterError } from "../../exceptions"
+import { ConfigGraph } from "../../graph/config-graph"
+import { GardenModule, moduleTestNameToActionName } from "../../types/module"
+import { findByName, getNames } from "../../util/util"
 
-const getTestResultArgs = runTestArgs
+const getTestResultArgs = {
+  name: new StringParameter({
+    help:
+      "The test to run. If using modules, specify the module name here and the test name from the module in the second argument",
+    required: true,
+  }),
+  moduleTestName: new StringParameter({
+    help: "The name of the test to run in a module.",
+    required: false,
+  }),
+}
 
 type Args = typeof getTestResultArgs
 
@@ -82,5 +96,40 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
     }
 
     return { result: { ...res, artifacts } }
+  }
+}
+
+export function getTestActionFromArgs(graph: ConfigGraph, args: ParameterValues<Args>) {
+  if (args.moduleTestName) {
+    // We're getting a test from a specific module.
+    let module: GardenModule
+    const moduleName = args.name
+    const testName = args.moduleTestName
+
+    try {
+      module = graph.getModule(args.name, true)
+    } catch (err) {
+      throw new ParameterError(
+        `Two arguments were provided, so we looked for a Module named '${moduleName}, but could not find it.`,
+        {
+          moduleName,
+          testName,
+        }
+      )
+    }
+
+    const testConfig = findByName(module.testConfigs, args.moduleTestName)
+
+    if (!testConfig) {
+      throw new ParameterError(`Could not find test "${testName}" in module ${moduleName}`, {
+        moduleName,
+        testName,
+        availableTests: getNames(module.testConfigs),
+      })
+    }
+
+    return graph.getTest(moduleTestNameToActionName(moduleName, testName))
+  } else {
+    return graph.getTest(args.name, { includeDisabled: true })
   }
 }
