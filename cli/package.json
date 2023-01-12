@@ -29,7 +29,8 @@
     "@garden-io/garden-jib": "*",
     "@garden-io/garden-pulumi": "*",
     "@garden-io/garden-terraform": "*",
-    "chalk": "^4.1.0"
+    "chalk": "^4.1.0",
+    "patch-package": "^6.4.7"
   },
   "devDependencies": {
     "@types/chai": "^4.2.12",
@@ -39,8 +40,7 @@
     "execa": "^4.0.3",
     "lodash": "^4.17.20",
     "minimist": "^1.2.6",
-    "mocha": "^8.1.1",
-    "patch-package": "^6.4.7",
+    "mocha": "^10.2.0",
     "pkg": "5.7.0",
     "postinstall-postinstall": "^2.1.0",
     "prettier": "^2.1.0",
