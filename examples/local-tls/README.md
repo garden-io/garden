@@ -51,8 +51,4 @@ Deploy the project:
 garden deploy
 ```
 
-And then try sending a simple request using:
-
-```sh
-garden call node-service/hello
-```
+And then try opening the displayed ingress URL in your browser or via `curl`.

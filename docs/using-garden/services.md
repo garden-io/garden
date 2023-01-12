@@ -31,7 +31,7 @@ You deploy your services with the `garden deploy` command. You can also delete s
 
 If you specify a `port` for a given service, other services from inside the cluster can reach it. By default, it's reachable from `http://my-service:<port>/`.
 
-If you specify an `ingress`, your can reach your service from outside the cluster. For example by using the `garden call` command or with `curl`.
+If you specify an `ingress`, your can reach your service from outside the cluster. For example with `curl` or in a browser.
 
 The default ingress for local development is `http://demo-project.local.app.garden/<ingress-name>`. You can override this by setting a `hostname` under the `ingress` directive.
 

@@ -8,7 +8,6 @@
 
 import { Command, CommandGroup } from "./base"
 import { BuildCommand } from "./build"
-import { CallCommand } from "./call"
 import { CreateCommand } from "./create/create"
 import { DeleteCommand } from "./delete"
 import { DeployCommand } from "./deploy"
@@ -40,7 +39,6 @@ import { SelfUpdateCommand } from "./self-update"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
-  new CallCommand(),
   new ConfigCommand(),
   new CreateCommand(),
   new DeleteCommand(),

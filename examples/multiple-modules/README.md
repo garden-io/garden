@@ -14,18 +14,3 @@ Deploy 🚀
 ✔ a                       → Deploying version v-602ae70cb8... → Done (took 3.9 sec)
 
 Done! ✔️
-
-$ garden call a
-✔ Sending HTTP GET request to http://multiple-modules.local.app.garden/hello-a
-
-200 OK
-
-Greetings! This container was built with Dockerfile-a.
-
-$ garden call b
-✔ Sending HTTP GET request to http://multiple-modules.local.app.garden/hello-b
-
-200 OK
-
-Greetings! This container was built with Dockerfile-b.
-```

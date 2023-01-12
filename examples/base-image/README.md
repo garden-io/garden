@@ -59,6 +59,4 @@ dockerfile: "${environment.name == 'prod' ? 'Dockerfile.prod' : 'Dockerfile.dev'
 
 Run `garden deploy` to deploy the project. It defaults to deploying the `dev` environment.
 
-Running `garden call backend` should then return `development backend says hi!`.
-
-If you now run `garden deploy --env prod` and call the backend with `garden call backend` you should see: `production backend says hi!`.
+If you now run `garden deploy --env prod` and open the displayed Ingress URL after deployment, you should see: `production backend says hi!`.

@@ -233,32 +233,6 @@ tests:
 graphResults:
 ```
 
-### garden call
-
-**Call a deployed ingress endpoint.**
-
-Resolves the deployed ingress endpoint for the given deploy/service and path, calls the given endpoint and
-outputs the result.
-
-Examples:
-
-    garden call my-container
-    garden call my-container/some-path
-
-Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
-
-#### Usage
-
-    garden call <nameAndPath> 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `nameAndPath` | Yes | The name of the deploy/service to call followed by the ingress path (e.g. my-container/somepath).
-
-
-
 ### garden config analytics-enabled
 
 **Update your preferences regarding analytics.**
@@ -3711,7 +3685,7 @@ published:
 
 ### garden run
 
-**Perform a Run action**
+**Perform one or more Run actions**
 
 This is useful for any ad-hoc Runs, for example database migrations, or when developing.
 
@@ -3721,20 +3695,29 @@ Examples:
 
 #### Usage
 
-    garden run <name> [options]
+    garden run [names] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `name` | Yes | The name of Run action.
+  | `names` | No | The name(s) of the Run action(s) to perform. Use comma as a separator to specify multiple names. Accepts glob patterns (e.g. init* would run both &#x27;init&#x27; and &#x27;initialize&#x27;).
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Run even if the action is disabled for the environment.
-  | `--force-build` |  | boolean | Force rebuild of Build dependencies before running.
+  | `--force` |  | boolean | Run even if the action is disabled for the environment, and/or a successful result is found in cache.
+  | `--force-build` |  | boolean | Force re-build of Build dependencies before running.
+  | `--module` |  | array:string | The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
+  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
+  | `--skip` |  | array:string | The name(s) of Runs you&#x27;d like to skip. Accepts glob patterns (e.g. init* would skip both &#x27;init&#x27; and &#x27;initialize&#x27;).
+  | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
+This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
+dependencies without redeploying any service dependencies that may have changed since you last deployed.
+
+Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of
+your test suites are up to date when this option is used.
 
 #### Outputs
 
@@ -3883,7 +3866,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--name` | `-n` | array:string | DEPRECATED: This now does the exact same as the positional arguments.
 Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
-  | `--force` | `-f` | boolean | Force re-test of module(s).
+  | `--force` | `-f` | boolean | Force re-run of Test, even if a successful result is found in cache.
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
   | `--interactive` | `-i` | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
   | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
