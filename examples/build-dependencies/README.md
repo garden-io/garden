@@ -58,11 +58,7 @@ In this example there's no "build" step for the `exec` module, but you can add i
 
 ## Usage
 
-Run `garden deploy` to deploy the project. You can verify that it works by running:
-
-```sh
-garden call frontend
-```
+Run `garden deploy` to deploy the project. You can verify that it works by opening the displayed ingress URL.
 
 It'll print the contents of the `shared-config/config.json` file:
 

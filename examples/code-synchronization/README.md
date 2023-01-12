@@ -33,19 +33,9 @@ You are now ready to run dev mode
 garden dev
 ```
 
-Our service is now up and running. We can send the service a simple GET request using `garden call`:
+Our service is now up and running. We can open the displayed ingress URL in the browser, which will show a friendly greeting (Garden is friendly by default):
 
-```sh
-garden call node-service
-```
-
-Which will return a friendly greeting (Garden is friendly by default):
-
-```sh
-✔ Sending HTTP GET request to http://code-synchronization.local.app.garden/hello
-
-200 OK
-
+```plain
 {
   "message": "Hello from Node!"
 }
@@ -57,13 +47,9 @@ Now go into [node-service/src/app.js](node-service/src/app.js) and change the me
 ℹ node-service              → Syncing src to /app/src in Deployment/node-service
 ```
 
-And you can verify the change by running `garden call node-service` again:
+And you can verify the change by opening the displayed ingress URL in your browser:
 
-```sh
-✔ Sending HTTP GET request to http://code-synchronization.local.app.garden/hello
-
-200 OK
-
+```json
 {
   "message": "Hello from Fortran!"
 }

@@ -25,9 +25,4 @@ Now you can deploy the services:
 garden deploy
 ```
 
-Finally, try calling the frontend service and observe the value you set in the Secret above:
-
-```sh
-garden call backend
-# Outputs: superdupersecret
-```
+Finally, try opening the frontend service by opening the displayed ingress URL, which should display the secret value.
