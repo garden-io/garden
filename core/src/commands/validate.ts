@@ -6,19 +6,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { Command, CommandParams, CommandResult } from "./base"
 import { printEmoji, printHeader } from "../logger/util"
-import dedent = require("dedent")
 import { resolveWorkflowConfig } from "../config/workflow"
-import chalk = require("chalk")
+import { dedent } from "../util/string"
 
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors."
   emoji: "heavy_check_mark"
 
+  aliases: ["scan"]
+
   description = dedent`
-    Throws an error and exits with code 1 if something's not right in your garden.yml files.
+    Throws an error and exits with code 1 if something's not right in your garden config files.
   `
 
   printHeader({ headerLog }) {
@@ -26,6 +28,7 @@ export class ValidateCommand extends Command {
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
+    // This implicitly validates modules and actions.
     await garden.getConfigGraph({ log, emit: false })
 
     /*
