@@ -33,7 +33,7 @@ import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
 import type { CommandInfo } from "../plugin-context"
-import { VcsInfo } from "../vcs/vcs"
+import type { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
 import { loadVarfile, varfileDescription } from "./base"
 import chalk = require("chalk")

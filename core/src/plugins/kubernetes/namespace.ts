@@ -8,22 +8,22 @@
 
 import { intersection, cloneDeep } from "lodash"
 
-import { PluginContext } from "../../plugin-context"
+import type { PluginContext } from "../../plugin-context"
 import { KubeApi, KubernetesError } from "./api"
-import { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config"
+import type { KubernetesProvider, KubernetesPluginContext, NamespaceConfig } from "./config"
 import { DeploymentError, TimeoutError } from "../../exceptions"
 import { getPackageVersion, sleep } from "../../util/util"
-import { GetEnvironmentStatusParams } from "../../plugin/handlers/provider/getEnvironmentStatus"
+import type { GetEnvironmentStatusParams } from "../../plugin/handlers/provider/getEnvironmentStatus"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
-import { LogEntry } from "../../logger/log-entry"
+import type { LogEntry } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import dedent from "dedent"
-import { V1Namespace } from "@kubernetes/client-node"
+import type { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
-import { NamespaceStatus } from "../../plugin/base"
-import { KubernetesServerResource, SupportedRuntimeActions } from "./types"
-import { Resolved } from "../../actions/types"
+import type { NamespaceStatus } from "../../types/namespace"
+import type { KubernetesServerResource, SupportedRuntimeActions } from "./types"
+import type { Resolved } from "../../actions/types"
 
 const GARDEN_VERSION = getPackageVersion()
 

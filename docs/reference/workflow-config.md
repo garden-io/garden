@@ -416,7 +416,6 @@ Example:
 steps:
   - command:
       - run
-      - task
       - my-task
 ```
 

@@ -6,15 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../logger/log-entry"
+import type { LogEntry } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema, PluginEventBroker } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
-import { createSchema, CustomObjectSchema, joi, joiIdentifier } from "../config/common"
+import { createSchema, CustomObjectSchema, joi } from "../config/common"
 import { dedent, deline } from "../util/string"
-import { BuildAction } from "../actions/build"
-import { DeployAction } from "../actions/deploy"
-import { RunAction } from "../actions/run"
-import { TestAction } from "../actions/test"
+import type { BuildAction } from "../actions/build"
+import type { DeployAction } from "../actions/deploy"
+import type { RunAction } from "../actions/run"
+import type { TestAction } from "../actions/test"
+import { NamespaceStatus, namespaceStatusSchema } from "../types/namespace"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -75,24 +76,6 @@ export const actionParamsSchema = () =>
     // TODO: specify the action wrapper class further
     action: joi.object().required(),
   })
-
-export type NamespaceState = "ready" | "missing"
-
-// When needed, we can make this type generic and add e.g. a detail for plugin-specific metadata.
-export interface NamespaceStatus {
-  pluginName: string
-  namespaceName: string
-  state: NamespaceState
-}
-
-export const namespaceStatusSchema = () =>
-  joi.object().keys({
-    pluginName: joi.string(),
-    namespaceName: joiIdentifier(),
-    state: joi.string().valid("ready", "missing"),
-  })
-
-export const namespaceStatusesSchema = () => joi.array().items(namespaceStatusSchema())
 
 export interface PluginBuildActionParamsBase<T extends BuildAction<any, any>> extends PluginActionParamsBase {
   action: T

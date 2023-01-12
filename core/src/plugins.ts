@@ -16,19 +16,19 @@ import {
   pluginNodeModuleSchema,
   GardenPluginReference,
 } from "./plugin/plugin"
-import { GenericProviderConfig } from "./config/provider"
+import type { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash"
 import { findByName, pushToKey, getNames, isNotNull } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
-import { LogEntry } from "./logger/log-entry"
+import type { LogEntry } from "./logger/log-entry"
 import { DependencyGraph } from "./graph/common"
 import { parse, resolve } from "path"
 import Bluebird from "bluebird"
-import { ModuleTypeMap } from "./types/module"
+import { ModuleTypeMap, getModuleTypeBases } from "./types/module"
 import { ActionKind, actionKinds } from "./actions/types"
-import { ActionTypeDefinition } from "./plugin/action-types"
+import type { ActionTypeDefinition } from "./plugin/action-types"
 
 export async function loadAndResolvePlugins(
   log: LogEntry,
@@ -395,29 +395,6 @@ export function getActionTypeBases(
   }
 
   return [base, ...getActionTypeBases(base, actionTypes)]
-}
-
-/**
- * Recursively resolves all the bases for the given module type, ordered from closest base to last.
- */
-export function getModuleTypeBases(
-  moduleType: ModuleTypeDefinition,
-  moduleTypes: { [name: string]: ModuleTypeDefinition }
-): ModuleTypeDefinition[] {
-  if (!moduleType.base) {
-    return []
-  }
-
-  const base = moduleTypes[moduleType.base]
-
-  if (!base) {
-    throw new RuntimeError(`Unable to find base module type '${moduleType.base}' for module type '${name}'`, {
-      name,
-      moduleTypes,
-    })
-  }
-
-  return [base, ...getModuleTypeBases(base, moduleTypes)]
 }
 
 /**

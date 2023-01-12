@@ -8,17 +8,18 @@
 
 import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
-import { LogEntryEventPayload } from "./cloud/buffered-event-stream"
-import { ServiceStatus } from "./types/service"
-import { NamespaceStatus, RunStatus } from "./plugin/base"
-import { Omit } from "./util/util"
-import { AuthTokenResponse } from "./cloud/api"
-import { RenderedActionGraph } from "./graph/config-graph"
-import { CommandInfo } from "./plugin-context"
-import { BuildState } from "./plugin/handlers/build/get-status"
-import { ActionReference } from "./config/common"
-import { GraphResult } from "./graph/results"
+import type { LogEntryEventPayload } from "./cloud/buffered-event-stream"
+import type { ServiceStatus } from "./types/service"
+import type { RunStatus } from "./plugin/base"
+import type { Omit } from "./util/util"
+import type { AuthTokenResponse } from "./cloud/api"
+import type { RenderedActionGraph } from "./graph/config-graph"
+import type { CommandInfo } from "./plugin-context"
+import type { BuildState } from "./plugin/handlers/build/get-status"
+import type { ActionReference } from "./config/common"
+import type { GraphResult } from "./graph/results"
 import { sanitizeValue } from "./logger/logger"
+import { NamespaceStatus } from "./types/namespace"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 

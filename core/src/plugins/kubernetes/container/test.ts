@@ -56,7 +56,6 @@ export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = a
   })
 
   const result = {
-    testName: action.name,
     namespaceStatus,
     ...res,
   }

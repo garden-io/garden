@@ -8,20 +8,19 @@
 
 import { fromPairs, keyBy, mapValues, pickBy } from "lodash"
 
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
-import {
-  NamespaceStatus,
+import type { Garden } from "../garden"
+import type { LogEntry } from "../logger/log-entry"
+import type {
   PluginActionContextParams,
   PluginActionParamsBase,
   ResolvedActionHandlerDescription,
   WrappedActionHandler,
 } from "../plugin/base"
-import { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
-import { PluginEventBroker } from "../plugin-context"
-import { ConfigContext } from "../config/template-contexts/base"
-import { BaseAction } from "../actions/base"
-import { ActionKind, BaseActionConfig, Resolved } from "../actions/types"
+import type { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
+import type { PluginEventBroker } from "../plugin-context"
+import type { ConfigContext } from "../config/template-contexts/base"
+import type { BaseAction } from "../actions/base"
+import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types"
 import {
   ActionTypeDefinition,
   ActionClassMap,
@@ -37,8 +36,9 @@ import { validateSchema } from "../config/validation"
 import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
 import { getNames } from "../util/util"
 import { defaultProvider } from "../config/provider"
-import { ConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
+import type { NamespaceStatus } from "../types/namespace"
 
 export type CommonParams = keyof PluginActionContextParams
 export type RequirePluginName<T> = T & { pluginName: string }
@@ -316,10 +316,11 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     const spec: ActionTypeDefinition<any> = actionTypes[action.kind][action.type]
 
     const schema = type === "static" ? spec.staticOutputsSchema : spec.runtimeOutputsSchema
+    const context = `${type} action outputs from ${action.kind} '${action.name}'`
 
     if (schema) {
       outputs = validateSchema(outputs, schema, {
-        context: `action outputs from ${action.kind} '${action.name}'`,
+        context,
         ErrorClass: PluginError,
       })
     }
@@ -329,7 +330,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
       if (baseSchema) {
         outputs = validateSchema(outputs, baseSchema.unknown(true), {
-          context: `action outputs from ${action.kind} '${action.name}' (base schema from '${base.name}' plugin)`,
+          context: `${context} (base schema from '${base.name}' plugin)`,
           ErrorClass: PluginError,
         })
       }
@@ -481,7 +482,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         )
       } else {
         throw new ParameterError(
-          `No '${String(handlerType)}' handler configured for actionType type '${actionType}' in environment ` +
+          `No '${String(handlerType)}' handler configured for ${this.kind} type '${actionType}' in environment ` +
             `'${this.garden.environmentName}'. Are you missing a provider configuration?`,
           errorDetails
         )

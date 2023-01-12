@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseTask, Task } from "../tasks/base"
-import { LogEntry, LogEntryMetadata, TaskLogStatus } from "../logger/log-entry"
+import type { BaseTask, Task } from "../tasks/base"
+import type { LogEntry, LogEntryMetadata, TaskLogStatus } from "../logger/log-entry"
 import { GardenBaseError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/util"
 import { DependencyGraph } from "./common"
@@ -16,7 +16,7 @@ import { TypedEventEmitter } from "../util/events"
 import { groupBy, keyBy } from "lodash"
 import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./results"
 import { gardenEnv } from "../constants"
-import { Garden } from "../garden"
+import type { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
 import { renderError } from "../logger/renderers"
 import { renderDivider, renderMessageWithDivider } from "../logger/util"

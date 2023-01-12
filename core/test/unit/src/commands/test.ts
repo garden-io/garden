@@ -35,6 +35,7 @@ describe("TestCommand", () => {
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
+        "module": undefined,
       }),
     })
 
@@ -176,6 +177,7 @@ describe("TestCommand", () => {
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
+        "module": undefined,
       }),
     })
 
@@ -212,6 +214,7 @@ describe("TestCommand", () => {
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
+        "module": undefined,
       }),
     })
 
@@ -281,6 +284,7 @@ describe("TestCommand", () => {
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
+        "module": undefined,
       }),
     })
 
@@ -341,6 +345,7 @@ describe("TestCommand", () => {
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
+        "module": undefined,
       }),
     })
 
@@ -379,6 +384,7 @@ describe("TestCommand", () => {
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
+        "module": undefined,
       }),
     })
 
@@ -395,6 +401,34 @@ describe("TestCommand", () => {
       "test.module-a.unit",
       "test.module-b.unit",
     ])
+  })
+
+  it("should skip dependant modules if --skip-dependants is passed", async () => {
+    throw "TODO" // This is now the default, but need to review other tests
+  })
+
+  it("selects a test by name from positional argument", async () => {
+    throw "TODO"
+  })
+
+  it("selects tests by glob from positional argument", async () => {
+    throw "TODO"
+  })
+
+  it("concatenates positional args and --name flags", async () => {
+    throw "TODO"
+  })
+
+  it("applies --module filter", async () => {
+    throw "TODO"
+  })
+
+  it("applies --module filter combined with name argument", async () => {
+    throw "TODO"
+  })
+
+  it("throws if --module filter specifies module that does not exist", async () => {
+    throw "TODO"
   })
 
   context("when --skip-dependencies is passed", () => {
@@ -448,6 +482,7 @@ describe("TestCommand", () => {
           "skip-dependencies": true, // <----
           "skip-dependants": false,
           "interactive": false,
+          "module": undefined,
         }),
       })
 
@@ -465,9 +500,5 @@ describe("TestCommand", () => {
         "test.module-a.unit",
       ])
     })
-  })
-
-  it("should skip dependant modules if --skip-dependants is passed", async () => {
-    throw "TODO" // This is now the default, but need to review other tests
   })
 })

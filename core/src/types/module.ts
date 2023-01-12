@@ -9,16 +9,16 @@
 import { flatten, uniq, cloneDeep, some } from "lodash"
 import { getNames, findByName } from "../util/util"
 import { ModuleConfig, moduleConfigSchema } from "../config/module"
-import { ModuleVersion } from "../vcs/vcs"
+import type { ModuleVersion } from "../vcs/vcs"
 import { pathToCacheContext } from "../cache"
-import { Garden } from "../garden"
+import type { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, DeepPrimitiveMap } from "../config/common"
-import { getModuleTypeBases } from "../plugins"
 import { moduleOutputsSchema } from "../plugin/handlers/module/get-outputs"
-import { LogEntry } from "../logger/log-entry"
-import { ModuleTypeDefinition } from "../plugin/module-types"
-import { GardenPlugin } from "../plugin/plugin"
+import type { LogEntry } from "../logger/log-entry"
+import type { ModuleTypeDefinition } from "../plugin/module-types"
+import type { GardenPlugin } from "../plugin/plugin"
 import { join } from "path"
+import { RuntimeError } from "../exceptions"
 
 export interface FileCopySpec {
   source: string
@@ -172,4 +172,28 @@ export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
 
 export function moduleTestNameToActionName(moduleName: string, testName: string) {
   return `${moduleName}-${testName}`
+}
+
+/**
+ * Recursively resolves all the bases for the given module type, ordered from closest base to last.
+ */
+export function getModuleTypeBases(
+  moduleType: ModuleTypeDefinition,
+  moduleTypes: { [name: string]: ModuleTypeDefinition }
+): ModuleTypeDefinition[] {
+  if (!moduleType.base) {
+    return []
+  }
+
+  const base = moduleTypes[moduleType.base]
+
+  if (!base) {
+    const name = moduleType.name
+    throw new RuntimeError(`Unable to find base module type '${moduleType.base}' for module type '${name}'`, {
+      name,
+      moduleTypes,
+    })
+  }
+
+  return [base, ...getModuleTypeBases(base, moduleTypes)]
 }

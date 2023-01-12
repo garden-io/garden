@@ -18,15 +18,15 @@ import {
   versionStringSchema,
   joiStringMap,
 } from "../config/common"
-import { GardenModule } from "./module"
+import type { GardenModule } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
 import dedent = require("dedent")
 import { uniq } from "lodash"
 import { getEntityVersion } from "../vcs/vcs"
-import { NamespaceStatus, namespaceStatusesSchema } from "../plugin/base"
-import { LogLevel } from "../logger/logger"
-import { ActionState } from "../actions/types"
-import { ModuleGraph } from "../graph/modules"
+import { NamespaceStatus, namespaceStatusesSchema } from "./namespace"
+import type { LogLevel } from "../logger/logger"
+import type { ActionState } from "../actions/types"
+import type { ModuleGraph } from "../graph/modules"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string

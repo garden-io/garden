@@ -37,7 +37,7 @@ import { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
 import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
-import { mapValues } from "lodash"
+import { mapValues, omit } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
 import { LogEntry } from "../../logger/log-entry"
 import { DeployStatusMap } from "../../plugin/handlers/deploy/get-status"
@@ -181,7 +181,7 @@ export async function getEnvironmentStatus({
     detail.systemReady = false
   }
 
-  detail.deployStatuses = systemServiceStatus.serviceStatuses
+  detail.deployStatuses = mapValues(systemServiceStatus.serviceStatuses, (s) => omit(s, "executedAction"))
   detail.systemServiceState = systemServiceStatus.state
 
   sysGarden.log.setSuccess()
