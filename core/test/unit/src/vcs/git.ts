@@ -757,7 +757,7 @@ describe("GitHandler", () => {
     })
   })
 
-  describe.only("remote sources", () => {
+  describe("remote sources", () => {
     // Some git repo that we set as a remote source
     let tmpRepoA: tmp.DirectoryResult
     let tmpRepoPathA: string
