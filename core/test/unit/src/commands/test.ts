@@ -403,10 +403,6 @@ describe("TestCommand", () => {
     ])
   })
 
-  it("should skip dependant modules if --skip-dependants is passed", async () => {
-    throw "TODO" // This is now the default, but need to review other tests
-  })
-
   it("selects a test by name from positional argument", async () => {
     throw "TODO"
   })

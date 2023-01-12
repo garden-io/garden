@@ -747,7 +747,7 @@ const maxPodNamePrefixLength = maxPodNameLength - podNameHashLength - 1
  * @param key the specific key of the task, test etc.
  */
 export function makePodName(type: string, ...parts: string[]) {
-  const id = `${type}-${parts.join("-")}`
+  const id = `${type.toLowerCase()}-${parts.join("-")}`
   const hash = hasha(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
   return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
 }

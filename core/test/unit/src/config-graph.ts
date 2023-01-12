@@ -61,6 +61,12 @@ describe("ConfigGraph", () => {
     expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
   })
 
+  describe("getActionsByKind", () => {
+    it("TODO", () => {
+      throw "TODO"
+    })
+  })
+
   describe("getModules", () => {
     it("should scan and return all registered modules in the context", async () => {
       const modules = graphA.getModules()
