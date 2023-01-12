@@ -8,14 +8,14 @@
 
 import chalk from "chalk"
 
-import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
+import type { Garden } from "../garden"
+import type { LogEntry } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin"
 import { getServiceStatuses } from "../tasks/helpers"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
-import { ConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph } from "../graph/config-graph"
 import { ProviderRouter } from "./provider"
 import { ActionKindRouter, BaseRouter, WrappedActionRouterHandlers } from "./base"
 import { ModuleRouter } from "./module"
@@ -23,9 +23,9 @@ import { buildRouter } from "./build"
 import { deployRouter } from "./deploy"
 import { runRouter } from "./run"
 import { testRouter } from "./test"
-import { DeployStatus } from "../plugin/handlers/deploy/get-status"
-import { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs"
-import { ActionKind, BaseActionConfig, ResolvedAction } from "../actions/types"
+import type { DeployStatus } from "../plugin/handlers/deploy/get-status"
+import type { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs"
+import type { ActionKind, BaseActionConfig, ResolvedAction } from "../actions/types"
 
 export interface DeployManyParams {
   graph: ConfigGraph

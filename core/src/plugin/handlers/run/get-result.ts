@@ -12,7 +12,7 @@ import { RunAction } from "../../../actions/run"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { actionStatusSchema } from "../../../actions/base"
 import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
-import { memoize } from "lodash"
+import { createSchema } from "../../../config/common"
 
 interface GetRunResultParams<T extends RunAction> extends PluginRunActionParamsBase<T> {}
 
@@ -22,7 +22,13 @@ export interface RunStatusMap extends ActionStatusMap<RunAction> {
   [key: string]: GetRunResult
 }
 
-export const getRunResultSchema = memoize(() => actionStatusSchema(runResultSchema()))
+export const getRunResultSchema = createSchema({
+  name: "get-run-result",
+  keys: {
+    detail: runResultSchema().allow(null),
+  },
+  extend: actionStatusSchema,
+})
 
 export class GetRunActionResult<T extends RunAction> extends ActionTypeHandlerSpec<
   "Run",

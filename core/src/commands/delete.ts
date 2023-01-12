@@ -20,6 +20,7 @@ import { BooleanParameter, StringParameter, StringsParameter } from "../cli/para
 import { deline } from "../util/string"
 import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
+import { omit, mapValues } from "lodash"
 
 // TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
@@ -145,7 +146,9 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
 
     const providerStatuses = await actions.provider.cleanupAll(log)
 
-    return { result: { deployStatuses: serviceStatuses, providerStatuses } }
+    return {
+      result: { deployStatuses: mapValues(serviceStatuses, (s) => omit(s, "executedAction")), providerStatuses },
+    }
   }
 }
 

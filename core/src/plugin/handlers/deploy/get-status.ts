@@ -9,10 +9,10 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
-import { joi } from "../../../config/common"
-import { DeployAction } from "../../../actions/deploy"
+import { createSchema, joi } from "../../../config/common"
+import type { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } from "../../../actions/types"
+import type { ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } from "../../../actions/types"
 import { actionStatusSchema } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
@@ -29,7 +29,13 @@ export interface DeployStatusMap extends ActionStatusMap<DeployAction> {
   [key: string]: DeployStatus
 }
 
-export const getDeployStatusSchema = () => actionStatusSchema(serviceStatusSchema())
+export const getDeployStatusSchema = createSchema({
+  name: "get-deploy-status",
+  keys: {
+    detail: serviceStatusSchema,
+  },
+  extend: actionStatusSchema,
+})
 
 export class GetDeployStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",

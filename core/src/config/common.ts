@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Joi, { SchemaMap } from "@hapi/joi"
+import Joi, { SchemaLike } from "@hapi/joi"
 import Ajv from "ajv"
 import { splitLast } from "../util/util"
 import { deline, dedent, naturalList, titleize } from "../util/string"
-import { cloneDeep, isArray, isPlainObject, isString } from "lodash"
+import { cloneDeep, isArray, isPlainObject, isString, mapValues } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
@@ -770,9 +770,13 @@ export const artifactsTargetDescription = dedent`
   A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at \`.garden/artifacts\`.
 `
 
+type SchemaCallback = () => Joi.Schema
+
 export interface CreateSchemaParams {
   name: string
-  keys: SchemaMap
+  keys: {
+    [key: string]: SchemaLike | SchemaLike[] | SchemaCallback
+  }
   extend?: () => Joi.ObjectSchema
   meta?: MetadataKeys
   allowUnknown?: boolean
@@ -792,7 +796,7 @@ interface SchemaRegistry {
 const schemaRegistry: SchemaRegistry = {}
 
 export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
-  const { name, keys } = spec
+  let { name, keys } = spec
 
   if (schemaRegistry[name]) {
     throw new InternalError(`Object schema ${name} defined multiple times`, { name, keys })
@@ -805,6 +809,10 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
     if (!schema) {
       const meta: MetadataKeys = { ...spec.meta }
       meta.name = name
+
+      keys = mapValues(keys, (v) => {
+        return typeof v === "function" ? v() : v
+      })
 
       if (spec.extend) {
         const base = spec.extend()

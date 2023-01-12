@@ -13,6 +13,7 @@ import { TestResult, testResultSchema } from "../../../types/test"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { actionStatusSchema } from "../../../actions/base"
 import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
+import { createSchema } from "../../../config/common"
 
 interface GetTestResultParams<T extends TestAction> extends PluginTestActionParamsBase<T> {}
 
@@ -22,7 +23,13 @@ export interface TestStatusMap extends ActionStatusMap<TestAction> {
   [key: string]: GetTestResult
 }
 
-export const getTestResultSchema = () => actionStatusSchema(testResultSchema())
+export const getTestResultSchema = createSchema({
+  name: "get-test-result",
+  keys: {
+    detail: testResultSchema().allow(null),
+  },
+  extend: actionStatusSchema,
+})
 
 export class GetTestActionResult<T extends TestAction = TestAction> extends ActionTypeHandlerSpec<
   "Test",

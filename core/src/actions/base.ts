@@ -37,7 +37,6 @@ import { fromPairs, isString } from "lodash"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
-import Joi from "@hapi/joi"
 import {
   Action,
   ActionConfig,
@@ -248,19 +247,23 @@ export const baseRuntimeActionConfigSchema = createSchema({
   extend: baseActionConfigSchema,
 })
 
-export const actionStatusSchema = (detailSchema?: Joi.ObjectSchema) =>
-  joi.object().keys({
+export const actionStatusSchema = createSchema({
+  name: "action-status",
+  keys: {
     state: joi
       .string()
       .allow(...actionStateTypes)
       .only()
       .required()
       .description("The state of the action."),
-    detail:
-      detailSchema ||
-      joi.any().description("Optional provider-specific information about the action status or results."),
+    detail: joi
+      .object()
+      .meta({ extendable: true })
+      .allow(null)
+      .description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
-  })
+  },
+})
 
 /**
  * Maps a RunResult to the state field on ActionStatus, returned by several action handler types.

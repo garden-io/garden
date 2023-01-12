@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, projectActionParamsSchema, NamespaceStatus, namespaceStatusesSchema } from "../../base"
+import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
+import { NamespaceStatus, namespaceStatusesSchema } from "../../../types/namespace"
 
 export interface CleanupEnvironmentParams extends PluginActionParamsBase {}
 

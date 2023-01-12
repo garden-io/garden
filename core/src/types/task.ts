@@ -10,9 +10,7 @@ import { GardenModule } from "./module"
 import { TaskConfig, taskConfigSchema } from "../config/task"
 import { getEntityVersion } from "../vcs/vcs"
 import { joi, joiUserIdentifier, moduleVersionSchema, versionStringSchema } from "../config/common"
-import { namespaceStatusSchema } from "../plugin/base"
 import { deline } from "../util/string"
-import { actionOutputsSchema } from "../plugin/handlers/base/base"
 
 export interface GardenTask<M extends GardenModule = GardenModule> {
   name: string

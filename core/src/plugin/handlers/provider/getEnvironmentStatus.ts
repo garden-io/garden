@@ -6,9 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { PluginActionParamsBase, projectActionParamsSchema, NamespaceStatus } from "../../base"
+import { PluginActionParamsBase, projectActionParamsSchema } from "../../base"
 import { dedent } from "../../../util/string"
 import { environmentStatusSchema } from "../../../config/status"
+import type { NamespaceStatus } from "../../../types/namespace"
 
 export interface GetEnvironmentStatusParams extends PluginActionParamsBase {}
 

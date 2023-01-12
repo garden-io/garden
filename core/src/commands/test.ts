@@ -35,8 +35,9 @@ import { ParameterError } from "../exceptions"
 export const testArgs = {
   names: new StringsParameter({
     help: deline`
-      The name(s) of the test(s) (or module names) to test (skip to run all tests in the project).
-      Use comma as a separator to specify multiple modules.
+      The name(s) of the Test action(s) to test (skip to run all tests in the project).
+      Use comma as a separator to specify multiple tests.
+      Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
   }),
 }
@@ -44,7 +45,7 @@ export const testArgs = {
 export const testOpts = {
   "name": new StringsParameter({
     help: deline`
-      DEPRECATED: you can now use globs in positional arguments.
+      DEPRECATED: This now does the exact same as the positional arguments.
 
       Only run tests with the specfied name (e.g. unit or integ).
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
@@ -61,6 +62,11 @@ export const testOpts = {
       "Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
     alias: "i",
     cliOnly: true,
+  }),
+  "module": new StringsParameter({
+    help: deline`
+      The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
+    `,
   }),
   "watch": new BooleanParameter({
     help: "Watch for changes in module(s) and auto-test.",
@@ -92,7 +98,7 @@ type Opts = typeof testOpts
 
 export class TestCommand extends Command<Args, Opts> {
   name = "test"
-  help = "Run all or specified tests in the project."
+  help = "Run all or specified Test actions in the project."
 
   protected = true
   streamEvents = true
@@ -106,13 +112,14 @@ export class TestCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden test                   # run all tests in the project
-        garden test my-test           # run the my-test Test action
-        garden test my-module         # run all tests in the my-module module
-        garden test *integ*           # run all tests with a name containing 'integ'
-        garden test *unit,*lint       # run all tests called either 'unit' or 'lint' in the project
-        garden test --force           # force tests to be re-run, even if they've already run successfully
-        garden test --watch           # watch for changes to code
+        garden test                     # run all tests in the project
+        garden test my-test             # run the my-test Test action
+        garden test --module my-module  # run all Tests in the my-module module
+        garden test *integ*             # run all Tests with a name containing 'integ'
+        garden test *unit,*lint         # run all Tests ending with either 'unit' or 'lint' in the project
+        garden test --force             # force Tests to be re-run, even if they've already run successfully
+        garden test --watch             # run all Tests and watch for changes to code
+        garden test my-test -w          # run the my-test Test action and re-run whenever its sources change
   `
 
   arguments = testArgs
@@ -161,23 +168,27 @@ export class TestCommand extends Command<Args, Opts> {
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const skipDependants = opts["skip-dependants"]
-    let modules: GardenModule[]
 
-    if (args.names) {
-      modules = skipDependants
-        ? graph.getModules({ names: args.names })
-        : graph.withDependantModules(graph.getModules({ names: args.names }))
-    } else {
-      modules = graph.getModules()
+    let modules: GardenModule[] | undefined = undefined
+    let filterNames: string[] | undefined = undefined
+
+    if (opts.module && opts.module.length) {
+      modules = graph.getModules({ names: opts.module })
     }
 
-    const filterNames = opts.name || []
+    const nameArgs = [...(args.names || []), ...(opts.name || [])]
+
+    if (nameArgs.length > 0) {
+      filterNames = nameArgs
+    }
+
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
     const skipped = opts.skip || []
 
     const actions = getTestActions({ graph, modules, filterNames })
+
+    console.log(filterNames)
 
     const initialTasks = actions
       .map(

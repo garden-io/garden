@@ -38,14 +38,14 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
     const result: any = deserializeValues(res.data!)
 
     // Backwards compatibility for modified result schema
-    if (result.version.versionString) {
+    if (result.version?.versionString) {
       result.version = result.version.versionString
     }
 
     return { state: runResultToActionState(result), detail: <TestResult>result, outputs: { log: result.log || "" } }
   } catch (err) {
     if (err.statusCode === 404) {
-      return { state: "not-ready", detail: null, outputs: null }
+      return { state: "not-ready", detail: null, outputs: {} }
     } else {
       throw err
     }
@@ -84,13 +84,13 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       key: getTestResultKey(k8sCtx, action),
       labels: {
         [gardenAnnotationKey("module")]: action.moduleName(),
-        [gardenAnnotationKey("test")]: test.name,
+        [gardenAnnotationKey("test")]: action.name,
         [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store test result: ${err.message}`))
+    log.warn(chalk.yellow(`Unable to store test result: ${err}`))
   }
 
   return data

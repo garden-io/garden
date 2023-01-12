@@ -76,6 +76,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
           status: runStatus(result.detail),
         })
         // result && this.validateTaskOutputs(params.task, result)
+        // TODO-G2: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
         return result

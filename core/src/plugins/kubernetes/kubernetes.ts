@@ -40,7 +40,7 @@ import { helm3Spec } from "./helm/helm-cli"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
 import { configMapModuleDefinition } from "./volumes/configmap"
-import { k8sContainerBuildExtension, k8sContainerDeployExtension } from "./container/extensions"
+import { k8sContainerBuildExtension, k8sContainerDeployExtension, k8sContainerRunExtension, k8sContainerTestExtension } from "./container/extensions"
 import { helmDeployDefinition, helmDeployDocs } from "./helm/action"
 import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
@@ -175,6 +175,8 @@ export const gardenPlugin = () =>
     extendActionTypes: {
       Build: [k8sContainerBuildExtension(), k8sJibContainerBuildExtension()],
       Deploy: [k8sContainerDeployExtension()],
+      Run: [k8sContainerRunExtension()],
+      Test: [k8sContainerTestExtension()],
     },
 
     createModuleTypes: [

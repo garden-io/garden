@@ -75,6 +75,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
           actionUid,
           status: runStatus(result.detail),
         })
+        // TODO-G2: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
         return result
@@ -99,7 +100,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const result = await router.callHandler({
         params,
         handlerType: "getResult",
-        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: null }),
+        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
       })
 
       const actionName = action.name

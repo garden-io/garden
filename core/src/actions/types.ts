@@ -17,11 +17,11 @@ import type { ExecutedTestAction, ResolvedTestAction, TestAction, TestActionConf
 import type { ActionKind } from "../plugin/action-types"
 import type { GraphResults } from "../graph/results"
 import type { BaseAction } from "./base"
-import { ValidResultType } from "../tasks/base"
+import type { ValidResultType } from "../tasks/base"
 
 // TODO-G2: split this file
 
-export { ActionKind } from "../plugin/action-types"
+export type { ActionKind } from "../plugin/action-types"
 
 export const actionKinds: ActionKind[] = ["Build", "Deploy", "Run", "Test"]
 export const actionKindsLower = actionKinds.map((k) => k.toLowerCase())

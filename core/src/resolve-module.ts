@@ -16,36 +16,42 @@ import {
 } from "./template-string/template-string"
 import { ContextResolveOpts, GenericContext } from "./config/template-contexts/base"
 import { relative, resolve, posix, dirname } from "path"
-import { Garden } from "./garden"
+import type { Garden } from "./garden"
 import { ConfigurationError, FilesystemError, PluginError } from "./exceptions"
 import { deline, dedent } from "./util/string"
-import { ModuleConfigMap, GardenModule, ModuleMap, moduleFromConfig, ModuleTypeMap } from "./types/module"
-import { getModuleTypeBases } from "./plugins"
+import {
+  ModuleConfigMap,
+  GardenModule,
+  ModuleMap,
+  moduleFromConfig,
+  ModuleTypeMap,
+  getModuleTypeBases,
+} from "./types/module"
 import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
 import { Profile } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
 import { allowUnknown, DeepPrimitiveMap } from "./config/common"
-import { ProviderMap } from "./config/provider"
+import type { ProviderMap } from "./config/provider"
 import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
-import { LogEntry } from "./logger/log-entry"
+import type { LogEntry } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
 import { loadVarfile } from "./config/base"
 import { merge } from "json-merge-patch"
 import { prepareBuildDependencies } from "./config/base"
-import { ModuleTypeDefinition } from "./plugin/plugin"
+import type { ModuleTypeDefinition } from "./plugin/plugin"
 import { serviceFromConfig } from "./types/service"
 import { taskFromConfig } from "./types/task"
 import { testFromConfig } from "./types/test"
 import { BuildActionConfig, BuildCopyFrom, isBuildActionConfig } from "./actions/build"
-import { GroupConfig } from "./config/group"
-import { ActionConfig, BaseActionConfig } from "./actions/types"
-import { ModuleGraph } from "./graph/modules"
-import { GraphResults } from "./graph/results"
-import { ExecBuildConfig } from "./plugins/exec/config"
+import type { GroupConfig } from "./config/group"
+import type { ActionConfig, BaseActionConfig } from "./actions/types"
+import type { ModuleGraph } from "./graph/modules"
+import type { GraphResults } from "./graph/results"
+import type { ExecBuildConfig } from "./plugins/exec/config"
 
 // This limit is fairly arbitrary, but we need to have some cap on concurrent processing.
 export const moduleResolutionConcurrencyLimit = 50

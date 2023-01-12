@@ -159,7 +159,7 @@ timeout:
 spec:
   # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your
   # project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version
-  # changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
+  # changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
   cacheResult: true
 
   # The command/entrypoint used to run inside the container.
@@ -560,7 +560,7 @@ Set a timeout for the test to complete, in seconds.
 
 [spec](#spec) > cacheResult
 
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run task`.
+Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |

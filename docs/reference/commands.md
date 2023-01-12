@@ -220,11 +220,6 @@ tests:
 
       state:
 
-    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-    # dependencies and in templating.
-    outputs:
-      <name>:
-
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
 
@@ -254,7 +249,7 @@ Note: Currently only supports simple GET requests for HTTP/HTTPS ingresses.
 
 #### Usage
 
-    garden call <nameAndPath>
+    garden call <nameAndPath> 
 
 #### Arguments
 
@@ -284,7 +279,7 @@ Examples:
 
 #### Usage
 
-    garden config analytics-enabled [enable]
+    garden config analytics-enabled [enable] 
 
 #### Arguments
 
@@ -365,7 +360,7 @@ Examples:
 
 #### Usage
 
-    garden cleanup secret <provider> <key>
+    garden cleanup secret <provider> <key> 
 
 #### Arguments
 
@@ -833,11 +828,6 @@ tests:
 
       state:
 
-    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-    # dependencies and in templating.
-    outputs:
-      <name>:
-
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
 
@@ -1010,7 +1000,7 @@ Examples:
 
 #### Usage
 
-    garden cloud secrets delete [ids]
+    garden cloud secrets delete [ids] 
 
 #### Arguments
 
@@ -1094,7 +1084,7 @@ Examples:
 
 #### Usage
 
-    garden cloud users delete [ids]
+    garden cloud users delete [ids] 
 
 #### Arguments
 
@@ -1133,7 +1123,7 @@ Examples:
 
 #### Usage
 
-    garden get graph
+    garden get graph 
 
 
 
@@ -1379,7 +1369,7 @@ providers:
             # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any
             # time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only
             # re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you
-            # run `garden run task`.
+            # run `garden run`.
             cacheResult:
 
             # The task's specification, as defined by its provider plugin.
@@ -2281,8 +2271,7 @@ moduleConfigs:
 
         # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
         # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when
-        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run
-        # task`.
+        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
         cacheResult:
 
         # The task's specification, as defined by its provider plugin.
@@ -2526,7 +2515,7 @@ domain:
 
 #### Usage
 
-    garden get linked-repos
+    garden get linked-repos 
 
 
 
@@ -2545,7 +2534,7 @@ Examples:
 
 #### Usage
 
-    garden get outputs
+    garden get outputs 
 
 
 #### Outputs
@@ -2775,8 +2764,7 @@ modules:
 
         # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time
         # your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when
-        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run
-        # task`.
+        # its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
         cacheResult:
 
         # The task's specification, as defined by its provider plugin.
@@ -2886,7 +2874,7 @@ modules:
 
 #### Usage
 
-    garden get status
+    garden get status 
 
 
 #### Outputs
@@ -2938,6 +2926,11 @@ actions:
     <name>:
       # The state of the action.
       state:
+
+      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+      # dependencies and in templating.
+      outputs:
+        <name>:
 
       detail:
         # When the service was first deployed by the provider.
@@ -3024,16 +3017,16 @@ actions:
         # The Garden module version of the deployed service.
         version:
 
-      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-      # dependencies and in templating.
-      outputs:
-        <name>:
-
   # A map of statuses for each configured Run.
   Run:
     <name>:
       # The state of the action.
       state:
+
+      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+      # dependencies and in templating.
+      outputs:
+        <name>:
 
       detail:
         # Whether the module was successfully run.
@@ -3059,11 +3052,6 @@ actions:
           namespaceName:
 
           state:
-
-      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-      # dependencies and in templating.
-      outputs:
-        <name>:
 
   # A map of statuses for each configured Test.
   Test:
@@ -3071,6 +3059,11 @@ actions:
       # The state of the action.
       state:
 
+      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+      # dependencies and in templating.
+      outputs:
+        <name>:
+
       detail:
         # Whether the module was successfully run.
         success:
@@ -3095,16 +3088,6 @@ actions:
           namespaceName:
 
           state:
-
-        # Structured outputs from the execution, as defined by individual action/module types, to be made available
-        # for dependencies and in templating.
-        outputs:
-          <name>:
-
-      # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-      # dependencies and in templating.
-      outputs:
-        <name>:
 ```
 
 ### garden get runs
@@ -3114,7 +3097,7 @@ actions:
 
 #### Usage
 
-    garden get runs [names]
+    garden get runs [names] 
 
 #### Arguments
 
@@ -3131,7 +3114,7 @@ actions:
 
 #### Usage
 
-    garden get tests [names]
+    garden get tests [names] 
 
 #### Arguments
 
@@ -3148,7 +3131,7 @@ actions:
 
 #### Usage
 
-    garden get run-result <name>
+    garden get run-result <name> 
 
 #### Arguments
 
@@ -3160,43 +3143,38 @@ actions:
 #### Outputs
 
 ```yaml
-# The name of the module that the task belongs to, if applicable.
-moduleName:
-
-# The name of the task that was run.
-taskName:
-
-# The command that the task ran.
-command:
-
-# The string version of the task.
-version:
-
-# Whether the task was successfully run.
-success:
-
-# When the task run was started.
-startedAt:
-
-# When the task run was completed.
-completedAt:
-
-# The output log from the run.
-log:
+# The state of the action.
+state:
 
 # Structured outputs from the execution, as defined by individual action/module types, to be made available for
 # dependencies and in templating.
 outputs:
   <name>:
 
-namespaceStatus:
-  pluginName:
+detail:
+  # Whether the module was successfully run.
+  success:
 
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-  # and cannot end with a dash) and must not be longer than 63 characters.
-  namespaceName:
+  # The exit code of the run (if applicable).
+  exitCode:
 
-  state:
+  # When the module run was started.
+  startedAt:
+
+  # When the module run was completed.
+  completedAt:
+
+  # The output log from the run.
+  log:
+
+  namespaceStatus:
+    pluginName:
+
+    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+    # and cannot end with a dash) and must not be longer than 63 characters.
+    namespaceName:
+
+    state:
 
 # Local file paths to any exported artifacts from the task run.
 artifacts:
@@ -3209,7 +3187,7 @@ artifacts:
 
 #### Usage
 
-    garden get test-result <name> [moduleTestName]
+    garden get test-result <name> [moduleTestName] 
 
 #### Arguments
 
@@ -3245,11 +3223,6 @@ namespaceStatus:
   namespaceName:
 
   state:
-
-# Structured outputs from the execution, as defined by individual action/module types, to be made available for
-# dependencies and in templating.
-outputs:
-  <name>:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
@@ -3288,7 +3261,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get vaccine
+    garden get vaccine 
 
 
 
@@ -3299,7 +3272,7 @@ with links to book an appointment.
 
 #### Usage
 
-    garden get workflows [workflows]
+    garden get workflows [workflows] 
 
 #### Arguments
 
@@ -3323,7 +3296,7 @@ Examples:
 
 #### Usage
 
-    garden link source <source> <path>
+    garden link source <source> <path> 
 
 #### Arguments
 
@@ -3359,7 +3332,7 @@ Examples:
 
 #### Usage
 
-    garden link module <module> <path>
+    garden link module <module> <path> 
 
 #### Arguments
 
@@ -3462,7 +3435,7 @@ Prints all global options (options that can be applied to any command).
 
 #### Usage
 
-    garden options
+    garden options 
 
 
 
@@ -3487,7 +3460,7 @@ Examples:
 
 #### Usage
 
-    garden plugins [plugin] [command]
+    garden plugins [plugin] [command] 
 
 #### Arguments
 
@@ -3693,11 +3666,6 @@ tests:
 
       state:
 
-    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-    # dependencies and in templating.
-    outputs:
-      <name>:
-
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
 
@@ -3741,79 +3709,19 @@ published:
     error:
 ```
 
-### garden run build
+### garden run
 
-**Run an ad-hoc instance of a build.**
+**Perform a Run action**
 
-This is useful for debugging or ad-hoc experimentation with build/modules.
-
-Examples:
-
-    garden run build my-container                                   # run an ad-hoc instance of a my-container container and attach to it
-    garden run build my-container /bin/sh                           # run an interactive shell in a new my-container container
-    garden run build my-container --interactive=false /some/script  # execute a script in my-container and return the output
-
-#### Usage
-
-    garden run build <name> [arguments] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `name` | Yes | The name of the Build (or module) to run.
-  | `arguments` | No | The arguments to run the build with. Example: &#x27;yarn run my-script&#x27;.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--interactive` |  | boolean | Set to false to skip interactive mode and just output the command result.
-  | `--force-build` |  | boolean | Force rebuild before running.
-  | `--command` | `-c` | string | The base command (a.k.a. entrypoint) to run in the build. For container images, for example, this overrides the image&#x27;s default command/entrypoint. This option may not be relevant for all types. Example: &#x27;/bin/sh -c&#x27;.
-
-
-### garden run deploy
-
-**Run an ad-hoc instance of the specified deploy/service.**
-
-This can be useful for debugging or ad-hoc experimentation with services.
+This is useful for any ad-hoc Runs, for example database migrations, or when developing.
 
 Examples:
 
-    garden run deploy my-service   # run an ad-hoc instance of my-service and attach to it
+    garden run my-db-migration   # run my-db-migration
 
 #### Usage
 
-    garden run deploy <name> [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `name` | Yes | The deploy/service to run.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Run the action even if it&#x27;s disabled for the environment.
-  | `--force-build` |  | boolean | Force rebuild of any build dependencies.
-
-
-### garden run run
-
-**Run a task (in the context of its parent module).**
-
-This is useful for any ad-hoc runs, for example database migrations, or when developing.
-
-Examples:
-
-    garden run my-db-migration   # run my-migration
-
-#### Usage
-
-    garden run run <name> [options]
+    garden run <name> [options]
 
 #### Arguments
 
@@ -3831,144 +3739,58 @@ Examples:
 #### Outputs
 
 ```yaml
-# The result of the task.
+# The result of the Run action.
 result:
-  # The name of the module that the task belongs to, if applicable.
-  moduleName:
-
-  # The name of the task that was run.
-  taskName:
-
-  # The command that the task ran.
-  command:
-
-  # The string version of the task.
-  version:
-
-  # When the task run was started.
-  startedAt:
-
-  # When the task run was completed.
-  completedAt:
-
-  # The output log from the run.
-  log:
+  # The state of the action.
+  state:
 
   # Structured outputs from the execution, as defined by individual action/module types, to be made available for
   # dependencies and in templating.
   outputs:
     <name>:
 
-  namespaceStatus:
-    pluginName:
+  detail:
+    # Whether the module was successfully run.
+    success:
 
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
+    # The exit code of the run (if applicable).
+    exitCode:
 
-    state:
+    # When the module run was started.
+    startedAt:
 
-  # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
-  aborted:
+    # When the module run was completed.
+    completedAt:
 
-  # Whether the action was succeessful.
-  success:
+    # The output log from the run.
+    log:
 
-  # An error message, if the action failed.
-  error:
+    namespaceStatus:
+      pluginName:
 
-# A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
-graphResults:
-```
+      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+      # letter, and cannot end with a dash) and must not be longer than 63 characters.
+      namespaceName:
 
-### garden run test
-
-**Run the specified test.**
-
-This can be useful for debugging tests, particularly integration/end-to-end tests.
-
-Examples:
-
-    garden run test my-test                      # run the my-test Test action named
-    garden run test my-test --interactive=false  # do not attach to the test run, just output results when completed
-    garden run test my-module integ              # run the test named 'integ' in module 'my-module'
-
-#### Usage
-
-    garden run test <name> [moduleTestName] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `name` | Yes | The test to run. If using modules, specify the module name here and the test name from the module in the second argument
-  | `moduleTestName` | No | The name of the test to run in a module.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--interactive` | `-i` | boolean | Set to false to skip interactive mode and just output the command result. Note that Garden won&#x27;t retrieve artifacts if set to true (the default).
-  | `--force` |  | boolean | Run the test even if it&#x27;s disabled for the environment.
-  | `--force-build` |  | boolean | Force rebuild of module before running.
-
-#### Outputs
-
-```yaml
-# The result of the test.
-result:
-  # The exit code of the run (if applicable).
-  exitCode:
-
-  # When the module run was started.
-  startedAt:
-
-  # When the module run was completed.
-  completedAt:
-
-  # The output log from the run.
-  log:
-
-  namespaceStatus:
-    pluginName:
-
-    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-    # and cannot end with a dash) and must not be longer than 63 characters.
-    namespaceName:
-
-    state:
-
-  # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-  # dependencies and in templating.
-  outputs:
-    <name>:
-
-  # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
-  aborted:
-
-  # Whether the action was succeessful.
-  success:
-
-  # An error message, if the action failed.
-  error:
+      state:
 
 # A map of all raw graph results. Avoid using this programmatically if you can, and use more structured keys instead.
 graphResults:
 ```
 
-### garden run workflow
+### garden run-workflow
 
-**Run a workflow.**
+**Run a Workflow.**
 
 Runs the commands and/or scripts defined in the workflow's steps, in sequence.
 
 Examples:
 
-    garden run workflow my-workflow    # run my-workflow
+    garden run-workflow my-workflow
 
 #### Usage
 
-    garden run workflow <workflow>
+    garden run-workflow <workflow> 
 
 #### Arguments
 
@@ -3985,7 +3807,7 @@ Examples:
 
 #### Usage
 
-    garden scan
+    garden scan 
 
 
 
@@ -4026,7 +3848,7 @@ Examples:
 
 ### garden test
 
-**Run all or specified tests in the project.**
+**Run all or specified Test actions in the project.**
 
 Runs all or specified tests defined in the project. Also run builds and other dependencies,
 including deploys if needed.
@@ -4036,13 +3858,14 @@ Optionally stays running and automatically re-runs tests if their sources
 
 Examples:
 
-    garden test                   # run all tests in the project
-    garden test my-test           # run the my-test Test action
-    garden test my-module         # run all tests in the my-module module
-    garden test *integ*           # run all tests with a name containing 'integ'
-    garden test *unit,*lint       # run all tests called either 'unit' or 'lint' in the project
-    garden test --force           # force tests to be re-run, even if they've already run successfully
-    garden test --watch           # watch for changes to code
+    garden test                     # run all tests in the project
+    garden test my-test             # run the my-test Test action
+    garden test --module my-module  # run all Tests in the my-module module
+    garden test *integ*             # run all Tests with a name containing 'integ'
+    garden test *unit,*lint         # run all Tests ending with either 'unit' or 'lint' in the project
+    garden test --force             # force Tests to be re-run, even if they've already run successfully
+    garden test --watch             # run all Tests and watch for changes to code
+    garden test my-test -w          # run the my-test Test action and re-run whenever its sources change
 
 #### Usage
 
@@ -4052,16 +3875,18 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the test(s) (or module names) to test (skip to run all tests in the project). Use comma as a separator to specify multiple modules.
+  | `names` | No | The name(s) of the Test action(s) to test (skip to run all tests in the project). Use comma as a separator to specify multiple tests. Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` | `-n` | array:string | DEPRECATED: you can now use globs in positional arguments.
+  | `--name` | `-n` | array:string | DEPRECATED: This now does the exact same as the positional arguments.
 Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
   | `--force` | `-f` | boolean | Force re-test of module(s).
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
+  | `--interactive` | `-i` | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
+  | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
   | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
@@ -4218,11 +4043,6 @@ tests:
       namespaceName:
 
       state:
-
-    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
-    # dependencies and in templating.
-    outputs:
-      <name>:
 
     # Set to true if the action was not attempted, e.g. if a dependency failed or parameters were incorrect.
     aborted:
@@ -4494,7 +4314,7 @@ Hides the specified warning message. The command and key is generally provided a
 
 #### Usage
 
-    garden util hide-warning <key>
+    garden util hide-warning <key> 
 
 #### Arguments
 
@@ -4512,7 +4332,7 @@ Throws an error and exits with code 1 if something's not right in your garden.ym
 
 #### Usage
 
-    garden validate
+    garden validate 
 
 
 
