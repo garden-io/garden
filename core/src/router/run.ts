@@ -101,7 +101,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
       const result = await router.callHandler({
         params,
         handlerType: "getResult",
-        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: null }),
+        defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
       })
 
       const actionName = action.name

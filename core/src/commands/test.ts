@@ -6,10 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { find } from "lodash"
-import dedent = require("dedent")
-import minimatch from "minimatch"
-
 import {
   Command,
   CommandParams,
@@ -20,15 +16,12 @@ import {
   processCommandResultSchema,
 } from "./base"
 import { processActions } from "../process"
-import { GardenModule } from "../types/module"
 import { TestTask } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { startServer } from "../server/server"
 import { StringsParameter, BooleanParameter } from "../cli/params"
-import { deline } from "../util/string"
+import { dedent, deline } from "../util/string"
 import { Garden } from "../garden"
-import { ConfigGraph } from "../graph/config-graph"
-import { getNames } from "../util/util"
 import { isTestAction } from "../actions/test"
 import { ParameterError } from "../exceptions"
 
@@ -53,7 +46,7 @@ export const testOpts = {
     alias: "n",
   }),
   "force": new BooleanParameter({
-    help: "Force re-test of module(s).",
+    help: "Force re-run of Test, even if a successful result is found in cache.",
     alias: "f",
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of any Build dependencies encountered." }),
@@ -130,7 +123,7 @@ export class TestCommand extends Command<Args, Opts> {
   private garden?: Garden
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, `Running tests`, "thermometer")
+    printHeader(headerLog, `Running Tests`, "thermometer")
   }
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
@@ -169,48 +162,37 @@ export class TestCommand extends Command<Args, Opts> {
 
     const graph = await garden.getConfigGraph({ log, emit: true })
 
-    let modules: GardenModule[] | undefined = undefined
-    let filterNames: string[] | undefined = undefined
-
-    if (opts.module && opts.module.length) {
-      modules = graph.getModules({ names: opts.module })
-    }
-
+    let includeNames: string[] | undefined = undefined
     const nameArgs = [...(args.names || []), ...(opts.name || [])]
-
-    if (nameArgs.length > 0) {
-      filterNames = nameArgs
-    }
-
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
-    const skipped = opts.skip || []
 
-    const actions = getTestActions({ graph, modules, filterNames })
+    if (nameArgs.length > 0) {
+      includeNames = nameArgs
+    }
 
-    console.log(filterNames)
+    const actions = graph.getActionsByKind("Test", {
+      includeNames,
+      moduleNames: opts.module,
+      excludeNames: opts.skip,
+    })
 
-    const initialTasks = actions
-      .map(
-        (action) =>
-          new TestTask({
-            garden,
-            graph,
-            log,
-            force,
-            forceBuild: opts["force-build"],
-            fromWatch: false,
-            action,
-            devModeDeployNames: [],
-            localModeDeployNames: [],
-            skipRuntimeDependencies,
-            interactive: opts.interactive,
-          })
-      )
-      .filter(
-        (testTask) =>
-          skipped.length === 0 || !skipped.some((s) => minimatch(testTask.action.name.toLowerCase(), s.toLowerCase()))
-      )
+    const initialTasks = actions.map(
+      (action) =>
+        new TestTask({
+          garden,
+          graph,
+          log,
+          force,
+          forceBuild: opts["force-build"],
+          fromWatch: false,
+          action,
+          devModeDeployNames: [],
+          localModeDeployNames: [],
+          skipRuntimeDependencies,
+          interactive: opts.interactive,
+        })
+    )
 
     if (opts.interactive && initialTasks.length !== 1) {
       throw new ParameterError(`The --interactive/-i option can only be used if a single test is selected.`, {
@@ -251,24 +233,4 @@ export class TestCommand extends Command<Args, Opts> {
 
     return handleProcessResults(footerLog, "test", results)
   }
-}
-
-export function getTestActions({
-  graph,
-  modules,
-  filterNames,
-}: {
-  graph: ConfigGraph
-  modules?: GardenModule[]
-  filterNames?: string[]
-}) {
-  let tests = graph.getTests().filter((t) => !t.isDisabled())
-  if (modules) {
-    const moduleNames = getNames(modules)
-    tests = tests.filter((t) => moduleNames.includes(t.moduleName()))
-  }
-  if (filterNames) {
-    tests = tests.filter((t) => find(filterNames, (n: string) => minimatch(t.name, n)))
-  }
-  return tests
 }

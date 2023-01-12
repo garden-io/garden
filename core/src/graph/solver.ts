@@ -143,10 +143,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             return
           }
 
-          const missingCount = results.getMissing().length
+          const missing = results.getMissing()
 
-          if (missingCount > 0) {
-            log.silly(`Batch ${batchId} has ${missingCount} results still missing`)
+          if (missing.length > 0) {
+            const missingKeys = missing.map((t) => t.getBaseKey())
+            log.silly(`Batch ${batchId} has ${missing.length} result(s) still missing: ${missingKeys.join(", ")}`)
             // Keep going if any of the expected results are pending
             return
           }
@@ -420,6 +421,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         }
       }
     }
+
+    const currentlyActive = Object.values(this.inProgress).map((n) => n.describe())
+    this.log.silly(`Task nodes in progress: ${currentlyActive.length > 0 ? currentlyActive.join(", ") : "(none)"}`)
   }
 
   private ensurePendingNode(node: TaskNode, dependant: TaskNode) {

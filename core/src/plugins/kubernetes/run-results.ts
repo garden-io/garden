@@ -53,7 +53,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
     return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
   } catch (err) {
     if (err.statusCode === 404) {
-      return { state: "not-ready", detail: null, outputs: null }
+      return { state: "not-ready", detail: null, outputs: {} }
     } else {
       throw err
     }

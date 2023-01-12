@@ -7,7 +7,7 @@
  */
 
 import toposort from "toposort"
-import { flatten, difference, mapValues, cloneDeep } from "lodash"
+import { flatten, difference, mapValues, cloneDeep, find } from "lodash"
 import { GardenBaseError } from "../exceptions"
 import { naturalList } from "../util/string"
 import { Action, ActionDependencyAttributes, ActionKind, Resolved, ResolvedAction } from "../actions/types"
@@ -22,6 +22,7 @@ import { DeployAction } from "../actions/deploy"
 import { RunAction } from "../actions/run"
 import { TestAction } from "../actions/test"
 import { GroupConfig } from "../config/group"
+import minimatch from "minimatch"
 
 export type DependencyRelationFilterFn = (node: ConfigGraphNode) => boolean
 
@@ -48,7 +49,10 @@ interface GetActionOpts {
 }
 
 interface GetActionsParams extends GetActionOpts {
-  names?: string[]
+  names?: string[] // Explicit names that must be found
+  moduleNames?: string[] // If specified, the found actions must be from these modules
+  includeNames?: string[] // Glob patterns to include. An action is returned if its name matches any of these.
+  excludeNames?: string[] // Glob patterns to exclude. An action is returned if its name matches none of these.
 }
 
 export class GraphError extends GardenBaseError {
@@ -196,19 +200,41 @@ export abstract class BaseConfigGraph<
 
   getActionsByKind<K extends ActionKind>(
     kind: K,
-    { names, includeDisabled = false, ignoreMissing = false }: GetActionsParams = {}
+    {
+      names,
+      moduleNames,
+      includeNames,
+      excludeNames,
+      includeDisabled = false,
+      ignoreMissing = false,
+    }: GetActionsParams = {}
   ): PickTypeByKind<K, B, D, R, T>[] {
     const foundNames: string[] = []
 
-    const found = Object.values(this.actions[kind]).filter((a) => {
+    let found = Object.values(this.actions[kind]).filter((a) => {
       if (a.isDisabled() && !includeDisabled) {
         return false
       }
+      if (moduleNames && !moduleNames.includes(a.moduleName())) {
+        return false
+      }
+      if (includeNames) {
+        const matched = find(includeNames, (n: string) => minimatch(a.name, n))
+        if (!matched) {
+          return false
+        }
+      }
+      if (excludeNames) {
+        const matched = find(excludeNames, (n: string) => minimatch(a.name, n))
+        if (matched) {
+          return false
+        }
+      }
       if (names) {
-        foundNames.push(a.name)
         if (!names.includes(a.name)) {
           return false
         }
+        foundNames.push(a.name)
       }
       return true
     })
