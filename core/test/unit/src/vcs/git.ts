@@ -46,7 +46,6 @@ async function makeTempGitRepo() {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   const tmpPath = await realpath(tmpDir.path)
   await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
-  // await execa("git", ["config", "--global", "protocol.file.allow", "always"], { cwd: tmpPath })
 
   return tmpDir
 }
@@ -74,6 +73,7 @@ describe("GitHandler", () => {
     handler = new GitHandler(
       tmpPath,
       join(tmpPath, ".garden"),
+      // allow to use file protocol for the tests
       [defaultIgnoreFilename, "-c", "protocol.file.allow=always"],
       garden.cache
     )
