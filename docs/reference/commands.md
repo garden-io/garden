@@ -3167,8 +3167,8 @@ artifacts:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `name` | Yes | The test to run. If using modules, specify the module name here and the test name from the module in the second argument
-  | `moduleTestName` | No | The name of the test to run in a module.
+  | `name` | Yes | The name of the test. If this test belongs to a module, specify the module name here instead, and specify the test name from the module in the second argument.
+  | `moduleTestName` | No | When the test belongs to a module, specify its name here (i.e. as the second argument).
 
 
 #### Outputs
@@ -3783,17 +3783,6 @@ Examples:
 
 
 
-### garden scan
-
-**Scans your project and outputs an overview of all modules.**
-
-
-#### Usage
-
-    garden scan 
-
-
-
 ### garden self-update
 
 **Update the Garden CLI.**
@@ -4311,7 +4300,7 @@ Hides the specified warning message. The command and key is generally provided a
 
 **Check your garden configuration for errors.**
 
-Throws an error and exits with code 1 if something's not right in your garden.yml files.
+Throws an error and exits with code 1 if something's not right in your garden config files.
 
 #### Usage
 
