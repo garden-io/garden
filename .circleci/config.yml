@@ -822,6 +822,7 @@ jobs:
             choco install --limit-output --no-progress -y git
             choco install --limit-output --no-progress -y rsync
             choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
             refreshenv
       - run:
