@@ -502,32 +502,6 @@ providers:
           # namespace before use.
           namespace: default
 
-        # Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
-        # certificate. See our
-        # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-        managedBy:
-
-    # cert-manager configuration, for creating and managing TLS certificates. See the
-    # [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-    certManager:
-      # Automatically install `cert-manager` on initialization. See the
-      # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-      install: false
-
-      # The email to use when requesting Let's Encrypt certificates.
-      email:
-
-      # The type of issuer for the certificate (only ACME is supported for now).
-      issuer: acme
-
-      # Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are
-      # supported.
-      acmeServer: letsencrypt-staging
-
-      # The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported
-      # for now).
-      acmeChallengeType: HTTP-01
-
     # Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain the system
     # services to only run on particular nodes.
     #
@@ -2490,6 +2464,10 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
 certificate. See our
 [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
@@ -2510,6 +2488,10 @@ providers:
 
 [providers](#providers) > certManager
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 cert-manager configuration, for creating and managing TLS certificates. See the
 [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
@@ -2521,6 +2503,10 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Automatically install `cert-manager` on initialization. See the
 [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
@@ -2531,6 +2517,10 @@ Automatically install `cert-manager` on initialization. See the
 ### `providers[].certManager.email`
 
 [providers](#providers) > [certManager](#providerscertmanager) > email
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The email to use when requesting Let's Encrypt certificates.
 
@@ -2551,6 +2541,10 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > issuer
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The type of issuer for the certificate (only ACME is supported for now).
 
 | Type     | Default  | Required |
@@ -2570,6 +2564,10 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeServer
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are supported.
 
 | Type     | Default                 | Required |
@@ -2588,6 +2586,10 @@ providers:
 ### `providers[].certManager.acmeChallengeType`
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported for now).
 

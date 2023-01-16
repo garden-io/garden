@@ -176,6 +176,11 @@ export async function checkCertManagerStatus({
   provider: KubernetesProvider
   namespace?: string
 }): Promise<ServiceState> {
+  log.warn({
+    symbol: "warning",
+    msg: "The cert-manager integration is deprecated and will be removed in a future release",
+  })
+
   const api = await KubeApi.factory(log, ctx, provider)
   const systemPods = await api.core.listNamespacedPod(namespace)
   const certManagerPods: KubernetesServerResource<V1Pod>[] = []
