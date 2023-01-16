@@ -22,11 +22,11 @@ import { findByName, getNames } from "../../util/util"
 const getTestResultArgs = {
   name: new StringParameter({
     help:
-      "The test to run. If using modules, specify the module name here and the test name from the module in the second argument",
+      "The name of the test. If this test belongs to a module, specify the module name here instead, and specify the test name from the module in the second argument.",
     required: true,
   }),
   moduleTestName: new StringParameter({
-    help: "The name of the test to run in a module.",
+    help: "When the test belongs to a module, specify its name here (i.e. as the second argument).",
     required: false,
   }),
 }
