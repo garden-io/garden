@@ -822,7 +822,7 @@ jobs:
             choco install --limit-output --no-progress -y git
             choco install --limit-output --no-progress -y rsync
             choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
-            gcloud components install gke-gcloud-auth-plugin
+            gcloud components install gke-gcloud-auth-plugin --quiet
             refreshenv
       - run:
           name: Write gcloud credentials to file
