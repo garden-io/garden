@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { get, flatten, sortBy, omit, chain, sample, isEmpty, find, cloneDeep } from "lodash"
-import { V1Pod, V1EnvVar, V1Container, V1PodSpec } from "@kubernetes/client-node"
+import { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1EventList } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
@@ -16,7 +16,7 @@ import hasha from "hasha"
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource, isPodResource } from "./types"
 import { splitLast, serializeValues, findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
+import { gardenAnnotationKey, base64, deline, stableStringify, tablePresets } from "../../util/string"
 import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
@@ -757,4 +757,10 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
  */
 export function usingInClusterRegistry(provider: KubernetesProvider) {
   return provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname
+}
+
+export function renderPodEventsTable(events: CoreV1EventList["items"]): string {
+  return events.map((event) => (
+    `Type=${event.type} Reason=${event.reason} Message=${event.message || "No message"}`
+  )).join("\n")
 }
