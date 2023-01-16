@@ -819,10 +819,9 @@ jobs:
       - run:
           name: Install Deps
           command: |
-            choco install --limit-output -y git
-            choco install --limit-output -y rsync
-            choco upgrade --limit-output -y git rsync gcloudsdk kubernetes-cli
-            gcloud components update
+            choco install --limit-output --no-progress -y git
+            choco install --limit-output --no-progress -y rsync
+            choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
             gcloud components install gke-gcloud-auth-plugin
             refreshenv
       - run:
