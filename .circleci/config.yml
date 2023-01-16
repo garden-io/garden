@@ -822,6 +822,8 @@ jobs:
             choco install -y git
             choco install -y rsync
             choco upgrade -y git rsync gcloudsdk kubernetes-cli
+            gcloud components update
+            gcloud components install gke-gcloud-auth-plugin
             refreshenv
       - run:
           name: Write gcloud credentials to file
