@@ -4457,13 +4457,10 @@ describe("Garden", () => {
       garden.cache.delete(garden.log, ["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
-      const resolveStub = td.replace(garden.vcs, "resolveTreeVersion")
-      const version: TreeVersion = {
+      garden.vcs.resolveTreeVersion = async () => ({
         contentHash: "banana",
         files: [],
-      }
-
-      td.when(resolveStub(), { ignoreExtraArgs: true }).thenResolve(version)
+      })
 
       const result = await garden.resolveModuleVersion(garden.log, config, [])
 

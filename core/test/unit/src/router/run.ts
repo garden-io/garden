@@ -8,7 +8,6 @@
 
 import { expect } from "chai"
 import { emptyDir, pathExists, readFile } from "fs-extra"
-import { cloneDeep } from "lodash"
 import { join } from "path"
 import stripAnsi from "strip-ansi"
 import { ResolvedRunAction } from "../../../../src/actions/run"
@@ -89,7 +88,7 @@ describe("run actions", () => {
     })
 
     it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-      const action = cloneDeep(resolvedRunAction)
+      const action = await garden.resolveAction({ action: graph.getRun(resolvedRunAction.name), log, graph })
       action._config[returnWrongOutputsCfgKey] = true
       await expectError(
         () => actionRouter.run.getResult({ log, action, graph }),
@@ -142,7 +141,7 @@ describe("run actions", () => {
     })
 
     it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-      const action = cloneDeep(resolvedRunAction)
+      const action = await garden.resolveAction({ action: graph.getRun(resolvedRunAction.name), log, graph })
       action._config[returnWrongOutputsCfgKey] = true
       await expectError(
         () =>

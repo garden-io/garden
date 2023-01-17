@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import { cloneDeep } from "lodash"
 import stripAnsi from "strip-ansi"
 import Stream from "ts-stream"
 import { ResolvedDeployAction } from "../../../../src/actions/deploy"
@@ -77,7 +76,7 @@ describe("deploy actions", () => {
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-      const action = cloneDeep(resolvedDeployAction)
+      const action = await garden.resolveAction({ action: graph.getDeploy(resolvedDeployAction.name), log, graph })
       action._config[returnWrongOutputsCfgKey] = true
       await expectError(
         () =>
@@ -145,7 +144,7 @@ describe("deploy actions", () => {
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-      const action = cloneDeep(resolvedDeployAction)
+      const action = await garden.resolveAction({ action: graph.getDeploy(resolvedDeployAction.name), log, graph })
       action._config[returnWrongOutputsCfgKey] = true
       await expectError(
         () =>

@@ -94,45 +94,23 @@ describe("VcsHandler", () => {
 
   describe("getTreeVersion", () => {
     it("should sort the list of files in the returned version", async () => {
-      const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const path = getConfigBasePath(moduleConfig)
-      const description = describeConfig(moduleConfig)
-      td.when(
-        getFiles({
-          log: gardenA.log,
-          path,
-          include: undefined,
-          exclude: undefined,
-          pathDescription: description + " root",
-        })
-      ).thenResolve([
+      handlerA.getFiles = async () => [
         { path: "c", hash: "c" },
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
-      ])
+      ]
       const version = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       expect(version.files).to.eql(["b", "c", "d"])
     })
 
     it("should not include the module config file in the file list", async () => {
-      const getFiles = td.replace(handlerA, "getFiles")
       const moduleConfig = await gardenA.resolveModule("module-a")
-      const path = getConfigBasePath(moduleConfig)
-      const description = describeConfig(moduleConfig)
-      td.when(
-        getFiles({
-          log: gardenA.log,
-          path,
-          include: undefined,
-          exclude: undefined,
-          pathDescription: description + " root",
-        })
-      ).thenResolve([
-        { path: moduleConfig.configPath, hash: "c" },
+      handlerA.getFiles = async () => [
+        { path: moduleConfig.configPath!, hash: "c" },
         { path: "b", hash: "b" },
         { path: "d", hash: "d" },
-      ])
+      ]
       const version = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
       expect(version.files).to.eql(["b", "d"])
     })
