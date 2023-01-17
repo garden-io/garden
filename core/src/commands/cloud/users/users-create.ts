@@ -7,7 +7,11 @@
  */
 
 import { CommandError, ConfigurationError } from "../../../exceptions"
-import { CreateUserBulkRequest, CreateUserBulkResponse, UserResponse } from "@garden-io/platform-api-types"
+import {
+  CreateUserBulkRequest,
+  CreateUserBulkResponse,
+  UserResult as UserResultApi,
+} from "@garden-io/platform-api-types"
 import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
@@ -147,14 +151,14 @@ export class UsersCreateCommand extends Command<Args, Opts> {
             addToGroups,
           }
           const res = await api.post<CreateUserBulkResponse>(`/users/bulk`, { body })
-          const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResponse[]
+          const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResultApi[]
           results.push(...successes.map((s) => makeUserFromResponse(s)))
 
           const failures = res.data
             .filter((d) => d.statusCode !== 200)
             .map((d) => ({
               message: d.message,
-              identifier: d.user.vcsUsername,
+              identifier: d.user.vcsUsername || "",
             }))
           errors.push(...failures)
         } catch (err) {

@@ -31,7 +31,9 @@ class FakeCloudApi extends CloudApi {
       updatedAt: new Date().toString(),
       name: "gordon",
       vcsUsername: "gordon@garden.io",
+      serviceAccount: false,
       organization: {
+        id: 1,
         name: "garden",
       },
       cachedPermissions: {},

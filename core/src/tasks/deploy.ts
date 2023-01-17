@@ -111,7 +111,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const executedAction = executeAction(action, { status })
 
     for (const ingress of status.detail?.ingresses || []) {
-      log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+      log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
     }
 
     if (this.garden.persistent) {
@@ -128,7 +128,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
         log.info(
           chalk.gray(
-            `→ Forward: ` +
+            `Port forward: ` +
               chalk.underline(proxy.localUrl) +
               ` → ${targetHost}:${proxy.spec.targetPort}` +
               (proxy.spec.name ? ` (${proxy.spec.name})` : "")

@@ -154,7 +154,8 @@ async function run({
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    log.setState(renderOutputStream(line.toString()))
+    const cmdName = command[0]
+    log.setState(renderOutputStream(line.toString(), cmdName))
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
   })
 

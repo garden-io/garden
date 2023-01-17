@@ -117,7 +117,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    statusLine.setState(renderOutputStream(line.toString()))
+    statusLine.setState(renderOutputStream(line.toString(), "kaniko"))
   })
 
   // Use the project namespace if set to null in config

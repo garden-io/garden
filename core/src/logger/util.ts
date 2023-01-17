@@ -117,6 +117,21 @@ export function tailChildEntries(node: Logger | LogEntry, level: LogLevel, lines
 }
 
 /**
+ * Returns the entry's section or first parent section it finds.
+ */
+export function findSection(entry: LogEntry): string | null {
+  const section = entry.getLatestMessage().section
+  if (section) {
+    return section
+  }
+  if (entry.parent) {
+    return findSection(entry.parent)
+  }
+
+  return null
+}
+
+/**
  * Get the log entry preceding the given `entry` in its tree, given the minimum log `level`.
  */
 export function getPrecedingEntry(entry: LogEntry) {

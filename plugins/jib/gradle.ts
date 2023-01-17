@@ -9,12 +9,12 @@
 import execa from "execa"
 import { find } from "lodash"
 import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
-import { PluginError } from "@garden-io/core/build/src/exceptions"
+import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"
 import { Writable } from "stream"
 
-const gradleVersion = "7.5.1"
+export const gradleVersion = "7.5.1"
 
 const spec = {
   url: `https://services.gradle.org/distributions/gradle-${gradleVersion}-bin.zip`,
@@ -67,9 +67,53 @@ export function getGradleTool(ctx: PluginContext) {
   return tool
 }
 
+const baseErrorMessage = (gradlePath: string): string =>
+  `Gradle binary path "${gradlePath}" is incorrect! Please check the \`gradlePath\` configuration option.`
+
+async function checkGradleVersion(gradlePath: string) {
+  try {
+    const res = await execa(gradlePath, ["--version"])
+    return res.stdout
+  } catch (err) {
+    const composeErrorMessage = (err: any): string => {
+      if (err.code === "EACCES") {
+        return `${baseErrorMessage(
+          gradlePath
+        )} It looks like the Gradle path defined in the config is not an executable binary.`
+      } else if (err.code === "ENOENT") {
+        return `${baseErrorMessage(gradlePath)} The Gradle path defined in the configuration does not exist.`
+      } else {
+        return baseErrorMessage(gradlePath)
+      }
+    }
+    throw new RuntimeError(composeErrorMessage(err), { gradlePath })
+  }
+}
+
+let gradlePathValid = false
+
+async function verifyGradlePath(gradlePath: string) {
+  if (gradlePathValid) {
+    return
+  }
+
+  const versionOutput = await checkGradleVersion(gradlePath)
+  const isGradle = versionOutput.toLowerCase().includes("gradle")
+  if (!isGradle) {
+    throw new RuntimeError(
+      `${baseErrorMessage(gradlePath)} It looks like the Gradle path points to a non-Gradle executable binary.`,
+      { gradlePath }
+    )
+  }
+  gradlePathValid = true
+}
+
 /**
- * Run gradle with the specified args in the specified directory. If that directory contains a `./gradlew` script, we
- * use that. Otherwise we download gradle and use that.
+ * Run gradle with the specified args in the specified directory {@code cwd}.
+ *
+ * If {@code gradlePath} is provided explicitly, it will be used as a Gradle binary.
+ * If no explicit binary specific, then a `./gradlew` script will be used if it's available in the specified directory.
+ * Otherwise, the Gradle distribution will be downloaded and used.
  */
 export async function gradle({
   ctx,
@@ -77,6 +121,7 @@ export async function gradle({
   cwd,
   log,
   openJdkPath,
+  gradlePath,
   outputStream,
 }: {
   ctx: PluginContext
@@ -84,20 +129,34 @@ export async function gradle({
   cwd: string
   log: LogEntry
   openJdkPath: string
+  gradlePath?: string
   outputStream: Writable
 }) {
-  const gradlewPath = resolve(cwd, process.platform === "win32" ? "gradlew.bat" : "gradlew")
+  let effectiveGradlePath: string
 
-  let gradlePath = gradlewPath
-
-  if (!(await pathExists(gradlePath))) {
-    const tool = getGradleTool(ctx)
-    gradlePath = await tool.getPath(log)
+  if (!!gradlePath) {
+    log.verbose(`Using explicitly specified Gradle binary from ${gradlePath}`)
+    effectiveGradlePath = gradlePath
+    await verifyGradlePath(effectiveGradlePath)
+  } else {
+    const gradlewPath = resolve(cwd, process.platform === "win32" ? "gradlew.bat" : "gradlew")
+    if (await pathExists(gradlewPath)) {
+      log.verbose(
+        `The Gradle binary hasn't been specified explicitly, but a local one has been found at ${gradlewPath}. It will be used by default.`
+      )
+      effectiveGradlePath = gradlewPath
+    } else {
+      log.verbose(
+        `The Gradle binary hasn't been specified explicitly. Gradle ${gradleVersion} will be used by default.`
+      )
+      const tool = getGradleTool(ctx)
+      effectiveGradlePath = await tool.getPath(log)
+    }
   }
 
-  log.debug(`Execing ${gradlePath} ${args.join(" ")}`)
+  log.debug(`Execing ${effectiveGradlePath} ${args.join(" ")}`)
 
-  const res = execa(gradlePath, args, {
+  const res = execa(effectiveGradlePath, args, {
     cwd,
     env: {
       JAVA_HOME: openJdkPath,

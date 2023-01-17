@@ -12,7 +12,7 @@ brew upgrade ${BREW_DEPS}
 brew install --cask google-cloud-sdk
 
 gcloud components update
-gcloud components install beta
+gcloud components install beta gke-gcloud-auth-plugin
 
 # install all tools with asdf
 ASDF_PLUGINS=(jq nodejs kubectl helm stern)

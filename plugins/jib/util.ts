@@ -28,6 +28,7 @@ interface JibBuildSpec {
   tarFormat: "docker" | "oci"
   mavenPath?: string
   mavenPhases: string[]
+  gradlePath?: string
 }
 
 type JibModuleBuildSpec = ContainerModuleBuildSpec & JibBuildSpec

@@ -419,12 +419,6 @@ ${renderCommands(commands)}
           // Print a specific header and footer when connected to Garden Cloud.
           if (namespaceUrl) {
             const distroName = getCloudDistributionName(cloudApi?.domain || "")
-            nsLog.setState(
-              renderHeader({
-                namespaceName: garden.namespace,
-                environmentName: garden.environmentName,
-              })
-            )
             const msg = dedent`
               \n${nodeEmoji.lightning}   ${chalk.cyan(
               `Connected to ${distroName}! Click the link below to view logs and more.`

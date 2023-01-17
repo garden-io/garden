@@ -47,6 +47,9 @@ import { resolve } from "path"
 import Bluebird from "bluebird"
 import { PluginContext } from "../../plugin-context"
 import { Resolved } from "../../actions/types"
+import { isAbsolute } from "path"
+import { enumerate } from "../../util/enumerate"
+import { joinWithPosix } from "../../util/fs"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -377,6 +380,11 @@ interface StartDevModeSyncParams {
   syncs: KubernetesDeployDevModeSyncSpec[]
 }
 
+export function getLocalSyncPath(sourcePath: string, moduleRoot: string) {
+  let localPath = isAbsolute(sourcePath) ? sourcePath : joinWithPosix(moduleRoot, sourcePath)
+  return localPath.replace(/ /g, "\\ ") // Escape spaces in path
+}
+
 export async function startDevModeSyncs({
   ctx,
   log,
@@ -397,9 +405,7 @@ export async function startDevModeSyncs({
     const k8sProvider = <KubernetesProvider>k8sCtx.provider
     const providerDefaults = k8sProvider.config.devMode?.defaults || {}
 
-    let i = 0
-
-    for (const s of syncs) {
+    for (const [i, s] of enumerate(syncs)) {
       const resourceSpec = s.target || defaultTarget
 
       if (!resourceSpec) {
@@ -436,6 +442,8 @@ export async function startDevModeSyncs({
 
       const key = `${keyBase}-${i}`
 
+      // TODO-G2: move this logic to getLocalSyncPath and ensure support of absolute paths,
+      //  see https://github.com/garden-io/garden/pull/3447 for details
       const localPath = resolve(basePath, s.sourcePath).replace(/ /g, "\\ ") // Escape spaces in path
       const remoteDestination = await getKubectlExecDestination({
         ctx: k8sCtx,
@@ -476,8 +484,6 @@ export async function startDevModeSyncs({
         targetDescription,
         config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
       })
-
-      i++
     }
   })
 }
