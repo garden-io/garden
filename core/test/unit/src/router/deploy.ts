@@ -158,7 +158,7 @@ describe("deploy actions", () => {
           }),
         (err) =>
           expect(stripAnsi(err.message)).to.include(
-            "Error validating outputs from Deploy 'service-a': key .foo must be a string"
+            "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string."
           )
       )
     })

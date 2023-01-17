@@ -108,12 +108,12 @@ function getRouterUnitTestPlugins() {
   const staticOutputsSchema = joi.object().keys({
     base: joi.string(),
     foo: joi.string(),
-  })
+  }).unknown(true)
 
   const runtimeOutputsSchema = joi.object().keys({
     base: joi.string(),
     foo: joi.string(),
-  })
+  }).unknown(true)
 
   const basePlugin = createGardenPlugin({
     name: "base",
