@@ -380,8 +380,8 @@ interface StartDevModeSyncParams {
   syncs: KubernetesDeployDevModeSyncSpec[]
 }
 
-export function getLocalSyncPath(sourcePath: string, moduleRoot: string) {
-  let localPath = isAbsolute(sourcePath) ? sourcePath : joinWithPosix(moduleRoot, sourcePath)
+export function getLocalSyncPath(sourcePath: string, basePath: string) {
+  const localPath = isAbsolute(sourcePath) ? sourcePath : resolve(basePath, sourcePath)
   return localPath.replace(/ /g, "\\ ") // Escape spaces in path
 }
 
@@ -442,9 +442,7 @@ export async function startDevModeSyncs({
 
       const key = `${keyBase}-${i}`
 
-      // TODO-G2: move this logic to getLocalSyncPath and ensure support of absolute paths,
-      //  see https://github.com/garden-io/garden/pull/3447 for details
-      const localPath = resolve(basePath, s.sourcePath).replace(/ /g, "\\ ") // Escape spaces in path
+      const localPath = getLocalSyncPath(s.sourcePath, basePath)
       const remoteDestination = await getKubectlExecDestination({
         ctx: k8sCtx,
         log,

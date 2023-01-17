@@ -14,8 +14,8 @@ describe("k8s dev mode helpers", () => {
     context("relative source path", () => {
       it("should join the module root path with the source path", () => {
         const relativeSourcePath = "../relative/path"
-        const moduleRoot = "/this/is/module/path"
-        const localPath = getLocalSyncPath(relativeSourcePath, moduleRoot)
+        const basePath = "/this/is/module/path"
+        const localPath = getLocalSyncPath(relativeSourcePath, basePath)
         expect(localPath).to.equal("/this/is/module/relative/path")
       })
     })
@@ -23,8 +23,8 @@ describe("k8s dev mode helpers", () => {
     context("absolute source path", () => {
       it("should ignore the module root path and return the absolute source path", () => {
         const absoluteSourcePath = "/absolute/path"
-        const moduleRoot = "/this/is/module/path"
-        const localPath = getLocalSyncPath(absoluteSourcePath, moduleRoot)
+        const basePath = "/this/is/module/path"
+        const localPath = getLocalSyncPath(absoluteSourcePath, basePath)
         expect(localPath).to.equal(absoluteSourcePath)
       })
     })
