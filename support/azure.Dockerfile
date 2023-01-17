@@ -10,12 +10,7 @@ RUN apk add --virtual=build gcc libffi-dev musl-dev openssl-dev make readline li
 # Remove build dependencies
   && apk del --purge build
 
-# Ensure kubelogin is available
-ENV KUBELOGIN_VERSION="v0.0.24"
-RUN wget -O kubelogin-linux-amd64.zip https://github.com/Azure/kubelogin/releases/download/$KUBELOGIN_VERSION/kubelogin-linux-amd64.zip  \
- && unzip kubelogin-linux-amd64.zip \
- && cp bin/linux_amd64/kubelogin /usr/local/bin/ \
- && rm kubelogin-linux-amd64.zip
+RUN az aks install-cli # this will install the latest version of kubelogin if you need to pin to a specific version use --kubelogin-version v0.0.20
 
 # Required by Azure DevOps to tell the system where node is installed
 LABEL "com.azure.dev.pipelines.agent.handler.node.path"="/usr/local/bin/node"
