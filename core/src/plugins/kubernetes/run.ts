@@ -816,7 +816,7 @@ export class PodRunner extends PodRunnerParams {
    * @throws {KubernetesError}
    */
   async runAndWait(params: RunParams): Promise<RunAndWaitResult> {
-    const { log, remove, tty, events } = params
+    const { log, remove, tty } = params
 
     const startedAt = new Date()
     const logsFollower = this.prepareLogsFollower(params)
