@@ -3,8 +3,8 @@ import { post } from "request"
 
 const testResultsData = readFileSync("report.tmp").toString()
 
-const testPassed = testResultsData.match(/\ncore ┄┄┄┄┄    (\d+) passing/)
-const testFailed = testResultsData.match(/\ncore ┄┄┄┄┄    (\d+) failing/)
+const testPassed = testResultsData.match(/\ncore     (\d+) passing/)
+const testFailed = testResultsData.match(/\ncore     (\d+) failing/)
 
 if (!testFailed || !testFailed[1] || !testPassed || !testPassed[1]) throw "Failed to read test results"
 
