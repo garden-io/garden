@@ -54,7 +54,6 @@ interface KubernetesProviderOutputs extends PrimitiveMap {
 }
 
 interface KubernetesEnvironmentDetail {
-  projectHelmMigrated: boolean
   deployStatuses: DeployStatusMap
   systemReady: boolean
   systemServiceState: ServiceState
@@ -77,14 +76,11 @@ export async function getEnvironmentStatus({
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
-  let projectHelmMigrated = true
-
   const namespaces = await prepareNamespaces({ ctx, log })
   const systemServiceNames = k8sCtx.provider.config._systemServices
   const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
-    projectHelmMigrated,
     deployStatuses: {},
     systemReady: true,
     systemServiceState: <ServiceState>"unknown",
