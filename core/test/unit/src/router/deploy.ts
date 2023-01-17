@@ -39,6 +39,10 @@ describe("deploy actions", () => {
     await garden.close()
   })
 
+  afterEach(() => {
+    resolvedDeployAction._config[returnWrongOutputsCfgKey] = false
+  })
+
   describe("deploy.getStatus", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const result = await actionRouter.deploy.getStatus({
@@ -76,13 +80,12 @@ describe("deploy actions", () => {
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy(resolvedDeployAction.name), log, graph })
-      action._config[returnWrongOutputsCfgKey] = true
+      resolvedDeployAction._config[returnWrongOutputsCfgKey] = true
       await expectError(
         () =>
           actionRouter.deploy.getStatus({
             log,
-            action,
+            action: resolvedDeployAction,
             graph,
             devMode: false,
             localMode: false,
@@ -144,13 +147,12 @@ describe("deploy actions", () => {
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
-      const action = await garden.resolveAction({ action: graph.getDeploy(resolvedDeployAction.name), log, graph })
-      action._config[returnWrongOutputsCfgKey] = true
+      resolvedDeployAction._config[returnWrongOutputsCfgKey] = true
       await expectError(
         () =>
           actionRouter.deploy.deploy({
             log,
-            action,
+            action: resolvedDeployAction,
             graph,
             force: true,
             devMode: false,

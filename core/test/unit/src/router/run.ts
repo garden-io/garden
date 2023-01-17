@@ -59,6 +59,10 @@ describe("run actions", () => {
     await garden.close()
   })
 
+  afterEach(() => {
+    resolvedRunAction._config[returnWrongOutputsCfgKey] = false
+  })
+
   describe("run.getResult", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const result = await actionRouter.run.getResult({
@@ -88,10 +92,9 @@ describe("run actions", () => {
     })
 
     it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun(resolvedRunAction.name), log, graph })
-      action._config[returnWrongOutputsCfgKey] = true
+      resolvedRunAction._config[returnWrongOutputsCfgKey] = true
       await expectError(
-        () => actionRouter.run.getResult({ log, action, graph }),
+        () => actionRouter.run.getResult({ log, action: resolvedRunAction, graph }),
         (err) =>
           expect(stripAnsi(err.message)).to.include(
             "Error validating runtime action outputs from Run 'task-a': key .foo must be a string"
@@ -141,13 +144,12 @@ describe("run actions", () => {
     })
 
     it("should throw if the outputs don't match the task outputs schema of the plugin", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun(resolvedRunAction.name), log, graph })
-      action._config[returnWrongOutputsCfgKey] = true
+      resolvedRunAction._config[returnWrongOutputsCfgKey] = true
       await expectError(
         () =>
           actionRouter.run.run({
             log,
-            action,
+            action: resolvedRunAction,
             interactive: true,
             graph,
           }),
