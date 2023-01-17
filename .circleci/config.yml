@@ -819,9 +819,11 @@ jobs:
       - run:
           name: Install Deps
           command: |
-            choco install -y git
-            choco install -y rsync
-            choco upgrade -y git rsync gcloudsdk kubernetes-cli
+            choco install --limit-output --no-progress -y git
+            choco install --limit-output --no-progress -y rsync
+            choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
+            gcloud components install gke-gcloud-auth-plugin --quiet
             refreshenv
       - run:
           name: Write gcloud credentials to file
