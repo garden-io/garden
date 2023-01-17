@@ -167,7 +167,7 @@ export class DeployCommand extends Command<Args, Opts> {
     actions = actions.filter((s) => !s.isDisabled() && !skipped.includes(s.name))
 
     if (actions.length === 0) {
-      log.error({ msg: "No deploys to deploy. Aborting." })
+      log.error({ msg: "Nothing to deploy. Aborting." })
       return { result: { aborted: true, success: true, graphResults: {} } }
     }
 

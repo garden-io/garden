@@ -167,7 +167,7 @@ export function actionNameConflictError(configA: ActionConfig, configB: ActionCo
     Found two actions of the same name and kind:
       - ${describeActionConfigWithPath(configA, rootPath)}
       - ${describeActionConfigWithPath(configB, rootPath)}
-    Please rename on of the two to avoid the conflict.
+    Please rename one of the two to avoid the conflict.
     `,
     { configA, configB }
   )
