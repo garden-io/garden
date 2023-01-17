@@ -70,13 +70,7 @@ describe("GitHandler", () => {
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(
-      tmpPath,
-      join(tmpPath, ".garden"),
-      // allow to use file protocol for the tests
-      [defaultIgnoreFilename, "-c", "protocol.file.allow=always"],
-      garden.cache
-    )
+    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), [defaultIgnoreFilename], garden.cache)
     git = (<any>handler).gitCli(log, tmpPath)
   })
 
