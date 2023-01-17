@@ -6,7 +6,7 @@ title: cert-manager Integration
 # cert-manager Integration
 
 {% hint style="warning" %}
-The cert-manager integration is deprecated and will be removed in a future release.
+The cert-manager integration is deprecated and will be removed in the 0.13 release.
 {% endhint %}
 
 When starting a new Kubernetes project or when maintaining your existing ones, dealing with the creation and renewal of TLS certificates can easily become a headache. A popular tool to help automate certficate generation and renewal is [cert-manager](https://github.com/jetstack/cert-manager).

@@ -471,7 +471,7 @@ const tlsCertificateSchema = () =>
       )
       .allow("cert-manager")
       .example("cert-manager")
-      .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in a future release" }),
+      .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
   })
 
 const buildkitCacheConfigurationSchema = () =>
@@ -904,20 +904,20 @@ export const kubernetesConfigBase = () =>
           [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
         `
           )
-          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in a future release" }),
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         email: joi
           .string()
           .required()
           .description("The email to use when requesting Let's Encrypt certificates.")
           .example("yourname@example.com")
-          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in a future release" }),
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         issuer: joi
           .string()
           .allow("acme")
           .default("acme")
           .description("The type of issuer for the certificate (only ACME is supported for now).")
           .example("acme")
-          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in a future release" }),
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         acmeServer: joi
           .string()
           .allow("letsencrypt-staging", "letsencrypt-prod")
@@ -927,7 +927,7 @@ export const kubernetesConfigBase = () =>
           servers are supported.`
           )
           .example("letsencrypt-staging")
-          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in a future release" }),
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         acmeChallengeType: joi
           .string()
           .allow("HTTP-01")
@@ -937,13 +937,13 @@ export const kubernetesConfigBase = () =>
           (only HTTP-01 is supported for now).`
           )
           .example("HTTP-01")
-          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in a future release" }),
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
       })
       .description(
         dedent`cert-manager configuration, for creating and managing TLS certificates. See the
         [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`
       )
-      .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in a future release" }),
+      .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
     _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
     systemNodeSelector: joiStringMap(joi.string())
       .description(
