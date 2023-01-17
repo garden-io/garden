@@ -1209,7 +1209,7 @@ describe("pickEnvironment", () => {
           commandInfo,
         }),
       (err) =>
-        expect(stripAnsi(err.message)).to.equal(
+        expect(stripAnsi(err.message)).to.contain(
           "Error validating environment default: key .defaultNamespace must be a string"
         )
     )

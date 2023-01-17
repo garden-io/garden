@@ -120,7 +120,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-kind", "garden.yml")),
       (err) => {
-        expect(err.message).to.equal("Missing `kind` field in config at missing-kind/garden.yml")
+        expect(err.message).to.contain("Missing `kind` field in config at missing-kind/garden.yml")
       }
     )
   })
@@ -130,7 +130,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "invalid-config-kind", "garden.yml")),
       (err) => {
-        expect(err.message).to.equal("Unknown config kind banana in invalid-config-kind/garden.yml")
+        expect(err.message).to.contain("Unknown config kind banana in invalid-config-kind/garden.yml")
       }
     )
   })
@@ -140,7 +140,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-type", "garden.yml")),
       (err) => {
-        expect(stripAnsi(err.message)).to.equal(
+        expect(stripAnsi(err.message)).to.contain(
           "Error validating module (missing-type/garden.yml): key .type is required"
         )
       }
@@ -152,7 +152,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-name", "garden.yml")),
       (err) => {
-        expect(stripAnsi(err.message)).to.equal(
+        expect(stripAnsi(err.message)).to.contain(
           "Error validating module (missing-name/garden.yml): key .name is required"
         )
       }

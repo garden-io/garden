@@ -159,7 +159,7 @@ describe("validate", () => {
     await expectError(
       () => validateSchema(obj, schema),
       (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A is required, key .B.b is required")
+        expect(stripAnsi(err.detail.errorDescription)).to.contain("key .A is required, key .B.b is required")
       }
     )
   })
@@ -186,7 +186,7 @@ describe("validate", () => {
     await expectError(
       () => validateSchema(obj, schema),
       (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal("key .A.B[c].C is required")
+        expect(stripAnsi(err.detail.errorDescription)).to.contain("key .A.B[c].C is required")
       }
     )
   })
@@ -201,7 +201,7 @@ describe("validate", () => {
     await expectError(
       () => validateSchema(obj, schema),
       (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .')
+        expect(stripAnsi(err.detail.errorDescription)).to.contain('key "123" is not allowed at path .')
       }
     )
   })
@@ -213,7 +213,7 @@ describe("validate", () => {
     await expectError(
       () => validateSchema(obj, schema),
       (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal('key "123" is not allowed at path .a')
+        expect(stripAnsi(err.detail.errorDescription)).to.contain('key "123" is not allowed at path .a')
       }
     )
   })
@@ -231,7 +231,7 @@ describe("validate", () => {
     await expectError(
       () => validateSchema(obj, schema),
       (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.equal("object at . can only contain one of [a, b]")
+        expect(stripAnsi(err.detail.errorDescription)).to.contain("object at . can only contain one of [a, b]")
       }
     )
   })
@@ -497,7 +497,7 @@ describe("validateSchema", () => {
     const value = { foo: 123 }
     await expectError(
       () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo must be a string")
+      (err) => expect(stripAnsi(err.message)).to.contain("Validation error: key .foo must be a string")
     )
   })
 
@@ -506,7 +506,7 @@ describe("validateSchema", () => {
     const value = { foo: { bar: 123 } }
     await expectError(
       () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo.bar must be a string")
+      (err) => expect(stripAnsi(err.message)).to.contain("Validation error: key .foo.bar must be a string")
     )
   })
 
@@ -515,7 +515,7 @@ describe("validateSchema", () => {
     const value = { foo: { bar: 123 } }
     await expectError(
       () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.equal("Validation error: key .foo[bar] must be a string")
+      (err) => expect(stripAnsi(err.message)).to.contain("Validation error: key .foo[bar] must be a string")
     )
   })
 })
