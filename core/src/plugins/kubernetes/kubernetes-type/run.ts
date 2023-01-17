@@ -41,10 +41,9 @@ export type KubernetesRunActionConfig = RunActionConfig<"kubernetes", Kubernetes
 export type KubernetesRunAction = RunAction<KubernetesRunActionConfig, KubernetesRunOutputs>
 
 // Need to use a sync read to avoid having to refactor createGardenPlugin()
-// The `pod-v1.json` file is copied from the handy
+// The `podspec-v1.json` file is copied from the handy
 // kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.18.1-standalone).
-const jsonSchema = () =>
-  JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
+const jsonSchema = () => JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "podspec-v1.json")).toString())
 
 export const kubernetesRunSchema = () =>
   joi
