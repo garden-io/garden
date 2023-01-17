@@ -386,7 +386,7 @@ describe("BaseActionRouter", () => {
             handlerType: "getOutputs", // this handler type is not specified on the test plugins,
             params: { graph, log, action: resolvedBuildAction },
           }),
-        { contains: "No 'getOutputs' handler configured for actionType" }
+        { contains: "No 'getOutputs' handler configured for build type" }
       )
     })
 
