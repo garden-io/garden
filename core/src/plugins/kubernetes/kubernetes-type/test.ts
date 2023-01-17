@@ -21,7 +21,7 @@ interface KubernetesTestOutputs extends KubernetesRunOutputs {}
 const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
 
 interface KubernetesTestActionSpec extends KubernetesRunActionSpec {}
-export type KubernetesTestActionConfig = TestActionConfig<"kubernetes", KubernetesTestActionSpec>
+export type KubernetesTestActionConfig = TestActionConfig<"kubernetes-pod", KubernetesTestActionSpec>
 export type KubernetesTestAction = TestAction<KubernetesTestActionConfig, KubernetesTestOutputs>
 
 const kubernetesTestSchema = () => kubernetesRunSchema()

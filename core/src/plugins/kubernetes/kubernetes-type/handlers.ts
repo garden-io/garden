@@ -84,7 +84,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       actions.push({
         kind: "Run",
-        type: "kubernetes",
+        type: "kubernetes-pod",
         name: module.name,
         ...params.baseFields,
         disabled: task.disabled,
@@ -108,7 +108,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       actions.push({
         kind: "Test",
-        type: "kubernetes",
+        type: "kubernetes-pod",
         name: module.name + "-" + test.name,
         ...params.baseFields,
         disabled: test.disabled,

@@ -174,7 +174,7 @@ export function convertServiceResource(
 
   return {
     kind: s.kind,
-    name: s.name,
+    name: s.name || module.name,
     podSelector: s.podSelector,
     containerName: s.containerName,
   }
@@ -191,6 +191,7 @@ export async function runOrTest(
   const { ctx, action, log, namespace } = params
   // Get the container spec to use for running
   const spec = action.getSpec()
+  const version = action.versionString()
 
   let podSpec = spec.podSpec
   let container = spec.podSpec?.containers[0]
@@ -202,6 +203,8 @@ export async function runOrTest(
       // Note: This will generally be caught in schema validation.
       throw new ConfigurationError(`${action.longDescription()} specified neither podSpec nor resource.`, { spec })
     }
+    // By this point, we can assume that the resource specified by `resourceSpec` has already been deployed by e.g. a
+    // `helm` or `kubernetes` Deployment.
 
     const target = await getTargetResource({
       ctx,
@@ -234,6 +237,6 @@ export async function runOrTest(
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
     timeout: timeout || DEFAULT_TASK_TIMEOUT,
-    version: action.versionString(),
+    version,
   })
 }

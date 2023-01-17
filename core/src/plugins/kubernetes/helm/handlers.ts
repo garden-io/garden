@@ -97,6 +97,14 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
     actions.push(deployAction)
 
+    // Runs and Tests generated from helm modules all have the kubernetes-pod type, and don't use the podSpec field.
+    // Therefore, they include a runtime dependency on their parent module's Deploy. This means that the helm Deploy
+    // is executed first, and the pod spec for the Test/Run pod runner is read from the cluster.
+    //
+    // This behavior is different from 0.12, where the pod spec was read from the output of a dry-run deploy using the
+    // Helm CLI (and did thus not require the deployment to take place first).
+    const deployDep = `deploy.${deployAction.name}`
+
     for (const task of tasks) {
       const resource = convertServiceResource(module, task.spec.resource)
 
@@ -104,19 +112,19 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         continue
       }
 
-      // We create a kubernetes Run action here, no need for a specific helm Run type.
+      // We create a kubernetes Run action here, no need for a specific helm Run type. We add a dependency on this
+      // module's Deploy, since we'll read the pod spec for the Run from the deployed resources.
       actions.push({
         kind: "Run",
-        type: "kubernetes",
-        name: module.name,
+        type: "kubernetes-pod",
+        name: task.name,
         ...params.baseFields,
         disabled: task.disabled,
-
         build: dummyBuild?.name,
-        dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
-
+        dependencies: [deployDep, ...prepareRuntimeDependencies(task.config.dependencies, dummyBuild)],
+        timeout: task.spec.timeout || undefined,
         spec: {
-          ...omit(task.spec, ["name", "dependencies", "disabled"]),
+          ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
         },
       })
@@ -129,22 +137,26 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         continue
       }
 
-      // We create a kubernetes Test action here, no need for a specific helm Test type.
-      actions.push({
+      // We create a kubernetes Test action here, no need for a specific helm Test type. We add a dependency on this
+      // module's Deploy, since we'll read the pod spec for the Test from the deployed resources.
+      const testAction: KubernetesActionConfig = {
         kind: "Test",
-        type: "kubernetes",
+        type: "kubernetes-pod",
         name: module.name + "-" + test.name,
         ...params.baseFields,
         disabled: test.disabled,
 
         build: dummyBuild?.name,
-        dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
+        dependencies: [deployDep, ...prepareRuntimeDependencies(test.config.dependencies, dummyBuild)],
+        timeout: test.spec.timeout || undefined,
 
         spec: {
-          ...omit(test.spec, ["name", "dependencies", "disabled"]),
+          ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
         },
-      })
+      }
+
+      actions.push(testAction)
     }
 
     return {
@@ -202,7 +214,7 @@ export function convertKubernetesDevModeSpec(
     if (target) {
       for (const sync of module.spec.devMode.sync) {
         devMode.syncs!.push({
-          ...sync,
+          ...omit(sync, ["source"]),
           sourcePath: joinWithPosix(service.sourceModule.path, sync.source),
           containerPath: sync.target,
           target,

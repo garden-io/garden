@@ -111,7 +111,7 @@ export const helmChartVersionSchema = () => joi.string().description("The chart 
 export const defaultTargetSchema = () =>
   targetResourceSpecSchema().description(
     dedent`
-    Specify a default resource in the deployment to use for dev mode syncs, \`garden exec\` and \`garden run deploy\` commands.
+    Specify a default resource in the deployment to use for dev mode syncs, and for the \`garden exec\` command.
 
     Specify either \`kind\` and \`name\`, or a \`podSelector\`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
 
