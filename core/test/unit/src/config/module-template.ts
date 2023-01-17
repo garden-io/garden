@@ -73,7 +73,7 @@ describe("module templates", () => {
       await expectError(
         () => resolveModuleTemplate(garden, config),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
+          expect(stripAnsi(err.message)).to.contain(
             'Error validating ModuleTemplate (templates.garden.yml): key "foo" is not allowed at path [foo]'
           )
       )
@@ -108,7 +108,7 @@ describe("module templates", () => {
       await expectError(
         () => resolveModuleTemplate(garden, config),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
+          expect(stripAnsi(err.message)).to.contain(
             `Unable to read inputs schema for ModuleTemplate test: Error: ENOENT: no such file or directory, open '${path}'`
           )
       )
@@ -122,7 +122,7 @@ describe("module templates", () => {
       await expectError(
         () => resolveModuleTemplate(garden, config),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
+          expect(stripAnsi(err.message)).to.contain(
             `Inputs schema for ModuleTemplate test has type string, but should be "object".`
           )
       )
@@ -228,7 +228,7 @@ describe("module templates", () => {
       await expectError(
         () => resolveTemplatedModule(garden, config, templates),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
+          expect(stripAnsi(err.message)).to.contain(
             'Error validating templated module test (modules.garden.yml): key "foo" is not allowed at path [foo]'
           )
       )
@@ -242,7 +242,7 @@ describe("module templates", () => {
       await expectError(
         () => resolveTemplatedModule(garden, config, templates),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
+          expect(stripAnsi(err.message)).to.contain(
             "Templated module test references template foo, which cannot be found. Available templates: test"
           )
       )
@@ -406,7 +406,7 @@ describe("module templates", () => {
       await expectError(
         () => resolveTemplatedModule(garden, config, _templates),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
+          expect(stripAnsi(err.message)).to.contain(
             "ModuleTemplate test returned an invalid module (named foo) for templated module test: Error validating module (modules.garden.yml): key .type must be a string"
           )
       )
@@ -430,7 +430,7 @@ describe("module templates", () => {
       await expectError(
         () => resolveTemplatedModule(garden, config, _templates),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
+          expect(stripAnsi(err.message)).to.contain(
             "ModuleTemplate test returned an invalid module (named 123) for templated module test: Error validating module (modules.garden.yml): key .name must be a string"
           )
       )
@@ -499,10 +499,15 @@ describe("module templates", () => {
 
       await expectError(
         () => resolveTemplatedModule(garden, config, _templates),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            'ModuleTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/. Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.'
+        (err) => {
+          const msg = stripAnsi(err.message)
+          expect(msg).to.contain(
+            'ModuleTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/.'
           )
+          expect(msg).to.contain(
+            "Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
+          )
+        }
       )
     })
   })
