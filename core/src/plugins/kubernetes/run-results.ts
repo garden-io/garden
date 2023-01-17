@@ -46,7 +46,7 @@ export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params
       result.outputs.log = result.log || ""
     }
 
-    if (result.version.versionString) {
+    if (result.version?.versionString) {
       result.version = result.version.versionString
     }
 

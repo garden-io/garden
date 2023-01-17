@@ -26,6 +26,7 @@ import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
 import { KubernetesModule, KubernetesService } from "../kubernetes-type/module-config"
 import { joinWithPosix } from "../../../util/fs"
 import { SuggestModulesParams, SuggestModulesResult } from "../../../plugin/handlers/module/suggest"
+import { makeDummyBuild } from "../../../resolve-module"
 
 export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,
@@ -36,6 +37,10 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
 
     if (dummyBuild) {
       actions.push(dummyBuild)
+    } else {
+      // We make a dummy build without a `copyFrom` or any build dependencies. This is to ensure there's a build action
+      // for this module if it's used as a base by another Helm module.
+      actions.push(makeDummyBuild({ module, copyFrom: undefined, dependencies: undefined }))
     }
 
     const service = services[0] // There's always exactly one service on helm modules

@@ -675,25 +675,11 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
     let dummyBuild: ExecBuildConfig | undefined = undefined
 
     if (copyFrom.length > 0) {
-      dummyBuild = {
-        kind: "Build",
-        type: "exec",
-        name: module.name,
-
-        internal: {
-          basePath: module.path,
-        },
-
+      dummyBuild = makeDummyBuild({
+        module,
         copyFrom,
-        source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
-
-        allowPublish: module.allowPublish,
         dependencies: module.build.dependencies.map(convertBuildDependency),
-
-        spec: {
-          env: {},
-        },
-      }
+      })
     }
 
     log.debug(`Converting ${module.type} module ${module.name} to actions`)
@@ -753,6 +739,38 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
   })
 
   return { groups, actions }
+}
+
+export function makeDummyBuild({
+  module,
+  copyFrom,
+  dependencies,
+}: {
+  module: GardenModule
+  // To make it clear at the call site that we're not inferring `copyFrom` or `dependencies` from `module`, we  ask the
+  // caller to explicitly provide `undefined` instead of making the param optional.
+  copyFrom: BuildCopyFrom[] | undefined
+  dependencies: string[] | undefined
+}): ExecBuildConfig {
+  return {
+    kind: "Build",
+    type: "exec",
+    name: module.name,
+
+    internal: {
+      basePath: module.path,
+    },
+
+    copyFrom,
+    source: module.repositoryUrl ? { repository: { url: module.repositoryUrl } } : undefined,
+
+    allowPublish: module.allowPublish,
+    dependencies,
+
+    spec: {
+      env: {},
+    },
+  }
 }
 
 function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
