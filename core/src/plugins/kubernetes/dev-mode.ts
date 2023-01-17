@@ -124,8 +124,7 @@ export const kubernetesDeployDevModeSyncSchema = () =>
         "The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`."
       ),
       sourcePath: joi
-        .string()
-        .uri()
+        .posixPath()
         .default(".")
         .description(
           dedent`

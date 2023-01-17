@@ -37,7 +37,7 @@ export interface KubernetesRunActionSpec extends KubernetesCommonRunSpec {
   resource?: KubernetesTargetResourceSpec
   podSpec?: V1PodSpec
 }
-export type KubernetesRunActionConfig = RunActionConfig<"kubernetes", KubernetesRunActionSpec>
+export type KubernetesRunActionConfig = RunActionConfig<"kubernetes-pod", KubernetesRunActionSpec>
 export type KubernetesRunAction = RunAction<KubernetesRunActionConfig, KubernetesRunOutputs>
 
 // Need to use a sync read to avoid having to refactor createGardenPlugin()
@@ -50,10 +50,8 @@ export const kubernetesRunSchema = () =>
     .object()
     .keys({
       ...kubernetesCommonRunSchemaKeys(),
-      resource: targetResourceSpecSchema()
-        .required()
-        .description(
-          dedent`
+      resource: targetResourceSpecSchema().description(
+        dedent`
           Specify a Kubernetes resource to derive the Pod spec from for the run.
 
           This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously (say, by configuring a dependency on a \`helm\` or \`kubernetes\` Deploy).
@@ -61,7 +59,7 @@ export const kubernetesRunSchema = () =>
           The following fields from the Pod will be used (if present) when executing the task:
           ${runPodSpecWhitelistDescription()}
           `
-        ),
+      ),
       // TODO: allow reading the pod spec from a file
       podSpec: joi
         .object()
