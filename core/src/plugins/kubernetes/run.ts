@@ -833,11 +833,9 @@ export class PodRunner extends PodRunnerParams {
       const exitCode = await this.awaitRunningPod(params, startedAt)
 
       const events = await this.getPodEvents()
-      if (events !== undefined && events.items.length > 0) {
-        if (some(events.items, (event) => event.reason === "Killing")) {
-          const details: PodErrorDetails = { podEvents: events }
-          throw new NotFoundError("Pod has been killed or evicted.", details)
-        }
+      if (some(events.items, (event) => event.reason === "Killing")) {
+        const details: PodErrorDetails = { podEvents: events }
+        throw new NotFoundError("Pod has been killed or evicted.", details)
       }
 
       // Retrieve logs after run
@@ -1077,7 +1075,7 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
-async getPodEvents(): Promise<CoreV1EventList | undefined> {
+async getPodEvents(): Promise<CoreV1EventList> {
   return await this.api.core.listNamespacedEvent(
     this.namespace,
     undefined,
