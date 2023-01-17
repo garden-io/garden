@@ -16,7 +16,7 @@ import hasha from "hasha"
 import { KubernetesResource, KubernetesWorkload, KubernetesPod, KubernetesServerResource, isPodResource } from "./types"
 import { splitLast, serializeValues, findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify, tablePresets } from "../../util/string"
+import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
 import { inClusterRegistryHostname, MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
 import { ContainerEnvVars } from "../container/config"
 import { ConfigurationError, DeploymentError, PluginError } from "../../exceptions"
@@ -760,7 +760,7 @@ export function usingInClusterRegistry(provider: KubernetesProvider) {
 }
 
 export function renderPodEventsTable(events: CoreV1EventList["items"]): string {
-  return events.map((event) => (
-    `Type=${event.type} Reason=${event.reason} Message=${event.message || "No message"}`
-  )).join("\n")
+  return events
+    .map((event) => `Type=${event.type} Reason=${event.reason} Message=${event.message || "No message"}`)
+    .join("\n")
 }

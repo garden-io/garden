@@ -876,7 +876,7 @@ export class PodRunner extends PodRunnerParams {
         podEvents = undefined
       }
       return {
-        podEvents
+        podEvents,
       }
     }
 
@@ -889,7 +889,10 @@ export class PodRunner extends PodRunnerParams {
           // if the pod has been deleted during execution we might run into a 404 error.
           // Convert it to Garden NotFoundError and fetch the logs for more details.
           if (e.statusCode === 404) {
-            throw new NotFoundError("Pod disappeared while waiting for it to complete. The Pod might have been evicted or deleted.", await notFoundErrorDetails())
+            throw new NotFoundError(
+              "Pod disappeared while waiting for it to complete. The Pod might have been evicted or deleted.",
+              await notFoundErrorDetails()
+            )
           }
         }
 
@@ -1075,14 +1078,15 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
-async getPodEvents(): Promise<CoreV1EventList> {
-  return await this.api.core.listNamespacedEvent(
-    this.namespace,
-    undefined,
-    undefined,
-    undefined,
-    `involvedObject.name=${this.podName}`)
-}
+  async getPodEvents(): Promise<CoreV1EventList> {
+    return await this.api.core.listNamespacedEvent(
+      this.namespace,
+      undefined,
+      undefined,
+      undefined,
+      `involvedObject.name=${this.podName}`
+    )
+  }
 
   /**
    * Removes the Pod from the cluster, if it's running. You can safely call this even
