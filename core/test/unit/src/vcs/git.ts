@@ -493,7 +493,11 @@ describe("GitHandler", () => {
         submodulePath = await realpath(submodule.path)
         initFile = (await commit("init", submodulePath)).uniqueFilename
 
-        await execa("git", ["submodule", "add", "--force", "--", submodulePath, "sub"], { cwd: tmpPath })
+        await execa(
+          "git",
+          ["-c", "protocol.file.allow=always", "submodule", "add", "--force", "--", submodulePath, "sub"],
+          { cwd: tmpPath }
+        )
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpPath })
       })
 
@@ -641,7 +645,9 @@ describe("GitHandler", () => {
           submodulePathB = await realpath(submoduleB.path)
           initFileB = (await commit("init", submodulePathB)).uniqueFilename
 
-          await execa("git", ["submodule", "add", submodulePathB, "sub-b"], { cwd: join(tmpPath, "sub") })
+          await execa("git", ["-c", "protocol.file.allow=always", "submodule", "add", submodulePathB, "sub-b"], {
+            cwd: join(tmpPath, "sub"),
+          })
           await execa("git", ["commit", "-m", "add submodule"], { cwd: join(tmpPath, "sub") })
         })
 
@@ -778,7 +784,9 @@ describe("GitHandler", () => {
 
       if (withSubmodule) {
         // Add repo B as a submodule to repo A
-        await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })
+        await execa("git", ["-c", "protocol.file.allow=always", "submodule", "add", tmpRepoPathB], {
+          cwd: tmpRepoPathA,
+        })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpRepoPathA })
       }
       const { commitSHA } = await commit("test commit A", tmpRepoPathA)
@@ -945,7 +953,9 @@ describe("GitHandler", () => {
 
       it("should update submodules", async () => {
         // Add repo B as a submodule to repo A
-        await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })
+        await execa("git", ["-c", "protocol.file.allow=always", "submodule", "add", tmpRepoPathB], {
+          cwd: tmpRepoPathA,
+        })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpRepoPathA })
 
         await handler.ensureRemoteSource({
@@ -959,7 +969,9 @@ describe("GitHandler", () => {
         await commit("update repo B", tmpRepoPathB)
 
         // Update submodule in repo A
-        await execa("git", ["submodule", "update", "--recursive", "--remote"], { cwd: tmpRepoPathA })
+        await execa("git", ["-c", "protocol.file.allow=always", "submodule", "update", "--recursive", "--remote"], {
+          cwd: tmpRepoPathA,
+        })
         await execa("git", ["add", "."], { cwd: tmpRepoPathA })
         await execa("git", ["commit", "-m", "update submodules"], { cwd: tmpRepoPathA })
 

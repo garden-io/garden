@@ -75,6 +75,26 @@ interface FileEntry {
   hash: string
 }
 
+interface GitConfigPreset {
+  readonly predicate: (arg: string) => boolean
+  readonly extraConfigOptions: string[]
+}
+
+const gitConfigPresets: GitConfigPreset[] = [
+  {
+    predicate: (arg) => {
+      const lowercaseArg = arg.toLowerCase()
+      return lowercaseArg === "submodule" || lowercaseArg.startsWith("file:///")
+    },
+    extraConfigOptions: ["-c", "protocol.file.allow=always"],
+  },
+]
+
+export function applyGitConfigPresets(args: string[]): string[] {
+  const extraConfigPresets = gitConfigPresets.filter((p) => args.some(p.predicate)).flatMap((p) => p.extraConfigOptions)
+  return [...extraConfigPresets, ...args]
+}
+
 // TODO Consider moving git commands to separate (and testable) functions
 @Profile()
 export class GitHandler extends VcsHandler {
@@ -94,7 +114,8 @@ export class GitHandler extends VcsHandler {
   gitCli(log: LogEntry, cwd: string, failOnPrompt = false): GitCli {
     return async (...args: (string | undefined)[]) => {
       log.silly(`Calling git with args '${args.join(" ")}' in ${cwd}`)
-      const { stdout } = await exec("git", args.filter(isString), {
+      const cliArgs = applyGitConfigPresets(args.filter(isString))
+      const { stdout } = await exec("git", cliArgs, {
         cwd,
         maxBuffer: 10 * 1024 * 1024,
         env: failOnPrompt ? { GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "true" } : undefined,
