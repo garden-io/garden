@@ -33,7 +33,7 @@ export interface KubernetesTypeCommonDeploySpec {
   timeout?: number
 }
 
-interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
+export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   defaultTarget?: KubernetesTargetResourceSpec
   devMode?: KubernetesDeployDevModeSpec
   localMode?: KubernetesLocalModeSpec
