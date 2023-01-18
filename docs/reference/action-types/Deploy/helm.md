@@ -232,8 +232,7 @@ spec:
     # The chart version to deploy.
     version:
 
-  # Specify a default resource in the deployment to use for dev mode syncs, `garden exec` and `garden run deploy`
-  # commands.
+  # Specify a default resource in the deployment to use for dev mode syncs, and for the `garden exec` command.
   #
   # Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this
   # action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
@@ -876,7 +875,7 @@ The chart version to deploy.
 
 [spec](#spec) > defaultTarget
 
-Specify a default resource in the deployment to use for dev mode syncs, `garden exec` and `garden run deploy` commands.
+Specify a default resource in the deployment to use for dev mode syncs, and for the `garden exec` command.
 
 Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
 
@@ -1126,9 +1125,9 @@ The local path to sync from, either absolute or relative to the source directory
 
 This should generally be a templated path to another action's source path (e.g. `${build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `string` | `"."`   | No       |
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
 
 ### `spec.devMode.syncs[].containerPath`
 
