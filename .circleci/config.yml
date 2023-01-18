@@ -24,10 +24,13 @@ orbs:
       version: 20.10.11
       docker_layer_caching: true
 
+  runner-image: &runner-image
+    image: gardendev/circleci-runner:14.19.3-3
+
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.3-2
+      - <<: *runner-image
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -35,8 +38,7 @@ orbs:
   # Configuration for release jobs
   release-config: &release-config
     docker:
-      # Image that contains ghr for publishing releases to Github
-      - image: cibuilds/github:0.12.2
+      - <<: *runner-image
 
   # Attaches the current saved workspace
   attach-workspace: &attach-workspace
@@ -545,14 +547,26 @@ jobs:
       - run:
           name: Publish a pre-release on GitHub with the tag 'edge'
           command: |
+            # We assume that the tag already exists. We update the existing tag
+            # using the gh cli, and then we upload the artifacts using ghr.
+            # We do not create a new release here, as this would spam our fellow coder's
+            # GitHub timelines
             VERSION=edge
+
+            # Update the release hash
+            gh release edit ${VERSION} \
+              -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
+              --prerelease \
+              --target ${CIRCLE_SHA1}
+
+            # Replace release artifacts
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
               -r ${CIRCLE_PROJECT_REPONAME} \
               -c ${CIRCLE_SHA1} \
               -n ${VERSION} \
-              -delete \
+              -replace \
               -prerelease \
               ${VERSION} ./dist
   test-dist:
