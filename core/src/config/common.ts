@@ -8,6 +8,7 @@
 
 import Joi, { SchemaLike } from "@hapi/joi"
 import Ajv from "ajv"
+import addFormats from "ajv-formats"
 import { splitLast } from "../util/util"
 import { deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues } from "lodash"
@@ -23,7 +24,8 @@ export const arrayForEachKey = "$forEach"
 export const arrayForEachReturnKey = "$return"
 export const arrayForEachFilterKey = "$filter"
 
-const ajv = new Ajv({ allErrors: true, useDefaults: true })
+const ajv = new Ajv({ allErrors: true, useDefaults: true, strict: false })
+addFormats(ajv)
 
 export type Primitive = string | number | boolean | null
 

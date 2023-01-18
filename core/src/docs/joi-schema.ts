@@ -114,7 +114,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
         const jsonSchema = jsonSchemaRule.args.jsonSchema.schema
 
         childDescriptions.push(
-          ...Object.entries(jsonSchema.properties).map(
+          ...Object.entries(jsonSchema.properties || {}).map(
             ([childName, schema]) =>
               new JsonKeyDescription({
                 schema,

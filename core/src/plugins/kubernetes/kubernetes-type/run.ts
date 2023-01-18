@@ -63,7 +63,7 @@ export const kubernetesRunSchema = () =>
       // TODO: allow reading the pod spec from a file
       podSpec: joi
         .object()
-        .jsonSchema({ ...jsonSchema().properties.spec, type: "object" })
+        .jsonSchema({ ...jsonSchema(), type: "object" })
         .description(
           dedent`
           Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the run, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
