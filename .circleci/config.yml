@@ -98,9 +98,11 @@ commands:
     steps:
       - run:
           name: Configure git
+          # ensure that file transfer protocol is allowed, see https://vielmetti.typepad.com/logbook/2022/10/git-security-fixes-lead-to-fatal-transport-file-not-allowed-error-in-ci-systems-cve-2022-39253.html
           command: |
             git config --global user.name "Garden CI"
             git config --global user.email "admin@garden.io"
+            git config --global protocol.file.allow "always"
 
   install_kubectl:
     description: Install kubectl
