@@ -28,14 +28,21 @@ describe("getBuildkitModuleFlags", () => {
     const projectRoot = getDataDir("test-project-container")
     const garden = await makeTestGarden(projectRoot)
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const rawBuild = graph.getBuild("module-a.build") as ContainerBuildAction
+    const rawBuild = graph.getBuild("module-a") as ContainerBuildAction
     const build = await garden.resolveAction({ action: rawBuild, log: garden.log, graph })
 
     build._config.spec.targetStage = "foo"
 
     const flags = getBuildkitFlags(build)
 
-    expect(flags).to.eql(["--opt", "build-arg:GARDEN_MODULE_VERSION=" + build.versionString, "--opt", "target=foo"])
+    expect(flags).to.eql([
+      "--opt",
+      "build-arg:GARDEN_MODULE_VERSION=" + build.versionString(),
+      "--opt",
+      "build-arg:GARDEN_BUILD_VERSION=" + build.versionString(),
+      "--opt",
+      "target=foo",
+    ])
   })
 })
 describe("buildkit build", () => {
@@ -211,13 +218,15 @@ describe("buildkit build", () => {
       const act = await graph.getBuild("module-a")
       const module = await garden.resolveAction({ action: act, graph, log: garden.log })
 
-      module.getSpec().build.targetImage = "foo"
+      module.getSpec().targetStage = "foo"
 
       const flags = getBuildkitFlags(module)
 
       expect(flags).to.eql([
         "--opt",
         "build-arg:GARDEN_MODULE_VERSION=" + module.getFullVersion().versionString,
+        "--opt",
+        "build-arg:GARDEN_BUILD_VERSION=" + module.getFullVersion().versionString,
         "--opt",
         "target=foo",
       ])
