@@ -285,7 +285,11 @@ describe("BuildStagingRsync", () => {
     try {
       process.env.PATH = getDataDir("dummy-rsync", "old-version")
       await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
-        contains: "Found rsync binary but the version is too old (2.1.2). Please install version 3.1.0 or later.",
+        contains: [
+          "found rsync binary but the version is too old",
+          "please make sure rsync",
+          "more about garden installation and requirements can be found in our documentation",
+        ],
       })
     } finally {
       process.env.PATH = orgPath
@@ -298,9 +302,11 @@ describe("BuildStagingRsync", () => {
     try {
       process.env.PATH = getDataDir("dummy-rsync", "invalid")
       await expectError(() => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath), {
-        contains:
-          // tslint:disable-next-line: max-line-length
-          "Could not detect rsync version. Please make sure rsync version 3.1.0 or later is installed and on your PATH.",
+        contains: [
+          "could not detect rsync binary version in the version command",
+          "please make sure rsync",
+          "more about garden installation and requirements can be found in our documentation",
+        ],
       })
     } finally {
       process.env.PATH = orgPath
