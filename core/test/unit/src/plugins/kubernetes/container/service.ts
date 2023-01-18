@@ -61,7 +61,7 @@ describe("createServiceResources", () => {
     const rawAction = graph.getDeploy("service-a")
     const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
 
-    const resources = await createServiceResources(action, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace", true)
 
     expect(resources).to.eql([
       {
