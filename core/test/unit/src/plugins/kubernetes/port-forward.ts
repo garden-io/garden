@@ -7,8 +7,12 @@
  */
 
 import { expect } from "chai"
-// import { KubernetesService } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
 import { getForwardablePorts } from "../../../../../src/plugins/kubernetes/port-forward"
+import {
+  KubernetesDeployActionConfig,
+  KubernetesDeployActionSpec,
+} from "../../../../../src/plugins/kubernetes/kubernetes-type/config"
+import { ResolvedDeployAction } from "../../../../../src/actions/deploy"
 
 describe("getForwardablePorts", () => {
   it("returns all ports for Service resources", () => {
@@ -39,29 +43,25 @@ describe("getForwardablePorts", () => {
   })
 
   it("returns explicitly configured port forwards if set", () => {
-    /* const service: KubernetesService = {
+    // This mock only defines the necessary class members, the rest have been omitted by <any> cast hack.
+    const action: ResolvedDeployAction<KubernetesDeployActionConfig> = <any>{
+      kind: "Deploy",
       name: "foo",
-      config: <any>{}, // Not needed here
-      disabled: false,
-      module: <any>{}, // Not needed here
-      sourceModule: <any>{}, // Not needed here
-      spec: {
-        dependencies: [],
-        files: [],
-        manifests: [],
-        portForwards: [
-          {
-            name: "test",
-            resource: "Service/test",
-            targetPort: 999,
-            localPort: 9999,
-          },
-        ],
-        tasks: [],
-        tests: [],
+      getSpec(): KubernetesDeployActionSpec {
+        return {
+          files: [],
+          manifests: [],
+          portForwards: [
+            {
+              name: "test",
+              resource: "Service/test",
+              targetPort: 999,
+              localPort: 9999,
+            },
+          ],
+        }
       },
-      version: <any>{}, // Not needed here
-    } */
+    }
 
     const ports = getForwardablePorts(
       [
@@ -76,8 +76,7 @@ describe("getForwardablePorts", () => {
           },
         },
       ],
-      // service
-      undefined // TODO-G2
+      action
     )
 
     expect(ports).to.eql([
