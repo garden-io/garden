@@ -620,7 +620,9 @@ describe("exec plugin", () => {
           action,
           graph,
         })
-        expect(res.detail?.outputs).to.eql("deployed echo service")
+        expect(res.state).to.eql("ready")
+        expect(res.detail?.state).to.eql("ready")
+        expect(res.detail?.detail.deployCommandOutput).to.eql("deployed echo service")
       })
 
       it("skips deploying if deploy command is empty but does not throw", async () => {
