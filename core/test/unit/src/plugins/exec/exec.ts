@@ -348,7 +348,7 @@ describe("exec plugin", () => {
   it("should copy artifacts after test runs", async () => {
     const _garden = await makeTestGarden(getDataDir("test-projects", "exec-artifacts"))
     const _graph = await _garden.getConfigGraph({ log: _garden.log, emit: false })
-    const test = _graph.getTest("module-a.test-a")
+    const test = _graph.getTest("module-a-test-a")
 
     const testTask = new TestTask({
       garden: _garden,
