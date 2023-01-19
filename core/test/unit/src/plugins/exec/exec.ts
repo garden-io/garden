@@ -963,8 +963,11 @@ describe("exec plugin", () => {
           graph,
           action,
         })
-        expect(res.state).to.equal("missing")
-        // expect(res.detail.cleanupCommandOutput).to.equal("cleaned up") TODO-G2
+
+        expect(res.state).to.equal("not-ready")
+        const detail = res.detail!
+        expect(detail.state).to.equal("missing")
+        expect(detail.detail.cleanupCommandOutput).to.equal("cleaned up")
       })
 
       it("returns 'unknown' state if no cleanupCommand is set", async () => {
@@ -976,7 +979,9 @@ describe("exec plugin", () => {
           graph,
           action,
         })
+
         expect(res.state).to.equal("unknown")
+        expect(res.detail?.state).to.equal("unknown")
       })
 
       it("throws if cleanupCommand returns with non-zero code", async () => {
