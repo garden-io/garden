@@ -71,16 +71,8 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
   }
 }
 
-export type ServiceState = "ready" | "deploying" | "stopped" | "unhealthy" | "unknown" | "outdated" | "missing"
-export const serviceStates: ServiceState[] = [
-  "ready",
-  "deploying",
-  "stopped",
-  "unhealthy",
-  "unknown",
-  "outdated",
-  "missing",
-]
+export const serviceStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
+export type ServiceState = typeof serviceStates[number]
 
 const serviceStateMap: { [key in ServiceState]: ActionState } = {
   ready: "ready",
@@ -248,7 +240,7 @@ export const serviceStatusSchema = () =>
     runningReplicas: joi.number().description("How many replicas of the service are currently running."),
     state: joi
       .string()
-      .valid("ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing")
+      .valid(...serviceStates)
       .default("unknown")
       .description("The current deployment status of the service."),
     updatedAt: joi.string().description("When the service was last updated by the provider."),
