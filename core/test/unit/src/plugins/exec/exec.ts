@@ -497,7 +497,12 @@ describe("exec plugin", () => {
         interactive: true,
         graph,
       })
-      expect(res.outputs).to.eql(join(garden.projectRoot, "module-local"))
+
+      const expectedLogPath = join(garden.projectRoot, "module-local")
+      // TODO-G2: there is also `res.detail.outputs` field existing in runtime here,
+      //  which does not exist in the `RunResult` type declaration.
+      //  Is it a bug? Reference `res.detail?.outputs` causes a TS compilation error.
+      expect(res.detail?.log).to.eql(expectedLogPath)
     })
 
     it("should receive module version as an env var", async () => {
@@ -514,7 +519,8 @@ describe("exec plugin", () => {
         graph,
       })
 
-      expect(res.outputs).to.equal(action.versionString())
+      // TODO-G2: see the comment is the previous spec
+      expect(res.detail?.log).to.equal(action.versionString())
     })
   })
 
