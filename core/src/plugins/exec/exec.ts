@@ -26,7 +26,7 @@ import { BuildModuleParams, BuildResult } from "../../types/plugin/module/build"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { TestResult } from "../../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../../types/plugin/task/runTask"
-import { exec, ExecOpts, renderOutputStream, runScript, sleep } from "../../util/util"
+import { exec, ExecOpts, runScript, sleep } from "../../util/util"
 import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -425,14 +425,12 @@ async function run({
   command,
   module,
   ctx,
-  log,
   env,
   opts = {},
 }: {
   command: string[]
   module: ExecModule
   ctx: PluginContext
-  log: LogEntry
   env?: PrimitiveMap
   opts?: ExecOpts
 }) {
@@ -440,8 +438,6 @@ async function run({
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    const cmdName = command[0]
-    log.setState(renderOutputStream(line.toString(), cmdName))
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
   })
 
@@ -465,7 +461,7 @@ export async function buildExecModule({ module, ctx, log }: BuildModuleParams<Ex
   const { command } = module.spec.build
 
   if (command.length) {
-    const result = await run({ command, module, ctx, log })
+    const result = await run({ command, module, ctx })
 
     output.fresh = true
     output.buildLog = result.stdout + result.stderr
@@ -492,7 +488,7 @@ export async function testExecModule({
   const startedAt = new Date()
   const { command } = test.config.spec
 
-  const result = await run({ command, module, ctx, log, env: test.config.spec.env, opts: { reject: false } })
+  const result = await run({ command, module, ctx, env: test.config.spec.env, opts: { reject: false } })
 
   await copyArtifacts(log, test.config.spec.artifacts, module.buildPath, artifactsPath)
 
@@ -525,7 +521,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   let success = true
 
   if (command && command.length) {
-    const commandResult = await run({ command, module, ctx, log, env: task.spec.env, opts: { reject: false } })
+    const commandResult = await run({ command, module, ctx, env: task.spec.env, opts: { reject: false } })
 
     completedAt = new Date()
     outputLog = (commandResult.stdout + commandResult.stderr).trim()
@@ -558,7 +554,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
 }
 
 export async function runExecModule(params: RunModuleParams<ExecModule>): Promise<RunResult> {
-  const { module, ctx, args, interactive, log } = params
+  const { module, ctx, args, interactive } = params
   const startedAt = new Date()
 
   let completedAt: Date
@@ -570,7 +566,6 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
       command: args,
       module,
       ctx,
-      log,
       env: module.spec.env,
       opts: { reject: false, stdio: interactive ? "inherit" : undefined },
     })
@@ -599,14 +594,13 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
 export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = async (
   params: GetServiceStatusParams<ExecModule>
 ) => {
-  const { module, ctx, service, log } = params
+  const { module, ctx, service } = params
 
   if (service.spec.statusCommand) {
     const result = await run({
       command: service.spec.statusCommand,
       module,
       ctx,
-      log,
       env: service.spec.env,
       opts: { reject: false },
     })
@@ -661,7 +655,6 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
       command: serviceSpec.deployCommand,
       module,
       ctx,
-      log,
       env,
       opts: { reject: true },
     })
@@ -744,7 +737,6 @@ async function deployPersistentExecService({
         command: devModeSpec.statusCommand,
         module,
         ctx,
-        log,
         env,
         opts: { reject: false },
       })
@@ -766,7 +758,6 @@ export const deleteExecService: ServiceActionHandlers["deleteService"] = async (
       command: service.spec.cleanupCommand,
       module,
       ctx,
-      log,
       env: service.spec.env,
       opts: { reject: true },
     })

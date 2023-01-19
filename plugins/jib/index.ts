@@ -238,9 +238,8 @@ export const gardenPlugin = () =>
 
             outputStream.on("error", () => {})
             outputStream.on("data", (line: Buffer) => {
-              const str = line.toString()
-              statusLine.setState({ section: module.name, msg: str })
-              buildLog += str
+              ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+              buildLog += line.toString()
             })
 
             statusLine.setState({ section: module.name, msg: `Using JAVA_HOME=${openJdkPath}` })

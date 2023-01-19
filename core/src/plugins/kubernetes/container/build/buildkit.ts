@@ -30,7 +30,7 @@ import {
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
 import { LogLevel } from "../../../../logger/logger"
-import { renderOutputStream, sleep } from "../../../../util/util"
+import {  sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
@@ -105,12 +105,10 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   // Stream verbose logs to a status line
   const outputStream = split2()
-  const statusLine = log.placeholder({ level: LogLevel.verbose })
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString(), "buildkit"))
   })
 
   const command = [

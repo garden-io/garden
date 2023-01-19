@@ -16,7 +16,6 @@ import {
   deepFilter,
   splitLast,
   exec,
-  createOutputStream,
   makeErrorMsg,
   renderOutputStream,
   spawn,
@@ -27,6 +26,8 @@ import { expectError } from "../../../helpers"
 import { splitFirst } from "../../../../src/util/util"
 import { getLogger } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
+import split2 from "split2"
+import { LogEntry } from "../../../../src/logger/log-entry"
 
 function isLinuxOrDarwin() {
   return process.platform === "darwin" || process.platform === "linux"
@@ -388,3 +389,20 @@ describe("util", () => {
     })
   })
 })
+
+/**
+ * Creates an output stream that updates a log entry on data events (used in the tests above).
+ *
+ * Note that new entries are not created but rather the passed log entry gets updated.
+ * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
+ */
+function createOutputStream(log: LogEntry) {
+  const outputStream = split2()
+
+  outputStream.on("error", () => {})
+  outputStream.on("data", (line: Buffer) => {
+    log.setState(renderOutputStream(line.toString()))
+  })
+
+  return outputStream
+}

@@ -24,8 +24,6 @@ import {
 } from "./common"
 import { posix } from "path"
 import split2 = require("split2")
-import { LogLevel } from "../../../../logger/logger"
-import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 
 export const getClusterDockerBuildStatus: BuildStatusHandler = async (params) => {
@@ -93,12 +91,10 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
 
   // Stream verbose logs to a status line
   const stdout = split2()
-  const statusLine = log.placeholder({ level: LogLevel.verbose })
 
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString(), "cluster-docker"))
   })
 
   // Prepare the build command

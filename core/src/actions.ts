@@ -84,7 +84,7 @@ import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
 import { ServiceStatus, ServiceStatusMap, ServiceState, GardenService } from "./types/service"
-import { Omit, getNames, uuidv4 } from "./util/util"
+import { Omit, getNames, uuidv4, renderOutputStream } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
 import { GetPortForwardParams } from "./types/plugin/service/getPortForward"
@@ -111,6 +111,7 @@ import { ModuleConfigContext } from "./config/template-contexts/module"
 import { GetDashboardPageParams, GetDashboardPageResult } from "./types/plugin/provider/getDashboardPage"
 import { GetModuleOutputsParams, GetModuleOutputsResult } from "./types/plugin/module/getModuleOutputs"
 import { ConfigContext } from "./config/template-contexts/base"
+import { LogLevel } from "./logger/logger"
 
 const maxArtifactLogLines = 5 // max number of artifacts to list in console after task+test runs
 
@@ -379,7 +380,10 @@ export class ActionRouter implements TypeGuard {
     const startedAt = new Date()
     const moduleName = params.module.name
     const moduleVersion = params.module.version.versionString
+    const statusLine = params.log.placeholder({ level: LogLevel.verbose })
     params.events.on("log", ({ timestamp, data }) => {
+      const msg = data.toString()
+      statusLine.setState(renderOutputStream(msg, `build`))
       this.garden.events.emit("log", {
         timestamp,
         actionUid,
@@ -388,7 +392,7 @@ export class ActionRouter implements TypeGuard {
           key: `${moduleName}`,
           moduleName,
         },
-        data: data.toString(),
+        data: msg,
       })
     })
     this.garden.events.emit("buildStatus", {
@@ -458,9 +462,15 @@ export class ActionRouter implements TypeGuard {
 
     params.events = params.events || new PluginEventBroker()
 
+    const statusLine = params.log.placeholder({ level: LogLevel.verbose })
+
     try {
       // Annotate + emit log output
       params.events.on("log", ({ timestamp, data }) => {
+        const msg = data.toString()
+        if (!params.interactive) {
+          statusLine.setState(renderOutputStream(msg, `test.${testName}`))
+        }
         this.garden.events.emit("log", {
           timestamp,
           actionUid,
@@ -469,7 +479,7 @@ export class ActionRouter implements TypeGuard {
             key: `${moduleName}.${testName}`,
             moduleName,
           },
-          data: data.toString(),
+          data: msg,
         })
       })
 
@@ -545,7 +555,10 @@ export class ActionRouter implements TypeGuard {
     const serviceName = params.service.name
     const moduleVersion = params.service.module.version.versionString
     const moduleName = params.service.module.name
+    const statusLine = params.log.placeholder({ level: LogLevel.verbose })
     params.events.on("log", ({ timestamp, data }) => {
+      const msg = data.toString()
+      statusLine.setState(renderOutputStream(msg, `deploy`))
       this.garden.events.emit("log", {
         timestamp,
         actionUid,
@@ -554,7 +567,7 @@ export class ActionRouter implements TypeGuard {
           key: `${serviceName}`,
           moduleName,
         },
-        data: data.toString(),
+        data: msg,
       })
     })
     const serviceVersion = params.service.version
@@ -705,9 +718,15 @@ export class ActionRouter implements TypeGuard {
 
     params.events = params.events || new PluginEventBroker()
 
+    const statusLine = params.log.placeholder({ level: LogLevel.verbose })
+
     try {
       // Annotate + emit log output
       params.events.on("log", ({ timestamp, data }) => {
+        const msg = data.toString()
+        if (!params.interactive) {
+          statusLine.setState(renderOutputStream(msg, `task.${taskName}`))
+        }
         this.garden.events.emit("log", {
           timestamp,
           actionUid,
@@ -716,7 +735,7 @@ export class ActionRouter implements TypeGuard {
             key: taskName,
             moduleName,
           },
-          data: data.toString(),
+          data: msg,
         })
       })
 

@@ -24,7 +24,7 @@ import {
 } from "../../exceptions"
 import { KubernetesProvider } from "./config"
 import { Writable, Readable, PassThrough } from "stream"
-import { uniqByName, sleep, renderOutputStream } from "../../util/util"
+import { uniqByName, sleep } from "../../util/util"
 import { ExecInPodResult, KubeApi, KubernetesError } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
 import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
@@ -43,7 +43,6 @@ import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
 import { copy } from "fs-extra"
 import { K8sLogFollower, PodLogEntryConverter, PodLogEntryConverterParams } from "./logs"
 import { Stream } from "ts-stream"
-import { LogLevel } from "../../logger/logger"
 import dedent from "dedent"
 import { getResourceEvents } from "./status/events"
 
@@ -208,18 +207,9 @@ export async function runAndCopy({
   if (getArtifacts) {
     const outputStream = new PassThrough()
 
-    const statusLine = log.placeholder({ level: LogLevel.verbose })
-
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
       ctx.events.emit("log", { timestamp: new Date().getTime(), data })
-      if (!interactive) {
-        // TODO: At some point we should write task logs to our logger in the same location
-        // where the PluginEventBroker handles the `log` events, instead of repeating this logic
-        // all over the place.
-        // This is so easy to forget, and can lead to a degraded user experience if left out.
-        statusLine.setState(renderOutputStream(data.toString(), `${podName}`))
-      }
     })
 
     return runWithArtifacts({
@@ -792,15 +782,11 @@ export class PodRunner extends PodRunnerParams {
     const { log, tty, events } = params
     const stream = new Stream<RunLogEntry>()
 
-    const statusLine = log.placeholder({ level: LogLevel.verbose })
-
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
       events.emit("log", { timestamp, data: Buffer.from(msg) })
       if (tty) {
         process.stdout.write(`${msg}\n`)
-      } else {
-        statusLine.setState(renderOutputStream(msg, `${this.podName}.${this.getMainContainerName()}`))
       }
     })
     return new K8sLogFollower({
@@ -1212,8 +1198,6 @@ export class PodRunner extends PodRunnerParams {
 
           return errorDesc
         case "not-found":
-          // TODO: Add section about how to prevent this by using the annotation
-          // cluster-autoscaler.kubernetes.io/safe-to-evict=false
           let notFoundError = dedent`
             ${error.message}
 

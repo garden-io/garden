@@ -143,23 +143,6 @@ export function renderOutputStream(msg: string, command?: string) {
   return command ? chalk.gray(`[${command}]: ${msg}`) : chalk.gray(msg)
 }
 
-/**
- * Creates an output stream that updates a log entry on data events (in an opinionated way).
- *
- * Note that new entries are not created but rather the passed log entry gets updated.
- * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
- */
-export function createOutputStream(log: LogEntry) {
-  const outputStream = split2()
-
-  outputStream.on("error", () => {})
-  outputStream.on("data", (line: Buffer) => {
-    log.setState(renderOutputStream(line.toString()))
-  })
-
-  return outputStream
-}
-
 export function makeErrorMsg({
   code,
   cmd,

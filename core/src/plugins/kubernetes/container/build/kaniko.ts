@@ -36,9 +36,6 @@ import {
 } from "./common"
 import { differenceBy, isEmpty } from "lodash"
 import chalk from "chalk"
-import split2 from "split2"
-import { LogLevel } from "../../../../logger/logger"
-import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 import { stringifyResources } from "../util"
 
@@ -107,15 +104,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
   log.setState(`Building image ${localId}...`)
 
   let buildLog = ""
-
-  // Stream verbose logs to a status line
-  const outputStream = split2()
-  const statusLine = log.placeholder({ level: LogLevel.verbose })
-
-  outputStream.on("error", () => {})
-  outputStream.on("data", (line: Buffer) => {
-    statusLine.setState(renderOutputStream(line.toString(), "kaniko"))
-  })
 
   // Use the project namespace if set to null in config
   // TODO: change in 0.13 to default to project namespace
