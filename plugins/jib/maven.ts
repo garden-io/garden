@@ -132,7 +132,7 @@ export async function mvn({
   outputStream?: Writable
 }) {
   let mvnPath: string
-  let lockacquired=false;
+  let lockacquired = false
   if (!!mavenPath) {
     log.verbose(`Using explicitly specified Maven binary from ${mavenPath}`)
     mvnPath = mavenPath
@@ -143,28 +143,25 @@ export async function mvn({
     mvnPath = await tool.getPath(log)
   }
 
-
-
-  if (lockacquired){
+  if (lockacquired) {
     return buildLock.acquire("mvn", async () => {
       log.debug(`Execing ${mvnPath} ${args.join(" ")}`)
-  
+
       const res = execa(mvnPath, args, {
         cwd,
         env: {
           JAVA_HOME: openJdkPath,
         },
       })
-  
+
       if (outputStream) {
         res.stdout?.pipe(outputStream)
         res.stderr?.pipe(outputStream)
       }
-  
+
       return res
     })
   } else {
-
     const res = execa(mvnPath, args, {
       cwd,
       env: {
@@ -178,9 +175,7 @@ export async function mvn({
     }
 
     return res
-
   }
   // Maven has issues when running concurrent processes, so we're working around that with a lock.
   // TODO: http://takari.io/book/30-team-maven.html would be a more robust solution.
-  
 }
