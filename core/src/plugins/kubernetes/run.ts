@@ -608,6 +608,7 @@ async function runWithArtifacts({
         timeoutSec,
         buffer: true,
       })
+
       result = {
         ...res,
         log: res.log || (await runner.getMainContainerLogs()),
@@ -982,6 +983,7 @@ export class PodRunner extends PodRunnerParams {
    *
    * @throws {OutOfMemoryError}
    * @throws {TimeoutError}
+   * @throws {NotFoundError}
    * @throws {PodRunnerError}
    */
   async exec(params: ExecParams) {
@@ -1035,6 +1037,12 @@ export class PodRunner extends PodRunnerParams {
         result,
       }
       throw new OutOfMemoryError("Pod container was OOMKilled.", errorDetails)
+    }
+
+    const events = await getResourceEvents(this.api, this.pod)
+    if (some(events, (event) => event.reason === "Killing")) {
+      const details: PodErrorDetails = { podEvents: events }
+      throw new NotFoundError("Pod has been killed or evicted.", details)
     }
 
     if (result.exitCode !== 0) {
