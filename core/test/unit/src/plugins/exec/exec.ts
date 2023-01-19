@@ -309,7 +309,6 @@ describe("exec plugin", () => {
       force: false,
       forceBuild: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
     const results = await _garden.processTasks({ tasks: [taskTask], throwOnError: false })
@@ -336,7 +335,6 @@ describe("exec plugin", () => {
       force: false,
       forceBuild: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
@@ -361,7 +359,6 @@ describe("exec plugin", () => {
       force: false,
       forceBuild: false,
       devModeDeployNames: [],
-
       localModeDeployNames: [],
     })
 
