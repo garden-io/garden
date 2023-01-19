@@ -21,7 +21,7 @@ import {
   V1DeploymentSpec,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
-import { getCurrentWorkloadPods } from "../util"
+import { getCurrentWorkloadPods, renderPodEvents } from "../util"
 import { getFormattedPodLogs, POD_LOG_LINES } from "./pod"
 import { ResourceStatus, StatusHandlerParams } from "./status"
 import { getResourceEvents } from "./events"
@@ -71,15 +71,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
     // List events
     const events = await getEvents()
     if (events.length > 0) {
-      logs += chalk.white("━━━ Events ━━━")
-      for (const event of events) {
-        const obj = event.involvedObject
-        const name = chalk.blueBright(`${obj.kind} ${obj.name}:`)
-        const msg = `${event.reason} - ${event.message}`
-        const colored =
-          event.type === "Error" ? chalk.red(msg) : event.type === "Warning" ? chalk.yellow(msg) : chalk.white(msg)
-        logs += `\n${name} ${colored}`
-      }
+      logs += renderPodEvents(events)
     }
 
     // Attach pod logs for debug output

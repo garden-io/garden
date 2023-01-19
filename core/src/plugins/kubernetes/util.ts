@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { get, flatten, sortBy, omit, chain, sample, isEmpty, find, cloneDeep } from "lodash"
-import { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1EventList } from "@kubernetes/client-node"
+import { V1Pod, V1EnvVar, V1Container, V1PodSpec, CoreV1Event } from "@kubernetes/client-node"
 import { apply as jsonMerge } from "json-merge-patch"
 import chalk from "chalk"
 import hasha from "hasha"
@@ -759,8 +759,22 @@ export function usingInClusterRegistry(provider: KubernetesProvider) {
   return provider.config.deploymentRegistry?.hostname === inClusterRegistryHostname
 }
 
-export function renderPodEventsTable(events: CoreV1EventList["items"]): string {
-  return events
-    .map((event) => `Type=${event.type} Reason=${event.reason} Message=${event.message || "No message"}`)
-    .join("\n")
+export function renderPodEvents(events: CoreV1Event[]): string {
+  let text = ""
+
+  text += `${chalk.white("━━━ Events ━━━")}\n`
+  for (const event of events) {
+    const obj = event.involvedObject
+    const name = chalk.blueBright(`${obj.kind} ${obj.name}:`)
+    const msg = `${event.reason} - ${event.message}`
+    const colored =
+      event.type === "Error" ? chalk.red(msg) : event.type === "Warning" ? chalk.yellow(msg) : chalk.white(msg)
+    text += `${name} ${colored}\n`
+  }
+
+  if (events.length === 0) {
+    text += `${chalk.red("No matching events found")}\n`
+  }
+
+  return text
 }

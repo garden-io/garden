@@ -9,7 +9,7 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick, some } from "lodash"
-import { CoreV1EventList, V1Container, V1ContainerStatus, V1Pod, V1PodSpec, V1PodStatus } from "@kubernetes/client-node"
+import { CoreV1Event, V1Container, V1ContainerStatus, V1Pod, V1PodSpec, V1PodStatus } from "@kubernetes/client-node"
 import { RunResult } from "../../types/plugin/base"
 import { GardenModule } from "../../types/module"
 import { LogEntry } from "../../logger/log-entry"
@@ -30,7 +30,7 @@ import { getPodLogs, checkPodStatus } from "./status/pod"
 import { KubernetesResource, KubernetesPod, KubernetesServerResource } from "./types"
 import { RunModuleParams } from "../../types/plugin/module/runModule"
 import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
-import { prepareEnvVars, makePodName, renderPodEventsTable } from "./util"
+import { prepareEnvVars, makePodName, renderPodEvents } from "./util"
 import { deline, randomString } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
 import { prepareSecrets } from "./secrets"
@@ -45,6 +45,7 @@ import { K8sLogFollower, PodLogEntryConverter, PodLogEntryConverterParams } from
 import { Stream } from "ts-stream"
 import { LogLevel } from "../../logger/logger"
 import dedent from "dedent"
+import { getResourceEvents } from "./status/events"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -746,7 +747,7 @@ export interface PodErrorDetails {
   containerStatus?: V1ContainerStatus
   podStatus?: V1PodStatus
   result?: ExecInPodResult
-  podEvents?: CoreV1EventList
+  podEvents?: CoreV1Event[]
 }
 
 export class PodRunner extends PodRunnerParams {
@@ -832,8 +833,8 @@ export class PodRunner extends PodRunnerParams {
       // Wait until main container terminates
       const exitCode = await this.awaitRunningPod(params, startedAt)
 
-      const events = await this.getPodEvents()
-      if (some(events.items, (event) => event.reason === "Killing")) {
+      const events = await getResourceEvents(this.api, this.pod)
+      if (some(events, (event) => event.reason === "Killing")) {
         const details: PodErrorDetails = { podEvents: events }
         throw new NotFoundError("Pod has been killed or evicted.", details)
       }
@@ -869,9 +870,9 @@ export class PodRunner extends PodRunnerParams {
     const mainContainerName = this.getMainContainerName()
 
     const notFoundErrorDetails = async (): Promise<PodErrorDetails> => {
-      let podEvents: CoreV1EventList | undefined
+      let podEvents: CoreV1Event[] | undefined
       try {
-        podEvents = await this.getPodEvents()
+        podEvents = await getResourceEvents(this.api, this.pod)
       } catch (e) {
         podEvents = undefined
       }
@@ -1078,16 +1079,6 @@ export class PodRunner extends PodRunnerParams {
     }
   }
 
-  async getPodEvents(): Promise<CoreV1EventList> {
-    return await this.api.core.listNamespacedEvent(
-      this.namespace,
-      undefined,
-      undefined,
-      undefined,
-      `involvedObject.name=${this.podName}`
-    )
-  }
-
   /**
    * Removes the Pod from the cluster, if it's running. You can safely call this even
    * if the process is no longer active.
@@ -1198,7 +1189,7 @@ export class PodRunner extends PodRunnerParams {
             }
           }
 
-          if (logs !== undefined && logs.length > 0) {
+          if (!!logs) {
             errorDesc += `Here are the logs until the error occurred:\n\n${logs}`
           }
 
@@ -1214,8 +1205,9 @@ export class PodRunner extends PodRunnerParams {
 
             https://kubernetes.io/docs/concepts/workloads/pods/disruptions/`
 
-          if (error.detail.podEvents !== undefined && error.detail.podEvents.items.length > 0) {
-            notFoundError += `\n\nRecent Pod events:\n${renderPodEventsTable(error.detail.podEvents.items)}`
+          const events = error.detail.podEvents
+          if (!!events) {
+            notFoundError += `\n\n${renderPodEvents(events)}`
           }
 
           return notFoundError
