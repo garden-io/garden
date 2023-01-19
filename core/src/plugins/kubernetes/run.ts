@@ -208,9 +208,18 @@ export async function runAndCopy({
   if (getArtifacts) {
     const outputStream = new PassThrough()
 
+    const statusLine = log.placeholder({ level: LogLevel.verbose })
+
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
       ctx.events.emit("log", { timestamp: new Date().getTime(), data })
+      if (!interactive) {
+        // TODO: At some point we should write task logs to our logger in the same location
+        // where the PluginEventBroker handles the `log` events, instead of repeating this logic
+        // all over the place.
+        // This is so easy to forget, and can lead to a degraded user experience if left out.
+        statusLine.setState(renderOutputStream(data.toString(), `${podName}`))
+      }
     })
 
     return runWithArtifacts({
