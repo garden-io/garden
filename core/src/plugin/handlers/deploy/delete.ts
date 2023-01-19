@@ -12,10 +12,20 @@ import { dedent } from "../../../util/string"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
 import { ActionTypeHandlerSpec } from "../base/base"
 import type { ActionStatus, Resolved } from "../../../actions/types"
+import { createSchema } from "../../../config/common"
+import { actionStatusSchema } from "../../../actions/base"
 
 interface DeleteDeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
 
 type DeleteDeployStatus<T extends DeployAction = DeployAction> = ActionStatus<T, ServiceStatus, {}>
+
+export const getDeleteDeployResultSchema = createSchema({
+  name: "delete-deploy-result",
+  keys: {
+    detail: serviceStatusSchema,
+  },
+  extend: actionStatusSchema,
+})
 
 export class DeleteDeploy<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
@@ -29,5 +39,5 @@ export class DeleteDeploy<T extends DeployAction = DeployAction> extends ActionT
   `
 
   paramsSchema = () => actionParamsSchema()
-  resultSchema = () => serviceStatusSchema()
+  resultSchema = () => getDeleteDeployResultSchema()
 }
