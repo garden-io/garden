@@ -399,8 +399,9 @@ describe("exec plugin", () => {
       const actions = await garden.getActionRouter()
       const resolvedAction = await garden.resolveAction({ action, log, graph })
       const res = await actions.build.build({ log, action: resolvedAction, graph })
-      // TODO-G2 figure the expect out here
-      expect(res.detail).to.eql(join(garden.projectRoot, "module-local"))
+
+      const expectedBuildLog = join(garden.projectRoot, "module-local")
+      expect(res.detail).to.eql({ buildLog: expectedBuildLog, fresh: true })
     })
 
     it("should receive module version as an env var", async () => {
@@ -411,8 +412,7 @@ describe("exec plugin", () => {
       const resolvedAction = await garden.resolveAction({ log, graph, action })
       const res = await actions.build.build({ log, action: resolvedAction, graph })
 
-      // TODO-G2 figure the expect out here
-      expect(res.outputs).to.equal(action.versionString())
+      expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
     })
   })
 
