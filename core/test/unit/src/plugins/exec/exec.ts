@@ -878,7 +878,8 @@ describe("exec plugin", () => {
 
     describe("getExecServiceStatus", async () => {
       it("returns 'unknown' if no statusCommand is set", async () => {
-        const rawAction = graph.getDeploy("error")
+        const actionName = "error"
+        const rawAction = graph.getDeploy(actionName)
         const router = await garden.getActionRouter()
         const action = await garden.resolveAction({ graph, log, action: rawAction })
         const res = await router.getDeployStatuses({
@@ -886,11 +887,18 @@ describe("exec plugin", () => {
           graph,
           names: [action.name],
         })
-        expect(res.state).to.equal("unknown")
+
+        const actionRes = res[actionName]
+        expect(actionRes.state).to.equal("unknown")
+        const detail = actionRes.detail!
+        expect(detail.state).to.equal("unknown")
+        expect(detail.version).to.equal(action.versionString())
+        expect(detail.detail).to.be.empty
       })
 
       it("returns 'ready' if statusCommand returns zero exit code", async () => {
-        const rawAction = graph.getDeploy("touch")
+        const actionName = "touch"
+        const rawAction = graph.getDeploy(actionName)
         const router = await garden.getActionRouter()
         const action = await garden.resolveAction({ graph, log, action: rawAction })
         await router.deploy.deploy({
@@ -907,13 +915,18 @@ describe("exec plugin", () => {
           graph,
           names: [action.name],
         })
-        expect(res.state).to.equal("ready")
-        expect(res.version).to.equal(action.versionString())
-        // expect(res.detail.statusCommandOutput).to.equal("already deployed") TODO-G2
+
+        const actionRes = res[actionName]
+        expect(actionRes.state).to.equal("ready")
+        const detail = actionRes.detail!
+        expect(detail.state).to.equal("ready")
+        expect(detail.version).to.equal(action.versionString())
+        expect(detail.detail.statusCommandOutput).to.equal("already deployed")
       })
 
       it("returns 'outdated' if statusCommand returns non-zero exit code", async () => {
-        const rawAction = graph.getDeploy("touch")
+        const actionName = "touch"
+        const rawAction = graph.getDeploy(actionName)
         const router = await garden.getActionRouter()
         const action = await garden.resolveAction({ graph, log, action: rawAction })
         const res = await router.getDeployStatuses({
@@ -921,8 +934,13 @@ describe("exec plugin", () => {
           log,
           names: [action.name],
         })
-        expect(res.state).to.equal("outdated")
-        expect(res.version).to.equal(action.versionString())
+
+        const actionRes = res[actionName]
+        expect(actionRes.state).to.equal("outdated")
+        const detail = actionRes.detail!
+        expect(detail.state).to.equal("outdated")
+        expect(detail.version).to.equal(action.versionString())
+        expect(detail.detail.statusCommandOutput).to.be.empty
       })
     })
 
