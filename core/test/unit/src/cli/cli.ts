@@ -171,7 +171,10 @@ describe("cli", () => {
         const helpText = stripAnsi(await cli.renderHelp(root))
 
         expect(helpText).to.include("CUSTOM COMMANDS")
-        expect(helpText).to.include("combo     A complete example using most available features")
+
+        expect(helpText).to.include("combo     A complete example using most")
+        expect(helpText).to.include("available features") // There's a line break
+
         expect(helpText).to.include("echo      Just echo a string")
         expect(helpText).to.include("run-task  Run the specified task")
       })
