@@ -206,10 +206,9 @@ describe("cli", () => {
       })
 
       it("exits with code 1 if Garden command fails", async () => {
-        throw "TODO: looks like this causes an infinite loop or a memory leak. Commented out for now"
-        // const res = await cli.run({ args: ["run-task", "fail"], exitOnError: false, cwd: root })
+        const res = await cli.run({ args: ["run", "fail"], exitOnError: false, cwd: root })
 
-        // expect(res.code).to.equal(1)
+        expect(res.code).to.equal(1)
       })
     })
 
