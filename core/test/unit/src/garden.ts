@@ -95,9 +95,6 @@ describe("Garden", () => {
     "getEnvironmentStatus",
     "prepareEnvironment",
     "cleanupEnvironment",
-    "getSecret",
-    "setSecret",
-    "deleteSecret",
     "getDashboardPage",
     "getDebugInfo",
   ]

@@ -11,7 +11,6 @@ import Bluebird from "bluebird"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { helmModuleHandlers } from "./helm/handlers"
 import { getAppNamespace, getSystemNamespace } from "./namespace"
-import { getSecret, setSecret, deleteSecret } from "./secrets"
 import { getEnvironmentStatus, prepareEnvironment, cleanupEnvironment } from "./init"
 import { containerHandlers } from "./container/handlers"
 import { kubernetesHandlers } from "./kubernetes-type/handlers"
@@ -40,7 +39,12 @@ import { helm3Spec } from "./helm/helm-cli"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
 import { configMapModuleDefinition } from "./volumes/configmap"
-import { k8sContainerBuildExtension, k8sContainerDeployExtension, k8sContainerRunExtension, k8sContainerTestExtension } from "./container/extensions"
+import {
+  k8sContainerBuildExtension,
+  k8sContainerDeployExtension,
+  k8sContainerRunExtension,
+  k8sContainerTestExtension,
+} from "./container/extensions"
 import { helmDeployDefinition, helmDeployDocs } from "./helm/action"
 import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
@@ -160,9 +164,6 @@ export const gardenPlugin = () =>
       getEnvironmentStatus,
       prepareEnvironment,
       cleanupEnvironment,
-      getSecret,
-      setSecret,
-      deleteSecret,
       getDebugInfo: debugInfo,
     },
 

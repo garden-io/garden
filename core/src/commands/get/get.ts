@@ -10,7 +10,6 @@ import { CommandGroup } from "../base"
 import { GetGraphCommand } from "./get-graph"
 import { GetConfigCommand } from "./get-config"
 import { GetEysiCommand } from "./get-eysi"
-import { GetSecretCommand } from "./get-secret"
 import { GetStatusCommand } from "./get-status"
 import { GetRunsCommand } from "./get-runs"
 import { GetRunResultCommand } from "./get-run-result"
@@ -36,7 +35,6 @@ export class GetCommand extends CommandGroup {
     GetLinkedReposCommand,
     GetOutputsCommand,
     GetModulesCommand,
-    GetSecretCommand,
     GetStatusCommand,
     GetRunsCommand,
     GetTestsCommand,
