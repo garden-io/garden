@@ -7,13 +7,12 @@
  */
 
 import { Command, CommandParams } from "../base"
-import { testResultSchema } from "../../types/test"
 import { printHeader } from "../../logger/util"
 import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joi, joiArray } from "../../config/common"
-import { GetTestResult } from "../../plugin/handlers/test/get-result"
-import { ParameterValues, StringParameter } from "../../cli/params"
+import { GetTestResult, getTestResultSchema } from "../../plugin/handlers/test/get-result"
+import { ParameterValues, StringOption, StringParameter } from "../../cli/params"
 import { ParameterError } from "../../exceptions"
 import { ConfigGraph } from "../../graph/config-graph"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
@@ -25,7 +24,7 @@ const getTestResultArgs = {
       "The name of the test. If this test belongs to a module, specify the module name here instead, and specify the test name from the module in the second argument.",
     required: true,
   }),
-  moduleTestName: new StringParameter({
+  moduleTestName: new StringOption({
     help: "When the test belongs to a module, specify its name here (i.e. as the second argument).",
     required: false,
   }),
@@ -48,7 +47,7 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
   arguments = getTestResultArgs
 
   outputsSchema = () =>
-    testResultSchema()
+    getTestResultSchema()
       .keys({
         artifacts: joiArray(joi.string()).description("Local file paths to any exported artifacts from the test run."),
       })
