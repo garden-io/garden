@@ -115,15 +115,7 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
 export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEntry, format: string) {
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
-  const dockerLog = log.info({ section: "Docker", msg: "collecting info", status: "active" })
-  let dockerVersion = ""
-  try {
-    dockerVersion = (await exec("docker", ["--version"])).stdout
-    dockerLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
-  } catch (error) {
-    log.error("Error encountered while executing docker")
-    log.error(error)
-  }
+
   const systemLog = log.info({ section: "Operating System", msg: "collecting info", status: "active" })
   const gardenLog = log.info({ section: "Garden", msg: "getting version", status: "active" })
 
@@ -131,7 +123,6 @@ export async function collectSystemDiagnostic(gardenDirPath: string, log: LogEnt
     gardenVersion: getPackageVersion(),
     platform: platform(),
     platformVersion: release(),
-    dockerVersion,
   }
 
   systemLog.setSuccess({ msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`), append: true })
