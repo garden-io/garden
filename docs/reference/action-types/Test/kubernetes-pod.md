@@ -12,7 +12,7 @@ Run a test in an ad-hoc instance of a Kubernetes Pod.
 TODO-G2
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -413,9 +413,7 @@ spec:
     # controller is enabled, overhead must not be set in Pod create requests. The RuntimeClass admission controller
     # will reject Pod create requests which have the overhead already set. If RuntimeClass is configured and selected
     # in the PodSpec, Overhead will be set to the value defined in the corresponding RuntimeClass, otherwise it will
-    # remain unset and treated as zero. More info:
-    # https://git.k8s.io/enhancements/keps/sig-node/20190226-pod-overhead.md This field is alpha-level as of
-    # Kubernetes v1.16, and is only honored by servers that enable the PodOverhead feature.
+    # remain unset and treated as zero.
     overhead:
 
     # PreemptionPolicy is the Policy for preempting pods with lower priority. One of Never, PreemptLowerPriority.
@@ -435,8 +433,7 @@ spec:
     priorityClassName:
 
     # If specified, all readiness gates will be evaluated for pod readiness. A pod is ready when all its containers
-    # are ready AND all conditions specified in the readiness gates have status equal to "True" More info:
-    # https://git.k8s.io/enhancements/keps/sig-network/0007-pod-ready%2B%2B.md
+    # are ready AND all conditions specified in the readiness gates have status equal to "True"
     readinessGates:
 
     # Restart policy for all containers within the pod. One of Always, OnFailure, Never. Default to Always. More info:
@@ -446,8 +443,7 @@ spec:
     # RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.
     # If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the "legacy"
     # RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime
-    # handler. More info: https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md This is a beta feature as of
-    # Kubernetes v1.14.
+    # handler.
     runtimeClassName:
 
     # If specified, the pod will be dispatched by specified scheduler. If not specified, the pod will be dispatched by
@@ -1356,7 +1352,7 @@ NodeSelector is a selector which must be true for the pod to fit on a node. Sele
 
 [spec](#spec) > [podSpec](#specpodspec) > overhead
 
-Overhead represents the resource overhead associated with running a pod for a given RuntimeClass. This field will be autopopulated at admission time by the RuntimeClass admission controller. If the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests. The RuntimeClass admission controller will reject Pod create requests which have the overhead already set. If RuntimeClass is configured and selected in the PodSpec, Overhead will be set to the value defined in the corresponding RuntimeClass, otherwise it will remain unset and treated as zero. More info: https://git.k8s.io/enhancements/keps/sig-node/20190226-pod-overhead.md This field is alpha-level as of Kubernetes v1.16, and is only honored by servers that enable the PodOverhead feature.
+Overhead represents the resource overhead associated with running a pod for a given RuntimeClass. This field will be autopopulated at admission time by the RuntimeClass admission controller. If the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests. The RuntimeClass admission controller will reject Pod create requests which have the overhead already set. If RuntimeClass is configured and selected in the PodSpec, Overhead will be set to the value defined in the corresponding RuntimeClass, otherwise it will remain unset and treated as zero.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1396,7 +1392,7 @@ If specified, indicates the pod's priority. "system-node-critical" and "system-c
 
 [spec](#spec) > [podSpec](#specpodspec) > readinessGates
 
-If specified, all readiness gates will be evaluated for pod readiness. A pod is ready when all its containers are ready AND all conditions specified in the readiness gates have status equal to "True" More info: https://git.k8s.io/enhancements/keps/sig-network/0007-pod-ready%2B%2B.md
+If specified, all readiness gates will be evaluated for pod readiness. A pod is ready when all its containers are ready AND all conditions specified in the readiness gates have status equal to "True"
 
 | Type    | Required |
 | ------- | -------- |
@@ -1416,7 +1412,7 @@ Restart policy for all containers within the pod. One of Always, OnFailure, Neve
 
 [spec](#spec) > [podSpec](#specpodspec) > runtimeClassName
 
-RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.  If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime handler. More info: https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md This is a beta feature as of Kubernetes v1.14.
+RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.  If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime handler.
 
 | Type     | Required |
 | -------- | -------- |

@@ -443,7 +443,7 @@ export const gardenPlugin = () =>
           docs: dedent`
             Run a command in a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
 
-            This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
+            This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [kubernetes-pod](./kubernetes-pod.md).
           `,
           schema: containerRunActionSchema(),
           runtimeOutputsSchema: containerRunOutputSchema(),
@@ -462,7 +462,7 @@ export const gardenPlugin = () =>
           docs: dedent`
             Define a Test which runs a command in a container image, e.g. in a Kubernetes namespace (when used with the \`kubernetes\` provider).
 
-            This is a simplified abstraction, which can be convenient for simple scenarios, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Test types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
+            This is a simplified abstraction, which can be convenient for simple scenarios, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Test types like [kubernetes-pod](./kubernetes-pod.md).
           `,
           schema: containerTestActionSchema(),
           runtimeOutputsSchema: containerTestOutputSchema(),

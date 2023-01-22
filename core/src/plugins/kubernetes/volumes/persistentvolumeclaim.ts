@@ -58,15 +58,13 @@ type PersistentVolumeClaimAction = DeployAction<PersistentVolumeClaimActionConfi
 const jsonSchema = () =>
   JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "persistentvolumeclaim.json")).toString())
 
-const docs = dedent`
-  Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
-
-  See the [PersistentVolumeClaim](../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
-`
-
 export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<PersistentVolumeClaimAction> => ({
   name: "persistentvolumeclaim",
-  docs,
+  docs: dedent`
+    Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [\`container\` Deploy actions](./container.md).
+
+    See the [PersistentVolumeClaim](../../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
+  `,
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
     configure: async ({ config }) => {
@@ -103,7 +101,11 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
 
 export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   name: "persistentvolumeclaim",
-  docs,
+  docs: dedent`
+    Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
+
+    See the [PersistentVolumeClaim](../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
+  `,
 
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),

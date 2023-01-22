@@ -12,7 +12,7 @@ Specify a Helm chart (either in your repository or remote from a registry) to de
 Refer to the [Helm guide](https://docs.garden.io/guides/using-helm-charts) for usage instructions.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

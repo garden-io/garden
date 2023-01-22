@@ -54,7 +54,7 @@ $ tree .garden/build/frontend -L 2
 
 This is the build context Garden will use when building the `frontend` module.
 
-In this example there's no "build" step for the `exec` module, but you can add it via the `build` field. Check out our [`local-exec` project](../local-exec/backend/garden.yml) for an example of this.
+In this example there's no "build" step for the `exec` module, but you can add it via the `build` field. Check out our [`local-exec` project](../local-exec/README.md) for an example of this.
 
 ## Usage
 

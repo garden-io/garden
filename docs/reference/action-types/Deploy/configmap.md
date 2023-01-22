@@ -1,22 +1,22 @@
 ---
-title: "`container` Test"
-tocTitle: "`container` Test"
+title: "`configmap` Deploy"
+tocTitle: "`configmap` Deploy"
 ---
 
-# `container` Test
+# `configmap` Deploy
 
 ## Description
 
-Define a Test which runs a command in a container image, e.g. in a Kubernetes namespace (when used with the `kubernetes` provider).
+Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-This is a simplified abstraction, which can be convenient for simple scenarios, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Test types like [kubernetes-pod](./kubernetes-pod.md).
+See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/guides/container-modules#mounting-kubernetes-configmaps) guide for more info and usage examples.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-`container` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+`configmap` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ## Complete YAML Schema
 
@@ -153,95 +153,13 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
-# Set a timeout for the test to complete, in seconds.
-timeout:
-
 spec:
-  # The command/entrypoint to run the container with.
-  command:
+  # The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same
+  # namespace, so in most cases you should leave this unset.
+  namespace:
 
-  # The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
-  args:
-
-  # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-  # `GARDEN`) and values must be primitives or references to secrets.
-  env: {}
-
-  cpu:
-    # The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
-    # CPU)
-    min: 10
-
-    # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in
-    # no limit being set.
-    max: 1000
-
-  memory:
-    # The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
-    # GB)
-    min: 90
-
-    # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
-    # no limit being set.
-    max: 1024
-
-  # List of volumes that should be mounted when starting the container.
-  #
-  # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-  # deploying the container.
-  volumes:
-    - # The name of the allocated volume.
-      name:
-
-      # The path where the volume should be mounted in the container.
-      containerPath:
-
-      # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-      # and providers. Some providers may not support it at all._
-      #
-      # A local path or path on the node that's running the container, to mount in the container, relative to the
-      # config source directory (or absolute).
-      hostPath:
-
-      # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are
-      # `persistentvolumeclaim` and `configmap`, for example.
-      #
-      # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-      # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-      # services at the same time. Refer to the documentation of the module type in question to learn more.
-      action:
-
-  # If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent
-  # to root on the host. Defaults to false.
-  privileged:
-
-  # POSIX capabilities to add when running the container.
-  addCapabilities:
-
-  # POSIX capabilities to remove when running the container.
-  dropCapabilities:
-
-  # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
-  tty: false
-
-  # Specifies the container's deployment strategy.
-  deploymentStrategy: RollingUpdate
-
-  # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
-  # `.garden/artifacts` directory.
-  #
-  # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
-  # the file transfer.
-  artifacts:
-    - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-      source:
-
-      # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
-      # `.garden/artifacts`.
-      target: .
-
-  # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
-  image:
+  # The ConfigMap data, as a key/value map of string values.
+  data:
 ```
 
 ## Configuration Keys
@@ -465,333 +383,39 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `string` | No       |
 
-### `timeout`
-
-Set a timeout for the test to complete, in seconds.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
 ### `spec`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.command[]`
+### `spec.namespace`
 
-[spec](#spec) > command
+[spec](#spec) > namespace
 
-The command/entrypoint to run the container with.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  command:
-    - /bin/sh
-    - '-c'
-```
-
-### `spec.args[]`
-
-[spec](#spec) > args
-
-The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  args:
-    - npm
-    - start
-```
-
-### `spec.env`
-
-[spec](#spec) > env
-
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  env:
-      - MY_VAR: some-value
-        MY_SECRET_VAR:
-          secretRef:
-            name: my-secret
-            key: some-key
-      - {}
-```
-
-### `spec.cpu`
-
-[spec](#spec) > cpu
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
-
-### `spec.cpu.min`
-
-[spec](#spec) > [cpu](#speccpu) > min
-
-The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
-### `spec.cpu.max`
-
-[spec](#spec) > [cpu](#speccpu) > max
-
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
-
-### `spec.memory`
-
-[spec](#spec) > memory
-
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
-
-### `spec.memory.min`
-
-[spec](#spec) > [memory](#specmemory) > min
-
-The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `spec.memory.max`
-
-[spec](#spec) > [memory](#specmemory) > max
-
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1024`  | No       |
-
-### `spec.volumes[]`
-
-[spec](#spec) > volumes
-
-List of volumes that should be mounted when starting the container.
-
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `spec.volumes[].name`
-
-[spec](#spec) > [volumes](#specvolumes) > name
-
-The name of the allocated volume.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `spec.volumes[].containerPath`
-
-[spec](#spec) > [volumes](#specvolumes) > containerPath
-
-The path where the volume should be mounted in the container.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-### `spec.volumes[].hostPath`
-
-[spec](#spec) > [volumes](#specvolumes) > hostPath
-
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
-
-A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  volumes:
-    - hostPath: "/some/dir"
-```
-
-### `spec.volumes[].action`
-
-[spec](#spec) > [volumes](#specvolumes) > action
-
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
-
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
-
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
-
-### `spec.privileged`
-
-[spec](#spec) > privileged
-
-If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
-
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
-
-### `spec.addCapabilities[]`
-
-[spec](#spec) > addCapabilities
-
-POSIX capabilities to add when running the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.dropCapabilities[]`
-
-[spec](#spec) > dropCapabilities
-
-POSIX capabilities to remove when running the container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.tty`
-
-[spec](#spec) > tty
-
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
-
-### `spec.deploymentStrategy`
-
-[spec](#spec) > deploymentStrategy
-
-Specifies the container's deployment strategy.
-
-| Type     | Allowed Values              | Default           | Required |
-| -------- | --------------------------- | ----------------- | -------- |
-| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
-
-### `spec.artifacts[]`
-
-[spec](#spec) > artifacts
-
-Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the `.garden/artifacts` directory.
-
-Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable the file transfer.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - source: /report/**/*
-```
-
-### `spec.artifacts[].source`
-
-[spec](#spec) > [artifacts](#specartifacts) > source
-
-A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - source: /report/**/*
-    - source: "/output/**/*"
-```
-
-### `spec.artifacts[].target`
-
-[spec](#spec) > [artifacts](#specartifacts) > target
-
-A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - source: /report/**/*
-    - target: "outputs/foo/"
-```
-
-### `spec.image`
-
-[spec](#spec) > image
-
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset.
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
 
+### `spec.data`
+
+[spec](#spec) > data
+
+The ConfigMap data, as a key/value map of string values.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
 
 ## Outputs
 
-The following keys are available via the `${actions.test.<name>}` template string key for `container`
+The following keys are available via the `${actions.deploy.<name>}` template string key for `configmap`
 modules.
 
-### `${actions.test.<name>.buildPath}`
+### `${actions.deploy.<name>.buildPath}`
 
 The build path of the action/module.
 
@@ -802,10 +426,10 @@ The build path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.test.my-test.buildPath}
+my-variable: ${actions.deploy.my-deploy.buildPath}
 ```
 
-### `${actions.test.<name>.name}`
+### `${actions.deploy.<name>.name}`
 
 The name of the action/module.
 
@@ -813,7 +437,7 @@ The name of the action/module.
 | -------- |
 | `string` |
 
-### `${actions.test.<name>.path}`
+### `${actions.deploy.<name>.path}`
 
 The source path of the action/module.
 
@@ -824,10 +448,10 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.test.my-test.path}
+my-variable: ${actions.deploy.my-deploy.path}
 ```
 
-### `${actions.test.<name>.var.*}`
+### `${actions.deploy.<name>.var.*}`
 
 A map of all variables defined in the module.
 
@@ -835,13 +459,13 @@ A map of all variables defined in the module.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.test.<name>.var.<variable-name>}`
+### `${actions.deploy.<name>.var.<variable-name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${actions.test.<name>.version}`
+### `${actions.deploy.<name>.version}`
 
 The current version of the module.
 
@@ -852,13 +476,5 @@ The current version of the module.
 Example:
 
 ```yaml
-my-variable: ${actions.test.my-test.version}
+my-variable: ${actions.deploy.my-deploy.version}
 ```
-
-### `${actions.test.<name>.outputs.log}`
-
-The full log output from the executed action. (Pro-tip: Make it machine readable so it can be parsed by dependants)
-
-| Type     | Default |
-| -------- | ------- |
-| `string` | `""`    |

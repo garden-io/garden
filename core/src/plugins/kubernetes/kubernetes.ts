@@ -34,11 +34,11 @@ import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 import { DOCS_BASE_URL } from "../../constants"
 import { defaultIngressClass } from "./constants"
-import { pvcModuleDefinition } from "./volumes/persistentvolumeclaim"
+import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim"
 import { helm3Spec } from "./helm/helm-cli"
 import { isString } from "lodash"
 import { mutagenCliSpec } from "./mutagen"
-import { configMapModuleDefinition } from "./volumes/configmap"
+import { configMapModuleDefinition, configmapDeployDefinition } from "./volumes/configmap"
 import {
   k8sContainerBuildExtension,
   k8sContainerDeployExtension,
@@ -168,7 +168,12 @@ export const gardenPlugin = () =>
     },
 
     createActionTypes: {
-      Deploy: [kubernetesDeployDefinition(), helmDeployDefinition()],
+      Deploy: [
+        kubernetesDeployDefinition(),
+        helmDeployDefinition(),
+        configmapDeployDefinition(),
+        persistentvolumeclaimDeployDefinition(),
+      ],
       Run: [kubernetesRunDefinition()],
       Test: [kubernetesTestDefinition()],
     },

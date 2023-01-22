@@ -26,7 +26,7 @@ import { ProcessCommandResult } from "../../../../src/commands/base"
 import { nodeKey } from "../../../../src/graph/modules"
 
 describe("BuildCommand", () => {
-  it("should build all modules in a project and output the results", async () => {
+  it("should build everything in a project and output the results", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     const footerLog = garden.log
@@ -82,7 +82,7 @@ describe("BuildCommand", () => {
     expect(buildModuleCVersion).to.eql(graph.getBuild("module-c").moduleVersion().versionString)
   })
 
-  it("should optionally build single module and its dependencies", async () => {
+  it("should optionally run single build and its dependencies", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
     const footerLog = garden.log
