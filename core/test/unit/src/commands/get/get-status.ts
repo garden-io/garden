@@ -6,128 +6,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
-import execa from "execa"
 
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { customizedTestPlugin, TestGarden } from "../../../../helpers"
+import { makeTestGardenA } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
 import { LogLevel } from "../../../../../src/logger/logger"
 import { getLogMessages } from "../../../../../src/util/testing"
-import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
-import { execDeployActionSchema } from "../../../../../src/plugins/exec/config"
 
 describe("GetStatusCommand", () => {
-  let tmpDir: tmp.DirectoryResult
-  let config: ProjectConfig
-
-  before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
-
-    config = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
-      path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [{ name: "test" }],
-      variables: {},
-    }
-  })
-
-  after(async () => {
-    await tmpDir.cleanup()
-  })
-
   describe("action", () => {
-    it("should warn if a service's status can't be resolved", async () => {
-      // TODO-G2: remove commented code and ensure proper actions config
-      // const testPlugin = createGardenPlugin({
-      //   name: "test",
-      //   createModuleTypes: [
-      //     {
-      //       name: "test",
-      //       docs: "test",
-      //       serviceOutputsSchema: joi.object().keys({ log: joi.string() }),
-      //       handlers: {
-      //         build: async () => ({}),
-      //         getServiceStatus: async ({ service }: GetServiceStatusParams) => {
-      //           return {
-      //             state: <ServiceState>"ready",
-      //             detail: {},
-      //             outputs: { log: service.spec.log },
-      //           }
-      //         },
-      //       },
-      //     },
-      //   ],
-      // })
+    it("returns statuses for all actions in a project", async () => {
+      throw "TODO"
+    })
 
-      const testPlugin = customizedTestPlugin({
-        createActionTypes: {
-          Deploy: [
-            {
-              name: "test",
-              docs: "Test Deploy action",
-              schema: execDeployActionSchema(),
-              handlers: {
-                getStatus: async (_params) => {
-                  return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
-                },
-              },
-            },
-          ],
+    it("should warn if a service's status can't be resolved", async () => {
+      const garden = await makeTestGardenA()
+      const command = new GetStatusCommand()
+      const log = garden.log
+
+      await garden.setTestActionStatus({
+        log,
+        kind: "Deploy",
+        name: "service-a",
+        status: {
+          state: "unknown",
+          detail: { state: "unknown", detail: {} },
+          outputs: {},
         },
       })
 
-      const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
-
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          name: "test",
-          type: "test",
-          allowPublish: false,
-          disabled: false,
-          build: { dependencies: [] },
-          path: tmpDir.path,
-          serviceConfigs: [
-            {
-              name: "test-service",
-              dependencies: ["test-task"],
-              disabled: false,
-
-              spec: {
-                log: "${runtime.tasks.test-task.outputs.log}",
-              },
-            },
-          ],
-          taskConfigs: [
-            {
-              name: "test-task",
-              cacheResult: true,
-              dependencies: [],
-              disabled: false,
-              spec: {
-                log: "test output",
-              },
-              timeout: 10,
-            },
-          ],
-          testConfigs: [],
-          spec: { bla: "fla" },
-        },
-      ])
-
-      const command = new GetStatusCommand()
-      const log = garden.log
       const { result } = await command.action({
         garden,
         log,
@@ -142,7 +50,7 @@ describe("GetStatusCommand", () => {
       const logMessages = getLogMessages(log, (l) => l.level === LogLevel.warn)
 
       expect(logMessages).to.include(
-        "Unable to resolve status for service test-service. It is likely missing or outdated. This can come up if the service has runtime dependencies that are not resolvable, i.e. not deployed or invalid."
+        "Unable to resolve status for Deploy service-a. It is likely missing or outdated. This can come up if the deployment has runtime dependencies that are not resolvable, i.e. not deployed or invalid."
       )
     })
   })

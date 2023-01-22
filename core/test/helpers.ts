@@ -261,9 +261,6 @@ export const testPlugin = () =>
             getResult: async ({ ctx, action }) => {
               console.log(ctx.provider)
               const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
-              console.log(get(ctx.provider, ["_actionStatuses"]))
-              console.log(get(ctx.provider, ["_actionStatuses", action.kind]))
-              console.log(result)
               return result || { state: "not-ready", detail: null, outputs: {} }
             },
           },

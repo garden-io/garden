@@ -23,6 +23,7 @@ import { getTestResultSchema, TestStatusMap } from "../../plugin/handlers/test/g
 import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/run/get-result"
 import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/deploy/get-status"
 import { ActionRouter } from "../../router/router"
+import { sanitizeValue } from "../../logger/logger"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
@@ -63,7 +64,6 @@ export class GetStatusCommand extends Command {
     const graph = await garden.getResolvedConfigGraph({ log, emit: true })
 
     const envStatus = await garden.getEnvironmentStatus(log)
-    const serviceStatuses = await router.getDeployStatuses({ log, graph })
 
     let result: StatusCommandResult = {
       providers: envStatus,
@@ -75,13 +75,15 @@ export class GetStatusCommand extends Command {
       }),
     }
 
-    for (const [name, serviceStatus] of Object.entries(serviceStatuses)) {
-      if (serviceStatus.state === "unknown") {
+    const deployStatuses = result.actions.Deploy
+
+    for (const [name, status] of Object.entries(deployStatuses)) {
+      if (status.state === "unknown") {
         log.warn(
           chalk.yellow(
             deline`
-            Unable to resolve status for service ${chalk.white(name)}. It is likely missing or outdated.
-            This can come up if the service has runtime dependencies that are not resolvable, i.e. not deployed or
+            Unable to resolve status for Deploy ${chalk.white(name)}. It is likely missing or outdated.
+            This can come up if the deployment has runtime dependencies that are not resolvable, i.e. not deployed or
             invalid.
             `
           )
@@ -90,12 +92,12 @@ export class GetStatusCommand extends Command {
     }
 
     // TODO: we should change the status format because this will remove services called "detail"
-    const withoutDetail = deepFilter(result, (_, key) => key !== "detail")
+    const sanitized = sanitizeValue(deepFilter(result, (_, key) => key !== "executedAction"))
 
     // TODO: do a nicer print of this by default
-    log.info({ data: withoutDetail })
+    log.info({ data: sanitized })
 
-    return { result }
+    return { result: sanitized }
   }
 }
 

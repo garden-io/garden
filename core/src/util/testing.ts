@@ -269,8 +269,14 @@ export class TestGarden extends Garden {
     name: string
     status: ActionStatus<any>
   }) {
-    const provider = await this.resolveProvider(log, "test-plugin")
-    set(provider, ["_actionStatuses", kind, name], status)
+    const providers = await this.resolveProviders(log)
+
+    if (providers["test-plugin"]) {
+      set(providers["test-plugin"], ["_actionStatuses", kind, name], status)
+    }
+    if (providers["test-plugin-b"]) {
+      set(providers["test-plugin-b"], ["_actionStatuses", kind, name], status)
+    }
   }
 
   /**
