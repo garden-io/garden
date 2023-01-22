@@ -11,7 +11,6 @@ import Bluebird = require("bluebird")
 import chalk from "chalk"
 import { fromPairs, mapValues, omit } from "lodash"
 
-import { SetSecretParams, SetSecretResult } from "../plugin/handlers/provider/setSecret"
 import { validateSchema } from "../config/validation"
 import { defaultProvider } from "../config/provider"
 import { ParameterError, PluginError } from "../exceptions"
@@ -28,13 +27,11 @@ import {
   ProviderHandlers,
 } from "../plugin/plugin"
 import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../plugin/handlers/provider/cleanupEnvironment"
-import { DeleteSecretParams, DeleteSecretResult } from "../plugin/handlers/provider/deleteSecret"
 import {
   EnvironmentStatusMap,
   GetEnvironmentStatusParams,
   EnvironmentStatus,
 } from "../plugin/handlers/provider/getEnvironmentStatus"
-import { GetSecretParams, GetSecretResult } from "../plugin/handlers/provider/getSecret"
 import { Omit } from "../util/util"
 import { DebugInfoMap } from "../plugin/handlers/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../plugin/handlers/provider/prepareEnvironment"
@@ -155,25 +152,6 @@ export class ProviderRouter extends BaseRouter {
     this.emitNamespaceEvents(res.namespaceStatuses)
 
     return res
-  }
-
-  async getSecret(params: RequirePluginName<ActionRouterParams<GetSecretParams>>): Promise<GetSecretResult> {
-    const { pluginName } = params
-    return this.callPluginActionHandler({ handlerType: "getSecret", pluginName, params: omit(params, ["pluginName"]) })
-  }
-
-  async setSecret(params: RequirePluginName<ActionRouterParams<SetSecretParams>>): Promise<SetSecretResult> {
-    const { pluginName } = params
-    return this.callPluginActionHandler({ handlerType: "setSecret", pluginName, params: omit(params, ["pluginName"]) })
-  }
-
-  async deleteSecret(params: RequirePluginName<ActionRouterParams<DeleteSecretParams>>): Promise<DeleteSecretResult> {
-    const { pluginName } = params
-    return this.callPluginActionHandler({
-      handlerType: "deleteSecret",
-      pluginName,
-      params: omit(params, ["pluginName"]),
-    })
   }
 
   async getDashboardPage(

@@ -16,19 +16,16 @@ import {
   ConfigureProviderResult,
   configureProvider,
 } from "./handlers/provider/configureProvider"
-import { DeleteSecretParams, DeleteSecretResult, deleteSecret } from "./handlers/provider/deleteSecret"
 import {
   EnvironmentStatus,
   GetEnvironmentStatusParams,
   getEnvironmentStatus,
 } from "./handlers/provider/getEnvironmentStatus"
-import { GetSecretParams, GetSecretResult, getSecret } from "./handlers/provider/getSecret"
 import {
   PrepareEnvironmentParams,
   PrepareEnvironmentResult,
   prepareEnvironment,
 } from "./handlers/provider/prepareEnvironment"
-import { SetSecretParams, SetSecretResult, setSecret } from "./handlers/provider/setSecret"
 import { ActionHandler, ResolvedActionHandlerDescriptions } from "./base"
 import { mapValues } from "lodash"
 import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./handlers/provider/getDebugInfo"
@@ -50,10 +47,6 @@ export interface ProviderActionParams {
   prepareEnvironment: PrepareEnvironmentParams
   cleanupEnvironment: CleanupEnvironmentParams
 
-  getSecret: GetSecretParams
-  setSecret: SetSecretParams
-  deleteSecret: DeleteSecretParams
-
   getDashboardPage: GetDashboardPageParams
   getDebugInfo: GetDebugInfoParams
 }
@@ -65,10 +58,6 @@ export interface ProviderActionOutputs {
   getEnvironmentStatus: EnvironmentStatus
   prepareEnvironment: PrepareEnvironmentResult
   cleanupEnvironment: CleanupEnvironmentResult
-
-  getSecret: GetSecretResult
-  setSecret: SetSecretResult
-  deleteSecret: DeleteSecretResult
 
   getDashboardPage: GetDashboardPageResult
   getDebugInfo: DebugInfo
@@ -89,10 +78,6 @@ export function getProviderActionDescriptions(): ResolvedActionHandlerDescriptio
     getEnvironmentStatus,
     prepareEnvironment,
     cleanupEnvironment,
-
-    getSecret,
-    setSecret,
-    deleteSecret,
 
     getDashboardPage,
     getDebugInfo,

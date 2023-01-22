@@ -143,30 +143,4 @@ describe("provider actions", async () => {
       expect(result).to.eql({})
     })
   })
-
-  describe("getSecret", () => {
-    it("should retrieve a secret from the specified provider", async () => {
-      const result = await actionRouter.provider.getSecret({ log, pluginName: "test-plugin-a", key: "foo" })
-      expect(result).to.eql({ value: "foo" })
-    })
-  })
-
-  describe("setSecret", () => {
-    it("should set a secret via the specified provider", async () => {
-      const result = await actionRouter.provider.setSecret({
-        log,
-        pluginName: "test-plugin-a",
-        key: "foo",
-        value: "boo",
-      })
-      expect(result).to.eql({})
-    })
-  })
-
-  describe("deleteSecret", () => {
-    it("should delete a secret from the specified provider", async () => {
-      const result = await actionRouter.provider.deleteSecret({ log, pluginName: "test-plugin-a", key: "foo" })
-      expect(result).to.eql({ found: true })
-    })
-  })
 })

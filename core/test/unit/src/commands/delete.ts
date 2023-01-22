@@ -6,10 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeleteSecretCommand, DeleteEnvironmentCommand, DeleteDeployCommand } from "../../../../src/commands/delete"
+import { DeleteEnvironmentCommand, DeleteDeployCommand } from "../../../../src/commands/delete"
 import {
-  expectError,
-  makeTestGardenA,
   getDataDir,
   customizedTestPlugin,
   withDefaultGlobalOpts,
@@ -23,61 +21,6 @@ import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { ActionStatus } from "../../../../src/actions/types"
-
-// TODO-G2: rename test cases to match the new graph model semantics
-describe("DeleteSecretCommand", () => {
-  const pluginName = "test-plugin"
-  const provider = pluginName
-
-  it("should delete a secret", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-    const command = new DeleteSecretCommand()
-
-    const key = "mykey"
-    const value = "myvalue"
-
-    const actions = await garden.getActionRouter()
-    await actions.provider.setSecret({ log, key, value, pluginName })
-
-    await command.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: { provider, key },
-      opts: withDefaultGlobalOpts({}),
-    })
-
-    expect(await actions.provider.getSecret({ log, pluginName, key })).to.eql({
-      value: null,
-    })
-  })
-
-  it("should throw on missing key", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-    const command = new DeleteSecretCommand()
-
-    await expectError(
-      async () =>
-        await command.action({
-          garden,
-          log,
-          headerLog: log,
-          footerLog: log,
-          args: { provider, key: "foo" },
-          opts: withDefaultGlobalOpts({}),
-        }),
-      "not-found"
-    )
-  })
-
-  it("should be protected", async () => {
-    const command = new DeleteSecretCommand()
-    expect(command.protected).to.be.true
-  })
-})
 
 const projectRootB = getDataDir("test-project-b")
 const moduleConfigs: ModuleConfig[] = [

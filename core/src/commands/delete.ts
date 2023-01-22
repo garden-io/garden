@@ -7,16 +7,14 @@
  */
 
 import { Command, CommandGroup, CommandParams, CommandResult } from "./base"
-import { NotFoundError } from "../exceptions"
 import dedent from "dedent"
 import { ServiceStatusMap, serviceStatusSchema } from "../types/service"
 import { printHeader } from "../logger/util"
-import { DeleteSecretResult } from "../plugin/handlers/provider/deleteSecret"
 import { EnvironmentStatusMap } from "../plugin/handlers/provider/getEnvironmentStatus"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
-import { BooleanParameter, StringParameter, StringsParameter } from "../cli/params"
+import { BooleanParameter, StringsParameter } from "../cli/params"
 import { deline } from "../util/string"
 import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
@@ -28,55 +26,7 @@ export class DeleteCommand extends CommandGroup {
   aliases = ["del", "delete"]
   help = "Clean up resources."
 
-  subCommands = [DeleteSecretCommand, DeleteEnvironmentCommand, DeleteDeployCommand]
-}
-
-const deleteSecretArgs = {
-  provider: new StringParameter({
-    help: "The name of the provider to remove the secret from.",
-    required: true,
-  }),
-  key: new StringParameter({
-    help: "The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).",
-    required: true,
-  }),
-}
-
-type DeleteSecretArgs = typeof deleteSecretArgs
-
-export class DeleteSecretCommand extends Command<typeof deleteSecretArgs> {
-  name = "secret"
-  help = "Delete a secret from the namespace."
-  protected = true
-
-  description = dedent`
-    Returns with an error if the provided key could not be found by the provider.
-
-    Examples:
-
-        garden cleanup secret kubernetes somekey
-        garden cleanup secret local-kubernetes some-other-key
-  `
-
-  arguments = deleteSecretArgs
-
-  printHeader({ headerLog }) {
-    printHeader(headerLog, "Cleanup secret", "skull_and_crossbones")
-  }
-
-  async action({ garden, log, args }: CommandParams<DeleteSecretArgs>): Promise<CommandResult<DeleteSecretResult>> {
-    const key = args.key!
-    const router = await garden.getActionRouter()
-    const result = await router.provider.deleteSecret({ log, pluginName: args.provider!, key })
-
-    if (result.found) {
-      log.info(`Deleted config key ${args.key}`)
-    } else {
-      throw new NotFoundError(`Could not find config key ${args.key}`, { key })
-    }
-
-    return { result }
-  }
+  subCommands = [DeleteEnvironmentCommand, DeleteDeployCommand]
 }
 
 const dependantsFirstOpt = {

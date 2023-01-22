@@ -221,21 +221,6 @@ function getRouterUnitTestPlugins() {
         validateParams(params, pluginActionDescriptions.cleanupEnvironment.paramsSchema)
         return {}
       },
-
-      getSecret: async (params) => {
-        validateParams(params, pluginActionDescriptions.getSecret.paramsSchema)
-        return { value: params.key }
-      },
-
-      setSecret: async (params) => {
-        validateParams(params, pluginActionDescriptions.setSecret.paramsSchema)
-        return {}
-      },
-
-      deleteSecret: async (params) => {
-        validateParams(params, pluginActionDescriptions.deleteSecret.paramsSchema)
-        return { found: true }
-      },
     },
 
     createModuleTypes: [

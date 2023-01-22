@@ -206,23 +206,6 @@ export const testPlugin = () =>
         return { status: { ready: true, outputs: { testKey: "testValue" } } }
       },
 
-      async setSecret({ key, value }) {
-        testPluginSecrets[key] = "" + value
-        return {}
-      },
-
-      async getSecret({ key }) {
-        return { value: testPluginSecrets[key] || null }
-      },
-
-      async deleteSecret({ key }) {
-        if (testPluginSecrets[key]) {
-          delete testPluginSecrets[key]
-          return { found: true }
-        } else {
-          return { found: false }
-        }
-      },
       async getDebugInfo() {
         return {
           info: {
