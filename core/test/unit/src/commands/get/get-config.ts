@@ -39,6 +39,10 @@ describe("GetConfigCommand", () => {
     expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
+  it("returns all action configs", async () => {
+    throw "TODO"
+  })
+
   it("should include the project name, id, domain and all environment names", async () => {
     const root = getDataDir("test-projects", "login", "has-domain-and-id")
     const garden = await makeTestGarden(root)
@@ -205,6 +209,7 @@ describe("GetConfigCommand", () => {
               name: "task-enabled",
               dependencies: [],
               disabled: false,
+              command: ["echo", "ok"],
             },
           ],
         },
@@ -257,11 +262,13 @@ describe("GetConfigCommand", () => {
               name: "task-disabled",
               dependencies: [],
               disabled: true,
+              command: ["echo", "ok"],
             },
             {
               name: "task-enabled",
               dependencies: [],
               disabled: false,
+              command: ["echo", "ok"],
             },
           ],
         },
@@ -314,6 +321,7 @@ describe("GetConfigCommand", () => {
               name: "task-enabled",
               dependencies: [],
               disabled: false,
+              command: ["echo", "ok"],
             },
           ],
           tests: [
@@ -321,11 +329,13 @@ describe("GetConfigCommand", () => {
               name: "test-enabled",
               dependencies: [],
               disabled: false,
+              command: ["echo", "ok"],
             },
             {
               name: "test-disabled",
               dependencies: [],
               disabled: true,
+              command: ["echo", "ok"],
             },
           ],
         },
@@ -455,6 +465,7 @@ describe("GetConfigCommand", () => {
                 name: "task-enabled",
                 dependencies: [],
                 disabled: false,
+                command: ["echo", "ok"],
               },
             ],
           },
@@ -484,19 +495,7 @@ describe("GetConfigCommand", () => {
             name: "service-enabled",
             dependencies: [],
             disabled: false,
-
             spec: {},
-            annotations: {},
-            daemon: false,
-            ingresses: [],
-            env: {},
-            cpu: defaultContainerResources.cpu,
-            memory: defaultContainerResources.memory,
-            ports: [],
-            timeout: KUBECTL_DEFAULT_TIMEOUT,
-            tty: false,
-            volumes: [],
-            deploymentStrategy: defaultDeploymentStrategy,
           },
         },
       ]
@@ -534,11 +533,13 @@ describe("GetConfigCommand", () => {
                 name: "task-disabled",
                 dependencies: [],
                 disabled: true,
+                command: ["echo", "ok"],
               },
               {
                 name: "task-enabled",
                 dependencies: [],
                 disabled: false,
+                command: ["echo", "ok"],
               },
             ],
           },
@@ -566,14 +567,12 @@ describe("GetConfigCommand", () => {
           disabled: false,
           spec: {
             name: "task-enabled",
-            cacheResult: true,
             dependencies: [],
             disabled: false,
             timeout: null,
             env: {},
-            cpu: defaultContainerResources.cpu,
-            memory: defaultContainerResources.memory,
-            volumes: [],
+            artifacts: [],
+            command: ["echo", "ok"],
           },
           timeout: null,
         },
@@ -612,6 +611,7 @@ describe("GetConfigCommand", () => {
                 name: "task-enabled",
                 dependencies: [],
                 disabled: false,
+                command: ["echo", "ok"],
               },
             ],
             tests: [
@@ -619,11 +619,13 @@ describe("GetConfigCommand", () => {
                 name: "test-enabled",
                 dependencies: [],
                 disabled: false,
+                command: ["echo", "ok"],
               },
               {
                 name: "test-disabled",
                 dependencies: [],
                 disabled: true,
+                command: ["echo", "ok"],
               },
             ],
           },
@@ -653,10 +655,9 @@ describe("GetConfigCommand", () => {
             dependencies: [],
             disabled: false,
             timeout: null,
+            artifacts: [],
+            command: ["echo", "ok"],
             env: {},
-            cpu: defaultContainerResources.cpu,
-            memory: defaultContainerResources.memory,
-            volumes: [],
           },
           timeout: null,
         },

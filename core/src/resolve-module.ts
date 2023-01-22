@@ -413,7 +413,7 @@ export class ModuleResolver {
     config = validateWithPath({
       config,
       schema: moduleConfigSchema(),
-      configType: "module",
+      configType: "Module",
       name: config.name,
       path: config.path,
       projectRoot: garden.projectRoot,
