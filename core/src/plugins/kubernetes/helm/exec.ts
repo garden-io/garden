@@ -26,9 +26,12 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   const defaultTarget = action.getSpec("defaultTarget")
 
   if (!defaultTarget) {
-    throw new ConfigurationError(`${action.longDescription()} does not specify a defaultTarget.`, {
-      name: action.name,
-    })
+    throw new ConfigurationError(
+      `${action.longDescription()} does not specify a defaultTarget. This is currently necessary for the exec command to work with helm Deploy actions.`,
+      {
+        name: action.name,
+      }
+    )
   }
 
   const status = await getHelmDeployStatus({
