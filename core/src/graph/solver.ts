@@ -118,7 +118,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         )
 
         function completeHandler(result: GraphResult) {
-          log.silly(`GraphSolver: Complete handler for batch ${batchId} called with ${resultToString(result)}`)
+          log.silly(`GraphSolver: Complete handler for batch ${batchId} called with result ${result.key}`)
 
           if (aborted) {
             return

@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { cloneDeep, extend, intersection, mapValues, merge, omit, pick, uniq } from "lodash"
+import { cloneDeep, extend, get, intersection, mapValues, merge, omit, pick, uniq } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
@@ -241,6 +241,10 @@ export const testPlugin = () =>
           schema: execBuildActionSchema(),
           handlers: {
             build: buildExecAction,
+            getStatus: async ({ ctx, action }) => {
+              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
+              return result || { state: "not-ready", detail: null, outputs: {} }
+            },
           },
         },
       ],
@@ -253,8 +257,9 @@ export const testPlugin = () =>
             deploy: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
-            getStatus: async ({}) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+            getStatus: async ({ ctx, action }) => {
+              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
+              return result || { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             exec: async ({ action }) => {
               const { command } = action.getSpec()
@@ -270,6 +275,14 @@ export const testPlugin = () =>
           schema: testRunSchema(),
           handlers: {
             run: runTest,
+            getResult: async ({ ctx, action }) => {
+              console.log(ctx.provider)
+              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
+              console.log(get(ctx.provider, ["_actionStatuses"]))
+              console.log(get(ctx.provider, ["_actionStatuses", action.kind]))
+              console.log(result)
+              return result || { state: "not-ready", detail: null, outputs: {} }
+            },
           },
         },
       ],
@@ -280,6 +293,10 @@ export const testPlugin = () =>
           schema: testTestSchema(),
           handlers: {
             run: <TestActionHandler<"run", ExecTest>>(<unknown>runTest),
+            getResult: async ({ ctx, action }) => {
+              const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
+              return result || { state: "not-ready", detail: null, outputs: {} }
+            },
           },
         },
       ],
