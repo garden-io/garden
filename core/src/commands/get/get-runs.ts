@@ -10,6 +10,8 @@ import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { StringsParameter } from "../../cli/params"
 import { makeGetTestOrTaskLog } from "../helpers"
+import { ActionDescriptionMap } from "../../actions/base"
+import { keyBy } from "lodash"
 
 const getRunsArgs = {
   names: new StringsParameter({
@@ -19,10 +21,12 @@ const getRunsArgs = {
 
 type Args = typeof getRunsArgs
 
-export class GetRunsCommand extends Command<Args> {
+export class GetRunsCommand extends Command<Args, {}, ActionDescriptionMap> {
   name = "runs"
   help = "Lists the Runs (or tasks, if using modules) defined in your project."
   aliases = ["tasks"]
+
+  // TODO-G2: add output schema
 
   arguments = getRunsArgs
 
@@ -30,7 +34,7 @@ export class GetRunsCommand extends Command<Args> {
     printHeader(headerLog, "Runs", "open_book")
   }
 
-  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult<ActionDescriptionMap>> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const actions = graph.getRuns({ names: args.names })
 
@@ -38,9 +42,14 @@ export class GetRunsCommand extends Command<Args> {
       const logStr = makeGetTestOrTaskLog(actions)
       log.info(logStr.trim())
     } else {
-      log.info(`No tests defined for project ${garden.projectName}`)
+      log.info(`No Run actions defined for project ${garden.projectName}`)
     }
 
-    return { result: actions.map((t) => t.describe()) }
+    return {
+      result: keyBy(
+        actions.map((t) => t.describe()),
+        "key"
+      ),
+    }
   }
 }
