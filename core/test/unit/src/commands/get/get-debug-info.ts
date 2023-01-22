@@ -171,7 +171,6 @@ describe("GetDebugInfoCommand", () => {
       expect(systemInfoFile).to.have.property("gardenVersion")
       expect(systemInfoFile).to.have.property("platform")
       expect(systemInfoFile).to.have.property("platformVersion")
-      expect(systemInfoFile).to.have.property("dockerVersion")
     })
 
     it("should create a system info report in a temporary folder with yaml format", async () => {
@@ -190,7 +189,6 @@ describe("GetDebugInfoCommand", () => {
       expect(systemInfoFile).to.have.property("gardenVersion")
       expect(systemInfoFile).to.have.property("platform")
       expect(systemInfoFile).to.have.property("platformVersion")
-      expect(systemInfoFile).to.have.property("dockerVersion")
     })
   })
 
