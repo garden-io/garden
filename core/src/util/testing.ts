@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isEqual, keyBy } from "lodash"
+import { cloneDeep, isEqual, keyBy, set } from "lodash"
 import { Garden, GardenOpts, GardenParams, resolveGardenParams } from "../garden"
 import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
@@ -27,7 +27,7 @@ import { ConfigGraph } from "../graph/config-graph"
 import { SolveParams } from "../graph/solver"
 import { GraphResults } from "../graph/results"
 import { expect } from "chai"
-import { ActionConfig } from "../actions/types"
+import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -196,13 +196,11 @@ export class TestGarden extends Garden {
     noCache?: boolean
   }): Promise<ConfigGraph> {
     // TODO-G2: re-instate this after we're done refactoring
-    // // We don't try to cache if a runtime context is given (TODO: might revisit that)
     // let cacheKey: string | undefined = undefined
 
     // if (this.cacheKey && !params.noCache) {
     //   const moduleConfigHash = hashString(serializeObject(await this.getRawModuleConfigs()))
-    //   const runtimeContextHash = hashString(serializeObject(params.runtimeContext || {}))
-    //   cacheKey = [this.cacheKey, moduleConfigHash, runtimeContextHash].join("-")
+    //   cacheKey = [this.cacheKey, moduleConfigHash].join("-")
     // }
 
     // if (cacheKey) {
@@ -254,6 +252,25 @@ export class TestGarden extends Garden {
 
   setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {
     this.workflowConfigs = keyBy(workflowConfigs, "name")
+  }
+
+  /**
+   * Set the action status for a given action key, to be returned by corresponding getStatus/getResult
+   * on the test plugin.
+   */
+  async setTestActionStatus({
+    log,
+    kind,
+    name,
+    status,
+  }: {
+    log: LogEntry
+    kind: ActionKind
+    name: string
+    status: ActionStatus<any>
+  }) {
+    const provider = await this.resolveProvider(log, "test-plugin")
+    set(provider, ["_actionStatuses", kind, name], status)
   }
 
   /**
