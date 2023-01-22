@@ -276,6 +276,25 @@ export function runResultToActionState(result: RunResult) {
   }
 }
 
+export interface ActionDescription {
+  compatibleTypes: string[]
+  config: BaseActionConfig<any>
+  configVersion: string
+  group: string | undefined
+  isLinked: boolean
+  key: string
+  kind: ActionKind
+  longDescription: string
+  moduleName: string
+  name: string
+  treeVersion: TreeVersion
+  version: ModuleVersion
+}
+
+export interface ActionDescriptionMap {
+  [key: string]: ActionDescription
+}
+
 export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, Outputs extends {} = any> {
   // TODO-G2: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
@@ -489,7 +508,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return actionRefMatches(ref, this)
   }
 
-  describe() {
+  describe(): ActionDescription {
     return {
       compatibleTypes: this.compatibleTypes,
       config: this.getConfig(),
@@ -497,9 +516,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       group: this.groupName(),
       isLinked: this.isLinked(),
       key: this.key(),
+      kind: this.kind,
       longDescription: this.longDescription(),
       moduleName: this.moduleName(),
-      reference: this.reference(),
+      name: this.name,
       treeVersion: this.treeVersion(),
       version: this.getFullVersion(),
     }

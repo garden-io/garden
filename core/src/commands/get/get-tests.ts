@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { sortBy } from "lodash"
+import { keyBy, sortBy } from "lodash"
 import { Command, CommandResult, CommandParams } from "../base"
 import { printHeader } from "../../logger/util"
 import { StringsParameter } from "../../cli/params"
 import { makeGetTestOrTaskLog } from "../helpers"
+import { ActionDescriptionMap } from "../../actions/base"
 
 const getTestsArgs = {
   names: new StringsParameter({
@@ -20,9 +21,11 @@ const getTestsArgs = {
 
 type Args = typeof getTestsArgs
 
-export class GetTestsCommand extends Command<Args> {
+export class GetTestsCommand extends Command<Args, {}, ActionDescriptionMap> {
   name = "tests"
   help = "Lists the tests defined in your project."
+
+  // TODO-G2: add output schema
 
   arguments = getTestsArgs
 
@@ -30,7 +33,7 @@ export class GetTestsCommand extends Command<Args> {
     printHeader(headerLog, "Tests", "open_book")
   }
 
-  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {
+  async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult<ActionDescriptionMap>> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const actions = sortBy(graph.getTests({ names: args.names }), "name")
 
@@ -38,9 +41,14 @@ export class GetTestsCommand extends Command<Args> {
       const logStr = makeGetTestOrTaskLog(actions)
       log.info(logStr.trim())
     } else {
-      log.info(`No tests defined for project ${garden.projectName}`)
+      log.info(`No Test actions defined for project ${garden.projectName}`)
     }
 
-    return { result: actions.map((t) => t.describe()) }
+    return {
+      result: keyBy(
+        actions.map((t) => t.describe()),
+        "key"
+      ),
+    }
   }
 }
