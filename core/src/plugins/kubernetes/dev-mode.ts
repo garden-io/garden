@@ -49,7 +49,6 @@ import { PluginContext } from "../../plugin-context"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
 import { enumerate } from "../../util/enumerate"
-import { joinWithPosix } from "../../util/fs"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 

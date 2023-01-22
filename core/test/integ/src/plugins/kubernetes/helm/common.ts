@@ -561,7 +561,10 @@ ${expectedIngressOutput}
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+        "--values",
+        gardenValuesPath,
+      ])
     })
 
     it("should add a --set flag if devMode=true", async () => {

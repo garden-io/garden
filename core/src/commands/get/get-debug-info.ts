@@ -9,7 +9,7 @@
 import { Command, CommandParams } from "../base"
 import { findProjectConfig } from "../../config/base"
 import { ensureDir, copy, remove, pathExists, writeFile } from "fs-extra"
-import { getPackageVersion, exec, safeDumpYaml } from "../../util/util"
+import { getPackageVersion, safeDumpYaml } from "../../util/util"
 import { platform, release } from "os"
 import { join, relative, basename, dirname } from "path"
 import { LogEntry } from "../../logger/log-entry"
