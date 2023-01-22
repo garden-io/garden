@@ -9,7 +9,6 @@
 import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
 import { configurePulumiModule, deletePulumiDeploy, deployPulumi, getPulumiDeployStatus } from "./handlers"
-import { docsBaseUrl } from "@garden-io/sdk/constants"
 import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
@@ -31,8 +30,6 @@ import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/m
 // Need to make these variables to avoid escaping issues
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"
 const actionOutputsTemplateString = "${actions.<name>.outputs.<key>}"
-// const moduleReferenceUrl = `${docsBaseUrl}/reference/module-types/pulumi`
-const deployReferenceUrl = `${docsBaseUrl}/reference/action-types/deploy/pulumi`
 
 const outputsSchema = () => joiVariables().description("A map of all the outputs returned by the Pulumi stack.")
 
@@ -42,7 +39,7 @@ export const gardenPlugin = () =>
     docs: dedent`
       **EXPERIMENTAL**
 
-      This provider allows you to integrate [Pulumi](https://pulumi.com) stacks into your Garden project, via [\`pulumi\` Deploy actions](${deployReferenceUrl}).
+      This provider allows you to integrate [Pulumi](https://pulumi.com) stacks into your Garden project, via [\`pulumi\` Deploy actions](../action-types/Deploy/pulumi.md).
     `,
     configSchema: pulumiProviderConfigSchema,
 

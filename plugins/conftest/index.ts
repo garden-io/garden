@@ -126,7 +126,7 @@ export const gardenPlugin = () =>
           docs: dedent`
           Creates a test that runs \`conftest\` on the specified files, with the specified (or default) policy and namespace.
 
-          > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../providers/conftest-container.md) and [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) create this automatically, but you may in some cases want or need to manually specify files to test.
+          > Note: In many cases, you'll let specific conftest providers (e.g. [\`conftest-container\`](../../providers/conftest-container.md) and [\`conftest-kubernetes\`](../../providers/conftest-kubernetes.md) create this automatically, but you may in some cases want or need to manually specify files to test.
 
           See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
           `,
@@ -194,7 +194,7 @@ export const gardenPlugin = () =>
 
           If the helm Deploy requires runtime outputs from other modules, you must list the corresponding dependencies with the \`dependencies\` field.
 
-          > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
+          > Note: In most cases, you'll let the [\`conftest-kubernetes\`](../../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
 
           See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
           `,

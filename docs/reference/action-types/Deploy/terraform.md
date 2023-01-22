@@ -18,7 +18,7 @@ Note that you can also declare a Terraform root in the `terraform` provider conf
 See the [Terraform guide](https://docs.garden.io/advanced/terraform) for a high-level introduction to the `terraform` provider.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

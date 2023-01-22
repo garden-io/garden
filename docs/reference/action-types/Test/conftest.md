@@ -9,12 +9,12 @@ tocTitle: "`conftest` Test"
 
 Creates a test that runs `conftest` on the specified files, with the specified (or default) policy and namespace.
 
-> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../providers/conftest-container.md) and [`conftest-kubernetes`](../providers/conftest-kubernetes.md) create this automatically, but you may in some cases want or need to manually specify files to test.
+> Note: In many cases, you'll let specific conftest providers (e.g. [`conftest-container`](../../providers/conftest-container.md) and [`conftest-kubernetes`](../../providers/conftest-kubernetes.md) create this automatically, but you may in some cases want or need to manually specify files to test.
 
 See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

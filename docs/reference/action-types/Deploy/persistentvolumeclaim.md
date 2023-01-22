@@ -1,22 +1,22 @@
 ---
-title: "`container` Test"
-tocTitle: "`container` Test"
+title: "`persistentvolumeclaim` Deploy"
+tocTitle: "`persistentvolumeclaim` Deploy"
 ---
 
-# `container` Test
+# `persistentvolumeclaim` Deploy
 
 ## Description
 
-Define a Test which runs a command in a container image, e.g. in a Kubernetes namespace (when used with the `kubernetes` provider).
+Creates a [PersistentVolumeClaim](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) in your namespace, that can be referenced and mounted by other resources and [`container` Deploy actions](./container.md).
 
-This is a simplified abstraction, which can be convenient for simple scenarios, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Test types like [kubernetes-pod](./kubernetes-pod.md).
+See the [PersistentVolumeClaim](../../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
-`container` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
+`persistentvolumeclaim` actions also export values that are available in template strings. See the [Outputs](#outputs) section below for details.
 
 ## Complete YAML Schema
 
@@ -153,95 +153,75 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
-# Set a timeout for the test to complete, in seconds.
-timeout:
-
 spec:
-  # The command/entrypoint to run the container with.
-  command:
-
-  # The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
-  args:
-
-  # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-  # `GARDEN`) and values must be primitives or references to secrets.
-  env: {}
-
-  cpu:
-    # The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1
-    # CPU)
-    min: 10
-
-    # The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in
-    # no limit being set.
-    max: 1000
-
-  memory:
-    # The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1
-    # GB)
-    min: 90
-
-    # The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
-    # no limit being set.
-    max: 1024
-
-  # List of volumes that should be mounted when starting the container.
+  # A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
+  # are as follows:
   #
-  # Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when
-  # deploying the container.
-  volumes:
-    - # The name of the allocated volume.
+  #  ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
+  #  ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
+  #  ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
+  #
+  # At least one mode must be specified.
+  accessModes:
+
+  # The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in
+  # most cases you should leave this unset.
+  namespace:
+
+  # The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec
+  # schema may include (or even require) additional fields, depending on the used `storageClass`. See the
+  # [PersistentVolumeClaim
+  # docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details.
+  spec:
+    # AccessModes contains the desired access modes the volume should have. More info:
+    # https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1
+    accessModes:
+
+    # TypedLocalObjectReference contains enough information to let you locate the typed referenced object inside the
+    # same namespace.
+    dataSource:
+      # APIGroup is the group for the resource being referenced. If APIGroup is not specified, the specified Kind must
+      # be in the core API group. For any other third-party types, APIGroup is required.
+      apiGroup:
+
+      # Kind is the type of resource being referenced
+      kind:
+
+      # Name is the name of resource being referenced
       name:
 
-      # The path where the volume should be mounted in the container.
-      containerPath:
+    # ResourceRequirements describes the compute resource requirements.
+    resources:
+      # Limits describes the maximum amount of compute resources allowed. More info:
+      # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+      limits:
 
-      # _NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms
-      # and providers. Some providers may not support it at all._
-      #
-      # A local path or path on the node that's running the container, to mount in the container, relative to the
-      # config source directory (or absolute).
-      hostPath:
+      # Requests describes the minimum amount of compute resources required. If Requests is omitted for a container,
+      # it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More
+      # info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+      requests:
 
-      # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are
-      # `persistentvolumeclaim` and `configmap`, for example.
-      #
-      # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
-      # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
-      # services at the same time. Refer to the documentation of the module type in question to learn more.
-      action:
+    # A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are
+    # ANDed. An empty label selector matches all objects. A null label selector matches no objects.
+    selector:
+      # matchExpressions is a list of label selector requirements. The requirements are ANDed.
+      matchExpressions:
 
-  # If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent
-  # to root on the host. Defaults to false.
-  privileged:
+      # matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an
+      # element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains
+      # only "value". The requirements are ANDed.
+      matchLabels:
 
-  # POSIX capabilities to add when running the container.
-  addCapabilities:
+    # Name of the StorageClass required by the claim. More info:
+    # https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1
+    storageClassName:
 
-  # POSIX capabilities to remove when running the container.
-  dropCapabilities:
+    # volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not
+    # included in claim spec. This is a beta feature.
+    volumeMode:
 
-  # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
-  tty: false
-
-  # Specifies the container's deployment strategy.
-  deploymentStrategy: RollingUpdate
-
-  # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the
-  # `.garden/artifacts` directory.
-  #
-  # Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable
-  # the file transfer.
-  artifacts:
-    - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-      source:
-
-      # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
-      # `.garden/artifacts`.
-      target: .
-
-  # Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
-  image:
+    # VolumeName is the binding reference to the PersistentVolume backing this claim.
+    volumeName:
 ```
 
 ## Configuration Keys
@@ -465,321 +445,183 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `string` | No       |
 
-### `timeout`
-
-Set a timeout for the test to complete, in seconds.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
 ### `spec`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.command[]`
+### `spec.accessModes[]`
 
-[spec](#spec) > command
+[spec](#spec) > accessModes
 
-The command/entrypoint to run the container with.
+A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+ ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
+ ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
+ ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
 
-Example:
-
-```yaml
-spec:
-  ...
-  command:
-    - /bin/sh
-    - '-c'
-```
-
-### `spec.args[]`
-
-[spec](#spec) > args
-
-The arguments (on top of the `command`, i.e. entrypoint) to run the container with.
+At least one mode must be specified.
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
 
-Example:
+### `spec.namespace`
 
-```yaml
-spec:
-  ...
-  args:
-    - npm
-    - start
-```
+[spec](#spec) > namespace
 
-### `spec.env`
+The namespace to deploy the PVC in. Note that any module referencing the PVC must be in the same namespace, so in most cases you should leave this unset.
 
-[spec](#spec) > env
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
+### `spec.spec`
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
+[spec](#spec) > spec
 
-Example:
+The spec for the PVC. This is passed directly to the created PersistentVolumeClaim resource. Note that the spec schema may include (or even require) additional fields, depending on the used `storageClass`. See the [PersistentVolumeClaim docs](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims) for details.
 
-```yaml
-spec:
-  ...
-  env:
-      - MY_VAR: some-value
-        MY_SECRET_VAR:
-          secretRef:
-            name: my-secret
-            key: some-key
-      - {}
-```
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
 
-### `spec.cpu`
+### `spec.spec.accessModes[]`
 
-[spec](#spec) > cpu
+[spec](#spec) > [spec](#specspec) > accessModes
 
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":10,"max":1000}` | No       |
+AccessModes contains the desired access modes the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1
 
-### `spec.cpu.min`
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
-[spec](#spec) > [cpu](#speccpu) > min
+### `spec.spec.dataSource`
 
-The minimum amount of CPU the container needs to be available for it to be deployed, in millicpus (i.e. 1000 = 1 CPU)
+[spec](#spec) > [spec](#specspec) > dataSource
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
+TypedLocalObjectReference contains enough information to let you locate the typed referenced object inside the same namespace.
 
-### `spec.cpu.max`
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
-[spec](#spec) > [cpu](#speccpu) > max
+### `spec.spec.dataSource.apiGroup`
 
-The maximum amount of CPU the container can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
+[spec](#spec) > [spec](#specspec) > [dataSource](#specspecdatasource) > apiGroup
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1000`  | No       |
+APIGroup is the group for the resource being referenced. If APIGroup is not specified, the specified Kind must be in the core API group. For any other third-party types, APIGroup is required.
 
-### `spec.memory`
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
-[spec](#spec) > memory
+### `spec.spec.dataSource.kind`
 
-| Type     | Default                 | Required |
-| -------- | ----------------------- | -------- |
-| `object` | `{"min":90,"max":1024}` | No       |
+[spec](#spec) > [spec](#specspec) > [dataSource](#specspecdatasource) > kind
 
-### `spec.memory.min`
-
-[spec](#spec) > [memory](#specmemory) > min
-
-The minimum amount of RAM the container needs to be available for it to be deployed, in megabytes (i.e. 1024 = 1 GB)
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `90`    | No       |
-
-### `spec.memory.max`
-
-[spec](#spec) > [memory](#specmemory) > max
-
-The maximum amount of RAM the container can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `1024`  | No       |
-
-### `spec.volumes[]`
-
-[spec](#spec) > volumes
-
-List of volumes that should be mounted when starting the container.
-
-Note: If neither `hostPath` nor `module` is specified, an empty ephemeral volume is created and mounted when deploying the container.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `spec.volumes[].name`
-
-[spec](#spec) > [volumes](#specvolumes) > name
-
-The name of the allocated volume.
+Kind is the type of resource being referenced
 
 | Type     | Required |
 | -------- | -------- |
 | `string` | Yes      |
 
-### `spec.volumes[].containerPath`
+### `spec.spec.dataSource.name`
 
-[spec](#spec) > [volumes](#specvolumes) > containerPath
+[spec](#spec) > [spec](#specspec) > [dataSource](#specspecdatasource) > name
 
-The path where the volume should be mounted in the container.
+Name is the name of resource being referenced
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
 
-### `spec.volumes[].hostPath`
+### `spec.spec.resources`
 
-[spec](#spec) > [volumes](#specvolumes) > hostPath
+[spec](#spec) > [spec](#specspec) > resources
 
-_NOTE: Usage of hostPath is generally discouraged, since it doesn't work reliably across different platforms and providers. Some providers may not support it at all._
+ResourceRequirements describes the compute resource requirements.
 
-A local path or path on the node that's running the container, to mount in the container, relative to the config source directory (or absolute).
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | No       |
+### `spec.spec.resources.limits`
 
-Example:
+[spec](#spec) > [spec](#specspec) > [resources](#specspecresources) > limits
 
-```yaml
-spec:
-  ...
-  volumes:
-    - hostPath: "/some/dir"
-```
+Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 
-### `spec.volumes[].action`
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
-[spec](#spec) > [volumes](#specvolumes) > action
+### `spec.spec.resources.requests`
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
+[spec](#spec) > [spec](#specspec) > [resources](#specspecresources) > requests
 
-Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
+Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 
-| Type              | Required |
-| ----------------- | -------- |
-| `actionReference` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
-### `spec.privileged`
+### `spec.spec.selector`
 
-[spec](#spec) > privileged
+[spec](#spec) > [spec](#specspec) > selector
 
-If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.
+A label selector is a label query over a set of resources. The result of matchLabels and matchExpressions are ANDed. An empty label selector matches all objects. A null label selector matches no objects.
 
-| Type      | Required |
-| --------- | -------- |
-| `boolean` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
-### `spec.addCapabilities[]`
+### `spec.spec.selector.matchExpressions[]`
 
-[spec](#spec) > addCapabilities
+[spec](#spec) > [spec](#specspec) > [selector](#specspecselector) > matchExpressions
 
-POSIX capabilities to add when running the container.
+matchExpressions is a list of label selector requirements. The requirements are ANDed.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type    | Required |
+| ------- | -------- |
+| `array` | No       |
 
-### `spec.dropCapabilities[]`
+### `spec.spec.selector.matchLabels`
 
-[spec](#spec) > dropCapabilities
+[spec](#spec) > [spec](#specspec) > [selector](#specspecselector) > matchLabels
 
-POSIX capabilities to remove when running the container.
+matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
 
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
-### `spec.tty`
+### `spec.spec.storageClassName`
 
-[spec](#spec) > tty
+[spec](#spec) > [spec](#specspec) > storageClassName
 
-Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+Name of the StorageClass required by the claim. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1
 
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `false` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
-### `spec.deploymentStrategy`
+### `spec.spec.volumeMode`
 
-[spec](#spec) > deploymentStrategy
+[spec](#spec) > [spec](#specspec) > volumeMode
 
-Specifies the container's deployment strategy.
+volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not included in claim spec. This is a beta feature.
 
-| Type     | Allowed Values              | Default           | Required |
-| -------- | --------------------------- | ----------------- | -------- |
-| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
-### `spec.artifacts[]`
+### `spec.spec.volumeName`
 
-[spec](#spec) > artifacts
+[spec](#spec) > [spec](#specspec) > volumeName
 
-Specify artifacts to copy out of the container after the run. The artifacts are stored locally under the `.garden/artifacts` directory.
-
-Note: Depending on the provider, this may require the container image to include `sh` `tar`, in order to enable the file transfer.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - source: /report/**/*
-```
-
-### `spec.artifacts[].source`
-
-[spec](#spec) > [artifacts](#specartifacts) > source
-
-A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - source: /report/**/*
-    - source: "/output/**/*"
-```
-
-### `spec.artifacts[].target`
-
-[spec](#spec) > [artifacts](#specartifacts) > target
-
-A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - source: /report/**/*
-    - target: "outputs/foo/"
-```
-
-### `spec.image`
-
-[spec](#spec) > image
-
-Specify an image ID to deploy. Should be a valid Docker image identifier. Required if no `build` is specified.
+VolumeName is the binding reference to the PersistentVolume backing this claim.
 
 | Type     | Required |
 | -------- | -------- |
@@ -788,10 +630,10 @@ Specify an image ID to deploy. Should be a valid Docker image identifier. Requir
 
 ## Outputs
 
-The following keys are available via the `${actions.test.<name>}` template string key for `container`
+The following keys are available via the `${actions.deploy.<name>}` template string key for `persistentvolumeclaim`
 modules.
 
-### `${actions.test.<name>.buildPath}`
+### `${actions.deploy.<name>.buildPath}`
 
 The build path of the action/module.
 
@@ -802,10 +644,10 @@ The build path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.test.my-test.buildPath}
+my-variable: ${actions.deploy.my-deploy.buildPath}
 ```
 
-### `${actions.test.<name>.name}`
+### `${actions.deploy.<name>.name}`
 
 The name of the action/module.
 
@@ -813,7 +655,7 @@ The name of the action/module.
 | -------- |
 | `string` |
 
-### `${actions.test.<name>.path}`
+### `${actions.deploy.<name>.path}`
 
 The source path of the action/module.
 
@@ -824,10 +666,10 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.test.my-test.path}
+my-variable: ${actions.deploy.my-deploy.path}
 ```
 
-### `${actions.test.<name>.var.*}`
+### `${actions.deploy.<name>.var.*}`
 
 A map of all variables defined in the module.
 
@@ -835,13 +677,13 @@ A map of all variables defined in the module.
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.test.<name>.var.<variable-name>}`
+### `${actions.deploy.<name>.var.<variable-name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
 
-### `${actions.test.<name>.version}`
+### `${actions.deploy.<name>.version}`
 
 The current version of the module.
 
@@ -852,13 +694,5 @@ The current version of the module.
 Example:
 
 ```yaml
-my-variable: ${actions.test.my-test.version}
+my-variable: ${actions.deploy.my-deploy.version}
 ```
-
-### `${actions.test.<name>.outputs.log}`
-
-The full log output from the executed action. (Pro-tip: Make it machine readable so it can be parsed by dependants)
-
-| Type     | Default |
-| -------- | ------- |
-| `string` | `""`    |

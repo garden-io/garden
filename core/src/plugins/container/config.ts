@@ -599,7 +599,7 @@ const volumeSchema = () =>
         .name("base-volume")
         .description(
           dedent`
-          The name of a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
+          The name of a _volume Deploy action_ that should be mounted at \`containerPath\`. The supported action types are \`persistentvolumeclaim\` and \`configmap\`, for example.
 
           Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
           `

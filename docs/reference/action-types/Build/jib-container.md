@@ -22,7 +22,7 @@ To provide additional arguments to Gradle/Maven when building, you can set the `
 **Important note:** Unlike many other types, `jib-container` builds are done from the _source_ directory instead of the build staging directory, because of how Java projects are often laid out across a repository. This means build dependency copy directives are effectively ignored, and any include/exclude statements and .gardenignore files will not impact the build result. _Note that you should still configure includes, excludes and/or a .gardenignore to tell Garden which files to consider as part of the module version hash, to correctly detect whether a new build is required._
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

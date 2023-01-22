@@ -7,7 +7,7 @@ tocTitle: "`hadolint`"
 
 ## Description
 
-This provider creates a [`hadolint`](../module-types/hadolint.md) module type, and (by default) generates one such module for each `container` module that contains a Dockerfile in your project. Each module creates a single test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
+This provider creates a [`hadolint`](../action-types/Test/hadolint.md) Test action type, and (by default) generates one such action for each `container` module that contains a Dockerfile in your project. Each module creates a single test that runs [hadolint](https://github.com/hadolint/hadolint) against the Dockerfile in question, in order to ensure that the Dockerfile is valid and follows best practices.
 
 To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in the relevant module root. If none is found there, we check the project root, and if none is there we fall back to default configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 

@@ -11,12 +11,12 @@ Special Test type for validating helm deploys with conftest. This is necessary i
 
 If the helm Deploy requires runtime outputs from other modules, you must list the corresponding dependencies with the `dependencies` field.
 
-> Note: In most cases, you'll let the [`conftest-kubernetes`](../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
+> Note: In most cases, you'll let the [`conftest-kubernetes`](../../providers/conftest-kubernetes.md) provider create this Test automatically, but you may in some cases want or need to manually specify files to test.
 
 See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 

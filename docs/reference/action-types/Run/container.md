@@ -9,10 +9,10 @@ tocTitle: "`container` Run"
 
 Run a command in a container image, e.g. in a Kubernetes namespace (when used with the `kubernetes` provider).
 
-This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [helm](./helm.md) or [kubernetes](./kubernetes.md).
+This is a simplified abstraction, which can be convenient for simple tasks, but has limited features compared to more platform-specific types. For example, you cannot specify replicas for redundancy, and various platform-specific options are not included. For more flexibility, please look at other Run types like [kubernetes-pod](./kubernetes-pod.md).
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
@@ -204,7 +204,7 @@ spec:
       hostPath:
 
       # The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are
-      # [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
+      # `persistentvolumeclaim` and `configmap`, for example.
       #
       # Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports
       # the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple
@@ -661,7 +661,7 @@ spec:
 
 [spec](#spec) > [volumes](#specvolumes) > action
 
-The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are [persistentvolumeclaim](./persistentvolumeclaim.md) and [configmap](./configmap.md), for example.
+The name of a _volume Deploy action_ that should be mounted at `containerPath`. The supported action types are `persistentvolumeclaim` and `configmap`, for example.
 
 Note: Make sure to pay attention to the supported `accessModes` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
 

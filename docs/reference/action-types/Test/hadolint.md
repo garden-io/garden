@@ -9,14 +9,14 @@ tocTitle: "`hadolint` Test"
 
 Runs `hadolint` on the specified Dockerfile.
 
-> Note: In most cases, you'll let the [provider](../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
+> Note: In most cases, you'll let the [provider](../../providers/hadolint.md) create this module type automatically, but you may in some cases want or need to manually specify a Dockerfile to lint.
 
 To configure `hadolint`, you can use `.hadolint.yaml` config files. For each test, we first look for one in the action source directory. If none is found there, we check the project root, and if none is there we fall back to   configuration. Note that for reasons of portability, we do not fall back to global/user configuration files.
 
 See the [hadolint docs](https://github.com/hadolint/hadolint#configure) for details on how to configure it.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
-guide](../../using-garden/configuration-overview.md).
+guide](../../../using-garden/configuration-overview.md).
 
 The [first section](#complete-yaml-schema) contains the complete YAML schema, and the [second section](#configuration-keys) describes each schema key.
 
