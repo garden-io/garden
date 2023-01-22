@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-
 import { makeTestGardenA } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"

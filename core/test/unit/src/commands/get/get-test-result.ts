@@ -6,21 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  expectError,
-  withDefaultGlobalOpts,
-  makeTestGardenA,
-  cleanProject,
-  TestGarden,
-  customizedTestPlugin,
-} from "../../../../helpers"
+import { expectError, withDefaultGlobalOpts, makeTestGardenA, cleanProject, TestGarden } from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { join } from "path"
 import { writeFile } from "fs-extra"
-import { execTestActionSchema } from "../../../../../src/plugins/exec/config"
 import { GetTestResult } from "../../../../../src/plugin/handlers/test/get-result"
 
 const now = new Date()
@@ -81,8 +73,6 @@ describe("GetTestResultCommand", () => {
       args: { name: "module-a-unit", moduleTestName: undefined },
       opts: withDefaultGlobalOpts({}),
     })
-
-    console.log(res.result)
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
 

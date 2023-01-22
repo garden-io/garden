@@ -321,30 +321,6 @@ Examples:
   | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
 
 
-### garden cleanup secret
-
-**Delete a secret from the namespace.**
-
-Returns with an error if the provided key could not be found by the provider.
-
-Examples:
-
-    garden cleanup secret kubernetes somekey
-    garden cleanup secret local-kubernetes some-other-key
-
-#### Usage
-
-    garden cleanup secret <provider> <key> 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `provider` | Yes | The name of the provider to remove the secret from.
-  | `key` | Yes | The key of the configuration variable. Separate with dots to get a nested key (e.g. key.nested).
-
-
-
 ### garden cleanup namespace
 
 **Deletes a running namespace.**
@@ -3174,29 +3150,38 @@ artifacts:
 #### Outputs
 
 ```yaml
-# Whether the module was successfully run.
-success:
+# The state of the action.
+state:
 
-# The exit code of the run (if applicable).
-exitCode:
+# Structured outputs from the execution, as defined by individual action/module types, to be made available for
+# dependencies and in templating.
+outputs:
+  <name>:
 
-# When the module run was started.
-startedAt:
+detail:
+  # Whether the module was successfully run.
+  success:
 
-# When the module run was completed.
-completedAt:
+  # The exit code of the run (if applicable).
+  exitCode:
 
-# The output log from the run.
-log:
+  # When the module run was started.
+  startedAt:
 
-namespaceStatus:
-  pluginName:
+  # When the module run was completed.
+  completedAt:
 
-  # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
-  # and cannot end with a dash) and must not be longer than 63 characters.
-  namespaceName:
+  # The output log from the run.
+  log:
 
-  state:
+  namespaceStatus:
+    pluginName:
+
+    # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter,
+    # and cannot end with a dash) and must not be longer than 63 characters.
+    namespaceName:
+
+    state:
 
 # Local file paths to any exported artifacts from the test run.
 artifacts:
