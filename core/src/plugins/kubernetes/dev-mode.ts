@@ -7,10 +7,12 @@
  */
 
 import {
+  ContainerDeployAction,
   containerDevModeSchema,
   ContainerDevModeSpec,
   defaultDevModeSyncMode,
   DevModeSyncOptions,
+  DevModeSyncSpec,
   syncDefaultDirectoryModeSchema,
   syncDefaultFileModeSchema,
   syncDefaultGroupSchema,
@@ -20,7 +22,7 @@ import {
   syncTargetPathSchema,
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { cloneDeep, set } from "lodash"
+import { cloneDeep, omit, set } from "lodash"
 import { getResourceContainer, getResourcePodSpec, getTargetResource, labelSelectorToString } from "./util"
 import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
 import { LogEntry } from "../../logger/log-entry"
@@ -37,6 +39,7 @@ import {
   KubernetesPluginContext,
   KubernetesProvider,
   KubernetesTargetResourceSpec,
+  ServiceResourceSpec,
   targetContainerNameSchema,
   targetResourceSpecSchema,
 } from "./config"
@@ -49,6 +52,11 @@ import { PluginContext } from "../../plugin-context"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
 import { enumerate } from "../../util/enumerate"
+import { joinWithPosix } from "../../util/fs"
+import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config"
+import { HelmModule, HelmService } from "./helm/module-config"
+import { convertServiceResource } from "./kubernetes-type/common"
+import { getDeploymentName } from "./container/deployment"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -198,6 +206,75 @@ export const kubernetesDeployDevModeSchema = () =>
       If you have multiple syncs for the Deploy, you can use the \`defaults\` field to set common configuration for every individual sync.
       `
     )
+
+export function convertKubernetesModuleDevModeSpec(
+  module: KubernetesModule | HelmModule,
+  service: KubernetesService | HelmService,
+  serviceResource: ServiceResourceSpec | undefined
+): KubernetesDeployDevModeSpec | undefined {
+  const target = convertServiceResource(module, serviceResource)
+  const sourcePath = service.sourceModule.path
+  const devModeSpec = module.spec.devMode
+
+  if (!devModeSpec || !target) {
+    return undefined
+  }
+
+  const devMode: KubernetesDeployDevModeSpec = {
+    syncs: convertSyncPaths(sourcePath, devModeSpec.sync, target),
+  }
+
+  if (devModeSpec.command || devModeSpec.args) {
+    if (target.kind && target.name) {
+      devMode.overrides = [
+        {
+          target: {
+            kind: target.kind,
+            name: target.name,
+            containerName: target.containerName,
+          },
+          command: devModeSpec.command,
+          args: devModeSpec.args,
+        },
+      ]
+    }
+  }
+
+  return devMode
+}
+
+export function convertContainerDevModeSpec(
+  ctx: KubernetesPluginContext,
+  action: Resolved<ContainerDeployAction>
+): KubernetesDeployDevModeSpec | undefined {
+  const spec = action.getSpec()
+
+  if (!spec.devMode) {
+    return
+  }
+
+  const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
+  const blueGreen = ctx.provider.config.deploymentStrategy === "blue-green"
+  const deploymentName = getDeploymentName(action.name, blueGreen, action.versionString())
+  const target = { kind, name: deploymentName }
+
+  return {
+    syncs: convertSyncPaths(action.basePath(), spec.devMode.sync, target),
+  }
+}
+
+function convertSyncPaths(
+  basePath: string,
+  syncSpecs: DevModeSyncSpec[],
+  target: KubernetesTargetResourceSpec | undefined
+): KubernetesDeployDevModeSyncSpec[] {
+  return syncSpecs.map((sync) => ({
+    ...omit(sync, ["source"]),
+    sourcePath: joinWithPosix(basePath, sync.source),
+    containerPath: sync.target,
+    target,
+  }))
+}
 
 export async function configureDevMode({
   ctx,
@@ -369,7 +446,6 @@ interface StartDevModeSyncParams {
   ctx: KubernetesPluginContext
   log: LogEntry
   action: Resolved<SupportedRuntimeActions>
-
   defaultNamespace: string
   manifests: KubernetesResource[]
   basePath: string

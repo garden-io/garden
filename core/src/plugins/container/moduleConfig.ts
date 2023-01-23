@@ -19,6 +19,7 @@ import {
   containerCommonBuildSpecKeys,
   ContainerCommonDeploySpec,
   containerDeploySchemaKeys,
+  containerDevModeSchema,
   ContainerRunActionSpec,
   containerRunSpecKeys,
   ContainerTestActionSpec,
@@ -95,6 +96,7 @@ const containerBuildSpecSchema = () =>
 const containerServiceSchema = () =>
   baseServiceSpecSchema().keys({
     ...containerDeploySchemaKeys(),
+    devMode: containerDevModeSchema(),
     volumes: getContainerVolumesSchema(
       volumeSchemaBase()
         .keys({
