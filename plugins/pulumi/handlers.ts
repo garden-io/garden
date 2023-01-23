@@ -69,7 +69,7 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
 export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatus"] = async ({ ctx, log, action }) => {
   const provider = ctx.provider as PulumiProvider
   const pulumiParams = { log, ctx, provider, action }
-  const { deployFromPreview, cacheStatus } = action.getSpec()
+  const { cacheStatus } = action.getSpec()
 
   if (!cacheStatus) {
     return {
@@ -84,16 +84,6 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
 
   await selectStack(pulumiParams)
   const stackStatus = await getStackStatusFromTag(pulumiParams)
-  if (deployFromPreview && stackStatus === "up-to-date") {
-    return {
-      state: "ready",
-      outputs: await getStackOutputs(pulumiParams),
-      detail: {
-        state: "ready",
-        detail: {},
-      },
-    }
-  }
 
   const state = stackStatus === "up-to-date" ? "ready" : "outdated"
 

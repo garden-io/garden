@@ -27,11 +27,11 @@ sources:
   - name: web-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git
   - name: db-services
-    # use #your-branch to specify a branch or #v0.3.0 to configure git version
+    # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
 ```
 
-Note that the URL must point to a specific branch or tag.
+Note that the URL must point to a specific branch, tag or commit hash.
 
 Use this when you want to import Garden modules from another repository. The repository can contain one or more modules along with their `garden.yml` config files. For example, this is the file tree for the remote `web-services` source:
 

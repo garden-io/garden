@@ -7,7 +7,7 @@
  */
 
 import { stringify } from "query-string"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
 import { ListSecretsResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -17,6 +17,7 @@ import { applyFilter, makeSecretFromResponse, noApiMsg, SecretResult } from "../
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
+import { getCloudDistributionName } from "../../../util/util"
 
 const pageLimit = 100
 
@@ -64,6 +65,13 @@ export class SecretsListCommand extends Command<{}, Opts> {
     }
 
     const project = await api.getProject()
+
+    if (!project) {
+      throw new EnterpriseApiError(
+        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        {}
+      )
+    }
 
     let page = 0
     let secrets: SecretResult[] = []

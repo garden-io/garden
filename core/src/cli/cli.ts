@@ -408,12 +408,16 @@ ${renderCommands(commands)}
           }
 
           let namespaceUrl: string | undefined
-          if (cloudApi && cloudApi.environmentId && cloudApi.namespaceId) {
+
+          if (cloudApi && garden.projectId && cloudApi.environmentId && cloudApi.namespaceId) {
             const project = await cloudApi.getProject()
-            const user = await cloudApi.getProfile()
-            const path = `/projects/${project.id}?sessionId=${sessionId}&userId=${user.id}`
-            const url = new URL(path, cloudApi.domain)
-            namespaceUrl = url.href
+
+            if (project) {
+              const user = await cloudApi.getProfile()
+              const path = `/projects/${project.id}?sessionId=${sessionId}&userId=${user.id}`
+              const url = new URL(path, cloudApi.domain)
+              namespaceUrl = url.href
+            }
           }
 
           // Print a specific header and footer when connected to Garden Cloud.
