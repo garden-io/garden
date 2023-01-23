@@ -451,7 +451,7 @@ export async function startDevModeSyncs({
       })
 
       const localPathDescription = chalk.white(s.sourcePath)
-      const remoteDestinationDescription = `${chalk.white(s.target)} in ${chalk.white(resourceName)}`
+      const remoteDestinationDescription = `${chalk.white(s.containerPath)} in ${chalk.white(resourceName)}`
 
       let sourceDescription: string
       let targetDescription: string
