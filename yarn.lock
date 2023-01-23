@@ -1442,10 +1442,10 @@
   resolved "https://registry.yarnpkg.com/@emotion/weak-memoize/-/weak-memoize-0.2.5.tgz#8eed982e2ee6f7f4e44c253e12962980791efd46"
   integrity sha512-6U71C2Wp7r5XtFtQzYrW5iKFT67OixrSxjI4MptCHzdSVlgabczzqLe0ZSgnub/5Kp4hSbpDB1tMytZY9pwxxA==
 
-"@garden-io/platform-api-types@1.271.0":
-  version "1.271.0"
-  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.271.0.tgz#a59aab0d78d1698e8005b3a6de18a41ede07f0e0"
-  integrity sha512-g9vm/rJ0XB4a3AgsDKnRAJ1Ywyt6+nG0Rw/vQGpCZ5V0KG7BKffqUzqBhfKC8zs8CY/rnzdSGt16w1j87DUeGQ==
+"@garden-io/platform-api-types@1.345.0":
+  version "1.345.0"
+  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.345.0.tgz#512cc3486778ab2f14a271f85a093da52ab24f1e"
+  integrity sha512-EcZyIrPpHcyQ1jcpUV7x6qzlflBdiwCUL3aHD2Lhu+QJGJwEtdckrP3wy+acVW5Qdx5HFP7bb5ST4JH6R8eibw==
 
 "@google-cloud/kms@^1.6.3":
   version "1.6.3"
