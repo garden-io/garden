@@ -38,6 +38,7 @@ import {
   duplicatesByKey,
   uuidv4,
   getCloudDistributionName,
+  isTruthy,
 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
@@ -132,6 +133,7 @@ import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, r
 import { ActionTypeDefinition } from "./plugin/action-types"
 import { Task } from "./tasks/base"
 import { GraphResultFromTask, GraphResults } from "./graph/results"
+import { DeployAction } from "./actions/deploy"
 
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
@@ -430,7 +432,7 @@ export class Garden {
   }: {
     graph: ConfigGraph
     skipModules?: GardenModule[]
-    skipActions?: Action[]
+    skipActions?: DeployAction[]
     bufferInterval?: number
   }) {
     const actions = graph.getActions()
@@ -439,18 +441,11 @@ export class Garden {
 
     // For skipped modules/actions (e.g. those with services in dev mode), we skip watching all files and folders in the
     // module/action root except for the config path. This way, we can still react to changes in config files.
-    const skipDirectories = uniq([...skipModules.map((m) => m.path), ...skipActions.map((a) => a.basePath())])
-    const configPaths = new Set(
-      [...skipModules.map((m) => m.configPath), ...skipActions.map((a) => a.configPath())].filter(Boolean)
-    )
+    const skipPaths = [
+      ...skipModules.map((m) => m.configPath),
+      ...skipActions.map((a) => a.getBuildAction()?.basePath()),
+    ].filter(isTruthy)
 
-    const skipPaths = flatten(
-      await Bluebird.map(skipDirectories, async (path: string) => {
-        return (await readdir(path))
-          .map((relPath) => resolve(path, relPath))
-          .filter((absPath) => configPaths.has(absPath))
-      })
-    )
     this.watcher = new Watcher({
       garden: this,
       log: this.log,

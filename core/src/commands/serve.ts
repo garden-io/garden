@@ -92,7 +92,7 @@ export class ServeCommand extends Command<Args, Opts> {
     this.server!.setGarden(garden)
 
     const allModules = graph.getModules()
-    const allActions = graph.getActions()
+    const allDeployActions = graph.getActionsByKind("Deploy")
 
     await processActions({
       garden,
@@ -102,7 +102,7 @@ export class ServeCommand extends Command<Args, Opts> {
       watch: true,
       actions: [],
       initialTasks: [],
-      skipWatch: allActions,
+      skipWatch: allDeployActions,
       skipWatchModules: allModules,
       changeHandler: async () => [],
     })

@@ -22,6 +22,7 @@ import { Action } from "./actions/types"
 import { actionReferenceToString } from "./actions/base"
 import { GraphResults } from "./graph/results"
 import { GardenModule } from "./types/module"
+import { DeployAction } from "./actions/deploy"
 
 export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
 
@@ -38,7 +39,7 @@ interface ProcessParams {
   /**
    * If provided, and if `watch === true`, don't watch files in the roots of these actions and modules.
    */
-  skipWatch?: Action[]
+  skipWatch?: DeployAction[]
   skipWatchModules?: GardenModule[]
   initialTasks: BaseTask[]
   /**
