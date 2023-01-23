@@ -24,7 +24,7 @@ import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { cacheResultSchema } from "../../config/task"
 import { dedent, deline } from "../../util/string"
-import { devModeGuideLink } from "../kubernetes/dev-mode"
+import { devModeGuideLink, kubernetesDeployDevModeSchema } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
 import { localModeGuideLink } from "../kubernetes/local-mode"
 import { BuildAction, BuildActionConfig } from "../../actions/build"
@@ -143,7 +143,7 @@ export interface DevModeSyncOptions {
   defaultGroup?: number | string
 }
 
-interface DevModeSyncSpec extends DevModeSyncOptions {
+export interface DevModeSyncSpec extends DevModeSyncOptions {
   source: string
   target: string
 }
@@ -750,7 +750,10 @@ export const containerDeploySchemaKeys = () => ({
   `),
 })
 
-export const containerDeploySchema = () => joi.object().keys(containerDeploySchemaKeys())
+export const containerDeploySchema = () =>
+  joi.object().keys({
+    ...containerDeploySchemaKeys(),
+  })
 
 export interface ContainerRegistryConfig {
   hostname: string

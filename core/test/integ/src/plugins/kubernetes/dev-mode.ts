@@ -16,11 +16,18 @@ import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/
 import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
-// import { DeployTask } from "../../../../../src/tasks/deploy"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
-import { TestGarden } from "../../../../helpers"
 import { getContainerTestGarden } from "./container/container"
+import {
+  convertContainerDevModeSpec,
+  convertKubernetesModuleDevModeSpec,
+} from "../../../../../src/plugins/kubernetes/dev-mode"
+import { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config"
+import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
+import { TestGarden } from "../../../../helpers"
+import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
+import { resolveAction } from "../../../../../src/graph/actions"
 
 describe("dev mode deployments and sync behavior", () => {
   let garden: TestGarden
@@ -197,5 +204,179 @@ describe("dev mode deployments and sync behavior", () => {
       .
       ..
     `)
+  })
+
+  describe("convertKubernetesModuleDevModeSpec", () => {
+    it("should return a simple dev mode spec converted from a kubernetes or helm module", async () => {
+      // Since the dev mode specs for both `kubernetes` and `helm` modules have the type
+      // `KubernetesModuleDevModeSpec`, we don't need separate test cases for each of those two module types here.
+
+      garden.setActionConfigs([
+        <KubernetesModuleConfig>{
+          kind: "Module",
+          type: "kubernetes",
+          name: "foo",
+          path: garden.projectRoot,
+          spec: {
+            devMode: {
+              sync: [
+                {
+                  target: "/app/src",
+                  source: "src",
+                  mode: "two-way",
+                },
+              ],
+            },
+            serviceResource: {
+              kind: "Deployment",
+              name: "some-deployment",
+            },
+          },
+        },
+      ])
+
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
+      const module = graph.getModule("foo")
+      const service = graph.moduleGraph.getService("foo")
+
+      const converted = convertKubernetesModuleDevModeSpec(module, service, undefined)
+
+      expect(converted).to.eql({
+        syncs: [
+          {
+            target: {
+              kind: "Deployment",
+              name: "some-deployment",
+            },
+            mode: "two-way",
+            sourcePath: join(module.path, "src"),
+            containerPath: "/app/src",
+          },
+        ],
+      })
+    })
+
+    it("should return a dev mode spec using several options converted from a kubernetes or helm module", async () => {
+      garden.setActionConfigs([
+        <HelmModuleConfig>{
+          kind: "Module",
+          type: "helm",
+          name: "foo",
+          path: garden.projectRoot,
+          spec: {
+            devMode: {
+              sync: [
+                {
+                  target: "/app/src",
+                  source: "src",
+                  mode: "two-way",
+                  exclude: ["bad/things"],
+                  defaultFileMode: 600,
+                  defaultDirectoryMode: 700,
+                  defaultOwner: "some-user",
+                  defaultGroup: "some-group",
+                },
+              ],
+              containerName: "app",
+              args: ["arg1", "arg2"],
+              command: ["cmd"],
+            },
+            serviceResource: {
+              kind: "Deployment",
+              name: "some-deployment",
+            },
+          },
+        },
+      ])
+
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
+      const module = graph.getModule("foo")
+      const service = graph.moduleGraph.getService("foo")
+
+      const converted = convertKubernetesModuleDevModeSpec(module, service, undefined)
+
+      expect(converted).to.eql({
+        syncs: [
+          {
+            target: {
+              kind: "Deployment",
+              name: "some-deployment",
+            },
+            mode: "two-way",
+            exclude: ["bad/things"],
+            defaultFileMode: 600,
+            defaultDirectoryMode: 700,
+            defaultOwner: "some-user",
+            defaultGroup: "some-group",
+            sourcePath: join(module.path, "src"),
+            containerPath: "/app/src",
+          },
+        ],
+        overrides: [
+          {
+            target: {
+              kind: "Deployment",
+              name: "some-deployment",
+              containerName: undefined,
+            },
+            command: ["cmd"],
+            args: ["arg1", "arg2"],
+          },
+        ],
+      })
+    })
+  })
+
+  describe("convertContainerDevModeSpec", () => {
+    it("converts a dev mode spec from a container Deploy action", async () => {
+      garden.setActionConfigs(
+        [],
+        [
+          <ContainerDeployActionConfig>{
+            kind: "Deploy",
+            type: "container",
+            name: "foo",
+            internal: {
+              basePath: garden.projectRoot,
+            },
+            spec: {
+              devMode: {
+                sync: [
+                  {
+                    target: "/app/src",
+                    source: "src",
+                    mode: "two-way",
+                  },
+                ],
+              },
+            },
+          },
+        ]
+      )
+
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getDeploy("foo"),
+        log: garden.log,
+      })
+
+      const converted = convertContainerDevModeSpec(ctx, action)
+
+      expect(converted).to.eql({
+        syncs: [
+          {
+            target: {
+              kind: "Deployment",
+              name: "foo",
+            },
+            mode: "one-way-safe",
+            sourcePath: join(action.basePath(), "src"),
+            containerPath: "/app/src",
+          },
+        ],
+      })
+    })
   })
 })

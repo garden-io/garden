@@ -33,8 +33,6 @@ describe("k8s dev mode helpers", () => {
   describe("makeSyncConfig", () => {
     const localPath = "/path/to/module/src"
     const remoteDestination = "exec:'various fun connection parameters'"
-    // const source = "src"
-    // const target = "/app/src"
 
     it("should generate a simple sync config", () => {
       const config = makeSyncConfig({
@@ -68,11 +66,6 @@ describe("k8s dev mode helpers", () => {
           fileMode: 600,
           directoryMode: 700,
         },
-        // spec: {
-        //   source, // TODO-G2 figure out where these two go
-        //   target,
-        //   mode: "one-way",
-        // },
         opts: {
           mode: "one-way",
         },
