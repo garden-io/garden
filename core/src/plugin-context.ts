@@ -92,9 +92,22 @@ export const pluginContextSchema = () =>
       cloudApi: joi.any().optional(),
     })
 
-interface PluginEvents {
-  abort: { reason?: string }
-  log: { data: Buffer }
+type LogMessage = {
+  // origin of the log message, e.g. tool that generated it
+  implementation: string
+
+  // number of milliseconds since the epoch
+  timestamp: number
+
+  // reveals the log message after conversion to string
+  data: Buffer
+}
+
+// Define your emitter's types like that:
+// Key: Event name; Value: Listener function signature
+type PluginEvents = {
+  abort: (reason?: string) => void
+  log: (msg: LogMessage) => void
 }
 
 type PluginEventType = keyof PluginEvents

@@ -67,7 +67,7 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, implementation: "local-docker" })
   })
   const timeout = module.spec.build.timeout
   const res = await containerHelpers.dockerCli({

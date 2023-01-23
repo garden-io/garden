@@ -381,9 +381,9 @@ export class ActionRouter implements TypeGuard {
     const moduleName = params.module.name
     const moduleVersion = params.module.version.versionString
     const statusLine = params.log.placeholder({ level: LogLevel.verbose })
-    params.events.on("log", ({ timestamp, data }) => {
+    params.events.on("log", ({ timestamp, data, implementation }) => {
       const msg = data.toString()
-      statusLine.setState(renderOutputStream(msg, `build`))
+      statusLine.setState(renderOutputStream(msg, implementation))
       this.garden.events.emit("log", {
         timestamp,
         actionUid,
@@ -466,10 +466,11 @@ export class ActionRouter implements TypeGuard {
 
     try {
       // Annotate + emit log output
-      params.events.on("log", ({ timestamp, data }) => {
+      params.events.on("log", ({ timestamp, data, implementation }) => {
         const msg = data.toString()
         if (!params.interactive) {
-          statusLine.setState(renderOutputStream(msg, `test.${testName}`))
+          // XXX in the current implementation, user possibly cannot differentiate logs from different tests
+          statusLine.setState(renderOutputStream(msg, implementation))
         }
         this.garden.events.emit("log", {
           timestamp,
@@ -556,9 +557,9 @@ export class ActionRouter implements TypeGuard {
     const moduleVersion = params.service.module.version.versionString
     const moduleName = params.service.module.name
     const statusLine = params.log.placeholder({ level: LogLevel.verbose })
-    params.events.on("log", ({ timestamp, data }) => {
+    params.events.on("log", ({ timestamp, data, implementation }) => {
       const msg = data.toString()
-      statusLine.setState(renderOutputStream(msg, `deploy`))
+      statusLine.setState(renderOutputStream(msg, implementation))
       this.garden.events.emit("log", {
         timestamp,
         actionUid,
@@ -722,10 +723,11 @@ export class ActionRouter implements TypeGuard {
 
     try {
       // Annotate + emit log output
-      params.events.on("log", ({ timestamp, data }) => {
+      params.events.on("log", ({ timestamp, data, implementation }) => {
         const msg = data.toString()
         if (!params.interactive) {
-          statusLine.setState(renderOutputStream(msg, `task.${taskName}`))
+          // XXX in the current implementation, user possibly cannot differentiate logs from different tests
+          statusLine.setState(renderOutputStream(msg, implementation))
         }
         this.garden.events.emit("log", {
           timestamp,

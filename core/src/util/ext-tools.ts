@@ -151,7 +151,7 @@ export class CliWrapper {
     }
 
     logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, implementation: this.name })
       const lineStr = line.toString()
       log.verbose(lineStr)
     })

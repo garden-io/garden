@@ -238,7 +238,8 @@ export const gardenPlugin = () =>
 
             outputStream.on("error", () => {})
             outputStream.on("data", (line: Buffer) => {
-              ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+              const tool = ["maven", "mavend"].includes(projectType) ? projectType : "gradle"
+              ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, implementation: tool })
               buildLog += line.toString()
             })
 

@@ -187,7 +187,11 @@ export async function waitForResources({
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
   const emitLog = (msg: string) =>
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8") })
+    ctx.events.emit("log", {
+      timestamp: new Date().getTime(),
+      data: Buffer.from(msg, "utf-8"),
+      implementation: "plugin-kubernetes",
+    })
 
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log.info({

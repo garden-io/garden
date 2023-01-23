@@ -209,7 +209,7 @@ export async function runAndCopy({
 
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data })
+      ctx.events.emit("log", { timestamp: new Date().getTime(), data, implementation: command![0] })
     })
 
     return runWithArtifacts({
@@ -784,7 +784,11 @@ export class PodRunner extends PodRunnerParams {
 
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
-      events.emit("log", { timestamp, data: Buffer.from(msg) })
+      events.emit("log", {
+        timestamp: timestamp?.getTime() || new Date().getTime(),
+        data: Buffer.from(msg),
+        implementation: this.getFullCommand()[0],
+      })
       if (tty) {
         process.stdout.write(`${msg}\n`)
       }

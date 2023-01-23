@@ -438,7 +438,7 @@ async function run({
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, implementation: command[0] })
   })
 
   const res = await exec(command.join(" "), [], {

@@ -103,8 +103,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   log.setState(`Building image ${localId}...`)
 
-  let buildLog = ""
-
   // Use the project namespace if set to null in config
   // TODO: change in 0.13 to default to project namespace
   let kanikoNamespace =
@@ -157,7 +155,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     args,
   })
 
-  buildLog = buildRes.log
+  const buildLog = buildRes.log
 
   if (kanikoBuildFailed(buildRes)) {
     throw new BuildError(`Failed building module ${chalk.bold(module.name)}:\n\n${buildLog}`, { buildLog })

@@ -29,8 +29,7 @@ import {
   builderToleration,
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
-import { LogLevel } from "../../../../logger/logger"
-import {  sleep } from "../../../../util/util"
+import { sleep } from "../../../../util/util"
 import { ContainerModule } from "../../../container/config"
 import { getDockerBuildArgs } from "../../../container/build"
 import { getRunningDeploymentPod, usingInClusterRegistry } from "../../util"
@@ -108,7 +107,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, implementation: "buildkit" })
   })
 
   const command = [
