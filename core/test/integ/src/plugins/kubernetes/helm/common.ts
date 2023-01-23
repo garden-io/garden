@@ -615,13 +615,12 @@ ${expectedIngressOutput}
     })
 
     it("should allow relative paths for valueFiles", async () => {
-      const module = graph.getModule("api")
-      module.spec.valueFiles = ["../relative.yaml"]
-      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action.getSpec().valueFiles = ["../relative.yaml"]
 
-      expect(await getValueArgs(module, false, false, false)).to.eql([
+      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
         "--values",
-        resolve(module.buildPath, "../relative.yaml"),
+        resolve(action.getBuildPath(), "../relative.yaml"),
         "--values",
         gardenValuesPath,
       ])
