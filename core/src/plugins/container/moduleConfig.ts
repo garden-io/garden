@@ -19,6 +19,8 @@ import {
   containerCommonBuildSpecKeys,
   ContainerCommonDeploySpec,
   containerDeploySchemaKeys,
+  containerDevModeSchema,
+  ContainerDevModeSpec,
   ContainerRunActionSpec,
   containerRunSpecKeys,
   ContainerTestActionSpec,
@@ -43,6 +45,7 @@ interface ContainerModuleVolumeSpec extends ContainerVolumeSpecBase {
 
 export type ContainerServiceSpec = CommonServiceSpec &
   ContainerCommonDeploySpec & {
+    devMode?: ContainerDevModeSpec
     volumes: ContainerModuleVolumeSpec[]
   }
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
@@ -95,6 +98,7 @@ const containerBuildSpecSchema = () =>
 const containerServiceSchema = () =>
   baseServiceSpecSchema().keys({
     ...containerDeploySchemaKeys(),
+    devMode: containerDevModeSchema(),
     volumes: getContainerVolumesSchema(
       volumeSchemaBase()
         .keys({

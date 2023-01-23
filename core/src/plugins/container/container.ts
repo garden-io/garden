@@ -18,6 +18,7 @@ import {
   ContainerModule,
   containerModuleOutputsSchema,
   containerModuleSpecSchema,
+  ContainerService,
   defaultDockerfileName,
 } from "./moduleConfig"
 import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build"
@@ -43,8 +44,11 @@ import {
 import { publishContainerBuild } from "./publish"
 import { Resolved } from "../../actions/types"
 import { getDeployedImageId } from "../kubernetes/container/util"
-import { KubernetesProvider } from "../kubernetes/config"
+import { KubernetesPluginContext, KubernetesProvider } from "../kubernetes/config"
 import { DeepPrimitiveMap } from "../../config/common"
+import { SyncableKind } from "../kubernetes/types"
+import { getDeploymentName } from "../kubernetes/container/deployment"
+import { convertDevModeSpec, KubernetesModuleDevModeSpec } from "../kubernetes/dev-mode"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 
@@ -210,7 +214,8 @@ function convertContainerModuleRuntimeActions(
   buildAction: ContainerBuildActionConfig | ExecBuildConfig | undefined,
   needsContainerBuild: boolean
 ): ContainerActionConfig[] {
-  const { module, services, tasks, tests, prepareRuntimeDependencies } = convertParams
+  const { module, services, tasks, tests, prepareRuntimeDependencies, ctx } = convertParams
+  const k8sCtx = <KubernetesPluginContext>ctx
   const actions: ContainerActionConfig[] = []
 
   for (const service of services) {
@@ -227,6 +232,7 @@ function convertContainerModuleRuntimeActions(
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
         image: module.spec.image,
+        devMode: convertContainerDevModeSpec(service, k8sCtx),
       },
     })
   }
@@ -322,6 +328,22 @@ export async function convertContainerModule(params: ConvertModuleParams<Contain
       path: module.path,
       actions,
     },
+  }
+}
+
+export function convertContainerDevModeSpec(service: ContainerService, ctx: KubernetesPluginContext) {
+  if (service.spec.devMode) {
+    const kind: SyncableKind = service.spec.daemon ? "DaemonSet" : "Deployment"
+    const blueGreen = ctx.provider.config.deploymentStrategy === "blue-green"
+    const deploymentName = getDeploymentName(service.name, blueGreen, service.version)
+    const target = { kind, name: deploymentName }
+    // This is safe, since `KubernetesModuleDevModeSyncSpec` simply extends `ContainerDevModeSPec` with an optional
+    // field (`containerName`) which isn't used/needed by `container` services.
+    const devMode: KubernetesModuleDevModeSpec = service.spec.devMode
+    const converted = convertDevModeSpec(devMode, service.module.path, target)
+    return converted
+  } else {
+    return undefined
   }
 }
 

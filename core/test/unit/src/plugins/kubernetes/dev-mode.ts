@@ -7,7 +7,14 @@
  */
 
 import { expect } from "chai"
-import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/dev-mode"
+import { KubernetesTargetResourceSpec } from "../../../../../src/plugins/kubernetes/config"
+import {
+  builtInExcludes,
+  convertDevModeSpec,
+  getLocalSyncPath,
+  KubernetesModuleDevModeSpec,
+  makeSyncConfig,
+} from "../../../../../src/plugins/kubernetes/dev-mode"
 
 describe("k8s dev mode helpers", () => {
   describe("getLocalSyncPath", () => {
@@ -33,8 +40,6 @@ describe("k8s dev mode helpers", () => {
   describe("makeSyncConfig", () => {
     const localPath = "/path/to/module/src"
     const remoteDestination = "exec:'various fun connection parameters'"
-    // const source = "src"
-    // const target = "/app/src"
 
     it("should generate a simple sync config", () => {
       const config = makeSyncConfig({
@@ -68,11 +73,6 @@ describe("k8s dev mode helpers", () => {
           fileMode: 600,
           directoryMode: 700,
         },
-        // spec: {
-        //   source, // TODO-G2 figure out where these two go
-        //   target,
-        //   mode: "one-way",
-        // },
         opts: {
           mode: "one-way",
         },
@@ -145,6 +145,96 @@ describe("k8s dev mode helpers", () => {
         defaultGroup: undefined,
         defaultDirectoryMode: undefined,
         defaultFileMode: undefined,
+      })
+    })
+  })
+
+  describe("helpers for converting old-style dev mode specs from module configs", () => {
+    describe("convertDevModeSpec", () => {
+      it("should convert a simple dev mode spec from a kubernetes or helm module", () => {
+        // Since the dev mode specs for both `kubernetes` and `helm` modules have the type
+        // `KubernetesModuleDevModeSpec`, we don't need separate test cases for each of those two module types here.
+        const oldDevModeSpec: KubernetesModuleDevModeSpec = {
+          sync: [
+            {
+              target: "/app/src",
+              source: "src",
+              mode: "two-way",
+            },
+          ],
+        }
+        const target: KubernetesTargetResourceSpec = {
+          kind: "Deployment",
+          name: "some-deployment",
+        }
+        const converted = convertDevModeSpec(oldDevModeSpec, "/path/to/module", target)
+        expect(converted).to.eql({
+          syncs: [
+            {
+              target: {
+                kind: "Deployment",
+                name: "some-deployment",
+              },
+              mode: "two-way",
+              sourcePath: "/path/to/module/src",
+              containerPath: "/app/src",
+            },
+          ],
+        })
+      })
+
+      it("should convert a dev mode spec using several options from a kubernetes or helm module", () => {
+        const oldDevModeSpec: KubernetesModuleDevModeSpec = {
+          sync: [
+            {
+              target: "/app/src",
+              source: "src",
+              mode: "two-way",
+              exclude: ["bad/things"],
+              defaultFileMode: 600,
+              defaultDirectoryMode: 700,
+              defaultOwner: "some-user",
+              defaultGroup: "some-group",
+            },
+          ],
+          containerName: "app",
+          args: ["arg1", "arg2"],
+          command: ["cmd"],
+        }
+        const target: KubernetesTargetResourceSpec = {
+          kind: "Deployment",
+          name: "some-deployment",
+        }
+        const converted = convertDevModeSpec(oldDevModeSpec, "/path/to/module", target)
+        expect(converted).to.eql({
+          syncs: [
+            {
+              target: {
+                kind: "Deployment",
+                name: "some-deployment",
+              },
+              mode: "two-way",
+              exclude: ["bad/things"],
+              defaultFileMode: 600,
+              defaultDirectoryMode: 700,
+              defaultOwner: "some-user",
+              defaultGroup: "some-group",
+              sourcePath: "/path/to/module/src",
+              containerPath: "/app/src",
+            },
+          ],
+          overrides: [
+            {
+              target: {
+                kind: "Deployment",
+                name: "some-deployment",
+                containerName: undefined,
+              },
+              command: ["cmd"],
+              args: ["arg1", "arg2"],
+            },
+          ],
+        })
       })
     })
   })

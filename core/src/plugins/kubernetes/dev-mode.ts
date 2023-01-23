@@ -20,7 +20,7 @@ import {
   syncTargetPathSchema,
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { cloneDeep, set } from "lodash"
+import { cloneDeep, omit, set } from "lodash"
 import { getResourceContainer, getResourcePodSpec, getTargetResource, labelSelectorToString } from "./util"
 import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
 import { LogEntry } from "../../logger/log-entry"
@@ -37,6 +37,7 @@ import {
   KubernetesPluginContext,
   KubernetesProvider,
   KubernetesTargetResourceSpec,
+  ServiceResourceSpec,
   targetContainerNameSchema,
   targetResourceSpecSchema,
 } from "./config"
@@ -49,6 +50,10 @@ import { PluginContext } from "../../plugin-context"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
 import { enumerate } from "../../util/enumerate"
+import { joinWithPosix } from "../../util/fs"
+import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config"
+import { HelmModule, HelmService } from "./helm/module-config"
+import { convertServiceResource } from "./kubernetes-type/common"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -198,6 +203,57 @@ export const kubernetesDeployDevModeSchema = () =>
       If you have multiple syncs for the Deploy, you can use the \`defaults\` field to set common configuration for every individual sync.
       `
     )
+
+export function convertKubernetesDevModeSpec(
+  module: KubernetesModule | HelmModule,
+  service: KubernetesService | HelmService,
+  serviceResource: ServiceResourceSpec | undefined
+) {
+  const target = convertServiceResource(module, serviceResource)
+  if (module.spec.devMode && target) {
+    return convertDevModeSpec(module.spec.devMode, service.sourceModule.path, target)
+  } else {
+    return undefined
+  }
+}
+
+export function convertDevModeSpec(
+  devModeSpec: KubernetesModuleDevModeSpec,
+  sourcePath: string,
+  target: KubernetesTargetResourceSpec
+): KubernetesDeployDevModeSpec {
+  const devMode: KubernetesDeployDevModeSpec = {
+    syncs: [],
+  }
+
+  // Convert to the new dev mode spec
+  for (const sync of devModeSpec.sync) {
+    devMode.syncs!.push({
+      ...omit(sync, ["source"]),
+      sourcePath: joinWithPosix(sourcePath, sync.source),
+      containerPath: sync.target,
+      target,
+    })
+  }
+
+  if (devModeSpec.command || devModeSpec.args) {
+    if (target.kind && target.name) {
+      devMode.overrides = [
+        {
+          target: {
+            kind: target.kind,
+            name: target.name,
+            containerName: target.containerName,
+          },
+          command: devModeSpec.command,
+          args: devModeSpec.args,
+        },
+      ]
+    }
+  }
+
+  return devMode
+}
 
 export async function configureDevMode({
   ctx,
@@ -369,7 +425,6 @@ interface StartDevModeSyncParams {
   ctx: KubernetesPluginContext
   log: LogEntry
   action: Resolved<SupportedRuntimeActions>
-
   defaultNamespace: string
   manifests: KubernetesResource[]
   basePath: string

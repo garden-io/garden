@@ -14,7 +14,7 @@ import { serviceStateToActionState, ServiceStatus } from "../../../types/service
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
-import { configureDevMode, startDevModeSyncs } from "../dev-mode"
+import { configureDevMode, convertDevModeSpec, convertKubernetesDevModeSpec, startDevModeSyncs } from "../dev-mode"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
@@ -28,7 +28,6 @@ import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import type { ExecBuildConfig } from "../../exec/config"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
-import { convertKubernetesDevModeSpec } from "../helm/handlers"
 import { getTargetResource } from "../util"
 import type { LogEntry } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
@@ -59,10 +58,10 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       include: module.spec.files,
 
       spec: {
-        ...omit(module.spec, ["name", "dependencies", "serviceResource", "tasks", "tests"]),
+        ...omit(module.spec, ["name", "dependencies", "serviceResource", "tasks", "tests", "devMode"]),
         files: module.spec.files || [],
         manifests: module.spec.manifests || [],
-        devMode: convertKubernetesDevModeSpec(module, service, serviceResource),
+        devMode: convertKubernetesDevModeSpec(module, service, serviceResource)
       },
     }
 

@@ -24,7 +24,7 @@ import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { cacheResultSchema } from "../../config/task"
 import { dedent, deline } from "../../util/string"
-import { devModeGuideLink } from "../kubernetes/dev-mode"
+import { devModeGuideLink, kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
 import { localModeGuideLink } from "../kubernetes/local-mode"
 import { BuildAction, BuildActionConfig } from "../../actions/build"
@@ -651,7 +651,6 @@ interface ContainerCommonRuntimeSpec {
 export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
   annotations: Annotations
   daemon: boolean
-  devMode?: ContainerDevModeSpec
   localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   healthCheck?: ServiceHealthCheckSpec
@@ -663,6 +662,7 @@ export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
 }
 
 export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
+  devMode?: KubernetesDeployDevModeSpec
   volumes: ContainerVolumeSpec[]
   image?: string
 }
@@ -728,7 +728,6 @@ export const containerDeploySchemaKeys = () => ({
       Whether to run the service as a daemon (to ensure exactly one instance runs per node).
       May not be supported by all providers.
     `),
-  devMode: containerDevModeSchema(),
   localMode: containerLocalModeSchema(),
   image: containerImageSchema(),
   ingresses: joiSparseArray(ingressSchema())
@@ -750,7 +749,11 @@ export const containerDeploySchemaKeys = () => ({
   `),
 })
 
-export const containerDeploySchema = () => joi.object().keys(containerDeploySchemaKeys())
+export const containerDeploySchema = () =>
+  joi.object().keys({
+    ...containerDeploySchemaKeys(),
+    devMode: kubernetesDeployDevModeSchema(),
+  })
 
 export interface ContainerRegistryConfig {
   hostname: string

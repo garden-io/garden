@@ -102,7 +102,7 @@ export async function startContainerDevSync({
   const devMode = action.getSpec("devMode")
   const workload = status.detail.workload
 
-  if (!devMode || !workload) {
+  if (!devMode?.syncs || !workload) {
     return
   }
 
@@ -130,12 +130,7 @@ export async function startContainerDevSync({
     defaultNamespace,
     defaultTarget: target,
     manifests: status.detail.remoteResources,
-    syncs: devMode.sync.map((s) => ({
-      ...s,
-      target,
-      sourcePath: s.source,
-      containerPath: s.target,
-    })),
+    syncs: devMode.syncs,
   })
 }
 
@@ -415,7 +410,7 @@ export async function createWorkloadManifest({
 }: CreateDeploymentParams): Promise<KubernetesWorkload> {
   const spec = action.getSpec()
   let configuredReplicas = spec.replicas || DEFAULT_MINIMUM_REPLICAS
-  const workload = workloadConfig({ action, configuredReplicas, namespace, blueGreen })
+  let workload = workloadConfig({ action, configuredReplicas, namespace, blueGreen })
 
   if (production && !spec.replicas) {
     configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
@@ -635,20 +630,18 @@ export async function createWorkloadManifest({
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in dev mode`) })
 
     const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
-    const overrides = devModeSpec.args || devModeSpec.command ? [{ target, ...devModeSpec }] : []
 
-    await configureDevMode({
+    const configured = await configureDevMode({
       ctx,
       log,
       provider,
       action,
       defaultTarget: target,
       manifests: [workload],
-      spec: {
-        overrides,
-        syncs: devModeSpec.sync.map((s) => ({ ...s, target, sourcePath: s.source, containerPath: s.target })),
-      },
+      spec: devModeSpec,
     })
+
+    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
   }
 
   if (!workload.spec.template.spec?.volumes?.length) {
@@ -659,8 +652,8 @@ export async function createWorkloadManifest({
   return workload
 }
 
-function getDeploymentName(action: ContainerDeployAction, blueGreen: boolean) {
-  return blueGreen ? `${action.name}-${action.versionString()}` : action.name
+export function getDeploymentName(deployName: string, blueGreen: boolean, versionString: string) {
+  return blueGreen ? `${deployName}-${versionString}` : deployName
 }
 
 export function getDeploymentLabels(action: ContainerDeployAction, blueGreen: boolean) {
@@ -706,7 +699,7 @@ function workloadConfig({
     kind: daemon ? "DaemonSet" : "Deployment",
     apiVersion: "apps/v1",
     metadata: {
-      name: getDeploymentName(action, blueGreen),
+      name: getDeploymentName(action.name, blueGreen, action.versionString()),
       annotations: {
         // we can use this to avoid overriding the replica count if it has been manually scaled
         "garden.io/configured.replicas": configuredReplicas.toString(),

@@ -7,8 +7,7 @@
  */
 
 import { ModuleActionHandlers } from "../../../plugin/plugin"
-import { HelmModule, configureHelmModule, HelmService } from "./module-config"
-import { ServiceResourceSpec } from "../config"
+import { HelmModule, configureHelmModule } from "./module-config"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import chalk = require("chalk")
@@ -16,17 +15,15 @@ import { getBaseModule, helmChartYamlFilename } from "./common"
 import { ExecBuildConfig } from "../../exec/config"
 import { KubernetesActionConfig } from "../kubernetes-type/config"
 import { HelmActionConfig, HelmDeployConfig } from "./config"
-import { KubernetesDeployDevModeSpec } from "../dev-mode"
 import { getServiceResourceSpec } from "../util"
 import { jsonMerge } from "../../../util/util"
 import { cloneDeep, omit } from "lodash"
 import { DeepPrimitiveMap } from "../../../config/common"
 import { convertServiceResource } from "../kubernetes-type/common"
 import { ConvertModuleParams } from "../../../plugin/handlers/module/convert"
-import { KubernetesModule, KubernetesService } from "../kubernetes-type/module-config"
-import { joinWithPosix } from "../../../util/fs"
 import { SuggestModulesParams, SuggestModulesResult } from "../../../plugin/handlers/module/suggest"
 import { makeDummyBuild } from "../../../resolve-module"
+import { convertKubernetesDevModeSpec } from "../dev-mode"
 
 export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,
@@ -196,48 +193,4 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       return { suggestions: [] }
     }
   },
-}
-
-export function convertKubernetesDevModeSpec(
-  module: HelmModule | KubernetesModule,
-  service: HelmService | KubernetesService,
-  serviceResource: ServiceResourceSpec | undefined
-) {
-  const devMode: KubernetesDeployDevModeSpec = {
-    syncs: [],
-  }
-
-  // Convert to the new dev mode spec
-  if (module.spec.devMode) {
-    const target = convertServiceResource(module, serviceResource)
-
-    if (target) {
-      for (const sync of module.spec.devMode.sync) {
-        devMode.syncs!.push({
-          ...omit(sync, ["source"]),
-          sourcePath: joinWithPosix(service.sourceModule.path, sync.source),
-          containerPath: sync.target,
-          target,
-        })
-      }
-
-      if (module.spec.devMode.command || module.spec.devMode.args) {
-        if (target.kind && target.name) {
-          devMode.overrides = [
-            {
-              target: {
-                kind: target.kind,
-                name: target.name,
-                containerName: target.containerName,
-              },
-              command: module.spec.devMode.command,
-              args: module.spec.devMode.args,
-            },
-          ]
-        }
-      }
-    }
-  }
-
-  return devMode
 }
