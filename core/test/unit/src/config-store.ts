@@ -141,15 +141,9 @@ describe("ConfigStore", () => {
       throw new Error("Expected error, got " + res)
     })
 
-    it("should throw if key is not found", async () => {
-      let res
-      try {
-        res = await config.delete(["key"])
-      } catch (err) {
-        expect(err.type).to.equal("local-config")
-        return
-      }
-      throw new Error("Expected error, got " + res)
+    it("should return undefined if key is not found", async () => {
+      const res = await config.delete(["key"])
+      expect(res).to.be.undefined
     })
   })
 })

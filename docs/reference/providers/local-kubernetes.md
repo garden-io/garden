@@ -226,14 +226,15 @@ providers:
       namespace: garden-system
 
       # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
-      # pods to only run on particular nodes.
+      # pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
+      # specifically set under `util.nodeSelector`.
       #
       # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
       # guide to assigning pods to nodes.
       nodeSelector:
 
       # Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run
-      # builds. Same tolerations will be used for the util pod unless they are specifically set under
+      # builds. The same tolerations will be used for each util pod unless they are specifically set under
       # `util.tolerations`
       tolerations:
         - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
@@ -262,8 +263,8 @@ providers:
           value:
 
       # Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of
-      # certain components, for example autoscalers. Same anotations will be used for each util pod unless they are
-      # specifically set under `util.annotations`
+      # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
+      # are specifically set under `util.annotations`
       annotations:
 
       util:
@@ -296,6 +297,9 @@ providers:
 
         # Specify annotations to apply to each garden-util pod and deployments.
         annotations:
+
+        # Specify the nodeSelector constraints for each garden-util pod.
+        nodeSelector:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -497,32 +501,6 @@ providers:
           # The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate
           # namespace before use.
           namespace: default
-
-        # Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
-        # certificate. See our
-        # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-        managedBy:
-
-    # cert-manager configuration, for creating and managing TLS certificates. See the
-    # [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-    certManager:
-      # Automatically install `cert-manager` on initialization. See the
-      # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-      install: false
-
-      # The email to use when requesting Let's Encrypt certificates.
-      email:
-
-      # The type of issuer for the certificate (only ACME is supported for now).
-      issuer: acme
-
-      # Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are
-      # supported.
-      acmeServer: letsencrypt-staging
-
-      # The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported
-      # for now).
-      acmeChallengeType: HTTP-01
 
     # Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain the system
     # services to only run on particular nodes.
@@ -1074,7 +1052,7 @@ Choose the namespace where the Kaniko pods will be run. Set to `null` to use the
 
 [providers](#providers) > [kaniko](#providerskaniko) > nodeSelector
 
-Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under `util.nodeSelector`.
 
 [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
 
@@ -1086,7 +1064,7 @@ Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows 
 
 [providers](#providers) > [kaniko](#providerskaniko) > tolerations
 
-Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. Same tolerations will be used for the util pod unless they are specifically set under `util.tolerations`
+Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. The same tolerations will be used for each util pod unless they are specifically set under `util.tolerations`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -1154,7 +1132,7 @@ otherwise just a regular string.
 
 [providers](#providers) > [kaniko](#providerskaniko) > annotations
 
-Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. Same anotations will be used for each util pod unless they are specifically set under `util.annotations`
+Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. The same annotations will be used for each util pod unless they are specifically set under `util.annotations`
 
 | Type     | Required |
 | -------- | -------- |
@@ -1267,6 +1245,16 @@ providers:
         annotations:
             cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
 ```
+
+### `providers[].kaniko.util.nodeSelector`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > nodeSelector
+
+Specify the nodeSelector constraints for each garden-util pod.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].defaultHostname`
 
@@ -2476,6 +2464,10 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
 certificate. See our
 [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
@@ -2496,6 +2488,10 @@ providers:
 
 [providers](#providers) > certManager
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 cert-manager configuration, for creating and managing TLS certificates. See the
 [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
@@ -2507,6 +2503,10 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Automatically install `cert-manager` on initialization. See the
 [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
@@ -2517,6 +2517,10 @@ Automatically install `cert-manager` on initialization. See the
 ### `providers[].certManager.email`
 
 [providers](#providers) > [certManager](#providerscertmanager) > email
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The email to use when requesting Let's Encrypt certificates.
 
@@ -2537,6 +2541,10 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > issuer
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The type of issuer for the certificate (only ACME is supported for now).
 
 | Type     | Default  | Required |
@@ -2556,6 +2564,10 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeServer
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are supported.
 
 | Type     | Default                 | Required |
@@ -2574,6 +2586,10 @@ providers:
 ### `providers[].certManager.acmeChallengeType`
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported for now).
 

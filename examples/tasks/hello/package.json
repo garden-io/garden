@@ -11,8 +11,8 @@
   "author": "garden.io <info@garden.io>",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.1",
-    "knex": "^0.19.5",
+    "express": "^4.17.3",
+    "knex": "^2.4.0",
     "pg": "^7.12.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.4"

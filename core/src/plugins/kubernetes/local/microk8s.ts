@@ -17,6 +17,7 @@ import chalk from "chalk"
 import { naturalList, deline } from "../../../util/string"
 import { ExecaReturnValue } from "execa"
 import { PluginContext } from "../../../plugin-context"
+import { parse as parsePath } from "path"
 
 export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   let statusCommandResult: ExecaReturnValue | undefined = undefined
@@ -66,6 +67,28 @@ export async function getMicrok8sImageStatus(imageId: string): Promise<BuildStat
   return { ready: res.stdout.split("\n").includes(clusterId) }
 }
 
+const MULTIPASS_VM_NAME = "microk8s-vm"
+
+type MultipassListOutput = {
+  list: {
+    ipv4: string[]
+    name: string
+    release: string
+    state: string
+  }[]
+}
+
+async function isMicrok8sRunningInMultipassVM(): Promise<boolean> {
+  try {
+    const res = await exec("multipass", ["list", "--format", "json"])
+
+    const data = JSON.parse(res.stdout) as MultipassListOutput
+    return data.list.some((vm) => vm.name === MULTIPASS_VM_NAME)
+  } catch (_err) {
+    return false
+  }
+}
+
 export async function loadImageToMicrok8s({
   module,
   imageId,
@@ -86,7 +109,32 @@ export async function loadImageToMicrok8s({
         log,
         ctx,
       })
-      await exec("microk8s", ["ctr", "image", "import", file.path])
+
+      const isInMultipassVM = await isMicrok8sRunningInMultipassVM()
+
+      const parsedTempFilePath = parsePath(file.path)
+      const sourceFilePath = file.path
+
+      // If running in multipass, we first need to transfer the file into the VM
+      // And then later on remove it again manually
+
+      // We only grab the base name of the temp file
+      // since else we would need to create the entire path of the temp file first
+      // Once microk8s releases with multipass v1.11.0,
+      // we can use the `-p` flag and simplify this code again
+      const filePath = isInMultipassVM ? `/tmp/${parsedTempFilePath.base}` : sourceFilePath
+
+      // Transfer the file from the source path into the new destination path within the VM
+      if (isInMultipassVM) {
+        await exec("multipass", ["transfer", sourceFilePath, `${MULTIPASS_VM_NAME}:${filePath}`])
+      }
+
+      await exec("microk8s", ["ctr", "image", "import", filePath])
+
+      // Clean up the file within the VM by deleting it explicitly
+      if (isInMultipassVM) {
+        await exec("multipass", ["exec", MULTIPASS_VM_NAME, "rm", filePath])
+      }
     })
   } catch (err) {
     throw new RuntimeError(`An attempt to load image ${imageId} into the microk8s cluster failed: ${err.message}`, {

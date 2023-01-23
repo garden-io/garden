@@ -654,6 +654,19 @@ ${expectedIngressOutput}
         gardenValuesPath,
       ])
     })
+
+    it("should allow relative paths for valueFiles", async () => {
+      const module = graph.getModule("api")
+      module.spec.valueFiles = ["../relative.yaml"]
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+
+      expect(await getValueArgs(module, false, false, false)).to.eql([
+        "--values",
+        resolve(module.buildPath, "../relative.yaml"),
+        "--values",
+        gardenValuesPath,
+      ])
+    })
   })
 
   describe("getReleaseName", () => {

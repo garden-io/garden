@@ -6,8 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError } from "../../../exceptions"
-import { GetAllUsersResponse } from "@garden-io/platform-api-types"
+import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
 import { dedent, deline, renderTable } from "../../../util/string"
@@ -16,6 +16,7 @@ import { applyFilter, makeUserFromResponse, noApiMsg, UserResult } from "../help
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
+import { getCloudDistributionName } from "../../../util/util"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
@@ -56,6 +57,14 @@ export class UsersListCommand extends Command<{}, Opts> {
     }
 
     const project = await api.getProject()
+
+    if (!project) {
+      throw new EnterpriseApiError(
+        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        {}
+      )
+    }
+
     // Make a best effort VCS provider guess. We should have an API endpoint for this or return with the response.
     const vcsProviderTitle = project.repositoryUrl.includes("github.com")
       ? "GitHub"
@@ -68,7 +77,7 @@ export class UsersListCommand extends Command<{}, Opts> {
     let hasMore = true
     while (hasMore) {
       log.debug(`Fetching page ${page}`)
-      const res = await api.get<GetAllUsersResponse>(`/users?page=${page}`)
+      const res = await api.get<ListUsersResponse>(`/users?page=${page}`)
       if (res.data.length === 0) {
         hasMore = false
       } else {
@@ -105,7 +114,7 @@ export class UsersListCommand extends Command<{}, Opts> {
       return [
         chalk.cyan.bold(u.name),
         String(u.id),
-        u.vcsUsername,
+        u.vcsUsername || "",
         u.groups.map((g) => g.name).join(", "),
         new Date(u.createdAt).toUTCString(),
       ]

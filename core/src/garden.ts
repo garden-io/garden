@@ -87,7 +87,7 @@ import { ResolveProviderTask } from "./tasks/resolve-provider"
 import { ActionRouter } from "./actions"
 import { RuntimeContext } from "./runtime-context"
 import { loadAndResolvePlugins, getDependencyOrder, getModuleTypes, loadPlugin } from "./plugins"
-import { deline, naturalList } from "./util/string"
+import { deline, naturalList, wordWrap } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyValidationGraph } from "./util/validate-dependencies"
 import { Profile, profileAsync } from "./util/profiling"
@@ -108,7 +108,7 @@ import {
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
-import { CloudApi } from "./cloud/api"
+import { CloudApi, CloudProject, EnterpriseApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
@@ -1281,19 +1281,75 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
-  const cloudDomain = cloudApi?.domain
+  // fall back to get the domain from config if the cloudApi instance failed
+  // to login or was not defined
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
+
+  // The cloudApi instance only has a project ID when the configured ID has
+  // been verified against the cloud instance.
+  let cloudProjectId: string | undefined = config.id
+
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
     const cloudLog = log.info({ section, msg: "Initializing...", status: "active" })
 
-    try {
-      secrets = await getSecrets({ log: cloudLog, environmentName, cloudApi })
-      cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
-      cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudApi.domain}`)
-    } catch (err) {
-      cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
-      cloudLog.setWarn()
+    let project: CloudProject | undefined
+
+    if (cloudProjectId) {
+      // Ensure that the current projectId exists in the remote project
+      try {
+        project = await cloudApi.verifyAndConfigureProject(cloudProjectId)
+      } catch (err) {
+        cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
+      }
+    }
+
+    if (!project && !cloudProjectId && !config.domain) {
+      // Create a new project in case the project does not exist
+      // and the user is logged in to a default domain.
+      // Note: excluding projects with a domain is for backwards compatibility
+      cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
+
+      try {
+        project = await cloudApi.getOrCreateProject(projectName)
+      } catch (err) {
+        if (err instanceof EnterpriseApiDuplicateProjectsError) {
+          cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
+        } else {
+          cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+        }
+      }
+    }
+
+    if (project) {
+      const projectUrl = new URL(`/projects/${project.id}`, cloudDomain)
+      cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+
+      if (cloudApi.projectId) {
+        // ensure we use the fetched/created project ID
+        cloudProjectId = cloudApi.projectId
+
+        // Only fetch secrets if the projectId exists in the cloud API instance
+        try {
+          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
+          cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
+          cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
+        } catch (err) {
+          cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
+          cloudLog.setWarn()
+        }
+      }
+    } else {
+      cloudLog.info(
+        chalk.yellow(
+          wordWrap(
+            deline`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project.
+            Continuing without ${distroName} features ...`,
+            120
+          )
+        )
+      )
     }
   }
 
@@ -1342,8 +1398,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     vcsInfo,
     sessionId,
     disablePortForwards,
-    projectId: config.id,
-    enterpriseDomain: config.domain,
+    projectId: cloudProjectId,
+    enterpriseDomain: cloudDomain,
     projectRoot,
     projectName,
     environmentName,

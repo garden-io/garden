@@ -675,6 +675,7 @@ Examples:
     garden deploy --local              # deploys all compatible services with local mode enabled
     garden deploy --env stage          # deploy your services to an environment called stage
     garden deploy --skip service-b     # deploy all services except service-b
+    garden deploy --forward            # deploy all services and start port forwards without watching for changes
 
 #### Usage
 
@@ -2654,20 +2655,6 @@ garden get debug-info --include-project  # include provider info for the project
   | `--format` |  | `json` `yaml`  | The output format for plugin-generated debug info.
   | `--include-project` |  | boolean | Include project-specific information from configured providers.
 Note that this may include sensitive data, depending on the provider and your configuration.
-
-
-### garden get vaccine
-
-**Get notifications and appointments open up at the Berlin vaccination centers.**
-
-Check for openings at Berlin's vaccination centers at a 2
-second interval. If it finds one, you'll receive a notification
-with links to book an appointment.
-
-#### Usage
-
-    garden get vaccine 
-
 
 
 ### garden get workflows

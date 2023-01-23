@@ -45,6 +45,7 @@ import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
 import { emitWarning } from "../../warnings"
 import { kustomizeSpec } from "./kubernetes-module/kustomize"
+import { taskOutputsSchema } from "./task-results"
 
 export async function configureProvider({
   log,
@@ -209,8 +210,8 @@ export const gardenPlugin = () =>
     [\`kubernetes\`](../module-types/kubernetes.md) module types.
 
     For usage information, please refer to the [guides section](${DOCS_BASE_URL}/guides). A good place to start is
-    the [Remote Kubernetes guide](../../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
-    The [Getting Started](../../getting-started/0-introduction.md) guide is also helpful as an introduction.
+    the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
+    The [Quickstart guide](../../basics/quickstart.md) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
   `,
@@ -236,6 +237,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: helmHandlers,
       },
       {
@@ -253,6 +255,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: kubernetesHandlers,
       },
       pvcModuleDefinition(),

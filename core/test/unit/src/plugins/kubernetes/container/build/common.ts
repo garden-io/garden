@@ -181,7 +181,8 @@ describe("common build", () => {
       const podAnnotations = result.deployment.spec.template.metadata?.annotations
       expect(podAnnotations).to.eql(provider.config.kaniko.annotations)
     })
-    it("should return the manifest with kaniko annotations when util annotations are specified", () => {
+
+    it("should return the manifest with util annotations when util annotations are specified", () => {
       provider.config.kaniko = {
         util: {
           annotations: {
@@ -196,6 +197,28 @@ describe("common build", () => {
 
       const podAnnotations = result.deployment.spec.template.metadata?.annotations
       expect(podAnnotations).to.eql(provider.config.kaniko.util?.annotations)
+    })
+
+    it("should return the manifest with kaniko nodeSelector when util nodeSelector is missing", () => {
+      provider.config.kaniko = {
+        nodeSelector: { "kubernetes.io/os": "linux" },
+      }
+      const result = getUtilManifests(provider, "test", [])
+
+      const podNodeSelector = result.deployment.spec.template.spec?.nodeSelector
+      expect(podNodeSelector).to.eql(provider.config.kaniko.nodeSelector)
+    })
+
+    it("should return the manifest with util nodeSelector when util nodeSelector is specified", () => {
+      provider.config.kaniko = {
+        util: {
+          nodeSelector: { "kubernetes.io/os": "linux" },
+        },
+      }
+      const result = getUtilManifests(provider, "test", [])
+
+      const podNodeSelector = result.deployment.spec.template.spec?.nodeSelector
+      expect(podNodeSelector).to.eql(provider.config.kaniko.util?.nodeSelector)
     })
   })
 })

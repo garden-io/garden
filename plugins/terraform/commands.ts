@@ -45,7 +45,6 @@ function makeRootCommand(commandName: string) {
       const cachePath = getProviderStatusCachePath({
         gardenDirPath: ctx.gardenDirPath,
         pluginName: provider.name,
-        environmentName: ctx.environmentName,
       })
       await remove(cachePath)
 

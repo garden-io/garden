@@ -2,13 +2,13 @@
   <img src="docs/logo.png" align="center">
 </p>
 <div align="center">
-  <a href="https://docs.garden.io/getting-started/0-introduction/?utm_source=github">Getting Started</a>
+  <a href="https://docs.garden.io/basics/5-min-quickstart/?utm_source=github">Quickstart</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/?utm_source=github">Website</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.12.46/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/0.12.48/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -36,7 +36,7 @@ _If you’re using Garden or if you like the project, please ★ star this repos
 
 ### **Getting started**
 
-The fastest way to get started with Garden is by following our [getting started guide](https://docs.garden.io/getting-started/0-introduction).
+The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/5-min-quickstart).
 
 ### **Who should use Garden?**
 
@@ -92,11 +92,11 @@ garden dev
 
 The Stack Graph is pluggable so how these actions are actually executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, and chances are that’s what you’re here for. To learn more about how Garden works with Kubernetes, check out:
 
-- [Remote Kubernetes](https://docs.garden.io/guides/remote-kubernetes).
+- [Kubernetes Plugins documentation](https://docs.garden.io/guides/remote-kubernetes).
 
 And for a deeper dive on how Garden works in general, we recommend:
 
-- [This guide on the Stack Graph](https://docs.garden.io/basics/stack-graph).
+- [This guide on how Garden works](https://docs.garden.io/basics/how-garden-works).
 - [This video series on the Stack Graph and getting started with Garden](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8).
 
 ### **Plugins**

@@ -11,7 +11,7 @@ You can import **two** types of remote repositories with Garden:
 
 > **Remote _module_**: The source code for a single Garden module. In this case, the `garden.yml` config file is stored in the main project repository while the module code itself is in the remote repository.
 
-The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/0.12.46/examples/remote-sources).
+The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/0.12.48/examples/remote-sources).
 
 ## Importing Remote Repositories
 
@@ -27,11 +27,11 @@ sources:
   - name: web-services
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git
   - name: db-services
-    # use #your-branch to specify a branch or #v0.3.0 to configure git version
+    # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
     repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
 ```
 
-Note that the URL must point to a specific branch or tag.
+Note that the URL must point to a specific branch, tag or commit hash.
 
 Use this when you want to import Garden modules from another repository. The repository can contain one or more modules along with their `garden.yml` config files. For example, this is the file tree for the remote `web-services` source:
 
