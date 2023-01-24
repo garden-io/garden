@@ -441,7 +441,7 @@ describe("exec plugin", () => {
               command: ["pwd"],
             },
             internal: {
-              basePath: "TODO-G2",
+              basePath: `${testProjectRoot}/module-local`,
             },
           } as TestActionConfig,
           configsByKey: {},
@@ -475,7 +475,7 @@ describe("exec plugin", () => {
               command: ["echo", "$GARDEN_MODULE_VERSION"],
             },
             internal: {
-              basePath: "TODO-G2",
+              basePath: `${testProjectRoot}/module-local`,
             },
           } as TestActionConfig,
           configsByKey: {},
