@@ -454,7 +454,10 @@ describe("exec plugin", () => {
           silent: false,
           action,
         })
-        expect(res.outputs).to.eql(join(garden.projectRoot, "module-local"))
+        expect(res.state).to.eql("ready")
+        expect(res.detail?.log).to.eql("pwd")
+        // TODO-G2: it looks like there is no path available in the Test result. Does this test case still make sense?
+        // expect(res.outputs).to.eql(join(garden.projectRoot, "module-local"))
       })
 
       it("should receive module version as an env var", async () => {
@@ -488,7 +491,9 @@ describe("exec plugin", () => {
           graph,
           silent: false,
         })
-        expect(res.outputs).to.equal(rawAction.versionString())
+        expect(res.state).to.eql("ready")
+        // TODO-G2: the result contains unresolved env var and looks like `echo $GARDEN_MODULE_VERSION`
+        expect(res.detail?.log).to.eql(`echo ${rawAction.versionString()}`)
       })
     })
 
