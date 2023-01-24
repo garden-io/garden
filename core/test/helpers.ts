@@ -244,8 +244,7 @@ export const testPlugin = () =>
               const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
               return result || { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
-            exec: async ({ action }) => {
-              const { command } = action.getSpec()
+            exec: async ({ command }) => {
               return { code: 0, output: "Ran command: " + command.join(" ") }
             },
           },
