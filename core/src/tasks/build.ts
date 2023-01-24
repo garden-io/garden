@@ -38,6 +38,12 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
+    if (action.isDisabled()) {
+      this.log.info(
+        `${action.longDescription()} is disabled, but is being executed because another action depends on it.`
+      )
+    }
+
     let log = this.log.info({
       section: this.getName(),
       msg: `Building version ${this.version}...`,

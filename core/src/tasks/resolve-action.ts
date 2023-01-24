@@ -54,7 +54,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     // }
 
     return this.action.getDependencyReferences().flatMap((d): BaseTask[] => {
-      const action = this.graph.getActionByRef(d)
+      const action = this.graph.getActionByRef(d, { includeDisabled: true })
 
       if (d.needsExecutedOutputs) {
         // Need runtime outputs from dependency

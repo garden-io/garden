@@ -398,7 +398,7 @@ describe("BaseActionRouter", () => {
         params: { graph, log, action: resolvedBuildAction },
       })
 
-      expect(result.outputs.base).to.not.equal(undefined)
+      expect(result.outputs.base).to.not.be.undefined
       expect(await result.outputs.base().outputs.plugin).to.equal("base")
     })
 

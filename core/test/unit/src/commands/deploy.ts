@@ -18,7 +18,7 @@ import {
   customizedTestPlugin,
   testDeploySchema,
   testTestSchema,
-  listAllProcessedActions,
+  getAllProcessedTaskNames,
 } from "../../../helpers"
 import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
@@ -411,7 +411,7 @@ describe("DeployCommand", () => {
       throw errors[0]
     }
 
-    const keys = listAllProcessedActions(result!.graphResults)
+    const keys = getAllProcessedTaskNames(result!.graphResults)
 
     expect(keys).to.eql([
       "build.module-a",
@@ -460,7 +460,7 @@ describe("DeployCommand", () => {
         throw errors[0]
       }
 
-      const keys = listAllProcessedActions(result!.graphResults)
+      const keys = getAllProcessedTaskNames(result!.graphResults)
 
       // service-b has a dependency on service-a, it should be skipped here
       expect(keys).to.not.include("deploy.service-a")

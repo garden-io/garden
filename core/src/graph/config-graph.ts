@@ -596,6 +596,7 @@ export class ConfigGraphNode {
 
   private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
     const nodes = this[type].filter((n) => {
+      // TODO-G2: This feels out of place here
       if (n.kind !== "Build" && n.disabled) {
         return false
       } else if (filter) {

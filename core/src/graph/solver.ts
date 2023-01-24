@@ -138,8 +138,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           results.setResult(request.task, result)
 
           if (throwOnError && result.error) {
-            cleanup()
-            reject(new GraphError(`Failed to ${result.description}: ${result.error}`, { results }))
+            cleanup({ error: new GraphError(`Failed to ${result.description}: ${result.error}`, { results }) })
             return
           }
 
@@ -171,7 +170,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             error = new GraphError(msg, { results })
           }
 
-          cleanup()
+          cleanup({ error: null })
 
           if (error) {
             log.silly(`Batch ${batchId} failed: ${error.message}`)
@@ -182,11 +181,17 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           resolve({ error, results })
         }
 
-        function cleanup() {
+        function cleanup({ error }: { error: GraphError | null }) {
           // TODO: abort remaining pending tasks?
           aborted = true
           delete _this.requestedTasks[batchId]
+          _this.off("abort", cleanup)
+          if (error) {
+            reject(error)
+          }
         }
+
+        this.on("abort", cleanup)
 
         this.start()
       })
@@ -327,7 +332,8 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             this.garden.events.emit("internalError", { error, timestamp: new Date() })
             this.logInternalError(node, error)
             node.complete({ startedAt, error, aborted: true, result: null })
-            this.emit("loop", {})
+            // Abort execution on internal error
+            this.emit("abort", { error })
           })
       }
     } finally {
@@ -501,6 +507,9 @@ interface TaskStartEvent extends TaskEventBase {
 }
 
 interface SolverEvents {
+  abort: {
+    error: GraphError | null
+  }
   solveComplete: {
     error: Error | null
     results: {
