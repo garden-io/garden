@@ -317,7 +317,7 @@ const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (par
   const { action, stream, follow, ctx, log } = params
 
   const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, deployName: action.name })
-  const logsFollower = new ExecLogsFollower({ stream, log, logFilePath, serviceName: action.name })
+  const logsFollower = new ExecLogsFollower({ stream, log, logFilePath, deployName: action.name })
 
   if (follow) {
     ctx.events.on("abort", () => {

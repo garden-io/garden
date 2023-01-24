@@ -12,7 +12,7 @@ import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { k8sGetContainerDeployLogs } from "../../../../../../src/plugins/kubernetes/container/logs"
 import { Stream } from "ts-stream"
-import { ServiceLogEntry } from "../../../../../../src/types/service"
+import { DeployLogEntry } from "../../../../../../src/types/service"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { K8sLogFollower, makeServiceLogEntry } from "../../../../../../src/plugins/kubernetes/logs"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
@@ -44,7 +44,7 @@ describe("kubernetes", () => {
     it("should write service logs to stream", async () => {
       const action = graph.getDeploy("simple-service")
 
-      const entries: ServiceLogEntry[] = []
+      const entries: DeployLogEntry[] = []
 
       const deployTask = new DeployTask({
         force: true,
@@ -59,7 +59,7 @@ describe("kubernetes", () => {
       })
 
       await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-      const stream = new Stream<ServiceLogEntry>()
+      const stream = new Stream<DeployLogEntry>()
 
       void stream.forEach((entry) => {
         entries.push(entry)
@@ -78,7 +78,7 @@ describe("kubernetes", () => {
       expect(entries[0].msg).to.include("Server running...")
     })
     describe("K8sLogsFollower", () => {
-      let logsFollower: K8sLogFollower<ServiceLogEntry>
+      let logsFollower: K8sLogFollower<DeployLogEntry>
 
       afterEach(() => {
         logsFollower.close()
@@ -90,7 +90,7 @@ describe("kubernetes", () => {
         const namespace = provider.config.namespace!.name!
         const api = await KubeApi.factory(log, ctx, provider)
 
-        const entries: ServiceLogEntry[] = []
+        const entries: DeployLogEntry[] = []
 
         const deployTask = new DeployTask({
           force: true,
@@ -106,7 +106,7 @@ describe("kubernetes", () => {
         })
 
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-        const stream = new Stream<ServiceLogEntry>()
+        const stream = new Stream<DeployLogEntry>()
 
         void stream.forEach((entry) => {
           entries.push(entry)
@@ -152,7 +152,7 @@ describe("kubernetes", () => {
         const serviceLog = entries.find((e) => e.msg.includes("Server running..."))
 
         expect(serviceLog).to.exist
-        expect(serviceLog!.serviceName).to.eql("simple-service")
+        expect(serviceLog!.name).to.eql("simple-service")
         expect(serviceLog!.timestamp).to.be.an.instanceOf(Date)
         expect(serviceLog!.level).to.eql(2)
       })
@@ -163,7 +163,7 @@ describe("kubernetes", () => {
         const namespace = provider.config.namespace!.name!
         const api = await KubeApi.factory(log, ctx, provider)
 
-        const entries: ServiceLogEntry[] = []
+        const entries: DeployLogEntry[] = []
 
         const deployTask = new DeployTask({
           force: true,
@@ -187,7 +187,7 @@ describe("kubernetes", () => {
           force: false,
         })
 
-        const stream = new Stream<ServiceLogEntry>()
+        const stream = new Stream<DeployLogEntry>()
 
         void stream.forEach((entry) => {
           entries.push(entry)

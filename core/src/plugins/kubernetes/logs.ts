@@ -10,7 +10,7 @@ import { omit, sortBy } from "lodash"
 import moment from "moment"
 import parseDuration from "parse-duration"
 
-import { ServiceLogEntry } from "../../types/service"
+import { DeployLogEntry } from "../../types/service"
 import { KubernetesResource, KubernetesPod, BaseResource } from "./types"
 import { getAllPods } from "./util"
 import { KubeApi } from "./api"
@@ -35,7 +35,7 @@ interface GetAllLogsParams {
   log: LogEntry
   provider: KubernetesProvider
   actionName: string
-  stream: Stream<ServiceLogEntry>
+  stream: Stream<DeployLogEntry>
   follow: boolean
   tail?: number
   since?: string
@@ -496,9 +496,9 @@ export interface PodLogEntryConverterParams {
 
 export type PodLogEntryConverter<T> = (p: PodLogEntryConverterParams) => T
 
-export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<ServiceLogEntry> = (serviceName) => {
+export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<DeployLogEntry> = (serviceName) => {
   return ({ timestamp, msg, level, containerName }: PodLogEntryConverterParams) => ({
-    serviceName,
+    name: serviceName,
     timestamp,
     msg,
     level,
