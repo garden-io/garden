@@ -77,6 +77,19 @@ export const deployOpts = {
     help: deline`Create port forwards and leave process running without watching
     for changes. Ignored if --watch/-w flag is set or when in dev mode.`,
   }),
+  "skip-watch": new BooleanParameter({
+    help: deline`[EXPERIMENTAL] If set to \`false\` while in dev-mode
+    (i.e. the --dev-mode/--dev flag is used) then file syncing will still
+    work but Garden will ignore changes to config files and services that are not in dev mode.
+
+    This can be a performance improvement for projects that have a large number of files
+    and where only syncing is needed when in dev mode.
+
+    Note that this flag cannot used if hot reloading is enabled.
+
+    This behaviour will change in a future release in favour of a "smarter"
+    watching mechanism.`,
+  }),
 }
 
 type Args = typeof deployArgs
@@ -189,7 +202,9 @@ export class DeployCommand extends Command<Args, Opts> {
     let watch = opts.watch
 
     if (devModeDeployNames.length > 0) {
-      watch = true
+      watch = opts["skip-watch"]
+        ? false // In this case hotReloadServiceNames is empty, otherwise we throw above
+        : true
     }
 
     const force = opts.force

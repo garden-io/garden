@@ -134,6 +134,7 @@ describe("DeployCommand", () => {
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -402,6 +403,7 @@ describe("DeployCommand", () => {
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -451,6 +453,7 @@ describe("DeployCommand", () => {
           "force-build": true,
           "skip": undefined,
           "skip-dependencies": true, // <-----
+          "skip-watch": false,
           "forward": false,
         }),
       })
@@ -502,6 +505,7 @@ describe("DeployCommand", () => {
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -541,6 +545,7 @@ describe("DeployCommand", () => {
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -575,6 +580,7 @@ describe("DeployCommand", () => {
         "force-build": true,
         "skip": ["service-b"],
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -606,6 +612,7 @@ describe("DeployCommand", () => {
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": false,
         }),
       })
@@ -624,13 +631,13 @@ describe("DeployCommand", () => {
         },
         opts: withDefaultGlobalOpts({
           "dev-mode": [],
-
           "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": false,
         }),
       })
@@ -656,6 +663,7 @@ describe("DeployCommand", () => {
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": false,
         }),
       })
@@ -681,6 +689,7 @@ describe("DeployCommand", () => {
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": true,
         }),
       })

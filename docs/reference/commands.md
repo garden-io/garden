@@ -493,6 +493,10 @@ This always takes the precedence over the dev mode if there are any conflicts, i
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
   | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev mode.
+  | `--skip-watch` |  | boolean | [EXPERIMENTAL] If set to &#x60;false&#x60; while in dev-mode (i.e. the --dev-mode/--dev flag is used) then file syncing will still work but Garden will ignore changes to config files and services that are not in dev mode.
+This can be a performance improvement for projects that have a large number of files and where only syncing is needed when in dev mode.
+Note that this flag cannot used if hot reloading is enabled.
+This behaviour will change in a future release in favour of a &quot;smarter&quot; watching mechanism.
 
 #### Outputs
 
