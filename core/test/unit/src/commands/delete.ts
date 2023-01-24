@@ -66,7 +66,7 @@ const moduleConfigs: ModuleConfig[] = [
   }),
 ]
 
-const missingDeployStatus = {
+const missingDeployStatus: ActionStatus = {
   state: "not-ready",
   detail: { state: "missing", forwardablePorts: [], outputs: {}, detail: {} },
   outputs: {},
@@ -180,30 +180,14 @@ describe("DeleteEnvironmentCommand", () => {
   })
 })
 
-describe("DeleteServiceCommand", () => {
+describe("DeleteDeployCommand", () => {
   let deleteOrder: string[] = []
 
   const testStatuses: { [key: string]: ActionStatus } = {
-    "service-a": {
-      state: "unknown",
-      detail: { state: "unknown", detail: {} },
-      outputs: {},
-    },
-    "service-b": {
-      state: "unknown",
-      detail: { state: "unknown", detail: {} },
-      outputs: {},
-    },
-    "service-c": {
-      state: "unknown",
-      detail: { state: "unknown", detail: {} },
-      outputs: {},
-    },
-    "service-d": {
-      state: "unknown",
-      detail: { state: "unknown", detail: {} },
-      outputs: {},
-    },
+    "service-a": missingDeployStatus,
+    "service-b": missingDeployStatus,
+    "service-c": missingDeployStatus,
+    "service-d": missingDeployStatus,
   }
 
   const testProvider = customizedTestPlugin({
@@ -257,7 +241,7 @@ describe("DeleteServiceCommand", () => {
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-a": missingDeployStatus,
     })
   })
 
@@ -272,9 +256,9 @@ describe("DeleteServiceCommand", () => {
     })
 
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-a": missingDeployStatus,
+      "service-b": missingDeployStatus,
+      "service-c": missingDeployStatus,
     })
   })
 
@@ -290,9 +274,9 @@ describe("DeleteServiceCommand", () => {
       })
       expect(deleteOrder).to.eql(["service-c", "service-b", "service-a"])
       expect(result).to.eql({
-        "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+        "service-a": missingDeployStatus,
+        "service-b": missingDeployStatus,
+        "service-c": missingDeployStatus,
       })
     })
   })
@@ -309,10 +293,10 @@ describe("DeleteServiceCommand", () => {
       })
       expect(deleteOrder).to.eql(["service-d", "service-c", "service-b", "service-a"])
       expect(result).to.eql({
-        "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-        "service-d": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+        "service-a": missingDeployStatus,
+        "service-b": missingDeployStatus,
+        "service-c": missingDeployStatus,
+        "service-d": missingDeployStatus,
       })
     })
   })
@@ -327,10 +311,10 @@ describe("DeleteServiceCommand", () => {
       opts: withDefaultGlobalOpts({ "with-dependants": false, "dependants-first": true }),
     })
     expect(result).to.eql({
-      "service-a": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-b": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-c": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
-      "service-d": { forwardablePorts: [], state: "unknown", ingresses: [], detail: {}, outputs: {} },
+      "service-a": missingDeployStatus,
+      "service-b": missingDeployStatus,
+      "service-c": missingDeployStatus,
+      "service-d": missingDeployStatus,
     })
   })
 
