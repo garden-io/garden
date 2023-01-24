@@ -83,6 +83,7 @@ describe("DevCommand", () => {
       "hot-reload": undefined,
       "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -167,6 +168,7 @@ describe("DevCommand", () => {
       "hot-reload": undefined,
       "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -190,6 +192,7 @@ describe("DevCommand", () => {
       "hot-reload": undefined,
       "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -213,6 +216,7 @@ describe("DevCommand", () => {
       "hot-reload": undefined,
       "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -236,6 +240,7 @@ describe("DevCommand", () => {
       "hot-reload": undefined,
       "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -259,6 +264,7 @@ describe("DevCommand", () => {
       "hot-reload": undefined,
       "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -282,6 +288,7 @@ describe("DevCommand", () => {
       "hot-reload": undefined,
       "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 

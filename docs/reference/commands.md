@@ -701,6 +701,10 @@ This always takes the precedence over the dev mode if there are any conflicts, i
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
   | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
+  | `--skip-watch` |  | boolean | [EXPERIMENTAL] If set to &#x60;false&#x60; while in dev-mode (i.e. the --dev-mode/--dev flag is used) then file syncing will still work but Garden will ignore changes to config files and services that are not in dev mode.
+This can be a performance improvement for projects that have a large number of files and where only syncing is needed when in dev mode.
+Note that this flag cannot used if hot reloading is enabled.
+This behaviour will change in a future release in favour of a &quot;smarter&quot; watching mechanism.
 
 #### Outputs
 
@@ -931,6 +935,11 @@ Examples:
 This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip-tests` |  | boolean | Disable running the tests.
   | `--test-names` | `--tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `--skip-watch` |  | boolean | [EXPERIMENTAL] Watching is enabled by default but can be disabled by setting this flag to &#x60;false&#x60;.
+If set to &#x60;false&#x60; then file syncing will still work but Garden will ignore changes to config files and services that are not in dev mode.
+This can be a performance improvement for projects that have a large number of files and where only file syncing is needed when in dev mode.
+Note that this flag cannot be used if hot reloading is enabled.
+This flag will be removed in future release in favour of a &quot;smarter&quot; watching mechanism.
 
 
 ### garden exec
