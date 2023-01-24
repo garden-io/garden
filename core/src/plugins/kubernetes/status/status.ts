@@ -33,6 +33,7 @@ import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
 import { SyncableResource } from "../types"
+import { LogLevel } from "../../../logger/logger"
 
 export interface ResourceStatus<T = BaseResource> {
   state: ServiceState
@@ -186,8 +187,14 @@ export async function waitForResources({
   let loops = 0
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
+
+  const logEventContext = {
+    origin: "kubernetes-plugin",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
+
   const emitLog = (msg: string) =>
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8") })
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
 
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log.info({

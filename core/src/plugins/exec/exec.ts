@@ -15,7 +15,7 @@ import { ArtifactSpec } from "../../config/validation"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { LOGS_DIR } from "../../constants"
 import { dedent } from "../../util/string"
-import { exec, ExecOpts, renderOutputStream, runScript, sleep } from "../../util/util"
+import { exec, ExecOpts, runScript, sleep } from "../../util/util"
 import { RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -150,13 +150,15 @@ async function run({
   env?: PrimitiveMap
   opts?: ExecOpts
 }) {
-  const outputStream = split2()
+  const logEventContext = {
+    origin: command[0],
+    log,
+  }
 
+  const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    const cmdName = command[0]
-    log.setState(renderOutputStream(line.toString(), cmdName))
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
   })
 
   return exec(command.join(" "), [], {

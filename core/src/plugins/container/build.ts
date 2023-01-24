@@ -9,7 +9,6 @@
 import { containerHelpers } from "./helpers"
 import { ConfigurationError } from "../../exceptions"
 import { LogLevel } from "../../logger/logger"
-import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
@@ -65,14 +64,15 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(action), "--file", dockerfilePath]
 
-  // Stream verbose log to a status line
-  const outputStream = split2()
-  const statusLine = log.placeholder({ level: LogLevel.verbose })
+  const logEventContext = {
+    origin: "local-docker",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
 
+  const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString(), "local-docker"))
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
   })
   const timeout = action.getConfig("timeout")
   const res = await containerHelpers.dockerCli({
