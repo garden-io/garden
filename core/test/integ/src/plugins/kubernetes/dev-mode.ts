@@ -13,7 +13,7 @@ import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { Log } from "../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
+import { MutagenDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
 import { dedent } from "../../../../../src/util/string"
@@ -59,7 +59,7 @@ describe("sync mode deployments and sync behavior", () => {
   afterEach(async () => {
     if (garden) {
       await garden.close()
-      await killSyncDaemon(true)
+      await MutagenDaemon.clearInstance()
     }
   })
 
@@ -181,7 +181,8 @@ describe("sync mode deployments and sync behavior", () => {
     await writeFile(join(module.path, "nested", "prefix-b", "file"), "foo")
 
     await sleep(1000)
-    await flushAllMutagenSyncs(ctx, log)
+    const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+    await mutagenDaemon.flushAllSyncs()
 
     const ignoreExecRes = await execInPod(["/bin/sh", "-c", "ls -a /tmp /tmp/nested"], log, workload)
     // Clean up the files we created locally

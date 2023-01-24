@@ -51,6 +51,7 @@ import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-t
 import { kustomizeSpec } from "./kubernetes-type/kustomize"
 import { kubernetesRunDefinition } from "./kubernetes-type/run"
 import { kubernetesTestDefinition } from "./kubernetes-type/test"
+import { syncPause, syncResume, syncStatus } from "./commands/sync"
 
 export async function configureProvider({
   namespace,
@@ -157,8 +158,15 @@ export const gardenPlugin = () =>
   `,
     configSchema: configSchema(),
     outputsSchema,
-    commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
-
+    commands: [
+      cleanupClusterRegistry,
+      clusterInit,
+      uninstallGardenServices,
+      pullImage,
+      syncStatus,
+      syncPause,
+      syncResume,
+    ],
     handlers: {
       configureProvider,
       getEnvironmentStatus,

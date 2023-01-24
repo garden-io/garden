@@ -33,13 +33,6 @@ import {
 import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
 import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
-import {
-  ensureMutagenSync,
-  getKubectlExecDestination,
-  mutagenAgentPath,
-  mutagenConfigLock,
-  SyncConfig,
-} from "./mutagen"
 import { joi, joiIdentifier } from "../../config/common"
 import {
   KubernetesPluginContext,
@@ -50,11 +43,12 @@ import {
   targetResourceSpecSchema,
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
+import { PluginContext } from "../../plugin-context"
+import { getKubectlExecDestination, mutagenAgentPath, MutagenDaemon, SyncConfig } from "./mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
 import Bluebird from "bluebird"
-import { PluginContext } from "../../plugin-context"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
 import { enumerate } from "../../util/enumerate"
@@ -481,7 +475,8 @@ export async function startSyncs({
     return
   }
 
-  return mutagenConfigLock.acquire("start-sync", async () => {
+  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+  return mutagenDaemon.configLock.acquire("start-sync", async () => {
     const k8sCtx = <KubernetesPluginContext>ctx
     const k8sProvider = <KubernetesProvider>k8sCtx.provider
     const providerDefaults = k8sProvider.config.sync?.defaults || {}
@@ -553,10 +548,7 @@ export async function startSyncs({
 
       log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
 
-      await ensureMutagenSync({
-        ctx,
-        // Prefer to log to the main view instead of the handler log context
-        log,
+      await mutagenDaemon.ensureSync({
         key,
         logSection: action.name,
         sourceDescription,
