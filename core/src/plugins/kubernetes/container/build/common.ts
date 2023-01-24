@@ -34,7 +34,7 @@ import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
 import { gardenEnv } from "../../../../constants"
-import { ensureMutagenSync, flushMutagenSync, getKubectlExecDestination, terminateMutagenSync } from "../../mutagen"
+import { getKubectlExecDestination, MutagenDaemon } from "../../mutagen"
 import { randomString } from "../../../../util/string"
 import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
@@ -100,6 +100,8 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     namespace,
   })
 
+  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+
   if (gardenEnv.GARDEN_K8S_BUILD_SYNC_MODE === "mutagen") {
     // Sync using mutagen
     const key = `build-sync-${module.name}-${randomString(8)}`
@@ -127,9 +129,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
       log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
 
       // -> Create the sync
-      await ensureMutagenSync({
-        ctx,
-        log,
+      await mutagenDaemon.ensureSync({
         key,
         logSection: module.name,
         sourceDescription: `Module ${module.name} build path`,
@@ -150,11 +150,11 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
       })
 
       // -> Flush the sync once
-      await flushMutagenSync(ctx, log, key)
+      await mutagenDaemon.flushSync(key)
       log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
     } finally {
       // -> Terminate the sync
-      await terminateMutagenSync(ctx, log, key)
+      await mutagenDaemon.terminateSync(key)
       log.debug(`Sync connection terminated`)
     }
   } else {

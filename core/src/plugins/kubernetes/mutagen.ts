@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-const AsyncLock = require("async-lock")
+import AsyncLock from "async-lock"
 import chalk from "chalk"
 import { join } from "path"
 import { chmod, ensureSymlink, mkdirp, pathExists, remove, removeSync, writeFile } from "fs-extra"
@@ -14,7 +14,7 @@ import respawn from "respawn"
 import { LogEntry } from "../../logger/log-entry"
 import { PluginToolSpec } from "../../types/plugin/tools"
 import { PluginTool } from "../../util/ext-tools"
-import { makeTempDir, TempDirectory } from "../../util/fs"
+import { makeTempDir } from "../../util/fs"
 import { registerCleanupFunction, sleep } from "../../util/util"
 import { GardenBaseError } from "../../exceptions"
 import { prepareConnectionOpts } from "./kubectl"
@@ -24,6 +24,9 @@ import { devModeGuideLink } from "./dev-mode"
 import dedent from "dedent"
 import { PluginContext } from "../../plugin-context"
 import Bluebird from "bluebird"
+import { LATEST_MUTAGEN_DATA_DIR_NAME, MUTAGEN_DIR_NAME } from "../../constants"
+import EventEmitter from "events"
+import { ExecaReturnValue } from "execa"
 
 const maxRestarts = 10
 const monitorDelay = 2000
@@ -32,10 +35,16 @@ const crashMessage = `Synchronization daemon has crashed ${maxRestarts} times. A
 
 export const mutagenAgentPath = "/.garden/mutagen-agent"
 
-let daemonProc: any
-let mutagenTmp: TempDirectory
+/**
+ * Types are missing for the "respawn" package so adding some basic ones here.
+ */
+interface DaemonProc extends EventEmitter {
+  status: string
+  start: () => {}
+  stop: () => {}
+}
+
 let lastDaemonError = ""
-let mutagenTmpSymlinkPath: string
 
 export const mutagenModeMap = {
   "one-way": "one-way-safe",
@@ -47,6 +56,28 @@ export const mutagenModeMap = {
   "two-way-safe": "two-way-safe",
   "two-way-resolved": "two-way-resolved",
 }
+
+// This is basically copied from:
+// https://github.com/mutagen-io/mutagen/blob/19e087599f187d85416d453cd50e2a9df1602132/pkg/synchronization/state.go
+// with an updated description to match Garden's context.
+const mutagenStatusDescriptions = {
+  "disconnected": "Sync disconnected",
+  "halted-on-root-emptied": "Sync halted due to one-sided root emptying",
+  "halted-on-root-deletion": "Sync halted due to root deletion",
+  "halted-on-root-type-change": "Sync halted due to root type change",
+  "connecting-alpha": "Sync connected to alpha",
+  "connecting-beta": "Sync connected to beta",
+  "watching": "Watching for changes",
+  "scanning": "Scanning files to sync",
+  "waiting-for-rescan": "Waiting 5 seconds for sync rescan",
+  "reconciling": "Reconciling sync changes",
+  "staging-alpha": "Staging files to sync on alpha",
+  "staging-beta": "Staging files to sync on beta",
+  "transitioning": "Syncing changes...",
+  "saving": "Saving sync archive",
+}
+
+type MutagenStatus = keyof typeof mutagenStatusDescriptions
 
 export interface SyncConfig {
   alpha: string
@@ -68,221 +99,568 @@ interface ActiveSync {
   targetConnected: boolean
   config: SyncConfig
   lastProblems: string[]
+  lastStatus?: string
   lastSyncCount: number
+  initialSyncComplete: boolean
+  paused: boolean
   mutagenParameters: string[]
 }
 
-let activeSyncs: { [key: string]: ActiveSync } = {}
+type ActiveSyncs = { [key: string]: ActiveSync }
 
 export class MutagenError extends GardenBaseError {
   type = "mutagen"
 }
 
-export const mutagenConfigLock = new AsyncLock()
+/**
+ * A class for managing the Mutagen daemon process.
+ *
+ * Use MutagenDaemon.start() to start the daemon process. The call returns the class instance.
+ *
+ * TODO: This is currently a singleton which is not ideal for testing. After v0.13 we should
+ * refactor this so that it's a normal class that's attached to the Garden instance. This
+ * will allow us to call it via something like `garden.sync.createSession()` and to easily
+ * fake Mutagen in tests.
+ */
+export class MutagenDaemon {
+  private static instance?: MutagenDaemon
 
-registerCleanupFunction("kill-sync-daaemon", () => {
-  stopDaemonProc()
-  try {
-    mutagenTmp && removeSync(mutagenTmp.path)
-  } catch {}
-  try {
-    mutagenTmpSymlinkPath && removeSync(mutagenTmpSymlinkPath)
-  } catch {}
-})
+  private ctx: PluginContext
+  private mutagen: PluginTool
+  private monitorInterval: NodeJS.Timeout | null
+  private log: LogEntry
+  private daemonProc: DaemonProc
+  private tmpSymlinkPath: string
+  private dataDir: string
+  private mutagenTmpSymlinkPath: string
+  private syncStatusLines: { [sessionName: string]: LogEntry }
+  private activeSyncs: ActiveSyncs
+  public configLock: AsyncLock
 
-export async function killSyncDaemon(clearTmpDir = true) {
-  stopDaemonProc()
-  if (mutagenTmp) {
-    await remove(join(mutagenTmp.path, "mutagen.yml.lock"))
+  private constructor({
+    daemonProc,
+    dataDir,
+    tmpSymlinkPath,
+    configLock,
+    mutagen,
+    ctx,
+    log,
+  }: {
+    daemonProc: any
+    dataDir: string
+    tmpSymlinkPath: string
+    configLock: AsyncLock
+    mutagen: PluginTool
+    ctx: PluginContext
+    log: LogEntry
+  }) {
+    this.ctx = ctx
+    this.mutagen = mutagen
+    this.daemonProc = daemonProc
+    this.dataDir = dataDir
+    this.log = log
+    this.tmpSymlinkPath = tmpSymlinkPath
+    this.configLock = configLock
+    this.activeSyncs = {}
+    this.syncStatusLines = {}
+    this.monitorInterval = null
 
-    if (clearTmpDir) {
-      await remove(mutagenTmp.path)
-      mutagenTmpSymlinkPath && (await remove(mutagenTmpSymlinkPath))
-    }
+    registerCleanupFunction("kill-sync-daaemon", () => {
+      this.stopDaemonProc()
+      try {
+        removeSync(this.dataDir)
+      } catch {}
+      try {
+        removeSync(this.tmpSymlinkPath)
+      } catch {}
+    })
+
+    this.startMonitor()
   }
 
-  activeSyncs = {}
-}
+  /**
+   * Returns an instance of the class if it already exists. Otherwise starts
+   * the Mutagen daemon process and then returns the class instance.
+   */
+  static async start({ ctx, log }: { ctx: PluginContext; log: LogEntry }) {
+    if (!MutagenDaemon.instance) {
+      const dataDir = (await makeTempDir()).path
+      const tmpSymlinkPath = join(dataDir, ctx.sessionId)
+      const configLock = new AsyncLock()
+      const mutagen = new PluginTool(mutagenCliSpec)
 
-function stopDaemonProc() {
-  try {
-    daemonProc?.stop()
-    daemonProc = undefined
-  } catch {}
-}
+      const daemonProc = await MutagenDaemon.ensureDaemon({
+        ctx,
+        log,
+        dataDir,
+        tmpSymlinkPath,
+        configLock,
+        mutagen,
+      })
 
-export async function ensureMutagenDaemon(ctx: PluginContext, log: LogEntry) {
-  return mutagenConfigLock.acquire("start-daemon", async () => {
-    if (!mutagenTmp) {
-      mutagenTmp = await makeTempDir()
+      MutagenDaemon.instance = new MutagenDaemon({ daemonProc, dataDir, log, ctx, tmpSymlinkPath, configLock, mutagen })
     }
 
-    const dataDir = mutagenTmp.path
+    return MutagenDaemon.instance
+  }
 
-    // Return if already running
-    if (daemonProc && daemonProc.status === "running") {
-      return dataDir
+  /**
+   * Stop the daemon, remove the tmp data dir and clear the instance.
+   */
+  static async clearInstance() {
+    if (MutagenDaemon.instance) {
+      await MutagenDaemon.instance.killSyncDaemon(true)
     }
+    MutagenDaemon.instance = undefined
+  }
 
-    const mutagenPath = await mutagen.getPath(log)
+  static async ensureDaemon({
+    ctx,
+    log,
+    dataDir,
+    tmpSymlinkPath,
+    configLock,
+    mutagen,
+  }: {
+    ctx: PluginContext
+    log: LogEntry
+    dataDir: string
+    tmpSymlinkPath: string
+    configLock: AsyncLock
+    mutagen: PluginTool
+  }) {
+    return configLock.acquire("start-daemon", async () => {
+      const mutagenPath = await mutagen.getPath(log)
 
-    await mkdirp(dataDir)
+      await mkdirp(dataDir)
 
-    // For convenience while troubleshooting, place a symlink to the temp directory under .garden/mutagen
-    const mutagenDir = join(ctx.gardenDirPath, "mutagen")
-    await mkdirp(mutagenDir)
-    mutagenTmpSymlinkPath = join(mutagenDir, ctx.sessionId)
-    const latestSymlinkPath = join(mutagenDir, "latest")
+      // For convenience while troubleshooting, place a symlink to the temp directory under .garden/mutagen
+      const mutagenDir = join(ctx.gardenDirPath, MUTAGEN_DIR_NAME)
+      await mkdirp(mutagenDir)
+      const latestSymlinkPath = join(mutagenDir, LATEST_MUTAGEN_DATA_DIR_NAME)
 
-    try {
-      await ensureSymlink(dataDir, mutagenTmpSymlinkPath, "dir")
+      try {
+        await ensureSymlink(dataDir, tmpSymlinkPath, "dir")
 
-      // Also, write a quick script to the data directory to make it easier to work with
-      const scriptPath = join(dataDir, "mutagen.sh")
-      await writeFile(
-        scriptPath,
-        dedent`
+        // Also, write a quick script to the data directory to make it easier to work with
+        const scriptPath = join(dataDir, "mutagen.sh")
+        await writeFile(
+          scriptPath,
+          dedent`
           #!/bin/sh
           export MUTAGEN_DATA_DIRECTORY='${dataDir}'
           export MUTAGEN_LOG_LEVEL=debug
           ${mutagenPath} "$@"
         `
-      )
-      await chmod(scriptPath, 0o755)
+        )
+        await chmod(scriptPath, 0o755)
 
-      // Always keep a "latest" link for convenience
-      await ensureSymlink(dataDir, latestSymlinkPath)
-    } catch (err) {
-      log.debug({ symbol: "warning", msg: `Unable to symlink mutagen data directory: ${err}` })
-    }
-
-    daemonProc = respawn([mutagenPath, "daemon", "run"], {
-      cwd: dataDir,
-      name: "mutagen",
-      env: {
-        MUTAGEN_DATA_DIRECTORY: dataDir,
-        MUTAGEN_LOG_LEVEL: "debug",
-      },
-      maxRestarts,
-      sleep: 3000,
-      kill: 500,
-      stdio: "pipe",
-      fork: false,
-    })
-
-    daemonProc.on("crash", () => {
-      log.warn(chalk.yellow(crashMessage))
-    })
-
-    daemonProc.on("exit", (code: number) => {
-      if (code !== 0) {
-        log.warn({
-          symbol: "empty",
-          section: mutagenLogSection,
-          msg: chalk.yellow(`Synchronization daemon exited with code ${code}.`),
-        })
-        // Remove the lock file
-        const daemonLockFilePath = join(dataDir, "daemon", "daemon.lock")
-        removeSync(daemonLockFilePath)
+        // Always keep a "latest" link for convenience.
+        // Need to remove existing data dir before symlinking again.
+        await remove(latestSymlinkPath)
+        await ensureSymlink(dataDir, latestSymlinkPath, "dir")
+      } catch (err) {
+        log.debug({ symbol: "warning", msg: `Unable to symlink mutagen data directory: ${err}` })
       }
-    })
 
-    const handleOutput = (data: Buffer) => {
-      const str = data.toString().trim()
-      // This is a little dumb, to detect if the log line starts with a timestamp, but ya know...
-      // it'll basically work for the next 979 years :P.
-      const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
-      if (msg.includes("Unable") && lastDaemonError !== msg) {
-        log.warn({ symbol: "warning", section: mutagenLogSection, msg })
-        // Make sure we don't spam with repeated messages
-        lastDaemonError = msg
-      } else {
-        log.silly({ symbol: "empty", section: mutagenLogSection, msg })
-      }
-    }
-
-    daemonProc.on("stdout", handleOutput)
-    daemonProc.on("stderr", handleOutput)
-
-    return new Promise<string>((resolve, reject) => {
-      let resolved = false
-
-      daemonProc.on("spawn", () => {
-        if (resolved) {
-          log.info({
-            symbol: "empty",
-            section: mutagenLogSection,
-            msg: chalk.green("Synchronization daemon re-started"),
-          })
-        }
-      })
-
-      daemonProc.once("spawn", () => {
-        setTimeout(() => {
-          if (daemonProc?.status === "running") {
-            resolved = true
-            resolve(dataDir)
-          }
-        }, 500)
-      })
-
-      daemonProc.once("crash", () => {
-        if (!resolved) {
-          reject(crashMessage)
-        }
-      })
-
-      daemonProc.start()
-    })
-  })
-}
-
-export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args: string[]) {
-  let dataDir = await ensureMutagenDaemon(ctx, log)
-
-  let loops = 0
-  const maxRetries = 10
-
-  while (true) {
-    try {
-      const res = await mutagen.exec({
+      const daemonProc = respawn([mutagenPath, "daemon", "run"], {
         cwd: dataDir,
-        args,
-        log,
+        name: "mutagen",
         env: {
           MUTAGEN_DATA_DIRECTORY: dataDir,
-          MUTAGEN_DISABLE_AUTOSTART: "1",
+          MUTAGEN_LOG_LEVEL: "debug",
         },
-      })
-      startMutagenMonitor(ctx, log)
-      return res
-    } catch (err) {
-      const unableToConnect = err.message.match(/unable to connect to daemon/)
-      const unableToFlush = err.message.match(/unable to flush session/)
+        maxRestarts,
+        sleep: 3000,
+        kill: 500,
+        stdio: "pipe",
+        fork: false,
+      }) as DaemonProc
 
-      if ((unableToFlush || unableToConnect) && loops < 10) {
-        loops += 1
-        if (unableToFlush) {
+      daemonProc.on("crash", () => {
+        log.warn(chalk.yellow(crashMessage))
+      })
+
+      daemonProc.on("exit", (code: number) => {
+        if (code !== 0) {
           log.warn({
             symbol: "empty",
             section: mutagenLogSection,
-            msg: chalk.gray(`Could not flush mutagen session, retrying (attempt ${loops}/${maxRetries})...`),
+            msg: chalk.yellow(`Synchronization daemon exited with code ${code}.`),
           })
+          // Remove the lock file
+          const daemonLockFilePath = join(dataDir, "daemon", "daemon.lock")
+          removeSync(daemonLockFilePath)
         }
-        if (unableToConnect) {
-          log.warn({
+      })
+
+      const handleOutput = (data: Buffer) => {
+        const str = data.toString().trim()
+        // This is a little dumb, to detect if the log line starts with a timestamp, but ya know...
+        // it'll basically work for the next 979 years :P.
+        const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
+        if (msg.includes("Unable") && lastDaemonError !== msg) {
+          log.warn({ symbol: "warning", section: mutagenLogSection, msg })
+          // Make sure we don't spam with repeated messages
+          lastDaemonError = msg
+        } else {
+          log.silly({ symbol: "empty", section: mutagenLogSection, msg })
+        }
+      }
+
+      daemonProc.on("stdout", handleOutput)
+      daemonProc.on("stderr", handleOutput)
+
+      return new Promise<DaemonProc>((resolve, reject) => {
+        let resolved = false
+
+        daemonProc.on("spawn", () => {
+          if (resolved) {
+            log.info({
+              symbol: "empty",
+              section: mutagenLogSection,
+              msg: chalk.green("Synchronization daemon re-started"),
+            })
+          }
+        })
+
+        daemonProc.once("spawn", () => {
+          setTimeout(() => {
+            if (daemonProc?.status === "running") {
+              resolved = true
+              resolve(daemonProc)
+            }
+          }, 500)
+        })
+
+        daemonProc.once("crash", () => {
+          if (!resolved) {
+            reject(crashMessage)
+          }
+        })
+
+        daemonProc.start()
+      })
+    })
+  }
+
+  /**
+   * Make sure the specified sync is active. Does nothing if a sync is already active with the same key.
+   * (When configuration changes, the whole daemon is reset).
+   */
+  async ensureSync({
+    logSection,
+    key,
+    sourceDescription,
+    targetDescription,
+    config,
+  }: {
+    logSection: string
+    key: string
+    sourceDescription: string
+    targetDescription: string
+    config: SyncConfig
+  }) {
+    if (this.activeSyncs[key]) {
+      return
+    }
+
+    return this.configLock.acquire("configure", async () => {
+      const active = await this.getActiveSyncSessions()
+      const existing = active.find((s) => s.name === key)
+
+      if (!existing) {
+        const { alpha, beta, ignore, mode, defaultOwner, defaultGroup, defaultDirectoryMode, defaultFileMode } = config
+
+        const ignoreFlags = ignore.flatMap((i) => ["-i", i])
+        const syncMode = mutagenModeMap[mode]
+        const params = [alpha, beta, "--name", key, "--sync-mode", syncMode, ...ignoreFlags]
+
+        if (defaultOwner) {
+          params.push("--default-owner", defaultOwner.toString())
+        }
+        if (defaultGroup) {
+          params.push("--default-group", defaultGroup.toString())
+        }
+        if (defaultFileMode) {
+          params.push("--default-file-mode", modeToString(defaultFileMode))
+        }
+        if (defaultDirectoryMode) {
+          params.push("--default-directory-mode", modeToString(defaultDirectoryMode))
+        }
+
+        // Might need to retry
+        await pRetry(() => this.execCommand(["sync", "create", ...params]), {
+          retries: 5,
+          minTimeout: 1000,
+          onFailedAttempt: (err) => {
+            this.log.warn(
+              `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
+            )
+          },
+        })
+
+        this.activeSyncs[key] = {
+          created: new Date(),
+          sourceDescription,
+          targetDescription,
+          logSection,
+          sourceConnected: await isValidLocalPath(config.alpha),
+          targetConnected: await isValidLocalPath(config.beta),
+          config,
+          lastProblems: [],
+          lastStatus: "",
+          lastSyncCount: 0,
+          initialSyncComplete: false,
+          paused: false,
+          mutagenParameters: params,
+        }
+      }
+    })
+  }
+
+  /**
+   * Remove the specified sync (by name) from the sync daemon.
+   */
+  async terminateSync(key: string) {
+    this.log.debug(`Terminating mutagen sync ${key}`)
+
+    return this.configLock.acquire("configure", async () => {
+      try {
+        await this.execCommand(["sync", "terminate", key])
+        delete this.activeSyncs[key]
+      } catch (err) {
+        // Ignore other errors, which should mean the sync wasn't found
+        if (err.message.includes("unable to connect to daemon")) {
+          throw err
+        }
+      }
+    })
+  }
+
+  /**
+   * Ensure a sync is completed.
+   */
+  async flushSync(key: string) {
+    await pRetry(() => this.execCommand(["sync", "flush", key]), {
+      retries: 5,
+      minTimeout: 1000,
+      onFailedAttempt: async (err) => {
+        const unableToFlush = err.message.match(/unable to flush session/)
+        if (unableToFlush) {
+          this.log.warn({
+            symbol: "empty",
+            section: mutagenLogSection,
+            msg: chalk.gray(
+              `Could not flush mutagen session, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
+            ),
+          })
+        } else {
+          throw err
+        }
+      },
+    })
+
+    await this.execCommand(["sync", "flush", key])
+  }
+
+  /**
+   * Ensure all active syncs are completed.
+   */
+  async flushAllSyncs() {
+    const active = await this.getActiveSyncSessions()
+    await Bluebird.map(active, async (session) => {
+      try {
+        await this.flushSync(session.name)
+      } catch (err) {
+        this.log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
+      }
+    })
+  }
+
+  /**
+   * List all Mutagen sync sessions.
+   */
+  private async getActiveSyncSessions(): Promise<SyncSession[]> {
+    const res = await this.execCommand(["sync", "list", "--template={{ json . }}"])
+    return parseSyncListResult(res)
+  }
+
+  /**
+   * Execute a Mutagen command with retries. Restarts the daemon process
+   * between retries if Mutagen is unable to connect to it.
+   */
+  private async execCommand(args: string[]) {
+    let loops = 0
+    const maxRetries = 10
+
+    while (true) {
+      try {
+        const res = this.mutagen.exec({
+          cwd: this.dataDir,
+          args,
+          log: this.log,
+          env: getMutagenEnv(this.dataDir),
+        })
+        return res
+      } catch (err) {
+        const unableToConnect = err.message.match(/unable to connect to daemon/)
+        if (unableToConnect && loops < 10) {
+          loops += 1
+          this.log.warn({
             symbol: "empty",
             section: mutagenLogSection,
             msg: chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`),
           })
-          await killSyncDaemon(false)
-          dataDir = await ensureMutagenDaemon(ctx, log)
+          // TODO: Add a comment here
+          await this.restartDaemonProc()
+          await sleep(2000 + loops * 500)
+        } else {
+          throw err
         }
-        await sleep(2000 + loops * 500)
-      } else {
-        throw err
       }
     }
+  }
+
+  private async killSyncDaemon(clearTmpDir = true) {
+    this.stopDaemonProc()
+    await remove(join(this.dataDir, "mutagen.yml.lock"))
+
+    if (clearTmpDir) {
+      await remove(this.dataDir)
+      this.mutagenTmpSymlinkPath && (await remove(this.mutagenTmpSymlinkPath))
+    }
+
+    this.activeSyncs = {}
+  }
+
+  private async restartDaemonProc() {
+    await this.killSyncDaemon(false)
+    this.daemonProc = await MutagenDaemon.ensureDaemon({
+      ctx: this.ctx,
+      log: this.log,
+      dataDir: this.dataDir,
+      mutagen: this.mutagen,
+      configLock: this.configLock,
+      tmpSymlinkPath: this.tmpSymlinkPath,
+    })
+  }
+
+  private checkMutagen() {
+    this.getActiveSyncSessions()
+      .then((sessions) => {
+        for (const session of sessions) {
+          const sessionName = session.name
+          const activeSync = this.activeSyncs[sessionName]
+          if (!activeSync) {
+            continue
+          }
+
+          const { sourceDescription, targetDescription } = activeSync
+
+          const problems: string[] = [
+            ...(session.alpha.scanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
+            ...(session.beta.scanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
+            ...(session.alpha.transitionProblems || []).map(
+              (p) => `Error transitioning sync source, path ${p.path}: ${p.error}`
+            ),
+            ...(session.beta.transitionProblems || []).map(
+              (p) => `Error transitioning sync target, path ${p.path}: ${p.error}`
+            ),
+            ...(session.conflicts || []).map((c) => formatSyncConflict(sourceDescription, targetDescription, c)),
+          ]
+
+          const { logSection: section } = activeSync
+
+          for (const problem of problems) {
+            if (!activeSync.lastProblems.includes(problem)) {
+              this.log.warn({ symbol: "warning", section, msg: chalk.yellow(problem) })
+            }
+          }
+
+          if (session.alpha.connected && !activeSync.sourceConnected) {
+            this.log.info({
+              symbol: "info",
+              section,
+              msg: chalk.gray(`Connected to sync source ${sourceDescription}`),
+            })
+            activeSync.sourceConnected = true
+          }
+
+          if (session.beta.connected && !activeSync.targetConnected) {
+            this.log.info({
+              symbol: "success",
+              section,
+              msg: chalk.gray(`Connected to sync target ${targetDescription}`),
+            })
+            activeSync.targetConnected = true
+          }
+
+          const syncCount = session.successfulCycles || 0
+          const description = `from ${sourceDescription} to ${targetDescription}`
+          const isInitialSync = activeSync.lastSyncCount === 0
+
+          // Mutagen resets the sync count to zero after resuming from a sync paused
+          // so we keep track of whether the initial sync has completed so that we
+          // don't log it multiple times.
+          if (syncCount > activeSync.lastSyncCount && !activeSync.initialSyncComplete) {
+            this.log.info({
+              symbol: "success",
+              section,
+              msg: chalk.gray(`Completed initial sync ${description}`),
+            })
+            activeSync.initialSyncComplete = true
+          }
+
+          if (!this.syncStatusLines[sessionName]) {
+            this.syncStatusLines[sessionName] = this.log.placeholder()
+          }
+          let statusMsg: string | undefined
+
+          if (syncCount > activeSync.lastSyncCount && !isInitialSync) {
+            const time = new Date().toLocaleTimeString()
+            statusMsg = `Synchronized ${description} at ${time})`
+          } else if (activeSync.paused && !session.paused) {
+            statusMsg = `Sync resumed`
+          } else if (!activeSync.paused && session.paused) {
+            statusMsg = `Sync paused`
+          } else if (session.status && session.status !== activeSync.lastStatus) {
+            statusMsg = mutagenStatusDescriptions[session.status]
+          }
+
+          if (statusMsg) {
+            this.syncStatusLines[sessionName].setState({
+              symbol: "info",
+              section,
+              msg: chalk.gray(statusMsg),
+            })
+          }
+
+          activeSync.lastSyncCount = syncCount
+          activeSync.lastProblems = problems
+          activeSync.lastStatus = session.status
+          activeSync.paused = session.paused
+        }
+      })
+      .catch((err) => {
+        this.log.debug({
+          symbol: "warning",
+          section: mutagenLogSection,
+          msg: "Unable to get status from sync daemon: " + err.message,
+        })
+      })
+  }
+
+  private startMonitor() {
+    if (!this.monitorInterval) {
+      this.monitorInterval = setInterval(() => this.checkMutagen(), monitorDelay)
+    }
+  }
+
+  private stopDaemonProc() {
+    try {
+      this.daemonProc.stop()
+    } catch {}
   }
 }
 
@@ -355,115 +733,21 @@ interface SyncSession {
   name: string // TODO: This is technically an optional field
   // TODO: Add labels
   paused: boolean
-  status?: string
+  status?: MutagenStatus
   lastError?: string
   successfulCycles?: number
   conflicts?: SyncConflict[]
   excludedConflicts?: number
 }
 
-let monitorInterval: NodeJS.Timeout
-
-const syncStatusLines: { [sessionName: string]: LogEntry } = {}
-
-function checkMutagen(ctx: PluginContext, log: LogEntry) {
-  getActiveMutagenSyncSessions(ctx, log)
-    .then((sessions) => {
-      for (const session of sessions) {
-        const sessionName = session.name
-        const activeSync = activeSyncs[sessionName]
-        if (!activeSync) {
-          continue
-        }
-
-        const { sourceDescription, targetDescription } = activeSync
-
-        const problems: string[] = [
-          ...(session.alpha.scanProblems || []).map((p) => `Error scanning sync source, path ${p.path}: ${p.error}`),
-          ...(session.beta.scanProblems || []).map((p) => `Error scanning sync target, path ${p.path}: ${p.error}`),
-          ...(session.alpha.transitionProblems || []).map(
-            (p) => `Error transitioning sync source, path ${p.path}: ${p.error}`
-          ),
-          ...(session.beta.transitionProblems || []).map(
-            (p) => `Error transitioning sync target, path ${p.path}: ${p.error}`
-          ),
-          ...(session.conflicts || []).map((c) => formatSyncConflict(sourceDescription, targetDescription, c)),
-        ]
-
-        const { logSection: section } = activeSync
-
-        for (const problem of problems) {
-          if (!activeSync.lastProblems.includes(problem)) {
-            log.warn({ symbol: "warning", section, msg: chalk.yellow(problem) })
-          }
-        }
-
-        if (session.alpha.connected && !activeSync.sourceConnected) {
-          log.info({
-            symbol: "info",
-            section,
-            msg: chalk.gray(`Connected to sync source ${sourceDescription}`),
-          })
-          activeSync.sourceConnected = true
-        }
-
-        if (session.beta.connected && !activeSync.targetConnected) {
-          log.info({
-            symbol: "success",
-            section,
-            msg: chalk.gray(`Connected to sync target ${targetDescription}`),
-          })
-          activeSync.targetConnected = true
-        }
-
-        const syncCount = session.successfulCycles || 0
-        const description = `from ${sourceDescription} to ${targetDescription}`
-
-        if (syncCount > activeSync.lastSyncCount) {
-          if (activeSync.lastSyncCount === 0) {
-            log.info({
-              symbol: "success",
-              section,
-              msg: chalk.gray(`Completed initial sync ${description}`),
-            })
-          } else {
-            if (!syncStatusLines[sessionName]) {
-              syncStatusLines[sessionName] = log.info("").placeholder()
-            }
-            const time = new Date().toLocaleTimeString()
-            syncStatusLines[sessionName].setState({
-              symbol: "info",
-              section,
-              msg: chalk.gray(`Synchronized ${description} at ${time}`),
-            })
-          }
-          activeSync.lastSyncCount = syncCount
-        }
-
-        activeSync.lastProblems = problems
-      }
-    })
-    .catch((err) => {
-      log.debug({
-        symbol: "warning",
-        section: mutagenLogSection,
-        msg: "Unable to get status from sync daemon: " + err.message,
-      })
-    })
-}
-
-export function startMutagenMonitor(ctx: PluginContext, log: LogEntry) {
-  if (!monitorInterval) {
-    monitorInterval = setInterval(() => checkMutagen(ctx, log), monitorDelay)
+export function getMutagenEnv(dataDir: string) {
+  return {
+    MUTAGEN_DATA_DIRECTORY: dataDir,
+    MUTAGEN_DISABLE_AUTOSTART: "1",
   }
 }
 
-/**
- * List the currently active syncs in the mutagen daemon.
- */
-export async function getActiveMutagenSyncSessions(ctx: PluginContext, log: LogEntry): Promise<SyncSession[]> {
-  const res = await execMutagenCommand(ctx, log, ["sync", "list", "--template={{ json . }}"])
-
+export async function parseSyncListResult(res: ExecaReturnValue) {
   // TODO: validate further
   let parsed: any = []
 
@@ -478,121 +762,6 @@ export async function getActiveMutagenSyncSessions(ctx: PluginContext, log: LogE
   }
 
   return parsed
-}
-
-/**
- * Make sure the specified sync is active. Does nothing if a sync is already active with the same key.
- * (When configuration changes, the whole daemon is reset).
- */
-export async function ensureMutagenSync({
-  ctx,
-  log,
-  logSection,
-  key,
-  sourceDescription,
-  targetDescription,
-  config,
-}: {
-  ctx: PluginContext
-  log: LogEntry
-  logSection: string
-  key: string
-  sourceDescription: string
-  targetDescription: string
-  config: SyncConfig
-}) {
-  if (activeSyncs[key]) {
-    return
-  }
-
-  return mutagenConfigLock.acquire("configure", async () => {
-    const active = await getActiveMutagenSyncSessions(ctx, log)
-    const existing = active.find((s) => s.name === key)
-
-    if (!existing) {
-      const { alpha, beta, ignore, mode, defaultOwner, defaultGroup, defaultDirectoryMode, defaultFileMode } = config
-
-      const ignoreFlags = ignore.flatMap((i) => ["-i", i])
-      const syncMode = mutagenModeMap[mode]
-      const params = [alpha, beta, "--name", key, "--sync-mode", syncMode, ...ignoreFlags]
-
-      if (defaultOwner) {
-        params.push("--default-owner", defaultOwner.toString())
-      }
-      if (defaultGroup) {
-        params.push("--default-group", defaultGroup.toString())
-      }
-      if (defaultFileMode) {
-        params.push("--default-file-mode", modeToString(defaultFileMode))
-      }
-      if (defaultDirectoryMode) {
-        params.push("--default-directory-mode", modeToString(defaultDirectoryMode))
-      }
-
-      // Might need to retry
-      await pRetry(() => execMutagenCommand(ctx, log, ["sync", "create", ...params]), {
-        retries: 5,
-        minTimeout: 1000,
-        onFailedAttempt: (err) => {
-          log.warn(
-            `Failed to start sync from ${sourceDescription} to ${targetDescription}. ${err.retriesLeft} attempts left.`
-          )
-        },
-      })
-
-      activeSyncs[key] = {
-        created: new Date(),
-        sourceDescription,
-        targetDescription,
-        logSection,
-        sourceConnected: await isValidLocalPath(config.alpha),
-        targetConnected: await isValidLocalPath(config.beta),
-        config,
-        lastProblems: [],
-        lastSyncCount: 0,
-        mutagenParameters: params,
-      }
-    }
-  })
-}
-
-/**
- * Remove the specified sync (by name) from the sync daemon.
- */
-export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
-  log.debug(`Terminating mutagen sync ${key}`)
-
-  return mutagenConfigLock.acquire("configure", async () => {
-    try {
-      await execMutagenCommand(ctx, log, ["sync", "terminate", key])
-      delete activeSyncs[key]
-    } catch (err) {
-      // Ignore other errors, which should mean the sync wasn't found
-      if (err.message.includes("unable to connect to daemon")) {
-        throw err
-      }
-    }
-  })
-}
-/**
- * Ensure a sync is completed.
- */
-export async function flushMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
-  await execMutagenCommand(ctx, log, ["sync", "flush", key])
-}
-
-/**
- * Ensure all active syncs are completed.
- */
-export async function flushAllMutagenSyncs(ctx: PluginContext, log: LogEntry) {
-  const active = await getActiveMutagenSyncSessions(ctx, log)
-  await Bluebird.map(active, async (session) => {
-    try {
-      await flushMutagenSync(ctx, log, session.name)
-    } catch (err) {
-      log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
-    }
-  })
 }
 
 export async function getKubectlExecDestination({
@@ -684,8 +853,6 @@ export const mutagenCliSpec: PluginToolSpec = {
     },
   ],
 }
-
-const mutagen = new PluginTool(mutagenCliSpec)
 
 /**
  * Returns true if the given sync point is a filesystem path that exists.

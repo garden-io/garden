@@ -16,13 +16,7 @@ import { joinWithPosix } from "../../util/fs"
 import chalk from "chalk"
 import { PluginContext } from "../../plugin-context"
 import { ConfigurationError } from "../../exceptions"
-import {
-  ensureMutagenSync,
-  getKubectlExecDestination,
-  mutagenAgentPath,
-  mutagenConfigLock,
-  SyncConfig,
-} from "./mutagen"
+import { getKubectlExecDestination, mutagenAgentPath, MutagenDaemon, SyncConfig } from "./mutagen"
 import { KubernetesDevModeDefaults, KubernetesPluginContext, KubernetesProvider } from "./config"
 import { isConfiguredForDevMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
@@ -130,7 +124,8 @@ export async function startDevModeSync({
   const resourceName = `${target.kind}/${target.metadata.name}`
   const keyBase = `${target.kind}--${namespace}--${target.metadata.name}`
 
-  return mutagenConfigLock.acquire("start-sync", async () => {
+  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+  return mutagenDaemon.configLock.acquire("start-sync", async () => {
     // Validate the target
     if (!isConfiguredForDevMode(target)) {
       throw new ConfigurationError(`Resource ${resourceName} is not deployed in dev mode`, {
@@ -181,10 +176,7 @@ export async function startDevModeSync({
 
       log.info({ symbol: "info", section: serviceName, msg: chalk.gray(`Syncing ${description} (${s.mode})`) })
 
-      await ensureMutagenSync({
-        ctx,
-        // Prefer to log to the main view instead of the handler log context
-        log,
+      await mutagenDaemon.ensureSync({
         key,
         logSection: serviceName,
         sourceDescription,
