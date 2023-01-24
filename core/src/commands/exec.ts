@@ -31,7 +31,8 @@ const execOpts = {
   interactive: new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result",
     defaultValue: false,
-    // TODO-G2: consider changing this default
+    // TODO-G2: consider changing this default, this is the only command with cliDefault: true.
+    //  Remember to update test cases in cli/helpers.ts.
     cliDefault: true,
     cliOnly: true,
   }),
