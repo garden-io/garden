@@ -62,17 +62,17 @@ export const mutagenModeMap = {
 // with an updated description to match Garden's context.
 const mutagenStatusDescriptions = {
   "disconnected": "Sync disconnected",
-  "halted-on-root-emptied": "Sync halted due to one-sided root emptying",
-  "halted-on-root-deletion": "Sync halted due to root deletion",
-  "halted-on-root-type-change": "Sync halted due to root type change",
-  "connecting-alpha": "Sync connected to alpha",
-  "connecting-beta": "Sync connected to beta",
+  "halted-on-root-emptied": "Sync halted because either the source or target directory was emptied",
+  "halted-on-root-deletion": "Sync halted because either the source or target was deleted",
+  "halted-on-root-type-change": "Sync halted because either the source or target changed type",
+  "connecting-alpha": "Sync connected to source",
+  "connecting-beta": "Sync connected to target",
   "watching": "Watching for changes",
   "scanning": "Scanning files to sync",
   "waiting-for-rescan": "Waiting 5 seconds for sync rescan",
   "reconciling": "Reconciling sync changes",
-  "staging-alpha": "Staging files to sync on alpha",
-  "staging-beta": "Staging files to sync on beta",
+  "staging-alpha": "Staging files to sync in source",
+  "staging-beta": "Staging files to sync in target",
   "transitioning": "Syncing changes...",
   "saving": "Saving sync archive",
 }
@@ -452,7 +452,7 @@ export class MutagenDaemon {
             symbol: "empty",
             section: mutagenLogSection,
             msg: chalk.gray(
-              `Could not flush mutagen session, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
+              `Could not flush synchronization changes, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
             ),
           })
         } else {
@@ -599,6 +599,7 @@ export class MutagenDaemon {
           const syncCount = session.successfulCycles || 0
           const description = `from ${sourceDescription} to ${targetDescription}`
           const isInitialSync = activeSync.lastSyncCount === 0
+          const syncLogPrefix = "[sync]:"
 
           // Mutagen resets the sync count to zero after resuming from a sync paused
           // so we keep track of whether the initial sync has completed so that we
@@ -607,7 +608,7 @@ export class MutagenDaemon {
             this.log.info({
               symbol: "success",
               section,
-              msg: chalk.gray(`Completed initial sync ${description}`),
+              msg: chalk.gray(`${syncLogPrefix} Completed initial sync ${description}`),
             })
             activeSync.initialSyncComplete = true
           }
@@ -632,7 +633,7 @@ export class MutagenDaemon {
             this.syncStatusLines[sessionName].setState({
               symbol: "info",
               section,
-              msg: chalk.gray(statusMsg),
+              msg: chalk.gray(`${syncLogPrefix} ${statusMsg}`),
             })
           }
 
