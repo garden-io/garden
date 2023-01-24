@@ -12,7 +12,7 @@ import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import type { Action, ActionState, Executed, Resolved } from "../actions/types"
-import type { ConfigGraph } from "../graph/config-graph"
+import { ConfigGraph, GraphError } from "../graph/config-graph"
 import type { ActionReference } from "../config/common"
 import { InternalError } from "../exceptions"
 import type { DeleteDeployTask } from "./delete-deploy"
@@ -229,10 +229,20 @@ export abstract class BaseActionTask<
     }
 
     const deps = this.action.getDependencyReferences().flatMap((dep): BaseTask[] => {
-      const action = this.graph.getActionByRef(dep)
+      const action = this.graph.getActionByRef(dep, { includeDisabled: true })
+      const disabled = action.isDisabled()
 
       // Maybe we can make this easier to reason about... - JE
       if (dep.needsExecutedOutputs) {
+        if (disabled && action.kind !== "Build") {
+          // TODO-G2: Need to handle conditional references, over in dependenciesFromAction()
+          throw new GraphError(
+            `${this.action.longDescription()} depends on one or more runtime outputs from action ${
+              action.key
+            }, which is disabled. Please either remove the reference or enable the action.`,
+            { dependant: this.action.key(), dependency: action.key() }
+          )
+        }
         return [this.getExecuteTask(action)]
       } else if (dep.explicit) {
         if (this.skipRuntimeDependencies && dep.kind !== "Build") {

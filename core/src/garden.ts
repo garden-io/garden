@@ -1153,6 +1153,7 @@ export class Garden {
       // Resolve templated modules
       const templatesByKey = keyBy(moduleTemplates, "name")
       const rawTemplated = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
+      rawModuleConfigs = rawModuleConfigs.filter((m) => m.type !== "templated")
       const resolvedTemplated = await Bluebird.map(rawTemplated, (r) => resolveTemplatedModule(this, r, templatesByKey))
 
       rawModuleConfigs.push(...resolvedTemplated.flatMap((c) => c.modules))

@@ -87,7 +87,14 @@ export class GraphResults<B extends Task = Task> {
 
   private checkKey(key: string) {
     if (!this.tasks.has(key)) {
-      throw new InternalError(`GraphResults object does not have task ${key}.`, { key, taskKeys: this.tasks.keys() })
+      const taskKeys = Array.from(this.tasks.keys())
+      throw new InternalError(
+        `GraphResults object does not have task ${key}. Available keys: [${taskKeys.join(", ")}]`,
+        {
+          key,
+          taskKeys,
+        }
+      )
     }
   }
 }

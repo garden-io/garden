@@ -506,16 +506,33 @@ export function stubRouterAction<K extends ActionKind, H extends keyof WrappedAc
 /**
  * Returns an alphabetically sorted list of all processed actions including dependencies from a GraphResultMap.
  */
-export function listAllProcessedActions(results: GraphResultMap) {
+export function getAllProcessedTaskNames(results: GraphResultMap) {
   const all = Object.keys(results)
 
   for (const r of Object.values(results)) {
     if (r?.dependencyResults) {
-      all.push(...listAllProcessedActions(r.dependencyResults))
+      all.push(...getAllProcessedTaskNames(r.dependencyResults))
     }
   }
 
   return uniq(all).sort()
+}
+
+/**
+ * Returns a map of all task results including dependencies from a GraphResultMap.
+ */
+export function getAllTaskResults(results: GraphResultMap) {
+  const all = { ...results }
+
+  for (const r of Object.values(results)) {
+    if (r?.dependencyResults) {
+      for (const [key, result] of Object.entries(getAllTaskResults(r.dependencyResults))) {
+        all[key] = result
+      }
+    }
+  }
+
+  return all
 }
 
 export function taskResultOutputs(results: ProcessCommandResult) {

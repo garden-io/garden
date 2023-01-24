@@ -220,7 +220,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
   executionType = <NodeType>"process"
 
   describe() {
-    return `process ${this.task.getDescription()}`
+    return `processing ${this.task.getDescription()}`
   }
 
   getDependencies() {
@@ -260,7 +260,7 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
   executionType = <NodeType>"status"
 
   describe() {
-    return `resolve status for ${this.task.getDescription()}`
+    return `resolving status for ${this.task.getDescription()}`
   }
 
   getDependencies() {
