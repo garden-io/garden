@@ -15,7 +15,7 @@ gcloud components update
 gcloud components install beta gke-gcloud-auth-plugin
 
 # install nvm
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.35.1/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 # make nvm command active without terminal reopening
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm

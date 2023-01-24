@@ -357,11 +357,10 @@ export class GardenServer {
         return
       }
 
-      // Set up heartbeat to detect dead connections
-      let isAlive = true
-
       send("serverReady", { message: "Server ready" })
 
+      // Set up heartbeat to detect dead connections
+      let isAlive = true
       let heartbeatInterval = setInterval(() => {
         if (!isAlive) {
           this.log.debug(`Connection ${connId} timed out.`)
@@ -369,12 +368,10 @@ export class GardenServer {
         }
 
         isAlive = false
-        this.log.debug(`Connection ${connId} ping.`)
         websocket.ping(() => {})
       }, 1000)
 
       websocket.on("pong", () => {
-        this.log.debug(`Connection ${connId} pong.`)
         isAlive = true
       })
 

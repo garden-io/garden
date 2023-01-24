@@ -1,0 +1,10 @@
+kind: Project
+name: rust-example
+variables:
+  base-hostname: rust.local.app.garden
+
+environments:
+  - name: dev
+  - name: release
+providers:
+  - name: local-kubernetes

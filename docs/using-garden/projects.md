@@ -97,7 +97,7 @@ Our choice of providers and their configuration dictates how the module in the e
 2. If we run `garden build my-module --env local`, the `local-kubernetes` provider will "step in". It will still build the module via Docker but it will also push the image to the local Kubernetes cluster. Running `garden deploy` will deploy the project to a local Kubernetes cluster such as Minikube or Docker Desktop.
 3. If we run `garden build my-module --env remote`, the `kubernetes` provider will take over. It basically does the same thing as the `build` handler for the `local-kubernetes` provider, but requires some extra configuration. Running `garden deploy` will deploy the project to the remote cluster.
 
-Some of the most commonly used providers are the [local Kubernetes provider](../guides/local-kubernetes.md) and the [remote Kubernetes provider](../guides/remote-kubernetes.md).
+Some of the most commonly used providers are the [local Kubernetes provider](../k8s-plugins/local-k8s/README.md) and the [remote Kubernetes provider](../k8s-plugins/remote-k8s/README.md).
 
 Here's the [full list of supported providers](../reference/providers/README.md).
 

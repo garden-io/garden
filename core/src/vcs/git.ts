@@ -15,7 +15,7 @@ import { GetFilesParams, RemoteSourceParams, VcsFile, VcsHandler, VcsInfo } from
 import { ConfigurationError, RuntimeError } from "../exceptions"
 import Bluebird from "bluebird"
 import { getStatsType, joinWithPosix, matchPath } from "../util/fs"
-import { deline } from "../util/string"
+import { dedent, deline } from "../util/string"
 import { exec, splitLast } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
@@ -504,17 +504,43 @@ export class GitHandler extends VcsHandler {
     return result
   }
 
+  private isHashSHA1(hash: string): boolean {
+    const SHA1RegExp = new RegExp(/\b([a-f0-9]{40})\b/)
+    return SHA1RegExp.test(hash)
+  }
+
   private async cloneRemoteSource(
     log: LogEntry,
-    remoteSourcesPath: string,
     repositoryUrl: string,
     hash: string,
     absPath: string,
     failOnPrompt = false
   ) {
-    const git = this.gitCli(log, remoteSourcesPath, failOnPrompt)
+    await ensureDir(absPath)
+    const git = this.gitCli(log, absPath, failOnPrompt)
     // Use `--recursive` to include submodules
-    return git("clone", "--recursive", "--depth=1", `--branch=${hash}`, repositoryUrl, absPath)
+    if (!this.isHashSHA1(hash)) {
+      return git("clone", "--recursive", "--depth=1", "--shallow-submodules", `--branch=${hash}`, repositoryUrl, ".")
+    }
+
+    // If SHA1 is used we need to fetch the changes as git clone doesn't allow to shallow clone
+    // a specific hash
+    try {
+      await git("init")
+      await git("remote", "add", "origin", repositoryUrl)
+      await git("fetch", "--depth=1", "--recurse-submodules=yes", "origin", hash)
+      await git("checkout", "FETCH_HEAD")
+      return git("submodule", "update", "--init", "--recursive")
+    } catch (err) {
+      throw new RuntimeError(
+        dedent`Failed to shallow clone with error: \n\n${err}
+      Make sure both git client and server are newer than 2.5.0 and that \`uploadpack.allowReachableSHA1InWant=true\`
+      is set on the server`,
+        {
+          message: err.message,
+        }
+      )
+    }
   }
 
   // TODO Better auth handling
@@ -530,7 +556,7 @@ export class GitHandler extends VcsHandler {
       const { repositoryUrl, hash } = parseGitUrl(url)
 
       try {
-        await this.cloneRemoteSource(log, remoteSourcesPath, repositoryUrl, hash, absPath, failOnPrompt)
+        await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
       } catch (err) {
         entry.setError()
         throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
@@ -555,8 +581,10 @@ export class GitHandler extends VcsHandler {
     const entry = log.info({ section: name, msg: "Getting remote state", status: "active" })
     await git("remote", "update")
 
-    const remoteCommitId = getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
-    const localCommitId = getCommitIdFromRefList(await git("show-ref", "--hash", hash))
+    const localCommitId = (await git("rev-parse", "HEAD"))[0]
+    const remoteCommitId = this.isHashSHA1(hash)
+      ? hash
+      : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
     if (localCommitId !== remoteCommitId) {
       entry.setState(`Fetching from ${url}`)

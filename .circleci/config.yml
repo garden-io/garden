@@ -24,10 +24,13 @@ orbs:
       version: 20.10.11
       docker_layer_caching: true
 
+  runner-image: &runner-image
+    image: gardendev/circleci-runner:14.19.3-4
+
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.3-2
+      - <<: *runner-image
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -35,8 +38,7 @@ orbs:
   # Configuration for release jobs
   release-config: &release-config
     docker:
-      # Image that contains ghr for publishing releases to Github
-      - image: cibuilds/github:0.12.2
+      - <<: *runner-image
 
   # Attaches the current saved workspace
   attach-workspace: &attach-workspace
@@ -96,9 +98,11 @@ commands:
     steps:
       - run:
           name: Configure git
+          # ensure that file transfer protocol is allowed, see https://vielmetti.typepad.com/logbook/2022/10/git-security-fixes-lead-to-fatal-transport-file-not-allowed-error-in-ci-systems-cve-2022-39253.html
           command: |
             git config --global user.name "Garden CI"
             git config --global user.email "admin@garden.io"
+            git config --global protocol.file.allow "always"
 
   install_kubectl:
     description: Install kubectl
@@ -231,11 +235,14 @@ commands:
       - npm_install
       - *attach-workspace
       - run:
-          environment:
-            # pkg doesn't use a normal cache directory by default
-            # see https://github.com/vercel/pkg/issues/1225
-            PKG_CACHE_PATH: tmp/pkg/
-          name: Run dist command with the appropriate argument
+          # Need this to make sure pkg cache is scoped to specific pkg version
+          name: Get pkg version
+          command: jq '.devDependencies.pkg' cli/package.json > .pkgversion
+      - restore_cache:
+          keys:
+            - pkg-v1-{{ checksum ".pkgversion" }}
+      - run:
+          name: Run dist script
           command: yarn run dist --version "<<parameters.version>>"
       - persist_to_workspace:
           root: ./
@@ -243,6 +250,14 @@ commands:
             - dist/
             # Needed for the alpine docker build
             - tmp/pkg/
+      - save_cache:
+          key: pkg-v1-{{ checksum ".pkgversion" }}
+          paths:
+            - tmp/pkg-fetch
+      - run:
+          # No need to store the raw files as artifacts, we just want the archives
+          name: Cleanup
+          command: rm -rf dist/*-amd64
       - store_artifacts:
           path: dist
           destination: dist
@@ -537,14 +552,26 @@ jobs:
       - run:
           name: Publish a pre-release on GitHub with the tag 'edge'
           command: |
+            # We assume that the tag already exists. We update the existing tag
+            # using the gh cli, and then we upload the artifacts using ghr.
+            # We do not create a new release here, as this would spam our fellow coder's
+            # GitHub timelines
             VERSION=edge
+
+            # Update the release hash
+            gh release edit ${VERSION} \
+              -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
+              --prerelease \
+              --target ${CIRCLE_SHA1}
+
+            # Replace release artifacts
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
               -r ${CIRCLE_PROJECT_REPONAME} \
               -c ${CIRCLE_SHA1} \
               -n ${VERSION} \
-              -delete \
+              -replace \
               -prerelease \
               ${VERSION} ./dist
   test-dist:
@@ -807,9 +834,11 @@ jobs:
       - run:
           name: Install Deps
           command: |
-            choco install -y git
-            choco install -y rsync
-            choco upgrade -y git rsync gcloudsdk kubernetes-cli
+            choco install --limit-output --no-progress -y git
+            choco install --limit-output --no-progress -y rsync
+            choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
+            gcloud components install gke-gcloud-auth-plugin --quiet
             refreshenv
       - run:
           name: Write gcloud credentials to file

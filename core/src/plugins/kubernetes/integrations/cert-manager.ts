@@ -26,6 +26,7 @@ import { EnvironmentStatus } from "../../../plugin/handlers/provider/getEnvironm
 import { PrimitiveMap } from "../../../config/common"
 import chalk from "chalk"
 import { defaultIngressClass } from "../constants"
+import { emitWarning } from "../../../warnings"
 
 /**
  * Given an array of certificate names, check if they are all existing and Ready.
@@ -176,6 +177,12 @@ export async function checkCertManagerStatus({
   provider: KubernetesProvider
   namespace?: string
 }): Promise<ServiceState> {
+  await emitWarning({
+    key: "cert-manager-deprecated",
+    log,
+    message: "The cert-manager integration is deprecated and will be removed in the 0.13 release",
+  })
+
   const api = await KubeApi.factory(log, ctx, provider)
   const systemPods = await api.core.listNamespacedPod(namespace)
   const certManagerPods: KubernetesServerResource<V1Pod>[] = []

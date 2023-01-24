@@ -60,11 +60,11 @@ Read the sections below for more information on configuring modules, including h
 
 Garden is pluggable and features a number of module types. You can find all of them and their full reference documentation [here](../reference/module-types/README.md), but we'll provide a high-level overview of the most commonly used types below:
 
-- [container](../guides/container-modules.md) modules are a high level and portable way to describe how container images are both built and deployed. When working with containers you'll at least use this to build the images, but you may also specify `services`, `tasks` and `tests` on them. The `kubernetes` providers, for example, can take these service definitions, generate Kubernetes manifests and deploy them. This is generally much easier to use than the below `kubernetes` and `helm` module types, but in turn loses some of the flexibility of those two.
+- [container](../other-plugins/container.md) modules are a high level and portable way to describe how container images are both built and deployed. When working with containers you'll at least use this to build the images, but you may also specify `services`, `tasks` and `tests` on them. The `kubernetes` providers, for example, can take these service definitions, generate Kubernetes manifests and deploy them. This is generally much easier to use than the below `kubernetes` and `helm` module types, but in turn loses some of the flexibility of those two.
 - [kubernetes](../reference/module-types/kubernetes.md) modules are quite simple. They allow you to provide your own Kubernetes manifests, which the `kubernetes` providers can then deploy. Use this for any custom manifests you need or already have, and when you don't need the capabilities of the more complex `helm` modules.
-- [helm](../guides/using-helm-charts.md) modules allow you to deploy your own Helm charts, or 3rd-party charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its flexible templating capabilities, or if you aim to publish the charts.
+- [helm](../k8s-plugins/module-types/helm.md) modules allow you to deploy your own Helm charts, or 3rd-party charts from remote repositories. [Helm](https://helm.sh/) is a powerful tool, especially when deploying 3rd-party (or otherwise external) charts. You can also make your own charts, but we recommend only doing so when you need its flexible templating capabilities, or if you aim to publish the charts.
 - [exec](../reference/module-types/exec.md) modules offer a flexible way to weave in arbitrary scripts and commands that are executed locally. These can be custom build steps, tasks, tests or really anything else. The caveat is that they always run on the same machine as the Garden CLI, and not e.g. in a Kubernetes cluster, and thus not quite as portable.
-- [terraform](../reference/module-types/terraform.md) modules offer a powerful way to deploy any cloud resources as part of your project. See the [Terraform guide](../advanced/terraform.md) for more information.
+- [terraform](../reference/module-types/terraform.md) modules offer a powerful way to deploy any cloud resources as part of your project. See the [Terraform guide](../terraform-plugin/README.md) for more information.
 
 There are several other module types available as well. See the [module types reference](../reference/module-types/README.md) for a full list of supported module types, and their configuration reference.
 
@@ -213,7 +213,7 @@ Note, however, that if a disabled module is referenced as a build dependency of 
 ## Further Reading
 
 - [Module type reference docs](../reference/module-types/README.md).
-- [A guide on the container module type](../guides/container-modules.md).
+- [A guide on the container module type](../other-plugins/container.md).
 
 ## Next Steps
 

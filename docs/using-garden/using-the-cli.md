@@ -6,7 +6,7 @@ Here, we'll describe at a high level the common day-to-day usage of the Garden C
 
 The `garden` CLI is how you work with Garden in most scenarios, during development and in CI pipelines. It features a fairly large number of commands, so we'll list the most common ones below. You can run `garden --help` to list them, and use `garden <command> --help` to learn more about individual commands, arguments, option flags, usage examples etc. You can also find a full reference [here](../reference/commands.md).
 
-If you've not installed the CLI yet, please check out the [installation guide](../getting-started/1-installation.md).
+If you've not installed the CLI yet, please check out the [installation guide](../guides/installation.md).
 
 Most of the examples below assume that you've already defined a Garden project.
 
@@ -302,7 +302,7 @@ You can run `garden plugins` without arguments to list the available commands.
 
 ### Initializing a Kubernetes cluster for in-cluster building
 
-When using a remote Kubernetes cluster and in-cluster building, the cluster needs to be set up with some shared services when you first start using it, when you update the provider configuration, or sometimes when you update to a new Garden version. See the [remote kubernetes guide](../guides/remote-kubernetes.md) for more information.
+When using a remote Kubernetes cluster and in-cluster building, the cluster needs to be set up with some shared services when you first start using it, when you update the provider configuration, or sometimes when you update to a new Garden version. See the [remote kubernetes guide](../k8s-plugins/remote-k8s/README.md) for more information.
 
 Here we initialize the cluster configured for the `dev` environment:
 
@@ -320,7 +320,7 @@ garden plugins kubernetes cleanup-cluster-registry --env=dev
 
 ### Planning and applying Terraform stacks
 
-The `terraform` provider includes several commands that facilitate interaction with the Terraform stacks in your project. See the [Terraform guide](../advanced/terraform.md#planning-and-applying) for more information.
+The `terraform` provider includes several commands that facilitate interaction with the Terraform stacks in your project. See the [Terraform guide](../terraform-plugin/README.md#planning-and-applying) for more information.
 
 ## Plugin tools
 

@@ -1,6 +1,9 @@
 #### gcloud base image ####
 FROM google/cloud-sdk:411.0.0 as gcloud
 
+#### ghr utility ####
+FROM cibuilds/github:0.12.2 AS ghr
+
 #### ldid utility ####
 FROM cimg/node:14.19.3 as ldid
 
@@ -21,10 +24,18 @@ RUN cd /tmp && \
 FROM cimg/node:14.19.3
 
 # install system deps
-RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3
+RUN sudo apt-get update && sudo apt-get -y install rsync parallel python3 curl
 
 # install ldid
 COPY --from=ldid /usr/local/bin/ldid /usr/local/bin
+
+# install ghr
+COPY --from=ghr /usr/bin/ghr /usr/bin/
+
+# install gh
+# NOTE: We pin to this version because the latest version does not support the fine-grained access tokens for editing issues (https://github.com/cli/cli/issues/6680)
+# When the issue has been resolved, we can go back to installing the latest version of gh.
+RUN wget https://github.com/cli/cli/releases/download/v2.14.7/gh_2.14.7_linux_amd64.deb && sudo dpkg -i gh_2.14.7_linux_amd64.deb && rm gh_2.14.7_linux_amd64.deb
 
 # install gcloud
 ENV CLOUDSDK_PYTHON=python3

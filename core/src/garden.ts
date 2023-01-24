@@ -92,7 +92,7 @@ import {
   getActionTypeBases,
   ActionTypeMap,
 } from "./plugins"
-import { deline, naturalList } from "./util/string"
+import { deline, naturalList, wordWrap } from "./util/string"
 import { ensureConnected } from "./db/connection"
 import { DependencyGraph } from "./graph/common"
 import { Profile, profileAsync } from "./util/profiling"
@@ -117,7 +117,7 @@ import {
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project"
-import { CloudApi, getGardenCloudDomain } from "./cloud/api"
+import { CloudApi, CloudProject, EnterpriseApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
@@ -1491,27 +1491,52 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
-  const cloudProjectId: string | undefined = config.id
+  let cloudProjectId: string | undefined = config.id
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
     const cloudLog = log.info({ section, msg: "Initializing...", status: "active" })
 
+    let project: CloudProject | undefined
+
     if (cloudProjectId) {
       // Ensure that the current projectId exists in the remote project
       try {
-        const projectUrl = await cloudApi.ensureProject(cloudProjectId)
-        cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+        project = await cloudApi.verifyAndConfigureProject(cloudProjectId)
       } catch (err) {
-        cloudLog.info(`Failed to find a project with the configured project ID ${cloudProjectId}`)
         cloudLog.debug(`Getting project from API failed with error: ${err.message}`)
       }
+    }
 
-      // Only fetch secrets if the projectId exists in the cloud API instance
+    if (!project && !cloudProjectId && !config.domain) {
+      // Create a new project in case the project does not exist
+      // and the user is logged in to a default domain.
+      // Note: excluding projects with a domain is for backwards compatibility
+      cloudLog.debug(`Creating or retrieving a ${distroName} project called ${projectName}.`)
+
+      try {
+        project = await cloudApi.getOrCreateProject(projectName)
+      } catch (err) {
+        if (err instanceof EnterpriseApiDuplicateProjectsError) {
+          cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
+        } else {
+          cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
+        }
+      }
+    }
+
+    if (project) {
+      const projectUrl = new URL(`/projects/${project.id}`, cloudDomain)
+      cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
+
       if (cloudApi.projectId) {
+        // ensure we use the fetched/created project ID
+        cloudProjectId = cloudApi.projectId
+
+        // Only fetch secrets if the projectId exists in the cloud API instance
         try {
-          secrets = await getSecrets({ log: cloudLog, projectId: cloudProjectId, environmentName, cloudApi })
+          secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
           cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
           cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
@@ -1520,7 +1545,15 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         }
       }
     } else {
-      cloudLog.info(`Logged in to ${distroName}, but failed to find a configured project ID`)
+      cloudLog.info(
+        chalk.yellow(
+          wordWrap(
+            deline`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project.
+            Continuing without ${distroName} features ...`,
+            120
+          )
+        )
+      )
     }
   }
 

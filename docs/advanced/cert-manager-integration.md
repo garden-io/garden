@@ -5,9 +5,13 @@ title: cert-manager Integration
 
 # cert-manager Integration
 
+{% hint style="warning" %}
+The cert-manager integration is deprecated and will be removed in the 0.13 release.
+{% endhint %}
+
 When starting a new Kubernetes project or when maintaining your existing ones, dealing with the creation and renewal of TLS certificates can easily become a headache. A popular tool to help automate certficate generation and renewal is [cert-manager](https://github.com/jetstack/cert-manager).
 
-The [kubernetes](../guides/remote-kubernetes.md) and [local-kubernetes](../guides/local-kubernetes.md) providers include an integration with cert-manager. The goal of the integration is to give you a head start when setting up TLS certificates for your project, providing an easy way to install it, and some sensible defaults.
+The [kubernetes](../k8s-plugins/remote-k8s/README.md) and [local-kubernetes](../k8s-plugins/local-k8s/README.md) providers include an integration with cert-manager. The goal of the integration is to give you a head start when setting up TLS certificates for your project, providing an easy way to install it, and some sensible defaults.
 We don't aim to support all the features of cert-manager, but rather accommodate the most common use case, while still allowing full control of the underlying setup when needed.
 
 ## Requirements
@@ -51,6 +55,7 @@ providers:
 ```
 
 Unless you want to use your own installation of cert-manager, you will need to set the option `install: true`. Garden will then install cert-manager for you under the `cert-manager` namespace.
+
 > Note: Garden will wait until all the pods required by cert-manager will be up and running. This might take more than 2 minutes depending on the cluster.
 
 If nothing is specified or `install: false`, Garden will assume you already have a valid and running cert-manager installation in the `cert-manager` namespace.
@@ -124,4 +129,5 @@ $: kubectl describe Certificate certificate-name -n your-namespace
 Please find more info in the ["Issuing an ACME certificate using HTTP validation"](https://cert-manager.io/docs/tutorials/acme/http-validation/#issuing-an-acme-certificate-using-http-validation) guide in the official cert-manager documentation.
 
 ---
+
 If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in [our Discord community](https://discord.gg/gxeuDgp6Xt).

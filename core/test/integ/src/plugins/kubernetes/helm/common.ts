@@ -613,6 +613,18 @@ ${expectedIngressOutput}
         gardenValuesPath,
       ])
     })
+
+    it("should allow relative paths for valueFiles", async () => {
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+      action.getSpec().valueFiles = ["../relative.yaml"]
+
+      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+        "--values",
+        resolve(action.getBuildPath(), "../relative.yaml"),
+        "--values",
+        gardenValuesPath,
+      ])
+    })
   })
 
   describe("getReleaseName", () => {
