@@ -46,6 +46,7 @@ import { jibContainerHandlers } from "./jib-container"
 import { emitWarning } from "../../warnings"
 import { kustomizeSpec } from "./kubernetes-module/kustomize"
 import { taskOutputsSchema } from "./task-results"
+import { syncPause, syncResume, syncStatus } from "./commands/sync"
 
 export async function configureProvider({
   log,
@@ -217,7 +218,15 @@ export const gardenPlugin = () =>
   `,
     configSchema: configSchema(),
     outputsSchema,
-    commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
+    commands: [
+      cleanupClusterRegistry,
+      clusterInit,
+      uninstallGardenServices,
+      pullImage,
+      syncStatus,
+      syncPause,
+      syncResume,
+    ],
     handlers: {
       configureProvider,
       getEnvironmentStatus,
