@@ -291,7 +291,7 @@ describe("processCliArgs", () => {
   // })
 
   it("throws an error when a required positional argument is missing", () => {
-    const cmd = new RunCommand()
+    const cmd = new ExecCommand()
     expectError(() => parseAndProcess([], cmd), { contains: "Missing required argument" })
   })
 
