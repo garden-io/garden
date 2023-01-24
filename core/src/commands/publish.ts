@@ -48,7 +48,7 @@ type Opts = typeof publishOpts
 
 interface PublishCommandResult extends ProcessCommandResult {}
 
-export class PublishCommand extends Command<Args, Opts> {
+export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
   name = "publish"
   help = "Build and publish artifacts (e.g. container images) to a remote registry."
 
