@@ -8,7 +8,6 @@
 
 import { Command, CommandGroup, CommandParams, CommandResult } from "./base"
 import dedent from "dedent"
-import { ServiceStatusMap, serviceStatusSchema } from "../types/service"
 import { printHeader } from "../logger/util"
 import { EnvironmentStatusMap } from "../plugin/handlers/provider/getEnvironmentStatus"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
@@ -19,6 +18,7 @@ import { deline } from "../util/string"
 import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
 import { omit, mapValues } from "lodash"
+import { GetDeployStatus, getDeployStatusSchema } from "../plugin/handlers/deploy/get-status"
 
 // TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
@@ -31,9 +31,9 @@ export class DeleteCommand extends CommandGroup {
 
 const dependantsFirstOpt = {
   "dependants-first": new BooleanParameter({
-    help: deline`
-      Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a
-      will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
+    help: dedent`
+      Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
+
       When this flag is not used, all services in the project are cleaned up simultaneously.
     `,
   }),
@@ -45,7 +45,9 @@ type DeleteEnvironmentOpts = typeof dependantsFirstOpt
 
 interface DeleteEnvironmentResult {
   providerStatuses: EnvironmentStatusMap
-  deployStatuses: ServiceStatusMap
+  deployStatuses: {
+    [name: string]: GetDeployStatus
+  }
 }
 
 export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts> {
@@ -70,7 +72,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
       providerStatuses: joiIdentifierMap(environmentStatusSchema()).description(
         "The status of each provider in the namespace."
       ),
-      deployStatuses: joiIdentifierMap(serviceStatusSchema()).description(
+      deployStatuses: joiIdentifierMap(getDeployStatusSchema()).description(
         "The status of each deployment in the namespace."
       ),
     })
@@ -86,7 +88,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
   }: CommandParams<{}, DeleteEnvironmentOpts>): Promise<CommandResult<DeleteEnvironmentResult>> {
     const actions = await garden.getActionRouter()
     const graph = await garden.getConfigGraph({ log, emit: true })
-    const serviceStatuses = await actions.deleteDeploys({
+    const deployStatuses = await actions.deleteDeploys({
       graph,
       log,
       dependantsFirst: opts["dependants-first"],
@@ -97,7 +99,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     const providerStatuses = await actions.provider.cleanupAll(log)
 
     return {
-      result: { deployStatuses: mapValues(serviceStatuses, (s) => omit(s, "executedAction")), providerStatuses },
+      result: { deployStatuses: mapValues(deployStatuses, (s) => omit(s, "executedAction")), providerStatuses },
     }
   }
 }
@@ -146,7 +148,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
   `
 
   outputsSchema = () =>
-    joiIdentifierMap(serviceStatusSchema()).description("A map of statuses for all the deleted deploys.")
+    joiIdentifierMap(getDeployStatusSchema()).description("A map of statuses for all the deleted deploys.")
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Cleaning up deployment(s)", "skull_and_crossbones")
