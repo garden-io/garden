@@ -30,7 +30,7 @@ import { deline, randomString } from "../../util/string"
 import { ArtifactSpec } from "../../config/validation"
 import { prepareSecrets } from "./secrets"
 import { configureVolumes } from "./container/deployment"
-import { PluginContext, PluginEventBroker } from "../../plugin-context"
+import { PluginContext, PluginEventBroker, PluginEventLogContext } from "../../plugin-context"
 import { waitForResources, ResourceStatus } from "./status/status"
 import { getResourceRequirements, getSecurityContext } from "./container/util"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
@@ -40,6 +40,7 @@ import { Stream } from "ts-stream"
 import { BaseRunParams } from "../../plugin/handlers/base/base"
 import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@kubernetes/client-node"
 import { RunResult } from "../../plugin/base"
+import { LogLevel } from "../../logger/logger"
 
 // Default timeout for individual run/exec operations
 const defaultTimeout = 600
@@ -205,11 +206,16 @@ export async function runAndCopy({
   }
 
   if (getArtifacts) {
-    const outputStream = new PassThrough()
+    const logEventContext = {
+      // XXX command cannot be possibly undefined, can it?
+      origin: command ? command[0] : "unknown command",
+      log: log.placeholder({ level: LogLevel.verbose }),
+    }
 
+    const outputStream = new PassThrough()
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data })
+      ctx.events.emit("log", { timestamp: new Date().getTime(), data, ...logEventContext })
     })
 
     return runWithArtifacts({
@@ -689,6 +695,7 @@ async function runWithArtifacts({
 
 class PodRunnerParams {
   ctx: PluginContext
+  logEventContext?: PluginEventLogContext
   annotations?: { [key: string]: string }
   api: KubeApi
   pod: KubernetesPod | KubernetesServerResource<V1Pod>
@@ -752,6 +759,7 @@ export interface PodErrorDetails {
 export class PodRunner extends PodRunnerParams {
   podName: string
   running: boolean
+  logEventContext: PluginEventLogContext
 
   constructor(params: PodRunnerParams) {
     super()
@@ -767,6 +775,10 @@ export class PodRunner extends PodRunnerParams {
     Object.assign(this, params)
 
     this.podName = this.pod.metadata.name
+
+    if (params.logEventContext !== undefined) {
+      this.logEventContext
+    }
   }
 
   getFullCommand() {
@@ -779,10 +791,22 @@ export class PodRunner extends PodRunnerParams {
 
   private prepareLogsFollower(params: RunParams) {
     const { log, tty, events } = params
+
+    const logEventContext = this.logEventContext
+      ? this.logEventContext
+      : {
+          origin: this.getFullCommand()[0]!,
+          log: log.placeholder({ level: LogLevel.verbose }),
+        }
+
     const stream = new Stream<RunLogEntry>()
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
-      events.emit("log", { timestamp, data: Buffer.from(msg) })
+      events.emit("log", {
+        timestamp: timestamp?.getTime() || new Date().getTime(),
+        data: Buffer.from(msg),
+        ...logEventContext,
+      })
       if (tty) {
         process.stdout.write(`${entry.msg}\n`)
       }

@@ -29,7 +29,7 @@ import {
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
 import { LogLevel } from "../../../../logger/logger"
-import { renderOutputStream, sleep } from "../../../../util/util"
+import { sleep } from "../../../../util/util"
 import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
 import { Resolved } from "../../../../actions/types"
@@ -105,16 +105,15 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   log.setState(`Building image ${localId}...`)
 
-  let buildLog = ""
+  const logEventContext = {
+    origin: "buildkit",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
 
-  // Stream verbose logs to a status line
   const outputStream = split2()
-  const statusLine = log.placeholder({ level: LogLevel.verbose })
-
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString(), "buildkit"))
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
   })
 
   const command = [
@@ -158,7 +157,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     buffer: true,
   })
 
-  buildLog = buildRes.log
+  const buildLog = buildRes.log
 
   log.silly(buildLog)
 

@@ -11,7 +11,7 @@ import { omit } from "lodash"
 import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { ServiceState } from "../types/service"
-import { uuidv4 } from "../util/util"
+import { renderOutputStream, uuidv4 } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 export const deployRouter = (baseParams: BaseRouterParams) =>
@@ -29,7 +29,11 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const serviceVersion = actionVersion
       const moduleName = action.moduleName()
 
-      params.events.on("log", ({ timestamp, data }) => {
+      params.events.on("log", ({ timestamp, data, origin, log }) => {
+        // stream logs to CLI
+        log.setState(renderOutputStream(data.toString(), origin))
+        // stream logs to Garden Cloud
+        // TODO: consider sending origin as well
         garden.events.emit("log", {
           timestamp,
           actionUid,
