@@ -11,7 +11,7 @@ import { it } from "mocha"
 import { join } from "path"
 import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { withDefaultGlobalOpts, dataDir, makeTestGarden } from "../../../helpers"
+import { withDefaultGlobalOpts, dataDir, makeTestGarden, getAllTaskResults } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { cloneDeep } from "lodash"
 import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
@@ -28,11 +28,6 @@ const publishAction = async ({ tag }: PublishActionParams): Promise<PublishActio
   return { published: true, identifier: tag }
 }
 
-const defaultHandlerReturn = {
-  state: <"ready">"ready",
-  detail: {},
-  outputs: {},
-}
 const testProvider = createGardenPlugin({
   name: "test-plugin",
   createModuleTypes: [
@@ -79,7 +74,11 @@ const testProvider = createGardenPlugin({
               outputs: {},
             }
           },
-          build: async (_params) => defaultHandlerReturn,
+          build: async (_params) => ({
+            state: "ready",
+            detail: {},
+            outputs: {},
+          }),
         },
       },
     ],
@@ -217,8 +216,11 @@ describe("PublishCommand", () => {
       }),
     })
 
+    const allResults = getAllTaskResults(result?.graphResults!)
+
     // Errors due to a bug in the solver
-    expect(taskResultOutputs(result!)).to.eql("TODO-G2")
+    expect(allResults["build.module-a"]?.task.force).to.be.true
+    expect(allResults["build.module-b"]?.task.force).to.be.true
   })
 
   it("should optionally build a selected build", async () => {
@@ -282,7 +284,7 @@ describe("PublishCommand", () => {
 
   it("should fail gracefully if action type does not have a provider for publish", async () => {
     const noHandlerPlugin = cloneDeep(testProvider)
-    delete testProvider.createActionTypes.Build[0].handlers.publish
+    delete noHandlerPlugin.createActionTypes.Build[0].handlers.publish
     const garden = await getTestGarden(noHandlerPlugin)
     const log = garden.log
 
