@@ -355,9 +355,9 @@ describe("processCliArgs", () => {
   it("throws with all found errors if applicable", () => {
     const cmd = new RunCommand()
     expectError(
-      () => parseAndProcess(["--foo=bar", "--interactive=9"], cmd),
+      () => parseAndProcess(["--foo=bar", "--interactive=9", "--force"], cmd),
       (err) => {
-        expectFuzzyMatch(err.message, ["Missing required argument", "Unrecognized option flag --foo"])
+        expectFuzzyMatch(err.message, ["Unrecognized option flag --foo", "Unrecognized option flag --interactive"])
       }
     )
   })
