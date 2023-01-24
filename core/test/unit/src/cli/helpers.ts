@@ -151,14 +151,14 @@ describe("parseCliArgs", () => {
   })
 
   it("sets prefers cliDefault over defaultValue when cli=true", () => {
-    const cmd = new RunCommand()
+    const cmd = new ExecCommand()
     const argv = parseCliArgs({ stringArgs: [], command: cmd, cli: true })
 
     expect(argv.interactive).to.be.true
   })
 
   it("sets prefers defaultValue over cliDefault when cli=false", () => {
-    const cmd = new RunCommand()
+    const cmd = new ExecCommand()
     const argv = parseCliArgs({ stringArgs: [], command: cmd, cli: false })
 
     expect(argv.interactive).to.be.false
