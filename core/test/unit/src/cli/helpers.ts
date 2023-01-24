@@ -424,7 +424,7 @@ describe("processCliArgs", () => {
 
   it("parses args and opts for a RunCommand", async () => {
     const cmd = new RunCommand()
-    const { args, opts } = parseAndProcess(["module-b", "unit", "--interactive"], cmd)
+    const { args, opts } = parseAndProcess(["*", "--force"], cmd)
     await cmd.action({
       ...defaultActionParams,
       args,
