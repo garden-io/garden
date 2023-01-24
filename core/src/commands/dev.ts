@@ -24,6 +24,7 @@ import {
   getHotReloadServiceNames,
   getMatchingServiceNames,
   validateHotReloadServiceNames,
+  makeSkipWatchErrorMsg,
 } from "./helpers"
 import { startServer } from "../server/server"
 import { BuildTask } from "../tasks/build"
@@ -36,6 +37,7 @@ import { GardenService } from "../types/service"
 import deline = require("deline")
 import dedent = require("dedent")
 import moment = require("moment")
+import { ParameterError } from "../exceptions"
 
 const ansiBannerPath = join(STATIC_DIR, "garden-banner-2.txt")
 
@@ -74,6 +76,21 @@ const devOpts = {
       "Filter the tests to run by test name across all modules (leave unset to run all tests). " +
       "Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').",
     alias: "tn",
+  }),
+  "skip-watch": new BooleanParameter({
+    help: deline`[EXPERIMENTAL] Watching is enabled by default but can be disabled
+    by setting this flag to \`false\`.
+
+    If set to \`false\` then file syncing will still work but Garden will ignore
+    changes to config files and services that are not in dev mode.
+
+    This can be a performance improvement for projects that have a large number of files
+    and where only file syncing is needed when in dev mode.
+
+    Note that this flag cannot be used if hot reloading is enabled.
+
+    This flag will be removed in future release in favour of a "smarter"
+    watching mechanism.`,
   }),
 }
 
@@ -180,6 +197,19 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       // take precedence over dev mode.
       .filter((name) => !hotReloadServiceNames.includes(name) && !localModeServiceNames.includes(name))
 
+    if (hotReloadServiceNames.length > 0 && opts["skip-watch"]) {
+      throw new ParameterError(makeSkipWatchErrorMsg(hotReloadServiceNames), {
+        hotReloadServiceNames,
+        options: opts,
+      })
+    }
+    let watch = true
+    if (devModeServiceNames.length > 0) {
+      watch = opts["skip-watch"]
+        ? false // In this case hotReloadServiceNames is empty, otherwise we throw above
+        : true
+    }
+
     const initialTasks = await getDevCommandInitialTasks({
       garden,
       log,
@@ -199,7 +229,7 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
       log,
       footerLog,
       modules,
-      watch: true,
+      watch,
       initialTasks,
       skipWatchModules: [
         ...getModulesByServiceNames(devModeServiceNames, graph),

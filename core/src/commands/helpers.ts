@@ -16,6 +16,7 @@ import { GardenModule } from "../types/module"
 import { GardenService } from "../types/service"
 import { GardenTask } from "../types/task"
 import { GardenTest } from "../types/test"
+import { deline, naturalList } from "../util/string"
 import { uniqByName } from "../util/util"
 
 export function getMatchingServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
@@ -100,6 +101,16 @@ export function makeGetTestOrTaskLog(
     logStr += `${type} in module ${chalk.green(m.name)}` + "\n" + logStrForTasks + "\n"
   }
   return logStr
+}
+
+export function makeSkipWatchErrorMsg(hotReloadServiceNames: string[]) {
+  return deline`
+    The --skip-watch flag cannot be used if hot reloading is enabled.
+
+    Hot reloading is currently enabled for the following services:
+
+    ${naturalList(hotReloadServiceNames)}
+  `
 }
 
 export function prettyPrintWorkflow(workflow: WorkflowConfig): string {

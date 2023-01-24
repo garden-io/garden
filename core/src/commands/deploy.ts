@@ -28,12 +28,14 @@ import {
   getMatchingServiceNames,
   getHotReloadServiceNames,
   validateHotReloadServiceNames,
+  makeSkipWatchErrorMsg,
 } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
+import { ParameterError } from "../exceptions"
 
 export const deployArgs = {
   services: new StringsParameter({
@@ -92,6 +94,19 @@ export const deployOpts = {
   "forward": new BooleanParameter({
     help: deline`Create port forwards and leave process running without watching
     for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.`,
+  }),
+  "skip-watch": new BooleanParameter({
+    help: deline`[EXPERIMENTAL] If set to \`false\` while in dev-mode
+    (i.e. the --dev-mode/--dev flag is used) then file syncing will still
+    work but Garden will ignore changes to config files and services that are not in dev mode.
+
+    This can be a performance improvement for projects that have a large number of files
+    and where only syncing is needed when in dev mode.
+
+    Note that this flag cannot used if hot reloading is enabled.
+
+    This behaviour will change in a future release in favour of a "smarter"
+    watching mechanism.`,
   }),
 }
 
@@ -205,10 +220,12 @@ export class DeployCommand extends Command<Args, Opts> {
 
     let watch = opts.watch
 
-    if (devModeServiceNames.length > 0) {
-      watch = true
+    if (hotReloadServiceNames.length > 0 && opts["skip-watch"]) {
+      throw new ParameterError(makeSkipWatchErrorMsg(hotReloadServiceNames), {
+        hotReloadServiceNames,
+        options: opts,
+      })
     }
-
     if (hotReloadServiceNames.length > 0) {
       initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
       const errMsg = validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
@@ -217,6 +234,11 @@ export class DeployCommand extends Command<Args, Opts> {
         return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
       }
       watch = true
+    }
+    if (devModeServiceNames.length > 0) {
+      watch = opts["skip-watch"]
+        ? false // In this case hotReloadServiceNames is empty, otherwise we throw above
+        : true
     }
 
     const force = opts.force
