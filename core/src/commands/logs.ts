@@ -11,7 +11,7 @@ import { Command, CommandResult, CommandParams, PrepareParams } from "./base"
 import chalk from "chalk"
 import { every, some, sortBy } from "lodash"
 import Bluebird = require("bluebird")
-import { ServiceLogEntry } from "../types/service"
+import { DeployLogEntry } from "../types/service"
 import Stream from "ts-stream"
 import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
@@ -83,7 +83,7 @@ type LogsTagOrFilter = LogsTagAndFilter[]
 /**
  * Skip empty entries.
  */
-function skipEntry(entry: ServiceLogEntry) {
+function skipEntry(entry: DeployLogEntry) {
   const validDate = entry.timestamp && entry.timestamp instanceof Date && !isNaN(entry.timestamp.getTime())
   return !entry.msg && !validDate
 }
@@ -127,7 +127,7 @@ export class LogsCommand extends Command<Args, Opts> {
     this.events?.emit("abort", {})
   }
 
-  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ServiceLogEntry[]>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<DeployLogEntry[]>> {
     const { follow, timestamps, tag } = opts
     let tail = opts.tail as number | undefined
     let since = opts.since as string | undefined
@@ -167,10 +167,10 @@ export class LogsCommand extends Command<Args, Opts> {
     const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
 
     // If the container name should be displayed, we align the output wrt to the longest container name
-    let maxServiceName = 1
+    let maxDeployName = 1
 
-    const result: ServiceLogEntry[] = []
-    const stream = new Stream<ServiceLogEntry>()
+    const result: DeployLogEntry[] = []
+    const stream = new Stream<DeployLogEntry>()
     let details: string = ""
 
     if (tail) {
@@ -187,11 +187,11 @@ export class LogsCommand extends Command<Args, Opts> {
     // Map all deploys names in the project to a specific color. This ensures
     // that in most cases they have the same color (unless any have been added/removed),
     // regardless of what params you pass to the command.
-    const allServiceNames = allDeploys
+    const allDeployNames = allDeploys
       .map((s) => s.name)
       .filter(Boolean)
       .sort()
-    const colorMap = allServiceNames.reduce((acc, name, idx) => {
+    const colorMap = allDeployNames.reduce((acc, name, idx) => {
       const color = colors[idx % colors.length]
       acc[name] = color
       return acc
@@ -200,7 +200,7 @@ export class LogsCommand extends Command<Args, Opts> {
     // Note: lazy-loading for startup performance
     const { isMatch } = require("micromatch")
 
-    const matchTagFilters = (entry: ServiceLogEntry): boolean => {
+    const matchTagFilters = (entry: DeployLogEntry): boolean => {
       if (!tagFilters) {
         return true
       }
@@ -213,8 +213,8 @@ export class LogsCommand extends Command<Args, Opts> {
       })
     }
 
-    const formatEntry = (entry: ServiceLogEntry) => {
-      const style = chalk[colorMap[entry.serviceName]]
+    const formatEntry = (entry: DeployLogEntry) => {
+      const style = chalk[colorMap[entry.name]]
       const sectionStyle = style.bold
       const serviceLog = entry.msg
       const entryLevel = entry.level || LogLevel.info
@@ -236,12 +236,12 @@ export class LogsCommand extends Command<Args, Opts> {
       }
 
       if (entryLevel <= logLevel) {
-        maxServiceName = Math.max(maxServiceName, entry.serviceName.length)
+        maxDeployName = Math.max(maxDeployName, entry.name.length)
       }
 
       let out = ""
       if (!hideService) {
-        out += `${sectionStyle(padSection(entry.serviceName, maxServiceName))} → `
+        out += `${sectionStyle(padSection(entry.name, maxDeployName))} → `
       }
       if (timestamp) {
         out += `${chalk.gray(timestamp)} → `

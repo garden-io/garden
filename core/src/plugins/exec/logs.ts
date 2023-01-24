@@ -10,7 +10,7 @@ import Stream from "ts-stream"
 import split2 = require("split2")
 
 import { LogEntry } from "../../logger/log-entry"
-import { ServiceLogEntry } from "../../types/service"
+import { DeployLogEntry } from "../../types/service"
 import { pathExists, stat, watch } from "fs-extra"
 import parseDuration from "parse-duration"
 import { validateSchema } from "../../config/validation"
@@ -19,7 +19,7 @@ import { EventEmitter2 } from "eventemitter2"
 import { getGitHubIssueLink, sleep } from "../../util/util"
 import { dedent } from "../../util/string"
 import { LogLevel } from "../../logger/logger"
-import { serviceLogEntrySchema } from "../../types/service"
+import { deployLogEntrySchema } from "../../types/service"
 
 const defaultRetryIntervalMs = 5000
 const watcherShelfLifeSec = 15
@@ -34,7 +34,7 @@ interface LogOpts {
 }
 
 // We enforce timestamp and level on local service log entries.
-export type LocalServiceLogEntry = ServiceLogEntry & {
+export type LocalServiceLogEntry = DeployLogEntry & {
   timestamp: Date
   level: LogLevel
 }
@@ -45,7 +45,7 @@ function isValidServiceLogEntry(entry: any): entry is LocalServiceLogEntry {
   }
 
   try {
-    validateSchema(entry, serviceLogEntrySchema())
+    validateSchema(entry, deployLogEntrySchema())
   } catch (_err) {
     return false
   }
@@ -87,8 +87,8 @@ class StreamEventBus extends EventEmitter2 {
 }
 
 export class ExecLogsFollower {
-  private serviceName: string
-  private stream: Stream<ServiceLogEntry>
+  private deployName: string
+  private stream: Stream<DeployLogEntry>
   private log: LogEntry
   private intervalId: NodeJS.Timer | null
   private resolve: ((val: unknown) => void) | null
@@ -103,19 +103,19 @@ export class ExecLogsFollower {
 
   constructor({
     stream,
-    serviceName,
+    deployName,
     log,
     logFilePath,
     retryIntervalMs,
   }: {
-    stream: Stream<ServiceLogEntry>
-    serviceName: string
+    stream: Stream<DeployLogEntry>
+    deployName: string
     log: LogEntry
     logFilePath: string
     retryIntervalMs?: number
   }) {
     this.stream = stream
-    this.serviceName = serviceName
+    this.deployName = deployName
     this.log = log
     this.intervalId = null
     this.logFilePath = logFilePath
@@ -138,11 +138,11 @@ export class ExecLogsFollower {
       const fileSize = (await stat(this.logFilePath)).size
       if (fileSize > warnOnFileSize) {
         this.log.warn(dedent`
-          Detected unusually large local log file for local service ${this.serviceName} at path ${this.logFilePath}.
+          Detected unusually large local log file for local service ${this.deployName} at path ${this.logFilePath}.
           Size is ${Math.floor(fileSize / (1024 * 1024))}MB. This can slow down local log streaming.
 
           We recommend clearing the file by either deleting it or restarting the Garden process that started the ${
-            this.serviceName
+            this.deployName
           } service.
 
           If you see this message frequently, please open a GitHub issue at: ${getGitHubIssueLink(
@@ -255,7 +255,7 @@ export class ExecLogsFollower {
   }
 
   private handleError(message: string) {
-    this.log.debug(`<Streaming log from local process for service ${this.serviceName} failed with error: ${message}>`)
+    this.log.debug(`<Streaming log from local process for service ${this.deployName} failed with error: ${message}>`)
     this.unwatch()
   }
 

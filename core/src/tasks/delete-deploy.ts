@@ -7,8 +7,7 @@
  */
 
 import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "./base"
-import { ServiceStatus } from "../types/service"
-import { GraphResults, GraphResult } from "../graph/results"
+import { GraphResults } from "../graph/results"
 import { DeployAction, isDeployAction } from "../actions/deploy"
 import { DeployStatus, GetDeployStatus } from "../plugin/handlers/deploy/get-status"
 

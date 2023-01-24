@@ -13,7 +13,7 @@ import { ResolvedDeployAction } from "../../../../src/actions/deploy"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
-import { ServiceLogEntry } from "../../../../src/types/service"
+import { DeployLogEntry } from "../../../../src/types/service"
 import { TestGarden, expectError } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
 
@@ -197,7 +197,7 @@ describe("deploy actions", () => {
 
   describe("deploy.getLogs", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const stream = new Stream<ServiceLogEntry>()
+      const stream = new Stream<DeployLogEntry>()
       const result = await actionRouter.deploy.getLogs({
         log,
         action: resolvedDeployAction,

@@ -20,11 +20,11 @@ import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { LogLevel } from "../../../../src/logger/logger"
-import { ModuleConfig } from "../../../../src/config/module"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
-import { ServiceLogEntry } from "../../../../src/types/service"
+import { DeployLogEntry } from "../../../../src/types/service"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { GetDeployLogs } from "../../../../src/plugin/handlers/deploy/get-logs"
+import { BaseActionConfig } from "../../../../src/actions/types"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -50,6 +50,20 @@ function makeCommandParams({
   }
 }
 
+const makeDeployAction = (basePath: string, name: string): BaseActionConfig => ({
+  apiVersion: DEFAULT_API_VERSION,
+  kind: "Deploy",
+  name,
+  type: "test",
+  disabled: false,
+  internal: {
+    basePath,
+  },
+  spec: {
+    deployCommand: ["echo", "ok"],
+  },
+})
+
 async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
   const config: ProjectConfig = {
     apiVersion: DEFAULT_API_VERSION,
@@ -64,29 +78,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
   }
 
   const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
-  garden.setActionConfigs([
-    {
-      apiVersion: DEFAULT_API_VERSION,
-      name: "test",
-      type: "test",
-      allowPublish: false,
-      disabled: false,
-      build: { dependencies: [] },
-      path: tmpDir.path,
-      serviceConfigs: [
-        {
-          name: "test-service-a",
-          dependencies: [],
-          disabled: false,
-
-          spec: {},
-        },
-      ],
-      taskConfigs: [],
-      testConfigs: [],
-      spec: { bla: "fla" },
-    },
-  ])
+  garden.setActionConfigs([], [makeDeployAction(tmpDir.path, "test-service-a")])
   return garden
 }
 
@@ -108,17 +100,18 @@ describe("LogsCommand", () => {
   const color = chalk[colors[0]]
 
   type GetDeployLogsParams = GetDeployLogs["_paramsType"]
-  const defaultGetServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
+
+  const defaultLogsHandler = async ({ stream }: GetDeployLogsParams) => {
     void stream.write({
       tags: { container: "my-container" },
-      serviceName: "test-service-a",
+      name: "test-service-a",
       msg: logMsgWithColor,
       timestamp,
     })
     return {}
   }
 
-  const makeTestPlugin = (getServiceLogsHandler = defaultGetServiceLogsHandler) => {
+  const makeTestPlugin = (logsHandler = defaultLogsHandler) => {
     return customizedTestPlugin({
       name: "test",
       createActionTypes: {
@@ -128,7 +121,7 @@ describe("LogsCommand", () => {
             docs: "Test Deploy action",
             schema: execDeployActionSchema(),
             handlers: {
-              getLogs: getServiceLogsHandler,
+              getLogs: logsHandler,
             },
           },
         ],
@@ -155,7 +148,7 @@ describe("LogsCommand", () => {
         result: [
           {
             tags: { container: "my-container" },
-            serviceName: "test-service-a",
+            name: "test-service-a",
             msg: logMsgWithColor,
             timestamp,
           },
@@ -166,25 +159,25 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async (params: GetDeployLogsParams) => {
         void params.stream.write({
           tags: { container: "my-container" },
-          serviceName: "test-service-a",
+          name: "test-service-a",
           msg: "3",
           timestamp: new Date("2021-05-13T20:03:00.000Z"),
         })
         void params.stream.write({
           tags: { container: "my-container" },
-          serviceName: "test-service-a",
+          name: "test-service-a",
           msg: "4",
           timestamp: new Date("2021-05-13T20:04:00.000Z"),
         })
         void params.stream.write({
           tags: { container: "my-container" },
-          serviceName: "test-service-a",
+          name: "test-service-a",
           msg: "2",
           timestamp: new Date("2021-05-13T20:02:00.000Z"),
         })
         void params.stream.write({
           tags: { container: "my-container" },
-          serviceName: "test-service-a",
+          name: "test-service-a",
           msg: "1",
           timestamp: new Date("2021-05-13T20:01:00.000Z"),
         })
@@ -199,25 +192,25 @@ describe("LogsCommand", () => {
         result: [
           {
             tags: { container: "my-container" },
-            serviceName: "test-service-a",
+            name: "test-service-a",
             msg: "1",
             timestamp: new Date("2021-05-13T20:01:00.000Z"),
           },
           {
             tags: { container: "my-container" },
-            serviceName: "test-service-a",
+            name: "test-service-a",
             msg: "2",
             timestamp: new Date("2021-05-13T20:02:00.000Z"),
           },
           {
             tags: { container: "my-container" },
-            serviceName: "test-service-a",
+            name: "test-service-a",
             msg: "3",
             timestamp: new Date("2021-05-13T20:03:00.000Z"),
           },
           {
             tags: { container: "my-container" },
-            serviceName: "test-service-a",
+            name: "test-service-a",
             timestamp: new Date("2021-05-13T20:04:00.000Z"),
             msg: "4",
           },
@@ -229,14 +222,14 @@ describe("LogsCommand", () => {
         // Empty message and invalid date
         void stream.write({
           tags: { container: "my-container" },
-          serviceName: "test-service-a",
+          name: "test-service-a",
           msg: "",
           timestamp: new Date(""),
         })
         // Empty message and empty date
         void stream.write({
           tags: { container: "my-container" },
-          serviceName: "test-service-a",
+          name: "test-service-a",
           msg: "",
           timestamp: undefined,
         })
@@ -261,7 +254,7 @@ describe("LogsCommand", () => {
     it("should optionally skip rendering the service name", async () => {
       const garden = await makeGarden(tmpDir, makeTestPlugin())
       const command = new LogsCommand()
-      await command.action(makeCommandParams({ garden, opts: { "hide-service": true } }))
+      await command.action(makeCommandParams({ garden, opts: { "hide-name": true } }))
 
       const out = getLogOutput(garden, logMsg)
 
@@ -282,7 +275,7 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "my-container" },
-          serviceName: "test-service-a",
+          name: "test-service-a",
           msg: logMsg, // No color
           timestamp: undefined,
         })
@@ -302,33 +295,33 @@ describe("LogsCommand", () => {
           if (action.name === "a-short") {
             void stream.write({
               tags: { container: "short" },
-              serviceName: "a-short",
+              name: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:01:00.000Z"), // <--- 1
             })
             void stream.write({
               tags: { container: "short" },
-              serviceName: "a-short",
+              name: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:03:00.000Z"), // <--- 3
             })
             void stream.write({
               tags: { container: "short" },
-              serviceName: "a-short",
+              name: "a-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:06:00.000Z"), // <--- 6
             })
           } else if (action.name === "b-not-short") {
             void stream.write({
               tags: { container: "not-short" },
-              serviceName: "b-not-short",
+              name: "b-not-short",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:02:00.000Z"), // <--- 2
             })
           } else if (action.name === "c-by-far-the-longest-of-the-bunch") {
             void stream.write({
               tags: { container: "by-far-the-longest-of-the-bunch" },
-              serviceName: "c-by-far-the-longest-of-the-bunch",
+              name: "c-by-far-the-longest-of-the-bunch",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:04:00.000Z"), // <--- 4
               level: LogLevel.verbose,
@@ -336,7 +329,7 @@ describe("LogsCommand", () => {
           } else if (action.name === "d-very-very-long") {
             void stream.write({
               tags: { container: "very-very-long" },
-              serviceName: "d-very-very-long",
+              name: "d-very-very-long",
               msg: logMsgWithColor,
               timestamp: new Date("2021-05-13T20:05:00.000Z"), // <--- 5
             })
@@ -344,50 +337,16 @@ describe("LogsCommand", () => {
           return {}
         }
         const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-        garden.setActionConfigs([
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "test",
-            type: "test",
-            allowPublish: false,
-            disabled: false,
-            build: { dependencies: [] },
-            path: tmpDir.path,
-            serviceConfigs: [
-              {
-                name: "a-short",
-                dependencies: [],
-                disabled: false,
 
-                spec: {},
-              },
-              {
-                name: "b-not-short",
-                dependencies: [],
-                disabled: false,
-
-                spec: {},
-              },
-              {
-                name: "c-by-far-the-longest-of-the-bunch",
-                dependencies: [],
-                disabled: false,
-
-                spec: {},
-              },
-              {
-                name: "d-very-very-long",
-                dependencies: [],
-                disabled: false,
-
-                spec: {},
-              },
-            ],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: { bla: "fla" },
-          },
-        ])
+        garden.setActionConfigs(
+          [],
+          [
+            makeDeployAction(tmpDir.path, "a-short"),
+            makeDeployAction(tmpDir.path, "b-not-short"),
+            makeDeployAction(tmpDir.path, "c-by-far-the-longest-of-the-bunch"),
+            makeDeployAction(tmpDir.path, "d-very-very-long"),
+          ]
+        )
 
         // Entries are color coded by their alphabetical order
         const colA = chalk[colors[0]]
@@ -413,14 +372,14 @@ describe("LogsCommand", () => {
         if (action.name === "test-service-a") {
           void stream.write({
             tags: { container: "my-container" },
-            serviceName: "test-service-a",
+            name: "test-service-a",
             msg: logMsgWithColor,
             timestamp: new Date("2021-05-13T20:00:00.000Z"),
           })
         } else {
           void stream.write({
             tags: { container: "my-container" },
-            serviceName: "test-service-b",
+            name: "test-service-b",
             msg: logMsgWithColor,
             timestamp: new Date("2021-05-13T20:01:00.000Z"),
           })
@@ -428,39 +387,14 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          name: "test",
-          type: "test",
-          allowPublish: false,
-          disabled: false,
-          build: { dependencies: [] },
-          path: tmpDir.path,
-          serviceConfigs: [
-            {
-              name: "test-service-a",
-              dependencies: [],
-              disabled: false,
+      garden.setActionConfigs(
+        [],
+        [makeDeployAction(tmpDir.path, "test-service-a"), makeDeployAction(tmpDir.path, "test-service-b")]
+      )
 
-              spec: {},
-            },
-            {
-              name: "test-service-b",
-              dependencies: [],
-              disabled: false,
-
-              spec: {},
-            },
-          ],
-          taskConfigs: [],
-          testConfigs: [],
-          spec: { bla: "fla" },
-        },
-      ])
       const command = new LogsCommand()
       // Only get logs for test-service-b.
-      await command.action(makeCommandParams({ garden, args: { services: ["test-service-b"] } }))
+      await command.action(makeCommandParams({ garden, args: { names: ["test-service-b"] } }))
 
       const out = getLogOutput(garden, logMsg)
       const color2 = chalk[colors[1]]
@@ -469,49 +403,23 @@ describe("LogsCommand", () => {
       expect(out[0]).to.eql(`${color2.bold("test-service-b")} → ${msgColor("Yes, this is log")}`)
     })
 
-    const moduleConfigsForTags = (): ModuleConfig[] => [
-      {
-        apiVersion: DEFAULT_API_VERSION,
-        name: "test",
-        type: "test",
-        allowPublish: false,
-        disabled: false,
-        build: { dependencies: [] },
-        path: tmpDir.path,
-        serviceConfigs: [
-          {
-            name: "api",
-            dependencies: [],
-            disabled: false,
-
-            spec: {},
-          },
-          {
-            name: "frontend",
-            dependencies: [],
-            disabled: false,
-
-            spec: {},
-          },
-        ],
-        taskConfigs: [],
-        testConfigs: [],
-        spec: { bla: "fla" },
-      },
+    const actionConfigsForTags = (): BaseActionConfig[] => [
+      makeDeployAction(tmpDir.path, "api"),
+      makeDeployAction(tmpDir.path, "frontend"),
     ]
 
     it("should optionally print tags with --show-tags", async () => {
       const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api" },
-          serviceName: "api",
+          name: "api",
           msg: logMsgWithColor,
           timestamp: new Date(),
         })
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs(moduleConfigsForTags())
+      garden.setActionConfigs([], actionConfigsForTags())
 
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
@@ -521,28 +429,28 @@ describe("LogsCommand", () => {
     })
 
     // These tests use tags as emitted by `container`/`kubernetes`/`helm` services, which use the `container` tag.
-    const filterByTag = (entries: ServiceLogEntry[], tag: string): ServiceLogEntry[] => {
-      return entries.filter((e: ServiceLogEntry) => e.tags!["container"] === tag)
+    const filterByTag = (entries: DeployLogEntry[], tag: string): DeployLogEntry[] => {
+      return entries.filter((e: DeployLogEntry) => e.tags!["container"] === tag)
     }
 
     it("should apply a basic --tag filter", async () => {
       const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "frontend" },
-          serviceName: "frontend",
+          name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs(moduleConfigsForTags())
+      garden.setActionConfigs([], actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api"] } }))
@@ -555,14 +463,14 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api-main" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs(moduleConfigsForTags())
+      garden.setActionConfigs([], actionConfigsForTags())
 
       const command = new LogsCommand()
       await expectError(
@@ -575,26 +483,26 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api", myTag: "1" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "api", myTag: "2" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "frontend", myTag: "1" },
-          serviceName: "frontend",
+          name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs(moduleConfigsForTags())
+      garden.setActionConfigs([], actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1"] } }))
@@ -609,32 +517,32 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api", myTag: "1" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "api", myTag: "2" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "frontend", myTag: "1" },
-          serviceName: "frontend",
+          name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "frontend", myTag: "2" },
-          serviceName: "frontend",
+          name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs(moduleConfigsForTags())
+      garden.setActionConfigs([], actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(
@@ -655,32 +563,32 @@ describe("LogsCommand", () => {
       const getServiceLogsHandler = async ({ stream }: GetDeployLogsParams) => {
         void stream.write({
           tags: { container: "api-main" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "api-sidecar" },
-          serviceName: "api",
+          name: "api",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "frontend-main" },
-          serviceName: "frontend",
+          name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
         void stream.write({
           tags: { container: "frontend-sidecar" },
-          serviceName: "frontend",
+          name: "frontend",
           msg: logMsg,
           timestamp: new Date(),
         })
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs(moduleConfigsForTags())
+      garden.setActionConfigs([], actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=*-main"] } }))
