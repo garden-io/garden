@@ -322,7 +322,7 @@ describe("processCliArgs", () => {
 
   it("ignores cliOnly options when cli=false", () => {
     const cmd = new ExecCommand()
-    const { opts } = parseAndProcess(["my-service", "--interactive=true"], cmd, false)
+    const { opts } = parseAndProcess(["my-service", "echo 'test'", "--interactive=true"], cmd, false)
     expect(opts.interactive).to.be.false
   })
 
@@ -342,13 +342,13 @@ describe("processCliArgs", () => {
 
   it("prefers defaultValue value over cliDefault when cli=false", () => {
     const cmd = new ExecCommand()
-    const { opts } = parseAndProcess(["my-service"], cmd, false)
+    const { opts } = parseAndProcess(["my-service", "echo 'test'"], cmd, false)
     expect(opts.interactive).to.be.false
   })
 
   it("prefers cliDefault value over defaultValue when cli=true", () => {
     const cmd = new ExecCommand()
-    const { opts } = parseAndProcess(["my-service"], cmd, true)
+    const { opts } = parseAndProcess(["my-service", "echo 'test'"], cmd, true)
     expect(opts.interactive).to.be.true
   })
 
