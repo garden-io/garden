@@ -10,7 +10,7 @@ import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from ".
 import { ServiceStatus } from "../types/service"
 import { GraphResults, GraphResult } from "../graph/results"
 import { DeployAction, isDeployAction } from "../actions/deploy"
-import { DeployStatus } from "../plugin/handlers/deploy/get-status"
+import { DeployStatus, GetDeployStatus } from "../plugin/handlers/deploy/get-status"
 
 export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {
   /**
@@ -91,12 +91,14 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
   }
 }
 
-export function deletedDeployStatuses(results: GraphResults): { [serviceName: string]: ServiceStatus } {
-  const deleted = <GraphResult[]>Object.values(results).filter((r) => r && r.type === "delete-service")
+export function deletedDeployStatuses(results: GraphResults): { [serviceName: string]: GetDeployStatus } {
+  const deleted = results.getAll().filter((r) => r && r.type === "delete-deploy")
   const statuses = {}
 
   for (const res of deleted) {
-    statuses[res.name] = res.result
+    if (res) {
+      statuses[res.name] = res.result
+    }
   }
 
   return statuses

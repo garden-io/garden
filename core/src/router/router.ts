@@ -164,9 +164,10 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst?: boolean
     names?: string[]
   }) {
-    const servicesLog = log.info({ msg: chalk.white("Deleting services..."), status: "active" })
+    const servicesLog = log.info({ msg: chalk.white("Deleting deployments..."), status: "active" })
 
     const deploys = graph.getDeploys({ names })
+
     const tasks = deploys.map((action) => {
       return new DeleteDeployTask({
         garden: this.garden,
@@ -174,6 +175,7 @@ export class ActionRouter extends BaseRouter {
         action,
         log: servicesLog,
         dependantsFirst,
+        deleteDeployNames: deploys.map((d) => d.name),
         force: false,
         forceActions: [],
         devModeDeployNames: [],

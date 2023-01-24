@@ -28,7 +28,7 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-a",
     include: [],
     spec: {
-      services: [{ name: "service-a" }],
+      services: [{ name: "service-a", deployCommand: ["echo", "ok"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
@@ -38,7 +38,7 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-b",
     include: [],
     spec: {
-      services: [{ name: "service-b", dependencies: ["service-a"] }],
+      services: [{ name: "service-b", deployCommand: ["echo", "ok"], dependencies: ["service-a"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
@@ -48,7 +48,7 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-c",
     include: [],
     spec: {
-      services: [{ name: "service-c", dependencies: ["service-b"] }],
+      services: [{ name: "service-c", deployCommand: ["echo", "ok"], dependencies: ["service-b"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
@@ -58,13 +58,19 @@ const moduleConfigs: ModuleConfig[] = [
     name: "module-d",
     include: [],
     spec: {
-      services: [{ name: "service-d", dependencies: ["service-c"] }],
+      services: [{ name: "service-d", deployCommand: ["echo", "ok"], dependencies: ["service-c"] }],
       tests: [],
       tasks: [],
       build: { dependencies: [] },
     },
   }),
 ]
+
+const missingDeployStatus = {
+  state: "not-ready",
+  detail: { state: "missing", forwardablePorts: [], outputs: {}, detail: {} },
+  outputs: {},
+}
 
 describe("DeleteEnvironmentCommand", () => {
   let deletedServices: string[] = []
@@ -100,7 +106,7 @@ describe("DeleteEnvironmentCommand", () => {
             delete: async (params) => {
               deletedServices.push(params.action.name)
               deleteOrder.push(params.action.name)
-              return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
+              return { state: "not-ready", detail: { state: "missing", detail: {} }, outputs: {} }
             },
           },
         },
@@ -132,11 +138,12 @@ describe("DeleteEnvironmentCommand", () => {
     expect(command.outputsSchema().validate(result).error).to.be.undefined
 
     expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
+
     expect(result!.deployStatuses).to.eql({
-      "service-a": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-      "service-b": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-      "service-c": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-      "service-d": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
+      "service-a": missingDeployStatus,
+      "service-b": missingDeployStatus,
+      "service-c": missingDeployStatus,
+      "service-d": missingDeployStatus,
     })
     expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
   })
@@ -156,10 +163,10 @@ describe("DeleteEnvironmentCommand", () => {
 
       expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
       expect(result!.deployStatuses).to.eql({
-        "service-a": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-        "service-b": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-        "service-c": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
-        "service-d": { forwardablePorts: [], state: "missing", detail: {}, outputs: {} },
+        "service-a": missingDeployStatus,
+        "service-b": missingDeployStatus,
+        "service-c": missingDeployStatus,
+        "service-d": missingDeployStatus,
       })
       expect(deletedServices.sort()).to.eql(["service-a", "service-b", "service-c", "service-d"])
 
