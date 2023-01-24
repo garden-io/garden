@@ -15,6 +15,7 @@ import { filterTestConfigs, TestTask } from "../tasks/test"
 import { naturalList } from "../util/string"
 import { ConfigGraph } from "../graph/config-graph"
 import { RunTask } from "../tasks/run"
+import { moduleTestNameToActionName } from "../types/module"
 
 export class ClientRouter {
   private garden: Garden
@@ -229,14 +230,15 @@ export const clientRequestHandlers = {
     const { garden, graph, log } = params
     const { moduleName, testNames, force, forceBuild } = params.request
     const module = graph.getModule(moduleName)
-    return filterTestConfigs(module.testConfigs, testNames).map((config) => {
+    return filterTestConfigs(module, testNames).map((config) => {
+      const testName = moduleTestNameToActionName(params.request.moduleName, config.name)
       return new TestTask({
         garden,
         graph,
         log,
         force,
         forceBuild,
-        action: graph.getTest(config.name),
+        action: graph.getTest(testName),
         skipRuntimeDependencies: params.request.skipDependencies,
         devModeDeployNames: [],
         fromWatch: true,

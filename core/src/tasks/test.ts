@@ -16,6 +16,8 @@ import { ModuleConfig } from "../config/module"
 import { executeAction } from "../actions/helpers"
 import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/test/get-result"
+import { TestConfig } from "../config/test"
+import { moduleTestNameToActionName } from "../types/module"
 
 class TestError extends Error {
   toString() {
@@ -117,13 +119,16 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   }
 }
 
-export function filterTestConfigs(
-  configs: ModuleConfig["testConfigs"],
-  filterNames?: string[]
-): ModuleConfig["testConfigs"] {
-  return configs.filter(
-    (test) =>
-      !test.disabled &&
-      (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
-  )
+export function filterTestConfigs(module: ModuleConfig, filterNames?: string[]): ModuleConfig["testConfigs"] {
+  const acceptableTestConfig = (test: TestConfig) => {
+    if (test.disabled) {
+      return false
+    }
+    if (!filterNames || filterNames.length === 0) {
+      return true
+    }
+    const testName = moduleTestNameToActionName(module.name, test.name)
+    return find(filterNames, (n: string) => minimatch(testName, n))
+  }
+  return module.testConfigs.filter(acceptableTestConfig)
 }
