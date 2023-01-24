@@ -28,6 +28,7 @@ import { containerHelpers } from "@garden-io/core/build/src/plugins/container/he
 import { cloneDeep } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
 import { detectProjectType, getBuildFlags, JibContainerModule } from "./util"
+import { PluginEventLogContext } from "@garden-io/core/src/plugin-context"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
 
@@ -233,14 +234,18 @@ export const gardenPlugin = () =>
               statusLine.setState(renderOutputStream(`Detected project type ${projectType}`))
             }
 
-            const outputStream = split2()
             let buildLog = ""
 
+            const logEventContext: PluginEventLogContext = {
+              origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
+              log: log.placeholder({ level: LogLevel.verbose }),
+            }
+
+            const outputStream = split2()
             outputStream.on("error", () => {})
-            outputStream.on("data", (line: Buffer) => {
-              const str = line.toString()
-              statusLine.setState({ section: module.name, msg: str })
-              buildLog += str
+            outputStream.on("data", (data: Buffer) => {
+              ctx.events.emit("log", { timestamp: new Date().getTime(), data, ...logEventContext })
+              buildLog += data.toString()
             })
 
             statusLine.setState({ section: module.name, msg: `Using JAVA_HOME=${openJdkPath}` })

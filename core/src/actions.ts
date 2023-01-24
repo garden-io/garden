@@ -84,7 +84,7 @@ import { RunServiceParams } from "./types/plugin/service/runService"
 import { GetTaskResultParams } from "./types/plugin/task/getTaskResult"
 import { RunTaskParams, RunTaskResult } from "./types/plugin/task/runTask"
 import { ServiceStatus, ServiceStatusMap, ServiceState, GardenService } from "./types/service"
-import { Omit, getNames, uuidv4 } from "./util/util"
+import { Omit, getNames, uuidv4, renderOutputStream } from "./util/util"
 import { DebugInfoMap } from "./types/plugin/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "./types/plugin/provider/prepareEnvironment"
 import { GetPortForwardParams } from "./types/plugin/service/getPortForward"
@@ -379,7 +379,11 @@ export class ActionRouter implements TypeGuard {
     const startedAt = new Date()
     const moduleName = params.module.name
     const moduleVersion = params.module.version.versionString
-    params.events.on("log", ({ timestamp, data }) => {
+    params.events.on("log", ({ timestamp, data, origin, log }) => {
+      // stream logs to CLI
+      log.setState(renderOutputStream(data.toString(), origin))
+      // stream logs to Garden Cloud
+      // TODO: consider sending origin as well
       this.garden.events.emit("log", {
         timestamp,
         actionUid,
@@ -460,7 +464,14 @@ export class ActionRouter implements TypeGuard {
 
     try {
       // Annotate + emit log output
-      params.events.on("log", ({ timestamp, data }) => {
+      params.events.on("log", ({ timestamp, data, origin, log }) => {
+        if (!params.interactive) {
+          // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
+          // TODO: 0.13 make sure that logs of different tests in the same module can be differentiated
+          log.setState(renderOutputStream(data.toString(), origin))
+        }
+        // stream logs to Garden Cloud
+        // TODO: consider sending origin as well
         this.garden.events.emit("log", {
           timestamp,
           actionUid,
@@ -545,7 +556,11 @@ export class ActionRouter implements TypeGuard {
     const serviceName = params.service.name
     const moduleVersion = params.service.module.version.versionString
     const moduleName = params.service.module.name
-    params.events.on("log", ({ timestamp, data }) => {
+    params.events.on("log", ({ timestamp, data, origin, log }) => {
+      // stream logs to CLI
+      log.setState(renderOutputStream(data.toString(), origin))
+      // stream logs to Garden Cloud
+      // TODO: consider sending origin as well
       this.garden.events.emit("log", {
         timestamp,
         actionUid,
@@ -707,7 +722,14 @@ export class ActionRouter implements TypeGuard {
 
     try {
       // Annotate + emit log output
-      params.events.on("log", ({ timestamp, data }) => {
+      params.events.on("log", ({ timestamp, data, origin, log }) => {
+        if (!params.interactive) {
+          // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
+          // TODO: 0.13 make sure that logs of different tasks in the same module can be differentiated
+          log.setState(renderOutputStream(data.toString(), origin))
+        }
+        // stream logs to Garden Cloud
+        // TODO: consider sending origin as well
         this.garden.events.emit("log", {
           timestamp,
           actionUid,

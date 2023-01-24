@@ -23,6 +23,7 @@ import { PluginToolSpec, ToolBuildSpec } from "../types/plugin/tools"
 import { parse } from "url"
 import AsyncLock from "async-lock"
 import { PluginContext } from "../plugin-context"
+import { LogLevel } from "../logger/logger"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -150,10 +151,13 @@ export class CliWrapper {
       })
     }
 
+    const logEventContext = {
+      origin: this.name,
+      log: log.placeholder({ level: LogLevel.verbose }),
+    }
+
     logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-      const lineStr = line.toString()
-      log.verbose(lineStr)
+      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
     })
 
     await new Promise<void>((resolve, reject) => {

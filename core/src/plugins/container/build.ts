@@ -12,7 +12,6 @@ import { ConfigurationError } from "../../exceptions"
 import { GetBuildStatusParams } from "../../types/plugin/module/getBuildStatus"
 import { BuildModuleParams } from "../../types/plugin/module/build"
 import { LogLevel } from "../../logger/logger"
-import { renderOutputStream } from "../../util/util"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 
@@ -65,14 +64,15 @@ export async function buildContainerModule({ ctx, module, log }: BuildModulePara
     cmdOpts.push("--file", containerHelpers.getDockerfileBuildPath(module))
   }
 
-  // Stream verbose log to a status line
-  const outputStream = split2()
-  const statusLine = log.placeholder({ level: LogLevel.verbose })
+  const logEventContext = {
+    origin: "local-docker",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
 
+  const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString(), "local-docker"))
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
   })
   const timeout = module.spec.build.timeout
   const res = await containerHelpers.dockerCli({
