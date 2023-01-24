@@ -18,7 +18,7 @@ import { PluginTool } from "../../../util/ext-tools"
 
 const logSuccess = (log: LogEntry) => log.info({ msg: chalk.green("\nDone!"), status: "success" })
 
-const commonDocs = `Only works if a Garden is already running in dev mode in a separate process in this project.`
+const commonDocs = `'garden dev' or 'garden deploy --dev' must be running in this project for this command to work.`
 
 export const syncStatus: PluginCommand = {
   name: "sync-status",
