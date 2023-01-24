@@ -28,6 +28,7 @@ import { KubeApi } from "../api"
 import { getModuleNamespaceStatus } from "../namespace"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
 import { KubernetesPod } from "../types"
+import { LogLevel } from "../../../logger/logger"
 
 export async function runHelmModule({
   ctx,
@@ -103,8 +104,14 @@ export async function runHelmModule({
     },
   }
 
+  const logEventContext = {
+    origin: "helm",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
+
   const runner = new PodRunner({
     ctx,
+    logEventContext,
     api,
     pod,
     provider,

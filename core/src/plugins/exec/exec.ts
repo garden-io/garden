@@ -26,7 +26,7 @@ import { BuildModuleParams, BuildResult } from "../../types/plugin/module/build"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { TestResult } from "../../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../../types/plugin/task/runTask"
-import { exec, ExecOpts, renderOutputStream, runScript, sleep } from "../../util/util"
+import { exec, ExecOpts, runScript, sleep } from "../../util/util"
 import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -436,13 +436,15 @@ async function run({
   env?: PrimitiveMap
   opts?: ExecOpts
 }) {
-  const outputStream = split2()
+  const logEventContext = {
+    origin: command[0],
+    log,
+  }
 
+  const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    const cmdName = command[0]
-    log.setState(renderOutputStream(line.toString(), cmdName))
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
+    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
   })
 
   const res = await exec(command.join(" "), [], {
