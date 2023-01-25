@@ -106,8 +106,18 @@ export type PluginEventLogContext = {
 }
 
 export type PluginEventLogMessage = PluginEventLogContext & {
-  /** number of milliseconds since the epoch */
-  timestamp: number
+  /**
+   * Number of milliseconds since the epoch OR a date string.
+   *
+   * We need to allow both numberic and string types for backwards compatibility
+   * with Garden Cloud.
+   *
+   * Garden Cloud supports numeric date strings for log streaming as of v1.360.
+   * We can change this to just 'number' once all Cloud instances are up to date.
+   *
+   * TODO: Change to type 'number'.
+   */
+  timestamp: number | string
 
   /** log message */
   data: Buffer
