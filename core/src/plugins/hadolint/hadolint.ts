@@ -58,11 +58,11 @@ const configSchema = providerConfigBaseSchema()
   })
   .unknown(false)
 
-interface HadolinTestSpec {
+interface HadolintTestSpec {
   dockerfilePath: string
 }
 
-type HadolintTestConfig = TestActionConfig<"hadolint", HadolinTestSpec>
+type HadolintTestConfig = TestActionConfig<"hadolint", HadolintTestSpec>
 type HadolintTest = TestAction<HadolintTestConfig, {}>
 
 const gitHubUrl = getGitHubUrl("examples/hadolint")
