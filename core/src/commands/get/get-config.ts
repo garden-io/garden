@@ -35,7 +35,7 @@ export const getConfigOptions = {
 
 type Opts = typeof getConfigOptions
 
-export class GetConfigCommand extends Command<{}, Opts> {
+export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
   name = "config"
   help = "Outputs the full configuration for this project and environment."
 
