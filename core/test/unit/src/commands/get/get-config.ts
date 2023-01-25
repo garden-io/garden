@@ -16,10 +16,29 @@ import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/con
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig"
 
 describe("GetConfigCommand", () => {
+  const command = new GetConfigCommand()
+
+  it("returns all action configs", async () => {
+    const garden = await makeTestGardenA()
+
+    const { result } = await garden.runCommand({
+      command,
+      args: {},
+      opts: { "exclude-disabled": false, "resolve": "full" },
+    })
+
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const actions = graph.getActions()
+
+    for (const action of actions) {
+      const config = action.getConfig()
+      expect(result!.actionConfigs[action.kind][action.name]).to.eql(config)
+    }
+  })
+
   it("should get the project configuration", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const command = new GetConfigCommand()
 
     const res = await command.action({
       garden,
@@ -37,15 +56,10 @@ describe("GetConfigCommand", () => {
     expect(res.result?.moduleConfigs).to.deep.equal(expectedModuleConfigs)
   })
 
-  it("returns all action configs", async () => {
-    throw "TODO"
-  })
-
   it("should include the project name, id, domain and all environment names", async () => {
     const root = getDataDir("test-projects", "login", "has-domain-and-id")
     const garden = await makeTestGarden(root)
     const log = garden.log
-    const command = new GetConfigCommand()
 
     const result = (
       await command.action({
@@ -69,7 +83,7 @@ describe("GetConfigCommand", () => {
   it("should include workflow configs", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const command = new GetConfigCommand()
+
     const workflowConfigs: WorkflowConfig[] = [
       {
         apiVersion: DEFAULT_API_VERSION,
@@ -102,7 +116,6 @@ describe("GetConfigCommand", () => {
   it("should include disabled module configs", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const command = new GetConfigCommand()
 
     garden.setActionConfigs([
       {
@@ -172,7 +185,6 @@ describe("GetConfigCommand", () => {
   it("should include disabled service configs", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const command = new GetConfigCommand()
 
     garden.setActionConfigs([
       {
@@ -233,7 +245,6 @@ describe("GetConfigCommand", () => {
   it("should include disabled task configs", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const command = new GetConfigCommand()
 
     garden.setActionConfigs([
       {
@@ -292,7 +303,6 @@ describe("GetConfigCommand", () => {
   it("should include disabled test configs", async () => {
     const garden = await makeTestGardenA()
     const log = garden.log
-    const command = new GetConfigCommand()
 
     garden.setActionConfigs([
       {
@@ -360,7 +370,6 @@ describe("GetConfigCommand", () => {
     it("should exclude disabled module configs", async () => {
       const garden = await makeTestGardenA()
       const log = garden.log
-      const command = new GetConfigCommand()
 
       garden.setActionConfigs([
         {
@@ -428,7 +437,6 @@ describe("GetConfigCommand", () => {
     it("should exclude disabled service configs", async () => {
       const garden = await makeTestGardenA()
       const log = garden.log
-      const command = new GetConfigCommand()
 
       garden.setActionConfigs([
         {
@@ -504,7 +512,6 @@ describe("GetConfigCommand", () => {
     it("should exclude disabled task configs", async () => {
       const garden = await makeTestGardenA()
       const log = garden.log
-      const command = new GetConfigCommand()
 
       garden.setActionConfigs([
         {
@@ -582,7 +589,6 @@ describe("GetConfigCommand", () => {
     it("should exclude disabled test configs", async () => {
       const garden = await makeTestGardenA()
       const log = garden.log
-      const command = new GetConfigCommand()
 
       garden.setActionConfigs([
         {
@@ -669,7 +675,6 @@ describe("GetConfigCommand", () => {
     it("should return raw module configs instead of fully resolved module configs", async () => {
       const garden = await makeTestGardenA()
       const log = garden.log
-      const command = new GetConfigCommand()
 
       const rawConfigs = [
         {
@@ -716,7 +721,6 @@ describe("GetConfigCommand", () => {
     it("should return raw provider configs instead of fully resolved providers", async () => {
       const garden = await makeTestGardenA()
       const log = garden.log
-      const command = new GetConfigCommand()
 
       const res = await command.action({
         garden,
@@ -733,7 +737,6 @@ describe("GetConfigCommand", () => {
     it("should not resolve providers", async () => {
       const garden = await makeTestGardenA()
       const log = garden.log
-      const command = new GetConfigCommand()
 
       await command.action({
         garden,
