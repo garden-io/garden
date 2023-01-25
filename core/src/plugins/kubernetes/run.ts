@@ -803,7 +803,16 @@ export class PodRunner extends PodRunnerParams {
     void stream.forEach((entry) => {
       const { msg, timestamp } = entry
       events.emit("log", {
-        timestamp: timestamp?.getTime() || new Date().getTime(),
+        // This should be a numeric value (i.e. timestamp.getTime()) as opposed to a
+        // date string to be consistent with other event timestamps.
+        //
+        // However, due to missing types this has been a string value without us really noticing and
+        // and that's the shape Cloud expects. This was (rightly) changed to a numeric value with
+        // https://github.com/garden-io/garden/pull/3576 (b52e9b298f7c59b8210a77edc4c451301daa76e3)
+        // but we need to revert for Cloud backwards compatibility.
+        //
+        // TODO: Change to type number when all Cloud instance versions are >= v.1360.
+        timestamp: timestamp?.toISOString() || new Date().toISOString(),
         data: Buffer.from(msg),
         ...logEventContext,
       })
