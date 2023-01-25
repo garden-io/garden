@@ -61,7 +61,8 @@ describe("hadolint provider", () => {
     }
   })
 
-  it("should add a hadolint module for each container module with a Dockerfile", async () => {
+  // TODO-G2: add a similar test for action-based configs
+  it("should add a hadolint Test action for each container module with a Dockerfile", async () => {
     const garden = await TestGarden.factory(tmpPath, {
       plugins: [],
       config: projectConfigFoo,
@@ -101,16 +102,15 @@ describe("hadolint provider", () => {
     ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const module = graph.getModule("hadolint-foo")
+    const testAction = graph.getTest("hadolint-foo")
 
-    expect(module.path).to.equal(tmpPath)
-    expect(module.spec).to.eql({
-      build: { dependencies: [], timeout: defaultBuildTimeout },
-      dockerfilePath: "foo.Dockerfile",
-    })
+    expect(testAction.basePath()).to.equal(tmpPath)
+    expect(testAction.getConfig("spec")).to.eql({ dockerfilePath: "foo.Dockerfile" })
+    expect(testAction.getConfig().description).to.include("auto-generated")
   })
 
-  it("should add a hadolint module for module types inheriting from container", async () => {
+  // TODO-G2: add a similar test for action-based configs
+  it("should add a hadolint Test action for module types inheriting from container", async () => {
     const foo = createGardenPlugin({
       name: "foo",
       dependencies: [{ name: "container" }],
@@ -150,13 +150,11 @@ describe("hadolint provider", () => {
     ])
 
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const module = graph.getModule("hadolint-foo")
+    const testAction = graph.getTest("hadolint-foo")
 
-    expect(module.path).to.equal(tmpPath)
-    expect(module.spec).to.eql({
-      build: { dependencies: [], timeout: defaultBuildTimeout },
-      dockerfilePath: "foo.Dockerfile",
-    })
+    expect(testAction.basePath()).to.equal(tmpPath)
+    expect(testAction.getConfig("spec")).to.eql({ dockerfilePath: "foo.Dockerfile" })
+    expect(testAction.getConfig().description).to.include("auto-generated")
   })
 
   describe("testModule", () => {
