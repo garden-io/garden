@@ -19,6 +19,6 @@ services:
     persistent: true
     devMode:
       command: [/bin/sh -c "while true; do sleep 10000; done"]
-      statusCommand: [/bin/sh -c "exit 1"]
-      timeout: 1
+      statusCommand: [/bin/sh -c "echo Status command output; exit 1"]
+      timeout: 3
     deployCommand: []
