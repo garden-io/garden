@@ -25,10 +25,10 @@ import {
   describeActionConfig,
   describeActionConfigWithPath,
 } from "../actions/base"
-import { BuildAction, buildActionConfigSchema } from "../actions/build"
-import { DeployAction, deployActionConfigSchema } from "../actions/deploy"
-import { RunAction, runActionConfigSchema } from "../actions/run"
-import { TestAction, testActionConfigSchema } from "../actions/test"
+import { BuildAction, buildActionConfigSchema, isBuildActionConfig } from "../actions/build"
+import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "../actions/deploy"
+import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run"
+import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test"
 import { noTemplateFields } from "../config/base"
 import { ActionReference, describeSchema, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
@@ -143,13 +143,13 @@ export async function actionFromConfig({
     moduleVersion: config.internal.moduleVersion,
   }
 
-  if (config.kind === "Build") {
+  if (isBuildActionConfig(config)) {
     action = new BuildAction(params)
-  } else if (config.kind === "Deploy") {
+  } else if (isDeployActionConfig(config)) {
     action = new DeployAction(params)
-  } else if (config.kind === "Run") {
+  } else if (isRunActionConfig(config)) {
     action = new RunAction(params)
-  } else if (config.kind === "Test") {
+  } else if (isTestActionConfig(config)) {
     action = new TestAction(params)
   } else {
     // This will be caught earlier

@@ -14,7 +14,7 @@ import {
   ResolvedRuntimeAction,
   RuntimeAction,
 } from "./base"
-import { Action } from "./types"
+import { Action, BaseActionConfig } from "./types"
 
 export interface RunActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"Run", N, S> {
@@ -47,4 +47,8 @@ export class ExecutedRunAction<
 
 export function isRunAction(action: Action): action is RunAction {
   return action.kind === "Run"
+}
+
+export function isRunActionConfig(config: BaseActionConfig): config is RunActionConfig {
+  return config.kind === "Run"
 }

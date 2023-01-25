@@ -13,7 +13,7 @@ import {
   ResolvedRuntimeAction,
   RuntimeAction,
 } from "./base"
-import { Action } from "./types"
+import { Action, BaseActionConfig } from "./types"
 
 export interface DeployActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"Deploy", N, S> {
@@ -42,4 +42,8 @@ export class ExecutedDeployAction<S extends DeployActionConfig = any, O extends 
 
 export function isDeployAction(action: Action): action is DeployAction {
   return action.kind === "Deploy"
+}
+
+export function isDeployActionConfig(config: BaseActionConfig): config is DeployActionConfig {
+  return config.kind === "Deploy"
 }
