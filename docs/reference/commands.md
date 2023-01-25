@@ -338,7 +338,9 @@ This can be useful if you find the namespace to be in an inconsistent state, or 
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;. When this flag is not used, all services in the project are cleaned up simultaneously.
+  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+
+When this flag is not used, all services in the project are cleaned up simultaneously.
 
 #### Outputs
 
@@ -372,6 +374,145 @@ providerStatuses:
 # The status of each deployment in the namespace.
 deployStatuses:
   <name>:
+    # The state of the action.
+    state:
+
+    # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+    # dependencies and in templating.
+    outputs:
+      <name>:
+
+    detail:
+      # When the service was first deployed by the provider.
+      createdAt:
+
+      # Additional detail, specific to the provider.
+      detail:
+
+      # Whether the service was deployed with dev mode enabled.
+      devMode:
+
+      # Whether the service was deployed with local mode enabled.
+      localMode:
+
+      namespaceStatuses:
+        - pluginName:
+
+          # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
+          # letter, and cannot end with a dash) and must not be longer than 63 characters.
+          namespaceName:
+
+          state:
+
+      # The ID used for the service by the provider (if not the same as the service name).
+      externalId:
+
+      # The provider version of the deployed service (if different from the Garden module version.
+      externalVersion:
+
+      # A list of ports that can be forwarded to from the Garden agent by the provider.
+      forwardablePorts:
+        - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
+          name:
+
+          # The preferred local port to use for forwarding.
+          preferredLocalPort:
+
+          # The protocol of the port.
+          protocol:
+
+          # The target name/hostname to forward to (defaults to the service name).
+          targetName:
+
+          # The target port on the service.
+          targetPort:
+
+          # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
+          urlProtocol:
+
+      # List of currently deployed ingress endpoints for the service.
+      ingresses:
+        - # The port number that the service is exposed on internally.
+          # This defaults to the first specified port for the service.
+          port:
+
+          # The ingress path that should be matched to route to this service.
+          path:
+
+          # The protocol to use for the ingress.
+          protocol:
+
+          # The hostname where the service can be accessed.
+          hostname:
+
+      # Latest status message of the service (if any).
+      lastMessage:
+
+      # Latest error status message of the service (if any).
+      lastError:
+
+      # A map of values output from the deployment.
+      outputs:
+        <name>:
+
+      # How many replicas of the service are currently running.
+      runningReplicas:
+
+      # The current deployment status of the service.
+      state:
+
+      # When the service was last updated by the provider.
+      updatedAt:
+
+      # The Garden module version of the deployed service.
+      version:
+```
+
+### garden cleanup deploy
+
+**Cleans up running deployments (or services if using modules).**
+
+Cleans up (i.e. un-deploys) the specified actions. Cleans up all deploys/services in the project if no arguments are provided.
+Note that this command does not take into account any deploys depending on the cleaned up actions, and might
+therefore leave the project in an unstable state. Running `garden deploy` after will re-deploy anything missing.
+
+Examples:
+
+    garden cleanup deploy my-service # deletes my-service
+    garden cleanup deploy            # deletes all deployed services in the project
+
+#### Usage
+
+    garden cleanup deploy [names] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to delete. Use comma as a separator to specify multiple names.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+
+When this flag is not used, all services in the project are cleaned up simultaneously.
+  | `--with-dependants` |  | boolean | Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
+
+#### Outputs
+
+```yaml
+<name>:
+  # The state of the action.
+  state:
+
+  # Structured outputs from the execution, as defined by individual action/module types, to be made available for
+  # dependencies and in templating.
+  outputs:
+    <name>:
+
+  detail:
     # When the service was first deployed by the provider.
     createdAt:
 
@@ -455,125 +596,6 @@ deployStatuses:
 
     # The Garden module version of the deployed service.
     version:
-```
-
-### garden cleanup deploy
-
-**Cleans up running deployments (or services if using modules).**
-
-Cleans up (i.e. un-deploys) the specified actions. Cleans up all deploys/services in the project if no arguments are provided.
-Note that this command does not take into account any deploys depending on the cleaned up actions, and might
-therefore leave the project in an unstable state. Running `garden deploy` after will re-deploy anything missing.
-
-Examples:
-
-    garden cleanup deploy my-service # deletes my-service
-    garden cleanup deploy            # deletes all deployed services in the project
-
-#### Usage
-
-    garden cleanup deploy [names] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to delete. Use comma as a separator to specify multiple names.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;. When this flag is not used, all services in the project are cleaned up simultaneously.
-  | `--with-dependants` |  | boolean | Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
-
-#### Outputs
-
-```yaml
-<name>:
-  # When the service was first deployed by the provider.
-  createdAt:
-
-  # Additional detail, specific to the provider.
-  detail:
-
-  # Whether the service was deployed with dev mode enabled.
-  devMode:
-
-  # Whether the service was deployed with local mode enabled.
-  localMode:
-
-  namespaceStatuses:
-    - pluginName:
-
-      # Valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a
-      # letter, and cannot end with a dash) and must not be longer than 63 characters.
-      namespaceName:
-
-      state:
-
-  # The ID used for the service by the provider (if not the same as the service name).
-  externalId:
-
-  # The provider version of the deployed service (if different from the Garden module version.
-  externalVersion:
-
-  # A list of ports that can be forwarded to from the Garden agent by the provider.
-  forwardablePorts:
-    - # A descriptive name for the port. Should correspond to user-configured ports where applicable.
-      name:
-
-      # The preferred local port to use for forwarding.
-      preferredLocalPort:
-
-      # The protocol of the port.
-      protocol:
-
-      # The target name/hostname to forward to (defaults to the service name).
-      targetName:
-
-      # The target port on the service.
-      targetPort:
-
-      # The protocol to use for URLs pointing at the port. This can be any valid URI protocol.
-      urlProtocol:
-
-  # List of currently deployed ingress endpoints for the service.
-  ingresses:
-    - # The port number that the service is exposed on internally.
-      # This defaults to the first specified port for the service.
-      port:
-
-      # The ingress path that should be matched to route to this service.
-      path:
-
-      # The protocol to use for the ingress.
-      protocol:
-
-      # The hostname where the service can be accessed.
-      hostname:
-
-  # Latest status message of the service (if any).
-  lastMessage:
-
-  # Latest error status message of the service (if any).
-  lastError:
-
-  # A map of values output from the deployment.
-  outputs:
-    <name>:
-
-  # How many replicas of the service are currently running.
-  runningReplicas:
-
-  # The current deployment status of the service.
-  state:
-
-  # When the service was last updated by the provider.
-  updatedAt:
-
-  # The Garden module version of the deployed service.
-  version:
 ```
 
 ### garden deploy
