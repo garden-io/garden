@@ -104,7 +104,7 @@ describe("RunWorkflowCommand", () => {
     await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
     const entries = _garden.log.getChildEntries()
     const stepHeaderEntries = filterLogEntries(entries, /Running step/)
-    const stepBodyEntries = filterLogEntries(entries, /Starting processModules/)
+    const stepBodyEntries = filterLogEntries(entries, /Starting processActions/)
     const stepFooterEntries = filterLogEntries(entries, /Step.*completed/)
     const workflowCompletedEntry = filterLogEntries(entries, /Workflow.*completed/)[0]
 
@@ -258,27 +258,8 @@ describe("RunWorkflowCommand", () => {
             docs: "run",
             schema: joi.object().keys({ log: joi.string() }),
             handlers: {
-              run: async (params) => {
-                return {
-                  state: "failed",
-                  detail: {
-                    taskName: params.action.name,
-                    success: false,
-                    command: [],
-                    errors: [
-                      {
-                        type: "task",
-                        message: "Task failed",
-                        detail: {},
-                      },
-                    ],
-                    log: "",
-                    startedAt: new Date(),
-                    completedAt: new Date(),
-                    version: params.action.versionString(),
-                  },
-                  outputs: { log: "" },
-                }
+              run: async (_params) => {
+                throw new Error(`oops!`)
               },
               getResult: async (_params) => {
                 return {
@@ -341,38 +322,37 @@ describe("RunWorkflowCommand", () => {
 
     const _garden = await TestGarden.factory(tmpDir.path, { config: projectConfig, plugins: [testPlugin] })
     const log = garden.log
-    _garden.setActionConfigs([
-      {
-        apiVersion: DEFAULT_API_VERSION,
-        name: "test",
-        type: "test",
-        allowPublish: false,
-        disabled: false,
-        build: { dependencies: [] },
-        path: tmpDir.path,
-        serviceConfigs: [],
-        taskConfigs: [
-          {
-            name: "some-task",
-            cacheResult: true,
-            dependencies: [],
-            disabled: false,
-            spec: {},
-            timeout: 10,
+    _garden.setActionConfigs(
+      [],
+      [
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Run",
+          name: "some-task",
+          type: "test",
+          disabled: false,
+          internal: {
+            basePath: tmpDir.path,
           },
-        ],
-        testConfigs: [
-          {
-            name: "unit",
-            dependencies: [],
-            disabled: false,
-            spec: {},
-            timeout: 10,
+          spec: {
+            command: ["exit", "1"],
           },
-        ],
-        spec: {},
-      },
-    ])
+        },
+        {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Test",
+          name: "test-unit",
+          type: "test",
+          disabled: false,
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {
+            command: ["echo", "ok"],
+          },
+        },
+      ]
+    )
     _garden.setWorkflowConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
@@ -598,18 +578,14 @@ describe("RunWorkflowCommand", () => {
 
     const { result, errors } = await cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } })
 
+    const outputs = result?.steps["step-1"].outputs.gardenCommand!
+
     expect(result).to.exist
     expect(errors).to.eql(undefined)
-    expect(result?.steps["step-1"].outputs.gardenCommand?.["result"].result.log).to.equal("echo other-YEP")
-    expect(result?.steps["step-1"].outputs.gardenCommand?.["command"]).to.eql([
-      "run",
-      "task",
-      "task-a2",
-      "--env",
-      "other",
-      "--var",
-      "msg=YEP",
-    ])
+    expect(outputs["errors"]).to.eql([])
+    expect(outputs["result"].success).to.be.true
+    expect(outputs["result"].graphResults["run.task-a2"].result.detail.log).to.equal("echo other-YEP")
+    expect(outputs["command"]).to.eql(["run", "task-a2", "--env", "other", "--var", "msg=YEP"])
   })
 
   it("should include env vars from the workflow config, if provided", async () => {
@@ -907,7 +883,7 @@ describe("RunWorkflowCommand", () => {
     expect(result).to.exist
     expect(errors).to.not.exist
     expect(result?.steps["step-1"].outputs).to.eql(config)
-    expect(result?.steps["step-2"].outputs["result"]!["outputs"]["log"]).to.eql("echo OK")
+    expect(result?.steps["step-2"].outputs.graphResults).to.exist
   })
 
   it("should use explicit names for steps if specified", async () => {
@@ -932,7 +908,7 @@ describe("RunWorkflowCommand", () => {
 
     expect(result).to.exist
     expect(errors).to.not.exist
-    expect(result?.steps["test"].outputs["result"]!["outputs"]["log"]).to.eql("echo OK")
+    expect(result?.steps["test"]).to.exist
   })
 
   it("should resolve references to previous steps when running a command step", async () => {
@@ -956,7 +932,7 @@ describe("RunWorkflowCommand", () => {
     }
 
     expect(result).to.exist
-    expect(result?.steps["step-2"].outputs["result"]!["outputs"]["log"]).to.equal("echo OK")
+    expect(result?.steps["step-2"].outputs["graphResults"]!["run.task-a"].result.detail.log).to.equal("echo OK")
   })
 
   it("should resolve references to previous steps when running a script step", async () => {

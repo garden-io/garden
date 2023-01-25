@@ -158,8 +158,10 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
   return { moduleConfig }
 }
 
-const runTest: RunActionHandler<"run", ExecRun> = async ({ action }): Promise<GetRunResult> => {
+const runTest: RunActionHandler<"run", ExecRun> = async ({ action, log }): Promise<GetRunResult> => {
   const { command } = action.getSpec()
+
+  log.info("Run command: " + command.join(" "))
 
   return {
     state: "ready",
