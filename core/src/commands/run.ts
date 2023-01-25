@@ -7,14 +7,19 @@
  */
 
 import chalk from "chalk"
-import { Command, CommandParams, graphResultsSchema, handleProcessResults, PrepareParams } from "./base"
+import {
+  Command,
+  CommandParams,
+  graphResultsSchema,
+  handleProcessResults,
+  PrepareParams,
+  processCommandResultSchema,
+} from "./base"
 import { RunTask } from "../tasks/run"
 import { printHeader, renderDivider } from "../logger/util"
 import { CommandError, ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
-import { joi } from "../config/common"
 import { BooleanParameter, StringsParameter } from "../cli/params"
-import { getRunResultSchema } from "../plugin/handlers/run/get-result"
 import { emitWarning } from "../warnings"
 import { startServer } from "../server/server"
 import { Garden } from "../garden"
@@ -83,6 +88,7 @@ export class RunCommand extends Command<Args, Opts> {
   help = "Perform one or more Run actions"
 
   streamEvents = true
+  protected = true
 
   description = dedent`
     This is useful for any ad-hoc Runs, for example database migrations, or when developing.
@@ -98,8 +104,7 @@ export class RunCommand extends Command<Args, Opts> {
   private garden?: Garden
 
   outputsSchema = () =>
-    joi.object().keys({
-      result: getRunResultSchema().description("The result of the Run action."),
+    processCommandResultSchema().keys({
       graphResults: graphResultsSchema(),
     })
 
@@ -153,28 +158,33 @@ export class RunCommand extends Command<Args, Opts> {
       )
     }
 
+    // Validate module names if specified.
+    if (opts.module) {
+      graph.getModules({ names: opts.module })
+    }
+
     let actions = graph.getActionsByKind("Run", {
       includeNames,
       moduleNames: opts.module,
       excludeNames: opts.skip,
+      includeDisabled: true,
     })
 
     for (const action of actions) {
       if (action.isDisabled() && !opts.force) {
-        throw new CommandError(
-          chalk.red(deline`
+        log.warn(
+          chalk.yellow(deline`
             ${chalk.redBright(action.longDescription())} is disabled for the ${chalk.redBright(garden.environmentName)}
             environment. If you're sure you want to run it anyway, please run the command again with the
             ${chalk.redBright("--force")} flag.
-          `),
-          { moduleName: action.moduleName(), actionName: action.name, environmentName: garden.environmentName }
+          `)
         )
       }
     }
 
-    actions = actions.filter((a) => !a.isDisabled())
+    actions = actions.filter((a) => !a.isDisabled() || opts.force)
 
-    // Warn users if they seem to be using old `run <...>` commands.
+    // Warn users if they seem to be trying to use old `run <...>` commands.
     const divider = renderDivider()
     const firstArg = args.names?.[0]
     const warningKey = `run-${firstArg}-removed`
