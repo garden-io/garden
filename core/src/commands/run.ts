@@ -17,7 +17,7 @@ import {
 } from "./base"
 import { RunTask } from "../tasks/run"
 import { printHeader, renderDivider } from "../logger/util"
-import { CommandError, ParameterError } from "../exceptions"
+import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { emitWarning } from "../warnings"
