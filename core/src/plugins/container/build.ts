@@ -31,7 +31,9 @@ export async function getContainerBuildStatus({ ctx, module, log }: GetBuildStat
 }
 
 export async function buildContainerModule({ ctx, module, log }: BuildModuleParams<ContainerModule>) {
-  containerHelpers.checkDockerServerVersion(await containerHelpers.getDockerVersion())
+  const dockerVersion = await containerHelpers.getDockerVersion()
+  log.debug(`getDockerVersion(): ${JSON.stringify(dockerVersion)}`)
+  // containerHelpers.checkDockerServerVersion(dockerVersion)
 
   const buildPath = module.buildPath
   const image = module.spec.image
