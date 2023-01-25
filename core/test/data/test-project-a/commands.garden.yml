@@ -16,5 +16,4 @@ description:
   short: Run the given task
 gardenCommand:
   - run
-  - task
   - $concat: ${args.$rest}
