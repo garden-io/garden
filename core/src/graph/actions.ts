@@ -298,7 +298,9 @@ function getActionSchema(kind: ActionKind) {
     case "Test":
       return testActionConfigSchema()
     default:
-      return kind // exhaustive type check, kind must have type 'never' here
+      // this can be rewritten as `satisfies` with TypeScript 4.9+
+      const _exhaustiveCheck: never = kind
+      return _exhaustiveCheck
   }
 }
 
