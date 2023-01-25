@@ -325,6 +325,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.type = params.config.type
     this.name = params.config.name
     this.baseBuildDirectory = params.baseBuildDirectory
+    this.compatibleTypes = params.compatibleTypes
     this.dependencies = params.dependencies
     this.graph = params.graph
     this._moduleName = params.moduleName
