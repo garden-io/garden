@@ -28,6 +28,7 @@ import { SolveParams } from "../graph/solver"
 import { GraphResults } from "../graph/results"
 import { expect } from "chai"
 import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
+import { WrappedActionRouterHandlers } from "../router/base"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -311,6 +312,16 @@ export class TestGarden extends Garden {
     }
 
     return config
+  }
+
+  async stubRouterAction<K extends ActionKind, H extends keyof WrappedActionRouterHandlers<K>>(
+    actionKind: K,
+    handlerType: H,
+    handler: WrappedActionRouterHandlers<K>[H]
+  ) {
+    const router = await this.getActionRouter()
+    const actionKindHandlers: WrappedActionRouterHandlers<K> = router.getRouterForActionKind(actionKind)
+    actionKindHandlers[handlerType] = handler
   }
 }
 

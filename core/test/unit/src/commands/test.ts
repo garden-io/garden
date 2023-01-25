@@ -8,18 +8,30 @@
 
 import { expect } from "chai"
 import { TestCommand } from "../../../../src/commands/test"
-import isSubset = require("is-subset")
-import { makeModuleConfig, makeTestGardenA, taskResultOutputs, withDefaultGlobalOpts } from "../../../helpers"
+import {
+  makeModuleConfig,
+  makeTestGardenA,
+  taskResultOutputs,
+  TestGarden,
+  withDefaultGlobalOpts,
+  expectError,
+  getAllProcessedTaskNames,
+} from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
+import { LogEntry } from "../../../../src/logger/log-entry"
 
 describe("TestCommand", () => {
   const command = new TestCommand()
 
-  it("should run all tests in a simple project", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-    const graph = await garden.getConfigGraph({ log, emit: false })
+  let garden: TestGarden
+  let log: LogEntry
 
+  beforeEach(async () => {
+    garden = await makeTestGardenA()
+    log = garden.log
+  })
+
+  it("should run all tests in a simple project", async () => {
     const { result } = await command.action({
       garden,
       log,
@@ -43,131 +55,43 @@ describe("TestCommand", () => {
 
     const outputs = taskResultOutputs(result!)
 
-    expect(
-      isSubset(outputs, {
-        "build.module-a": {
-          fresh: true,
-          buildLog: "A",
-        },
-        "test.module-a.unit": {
-          success: true,
-          log: "OK",
-        },
-        "build.module-b": {
-          fresh: true,
-          buildLog: "B",
-        },
-        "build.module-c": {},
-        "test.module-b.unit": {
-          success: true,
-          log: "OK",
-        },
-        "test.module-c.unit": {
-          success: true,
-          log: "OK",
-        },
-      }),
-      `Got: ${JSON.stringify(outputs)}`
-    ).to.be.true
-
-    const testActionResult = result!.graphResults
-
-    const dummyDate = new Date()
-
-    for (const res of Object.values(testActionResult)) {
-      // expect(res.durationMsec).to.gte(0)
-      // res.durationMsec = 0
-
-      expect(res?.startedAt).to.be.a("Date")
-      if (!!res) {
-        res.startedAt = dummyDate
-      }
-
-      expect(res?.completedAt).to.be.a("Date")
-      if (!!res) {
-        res.completedAt = dummyDate
-      }
-    }
-
-    expect(testActionResult).to.eql({
-      "test.module-a.unit": {
-        moduleName: "module-a",
-        command: ["echo", "OK"],
-        testName: "unit",
-        version: graph.getTest("module-a.unit").versionString(),
-        success: true,
-        startedAt: dummyDate,
-        completedAt: dummyDate,
-        log: "OK",
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-      },
-      "test.module-a.integration": {
-        moduleName: "module-a",
-        command: ["echo", "OK"],
-        testName: "integration",
-        version: graph.getTest("module-a.integration").versionString(),
-        success: true,
-        startedAt: dummyDate,
-        completedAt: dummyDate,
-        log: "OK",
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-      },
-      "test.module-b.unit": {
-        moduleName: "module-b",
-        command: ["echo", "OK"],
-        testName: "unit",
-        version: graph.getTest("module-b.unit").versionString(),
-        success: true,
-        startedAt: dummyDate,
-        completedAt: dummyDate,
-        log: "OK",
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-      },
-      "test.module-c.unit": {
-        moduleName: "module-c",
-        command: ["echo", "OK"],
-        testName: "unit",
-        version: graph.getTest("module-c.unit").versionString(),
-        success: true,
-        startedAt: dummyDate,
-        completedAt: dummyDate,
-        log: "OK",
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-      },
-      "test.module-c.integ": {
-        moduleName: "module-c",
-        command: ["echo", "OK"],
-        testName: "integ",
-        version: graph.getTest("module-c.integ").versionString(),
-        success: true,
-        startedAt: dummyDate,
-        completedAt: dummyDate,
-        log: "OK",
-        aborted: false,
-        durationMsec: 0,
-        error: undefined,
-      },
-    })
+    expect(outputs["test.module-a-unit"].state).to.equal("ready")
+    expect(outputs["test.module-a-integration"].state).to.equal("ready")
+    expect(outputs["test.module-b-unit"].state).to.equal("ready")
+    expect(outputs["test.module-c-unit"].state).to.equal("ready")
+    expect(outputs["test.module-c-integ"].state).to.equal("ready")
   })
 
   it("should optionally test single module", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-
     const { result } = await command.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { names: ["module-a"] },
+      args: { names: undefined },
+      opts: withDefaultGlobalOpts({
+        "name": undefined,
+        "force": true,
+        "force-build": true,
+        "watch": false,
+        "skip": [],
+        "skip-dependencies": false,
+        "skip-dependants": false,
+        "interactive": false,
+        "module": ["module-a"], // <---
+      }),
+    })
+
+    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-integration", "test.module-a-unit"])
+  })
+
+  it("should optionally run single test", async () => {
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { names: ["module-a-unit"] }, // <---
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -181,142 +105,143 @@ describe("TestCommand", () => {
       }),
     })
 
-    expect(
-      isSubset(taskResultOutputs(result!), {
-        "build.module-a": {
-          fresh: true,
-          buildLog: "A",
-        },
-        "test.module-a.unit": {
-          success: true,
-          log: "OK",
-        },
-      })
-    ).to.be.true
+    expect(Object.keys(result!.graphResults)).to.eql(["test.module-a-unit"])
   })
 
   it("should optionally skip tests by name", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-
     const { result } = await command.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { names: ["module-a"] },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
         "force-build": true,
         "watch": false,
-        "skip": ["int*"],
+        "skip": ["*int*"], // <-----
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
-        "module": undefined,
+        "module": ["module-a"],
       }),
     })
 
-    expect(
-      isSubset(taskResultOutputs(result!), {
-        "build.module-a": {
-          fresh: true,
-          buildLog: "A",
-        },
-        "test.module-a.integration": {
-          success: true,
-          log: "OK",
-        },
-        "test.module-c.integ": {
-          success: true,
-          log: "OK",
-        },
-      })
-    ).to.be.false
-
-    expect(
-      isSubset(taskResultOutputs(result!), {
-        "test.module-a.unit": {
-          success: true,
-          log: "OK",
-        },
-        "test.module-c.unit": {
-          success: true,
-          log: "OK",
-        },
-      })
-    ).to.be.true
+    expect(result!.graphResults["test.module-a-integration"]).to.not.exist
   })
 
   it("handles --interactive option if single test name is specified", async () => {
-    throw "TODO"
-  })
-
-  it("throws if --interactive option is set and no test name is specified in arguments", async () => {
-    throw "TODO"
-  })
-
-  it("throws if --interactive option is set and multiple test names are specified in arguments", async () => {
-    throw "TODO"
-  })
-
-  it("throws if --interactive option is set along with --watch", async () => {
-    throw "TODO"
-  })
-
-  it("should only run integration tests if the option 'name' is specified with a glob", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
+    await garden.stubRouterAction("Test", "run", async ({ interactive }) => {
+      return {
+        state: "ready",
+        detail: {
+          success: true,
+          log: `Interactive: ${interactive}`,
+          startedAt: new Date(),
+          completedAt: new Date(),
+        },
+        outputs: {},
+      }
+    })
 
     const { result } = await command.action({
       garden,
       log,
       headerLog: log,
       footerLog: log,
-      args: { names: ["module-a"] },
+      args: { names: ["module-a-unit"] },
       opts: withDefaultGlobalOpts({
-        "name": ["int*"],
+        "name": undefined,
         "force": true,
         "force-build": true,
-        "skip": [],
         "watch": false,
+        "skip": undefined,
         "skip-dependencies": false,
         "skip-dependants": false,
-        "interactive": false,
+        "interactive": true,
         "module": undefined,
       }),
     })
 
-    expect(
-      isSubset(taskResultOutputs(result!), {
-        "build.module-a": {
-          fresh: true,
-          buildLog: "A",
-        },
-        "test.module-a.integration": {
-          success: true,
-          log: "OK",
-        },
-        "test.module-c.integ": {
-          success: true,
-          log: "OK",
-        },
-      })
-    ).to.be.true
+    expect(result?.graphResults["test.module-a-unit"]?.result.detail.log).to.equal("Interactive: true")
+  })
 
-    expect(
-      isSubset(taskResultOutputs(result!), {
-        "test.module-a.unit": {
-          success: true,
-          log: "OK",
-        },
-        "test.module-c.unit": {
-          success: true,
-          log: "OK",
-        },
-      })
-    ).to.be.false
+  it("throws if --interactive option is set and no test name is specified in arguments", async () => {
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { names: undefined },
+          opts: withDefaultGlobalOpts({
+            "name": undefined,
+            "force": true,
+            "force-build": true,
+            "watch": false,
+            "skip": undefined,
+            "skip-dependencies": false,
+            "skip-dependants": false,
+            "interactive": true,
+            "module": undefined,
+          }),
+        }),
+      (err) =>
+        expect(err.message).to.equal("The --interactive/-i option can only be used if a single test is selected.")
+    )
+  })
+
+  it("throws if --interactive option is set and multiple test names are specified in arguments", async () => {
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { names: ["module-a-unit", "module-a-integration"] },
+          opts: withDefaultGlobalOpts({
+            "name": undefined,
+            "force": true,
+            "force-build": true,
+            "watch": false,
+            "skip": undefined,
+            "skip-dependencies": false,
+            "skip-dependants": false,
+            "interactive": true,
+            "module": undefined,
+          }),
+        }),
+      (err) =>
+        expect(err.message).to.equal("The --interactive/-i option can only be used if a single test is selected.")
+    )
+  })
+
+  it("throws if --interactive option is set along with --watch", async () => {
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { names: ["module-a-unit"] },
+          opts: withDefaultGlobalOpts({
+            "name": undefined,
+            "force": true,
+            "force-build": true,
+            "watch": true,
+            "skip": undefined,
+            "skip-dependencies": false,
+            "skip-dependants": false,
+            "interactive": true,
+            "module": undefined,
+          }),
+        }),
+      (err) => expect(err.message).to.equal("The --interactive/-i option cannot be used with the --watch/-w flag.")
+    )
   })
 
   it("should be protected", async () => {
@@ -324,9 +249,6 @@ describe("TestCommand", () => {
   })
 
   it("should skip disabled tests", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.tests[0].disabled = true
 
@@ -335,7 +257,7 @@ describe("TestCommand", () => {
       log,
       headerLog: log,
       footerLog: log,
-      args: { names: ["module-c"] },
+      args: { names: undefined },
       opts: withDefaultGlobalOpts({
         "name": undefined,
         "force": true,
@@ -345,7 +267,7 @@ describe("TestCommand", () => {
         "skip-dependencies": false,
         "skip-dependants": false,
         "interactive": false,
-        "module": undefined,
+        "module": ["module-c"],
       }),
     })
 
@@ -353,19 +275,10 @@ describe("TestCommand", () => {
       throw errors[0]
     }
 
-    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
-      "build.module-a",
-      "build.module-b",
-      "build.module-c",
-
-      "test.module-c.integ",
-    ])
+    expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql(["test.module-c-integ"])
   })
 
   it("should skip tests from disabled modules", async () => {
-    const garden = await makeTestGardenA()
-    const log = garden.log
-
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
 
@@ -393,45 +306,85 @@ describe("TestCommand", () => {
     }
 
     expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
-      "build.module-a",
-      "build.module-b",
-      "deploy.service-a",
-      "get-service-status.service-a",
-      "test.module-a.integration",
-      "test.module-a.unit",
-      "test.module-b.unit",
+      "test.module-a-integration",
+      "test.module-a-unit",
+      "test.module-b-unit",
     ])
   })
 
-  it("selects a test by name from positional argument", async () => {
-    throw "TODO"
-  })
-
   it("selects tests by glob from positional argument", async () => {
-    throw "TODO"
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { names: ["module-a-*"] },
+      opts: withDefaultGlobalOpts({
+        "name": undefined,
+        "force": true,
+        "force-build": true,
+        "watch": false,
+        "skip": [],
+        "skip-dependencies": false,
+        "skip-dependants": false,
+        "interactive": false,
+        "module": undefined,
+      }),
+    })
+
+    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-integration", "test.module-a-unit"])
   })
 
   it("concatenates positional args and --name flags", async () => {
-    throw "TODO"
-  })
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { names: ["module-a-unit"] },
+      opts: withDefaultGlobalOpts({
+        "name": ["module-b-unit"],
+        "force": true,
+        "force-build": true,
+        "watch": false,
+        "skip": [],
+        "skip-dependencies": false,
+        "skip-dependants": false,
+        "interactive": false,
+        "module": undefined,
+      }),
+    })
 
-  it("applies --module filter", async () => {
-    throw "TODO"
-  })
-
-  it("applies --module filter combined with name argument", async () => {
-    throw "TODO"
+    expect(Object.keys(result!.graphResults).sort()).to.eql(["test.module-a-unit", "test.module-b-unit"])
   })
 
   it("throws if --module filter specifies module that does not exist", async () => {
-    throw "TODO"
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { names: undefined },
+          opts: withDefaultGlobalOpts({
+            "name": undefined,
+            "force": true,
+            "force-build": true,
+            "watch": false,
+            "skip": undefined,
+            "skip-dependencies": false,
+            "skip-dependants": false,
+            "interactive": false,
+            "module": ["foo"],
+          }),
+        }),
+      (err) => expect(err.message).to.equal("Could not find module(s): foo")
+    )
   })
 
   context("when --skip-dependencies is passed", () => {
     it("should not process runtime dependencies", async () => {
-      const garden = await makeTestGardenA()
-      const log = garden.log
-
       const moduleConfigs: ModuleConfig[] = [
         makeModuleConfig(garden.projectRoot, {
           name: "module-a",
@@ -468,7 +421,7 @@ describe("TestCommand", () => {
         log,
         headerLog: log,
         footerLog: log,
-        args: { names: ["module-a"] },
+        args: { names: ["module-a-*"] },
         opts: withDefaultGlobalOpts({
           "name": undefined,
           "force": true,
@@ -486,14 +439,16 @@ describe("TestCommand", () => {
         throw errors[0]
       }
 
-      expect(Object.keys(taskResultOutputs(result!)).sort()).to.eql([
-        "build.module-a",
-        // "deploy.service-a", // skipped
-        // "deploy.service-b", // skipped
-        "get-service-status.service-a",
+      const processed = getAllProcessedTaskNames(result!.graphResults)
 
-        "test.module-a.integration",
-        "test.module-a.unit",
+      expect(processed).to.eql([
+        "build.module-a",
+        "resolve-action.build.module-a",
+        "resolve-action.deploy.service-a",
+        "resolve-action.test.module-a-integration",
+        "resolve-action.test.module-a-unit",
+        "test.module-a-integration",
+        "test.module-a-unit",
       ])
     })
   })

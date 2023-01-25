@@ -171,6 +171,11 @@ export class TestCommand extends Command<Args, Opts> {
       includeNames = nameArgs
     }
 
+    // Validate module names if specified.
+    if (opts.module) {
+      graph.getModules({ names: opts.module })
+    }
+
     const actions = graph.getActionsByKind("Test", {
       includeNames,
       moduleNames: opts.module,
