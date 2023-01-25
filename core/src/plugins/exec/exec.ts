@@ -419,6 +419,7 @@ async function deployPersistentExecService({
 
   if (devModeSpec.statusCommand) {
     let ready = false
+    let lastStatusResult: execa.ExecaReturnBase<string> | undefined
 
     while (!ready) {
       await sleep(persistentLocalProcRetryIntervalMs)
@@ -427,12 +428,37 @@ async function deployPersistentExecService({
       const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
 
       if (timeElapsedSec > devModeSpec.timeout) {
-        throw new TimeoutError(`Timed out waiting for local service ${serviceName} to be ready`, {
-          serviceName,
-          statusCommand: devModeSpec.statusCommand,
-          pid: proc.pid,
-          timeout: devModeSpec.timeout,
-        })
+        let lastResultDescription = ""
+        if (lastStatusResult) {
+          lastResultDescription = dedent`\n\nThe last exit code was ${lastStatusResult.exitCode}.\n\n`
+          if (lastStatusResult.stderr) {
+            lastResultDescription += `Command error output:\n${lastStatusResult.stderr}\n\n`
+          }
+          if (lastStatusResult.stdout) {
+            lastResultDescription += `Command output:\n${lastStatusResult.stdout}\n\n`
+          }
+        }
+
+        throw new TimeoutError(
+          dedent`Timed out waiting for local service ${serviceName} to be ready.
+
+          Garden timed out waiting for the command ${chalk.gray(devModeSpec.statusCommand)}
+          to return status code 0 (success) after waiting for ${devModeSpec.timeout} seconds.
+          ${lastResultDescription}
+          Possible next steps:
+
+          Find out why the configured status command fails.
+
+          In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
+          in your service definition to a value that is greater than the time needed for your service to become ready.
+          `,
+          {
+            serviceName,
+            statusCommand: devModeSpec.statusCommand,
+            pid: proc.pid,
+            timeout: devModeSpec.timeout,
+          }
+        )
       }
 
       const result = await run({
@@ -444,6 +470,7 @@ async function deployPersistentExecService({
         opts: { reject: false },
       })
 
+      lastStatusResult = result
       ready = result.exitCode === 0
     }
   }
