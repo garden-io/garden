@@ -130,7 +130,7 @@ export const gardenPlugin = () =>
               kind: "Test",
               type: "hadolint",
               name,
-              description: `hadolint test for '${action.longDescription}' (auto-generated)`,
+              description: `hadolint test for '${action.longDescription()}' (auto-generated)`,
               include,
               internal: {
                 basePath: action.basePath(),
