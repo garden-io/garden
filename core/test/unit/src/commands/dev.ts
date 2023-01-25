@@ -247,7 +247,7 @@ describe("getDevCommandWatchTasks", () => {
     const graph = await garden.getConfigGraph({ log, emit: false })
 
     // TODO-G2: fix the semantics of the test
-    const deployAction = graph.getDeploy("deploy.module-b.service-b")
+    const deployAction = graph.getDeploy("service-b")
     const watchTasks = await getDevCommandWatchTasks({
       garden,
       log,
