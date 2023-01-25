@@ -21,7 +21,6 @@ import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv, LOCAL_CONFIG_FILENAME
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { ConfigureModuleParams } from "../src/plugin/handlers/module/configure"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
-import { ActionRouter } from "../src/router/router"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store"
@@ -52,9 +51,8 @@ import {
   ExecTest,
   execTestActionSchema,
 } from "../src/plugins/exec/config"
-import { ActionKind, RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
+import { RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/run/get-result"
-import { WrappedActionRouterHandlers } from "../src/router/base"
 import { defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
@@ -260,7 +258,6 @@ export const testPlugin = () =>
           handlers: {
             run: runTest,
             getResult: async ({ ctx, action }) => {
-              console.log(ctx.provider)
               const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
               return result || { state: "not-ready", detail: null, outputs: {} }
             },
@@ -492,16 +489,6 @@ export async function stubProviderAction<T extends keyof ProviderHandlers>(
   }
   const actions = await garden.getActionRouter()
   return td.replace(actions.provider["pluginHandlers"][type], pluginName, handler)
-}
-
-export function stubRouterAction<K extends ActionKind, H extends keyof WrappedActionRouterHandlers<K>>(
-  actionRouter: ActionRouter,
-  actionKind: K,
-  handlerType: H,
-  handler: WrappedActionRouterHandlers<K>[H]
-) {
-  const actionKindHandlers: WrappedActionRouterHandlers<K> = actionRouter.getRouterForActionKind(actionKind)
-  actionKindHandlers[handlerType] = handler
 }
 
 /**
