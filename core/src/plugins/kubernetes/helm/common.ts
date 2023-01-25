@@ -46,6 +46,7 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, nam
     log,
     namespace,
     args: ["dependency", "update", chartPath],
+    emitLogEvents: true,
   })
 }
 
@@ -181,6 +182,8 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       module.spec.timeout.toString(10) + "s",
       ...(await getValueArgs(module, devMode, hotReload, localMode)),
     ],
+    // do not send JSON output to Garden Cloud or CLI verbose log
+    emitLogEvents: false,
   })
 
   const manifest = JSON.parse(res).manifest as string
@@ -341,6 +344,7 @@ export async function renderHelmTemplateString(
           relPath,
           chartPath,
         ],
+        emitLogEvents: true,
       })
     )
 

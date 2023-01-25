@@ -49,6 +49,7 @@ export const clusterInit: PluginCommand = {
         log,
         namespace: systemNamespace,
         args: ["uninstall", "garden-nfs-provisioner"],
+        emitLogEvents: true,
       })
     } catch (_) {}
 
