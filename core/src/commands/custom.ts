@@ -80,7 +80,7 @@ export class CustomCommandWrapper extends Command {
     this.description = spec.description?.long
 
     // Convert argument specs, so they'll be validated
-    this.arguments = spec.args ? mapValues(keyBy(spec.args, "name"), convertArgSpec) : undefined
+    this.arguments = spec.args ? mapValues(keyBy(spec.args, "name"), convertArgSpec) : {}
     this.options = mapValues(keyBy(spec.opts, "name"), convertArgSpec)
   }
 
