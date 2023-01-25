@@ -812,15 +812,15 @@ export class Garden {
     await this.scanAndAddConfigs()
 
     const resolvedProviders = await this.resolveProviders(log)
-    const rawConfigs = await this.getRawModuleConfigs()
+    const rawModuleConfigs = await this.getRawModuleConfigs()
 
-    log = log.info({ status: "active", section: "graph", msg: `Resolving ${rawConfigs.length} modules...` })
+    log = log.info({ status: "active", section: "graph", msg: `Resolving ${rawModuleConfigs.length} modules...` })
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
       garden: this,
       log,
-      rawConfigs,
+      rawConfigs: rawModuleConfigs,
       resolvedProviders,
       graphResults,
     })
