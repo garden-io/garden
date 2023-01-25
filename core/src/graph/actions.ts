@@ -152,9 +152,10 @@ export async function actionFromConfig({
   } else if (isTestActionConfig(config)) {
     action = new TestAction(params)
   } else {
+    const _exhaustiveCheck: never = config
     // This will be caught earlier
     throw new InternalError(`Invalid kind '${config["kind"]}' encountered when resolving actions.`, {
-      config,
+      config: _exhaustiveCheck,
     })
   }
 
