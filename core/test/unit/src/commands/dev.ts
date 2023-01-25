@@ -72,7 +72,6 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-
       "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -96,7 +95,6 @@ describe("DevCommand", () => {
       "resolve-provider.templated",
       "resolve-provider.test-plugin",
       "resolve-provider.test-plugin-b",
-
       "task.task-c",
       "test.module-a.integration",
       "test.module-a.unit",
@@ -118,7 +116,6 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-
       "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -141,7 +138,6 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-
       "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -164,7 +160,6 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-
       "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -187,7 +182,6 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-
       "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -210,7 +204,6 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-
       "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -233,7 +226,6 @@ describe("DevCommand", () => {
     const opts = withDefaultGlobalOpts({
       "force-build": false,
       "force": false,
-
       "local-mode": undefined,
       "skip-tests": false,
       "test-names": undefined,
@@ -281,7 +273,6 @@ describe("getDevCommandWatchTasks", () => {
       "get-service-status.service-b",
       "get-service-status.service-c",
       "get-task-result.task-c",
-
       "task.task-c",
       "test.module-b.unit",
       "test.module-c.integ",
