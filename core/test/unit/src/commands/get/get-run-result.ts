@@ -148,6 +148,7 @@ describe("GetRunResultCommand", () => {
     })
 
     expect(res.result).to.eql({
+      artifacts: [],
       state: "not-ready",
       detail: null,
       outputs: {},
