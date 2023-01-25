@@ -12,7 +12,7 @@ import dedent = require("dedent")
 import stripAnsi from "strip-ansi"
 import { pickBy, size } from "lodash"
 
-import { joi, joiIdentifierMap, joiStringMap } from "../config/common"
+import { joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -22,13 +22,10 @@ import { ProcessResults } from "../process"
 import { GraphResultMap } from "../graph/results"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
-import { serviceStatusSchema } from "../types/service"
-import { testResultSchema } from "../types/test"
 import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
-import { buildResultSchema } from "../plugin/handlers/build/get-status"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -79,8 +76,9 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   aliases?: string[]
 
   allowUndefinedArguments: boolean = false
-  arguments?: T
-  options?: U
+  arguments: T
+  options: U
+  _resultType: R
 
   outputsSchema?: () => Joi.ObjectSchema
 
@@ -410,19 +408,6 @@ export const processCommandResultSchema = () =>
   joi.object().keys({
     aborted: joi.boolean().description("Set to true if the command execution was aborted."),
     success: joi.boolean().description("Set to false if the command execution was unsuccessful."),
-    builds: joiIdentifierMap(buildResultSchema().keys(processCommandResultKeys()))
-      .description(
-        "A map of all modules that were built (or builds scheduled/attempted for) and information about the builds."
-      )
-      .meta({ keyPlaceholder: "<module name>" }),
-    deployments: joiIdentifierMap(serviceStatusSchema().keys(processCommandResultKeys()))
-      .description(
-        "A map of all services that were deployed (or deployment scheduled/attempted for) and the service status."
-      )
-      .meta({ keyPlaceholder: "<service name>" }),
-    tests: joiStringMap(testResultSchema().keys(processCommandResultKeys()))
-      .description("A map of all tests that were run (or scheduled/attempted) and the test results.")
-      .meta({ keyPlaceholder: "<test name>" }),
     graphResults: graphResultsSchema(),
   })
 

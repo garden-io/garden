@@ -6,7 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { cloneDeep, isEqual, keyBy, set } from "lodash"
+import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
+import { cloneDeep, isEqual, keyBy, set, mapValues } from "lodash"
 import { Garden, GardenOpts, GardenParams, resolveGardenParams } from "../garden"
 import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
@@ -14,7 +15,7 @@ import { WorkflowConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import { findByName, getNames, isPromise, uuidv4, ValueOf } from "./util"
-import { GardenBaseError, GardenError } from "../exceptions"
+import { GardenBaseError, GardenError, InternalError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
@@ -29,6 +30,8 @@ import { GraphResults } from "../graph/results"
 import { expect } from "chai"
 import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
 import { WrappedActionRouterHandlers } from "../router/base"
+import { BuiltinArgs, Command, CommandResult } from "../commands/base"
+import { validateSchema } from "../config/validation"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -314,6 +317,13 @@ export class TestGarden extends Garden {
     return config
   }
 
+  /**
+   * Overrides the given action plugin handler, for testing purposes
+   *
+   * @param actionKind The action kind
+   * @param handlerType The handler type (e.g. deploy, run, getStatus etc.)
+   * @param handler The handler function to apply
+   */
   async stubRouterAction<K extends ActionKind, H extends keyof WrappedActionRouterHandlers<K>>(
     actionKind: K,
     handlerType: H,
@@ -322,6 +332,45 @@ export class TestGarden extends Garden {
     const router = await this.getActionRouter()
     const actionKindHandlers: WrappedActionRouterHandlers<K> = router.getRouterForActionKind(actionKind)
     actionKindHandlers[handlerType] = handler
+  }
+
+  /**
+   * Shorthand helper to call the action method on the given command class.
+   * Also validates the result against the outputsSchema on the command, if applicable.
+   *
+   * @returns The result from the command action
+   */
+  async runCommand<C extends Command>({
+    command,
+    args,
+    opts,
+  }: {
+    command: C
+    args: ParameterValues<C["arguments"]> & BuiltinArgs
+    opts: ParameterValues<C["options"]>
+  }): Promise<CommandResult<C["_resultType"]>> {
+    const log = this.log
+
+    const result = await command.action({
+      garden: this,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args,
+      opts: <ParameterValues<GlobalOptions> & C["options"]>{
+        ...mapValues(globalOptions, (opt) => opt.defaultValue),
+        ...opts,
+      },
+    })
+
+    if (result.result && command.outputsSchema) {
+      await validateSchema(result.result, command.outputsSchema(), {
+        context: `outputs from '${command.name}' command`,
+        ErrorClass: InternalError,
+      })
+    }
+
+    return result
   }
 }
 
