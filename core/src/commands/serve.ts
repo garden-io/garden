@@ -27,10 +27,10 @@ const serveOpts = {
   }),
 }
 
-type Args = typeof serveArgs
-type Opts = typeof serveOpts
+export type ServeCommandArgs = typeof serveArgs
+export type ServeCommandOpts = typeof serveOpts
 
-export class ServeCommand extends Command<Args, Opts> {
+export class ServeCommand extends Command<ServeCommandArgs, ServeCommandOpts> {
   name = "serve"
   aliases = ["dashboard"]
   help = "Starts the Garden Core API server for the current project and environment."
@@ -61,7 +61,7 @@ export class ServeCommand extends Command<Args, Opts> {
     return true
   }
 
-  async prepare({ log, footerLog, opts }: PrepareParams<Args, Opts>) {
+  async prepare({ log, footerLog, opts }: PrepareParams<ServeCommandArgs, ServeCommandOpts>) {
     this.server = await startServer({ log: footerLog, port: opts.port })
 
     // Print nicer error message when address is not available
@@ -80,7 +80,11 @@ export class ServeCommand extends Command<Args, Opts> {
     })
   }
 
-  async action({ garden, log, footerLog }: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
+  async action({
+    garden,
+    log,
+    footerLog,
+  }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<{}>> {
     log.info(
       chalk.gray(
         `Connected to environment ${chalk.white.bold(garden.namespace)}.${chalk.white.bold(garden.environmentName)}`

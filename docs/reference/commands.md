@@ -507,46 +507,6 @@ success:
 graphResults:
 ```
 
-### garden dev
-
-**Starts the garden development console.**
-
-The Garden dev console is a combination of the `build`, `deploy` and `test` commands.
-It builds, deploys and tests everything in your project, and re-builds, re-deploys and re-tests
-as you modify the code.
-
-Examples:
-
-    garden dev
-    garden dev --local=service-1,service-2    # enable local mode for service-1 and service-2
-    garden dev --local=*                      # enable local mode for all compatible deploys
-    garden dev --skip-tests                   # skip running any tests
-    garden dev --force                        # force redeploy of services when the command starts
-    garden dev --name integ                   # run all tests with the name 'integ' in the project
-    garden test --name integ*                 # run all tests with the name starting with 'integ' in the project
-
-#### Usage
-
-    garden dev [deploys] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `deploys` | No | Specify which deploys to develop (defaults to all configured in project).
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--force` |  | boolean | Force re-deploy of deploy(s)/service(s).
-  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of deploy action(s) to be started locally with local mode enabled.
-Use comma as a separator to specify multiple actions. Use * to deploy all compatible actions with local mode enabled. When this option is used, the command is run in persistent mode.
-This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
-  | `--skip-tests` |  | boolean | Disable running the tests.
-  | `--test-names` | `--tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
-
-
 ### garden exec
 
 **Executes a command (such as an interactive shell) in a running service.**
