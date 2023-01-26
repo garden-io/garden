@@ -13,6 +13,8 @@ import { GARDEN_GLOBAL_PATH } from "../../../constants"
 import { mkdirp } from "fs-extra"
 import { StringMap } from "../../../config/common"
 import { PluginToolSpec } from "../../../plugin/tools"
+import split2 from "split2"
+import { LogLevel } from "../../../logger/logger"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
@@ -71,6 +73,7 @@ export async function helm({
   version = 3,
   env = {},
   cwd,
+  emitLogEvents,
 }: {
   ctx: KubernetesPluginContext
   namespace?: string
@@ -79,6 +82,7 @@ export async function helm({
   version?: 2 | 3
   env?: { [key: string]: string }
   cwd?: string
+  emitLogEvents: boolean
 }) {
   const opts = ["--kube-context", ctx.provider.config.context]
 
@@ -101,6 +105,19 @@ export async function helm({
     opts.push("--namespace", namespace)
   }
 
+  const logEventContext = {
+    origin: "helm",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
+
+  const outputStream = split2()
+  outputStream.on("error", () => {})
+  outputStream.on("data", (line: Buffer) => {
+    if (emitLogEvents) {
+      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
+    }
+  })
+
   return cmd.stdout({
     log,
     args: [...opts, ...args],
@@ -108,5 +125,7 @@ export async function helm({
     // Helm itself will time out pretty reliably, so we shouldn't time out early on our side.
     timeoutSec: 3600,
     cwd,
+    stderr: outputStream,
+    stdout: outputStream,
   })
 }

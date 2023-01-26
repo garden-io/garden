@@ -759,7 +759,7 @@ export interface PodErrorDetails {
 export class PodRunner extends PodRunnerParams {
   podName: string
   running: boolean
-  logEventContext: PluginEventLogContext
+  logEventContext: PluginEventLogContext | undefined
 
   constructor(params: PodRunnerParams) {
     super()
@@ -775,10 +775,7 @@ export class PodRunner extends PodRunnerParams {
     Object.assign(this, params)
 
     this.podName = this.pod.metadata.name
-
-    if (params.logEventContext !== undefined) {
-      this.logEventContext
-    }
+    this.logEventContext = params.logEventContext
   }
 
   getFullCommand() {
