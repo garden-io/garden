@@ -7,7 +7,7 @@
  */
 
 import type { LogEntry } from "../logger/log-entry"
-import { PluginContext, pluginContextSchema, PluginEventBroker } from "../plugin-context"
+import { PluginContext, pluginContextSchema } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
 import { createSchema, CustomObjectSchema, joi } from "../config/common"
 import { dedent, deline } from "../util/string"
@@ -37,7 +37,6 @@ export interface PluginActionContextParams extends ActionHandlerParamsBase {
 }
 
 export interface PluginActionParamsBase extends PluginActionContextParams {
-  events?: PluginEventBroker
   log: LogEntry
 }
 

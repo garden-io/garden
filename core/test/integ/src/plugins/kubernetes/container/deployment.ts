@@ -67,7 +67,9 @@ describe("kubernetes container deployment handlers", () => {
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    ctx = <KubernetesPluginContext>(
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    )
     api = await KubeApi.factory(garden.log, ctx, provider)
   }
 

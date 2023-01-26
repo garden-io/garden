@@ -401,7 +401,11 @@ describe("createIngressResources", () => {
   }
 
   async function getKubeApi(provider: KubernetesProvider) {
-    const api = await KubeApi.factory(garden.log, await garden.getPluginContext(provider), provider)
+    const api = await KubeApi.factory(
+      garden.log,
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
+      provider
+    )
 
     const core = td.replace(api, "core")
     td.when(core.readNamespacedSecret("somesecret", "somenamespace")).thenResolve(myDomainCertSecret)

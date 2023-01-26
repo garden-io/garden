@@ -383,14 +383,22 @@ export class Garden {
    * provider template context. Callers should specify the appropriate templating for the handler that will be
    * called with the PluginContext.
    */
-  async getPluginContext(provider: Provider, templateContext?: ConfigContext, events?: PluginEventBroker) {
-    return createPluginContext(
-      this,
+  async getPluginContext({
+    provider,
+    templateContext,
+    events,
+  }: {
+    provider: Provider
+    templateContext: ConfigContext | undefined
+    events: PluginEventBroker | undefined
+  }) {
+    return createPluginContext({
+      garden: this,
       provider,
-      this.opts.commandInfo,
-      templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables),
-      events
-    )
+      command: this.opts.commandInfo,
+      templateContext: templateContext || new ProviderConfigContext(this, provider.dependencies, this.variables),
+      events,
+    })
   }
 
   getProjectConfigContext() {
@@ -914,6 +922,7 @@ export class Garden {
         log,
         providers: resolvedProviders,
         actions: graph.getActions(),
+        events: undefined,
       })
 
       let updated = false

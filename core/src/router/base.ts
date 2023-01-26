@@ -81,13 +81,13 @@ export abstract class BaseRouter {
   protected async commonParams(
     handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
     log: LogEntry,
-    templateContext?: ConfigContext,
-    events?: PluginEventBroker
+    templateContext: ConfigContext | undefined,
+    events: PluginEventBroker | undefined
   ): Promise<PluginActionParamsBase> {
     const provider = await this.garden.resolveProvider(log, handler.pluginName)
 
     return {
-      ctx: await this.garden.getPluginContext(provider, templateContext, events),
+      ctx: await this.garden.getPluginContext({ provider, templateContext, events }),
       log,
       base: handler.base,
     }
@@ -145,6 +145,7 @@ type HandlerParams<K extends ActionKind, H extends keyof ActionTypeClasses<K>> =
 > & {
   graph: ConfigGraph
   pluginName?: string
+  events?: PluginEventBroker | undefined
 }
 
 type WrapRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
@@ -162,6 +163,7 @@ type ActionRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses
       garden: Garden
       graph: ConfigGraph
       handlers: WrappedActionRouterHandlers<K>
+      events: PluginEventBroker | undefined
       pluginName?: string
     }
   ): Promise<GetActionTypeResults<ActionTypeClasses<K>[H]>>
@@ -245,7 +247,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     const templateContext = new ActionConfigContext(this.garden)
 
-    const commonParams = await this.commonParams(handler, log, templateContext)
+    const commonParams = await this.commonParams(handler, log, templateContext, undefined)
 
     // Note: this is called by preprocessActionConfig(), and outputs are validated there
     return handler({
@@ -264,6 +266,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       pluginName?: string
       log: LogEntry
       graph: ConfigGraph
+      events: PluginEventBroker | undefined
     } & Omit<GetActionTypeParams<ActionTypeClasses<K>[T]>, keyof PluginActionParamsBase>
     handlerType: T
     defaultHandler?: GetActionTypeHandler<ActionTypeClasses<K>[T], T>
@@ -297,7 +300,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       : new ActionConfigContext(this.garden)
 
     const handlerParams = {
-      ...(await this.commonParams(handler, params.log, templateContext)),
+      ...(await this.commonParams(handler, params.log, templateContext, params.events)),
       ...params,
     }
 

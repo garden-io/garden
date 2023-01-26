@@ -33,15 +33,17 @@ describe("provider actions", async () => {
     it("should configure the provider", async () => {
       const config = { name: "test-plugin-a", foo: "bar", dependencies: [] }
       const result = await actionRouter.provider.configureProvider({
-        ctx: await garden.getPluginContext(
-          providerFromConfig({
+        ctx: await garden.getPluginContext({
+          provider: providerFromConfig({
             plugin: await garden.getPlugin("test-plugin-a"),
             config,
             dependencies: {},
             moduleConfigs: [],
             status: { ready: false, outputs: {} },
-          })
-        ),
+          }),
+          templateContext: undefined,
+          events: undefined,
+        }),
         namespace: "default",
         environmentName: "default",
         pluginName: "test-plugin-a",
@@ -68,6 +70,7 @@ describe("provider actions", async () => {
         pluginName: "test-plugin-a",
         actions: graph.getActions(),
         providers,
+        events: undefined,
       })
 
       expect(result.addDependencies).to.eql([
@@ -103,7 +106,12 @@ describe("provider actions", async () => {
         description: "foodefoodefoo",
         newWindow: false,
       }
-      const result = await actionRouter.provider.getDashboardPage({ log, pluginName: "test-plugin-a", page })
+      const result = await actionRouter.provider.getDashboardPage({
+        log,
+        pluginName: "test-plugin-a",
+        page,
+        events: undefined,
+      })
       expect(result).to.eql({
         url: "http://foo",
       })
@@ -112,7 +120,11 @@ describe("provider actions", async () => {
 
   describe("getEnvironmentStatus", () => {
     it("should return the environment status for a provider", async () => {
-      const result = await actionRouter.provider.getEnvironmentStatus({ log, pluginName: "test-plugin-a" })
+      const result = await actionRouter.provider.getEnvironmentStatus({
+        log,
+        pluginName: "test-plugin-a",
+        events: undefined,
+      })
       expect(result).to.eql({
         ready: false,
         outputs: {},
@@ -127,6 +139,7 @@ describe("provider actions", async () => {
         pluginName: "test-plugin-a",
         force: false,
         status: { ready: true, outputs: {} },
+        events: undefined,
       })
       expect(result).to.eql({
         status: {
@@ -139,7 +152,11 @@ describe("provider actions", async () => {
 
   describe("cleanupEnvironment", () => {
     it("should clean up environment for a provider", async () => {
-      const result = await actionRouter.provider.cleanupEnvironment({ log, pluginName: "test-plugin-a" })
+      const result = await actionRouter.provider.cleanupEnvironment({
+        log,
+        pluginName: "test-plugin-a",
+        events: undefined,
+      })
       expect(result).to.eql({})
     })
   })

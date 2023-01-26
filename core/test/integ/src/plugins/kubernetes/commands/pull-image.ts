@@ -34,7 +34,7 @@ describe("pull-image plugin command", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
   }
 
   async function removeImage(action: BuildAction) {

@@ -134,13 +134,19 @@ type PluginEventType = keyof PluginEvents
 
 export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventType> {}
 
-export async function createPluginContext(
-  garden: Garden,
-  provider: Provider,
-  command: CommandInfo,
-  templateContext: ConfigContext,
-  events?: PluginEventBroker
-): Promise<PluginContext> {
+export async function createPluginContext({
+  garden,
+  provider,
+  command,
+  templateContext,
+  events,
+}: {
+  garden: Garden
+  provider: Provider
+  command: CommandInfo
+  templateContext: ConfigContext
+  events: PluginEventBroker | undefined
+}): Promise<PluginContext> {
   return {
     command,
     events: events || new PluginEventBroker(),

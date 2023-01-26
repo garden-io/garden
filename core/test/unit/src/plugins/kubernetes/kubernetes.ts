@@ -54,15 +54,17 @@ describe("kubernetes configureProvider", () => {
 
   async function configure(config: KubernetesConfig) {
     return configureProvider({
-      ctx: await garden.getPluginContext(
-        providerFromConfig({
+      ctx: await garden.getPluginContext({
+        provider: providerFromConfig({
           plugin: gardenPlugin(),
           config,
           dependencies: {},
           moduleConfigs: [],
           status: { ready: false, outputs: {} },
-        })
-      ),
+        }),
+        templateContext: undefined,
+        events: undefined,
+      }),
       namespace: "default",
       environmentName: "default",
       projectName: garden.projectName,

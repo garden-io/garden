@@ -74,7 +74,9 @@ describe("kubernetes-module handlers", () => {
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
-    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    ctx = <KubernetesPluginContext>(
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    )
     api = await KubeApi.factory(log, ctx, ctx.provider)
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })

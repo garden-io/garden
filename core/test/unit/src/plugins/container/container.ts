@@ -73,7 +73,7 @@ describe("plugins.container", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
     containerProvider = await garden.resolveProvider(garden.log, "container")
-    ctx = await garden.getPluginContext(containerProvider)
+    ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
   })
