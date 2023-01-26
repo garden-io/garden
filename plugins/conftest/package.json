@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@types/chai": "^4.2.12",
-    "@types/node": "^14.14.31",
+    "@types/node": "^16",
     "chai": "^4.2.0",
     "mocha": "^8.1.2",
     "strip-ansi": "^6.0.0"
