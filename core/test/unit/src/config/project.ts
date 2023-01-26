@@ -18,6 +18,7 @@ import {
   parseEnvironment,
   defaultNamespace,
   fixedPlugins,
+  defaultEnvironment,
 } from "../../../../src/config/project"
 import { createProjectConfig, expectError } from "../../../helpers"
 import { realpath, writeFile } from "fs-extra"
@@ -72,7 +73,6 @@ describe("resolveProjectConfig", () => {
 
   it("should resolve template strings on fields other than environments, providers and remote sources", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
-    const defaultEnvironment = "default"
 
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
@@ -149,7 +149,6 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should pass through templated fields on provider configs", async () => {
-    const defaultEnvironment = "default"
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
@@ -225,7 +224,6 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should pass through templated fields on environment configs", async () => {
-    const defaultEnvironment = "default"
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
@@ -257,7 +255,6 @@ describe("resolveProjectConfig", () => {
 
   it("should pass through templated fields on remote source configs", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
-    const defaultEnvironment = "default"
 
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
@@ -377,7 +374,6 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should include providers in correct precedence order from all possible config keys", async () => {
-    const defaultEnvironment = "default"
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
