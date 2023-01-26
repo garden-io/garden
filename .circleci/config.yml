@@ -694,6 +694,7 @@ jobs:
             sudo microk8s.enable storage registry dns
 
             sudo usermod -a -G microk8s circleci
+            newgrp microk8s
             echo "********* microk8s ready! ************"
 
             # Set up kubeconfig and environment
