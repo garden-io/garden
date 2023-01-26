@@ -45,6 +45,7 @@ export const uninstallGardenServices: PluginCommand = {
         log,
         namespace: systemNamespace,
         args: ["uninstall", "garden-nfs-provisioner"],
+        emitLogEvents: true,
       })
     } catch (_) {}
     try {
@@ -53,6 +54,7 @@ export const uninstallGardenServices: PluginCommand = {
         log,
         namespace: systemNamespace,
         args: ["uninstall", "garden-nfs-provisioner-v2"],
+        emitLogEvents: true,
       })
     } catch (_) {}
 
