@@ -114,6 +114,7 @@ export interface Events extends LoggerEvents {
   serversUpdated: {
     servers: { host: string; command: string; serverAuthKey: string }[]
   }
+  serverReady: {}
   receivedToken: AuthTokenResponse
 
   // Session events - one of these is emitted when the command process ends
