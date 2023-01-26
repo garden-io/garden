@@ -161,9 +161,9 @@ describe("loadConfigResources", () => {
 
   it("throws if basic fields contain template strings", async () => {
     for (const field of noTemplateFields) {
-      const basicProjecConfig = getDefaultProjectConfig()
-      basicProjecConfig[field] = '${camelCase("No templating should be allowed here")}'
-      const configRaw = safeDumpYaml(basicProjecConfig)
+      const basicProjectConfig = getDefaultProjectConfig()
+      basicProjectConfig[field] = '${camelCase("No templating should be allowed here")}'
+      const configRaw = safeDumpYaml(basicProjectConfig)
       await expectError(
         async () =>
           validateRawConfig({ rawConfig: configRaw, configPath: "fake/path", projectRoot: "fake/projec/root" }),
