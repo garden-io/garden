@@ -7,14 +7,7 @@
  */
 
 import chalk from "chalk"
-import {
-  Command,
-  CommandParams,
-  graphResultsSchema,
-  handleProcessResults,
-  PrepareParams,
-  processCommandResultSchema,
-} from "./base"
+import { Command, CommandParams, handleProcessResults, PrepareParams, processCommandResultSchema } from "./base"
 import { RunTask } from "../tasks/run"
 import { printHeader, renderDivider } from "../logger/util"
 import { ParameterError } from "../exceptions"
