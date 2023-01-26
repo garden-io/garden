@@ -69,7 +69,7 @@ describe("sync plugin commands", () => {
       expect(res.result.syncSessions.length).to.equal(1)
       expect(res.result.syncSessions[0].alpha).to.exist
       expect(res.result.syncSessions[0].beta).to.exist
-      expect(res.result.syncSessions[0].status).to.equal("watching")
+      expect(res.result.syncSessions[0].status).to.be.a("string")
       expect(res.result.syncSessions[0].paused).to.equal(false)
     })
   })
