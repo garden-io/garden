@@ -103,10 +103,7 @@ export class RunCommand extends Command<Args, Opts> {
 
   private garden?: Garden
 
-  outputsSchema = () =>
-    processCommandResultSchema().keys({
-      graphResults: graphResultsSchema(),
-    })
+  outputsSchema = () => processCommandResultSchema()
 
   printHeader({ headerLog }: PrepareParams<Args, Opts>) {
     const msg = `Run`
