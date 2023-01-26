@@ -141,7 +141,7 @@ describe("DeployTask", () => {
       garden.setActionConfigs([], actionConfig)
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("test-service")
+      const action = graph.getDeploy("test-deploy")
 
       const deployTask = new DeployTask({
         garden,
