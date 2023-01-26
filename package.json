@@ -10,7 +10,7 @@
   "license": "MPL-2.0",
   "homepage": "https://github.com/garden-io/garden",
   "engines": {
-    "node": ">=14.0.0",
+    "node": ">=16.0.0",
     "npm": ">=6.0.0"
   },
   "private": true,
@@ -22,7 +22,7 @@
     "@types/fs-extra": "^9.0.1",
     "@types/google-cloud__kms": "^1.5.1",
     "@types/lodash": "^4.14.153",
-    "@types/node": "^14.14.31",
+    "@types/node": "^16",
     "@types/prettier": "^2",
     "@types/semver": "^7.2.0",
     "@types/treeify": "^1.0.0",

@@ -16,7 +16,7 @@ orbs:
     GARDEN_LOGGER_TYPE: basic
 
   shared-machine-config: &shared-machine-config
-    image: "ubuntu-2004:202010-01"
+    image: "ubuntu-2204:2022.10.2"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
@@ -25,7 +25,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:14.19.3-4
+    image: gardendev/circleci-runner:16.18.0
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -183,8 +183,8 @@ commands:
             # ...export for subsequent runs...
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 14
-            nvm alias default 14
+            nvm install 16
+            nvm alias default 16
             nvm use default
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
@@ -668,6 +668,7 @@ jobs:
   test-microk8s:
     machine:
       <<: *shared-machine-config
+    resource_class: large
     parameters:
       kubernetesVersion:
         description: The Kubernetes version to run
@@ -687,6 +688,12 @@ jobs:
       - run:
           name: Install and start microk8s
           command: |
+            # create microk8s and snap_microk8s as group aliases for the circleci group
+            # https://github.com/canonical/microk8s/issues/3608#issuecomment-1383838198
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" microk8s
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" snap_microk8s
+
+            # install microk8s from snap
             sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
             sudo microk8s.status --wait-ready --timeout=300
 
@@ -695,7 +702,6 @@ jobs:
             sleep 10
             sudo microk8s.enable storage registry dns
 
-            sudo usermod -a -G microk8s circleci
             echo "********* microk8s ready! ************"
 
             # Set up kubeconfig and environment
@@ -715,13 +721,11 @@ jobs:
             cd core
             # Notes:
             # - We skip tests that only work for remote environments
-            # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
-            #   and back in to add the circleci user to the microk8s group.
             # - We currently don't support in-cluster building on microk8s.
-            sudo -E GARDEN_SKIP_TESTS="kaniko remote-only" npm run _integ
+            GARDEN_SKIP_TESTS="kaniko remote-only" npm run _integ
       - run:
           name: Deploy demo-project
-          command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
+          command: ./bin/garden deploy --root examples/demo-project --logger-type basic
 
   test-minikube:
     machine:
@@ -796,7 +800,7 @@ jobs:
       - *attach-workspace
       # - run:
       #     name: Configure Node.js
-      #     command: nvm install 14 && nvm alias default 14
+      #     command: nvm install 16 && nvm alias default 16
       - run:
           name: brew install
           command: brew install docker kubectl git rsync
@@ -1027,6 +1031,14 @@ workflows:
       #     name: vm-1.24-microk8s
       #     requires: [build]
       #     kubernetesVersion: "1.24"
+      # - test-microk8s:
+      #     name: vm-1.25-microk8s
+      #     requires: [build]
+      #     kubernetesVersion: "1.25"
+      # - test-microk8s:
+      #     name: vm-1.26-microk8s
+      #     requires: [build]
+      #     kubernetesVersion: "1.26"
       # - test-kind:
       #     name: vm-1.19-kind
       #     requires: [build]
