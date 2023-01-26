@@ -18,12 +18,13 @@ import { keyBy } from "lodash"
 import { writeFileSync, readFile, writeFile, mkdirp } from "fs-extra"
 import { renderModuleTypeReference, moduleTypes } from "./module-type"
 import { renderProviderReference } from "./provider"
-import { defaultNamespace } from "../config/project"
+import { defaultEnvironment, defaultNamespace } from "../config/project"
 import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
 import { moduleTemplateSchema } from "../config/module-template"
 import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
+import { DEFAULT_API_VERSION } from "../constants"
 
 export async function generateDocs(targetDir: string, plugins: GardenPluginReference[]) {
   // tslint:disable: no-console
@@ -64,10 +65,10 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     commandInfo: { name: "generate-docs", args: {}, opts: {} },
     config: {
       path: __dirname,
-      apiVersion: "garden.io/v0",
+      apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "generate-docs",
-      defaultEnvironment: "default",
+      defaultEnvironment,
       dotIgnoreFile: defaultDotIgnoreFile,
       variables: {},
       environments: [
