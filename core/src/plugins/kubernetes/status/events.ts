@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { sortBy } from "lodash"
 import { KubeApi } from "../api"
 import { KubernetesResource } from "../types"
 
@@ -30,5 +31,5 @@ export async function getResourceEvents(api: KubeApi, resource: KubernetesResour
         parseInt(e.involvedObject!.resourceVersion, 10) > minVersion
     )
 
-  return events
+  return sortBy(events, (e) => e.metadata.creationTimestamp)
 }
