@@ -401,7 +401,8 @@ export class TestGardenCli extends GardenCli {
 }
 
 export const makeTestModule = (params: Partial<ModuleConfig> = {}): ModuleConfig => {
-  return { ...defaultModuleConfig, ...params }
+  // deep merge `params` config into `defaultModuleConfig`
+  return merge(cloneDeep(defaultModuleConfig), params)
 }
 
 // Similar to `makeTestModule`, but uses a more minimal default config.
