@@ -41,8 +41,9 @@ import chalk = require("chalk")
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
 
-// These plugins are always loaded
+export const defaultEnvironment = "default"
 export const defaultNamespace = "default"
+// These plugins are always loaded
 export const fixedPlugins = ["exec", "container", "templated"]
 
 export type EnvironmentNamespacing = "disabled" | "optional" | "required"
