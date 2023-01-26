@@ -371,7 +371,7 @@ describe("BaseActionRouter", () => {
 
       const result = await router.callHandler({
         handlerType: "build",
-        params: { graph, log, action: resolvedBuildAction },
+        params: { graph, log, action: resolvedBuildAction, events: undefined },
       })
 
       expect(result.outputs.isTestPluginABuildActionBuildHandlerReturn).to.equal(true)
@@ -384,7 +384,7 @@ describe("BaseActionRouter", () => {
         () =>
           router.callHandler({
             handlerType: "getOutputs", // this handler type is not specified on the test plugins,
-            params: { graph, log, action: resolvedBuildAction },
+            params: { graph, log, action: resolvedBuildAction, events: undefined },
           }),
         { contains: "No 'getOutputs' handler configured for build type" }
       )
@@ -395,7 +395,7 @@ describe("BaseActionRouter", () => {
 
       const result = await router.callHandler({
         handlerType: "getStatus",
-        params: { graph, log, action: resolvedBuildAction },
+        params: { graph, log, action: resolvedBuildAction, events: undefined },
       })
 
       expect(result.outputs.base).to.not.be.undefined
@@ -411,7 +411,7 @@ describe("BaseActionRouter", () => {
 
       const result = await router.callHandler({
         handlerType: "getStatus",
-        params: { graph, log, action: resolvedBuildAction },
+        params: { graph, log, action: resolvedBuildAction, events: undefined },
       })
 
       expect(result.outputs.resolvedEnvName).to.equal("default")
@@ -422,7 +422,7 @@ describe("BaseActionRouter", () => {
 
       const result = await router.callHandler({
         handlerType: "getStatus",
-        params: { graph, log, action: resolvedBuildAction },
+        params: { graph, log, action: resolvedBuildAction, events: undefined },
       })
 
       // TODO-G2: see test-plugin-a build getStatus handler comment

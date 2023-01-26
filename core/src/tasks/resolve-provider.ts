@@ -194,15 +194,17 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const plugin = pluginsByName[providerName]
 
     const configureOutput = await actions.provider.configureProvider({
-      ctx: await this.garden.getPluginContext(
-        providerFromConfig({
+      ctx: await this.garden.getPluginContext({
+        provider: providerFromConfig({
           plugin,
           config: resolvedConfig,
           dependencies: {},
           moduleConfigs: [],
           status: { ready: false, outputs: {} },
-        })
-      ),
+        }),
+        templateContext: undefined,
+        events: undefined,
+      }),
       environmentName: this.garden.environmentName,
       namespace: this.garden.namespace,
       pluginName: providerName,
@@ -331,7 +333,11 @@ export class ResolveProviderTask extends BaseTask<Provider> {
   private async ensurePrepared(tmpProvider: Provider) {
     const pluginName = tmpProvider.name
     const actions = await this.garden.getActionRouter()
-    const ctx = await this.garden.getPluginContext(tmpProvider)
+    const ctx = await this.garden.getPluginContext({
+      provider: tmpProvider,
+      templateContext: undefined,
+      events: undefined,
+    })
 
     this.log.silly(`Getting status for ${pluginName}`)
 

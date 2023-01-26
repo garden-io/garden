@@ -58,7 +58,11 @@ describe("util", () => {
     helmGarden = await getHelmTestGarden()
     log = helmGarden.log
     const provider = await helmGarden.resolveProvider(log, "local-kubernetes")
-    ctx = (await helmGarden.getPluginContext(provider)) as KubernetesPluginContext
+    ctx = (await helmGarden.getPluginContext({
+      provider,
+      templateContext: undefined,
+      events: undefined,
+    })) as KubernetesPluginContext
     helmGraph = await helmGarden.getConfigGraph({ log, emit: false })
     await buildModules()
     api = await KubeApi.factory(helmGarden.log, ctx, ctx.provider)

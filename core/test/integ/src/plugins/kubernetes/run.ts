@@ -60,7 +60,7 @@ describe("kubernetes Pod runner functions", () => {
   before(async () => {
     garden = await getContainerTestGarden()
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     namespace = provider.config.namespace!.name!
     api = await KubeApi.factory(garden.log, ctx, provider)
     log = garden.log
@@ -566,7 +566,9 @@ describe("kubernetes Pod runner functions", () => {
     before(async () => {
       helmGarden = await getHelmTestGarden()
       helmProvider = <KubernetesProvider>await helmGarden.resolveProvider(helmGarden.log, "local-kubernetes")
-      helmCtx = <KubernetesPluginContext>await helmGarden.getPluginContext(helmProvider)
+      helmCtx = <KubernetesPluginContext>(
+        await helmGarden.getPluginContext({ provider: helmProvider, templateContext: undefined, events: undefined })
+      )
       helmApi = await KubeApi.factory(helmGarden.log, helmCtx, helmProvider)
       helmLog = helmGarden.log
       helmGraph = await helmGarden.getConfigGraph({ log: helmLog, emit: false })
@@ -968,7 +970,7 @@ describe("kubernetes Pod runner functions", () => {
       const action = await garden.resolveAction({ action: graph.getRun("simple.echo-task"), log, graph })
 
       const result = await runAndCopy({
-        ctx: await garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
         log: garden.log,
         command: ["sh", "-c", "echo ok"],
         args: [],
@@ -988,7 +990,7 @@ describe("kubernetes Pod runner functions", () => {
       const podName = makePodName("test", action.name)
 
       await runAndCopy({
-        ctx: await garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
         log: garden.log,
         command: ["sh", "-c", "echo ok"],
         args: [],
@@ -1012,7 +1014,7 @@ describe("kubernetes Pod runner functions", () => {
 
       const timeout = 4
       const result = await runAndCopy({
-        ctx: await garden.getPluginContext(provider),
+        ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
         log: garden.log,
         command: ["sh", "-c", "echo banana && sleep 10"],
         args: [],
@@ -1036,7 +1038,7 @@ describe("kubernetes Pod runner functions", () => {
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         const result = await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: spec.command,
           args: [],
@@ -1061,7 +1063,7 @@ describe("kubernetes Pod runner functions", () => {
         const podName = makePodName("test", action.name)
 
         await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: spec.command,
           args: [],
@@ -1087,7 +1089,7 @@ describe("kubernetes Pod runner functions", () => {
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: spec.command,
           args: [],
@@ -1110,7 +1112,7 @@ describe("kubernetes Pod runner functions", () => {
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: ["sh", "-c", "echo ok"],
           args: [],
@@ -1129,7 +1131,7 @@ describe("kubernetes Pod runner functions", () => {
         const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
 
         await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: ["sh", "-c", "mkdir -p /report && touch /report/output.txt && echo ok"],
           args: [],
@@ -1156,7 +1158,7 @@ describe("kubernetes Pod runner functions", () => {
         const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
 
         await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: ["sh", "-c", "mkdir -p /report && touch /report/output.txt && echo ok"],
           args: [],
@@ -1184,7 +1186,7 @@ describe("kubernetes Pod runner functions", () => {
 
         const timeout = 3
         const result = await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: ["sh", "-c", "echo banana && sleep 10"],
           args: [],
@@ -1211,7 +1213,7 @@ describe("kubernetes Pod runner functions", () => {
 
         const timeout = 3
         const result = await runAndCopy({
-          ctx: await garden.getPluginContext(provider),
+          ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
           log: garden.log,
           command: ["sh", "-c", "touch /task.txt && sleep 10"],
           args: [],
@@ -1248,7 +1250,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           async () =>
             runAndCopy({
-              ctx: await garden.getPluginContext(provider),
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
               log: garden.log,
               command: ["sh", "-c", "echo ok"],
               args: [],
@@ -1289,7 +1291,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           async () =>
             runAndCopy({
-              ctx: await garden.getPluginContext(provider),
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
               log: garden.log,
               command: ["sh", "-c", "echo ok"],
               args: [],
@@ -1320,7 +1322,7 @@ describe("kubernetes Pod runner functions", () => {
         await expectError(
           async () =>
             runAndCopy({
-              ctx: await garden.getPluginContext(provider),
+              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
               log: garden.log,
               args: [],
               interactive: false,

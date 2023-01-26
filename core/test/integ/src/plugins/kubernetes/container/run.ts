@@ -54,7 +54,7 @@ describe("runContainerTask", () => {
 
     garden.events.eventLog = []
 
-    const ctx = await garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearTaskResult({ ctx, log: garden.log, action })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -96,7 +96,7 @@ describe("runContainerTask", () => {
       localModeDeployNames: [],
     })
 
-    const ctx = await garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearTaskResult({ ctx, log: garden.log, action })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -128,7 +128,7 @@ describe("runContainerTask", () => {
       localModeDeployNames: [],
     })
 
-    const ctx = await garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearTaskResult({ ctx, log: garden.log, action })
 
     await expectError(

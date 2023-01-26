@@ -35,6 +35,7 @@ describe("octant provider", () => {
         log: garden.log,
         page: plugin.dashboardPages[0],
         pluginName: "octant",
+        events: undefined,
       })
 
       // Make sure the URL works, no need to check the output

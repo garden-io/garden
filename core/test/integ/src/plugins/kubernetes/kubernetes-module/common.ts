@@ -42,7 +42,7 @@ describe("readManifests", () => {
   before(async () => {
     garden = await makeTestGarden(exampleDir)
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
   })
 
   beforeEach(async () => {

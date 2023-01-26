@@ -172,7 +172,7 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
 const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garden; graph: ConfigGraph }) => {
   const { garden, provider, ctx } = params
   const templateContext = new ActionConfigContext(garden)
-  const ctxForDeploy = await garden.getPluginContext(provider, templateContext, ctx.events)
+  const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
   return ctxForDeploy
 }
 
@@ -347,7 +347,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
       const tasks = await Bluebird.map(actions, async (action) => {
         const templateContext = new ActionConfigContext(garden)
         const pulumiParams: PulumiBaseParams = {
-          ctx: await garden.getPluginContext(provider, templateContext, ctx.events),
+          ctx: await garden.getPluginContext({ provider, templateContext, events: ctx.events }),
           provider,
           log,
         }

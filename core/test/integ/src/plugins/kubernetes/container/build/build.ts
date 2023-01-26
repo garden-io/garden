@@ -45,7 +45,7 @@ describe("kubernetes build flow", () => {
     log = garden.log
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
   }
 
   async function resolveBuildImageAction(buildActionName: string) {

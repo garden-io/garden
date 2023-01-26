@@ -25,7 +25,7 @@ describe("ensureNamespace", () => {
     const root = getDataDir("test-projects", "container")
     const garden = await makeTestGarden(root)
     const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
-    const ctx = await garden.getPluginContext(provider)
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
     api = await KubeApi.factory(log, ctx, provider)
   })

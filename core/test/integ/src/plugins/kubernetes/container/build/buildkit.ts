@@ -44,7 +44,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
 
   beforeEach(async () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     api = await KubeApi.factory(garden.log, ctx, provider)
     namespace = (await getNamespaceStatus({ log: garden.log, ctx, provider })).namespaceName
   })

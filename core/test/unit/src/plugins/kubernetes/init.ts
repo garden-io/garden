@@ -129,7 +129,7 @@ describe("kubernetes init", () => {
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
-    ctx = await garden.getPluginContext(basicProvider)
+    ctx = await garden.getPluginContext({ provider: basicProvider, templateContext: undefined, events: undefined })
     ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     api = await KubeApi.factory(garden.log, ctx, basicProvider)
   })
