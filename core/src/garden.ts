@@ -1561,7 +1561,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const loggedIn = !!cloudApi
 
   config = resolveProjectConfig({
-    defaultEnvironment: defaultEnvironmentName,
+    defaultName: defaultEnvironmentName,
     config,
     artifactsPath,
     vcsInfo,

@@ -46,7 +46,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment: "default",
+        defaultName: "default",
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -106,7 +106,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -179,7 +179,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -239,7 +239,7 @@ describe("resolveProjectConfig", () => {
     })
 
     const result = resolveProjectConfig({
-      defaultEnvironment,
+      defaultName: defaultEnvironment,
       config,
       artifactsPath: "/tmp",
       vcsInfo,
@@ -271,7 +271,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -306,11 +306,11 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should set defaultEnvironment to first environment if not configured", async () => {
-    const defaultEnvironment = ""
+    const defaultName = ""
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
+      defaultEnvironment: defaultName,
       environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -319,7 +319,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -340,11 +340,11 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should populate default values in the schema", async () => {
-    const defaultEnvironment = ""
+    const defaultName = ""
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
+      defaultEnvironment: defaultName,
       environments: [{ defaultNamespace: null, name: "default", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -353,7 +353,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -404,7 +404,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,

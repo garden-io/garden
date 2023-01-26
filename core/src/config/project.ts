@@ -351,20 +351,20 @@ export const projectSchema = () =>
       "Configuration for a Garden project. This should be specified in the garden.yml file in your project root."
     )
 
-export function getDefaultEnvironmentName(defaultEnvironment: string, config: ProjectConfig): string {
+export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
   const environments = config.environments
 
   // the default environment is the first specified environment in the config, unless specified
-  if (!defaultEnvironment) {
+  if (!defaultName) {
     return environments[0].name
   } else {
-    if (!findByName(environments, defaultEnvironment)) {
-      throw new ConfigurationError(`The specified default environment ${defaultEnvironment} is not defined`, {
-        defaultEnvironment,
+    if (!findByName(environments, defaultName)) {
+      throw new ConfigurationError(`The specified default environment ${defaultName} is not defined`, {
+        defaultEnvironment: defaultName,
         availableEnvironments: getNames(environments),
       })
     }
-    return defaultEnvironment
+    return defaultName
   }
 }
 
@@ -376,7 +376,7 @@ export function getDefaultEnvironmentName(defaultEnvironment: string, config: Pr
  * @param config raw project configuration
  */
 export function resolveProjectConfig({
-  defaultEnvironment,
+  defaultName,
   config,
   artifactsPath,
   vcsInfo,
@@ -386,7 +386,7 @@ export function resolveProjectConfig({
   secrets,
   commandInfo,
 }: {
-  defaultEnvironment: string
+  defaultName: string
   config: ProjectConfig
   artifactsPath: string
   vcsInfo: VcsInfo
@@ -426,7 +426,7 @@ export function resolveProjectConfig({
       ...config,
       ...globalConfig,
       name,
-      defaultEnvironment,
+      defaultEnvironment: defaultName,
       // environments are validated later
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
       sources: [],
@@ -449,7 +449,7 @@ export function resolveProjectConfig({
     sources,
   }
 
-  config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironment, config)
+  config.defaultEnvironment = getDefaultEnvironmentName(defaultName, config)
 
   return config
 }
