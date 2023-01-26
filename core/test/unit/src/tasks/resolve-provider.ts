@@ -10,16 +10,20 @@ import { PluginMap, createGardenPlugin } from "../../../../src/plugin/plugin"
 import { getPluginBases } from "../../../../src/plugins"
 import { expect } from "chai"
 import { sortBy } from "lodash"
-import { makeTempDir, TempDirectory, TestGarden, makeTestGarden, stubProviderAction } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import {
+  makeTempDir,
+  TempDirectory,
+  TestGarden,
+  makeTestGarden,
+  stubProviderAction,
+  createProjectConfig,
+} from "../../../helpers"
 import execa from "execa"
 import { ResolveProviderTask } from "../../../../src/tasks/resolve-provider"
 import { pathExists, writeFile, remove } from "fs-extra"
 import { join } from "path"
 import { serialize } from "v8"
 import moment from "moment"
-import { defaultNamespace } from "../../../../src/config/project"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { GraphResults } from "../../../../src/graph/results"
 
 describe("ResolveProviderTask", () => {
@@ -42,17 +46,10 @@ describe("ResolveProviderTask", () => {
     await remove(join(tmpDir.path, "cache"))
 
     garden = await makeTestGarden(tmpDir.path, {
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-plugin" }],
-        variables: {},
-      },
+      }),
     })
 
     const plugin = await garden.getPlugin("test-plugin")

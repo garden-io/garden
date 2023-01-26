@@ -7,14 +7,12 @@
  */
 
 import { exec, getPlatform, getArchitecture } from "../../../../../src/util/util"
-import { makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts } from "../../../../helpers"
+import { createProjectConfig, makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts } from "../../../../helpers"
 import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools"
 import { expect } from "chai"
-import { DEFAULT_API_VERSION, GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
+import { GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { join } from "path"
-import { defaultNamespace } from "../../../../../src/config/project"
-import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("FetchToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -65,17 +63,10 @@ describe("FetchToolsCommand", () => {
   it("should fetch tools for configured providers", async () => {
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
-        variables: {},
-      },
+      }),
     })
 
     garden.providerConfigs = [{ name: "test" }]
@@ -112,17 +103,10 @@ describe("FetchToolsCommand", () => {
   it("should fetch no tools when no providers are configured", async () => {
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
-        variables: {},
-      },
+      }),
     })
 
     garden.providerConfigs = []
@@ -150,17 +134,9 @@ describe("FetchToolsCommand", () => {
   it("should fetch tools for all providers with --all", async () => {
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [],
-        variables: {},
-      },
+      }),
     })
 
     garden.providerConfigs = []
@@ -197,17 +173,9 @@ describe("FetchToolsCommand", () => {
   it("should fetch only tools marked for pre-fetch when --garden-image-build is set", async () => {
     const garden: any = await TestGarden.factory(tmpDir.path, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
-        providers: [],
-        variables: {},
-      },
+      }),
     })
 
     garden.providerConfigs = []

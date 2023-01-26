@@ -10,17 +10,16 @@ import tmp from "tmp-promise"
 import { expect } from "chai"
 import { Garden } from "../../../../src"
 import { colors, LogsCommand } from "../../../../src/commands/logs"
-import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
+import { ProjectConfig } from "../../../../src/config/project"
 import { GardenPlugin } from "../../../../src/plugin/plugin"
 import { TestGarden } from "../../../../src/util/testing"
-import { customizedTestPlugin, expectError, withDefaultGlobalOpts } from "../../../helpers"
+import { createProjectConfig, customizedTestPlugin, expectError, withDefaultGlobalOpts } from "../../../helpers"
 import execa from "execa"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { LogLevel } from "../../../../src/logger/logger"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { DeployLogEntry } from "../../../../src/types/service"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { GetDeployLogs } from "../../../../src/plugin/handlers/deploy/get-logs"
@@ -65,17 +64,10 @@ const makeDeployAction = (basePath: string, name: string): BaseActionConfig => (
 })
 
 async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
-  const config: ProjectConfig = {
-    apiVersion: DEFAULT_API_VERSION,
-    kind: "Project",
-    name: "test",
+  const config: ProjectConfig = createProjectConfig({
     path: tmpDir.path,
-    defaultEnvironment: "default",
-    dotIgnoreFile: defaultDotIgnoreFile,
-    environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [{ name: "test" }],
-    variables: {},
-  }
+  })
 
   const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
   garden.setActionConfigs([], [makeDeployAction(tmpDir.path, "test-service-a")])

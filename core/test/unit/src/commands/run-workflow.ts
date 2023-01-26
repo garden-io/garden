@@ -18,15 +18,15 @@ import {
   makeTestGarden,
   customizedTestPlugin,
   expectFuzzyMatch,
+  createProjectConfig,
 } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../src/commands/run-workflow"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
-import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
+import { ProjectConfig } from "../../../../src/config/project"
 import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { dedent } from "../../../../src/util/string"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
@@ -308,17 +308,10 @@ describe("RunWorkflowCommand", () => {
     const tmpDir = await tmp.dir({ unsafeCleanup: true })
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
-    const projectConfig: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    const projectConfig: ProjectConfig = createProjectConfig({
       path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
 
     const _garden = await TestGarden.factory(tmpDir.path, { config: projectConfig, plugins: [testPlugin] })
     const log = garden.log
@@ -400,17 +393,10 @@ describe("RunWorkflowCommand", () => {
       },
     })
 
-    const projectConfig: ProjectConfig = {
-      apiVersion: "garden.io/v0",
-      kind: "Project",
-      name: "test",
+    const projectConfig: ProjectConfig = createProjectConfig({
       path: garden.projectRoot,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
 
     const _garden = await makeTestGarden(garden.projectRoot, { config: projectConfig, plugins: [test] })
 

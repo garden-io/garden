@@ -7,15 +7,14 @@
  */
 
 import tmp from "tmp-promise"
-import { TestGarden } from "../../helpers"
+import { createProjectConfig, TestGarden } from "../../helpers"
 import { resolveProjectOutputs } from "../../../src/outputs"
 import { expect } from "chai"
 import { realpath } from "fs-extra"
 import { createGardenPlugin } from "../../../src/plugin/plugin"
-import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
+import { ProjectConfig } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
 import { exec } from "../../../src/util/util"
-import { defaultDotIgnoreFile } from "../../../src/util/fs"
 import { joi } from "../../../src/config/common"
 
 describe("resolveProjectOutputs", () => {
@@ -27,17 +26,10 @@ describe("resolveProjectOutputs", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     tmpPath = await realpath(tmpDir.path)
     await exec("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
-    projectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    projectConfig = createProjectConfig({
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
   })
 
   afterEach(async () => {
