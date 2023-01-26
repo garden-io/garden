@@ -379,6 +379,8 @@ export const defaultModuleConfig: ModuleConfig = {
         dependencies: [],
       },
     ],
+    tests: [],
+    tasks: [],
   },
   serviceConfigs: [
     {
