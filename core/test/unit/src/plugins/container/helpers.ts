@@ -41,7 +41,7 @@ describe("containerHelpers", () => {
 
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
-    apiVersion: "garden.io/v0",
+    apiVersion: DEFAULT_API_VERSION,
     build: {
       dependencies: [],
     },
@@ -189,7 +189,7 @@ describe("containerHelpers", () => {
 
     it("should use image name if specified with commit hash if no version is set", async () => {
       const action = await getResolvedTestBuildAction({
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
         build: {
           dependencies: [],
