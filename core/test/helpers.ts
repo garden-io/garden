@@ -53,7 +53,7 @@ import {
 } from "../src/plugins/exec/config"
 import { RunActionHandler, TestActionHandler } from "../src/plugin/action-types"
 import { GetRunResult } from "../src/plugin/handlers/run/get-result"
-import { defaultNamespace, ProjectConfig } from "../src/config/project"
+import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
 import { GraphResultMap } from "../src/graph/results"
@@ -357,12 +357,17 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     kind: "Project",
     name: "test",
     path: "tmp",
-    defaultEnvironment: "default",
+    defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
     providers: [],
     variables: {},
   })
+
+export const createProjectConfig = (partialCustomConfig: Partial<ProjectConfig>): ProjectConfig => {
+  const baseConfig = getDefaultProjectConfig()
+  return merge(baseConfig, partialCustomConfig)
+}
 
 export const defaultModuleConfig: ModuleConfig = {
   apiVersion: DEFAULT_API_VERSION,
