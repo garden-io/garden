@@ -685,6 +685,12 @@ jobs:
       - run:
           name: Install and start microk8s
           command: |
+            # create microk8s and snap_microk8s as group aliases for the circleci group
+            # https://github.com/canonical/microk8s/issues/3608#issuecomment-1383838198
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" microk8s
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" snap_microk8s
+
+            # install microk8s from snap
             sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
             sudo microk8s.status --wait-ready --timeout=300
 
@@ -693,8 +699,6 @@ jobs:
             sleep 10
             sudo microk8s.enable storage registry dns
 
-            sudo usermod -a -G microk8s circleci
-            newgrp microk8s
             echo "********* microk8s ready! ************"
 
             # Set up kubeconfig and environment
