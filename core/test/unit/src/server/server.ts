@@ -219,7 +219,7 @@ describe("GardenServer", () => {
         const parsed = JSON.parse(msg.toString())
         // This message is always sent at the beginning and we skip it here
         // to simplify testing.
-        if (parsed.type !== "serverReady") {
+        if (parsed.name !== "serverReady") {
           cb(parsed)
         }
       })
@@ -268,7 +268,7 @@ describe("GardenServer", () => {
 
         if (msgs.length === 2) {
           expect(msgs).to.eql([
-            { type: "serverReady", message: "Server ready" },
+            { type: "event", name: "serverReady", payload: {} },
             { type: "event", name: "_test", payload: "foo" },
           ])
           done()
