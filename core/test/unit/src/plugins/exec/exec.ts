@@ -372,7 +372,6 @@ describe("exec plugin", () => {
   describe("configureExecModule", () => {
     it("should throw if a local exec module has a build.copy spec", async () => {
       const moduleConfig = makeTestModule(<Partial<ModuleConfig>>{
-        local: true,
         build: {
           dependencies: [
             {
@@ -386,6 +385,7 @@ describe("exec plugin", () => {
             },
           ],
         },
+        spec: { local: true },
       })
       const provider = await garden.resolveProvider(garden.log, "test-plugin")
       const ctx = await garden.getPluginContext(provider)
