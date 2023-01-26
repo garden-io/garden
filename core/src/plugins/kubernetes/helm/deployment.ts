@@ -68,11 +68,11 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     if (force && !ctx.production) {
       installArgs.push("--replace")
     }
-    await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs] })
+    await helm({ ctx: k8sCtx, namespace, log, args: [...installArgs], emitLogEvents: true })
   } else {
     log.silly(`Upgrading Helm release ${releaseName}`)
     const upgradeArgs = ["upgrade", releaseName, ...reference, "--install", ...commonArgs]
-    await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs] })
+    await helm({ ctx: k8sCtx, namespace, log, args: [...upgradeArgs], emitLogEvents: true })
 
     // If ctx.cloudApi is defined, the user is logged in and they might be trying to deploy to an environment
     // that could have been paused by by Garden Cloud's AEC functionality. We therefore make sure to clean up any
@@ -221,7 +221,7 @@ export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> =
 
   const resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
 
-  await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName] })
+  await helm({ ctx: k8sCtx, log, namespace, args: ["uninstall", releaseName], emitLogEvents: true })
 
   // Wait for resources to terminate
   await deleteResources({ log, ctx, provider, resources, namespace })
