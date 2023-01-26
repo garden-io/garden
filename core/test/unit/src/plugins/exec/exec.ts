@@ -13,21 +13,18 @@ import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
-import { getDataDir, makeTestModule, expectError } from "../../../../helpers"
+import { getDataDir, makeTestModule, expectError, createProjectConfig } from "../../../../helpers"
 import { RunTask } from "../../../../../src/tasks/run"
 import { dataDir, makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
 import { TestTask } from "../../../../../src/tasks/test"
-import { defaultNamespace } from "../../../../../src/config/project"
 import { readFile, remove } from "fs-extra"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
-import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
@@ -50,17 +47,10 @@ describe("exec plugin", () => {
   it("should run a script on init in the project root, if configured", async () => {
     const _garden = await makeTestGarden(testProjectRoot, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: garden.projectRoot,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "exec", initScript: "echo hello! > .garden/test.txt" }],
-        variables: {},
-      },
+      }),
       noCache: true,
     })
 
@@ -74,17 +64,10 @@ describe("exec plugin", () => {
   it("should throw if a script configured and exits with a non-zero code", async () => {
     const _garden = await makeTestGarden(garden.projectRoot, {
       plugins: [plugin],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: testProjectRoot,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "exec", initScript: "echo oh no!; exit 1" }],
-        variables: {},
-      },
+      }),
     })
 
     await expectError(() => _garden.resolveProviders(_garden.log), "plugin")

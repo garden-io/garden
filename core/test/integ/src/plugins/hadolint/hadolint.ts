@@ -7,10 +7,10 @@
  */
 
 import tmp from "tmp-promise"
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
+import { ProjectConfig } from "../../../../../src/config/project"
 import execa = require("execa")
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { getDataDir, TestGarden } from "../../../../helpers"
+import { createProjectConfig, getDataDir, TestGarden } from "../../../../helpers"
 import { expect } from "chai"
 import stripAnsi from "strip-ansi"
 import { dedent } from "../../../../../src/util/string"
@@ -18,7 +18,6 @@ import { TestTask } from "../../../../../src/tasks/test"
 import { writeFile, remove, pathExists } from "fs-extra"
 import { join } from "path"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 import { convertModules } from "../../../../../src/resolve-module"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction } from "../../../../../src/actions/test"
@@ -35,17 +34,10 @@ describe("hadolint provider", () => {
 
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
 
-    projectConfigFoo = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    projectConfigFoo = createProjectConfig({
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "hadolint" }],
-      variables: {},
-    }
+    })
 
     projectHadolintConfigPath = join(tmpPath, ".hadolint.yaml")
   })

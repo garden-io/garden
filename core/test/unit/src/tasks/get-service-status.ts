@@ -9,11 +9,9 @@
 import tmp from "tmp-promise"
 import execa from "execa"
 
-import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { ProjectConfig } from "../../../../src/config/project"
 import { expect } from "chai"
-import { TestGarden } from "../../../helpers"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { createProjectConfig, TestGarden } from "../../../helpers"
 import { DeployTask } from "../../../../src/tasks/deploy"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
@@ -57,17 +55,10 @@ describe("DeployTask", () => {
 
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
-    config = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    config = createProjectConfig({
       path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
     testPlugin = createGardenPlugin({
       name: "test",
       createActionTypes: {

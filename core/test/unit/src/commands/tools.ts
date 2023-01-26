@@ -7,9 +7,16 @@
  */
 
 import { exec, getPlatform, getArchitecture } from "../../../../src/util/util"
-import { makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts, dataDir, expectError } from "../../../helpers"
+import {
+  makeTempDir,
+  TempDirectory,
+  TestGarden,
+  withDefaultGlobalOpts,
+  dataDir,
+  expectError,
+  createProjectConfig,
+} from "../../../helpers"
 import { expect } from "chai"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { join } from "path"
 import { ToolsCommand } from "../../../../src/commands/tools"
@@ -17,9 +24,7 @@ import { LogLevel } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { makeDummyGarden } from "../../../../src/cli/cli"
-import { defaultNamespace } from "../../../../src/config/project"
 import { getLogMessages } from "../../../../src/util/testing"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -90,17 +95,10 @@ describe("ToolsCommand", () => {
 
     garden = await TestGarden.factory(tmpDir.path, {
       plugins: [pluginA, pluginB],
-      config: {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
-        name: "test",
+      config: createProjectConfig({
         path: tmpDir.path,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }],
-        variables: {},
-      },
+      }),
     })
     log = garden.log
 
