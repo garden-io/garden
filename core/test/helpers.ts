@@ -95,7 +95,6 @@ export async function profileBlock(description: string, block: () => Promise<any
 
 export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
-export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 export const testModuleSpecSchema = () =>
   execModuleSpecSchema().keys({
