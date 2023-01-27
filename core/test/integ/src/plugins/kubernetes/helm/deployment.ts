@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 
-import { dataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
+import { getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { helmDeploy } from "../../../../../../src/plugins/kubernetes/helm/deployment"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import {
@@ -23,7 +23,6 @@ import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { isWorkload } from "../../../../../../src/plugins/kubernetes/util"
 import Bluebird from "bluebird"
 import { CloudApi } from "../../../../../../src/cloud/api"
-import { resolve } from "path"
 import { getLogger } from "../../../../../../src/logger/logger"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
@@ -281,7 +280,7 @@ describe("helmDeploy", () => {
 
   it("should mark a chart that has been paused by Garden Cloud AEC as outdated", async () => {
     const fakeCloudApi = new CloudApi(getLogger().placeholder(), "https://test.cloud.garden.io")
-    const projectRoot = resolve(dataDir, "test-projects", "helm")
+    const projectRoot = getDataDir("test-projects", "helm")
     const gardenWithCloudApi = await makeTestGarden(projectRoot, { cloudApi: fakeCloudApi, noCache: true })
 
     graph = await gardenWithCloudApi.getConfigGraph({ log: gardenWithCloudApi.log, emit: false })

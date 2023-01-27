@@ -7,8 +7,7 @@
  */
 
 import { expect } from "chai"
-import { resolve } from "path"
-import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
+import { getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { BaseActionTask, ValidResultType } from "../../../../src/tasks/base"
@@ -19,7 +18,7 @@ describe("BaseActionTask", () => {
   let graph: ConfigGraph
   let log: LogEntry
 
-  const projectRoot = resolve(dataDir, "test-project-test-deps")
+  const projectRoot = getDataDir("test-project-test-deps")
 
   class TestTask extends BaseActionTask<TestAction, ValidResultType> {
     type = "test"

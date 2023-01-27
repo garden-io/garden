@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { resolve, join } from "path"
+import { join } from "path"
 import td from "testdouble"
 import { Garden } from "../../../../../src/garden"
 import { prepareDockerAuth, getIngressMisconfigurationWarnings } from "../../../../../src/plugins/kubernetes/init"
@@ -17,7 +17,7 @@ import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../..
 import { gardenPlugin } from "../../../../../src/plugins/container/container"
 import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
-import { dataDir, makeTestGarden, expectError } from "../../../../helpers"
+import { makeTestGarden, expectError, getDataDir } from "../../../../helpers"
 import { KubernetesList, KubernetesResource } from "../../../../../src/plugins/kubernetes/types"
 import { V1IngressClass, V1Secret } from "@kubernetes/client-node"
 import { PluginContext } from "../../../../../src/plugin-context"
@@ -106,7 +106,7 @@ const dockerCredentialHelperSecret: KubernetesResource<V1Secret> = {
 const kubeConfigEnvVar = process.env.KUBECONFIG
 
 describe("kubernetes init", () => {
-  const projectRoot = resolve(dataDir, "test-project-container")
+  const projectRoot = getDataDir("test-project-container")
   let garden: Garden
   let ctx: PluginContext
   let api: KubeApi

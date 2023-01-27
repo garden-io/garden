@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve, join } from "path"
+import { join } from "path"
 import { expect } from "chai"
 import { ensureDir } from "fs-extra"
-import { makeTestGardenA, makeTestGarden, dataDir, expectError, makeTestModule } from "../../helpers"
+import { makeTestGardenA, makeTestGarden, expectError, makeTestModule, getDataDir } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
@@ -28,7 +28,7 @@ describe("ConfigGraph", () => {
   })
 
   it("should throw when two deploy actions have the same name", async () => {
-    const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service"))
+    const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-service"))
 
     await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
       contains:
@@ -37,7 +37,7 @@ describe("ConfigGraph", () => {
   })
 
   it("should throw when two run actions have the same name", async () => {
-    const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-task"))
+    const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-task"))
 
     await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
       contains:
@@ -46,7 +46,7 @@ describe("ConfigGraph", () => {
   })
 
   it("should throw when a deploy and a run actions have the same name", async () => {
-    const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-service-and-task"))
+    const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-service-and-task"))
 
     await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
       contains:
@@ -55,7 +55,7 @@ describe("ConfigGraph", () => {
   })
 
   it("should automatically add service source modules as module build dependencies", async () => {
-    const garden = await makeTestGarden(resolve(dataDir, "test-projects", "source-module"))
+    const garden = await makeTestGarden(getDataDir("test-projects", "source-module"))
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-b")
     expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])

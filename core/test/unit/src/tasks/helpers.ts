@@ -8,9 +8,8 @@
 
 import { expect } from "chai"
 import { uniq } from "lodash"
-import { resolve } from "path"
 import { Garden } from "../../../../src/garden"
-import { makeTestGarden, dataDir, makeTestGardenA } from "../../../helpers"
+import { makeTestGarden, makeTestGardenA, getDataDir } from "../../../helpers"
 import { getActionWatchTasks } from "../../../../src/tasks/helpers"
 import { BaseTask } from "../../../../src/tasks/base"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -25,7 +24,7 @@ describe("TaskHelpers", () => {
   let log: LogEntry
 
   before(async () => {
-    depGarden = await makeTestGarden(resolve(dataDir, "test-project-dependants"))
+    depGarden = await makeTestGarden(getDataDir("test-project-dependants"))
     log = depGarden.log
   })
 

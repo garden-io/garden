@@ -7,9 +7,8 @@
  */
 
 import { expect } from "chai"
-import { resolve } from "path"
 import { TestTask } from "../../../../src/tasks/test"
-import { dataDir, makeTestGarden, TestGarden } from "../../../helpers"
+import { getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 
@@ -19,7 +18,7 @@ describe("TestTask", () => {
   let log: LogEntry
 
   beforeEach(async () => {
-    garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
+    garden = await makeTestGarden(getDataDir("test-project-test-deps"))
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     log = garden.log
   })

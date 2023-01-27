@@ -7,8 +7,7 @@
  */
 
 import { expect } from "chai"
-import { resolve } from "path"
-import { dataDir, makeTestGarden, makeTestGardenA } from "../../../helpers"
+import { getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers"
 import { TestConfig } from "../../../../src/config/test"
 import { testFromConfig } from "../../../../src/types/test"
 import { cloneDeep } from "lodash"
@@ -50,7 +49,7 @@ describe("testFromConfig", () => {
   })
 
   it("should include dependencies in version calculation", async () => {
-    const garden = await makeTestGarden(resolve(dataDir, "test-project-test-deps"))
+    const garden = await makeTestGarden(getDataDir("test-project-test-deps"))
     let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     let moduleA = graph.getModule("module-a")
     const testConfig = moduleA.testConfigs[0]

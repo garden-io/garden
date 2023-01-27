@@ -7,15 +7,14 @@
  */
 
 import { createServiceResources } from "../../../../../../src/plugins/kubernetes/container/service"
-import { makeTestGarden, dataDir } from "../../../../../helpers"
+import { makeTestGarden, getDataDir } from "../../../../../helpers"
 import { gardenPlugin } from "../../../../../../src/plugins/container/container"
-import { resolve } from "path"
 import { Garden } from "../../../../../../src/garden"
 import { expect } from "chai"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
 
 describe("createServiceResources", () => {
-  const projectRoot = resolve(dataDir, "test-project-container")
+  const projectRoot = getDataDir("test-project-container")
   let garden: Garden
 
   beforeEach(async () => {

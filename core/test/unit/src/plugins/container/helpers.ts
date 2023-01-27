@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { resolve, join } from "path"
+import { join } from "path"
 import { cloneDeep } from "lodash"
 import td from "testdouble"
 import tmp from "tmp-promise"
@@ -16,7 +16,7 @@ import { writeFile, mkdir } from "fs-extra"
 import { Garden } from "../../../../../src/garden"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin } from "../../../../../src/plugins/container/container"
-import { dataDir, expectError, getPropertyName, makeTestGarden } from "../../../../helpers"
+import { expectError, getDataDir, getPropertyName, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
@@ -33,8 +33,8 @@ import { BuildAction } from "../../../../../src/actions/build"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 
 describe("containerHelpers", () => {
-  const projectRoot = resolve(dataDir, "test-project-container")
-  const modulePath = resolve(dataDir, "test-project-container", "module-a")
+  const projectRoot = getDataDir("test-project-container")
+  const modulePath = getDataDir("test-project-container", "module-a")
 
   const plugin = gardenPlugin()
   const configure = plugin.createModuleTypes![0].handlers.configure!
