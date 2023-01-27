@@ -6,15 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
-import { makeTestGarden, dataDir, withDefaultGlobalOpts } from "../../../../helpers"
+import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
 import { expect } from "chai"
 import { GetWorkflowsCommand } from "../../../../../src/commands/get/get-workflows"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { defaultWorkflowResources } from "../../../../../src/config/workflow"
 
 describe("GetWorkflowsCommand", () => {
-  const projectRoot = resolve(dataDir, "test-project-a")
+  const projectRoot = getDataDir("test-project-a")
   const defaultWorkflowConf = {
     apiVersion: DEFAULT_API_VERSION,
     kind: "Workflow" as "Workflow",

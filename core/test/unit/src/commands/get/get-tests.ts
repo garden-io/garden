@@ -6,13 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
-import { makeTestGarden, dataDir, withDefaultGlobalOpts } from "../../../../helpers"
+import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
 import { GetTestsCommand } from "../../../../../src/commands/get/get-tests"
 import { expect } from "chai"
 
 describe("GetTestsCommand", () => {
-  const projectRoot = resolve(dataDir, "test-project-a")
+  const projectRoot = getDataDir("test-project-a")
 
   it("should return all tests in the project", async () => {
     const garden = await makeTestGarden(projectRoot)

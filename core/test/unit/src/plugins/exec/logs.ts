@@ -8,12 +8,12 @@
 
 import tmp from "tmp-promise"
 import { expect } from "chai"
-import { join, resolve } from "path"
+import { join } from "path"
 import moment from "moment"
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin } from "../../../../../src/plugins/exec/exec"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { dataDir, makeTestGarden } from "../../../../helpers"
+import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { appendFile, ensureFile, remove, writeFile } from "fs-extra"
 import { randomString } from "../../../../../src/util/string"
 import { ExecLogsFollower, LocalServiceLogEntry } from "../../../../../src/plugins/exec/logs"
@@ -45,7 +45,7 @@ async function writeLogFile(path: string, entries: LocalServiceLogEntry[], appen
 
 describe("ExecLogsFollower", () => {
   let tmpDir: tmp.DirectoryResult
-  const projectRoot = resolve(dataDir, "test-project-exec")
+  const projectRoot = getDataDir("test-project-exec")
 
   let garden: Garden
   let log: LogEntry

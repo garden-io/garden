@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dataDir, expectError, makeTestGarden, TestGarden } from "../../../../../helpers"
+import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { resolve } from "path"
 import { expect } from "chai"
 import { first, uniq } from "lodash"
@@ -36,7 +36,7 @@ export async function getHelmTestGarden() {
     return helmTestGarden
   }
 
-  const projectRoot = resolve(dataDir, "test-projects", "helm")
+  const projectRoot = getDataDir("test-projects", "helm")
   const garden = await makeTestGarden(projectRoot)
 
   helmTestGarden = garden
@@ -51,7 +51,7 @@ export async function getHelmLocalModeTestGarden() {
     return helmLocalModeTestGarden
   }
 
-  const projectRoot = resolve(dataDir, "test-projects", "helm-local-mode")
+  const projectRoot = getDataDir("test-projects", "helm-local-mode")
   const garden = await makeTestGarden(projectRoot)
 
   helmLocalModeTestGarden = garden

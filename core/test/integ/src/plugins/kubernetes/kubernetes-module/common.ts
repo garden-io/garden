@@ -8,11 +8,10 @@
 
 import { expect } from "chai"
 import { cloneDeep } from "lodash"
-import { resolve } from "path"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { readManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
-import { TestGarden, dataDir, makeTestGarden, getExampleDir, expectError } from "../../../../../helpers"
+import { TestGarden, makeTestGarden, getExampleDir, expectError, getDataDir } from "../../../../../helpers"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
 import { Resolved } from "../../../../../../src/actions/types"
 
@@ -23,7 +22,7 @@ export async function getKubernetesTestGarden() {
     return kubernetesTestGarden
   }
 
-  const projectRoot = resolve(dataDir, "test-projects", "kubernetes-module")
+  const projectRoot = getDataDir("test-projects", "kubernetes-module")
   const garden = await makeTestGarden(projectRoot)
 
   kubernetesTestGarden = garden

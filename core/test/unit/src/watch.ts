@@ -12,12 +12,12 @@ import pEvent from "p-event"
 
 import {
   TestGarden,
-  dataDir,
   makeTestGarden,
   withDefaultGlobalOpts,
   makeExtModuleSourcesGarden,
   resetLocalConfig,
   makeExtProjectSourcesGarden,
+  getDataDir,
 } from "../../helpers"
 import { CacheContext, pathToCacheContext } from "../../../src/cache"
 import { remove, pathExists, writeFile } from "fs-extra"
@@ -38,7 +38,7 @@ describe("Watcher", () => {
   let moduleContext: CacheContext
 
   before(async () => {
-    garden = await makeTestGarden(resolve(dataDir, "test-project-watch"), { noTempDir: true, noCache: true })
+    garden = await makeTestGarden(getDataDir("test-project-watch"), { noTempDir: true, noCache: true })
     modulePath = resolve(garden.projectRoot, "module-a")
     doubleModulePath = resolve(garden.projectRoot, "double-module")
     includeModulePath = resolve(garden.projectRoot, "with-include")
@@ -394,7 +394,7 @@ describe("Watcher", () => {
 
       garden = await makeExtProjectSourcesGarden({ noCache: true })
 
-      localProjectSourceDir = resolve(dataDir, "test-project-local-project-sources")
+      localProjectSourceDir = getDataDir("test-project-local-project-sources")
       localSourcePathA = join(localProjectSourceDir, "source-a")
       localSourcePathB = join(localProjectSourceDir, "source-b")
 

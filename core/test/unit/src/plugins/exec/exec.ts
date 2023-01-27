@@ -8,7 +8,7 @@
 
 import { spawn } from "child_process"
 import { expect } from "chai"
-import { join, resolve } from "path"
+import { join } from "path"
 import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
@@ -17,7 +17,7 @@ import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { getDataDir, makeTestModule, expectError, createProjectConfig } from "../../../../helpers"
 import { RunTask } from "../../../../../src/tasks/run"
-import { dataDir, makeTestGarden } from "../../../../helpers"
+import { makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { pathExists, emptyDir } from "fs-extra"
@@ -30,7 +30,7 @@ import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
 
 describe("exec plugin", () => {
-  const testProjectRoot = resolve(dataDir, "test-project-exec")
+  const testProjectRoot = getDataDir("test-project-exec")
   const plugin = gardenPlugin()
 
   let garden: Garden

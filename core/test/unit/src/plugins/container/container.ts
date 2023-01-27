@@ -6,21 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
 import td from "testdouble"
 
 import { Garden } from "../../../../../src/garden"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
-import { dataDir, makeTestGarden } from "../../../../helpers"
+import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 // import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 // import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
 // import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 
 describe("plugins.container", () => {
-  const projectRoot = resolve(dataDir, "test-project-container")
-  // const modulePath = resolve(dataDir, "test-project-container", "module-a")
+  const projectRoot = getDataDir("test-project-container")
+  // const modulePath = getDataDir( "test-project-container", "module-a")
   // const relDockerfilePath = "docker-dir/Dockerfile"
 
   // const plugin = gardenPlugin()

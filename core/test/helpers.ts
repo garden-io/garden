@@ -566,9 +566,9 @@ export async function resetLocalConfig(gardenDirPath: string) {
  * the Garden class.
  */
 export async function makeExtProjectSourcesGarden(opts: TestGardenOpts = {}) {
-  const projectRoot = resolve(dataDir, "test-project-ext-project-sources")
+  const projectRoot = getDataDir("test-project-ext-project-sources")
   // Borrow the external sources from here:
-  const extSourcesRoot = resolve(dataDir, "test-project-local-project-sources")
+  const extSourcesRoot = getDataDir("test-project-local-project-sources")
   const sourceNames = ["source-a", "source-b", "source-c"]
   return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "project", opts })
 }
@@ -578,9 +578,9 @@ export async function makeExtProjectSourcesGarden(opts: TestGardenOpts = {}) {
  * the Garden class.
  */
 export async function makeExtModuleSourcesGarden(opts: TestGardenOpts = {}) {
-  const projectRoot = resolve(dataDir, "test-project-ext-module-sources")
+  const projectRoot = getDataDir("test-project-ext-module-sources")
   // Borrow the external sources from here:
-  const extSourcesRoot = resolve(dataDir, "test-project-local-module-sources")
+  const extSourcesRoot = getDataDir("test-project-local-module-sources")
   const sourceNames = ["module-a", "module-b", "module-c"]
   return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "module", opts })
 }

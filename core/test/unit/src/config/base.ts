@@ -16,19 +16,19 @@ import {
   validateRawConfig,
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
-import { dataDir, expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
+import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import stripAnsi = require("strip-ansi")
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/util"
 
-const projectPathA = resolve(dataDir, "test-project-a")
+const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
 
-const projectPathMultipleModules = resolve(dataDir, "test-projects", "multiple-module-config")
+const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-config")
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
-const projectPathDuplicateProjects = resolve(dataDir, "test-project-duplicate-project-config")
+const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
 
 // TODO: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
@@ -105,7 +105,7 @@ describe("prepareProjectResource", () => {
 
 describe("loadConfigResources", () => {
   it("should throw a config error if the file couldn't be parsed", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "invalid-syntax-module", "garden.yml")),
       (err) => {
@@ -116,7 +116,7 @@ describe("loadConfigResources", () => {
   })
 
   it("should throw if a config doesn't specify a kind", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-kind", "garden.yml")),
       (err) => {
@@ -126,7 +126,7 @@ describe("loadConfigResources", () => {
   })
 
   it("should throw if a config specifies an invalid kind", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "invalid-config-kind", "garden.yml")),
       (err) => {
@@ -136,7 +136,7 @@ describe("loadConfigResources", () => {
   })
 
   it("should throw if a module config doesn't specify a type", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-type", "garden.yml")),
       (err) => {
@@ -148,7 +148,7 @@ describe("loadConfigResources", () => {
   })
 
   it("should throw if a module config doesn't specify a name", async () => {
-    const projectPath = resolve(dataDir, "test-project-invalid-config")
+    const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-name", "garden.yml")),
       (err) => {
@@ -476,7 +476,7 @@ describe("loadConfigResources", () => {
   })
 
   it("should ignore empty documents in multi-doc YAML", async () => {
-    const path = resolve(dataDir, "test-projects", "empty-doc")
+    const path = getDataDir("test-projects", "empty-doc")
     const configPath = resolve(path, "garden.yml")
     const parsed = await loadConfigResources(path, configPath)
 

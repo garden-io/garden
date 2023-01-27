@@ -6,12 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { resolve } from "path"
-import { makeTestGarden, dataDir, withDefaultGlobalOpts } from "../../../../helpers"
+import { makeTestGarden, withDefaultGlobalOpts, getDataDir } from "../../../../helpers"
 import { GetRunsCommand } from "../../../../../src/commands/get/get-runs"
 
 describe("GetRunsCommand", () => {
-  const projectRoot = resolve(dataDir, "test-project-b")
+  const projectRoot = getDataDir("test-project-b")
 
   it("should run without errors when called without arguments", async () => {
     const garden = await makeTestGarden(projectRoot)
