@@ -8,12 +8,12 @@
 
 import { join } from "path"
 import {
-  dataDir,
   expectError,
   withDefaultGlobalOpts,
   cleanProject,
   TestGarden,
   makeTestGarden,
+  getDataDir,
 } from "../../../../helpers"
 import { GetRunResultCommand } from "../../../../../src/commands/get/get-run-result"
 import { expect } from "chai"
@@ -27,7 +27,7 @@ const now = new Date()
 describe("GetRunResultCommand", () => {
   let garden: TestGarden
   let log: LogEntry
-  const projectRootB = join(dataDir, "test-project-b")
+  const projectRootB = getDataDir("test-project-b")
   const command = new GetRunResultCommand()
 
   beforeEach(async () => {

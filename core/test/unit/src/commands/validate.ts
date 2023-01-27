@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
 import { ValidateCommand } from "../../../../src/commands/validate"
-import { expectError, withDefaultGlobalOpts, dataDir, makeTestGardenA, makeTestGarden } from "../../../helpers"
+import { expectError, withDefaultGlobalOpts, makeTestGardenA, makeTestGarden, getDataDir } from "../../../helpers"
 
 describe("commands.validate", () => {
   it(`should successfully validate a test project`, async () => {
@@ -27,13 +26,13 @@ describe("commands.validate", () => {
   })
 
   it("should fail validating the bad-project project", async () => {
-    const root = join(dataDir, "validate", "bad-project")
+    const root = getDataDir("validate", "bad-project")
 
     await expectError(async () => await makeTestGarden(root, { noTempDir: true, noCache: true }), "configuration")
   })
 
   it("should fail validating the bad-module project", async () => {
-    const root = join(dataDir, "validate", "bad-module")
+    const root = getDataDir("validate", "bad-module")
     const garden = await makeTestGarden(root)
     const log = garden.log
     const command = new ValidateCommand()
@@ -53,7 +52,7 @@ describe("commands.validate", () => {
   })
 
   it("should fail validating the bad-workflow project", async () => {
-    const root = join(dataDir, "validate", "bad-workflow")
+    const root = getDataDir("validate", "bad-workflow")
     const garden = await makeTestGarden(root, { noTempDir: true, noCache: true })
     const log = garden.log
     const command = new ValidateCommand()

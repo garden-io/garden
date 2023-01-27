@@ -6,19 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { expect } from "chai"
 import {
   taskResultOutputs,
   withDefaultGlobalOpts,
-  dataDir,
   makeTestGarden,
   getRuntimeStatusEvents,
   customizedTestPlugin,
   testDeploySchema,
   testTestSchema,
   getAllProcessedTaskNames,
+  getDataDir,
 } from "../../../helpers"
 import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
@@ -108,8 +107,8 @@ const testProvider = () => {
 }
 
 describe("DeployCommand", () => {
-  const projectRootB = join(dataDir, "test-project-b")
-  const projectRootA = join(dataDir, "test-project-a")
+  const projectRootB = getDataDir("test-project-b")
+  const projectRootA = getDataDir("test-project-a")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
   // TODO: Test with --watch flag
