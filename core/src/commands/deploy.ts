@@ -23,12 +23,13 @@ import { getActionWatchTasks } from "../tasks/helpers"
 import { processActions } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
-import { getMatchingServiceNames } from "./helpers"
+import { getMatchingDeployNames } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
+import { ParameterError } from "../exceptions"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -48,7 +49,7 @@ export const deployOpts = {
   "dev-mode": new StringsParameter({
     help: deline`The name(s) of the deploys to deploy with dev mode enabled.
       Use comma as a separator to specify multiple names. Use * to deploy all
-      with dev mode enabled. Implicitly sets the --watch/-w flag.
+      with dev mode enabled.
     `,
     alias: "dev",
   }),
@@ -58,7 +59,7 @@ export const deployOpts = {
     deploys with local mode enabled. When this option is used,
     the command is run in persistent mode.
 
-    This always takes the precedence over the dev mode if there are any conflicts,
+    This always takes the precedence over dev mode if there are any conflicts,
     i.e. if the same deploys are passed to both \`--dev\` and \`--local\` options.
     `,
     alias: "local",
@@ -74,21 +75,7 @@ export const deployOpts = {
     alias: "nodeps",
   }),
   "forward": new BooleanParameter({
-    help: deline`Create port forwards and leave process running without watching
-    for changes. Ignored if --watch/-w flag is set or when in dev mode.`,
-  }),
-  "skip-watch": new BooleanParameter({
-    help: deline`[EXPERIMENTAL] If set to \`false\` while in dev-mode
-    (i.e. the --dev-mode/--dev flag is used) then file syncing will still
-    work but Garden will ignore changes to config files and services that are not in dev mode.
-
-    This can be a performance improvement for projects that have a large number of files
-    and where only syncing is needed when in dev mode.
-
-    Note that this flag cannot used if hot reloading is enabled.
-
-    This behaviour will change in a future release in favour of a "smarter"
-    watching mechanism.`,
+    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --watch/-w, --dev/--dev-mode or --local/--local-mode are set.`,
   }),
 }
 
@@ -121,8 +108,8 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
         garden deploy --local              # deploys all compatible deploys with local mode enabled
         garden deploy --env stage          # deploy your deploys to an environment called stage
-        garden deploy --skip deploy-b      # deploy all deploys except deploy-b
-        garden deploy --forward            # deploy all deploys and start port forwards without watching for changes
+        garden deploy --skip deploy-b      # deploy everything except deploy-b
+        garden deploy --forward            # deploy everything and start port forwards without watching for changes
   `
 
   arguments = deployArgs
@@ -159,6 +146,13 @@ export class DeployCommand extends Command<Args, Opts> {
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
     this.garden = garden
 
+    if (opts.watch && (opts["dev-mode"] || opts["local-mode"])) {
+      throw new ParameterError(
+        `The -w/--watch flag cannot currently be used at the same time as the --local or --dev mode flags. This is to avoid potentially conflicting actions happening while you're syncing code or working with local processes.`,
+        { opts }
+      )
+    }
+
     if (this.server) {
       this.server.setGarden(garden)
     }
@@ -194,19 +188,12 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: { aborted: true, success: false, graphResults: {} } }
     }
 
-    const localModeDeployNames = getMatchingServiceNames(opts["local-mode"], initGraph)
-    const devModeDeployNames = getMatchingServiceNames(opts["dev-mode"], initGraph).filter(
+    const localModeDeployNames = getMatchingDeployNames(opts["local-mode"], initGraph)
+    const devModeDeployNames = getMatchingDeployNames(opts["dev-mode"], initGraph).filter(
       (name) => !localModeDeployNames.includes(name)
     )
 
-    let watch = opts.watch
-
-    if (devModeDeployNames.length > 0) {
-      watch = opts["skip-watch"]
-        ? false // In this case hotReloadServiceNames is empty, otherwise we throw above
-        : true
-    }
-
+    const watch = opts.watch
     const force = opts.force
 
     const initialTasks = actions.map(

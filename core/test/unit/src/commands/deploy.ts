@@ -18,10 +18,12 @@ import {
   testTestSchema,
   getAllProcessedTaskNames,
   getDataDir,
+  expectError,
 } from "../../../helpers"
 import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
+import { makeDummyGarden } from "../../../../src/cli/cli"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -113,10 +115,11 @@ describe("DeployCommand", () => {
   // TODO: Verify that services don't get redeployed when same version is already deployed.
   // TODO: Test with --watch flag
 
+  const command = new DeployCommand()
+
   it("should build and deploy everything in a project, and execute Run dependencies", async () => {
     const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
     const log = garden.log
-    const command = new DeployCommand()
 
     const { result, errors } = await command.action({
       garden,
@@ -385,7 +388,6 @@ describe("DeployCommand", () => {
   it("should optionally build and deploy single service and its dependencies", async () => {
     const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
     const log = garden.log
-    const command = new DeployCommand()
 
     const { result, errors } = await command.action({
       garden,
@@ -435,7 +437,6 @@ describe("DeployCommand", () => {
     it("should not process runtime dependencies for the requested services", async () => {
       const garden = await makeTestGarden(projectRootA, { plugins: [testProvider()] })
       const log = garden.log
-      const command = new DeployCommand()
 
       const { result, errors } = await command.action({
         garden,
@@ -477,14 +478,66 @@ describe("DeployCommand", () => {
   })
 
   it("should be protected", async () => {
-    const command = new DeployCommand()
     expect(command.protected).to.be.true
+  })
+
+  it("throws if --watch and --dev are both set", async () => {
+    const garden = await makeDummyGarden(projectRootA, { commandInfo: { name: "deploy", args: {}, opts: {} } })
+    const log = garden.log
+
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { names: undefined },
+          opts: withDefaultGlobalOpts({
+            "dev-mode": ["*"], // <-----
+            "local-mode": undefined,
+            "watch": true, // <-----
+            "force": false,
+            "force-build": true,
+            "skip": undefined,
+            "skip-dependencies": true,
+            "forward": false,
+          }),
+        }),
+      (err) => expect(err.type).to.equal("parameter")
+    )
+  })
+
+  it("throws if --watch and --local are both set", async () => {
+    const garden = await makeDummyGarden(projectRootA, { commandInfo: { name: "deploy", args: {}, opts: {} } })
+    const log = garden.log
+
+    await expectError(
+      () =>
+        command.action({
+          garden,
+          log,
+          headerLog: log,
+          footerLog: log,
+          args: { names: undefined },
+          opts: withDefaultGlobalOpts({
+            "dev-mode": undefined,
+            "local-mode": ["*"], // <-----
+            "watch": true, // <-----
+            "force": false,
+            "force-build": true,
+            "skip": undefined,
+            "skip-dependencies": true,
+            "forward": false,
+          }),
+        }),
+      (err) => expect(err.type).to.equal("parameter")
+    )
   })
 
   it("should skip disabled services", async () => {
     const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
     const log = garden.log
-    const command = new DeployCommand()
 
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].spec.services[0].disabled = true
@@ -524,7 +577,6 @@ describe("DeployCommand", () => {
   it("should skip services from disabled modules", async () => {
     const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
     const log = garden.log
-    const command = new DeployCommand()
 
     await garden.scanAndAddConfigs()
     garden["moduleConfigs"]["module-c"].disabled = true
@@ -560,7 +612,6 @@ describe("DeployCommand", () => {
   it("should skip services set in the --skip option", async () => {
     const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
     const log = garden.log
-    const command = new DeployCommand()
 
     await garden.scanAndAddConfigs()
 

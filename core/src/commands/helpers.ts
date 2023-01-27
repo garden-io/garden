@@ -14,7 +14,7 @@ import { TestAction } from "../actions/test"
 import { ConfigGraph } from "../graph/config-graph"
 import { WorkflowConfig } from "../config/workflow"
 
-export function getMatchingServiceNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
+export function getMatchingDeployNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
   if (names.includes("*") || (!!namesFromOpt && namesFromOpt.length === 0)) {
     return configGraph.getDeploys().map((s) => s.name)
