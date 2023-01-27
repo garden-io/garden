@@ -208,6 +208,28 @@ describe("ConfigGraph (action-based configs)", () => {
         expect(getNames(buildActions).sort()).to.eql(["build-1", "build-2"])
       })
 
+      it("should omit disabled Build actions", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-build",
+              kind: "Build",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const buildActions = graph.getBuilds()
+
+        expect(buildActions).to.eql([])
+      })
+
       it("should optionally include disabled Build actions", async () => {
         const tmpGarden = await makeGarden(tmpDir, testPlugin)
 
@@ -285,6 +307,28 @@ describe("ConfigGraph (action-based configs)", () => {
         const deployActions = configGraph.getDeploys({ names: ["deploy-1", "deploy-2"] })
 
         expect(getNames(deployActions).sort()).to.eql(["deploy-1", "deploy-2"])
+      })
+
+      it("should omit disabled Deploy actions", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-deploy",
+              kind: "Deploy",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const deployActions = graph.getDeploys()
+
+        expect(deployActions).to.eql([])
       })
 
       it("should optionally include disabled Deploy actions", async () => {
@@ -366,6 +410,28 @@ describe("ConfigGraph (action-based configs)", () => {
         expect(getNames(runActions).sort()).to.eql(["run-1", "run-2"])
       })
 
+      it("should omit disabled Run actions", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-run",
+              kind: "Run",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const runActions = graph.getRuns()
+
+        expect(runActions).to.eql([])
+      })
+
       it("should optionally include disabled Run actions", async () => {
         const tmpGarden = await makeGarden(tmpDir, testPlugin)
 
@@ -443,6 +509,28 @@ describe("ConfigGraph (action-based configs)", () => {
         const testActions = configGraph.getTests({ names: ["test-1", "test-2"] })
 
         expect(getNames(testActions).sort()).to.eql(["test-1", "test-2"])
+      })
+
+      it("should omit disabled Test actions", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-test",
+              kind: "Test",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const testActions = graph.getTests()
+
+        expect(testActions).to.eql([])
       })
 
       it("should optionally include disabled Test actions", async () => {
