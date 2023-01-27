@@ -8,10 +8,9 @@
 
 import chalk from "chalk"
 import { it } from "mocha"
-import { join } from "path"
 import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { withDefaultGlobalOpts, dataDir, makeTestGarden, getAllTaskResults } from "../../../helpers"
+import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { cloneDeep } from "lodash"
 import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
@@ -19,7 +18,7 @@ import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { ConvertModuleParams } from "../../../../src/plugin/handlers/module/convert"
 
-const projectRootB = join(dataDir, "test-project-b")
+const projectRootB = getDataDir("test-project-b")
 
 type PublishActionParams = PublishBuildAction["_paramsType"]
 type PublishActionResultDetail = PublishActionResult["detail"]

@@ -12,13 +12,12 @@ import {
   TempDirectory,
   TestGarden,
   withDefaultGlobalOpts,
-  dataDir,
   expectError,
   createProjectConfig,
+  getDataDir,
 } from "../../../helpers"
 import { expect } from "chai"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
-import { join } from "path"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { LogLevel } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
@@ -44,7 +43,7 @@ describe("ToolsCommand", () => {
           {
             platform: getPlatform(),
             architecture: getArchitecture(),
-            url: "file://" + join(dataDir, "tools", "tool-a.sh"),
+            url: "file://" + getDataDir("tools", "tool-a.sh"),
             sha256: "90b5248d2fc6106bdf3e5a66e8efd54383b6c4258725e9d455efb7ee32a64223",
           },
         ],
@@ -58,7 +57,7 @@ describe("ToolsCommand", () => {
           {
             platform: getPlatform(),
             architecture: getArchitecture(),
-            url: "file://" + join(dataDir, "tools", "tool-a.sh"),
+            url: "file://" + getDataDir("tools", "tool-a.sh"),
             sha256: "90b5248d2fc6106bdf3e5a66e8efd54383b6c4258725e9d455efb7ee32a64223",
           },
         ],
@@ -79,7 +78,7 @@ describe("ToolsCommand", () => {
           {
             platform: getPlatform(),
             architecture: getArchitecture(),
-            url: "file://" + join(dataDir, "tools", "tool-b.sh"),
+            url: "file://" + getDataDir("tools", "tool-b.sh"),
             sha256: "b770f87151d8be76214960ecaa45de1b4a892930f1989f28de02bc2f44047ef5",
           },
         ],

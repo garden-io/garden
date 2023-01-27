@@ -6,16 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { join } from "path"
 import { expect } from "chai"
 import { BaseTask, BaseTaskParams, TaskProcessParams, ValidResultType } from "../../../../src/tasks/base"
-import { makeTestGarden, freezeTime, dataDir, TestGarden } from "../../../helpers"
+import { makeTestGarden, freezeTime, TestGarden, getDataDir } from "../../../helpers"
 import { MakeOptional } from "../../../../src/util/util"
 import { SolveOpts } from "../../../../src/graph/solver"
 import { ActionState } from "../../../../src/actions/types"
 import { NEW_RESOURCE_VERSION } from "../../../../src/vcs/vcs"
 
-const projectRoot = join(dataDir, "test-project-empty")
+const projectRoot = getDataDir("test-project-empty")
 
 export type TestTaskCallback = (params: { task: BaseTask; params: TaskProcessParams }) => Promise<any>
 

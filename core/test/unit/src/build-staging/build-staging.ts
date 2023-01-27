@@ -11,7 +11,7 @@ import readdir from "@jsdevtools/readdir-enhanced"
 import { join, basename } from "path"
 import { pathExists, createFile, realpath, readFile, ensureFile, writeFile, ensureDir } from "fs-extra"
 import { expect } from "chai"
-import { makeTestGarden, dataDir, TestGarden, expectError, getDataDir } from "../../../helpers"
+import { makeTestGarden, TestGarden, expectError, getDataDir } from "../../../helpers"
 import { defaultConfigFilename, TempDirectory, makeTempDir, joinWithPosix } from "../../../../src/util/fs"
 import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging"
 import { LogEntry } from "../../../../src/logger/log-entry"
@@ -32,7 +32,7 @@ import { BuildTask } from "../../../../src/tasks/build"
           f
  */
 
-const projectRoot = join(dataDir, "test-projects", "build-dir")
+const projectRoot = getDataDir("test-projects", "build-dir")
 
 const makeGarden = async (opts: TestGardenOpts = {}) => {
   return await makeTestGarden(projectRoot, { ...opts, noTempDir: true })

@@ -7,9 +7,8 @@
  */
 
 import { expect } from "chai"
-import { join } from "path"
 import { detectCycles, DependencyGraph } from "../../../../src/graph/common"
-import { makeTestGarden, dataDir, expectError } from "../../../helpers"
+import { makeTestGarden, expectError, getDataDir } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigurationError } from "../../../../src/exceptions"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
@@ -171,7 +170,7 @@ describe("graph common", () => {
       })
 
       it("should return null when no circular config dependencies are present", async () => {
-        const nonCircularProjectRoot = join(dataDir, "test-project-b")
+        const nonCircularProjectRoot = getDataDir("test-project-b")
         const garden = await makeTestGarden(nonCircularProjectRoot)
         const configGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const validationGraph = DependencyGraph.fromGraphNodes(configGraph["dependencyGraph"])
