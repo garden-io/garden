@@ -195,6 +195,12 @@ describe("ConfigGraph (action-based configs)", () => {
         expect(spec2.buildCommand).to.eql(["echo", "build-2", "ok"])
       })
 
+      it("should optionally return specified Build actions in the context", async () => {
+        const buildActions = configGraph.getBuilds({ names: ["build-1", "build-2"] })
+
+        expect(getNames(buildActions).sort()).to.eql(["build-1", "build-2"])
+      })
+
       it("should throw if named Build action is missing", async () => {
         try {
           configGraph.getBuilds({ names: ["missing-build"] })
@@ -241,6 +247,12 @@ describe("ConfigGraph (action-based configs)", () => {
 
         const spec2 = deployActions[1].getConfig("spec")
         expect(spec2.deployCommand).to.eql(["echo", "deploy-2", "ok"])
+      })
+
+      it("should optionally return specified Deploy actions in the context", async () => {
+        const deployActions = configGraph.getDeploys({ names: ["deploy-1", "deploy-2"] })
+
+        expect(getNames(deployActions).sort()).to.eql(["deploy-1", "deploy-2"])
       })
 
       it("should throw if named Deploy action is missing", async () => {
@@ -291,6 +303,12 @@ describe("ConfigGraph (action-based configs)", () => {
         expect(spec2.runCommand).to.eql(["echo", "run-2", "ok"])
       })
 
+      it("should optionally return specified Run actions in the context", async () => {
+        const runActions = configGraph.getRuns({ names: ["run-1", "run-2"] })
+
+        expect(getNames(runActions).sort()).to.eql(["run-1", "run-2"])
+      })
+
       it("should throw if named Run action is missing", async () => {
         try {
           configGraph.getRuns({ names: ["missing-run"] })
@@ -337,6 +355,12 @@ describe("ConfigGraph (action-based configs)", () => {
 
         const spec2 = testActions[1].getConfig("spec")
         expect(spec2.testCommand).to.eql(["echo", "test-2", "ok"])
+      })
+
+      it("should optionally return specified Test actions in the context", async () => {
+        const testActions = configGraph.getTests({ names: ["test-1", "test-2"] })
+
+        expect(getNames(testActions).sort()).to.eql(["test-1", "test-2"])
       })
 
       it("should throw if named Test action is missing", async () => {
