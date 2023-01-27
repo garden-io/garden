@@ -97,15 +97,12 @@ export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
-const testModuleTestSchema = () => execTestSchema()
-const testModuleTaskSchema = () => execTaskSpecSchema()
-
 export const testModuleSpecSchema = () =>
   execModuleSpecSchema().keys({
     build: execBuildSpecSchema(),
     services: joiArray(baseServiceSpecSchema()),
-    tests: joiArray(testModuleTestSchema()),
-    tasks: joiArray(testModuleTaskSchema()),
+    tests: joiArray(execTestSchema()),
+    tasks: joiArray(execTaskSpecSchema()),
   })
 
 export const testDeploySchema = createSchema({
