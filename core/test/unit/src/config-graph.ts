@@ -624,7 +624,7 @@ describe("ConfigGraph (module-based configs)", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const modules = graph.getModules()
 
-      expect(modules.map((m) => m.name).sort()).to.eql(["module-a", "module-b"])
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
     })
 
     it("should optionally include disabled modules", async () => {
@@ -636,7 +636,7 @@ describe("ConfigGraph (module-based configs)", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const modules = graph.getModules({ includeDisabled: true })
 
-      expect(modules.map((m) => m.name).sort()).to.eql(["module-a", "module-b", "module-c"])
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b", "module-c"])
     })
 
     it("should throw if specifically requesting a disabled module", async () => {
@@ -786,9 +786,9 @@ describe("ConfigGraph (module-based configs)", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getDeploys({ includeDisabled: true })
+      const deploys = graph.getDeploys({ includeDisabled: true })
 
-      expect(deps.map((s) => s.name)).to.eql(["disabled-service"])
+      expect(getNames(deploys)).to.eql(["disabled-service"])
     })
 
     it("should throw if specifically requesting a disabled deploy", async () => {
@@ -932,9 +932,9 @@ describe("ConfigGraph (module-based configs)", () => {
       ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const deps = graph.getRuns({ includeDisabled: true })
+      const runs = graph.getRuns({ includeDisabled: true })
 
-      expect(deps.map((t) => t.name)).to.eql(["disabled-task"])
+      expect(getNames(runs)).to.eql(["disabled-task"])
     })
 
     it("should throw if specifically requesting a disabled run", async () => {
@@ -1052,7 +1052,7 @@ describe("ConfigGraph (module-based configs)", () => {
       })
 
       const buildDeps = deps.filter((d) => d.kind === "Build")
-      expect(buildDeps.map((m) => m.name)).to.eql(["module-a"])
+      expect(getNames(buildDeps)).to.eql(["module-a"])
     })
 
     it("should ignore dependencies by deploys on disabled deploys", async () => {
@@ -1341,7 +1341,7 @@ describe("ConfigGraph (module-based configs)", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const deps = graph.moduleGraph.resolveDependencyModules([{ name: "module-a", copy: [] }], [])
 
-      expect(deps.map((m) => m.name)).to.eql(["module-a"])
+      expect(getNames(deps)).to.eql(["module-a"])
     })
   })
 
@@ -1459,8 +1459,8 @@ describe("ConfigGraph (module-based configs)", () => {
       const moduleA = graph.getModule("module-a")
       const deps = graph.moduleGraph.getDependantsForModule(moduleA, true)
 
-      expect(deps.deploy.map((m) => m.name)).to.eql(["service-b"])
-      expect(deps.run.map((m) => m.name)).to.eql(["task-b"])
+      expect(getNames(deps.deploy)).to.eql(["service-b"])
+      expect(getNames(deps.run)).to.eql(["task-b"])
     })
   })
 
