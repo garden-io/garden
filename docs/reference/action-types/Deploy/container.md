@@ -236,6 +236,59 @@ spec:
   # providers.
   daemon: false
 
+  # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
+  # in dev mode, and overrides for the container command and/or arguments.
+  #
+  # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
+  # command.
+  #
+  # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
+  # information.
+  devMode:
+    # Override the default container arguments when in dev mode.
+    args:
+
+    # Override the default container command (i.e. entrypoint) when in dev mode.
+    command:
+
+    # Specify one or more source files or directories to automatically sync with the running container.
+    sync:
+      - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
+        # relative path. Defaults to the config's directory if no value is provided.
+        source: .
+
+        # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
+        target:
+
+        # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+        #
+        # `.git` directories and `.garden` directories are always ignored.
+        exclude:
+
+        # The sync mode to use for the given paths. See the [Dev Mode
+        # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+        mode: one-way-safe
+
+        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
+        # (user read/write). See the [Mutagen
+        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+        defaultFileMode:
+
+        # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
+        # 0700 (user read/write). See the [Mutagen
+        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+        defaultDirectoryMode:
+
+        # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
+        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+        # more information.
+        defaultOwner:
+
+        # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
+        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
+        # more information.
+        defaultGroup:
+
   # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
   # resource.
   #
@@ -370,140 +423,6 @@ spec:
   # Note: This setting may be overridden or ignored in some cases. For example, when running with `daemon: true` or if
   # the provider doesn't support multiple replicas.
   replicas:
-
-  # Configure dev mode syncs for the resources in this Deploy.
-  #
-  # If you have multiple syncs for the Deploy, you can use the `defaults` field to set common configuration for every
-  # individual sync.
-  devMode:
-    # Defaults to set across every sync for this Deploy. If you use the `exclude` field here, it will be merged with
-    # any excludes set in individual syncs. These are applied on top of any defaults set in the provider
-    # configuration.
-    defaults:
-      # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
-      #
-      # Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these
-      # patterns.
-      #
-      # `.git` directories and `.garden` directories are always ignored.
-      exclude:
-
-      # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user
-      # read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions)
-      # for more information.
-      fileMode:
-
-      # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700
-      # (user read/write). See the [Mutagen
-      # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-      directoryMode:
-
-      # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
-      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-      # more information.
-      owner:
-
-      # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
-      # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-      # more information.
-      group:
-
-    # A list of syncs to start once the Deploy is successfully started.
-    syncs:
-      - # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
-        # (user read/write). See the [Mutagen
-        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        fileMode:
-
-        # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-        # 0700 (user read/write). See the [Mutagen
-        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        directoryMode:
-
-        # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
-        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-        # more information.
-        owner:
-
-        # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
-        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-        # more information.
-        group:
-
-        # The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`.
-        target:
-          # The kind of Kubernetes resource to find.
-          kind:
-
-          # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
-          name:
-
-          # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
-          # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
-          # type.
-          podSelector:
-
-          # The name of a container in the target. Specify this if the target contains more than one container and the
-          # main container is not the first container in the spec.
-          containerName:
-
-        # The local path to sync from, either absolute or relative to the source directory where the Deploy action is
-        # defined.
-        #
-        # This should generally be a templated path to another action's source path (e.g.
-        # `${build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure
-        # the path exists, and that it is reliably the correct path for every user.
-        sourcePath: .
-
-        # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
-        containerPath:
-
-        # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
-        #
-        # `.git` directories and `.garden` directories are always ignored.
-        exclude:
-
-        # The sync mode to use for the given paths. See the [Dev Mode
-        # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
-        mode: one-way-safe
-
-        # The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600
-        # (user read/write). See the [Mutagen
-        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        defaultFileMode:
-
-        # The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to
-        # 0700 (user read/write). See the [Mutagen
-        # docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-        defaultDirectoryMode:
-
-        # Set the default owner of files and directories at the target. Specify either an integer ID or a string name.
-        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-        # more information.
-        defaultOwner:
-
-        # Set the default group on files and directories at the target. Specify either an integer ID or a string name.
-        # See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for
-        # more information.
-        defaultGroup:
-
-    overrides:
-      - target:
-          # The kind of the Kubernetes resource to modify.
-          kind:
-
-          # The name of the resource.
-          name:
-
-          # The name of a container in the target. Specify this if the target contains more than one container and the
-          # main container is not the first container in the spec.
-          containerName:
-
-        # Override the command/entrypoint in the matched container.
-        command:
-
-        # Override the args in the matched container.
-        args:
 ```
 
 ## Configuration Keys
@@ -999,6 +918,167 @@ Whether to run the service as a daemon (to ensure exactly one instance runs per 
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
+### `spec.devMode`
+
+[spec](#spec) > devMode
+
+Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+
+Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+
+See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `spec.devMode.args[]`
+
+[spec](#spec) > [devMode](#specdevmode) > args
+
+Override the default container arguments when in dev mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `spec.devMode.command[]`
+
+[spec](#spec) > [devMode](#specdevmode) > command
+
+Override the default container command (i.e. entrypoint) when in dev mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `spec.devMode.sync[]`
+
+[spec](#spec) > [devMode](#specdevmode) > sync
+
+Specify one or more source files or directories to automatically sync with the running container.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `spec.devMode.sync[].source`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > source
+
+POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+spec:
+  ...
+  devMode:
+    ...
+    sync:
+      - source: "src"
+```
+
+### `spec.devMode.sync[].target`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > target
+
+POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
+
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | Yes      |
+
+Example:
+
+```yaml
+spec:
+  ...
+  devMode:
+    ...
+    sync:
+      - target: "/app/src"
+```
+
+### `spec.devMode.sync[].exclude[]`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > exclude
+
+Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+`.git` directories and `.garden` directories are always ignored.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
+
+Example:
+
+```yaml
+spec:
+  ...
+  devMode:
+    ...
+    sync:
+      - exclude:
+          - dist/**/*
+          - '*.log'
+```
+
+### `spec.devMode.sync[].mode`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > mode
+
+The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+
+| Type     | Allowed Values                                                                                                                            | Default          | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
+| `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
+
+### `spec.devMode.sync[].defaultFileMode`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultFileMode
+
+The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `spec.devMode.sync[].defaultDirectoryMode`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultDirectoryMode
+
+The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `spec.devMode.sync[].defaultOwner`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultOwner
+
+Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
+
+### `spec.devMode.sync[].defaultGroup`
+
+[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultGroup
+
+Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
+
 ### `spec.localMode`
 
 [spec](#spec) > localMode
@@ -1457,370 +1537,6 @@ Note: This setting may be overridden or ignored in some cases. For example, when
 | Type     | Required |
 | -------- | -------- |
 | `number` | No       |
-
-### `spec.devMode`
-
-[spec](#spec) > devMode
-
-Configure dev mode syncs for the resources in this Deploy.
-
-If you have multiple syncs for the Deploy, you can use the `defaults` field to set common configuration for every individual sync.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.devMode.defaults`
-
-[spec](#spec) > [devMode](#specdevmode) > defaults
-
-Defaults to set across every sync for this Deploy. If you use the `exclude` field here, it will be merged with any excludes set in individual syncs. These are applied on top of any defaults set in the provider configuration.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.devMode.defaults.exclude[]`
-
-[spec](#spec) > [devMode](#specdevmode) > [defaults](#specdevmodedefaults) > exclude
-
-Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
-
-Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
-
-`.git` directories and `.garden` directories are always ignored.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  devMode:
-    ...
-    defaults:
-      ...
-      exclude:
-        - dist/**/*
-        - '*.log'
-```
-
-### `spec.devMode.defaults.fileMode`
-
-[spec](#spec) > [devMode](#specdevmode) > [defaults](#specdevmodedefaults) > fileMode
-
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.devMode.defaults.directoryMode`
-
-[spec](#spec) > [devMode](#specdevmode) > [defaults](#specdevmodedefaults) > directoryMode
-
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.devMode.defaults.owner`
-
-[spec](#spec) > [devMode](#specdevmode) > [defaults](#specdevmodedefaults) > owner
-
-Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `spec.devMode.defaults.group`
-
-[spec](#spec) > [devMode](#specdevmode) > [defaults](#specdevmodedefaults) > group
-
-Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `spec.devMode.syncs[]`
-
-[spec](#spec) > [devMode](#specdevmode) > syncs
-
-A list of syncs to start once the Deploy is successfully started.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `spec.devMode.syncs[].fileMode`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > fileMode
-
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.devMode.syncs[].directoryMode`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > directoryMode
-
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.devMode.syncs[].owner`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > owner
-
-Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `spec.devMode.syncs[].group`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > group
-
-Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `spec.devMode.syncs[].target`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > target
-
-The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.devMode.syncs[].target.kind`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > [target](#specdevmodesyncstarget) > kind
-
-The kind of Kubernetes resource to find.
-
-| Type     | Allowed Values                           | Required |
-| -------- | ---------------------------------------- | -------- |
-| `string` | "Deployment", "DaemonSet", "StatefulSet" | Yes      |
-
-### `spec.devMode.syncs[].target.name`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > [target](#specdevmodesyncstarget) > name
-
-The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `spec.devMode.syncs[].target.podSelector`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > [target](#specdevmodesyncstarget) > podSelector
-
-A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.devMode.syncs[].target.containerName`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > [target](#specdevmodesyncstarget) > containerName
-
-The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `spec.devMode.syncs[].sourcePath`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > sourcePath
-
-The local path to sync from, either absolute or relative to the source directory where the Deploy action is defined.
-
-This should generally be a templated path to another action's source path (e.g. `${build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-### `spec.devMode.syncs[].containerPath`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > containerPath
-
-POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-Example:
-
-```yaml
-spec:
-  ...
-  devMode:
-    ...
-    syncs:
-      - containerPath: "/app/src"
-```
-
-### `spec.devMode.syncs[].exclude[]`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > exclude
-
-Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
-
-`.git` directories and `.garden` directories are always ignored.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  devMode:
-    ...
-    syncs:
-      - exclude:
-          - dist/**/*
-          - '*.log'
-```
-
-### `spec.devMode.syncs[].mode`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > mode
-
-The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
-
-| Type     | Allowed Values                                                                                                                            | Default          | Required |
-| -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
-| `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
-
-### `spec.devMode.syncs[].defaultFileMode`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > defaultFileMode
-
-The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.devMode.syncs[].defaultDirectoryMode`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > defaultDirectoryMode
-
-The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
-
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
-
-### `spec.devMode.syncs[].defaultOwner`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > defaultOwner
-
-Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `spec.devMode.syncs[].defaultGroup`
-
-[spec](#spec) > [devMode](#specdevmode) > [syncs](#specdevmodesyncs) > defaultGroup
-
-Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `number \| string` | No       |
-
-### `spec.devMode.overrides[]`
-
-[spec](#spec) > [devMode](#specdevmode) > overrides
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[object]` | No       |
-
-### `spec.devMode.overrides[].target`
-
-[spec](#spec) > [devMode](#specdevmode) > [overrides](#specdevmodeoverrides) > target
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.devMode.overrides[].target.kind`
-
-[spec](#spec) > [devMode](#specdevmode) > [overrides](#specdevmodeoverrides) > [target](#specdevmodeoverridestarget) > kind
-
-The kind of the Kubernetes resource to modify.
-
-| Type     | Allowed Values                           | Required |
-| -------- | ---------------------------------------- | -------- |
-| `string` | "Deployment", "DaemonSet", "StatefulSet" | Yes      |
-
-### `spec.devMode.overrides[].target.name`
-
-[spec](#spec) > [devMode](#specdevmode) > [overrides](#specdevmodeoverrides) > [target](#specdevmodeoverridestarget) > name
-
-The name of the resource.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
-### `spec.devMode.overrides[].target.containerName`
-
-[spec](#spec) > [devMode](#specdevmode) > [overrides](#specdevmodeoverrides) > [target](#specdevmodeoverridestarget) > containerName
-
-The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `spec.devMode.overrides[].command[]`
-
-[spec](#spec) > [devMode](#specdevmode) > [overrides](#specdevmodeoverrides) > command
-
-Override the command/entrypoint in the matched container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.devMode.overrides[].args[]`
-
-[spec](#spec) > [devMode](#specdevmode) > [overrides](#specdevmodeoverrides) > args
-
-Override the args in the matched container.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
 
 
 ## Outputs
