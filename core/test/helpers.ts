@@ -76,6 +76,13 @@ export const testModuleVersion: ModuleVersion = {
 export const testGitUrl = "https://my-git-server.com/my-repo.git#main"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
 
+/**
+ * Returns a fully resolved path of a concrete subdirectory located in the {@link testDataDir}.
+ * The concrete subdirectory path is defined as a varargs list of its directory names.
+ * E.g. `"project", "service-1"` stands for the path `project/service-1`.
+ *
+ * @param names the subdirectory path
+ */
 export function getDataDir(...names: string[]) {
   return resolve(testDataDir, ...names)
 }
