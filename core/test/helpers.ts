@@ -63,9 +63,9 @@ export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } fr
 
 // TODO-G2: split test plugin into new module
 
-export const dataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
-export const testNow = new Date()
-export const testModuleVersionString = "v-1234512345"
+const testDataDir = resolve(GARDEN_CORE_ROOT, "test", "data")
+const testNow = new Date()
+const testModuleVersionString = "v-1234512345"
 export const testModuleVersion: ModuleVersion = {
   versionString: testModuleVersionString,
   dependencyVersions: {},
@@ -77,7 +77,7 @@ export const testGitUrl = "https://my-git-server.com/my-repo.git#main"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
 
 export function getDataDir(...names: string[]) {
-  return resolve(dataDir, ...names)
+  return resolve(testDataDir, ...names)
 }
 
 export function getExampleDir(name: string) {
