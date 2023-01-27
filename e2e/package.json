@@ -10,8 +10,8 @@
   "license": "MPL-2.0",
   "homepage": "https://github.com/garden-io/garden",
   "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=6.0.0"
+    "node": ">=18",
+    "npm": ">=8"
   },
   "preferGlobal": true,
   "private": true,
@@ -27,7 +27,7 @@
     "@types/lodash": "^4.14.178",
     "@types/minimist": "^1.2.2",
     "@types/mocha": "^9.1.0",
-    "@types/node": "^16",
+    "@types/node": "^18",
     "chalk": "^4.0.0",
     "dedent": "^0.7.0",
     "execa": "^4.0.3",

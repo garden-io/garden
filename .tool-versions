@@ -1,5 +1,5 @@
 jq 1.6
-nodejs 16.18.0
+nodejs 18
 kubectl 1.24.6
 helm 3.10.0
 stern 1.21.0

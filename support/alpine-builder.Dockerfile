@@ -1,5 +1,5 @@
 # Note: This is used by build-pkg.ts, and is not usable as a Garden container
-ARG NODE_VERSION=16.18.0-alpine3.16
+ARG NODE_VERSION=18-alpine3.17
 FROM node:${NODE_VERSION} as builder
 
 RUN apk add --no-cache \
@@ -20,7 +20,7 @@ WORKDIR /garden-tmp/pkg
 
 # Pre-fetch the node binary for pkg
 RUN yarn add pkg@5.7.0 && \
-  node_modules/.bin/pkg-fetch node16 alpine x64
+  node_modules/.bin/pkg-fetch node18 alpine x64
 
 # Add all the packages
 ADD cli /garden-tmp/cli
@@ -39,6 +39,6 @@ ADD static /garden/static
 
 # Create the binary
 RUN mkdir -p /garden \
-  && node_modules/.bin/pkg --compress Brotli --target node16-alpine-x64 . --output /garden/garden \
+  && node_modules/.bin/pkg --compress Brotli --target node18-alpine-x64 . --output /garden/garden \
   && cp node_modules/better-sqlite3/build/Release/better_sqlite3.node /garden \
   && /garden/garden version

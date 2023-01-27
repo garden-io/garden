@@ -15,10 +15,10 @@ jobs:
         run: |
           echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e
-      - name: Use Node.js 16.x
+      - name: Use Node.js 18.x
         uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e
         with:
-          node-version: 16.x
+          node-version: 18.x
       - name: Build package
         run: |
           yarn

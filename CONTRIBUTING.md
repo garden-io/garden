@@ -71,8 +71,6 @@ If you have [LinuxBrew](https://docs.brew.sh/Homebrew-on-Linux) installed, [./sc
 
 If you are an [asdf](https://asdf-vm.com/) user, running `./scripts/install-asdf-dependencies.sh` in order to automatically install the correct plugins and versions as defined in `.tool-versions`.
 
-**Note:** We recommend using Node 12 when developing Garden.
-
 ### Step 4: Bootstrap project
 
 Install Node modules for the root package, and the `dashboard` and `core` packages:
