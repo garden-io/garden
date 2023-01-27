@@ -18,10 +18,9 @@ import {
   parseEnvironment,
   defaultNamespace,
   fixedPlugins,
+  defaultEnvironment,
 } from "../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { expectError } from "../../../helpers"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
+import { createProjectConfig, expectError } from "../../../helpers"
 import { realpath, writeFile } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
 import { resolve, join } from "path"
@@ -38,28 +37,16 @@ const vcsInfo = {
 
 describe("resolveProjectConfig", () => {
   it("should pass through a canonical project config", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [
-        {
-          name: "default",
-          defaultNamespace,
-          variables: {},
-        },
-      ],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
-      variables: {},
-    }
+    })
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment: "default",
+        defaultName: "default",
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -86,15 +73,10 @@ describe("resolveProjectConfig", () => {
 
   it("should resolve template strings on fields other than environments, providers and remote sources", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
-    const defaultEnvironment = "default"
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -118,13 +100,13 @@ describe("resolveProjectConfig", () => {
         projectPath: "${local.projectPath}",
         envVar: "${local.env.TEST_ENV_VAR}",
       },
-    }
+    })
 
     process.env.TEST_ENV_VAR = "foo"
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -167,14 +149,9 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should pass through templated fields on provider configs", async () => {
-    const defaultEnvironment = "default"
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -195,15 +172,14 @@ describe("resolveProjectConfig", () => {
           someKey: "${local.env.TEST_ENV_VAR_B}",
         },
       ],
-      variables: {},
-    }
+    })
 
     process.env.TEST_ENV_VAR_A = "foo"
     process.env.TEST_ENV_VAR_B = "boo"
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -248,14 +224,9 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should pass through templated fields on environment configs", async () => {
-    const defaultEnvironment = "default"
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -265,12 +236,10 @@ describe("resolveProjectConfig", () => {
           },
         },
       ],
-      providers: [],
-      variables: {},
-    }
+    })
 
     const result = resolveProjectConfig({
-      defaultEnvironment,
+      defaultName: defaultEnvironment,
       config,
       artifactsPath: "/tmp",
       vcsInfo,
@@ -286,37 +255,23 @@ describe("resolveProjectConfig", () => {
 
   it("should pass through templated fields on remote source configs", async () => {
     const repositoryUrl = "git://github.com/foo/bar.git#boo"
-    const defaultEnvironment = "default"
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [
-        {
-          name: "default",
-          defaultNamespace,
-          variables: {},
-        },
-      ],
-      providers: [],
       sources: [
         {
           name: "${local.env.TEST_ENV_VAR}",
           repositoryUrl,
         },
       ],
-      variables: {},
-    }
+    })
 
     process.env.TEST_ENV_VAR = "foo"
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -351,23 +306,20 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should set defaultEnvironment to first environment if not configured", async () => {
-    const defaultEnvironment = ""
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const defaultName = ""
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
-      dotIgnoreFile: defaultDotIgnoreFile,
+      defaultEnvironment: defaultName,
       environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
-    }
+    })
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -388,23 +340,20 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should populate default values in the schema", async () => {
-    const defaultEnvironment = ""
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const defaultName = ""
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment,
-      dotIgnoreFile: defaultDotIgnoreFile,
+      defaultEnvironment: defaultName,
       environments: [{ defaultNamespace: null, name: "default", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
       variables: {},
-    }
+    })
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -425,14 +374,9 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should include providers in correct precedence order from all possible config keys", async () => {
-    const defaultEnvironment = "default"
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -456,11 +400,11 @@ describe("resolveProjectConfig", () => {
         },
       ],
       variables: {},
-    }
+    })
 
     expect(
       resolveProjectConfig({
-        defaultEnvironment,
+        defaultName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -521,17 +465,10 @@ describe("pickEnvironment", () => {
   })
 
   it("should throw if selected environment isn't configured", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [],
-      variables: {},
-    }
+    })
 
     await expectError(
       () =>
@@ -551,17 +488,10 @@ describe("pickEnvironment", () => {
   })
 
   it("should include fixed providers in output", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [],
-      variables: {},
-    }
+    })
 
     expect(
       await pickEnvironment({
@@ -585,22 +515,16 @@ describe("pickEnvironment", () => {
   })
 
   it("should remove null values in provider configs (as per the JSON Merge Patch spec)", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [
         { name: "container", newKey: "foo" },
         { name: "my-provider", a: "a" },
         { name: "my-provider", b: "b" },
         { name: "my-provider", a: null },
       ],
-      variables: {},
-    }
+    })
 
     expect(
       await pickEnvironment({
@@ -629,13 +553,9 @@ describe("pickEnvironment", () => {
   })
 
   it("should correctly merge project and environment variables", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -661,7 +581,7 @@ describe("pickEnvironment", () => {
           nestedB: "nested project value B",
         },
       },
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -698,13 +618,9 @@ describe("pickEnvironment", () => {
     `
     )
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -715,9 +631,7 @@ describe("pickEnvironment", () => {
           },
         },
       ],
-      providers: [],
-      variables: {},
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -748,13 +662,9 @@ describe("pickEnvironment", () => {
     `
     )
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -762,12 +672,11 @@ describe("pickEnvironment", () => {
           variables: {},
         },
       ],
-      providers: [],
       variables: {
         a: "a",
         b: "b",
       },
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -798,13 +707,9 @@ describe("pickEnvironment", () => {
     `
     )
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -815,10 +720,8 @@ describe("pickEnvironment", () => {
           },
         },
       ],
-      providers: [],
       varfile: "foo.env",
-      variables: {},
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -849,13 +752,9 @@ describe("pickEnvironment", () => {
     `
     )
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -864,12 +763,11 @@ describe("pickEnvironment", () => {
           variables: {},
         },
       ],
-      providers: [],
       variables: {
         a: "a",
         b: "b",
       },
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -913,13 +811,9 @@ describe("pickEnvironment", () => {
       `
     )
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -928,10 +822,8 @@ describe("pickEnvironment", () => {
           varfile: "foo.default.yaml",
         },
       ],
-      providers: [],
       varfile: "foo.yml",
-      variables: {},
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -976,13 +868,9 @@ describe("pickEnvironment", () => {
       `
     )
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -991,10 +879,8 @@ describe("pickEnvironment", () => {
           varfile: "foo.default.json",
         },
       ],
-      providers: [],
       varfile: "foo.json",
-      variables: {},
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -1017,19 +903,13 @@ describe("pickEnvironment", () => {
   })
 
   it("should resolve template strings in the picked environment", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         { name: "default", defaultNamespace, variables: { local: "${local.username}", secret: "${secrets.foo}" } },
       ],
-      providers: [],
-      variables: {},
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -1050,20 +930,14 @@ describe("pickEnvironment", () => {
   })
 
   it("should ignore template strings in other environments", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         { name: "default", defaultNamespace, variables: {} },
         { name: "other", defaultNamespace, variables: { foo: "${var.missing}", secret: "${secrets.missing}" } },
       ],
-      providers: [],
-      variables: {},
-    }
+    })
 
     await pickEnvironment({
       projectConfig: config,
@@ -1079,17 +953,12 @@ describe("pickEnvironment", () => {
   })
 
   it("should allow referencing top-level variables", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace, variables: { foo: "${var.foo}" } }],
-      providers: [],
       variables: { foo: "value" },
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -1127,13 +996,9 @@ describe("pickEnvironment", () => {
     `
     )
 
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -1145,13 +1010,12 @@ describe("pickEnvironment", () => {
           },
         },
       ],
-      providers: [],
       // Precedence 4/4 (lowest)
       variables: {
         a: "a",
         b: "b",
       },
-    }
+    })
 
     const result = await pickEnvironment({
       projectConfig: config,
@@ -1175,13 +1039,9 @@ describe("pickEnvironment", () => {
   })
 
   it("should validate the picked environment", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -1189,11 +1049,10 @@ describe("pickEnvironment", () => {
           variables: {},
         },
       ],
-      providers: [],
       variables: {
         foo: 123,
       },
-    }
+    })
 
     await expectError(
       () =>
@@ -1216,13 +1075,9 @@ describe("pickEnvironment", () => {
   })
 
   it("should throw if project varfile is set to non-default and it doesn't exist", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -1230,10 +1085,8 @@ describe("pickEnvironment", () => {
           variables: {},
         },
       ],
-      providers: [],
       varfile: "foo.env",
-      variables: {},
-    }
+    })
 
     await expectError(
       () =>
@@ -1253,13 +1106,9 @@ describe("pickEnvironment", () => {
   })
 
   it("should throw if environment varfile is set to non-default and it doesn't exist", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: tmpPath,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [
         {
           name: "default",
@@ -1268,9 +1117,7 @@ describe("pickEnvironment", () => {
           variables: {},
         },
       ],
-      providers: [],
-      variables: {},
-    }
+    })
 
     await expectError(
       () =>
@@ -1290,17 +1137,10 @@ describe("pickEnvironment", () => {
   })
 
   it("should set environment namespace if specified and defaultNamespace=null", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [],
-      variables: {},
-    }
+    })
 
     expect(
       await pickEnvironment({
@@ -1324,17 +1164,10 @@ describe("pickEnvironment", () => {
   })
 
   it("should use explicit namespace if specified and there is a default", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [],
-      variables: {},
-    }
+    })
 
     expect(
       await pickEnvironment({
@@ -1358,17 +1191,10 @@ describe("pickEnvironment", () => {
   })
 
   it("should use defaultNamespace if set and no explicit namespace is specified", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [],
-      variables: {},
-    }
+    })
 
     expect(
       await pickEnvironment({
@@ -1392,17 +1218,10 @@ describe("pickEnvironment", () => {
   })
 
   it("should throw if invalid environment is specified", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
-      providers: [],
-      variables: {},
-    }
+    })
 
     await expectError(
       () =>
@@ -1425,17 +1244,11 @@ describe("pickEnvironment", () => {
   })
 
   it("should throw if environment requires namespace but none is specified and defaultNamespace=null", async () => {
-    const config: ProjectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
       environments: [{ name: "default", defaultNamespace: null, variables: {} }],
-      providers: [],
-      variables: {},
-    }
+    })
 
     await expectError(
       () =>

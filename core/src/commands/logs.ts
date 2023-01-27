@@ -124,7 +124,7 @@ export class LogsCommand extends Command<Args, Opts> {
   }
 
   terminate() {
-    this.events?.emit("abort", {})
+    this.events?.emit("abort")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<DeployLogEntry[]>> {

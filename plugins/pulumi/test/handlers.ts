@@ -52,7 +52,7 @@ describe.skip("pulumi plugin handlers", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [plugin] })
     log = garden.log
     provider = (await garden.resolveProvider(log, "pulumi")) as PulumiProvider
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext(provider, undefined, undefined)
     graph = await garden.getConfigGraph({ log, emit: false })
   })
 

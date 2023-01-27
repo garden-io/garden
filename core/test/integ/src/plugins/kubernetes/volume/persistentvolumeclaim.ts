@@ -7,14 +7,13 @@
  */
 
 import tmp from "tmp-promise"
-import { ProjectConfig, defaultNamespace } from "../../../../../../src/config/project"
+import { ProjectConfig } from "../../../../../../src/config/project"
 import execa = require("execa")
 import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
 import { expect } from "chai"
-import { TestGarden, makeTempDir } from "../../../../../helpers"
+import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { isSubset } from "../../../../../../src/util/is-subset"
-import { defaultDotIgnoreFile } from "../../../../../../src/util/fs"
 
 describe("persistentvolumeclaim", () => {
   let tmpDir: tmp.DirectoryResult
@@ -25,17 +24,10 @@ describe("persistentvolumeclaim", () => {
 
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
-    projectConfigFoo = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    projectConfigFoo = createProjectConfig({
       path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "local-kubernetes", namespace: "default" }],
-      variables: {},
-    }
+    })
   })
 
   after(async () => {

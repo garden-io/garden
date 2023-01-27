@@ -14,6 +14,7 @@ import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
 import { dataDir, makeTestGarden } from "../../../../helpers"
 import { LogEntry } from "../../../../../src/logger/log-entry"
+// import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 // import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
 // import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 
@@ -39,7 +40,7 @@ describe("plugins.container", () => {
       dependencies: [],
     },
     disabled: false,
-    apiVersion: "garden.io/v0",
+    apiVersion: DEFAULT_API_VERSION,
     name: "test",
     path: modulePath,
     type: "container",
@@ -72,7 +73,7 @@ describe("plugins.container", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
     containerProvider = await garden.resolveProvider(garden.log, "container")
-    ctx = await garden.getPluginContext(containerProvider)
+    ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
   })
@@ -250,7 +251,7 @@ describe("plugins.container", () => {
 //         dependencies: [],
 //       },
 //       disabled: false,
-//       apiVersion: "garden.io/v0",
+//       apiVersion: DEFAULT_API_VERSION,
 //       name: "module-a",
 //       path: modulePath,
 //       type: "container",
@@ -355,7 +356,7 @@ describe("plugins.container", () => {
 //           allowPublish: false,
 //           build: { dependencies: [] },
 //           disabled: false,
-//           apiVersion: "garden.io/v0",
+//           apiVersion: DEFAULT_API_VERSION,
 //           name: "module-a",
 //           include: [defaultDockerfileName],
 //           path: modulePath,
@@ -540,7 +541,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "container",
@@ -603,7 +604,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "container",
@@ -658,7 +659,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "container",
@@ -712,7 +713,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "test",
@@ -794,7 +795,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "test",
@@ -863,7 +864,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "test",
@@ -1233,7 +1234,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "container",
@@ -1270,7 +1271,7 @@ describe("plugins.container", () => {
 //           dependencies: [],
 //         },
 //         disabled: false,
-//         apiVersion: "garden.io/v0",
+//         apiVersion: DEFAULT_API_VERSION,
 //         name: "module-a",
 //         path: modulePath,
 //         type: "container",

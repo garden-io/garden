@@ -47,7 +47,9 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     garden = await getContainerTestGarden(environmentName)
     graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    ctx = <KubernetesPluginContext>(
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    )
   }
 
   it("should deploy a service in local mode and successfully start a port-forwarding", async () => {

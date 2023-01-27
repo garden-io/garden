@@ -161,9 +161,9 @@ describe("loadConfigResources", () => {
 
   it("throws if basic fields contain template strings", async () => {
     for (const field of noTemplateFields) {
-      const basicProjecConfig = getDefaultProjectConfig()
-      basicProjecConfig[field] = '${camelCase("No templating should be allowed here")}'
-      const configRaw = safeDumpYaml(basicProjecConfig)
+      const basicProjectConfig = getDefaultProjectConfig()
+      basicProjectConfig[field] = '${camelCase("No templating should be allowed here")}'
+      const configRaw = safeDumpYaml(basicProjectConfig)
       await expectError(
         async () =>
           validateRawConfig({ rawConfig: configRaw, configPath: "fake/path", projectRoot: "fake/projec/root" }),
@@ -179,7 +179,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         path: projectPathA,
         configPath,
@@ -210,7 +210,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Module",
         name: "module-a",
         type: "test",
@@ -270,7 +270,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         configPath,
         path: projectPath,
         kind: "ModuleTemplate",
@@ -329,7 +329,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         configPath,
         path: projectPathMultipleModules,
@@ -349,7 +349,7 @@ describe("loadConfigResources", () => {
         variables: { some: "variable" },
       },
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
@@ -384,7 +384,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Module",
         name: "module-a1",
         type: "test",
@@ -416,7 +416,7 @@ describe("loadConfigResources", () => {
         varfile: undefined,
       },
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Module",
         name: "module-a2",
         type: "test",
@@ -455,7 +455,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Project",
         path: projectPath,
         configPath,

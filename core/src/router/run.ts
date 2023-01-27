@@ -13,7 +13,7 @@ import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatus } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
-import { uuidv4 } from "../util/util"
+import { renderOutputStream, uuidv4 } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 export const runRouter = (baseParams: BaseRouterParams) =>
@@ -47,7 +47,14 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       try {
         // Annotate + emit log output
-        params.events.on("log", ({ timestamp, data }) => {
+        params.events.on("log", ({ timestamp, data, origin, log }) => {
+          if (!params.interactive) {
+            // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
+            // TODO: 0.13 make sure that logs of different tasks in the same module can be differentiated
+            log.setState(renderOutputStream(data.toString(), origin))
+          }
+          // stream logs to Garden Cloud
+          // TODO: consider sending origin as well
           garden.events.emit("log", {
             timestamp,
             actionUid,

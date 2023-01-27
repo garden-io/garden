@@ -92,22 +92,61 @@ export const pluginContextSchema = () =>
       cloudApi: joi.any().optional(),
     })
 
-interface PluginEvents {
-  abort: { reason?: string }
-  log: { data: Buffer }
+export type PluginEventLogContext = {
+  /** entity that created the log message, e.g. tool that generated it */
+  origin: string
+
+  /**
+   * LogEntry placeholder to be used to stream the logs to the CLI
+   * It's recommended to pass a verbose placeholder created like this: `log.placeholder({ level: LogLevel.verbose })`
+   *
+   * @todo 0.13 consider removing this once we have the append-only logger (#3254)
+   */
+  log: LogEntry
+}
+
+export type PluginEventLogMessage = PluginEventLogContext & {
+  /**
+   * Number of milliseconds since the epoch OR a date string.
+   *
+   * We need to allow both numberic and string types for backwards compatibility
+   * with Garden Cloud.
+   *
+   * Garden Cloud supports numeric date strings for log streaming as of v1.360.
+   * We can change this to just 'number' once all Cloud instances are up to date.
+   *
+   * TODO: Change to type 'number'.
+   */
+  timestamp: number | string
+
+  /** log message */
+  data: Buffer
+}
+
+// Define your emitter's types like that:
+// Key: Event name; Value: Listener function signature
+type PluginEvents = {
+  abort: (reason?: string) => void
+  log: (msg: PluginEventLogMessage) => void
 }
 
 type PluginEventType = keyof PluginEvents
 
 export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventType> {}
 
-export async function createPluginContext(
-  garden: Garden,
-  provider: Provider,
-  command: CommandInfo,
-  templateContext: ConfigContext,
-  events?: PluginEventBroker
-): Promise<PluginContext> {
+export async function createPluginContext({
+  garden,
+  provider,
+  command,
+  templateContext,
+  events,
+}: {
+  garden: Garden
+  provider: Provider
+  command: CommandInfo
+  templateContext: ConfigContext
+  events: PluginEventBroker | undefined
+}): Promise<PluginContext> {
   return {
     command,
     events: events || new PluginEventBroker(),

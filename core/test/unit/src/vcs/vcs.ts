@@ -522,7 +522,7 @@ describe("helpers", () => {
   context("ModuleConfig", () => {
     const moduleConfig: ModuleConfig = {
       allowPublish: false,
-      apiVersion: "garden.io/v0",
+      apiVersion: DEFAULT_API_VERSION,
       build: {
         dependencies: [],
       },

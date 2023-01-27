@@ -36,7 +36,7 @@ import { Omit } from "../util/util"
 import { DebugInfoMap } from "../plugin/handlers/provider/getDebugInfo"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../plugin/handlers/provider/prepareEnvironment"
 import { ConfigureProviderParams, ConfigureProviderResult } from "../plugin/handlers/provider/configureProvider"
-import { PluginContext } from "../plugin-context"
+import { PluginContext, PluginEventBroker } from "../plugin-context"
 import { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/provider/augmentGraph"
 import { Profile } from "../util/profiling"
 import { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/provider/getDashboardPage"
@@ -180,7 +180,7 @@ export class ProviderRouter extends BaseRouter {
 
     const providers = await this.garden.resolveProviders(log)
     await Bluebird.each(Object.values(providers), async (provider) => {
-      await this.cleanupEnvironment({ pluginName: provider.name, log: envLog })
+      await this.cleanupEnvironment({ pluginName: provider.name, log: envLog, events: undefined })
       environmentStatuses[provider.name] = { ready: false, outputs: {} }
     })
 
@@ -191,7 +191,11 @@ export class ProviderRouter extends BaseRouter {
 
   async getDebugInfo({ log, includeProject }: { log: LogEntry; includeProject: boolean }): Promise<DebugInfoMap> {
     const handlers = await this.getPluginHandlers("getDebugInfo")
-    return Bluebird.props(mapValues(handlers, async (h) => h({ ...(await this.commonParams(h, log)), includeProject })))
+    return Bluebird.props(
+      mapValues(handlers, async (h) =>
+        h({ ...(await this.commonParams(h, log, undefined, undefined)), includeProject })
+      )
+    )
   }
 
   //endregion
@@ -335,6 +339,9 @@ type WrappedPluginActionMap = {
 }
 
 // avoid having to specify common params on each action helper call
-type ActionRouterParams<T extends PluginActionParamsBase> = Omit<T, CommonParams> & { pluginName?: string }
+type ActionRouterParams<T extends PluginActionParamsBase> = Omit<T, CommonParams> & {
+  pluginName?: string
+  events?: PluginEventBroker
+}
 
 type RequirePluginName<T> = T & { pluginName: string }

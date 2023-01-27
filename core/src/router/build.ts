@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 
-import { uuidv4 } from "../util/util"
+import { renderOutputStream, uuidv4 } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BuildState } from "../plugin/handlers/build/get-status"
 import { BaseRouterParams, createActionRouter } from "./base"
@@ -57,7 +57,11 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const moduleVersion = action.moduleVersion().versionString
       const moduleName = action.moduleName()
 
-      params.events.on("log", ({ timestamp, data }) => {
+      params.events.on("log", ({ timestamp, data, origin, log }) => {
+        // stream logs to CLI
+        log.setState(renderOutputStream(data.toString(), origin))
+        // stream logs to Garden Cloud
+        // TODO: consider sending origin as well
         garden.events.emit("log", {
           timestamp,
           actionUid,

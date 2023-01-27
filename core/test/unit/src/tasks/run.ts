@@ -8,13 +8,11 @@
 
 import tmp from "tmp-promise"
 import { expect } from "chai"
-import { TestGarden } from "../../../helpers"
-import { ProjectConfig, defaultNamespace } from "../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { createProjectConfig, TestGarden } from "../../../helpers"
+import { ProjectConfig } from "../../../../src/config/project"
 import execa from "execa"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { RunTask } from "../../../../src/tasks/run"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { GetRunResult } from "../../../../src/plugin/handlers/run/get-result"
 import { joi } from "../../../../src/config/common"
 
@@ -27,17 +25,10 @@ describe("RunTask", () => {
 
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
-    config = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    config = createProjectConfig({
       path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
   })
 
   after(async () => {

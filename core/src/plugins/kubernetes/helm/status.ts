@@ -177,6 +177,7 @@ export async function getRenderedResources({
       log,
       namespace,
       args: ["get", "manifest", releaseName],
+      emitLogEvents: true,
     })
   )
 }
@@ -205,7 +206,16 @@ export async function getReleaseStatus({
       provider: ctx.provider,
     })
 
-    const res = JSON.parse(await helm({ ctx, log, namespace, args: ["status", releaseName, "--output", "json"] }))
+    const res = JSON.parse(
+      await helm({
+        ctx,
+        log,
+        namespace,
+        args: ["status", releaseName, "--output", "json"],
+        // do not send JSON output to Garden Cloud or CLI verbose log
+        emitLogEvents: false,
+      })
+    )
 
     let state = helmStatusMap[res.info.status] || "unknown"
     let values = {}
@@ -221,6 +231,8 @@ export async function getReleaseStatus({
           log,
           namespace,
           args: ["get", "values", releaseName, "--output", "json"],
+          // do not send JSON output to Garden Cloud or CLI verbose log
+          emitLogEvents: false,
         })
       )
 

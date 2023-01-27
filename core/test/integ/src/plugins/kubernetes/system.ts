@@ -36,7 +36,9 @@ describe("System services", () => {
   // TODO: Revisit this. Doesn't make sense to have the kubernetes provider depend on a provider that depends on
   //       the kubernetes provider.
   it.skip("should use conftest to check whether system services have a valid config", async () => {
-    const ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    const ctx = <KubernetesPluginContext>(
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    )
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
     const graph = await systemGarden.getConfigGraph({ log: garden.log, emit: false })
@@ -47,7 +49,9 @@ describe("System services", () => {
   })
 
   it.skip("should check whether system modules pass the conftest test", async () => {
-    const ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    const ctx = <KubernetesPluginContext>(
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    )
     const variables = getKubernetesSystemVariables(provider.config)
     const systemGarden = await getSystemGarden(ctx, variables, garden.log)
     const graph = await systemGarden.getConfigGraph({ log: garden.log, emit: false })

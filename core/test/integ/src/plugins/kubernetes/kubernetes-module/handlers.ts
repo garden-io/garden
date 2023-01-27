@@ -33,6 +33,7 @@ import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getServiceStatuses } from "../../../../../../src/tasks/helpers"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
+import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
 
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
@@ -73,12 +74,14 @@ describe("kubernetes-module handlers", () => {
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
-    ctx = <KubernetesPluginContext>await garden.getPluginContext(provider)
+    ctx = <KubernetesPluginContext>(
+      await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    )
     api = await KubeApi.factory(log, ctx, ctx.provider)
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
     nsModuleConfig = {
-      apiVersion: "garden.io/v0",
+      apiVersion: DEFAULT_API_VERSION,
       kind: "Module",
       disabled: false,
       allowPublish: false,

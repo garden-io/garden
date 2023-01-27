@@ -8,13 +8,11 @@
 
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { withDefaultGlobalOpts, TestGarden } from "../../../../helpers"
+import { withDefaultGlobalOpts, TestGarden, createProjectConfig } from "../../../../helpers"
 import { GetOutputsCommand } from "../../../../../src/commands/get/get-outputs"
-import { ProjectConfig, defaultNamespace } from "../../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { ProjectConfig } from "../../../../../src/config/project"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
 import { exec } from "../../../../../src/util/util"
-import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("GetOutputsCommand", () => {
   let tmpDir: tmp.DirectoryResult
@@ -25,17 +23,10 @@ describe("GetOutputsCommand", () => {
 
     await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
-    projectConfig = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    projectConfig = createProjectConfig({
       path: tmpDir.path,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "test" }],
-      variables: {},
-    }
+    })
   })
 
   after(async () => {

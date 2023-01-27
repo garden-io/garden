@@ -357,7 +357,7 @@ export class GardenServer {
         return
       }
 
-      send("serverReady", { message: "Server ready" })
+      send("event", { name: "serverReady", payload: {} })
 
       // Set up heartbeat to detect dead connections
       let isAlive = true
@@ -540,9 +540,6 @@ interface ServerWebsocketMessages {
     requestId: string
     args: object
     opts: object
-  }
-  serverReady: {
-    message: string
   }
   error: {
     requestId?: string

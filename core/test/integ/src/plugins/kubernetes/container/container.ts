@@ -40,7 +40,11 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   if (needsInit) {
     // Load the test authentication for private registries
     const localProvider = <KubernetesProvider>await localInstance.resolveProvider(localInstance.log, "local-kubernetes")
-    const api = await KubeApi.factory(garden.log, await garden.getPluginContext(localProvider), localProvider)
+    const api = await KubeApi.factory(
+      garden.log,
+      await garden.getPluginContext({ provider: localProvider, templateContext: undefined, events: undefined }),
+      localProvider
+    )
 
     try {
       const authSecret = JSON.parse(
@@ -82,7 +86,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
   }
 
   const provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
-  const ctx = await garden.getPluginContext(provider)
+  const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
 
   if (needsInit) {
     // Run cluster-init

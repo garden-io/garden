@@ -6,28 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { defaultNamespace } from "../../../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
-import { makeTestGarden, projectRootA } from "../../../../helpers"
+import { createProjectConfig, makeTestGarden, projectRootA } from "../../../../helpers"
 import { expect } from "chai"
 import { got } from "../../../../../src/util/http"
-import { defaultDotIgnoreFile } from "../../../../../src/util/fs"
 
 describe("octant provider", () => {
   describe("getDashboardPage", () => {
     it("should start an octant process and return a URL to it", async () => {
       const garden = await makeTestGarden(projectRootA, {
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
-          name: "test",
+        config: createProjectConfig({
           path: projectRootA,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "local-kubernetes", namespace: "default" }, { name: "octant" }],
-          variables: {},
-        },
+        }),
       })
       const actions = await garden.getActionRouter()
       const plugin = await garden.getPlugin("octant")
@@ -35,6 +25,7 @@ describe("octant provider", () => {
         log: garden.log,
         page: plugin.dashboardPages[0],
         pluginName: "octant",
+        events: undefined,
       })
 
       // Make sure the URL works, no need to check the output

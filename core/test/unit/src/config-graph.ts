@@ -349,6 +349,7 @@ describe("ConfigGraph", () => {
             tasks: [
               {
                 name: "disabled-task",
+                command: ["echo", "ok"],
                 dependencies: [],
                 disabled: true,
               },
@@ -382,6 +383,7 @@ describe("ConfigGraph", () => {
             tasks: [
               {
                 name: "disabled-task",
+                command: ["echo", "ok"],
                 dependencies: [],
                 disabled: true,
               },
@@ -415,6 +417,7 @@ describe("ConfigGraph", () => {
             tasks: [
               {
                 name: "disabled-task",
+                command: ["echo", "ok"],
                 dependencies: [],
                 disabled: true,
               },
@@ -583,6 +586,7 @@ describe("ConfigGraph", () => {
             tasks: [
               {
                 name: "disabled-task",
+                command: ["echo", "ok"],
                 dependencies: [],
                 disabled: true,
               },
@@ -691,6 +695,7 @@ describe("ConfigGraph", () => {
             tasks: [
               {
                 name: "enabled-task",
+                command: ["echo", "ok"],
                 dependencies: ["disabled-service"],
                 disabled: false,
               },
@@ -737,6 +742,7 @@ describe("ConfigGraph", () => {
             tests: [
               {
                 name: "enabled-test",
+                command: ["echo", "ok"],
                 dependencies: ["disabled-service"],
                 disabled: false,
               },
@@ -901,6 +907,7 @@ describe("ConfigGraph", () => {
             tasks: [
               {
                 name: "task-b",
+                command: ["echo", "ok"],
                 dependencies: [],
                 disabled: false,
               },

@@ -94,7 +94,7 @@ export class ActionRouter extends BaseRouter {
     return router.callHandler({
       handlerType: "getOutputs",
       // TODO-G2: figure out why the typing clashes here
-      params: { ...params, action: <any>params.action },
+      params: { ...params, action: <any>params.action, events: undefined },
       defaultHandler: async ({}) => ({ outputs: {} }),
     })
   }

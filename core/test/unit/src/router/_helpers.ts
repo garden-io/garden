@@ -12,14 +12,11 @@ import { join } from "path"
 import { BaseRuntimeActionConfig } from "../../../../src/actions/base"
 import { BuildActionConfig } from "../../../../src/actions/build"
 import { joi, CustomObjectSchema } from "../../../../src/config/common"
-import { defaultNamespace } from "../../../../src/config/project"
 import { validateSchema } from "../../../../src/config/validation"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
 import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src/plugin/providers"
-import { defaultDotIgnoreFile } from "../../../../src/util/fs"
-import { makeTestGarden, projectRootA } from "../../../helpers"
+import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers"
 
 export async function getRouterTestData() {
   const {
@@ -31,17 +28,10 @@ export async function getRouterTestData() {
   } = getRouterUnitTestPlugins()
   const garden = await makeTestGarden(projectRootA, {
     plugins: [basePlugin, testPluginA, testPluginB],
-    config: {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "test",
+    config: createProjectConfig({
       path: projectRootA,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "base" }, { name: "test-plugin-a" }, { name: "test-plugin-b" }],
-      variables: {},
-    },
+    }),
     onlySpecifiedPlugins: true,
   })
   const log = garden.log

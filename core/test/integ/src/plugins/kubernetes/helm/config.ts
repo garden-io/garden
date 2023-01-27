@@ -18,6 +18,7 @@ import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
 import stripAnsi = require("strip-ansi")
+import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
 
 describe("configureHelmModule", () => {
   let garden: TestGarden
@@ -27,7 +28,7 @@ describe("configureHelmModule", () => {
   before(async () => {
     garden = await getHelmTestGarden()
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
-    ctx = await garden.getPluginContext(provider)
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await garden.resolveModules({ log: garden.log })
     moduleConfigs = cloneDeep((<any>garden).moduleConfigs)
   })
@@ -87,7 +88,7 @@ describe("configureHelmModule", () => {
     }
 
     expect(module._config).to.eql({
-      apiVersion: "garden.io/v0",
+      apiVersion: DEFAULT_API_VERSION,
       kind: "Module",
       allowPublish: true,
       build: {
