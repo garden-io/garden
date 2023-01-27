@@ -12,7 +12,6 @@ import tmp from "tmp-promise"
 import { join, resolve } from "path"
 import { Garden } from "../../../src/garden"
 import {
-  dataDir,
   expectError,
   makeTestGarden,
   makeTestGardenA,
@@ -193,7 +192,7 @@ describe("Garden", () => {
       process.env.TEST_PROVIDER_TYPE = "test-plugin"
       process.env.TEST_VARIABLE = "banana"
 
-      const projectRoot = join(dataDir, "test-project-templated")
+      const projectRoot = getDataDir("test-project-templated")
 
       const garden = await makeTestGarden(projectRoot, { forceRefresh: true })
 
@@ -242,7 +241,7 @@ describe("Garden", () => {
     })
 
     it("should throw if project.environments is not an array", async () => {
-      const projectRoot = join(dataDir, "test-project-malformed-environments")
+      const projectRoot = getDataDir("test-project-malformed-environments")
       await expectError(async () => makeTestGarden(projectRoot), {
         contains: "Error validating project environments: value must be an array",
       })
@@ -285,13 +284,13 @@ describe("Garden", () => {
     })
 
     it("should set .garden as the default cache dir", async () => {
-      const projectRoot = join(dataDir, "test-project-empty")
+      const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()] })
       expect(garden.gardenDirPath).to.eql(join(garden.projectRoot, ".garden"))
     })
 
     it("should optionally set a custom cache dir relative to project root", async () => {
-      const projectRoot = join(dataDir, "test-project-empty")
+      const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, {
         plugins: [testPlugin()],
         gardenDirPath: "my/cache/dir",
@@ -300,8 +299,8 @@ describe("Garden", () => {
     })
 
     it("should optionally set a custom cache dir with an absolute path", async () => {
-      const projectRoot = join(dataDir, "test-project-empty")
-      const gardenDirPath = join(dataDir, "test-garden-dir")
+      const projectRoot = getDataDir("test-project-empty")
+      const gardenDirPath = getDataDir("test-garden-dir")
       const garden = await makeTestGarden(projectRoot, {
         plugins: [testPlugin()],
         gardenDirPath,
@@ -310,7 +309,7 @@ describe("Garden", () => {
     })
 
     it("should load default varfiles if they exist", async () => {
-      const projectRoot = join(dataDir, "test-projects", "varfiles")
+      const projectRoot = getDataDir("test-projects", "varfiles")
       const garden = await makeTestGarden(projectRoot, {})
       expect(garden.variables).to.eql({
         a: "a",
@@ -320,7 +319,7 @@ describe("Garden", () => {
     })
 
     it("should load custom varfiles if specified", async () => {
-      const projectRoot = join(dataDir, "test-projects", "varfiles-custom")
+      const projectRoot = getDataDir("test-projects", "varfiles-custom")
       const garden = await makeTestGarden(projectRoot, {})
       expect(garden.variables).to.eql({
         a: "a",
@@ -330,7 +329,7 @@ describe("Garden", () => {
     })
 
     it("should respect the module variables < module varfile < CLI var precedence order", async () => {
-      const projectRoot = join(dataDir, "test-projects", "module-varfiles")
+      const projectRoot = getDataDir("test-projects", "module-varfiles")
 
       const garden = await makeTestGarden(projectRoot)
       // In the normal flow, `garden.cliVariables` is populated with variables passed via the `--var` CLI option.
@@ -368,7 +367,7 @@ describe("Garden", () => {
     })
 
     it("should set the namespace attribute, if specified", async () => {
-      const projectRoot = join(dataDir, "test-project-empty")
+      const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()], environmentName: "foo.local" })
       expect(garden.environmentName).to.equal("local")
       expect(garden.namespace).to.equal("foo")
@@ -490,7 +489,7 @@ describe("Garden", () => {
     it("should throw if plugin module exports invalid name", async () => {
       const pluginPath = join(__dirname, "plugins", "invalid-name.js")
       const plugins = [pluginPath]
-      const projectRoot = join(dataDir, "test-project-empty")
+      const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })
       await expectError(() => garden.getAllPlugins(), {
         contains: `Unable to load plugin: Error: Error validating plugin module \"${pluginPath}\": key .gardenPlugin must be of type object`,
@@ -500,7 +499,7 @@ describe("Garden", () => {
     it("should throw if plugin module doesn't contain plugin", async () => {
       const pluginPath = join(__dirname, "plugins", "missing-plugin.js")
       const plugins = [pluginPath]
-      const projectRoot = join(dataDir, "test-project-empty")
+      const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins })
       await expectError(() => garden.getAllPlugins(), {
         contains: `Unable to load plugin: Error: Error validating plugin module "${pluginPath}": key .gardenPlugin is required`,
@@ -2335,7 +2334,7 @@ describe("Garden", () => {
     })
 
     it("should scan and add modules for projects with configs defining multiple modules", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "multiple-module-config"))
+      const garden = await makeTestGarden(getDataDir("test-projects", "multiple-module-config"))
       await garden.scanAndAddConfigs()
 
       const modules = await garden.resolveModules({ log: garden.log })
@@ -2350,7 +2349,7 @@ describe("Garden", () => {
     })
 
     it("should scan and add modules contained in custom-named config files", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "custom-config-names"))
+      const garden = await makeTestGarden(getDataDir("test-projects", "custom-config-names"))
       await garden.scanAndAddConfigs()
 
       const modules = await garden.resolveModules({ log: garden.log })
@@ -2358,7 +2357,7 @@ describe("Garden", () => {
     })
 
     it("should scan and add workflows contained in custom-named config files", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "custom-config-names"))
+      const garden = await makeTestGarden(getDataDir("test-projects", "custom-config-names"))
       await garden.scanAndAddConfigs()
 
       const workflows = await garden.getRawWorkflowConfigs()
@@ -2374,7 +2373,7 @@ describe("Garden", () => {
     })
 
     it("should resolve template strings in project source definitions", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-project-ext-project-sources"))
+      const garden = await makeTestGarden(getDataDir("test-project-ext-project-sources"))
       const sourcesPath = join(garden.gardenDirPath, "sources")
 
       if (await pathExists(sourcesPath)) {
@@ -2382,7 +2381,7 @@ describe("Garden", () => {
         await mkdirp(sourcesPath)
       }
 
-      const localSourcePath = resolve(dataDir, "test-project-local-project-sources", "source-a")
+      const localSourcePath = getDataDir("test-project-local-project-sources", "source-a")
       const _tmpDir = await makeTempDir()
 
       try {
@@ -2414,7 +2413,7 @@ describe("Garden", () => {
     })
 
     it("should resolve module templates and any modules referencing them", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "module-templates"))
+      const garden = await makeTestGarden(getDataDir("test-projects", "module-templates"))
       await garden.scanAndAddConfigs()
 
       const configA = (await garden.getRawModuleConfigs(["foo-test-a"]))[0]
@@ -2489,7 +2488,7 @@ describe("Garden", () => {
     })
 
     it("should throw on duplicate module template names", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-module-templates"))
+      const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-module-templates"))
 
       await expectError(() => garden.scanAndAddConfigs(), {
         contains: [
@@ -2500,7 +2499,7 @@ describe("Garden", () => {
     })
 
     it("should throw when two modules have the same name", async () => {
-      const garden = await makeTestGarden(resolve(dataDir, "test-projects", "duplicate-module"))
+      const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-module"))
 
       await expectError(() => garden.scanAndAddConfigs(), {
         contains: "Module module-a is declared multiple times (in 'module-a/garden.yml' and 'module-b/garden.yml')",
@@ -2578,14 +2577,14 @@ describe("Garden", () => {
     })
 
     it.skip("should throw an error if references to missing secrets are present in a module config", async () => {
-      const garden = await makeTestGarden(join(dataDir, "missing-secrets", "module"))
+      const garden = await makeTestGarden(getDataDir("missing-secrets", "module"))
       await expectError(() => garden.scanAndAddConfigs(), { contains: "Module module-a: missing" })
     })
   })
 
   describe("resolveModules", () => {
     it("should throw if a module references itself in a template string", async () => {
-      const projectRoot = resolve(dataDir, "test-projects", "module-self-ref")
+      const projectRoot = getDataDir("test-projects", "module-self-ref")
       const garden = await makeTestGarden(projectRoot)
       const key = "${modules.module-a.version}"
       await expectError(() => garden.resolveModules({ log: garden.log }), {
@@ -3731,7 +3730,7 @@ describe("Garden", () => {
     })
 
     it("fully resolves module template inputs before resolving templated modules", async () => {
-      const root = resolve(dataDir, "test-projects", "module-templates")
+      const root = getDataDir("test-projects", "module-templates")
       const garden = await makeTestGarden(root)
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -3741,7 +3740,7 @@ describe("Garden", () => {
     })
 
     it("throws if templated module inputs don't match the template inputs schema", async () => {
-      const root = resolve(dataDir, "test-projects", "module-templates")
+      const root = getDataDir("test-projects", "module-templates")
       const garden = await makeTestGarden(root)
 
       await garden.scanAndAddConfigs()
