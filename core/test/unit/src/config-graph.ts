@@ -205,6 +205,29 @@ describe("ConfigGraph (action-based configs)", () => {
 
         throw new Error("Expected error")
       })
+
+      it("should throw if specifically requesting a disabled Build action", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-build",
+              kind: "Build",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+        await expectError(() => graph.getBuilds({ names: ["disabled-build"] }), {
+          contains: "Could not find one or more Build actions: disabled-build",
+        })
+      })
     })
 
     describe("getDeploys", () => {
@@ -229,6 +252,29 @@ describe("ConfigGraph (action-based configs)", () => {
         }
 
         throw new Error("Expected error")
+      })
+
+      it("should throw if specifically requesting a disabled Deploy action", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-deploy",
+              kind: "Deploy",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+        await expectError(() => graph.getDeploys({ names: ["disabled-deploy"] }), {
+          contains: "Could not find one or more Deploy actions: disabled-deploy",
+        })
       })
     })
 
@@ -255,6 +301,29 @@ describe("ConfigGraph (action-based configs)", () => {
 
         throw new Error("Expected error")
       })
+
+      it("should throw if specifically requesting a disabled Run action", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-run",
+              kind: "Run",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+        await expectError(() => graph.getRuns({ names: ["disabled-run"] }), {
+          contains: "Could not find one or more Run actions: disabled-run",
+        })
+      })
     })
 
     describe("getTests", () => {
@@ -279,6 +348,29 @@ describe("ConfigGraph (action-based configs)", () => {
         }
 
         throw new Error("Expected error")
+      })
+
+      it("should throw if specifically requesting a disabled Test action", async () => {
+        const tmpGarden = await makeGarden(tmpDir, testPlugin)
+
+        tmpGarden.setActionConfigs(
+          [],
+          [
+            makeAction({
+              basePath: tmpDir.path,
+              name: "disabled-test",
+              kind: "Test",
+              spec: {},
+              disabled: true,
+            }),
+          ]
+        )
+
+        const graph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+        await expectError(() => graph.getTests({ names: ["disabled-test"] }), {
+          contains: "Could not find one or more Test actions: disabled-test",
+        })
       })
     })
   })
