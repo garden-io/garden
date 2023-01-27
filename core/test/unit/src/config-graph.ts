@@ -166,12 +166,16 @@ describe("ConfigGraph (action-based configs)", () => {
     const validActionConfigs: BaseActionConfig[] = [
       makeBuild("build-1"),
       makeBuild("build-2"),
+      makeBuild("build-3"),
       makeDeploy("deploy-1"),
       makeDeploy("deploy-2"),
+      makeDeploy("deploy-3"),
       makeRun("run-1"),
       makeRun("run-2"),
+      makeRun("run-3"),
       makeTest("test-1"),
       makeTest("test-2"),
+      makeTest("test-3"),
     ]
     garden.setActionConfigs([], [...validActionConfigs])
     configGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
@@ -186,13 +190,16 @@ describe("ConfigGraph (action-based configs)", () => {
       it("should return all registered Build actions", async () => {
         const buildActions = configGraph.getBuilds()
 
-        expect(getNames(buildActions).sort()).to.eql(["build-1", "build-2"])
+        expect(getNames(buildActions).sort()).to.eql(["build-1", "build-2", "build-3"])
 
         const spec1 = buildActions[0].getConfig("spec")
         expect(spec1.buildCommand).to.eql(["echo", "build-1", "ok"])
 
         const spec2 = buildActions[1].getConfig("spec")
         expect(spec2.buildCommand).to.eql(["echo", "build-2", "ok"])
+
+        const spec3 = buildActions[2].getConfig("spec")
+        expect(spec3.buildCommand).to.eql(["echo", "build-3", "ok"])
       })
 
       it("should optionally return specified Build actions in the context", async () => {
@@ -240,13 +247,16 @@ describe("ConfigGraph (action-based configs)", () => {
       it("should return all registered Deploy actions", async () => {
         const deployActions = configGraph.getDeploys()
 
-        expect(getNames(deployActions).sort()).to.eql(["deploy-1", "deploy-2"])
+        expect(getNames(deployActions).sort()).to.eql(["deploy-1", "deploy-2", "deploy-3"])
 
         const spec1 = deployActions[0].getConfig("spec")
         expect(spec1.deployCommand).to.eql(["echo", "deploy-1", "ok"])
 
         const spec2 = deployActions[1].getConfig("spec")
         expect(spec2.deployCommand).to.eql(["echo", "deploy-2", "ok"])
+
+        const spec3 = deployActions[2].getConfig("spec")
+        expect(spec3.deployCommand).to.eql(["echo", "deploy-3", "ok"])
       })
 
       it("should optionally return specified Deploy actions in the context", async () => {
@@ -294,13 +304,16 @@ describe("ConfigGraph (action-based configs)", () => {
       it("should return all registered Run actions", async () => {
         const runActions = configGraph.getRuns()
 
-        expect(getNames(runActions).sort()).to.eql(["run-1", "run-2"])
+        expect(getNames(runActions).sort()).to.eql(["run-1", "run-2", "run-3"])
 
         const spec1 = runActions[0].getConfig("spec")
         expect(spec1.runCommand).to.eql(["echo", "run-1", "ok"])
 
         const spec2 = runActions[1].getConfig("spec")
         expect(spec2.runCommand).to.eql(["echo", "run-2", "ok"])
+
+        const spec3 = runActions[2].getConfig("spec")
+        expect(spec3.runCommand).to.eql(["echo", "run-3", "ok"])
       })
 
       it("should optionally return specified Run actions in the context", async () => {
@@ -348,13 +361,16 @@ describe("ConfigGraph (action-based configs)", () => {
       it("should return all registered Test actions", async () => {
         const testActions = configGraph.getTests()
 
-        expect(getNames(testActions).sort()).to.eql(["test-1", "test-2"])
+        expect(getNames(testActions).sort()).to.eql(["test-1", "test-2", "test-3"])
 
         const spec1 = testActions[0].getConfig("spec")
         expect(spec1.testCommand).to.eql(["echo", "test-1", "ok"])
 
         const spec2 = testActions[1].getConfig("spec")
         expect(spec2.testCommand).to.eql(["echo", "test-2", "ok"])
+
+        const spec3 = testActions[2].getConfig("spec")
+        expect(spec3.testCommand).to.eql(["echo", "test-3", "ok"])
       })
 
       it("should optionally return specified Test actions in the context", async () => {
