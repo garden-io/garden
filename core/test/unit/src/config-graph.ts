@@ -64,7 +64,11 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
   return garden
 }
 
-// TODO-G2: implement the test cases similar to the existing module-based getBuild(s)/getDeploys/getRun(s)/getTest(s)
+/**
+ * TODO-G2B:
+ *  - implement the remained test cases similar to the existing module-based (getDependants* and getDependencies)
+ *  - consider using template helper functions or parameteric tests for the similar Build/Deploy/Run/Test spec
+ */
 describe("ConfigGraph (action-based configs)", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
