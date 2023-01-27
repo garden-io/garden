@@ -64,7 +64,317 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
   return garden
 }
 
-describe("ConfigGraph", () => {
+// TODO-G2: implement the test cases similar to the existing module-based getBuild(s)/getDeploys/getRun(s)/getTest(s)
+describe("ConfigGraph (action-based configs)", () => {
+  let tmpDir: tmp.DirectoryResult
+  let garden: TestGarden
+  let configGraph: ConfigGraph
+
+  // Minimalistic test plugin with no-op behaviour and without any schema validation constraints,
+  // because we only need to unit test the processing of action configs into the action definitions.
+  const testPlugin = customizedTestPlugin({
+    name: "test",
+    createActionTypes: {
+      Build: [
+        {
+          name: "test",
+          docs: "Test Build action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Deploy: [
+        {
+          name: "test",
+          docs: "Test Deploy action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Run: [
+        {
+          name: "test",
+          docs: "Test Run action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+      Test: [
+        {
+          name: "test",
+          docs: "Test Test action",
+          schema: joi.object(),
+          handlers: {},
+        },
+      ],
+    },
+  })
+
+  // Helpers to create minimalistic action configs.
+  // Each action type has its own simple spec with a single field named `${lowercase(kind)}Command`.
+
+  const makeBuild = (name: string) =>
+    makeAction({
+      basePath: tmpDir.path,
+      name,
+      kind: "Build",
+      spec: {
+        buildCommand: ["echo", name, "ok"],
+      },
+      disabled: false,
+    })
+
+  const makeDeploy = (name: string) =>
+    makeAction({
+      basePath: tmpDir.path,
+      name,
+      kind: "Deploy",
+      spec: {
+        deployCommand: ["echo", name, "ok"],
+      },
+      disabled: false,
+    })
+
+  const makeRun = (name: string) =>
+    makeAction({
+      basePath: tmpDir.path,
+      name,
+      kind: "Run",
+      spec: {
+        runCommand: ["echo", name, "ok"],
+      },
+      disabled: false,
+    })
+
+  const makeTest = (name: string) =>
+    makeAction({
+      basePath: tmpDir.path,
+      name,
+      kind: "Test",
+      spec: {
+        testCommand: ["echo", name, "ok"],
+      },
+      disabled: false,
+    })
+
+  before(async () => {
+    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+
+    // init Garden and some actions of each kind
+    garden = await makeGarden(tmpDir, testPlugin)
+    const validActionConfigs: BaseActionConfig[] = [
+      makeBuild("build-1"),
+      makeBuild("build-2"),
+      makeDeploy("deploy-1"),
+      makeDeploy("deploy-2"),
+      makeRun("run-1"),
+      makeRun("run-2"),
+      makeTest("test-1"),
+      makeTest("test-2"),
+    ]
+    garden.setActionConfigs([], [...validActionConfigs])
+    configGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+  })
+
+  after(async () => {
+    await tmpDir.cleanup()
+  })
+
+  describe("getActionsByKind", () => {
+    describe("getBuilds", () => {
+      it("should return all registered Build actions", async () => {
+        const buildActions = configGraph.getBuilds()
+
+        expect(getNames(buildActions).sort()).to.eql(["build-1", "build-2"])
+
+        const spec1 = buildActions[0].getConfig("spec")
+        expect(spec1.buildCommand).to.eql(["echo", "build-1", "ok"])
+
+        const spec2 = buildActions[1].getConfig("spec")
+        expect(spec2.buildCommand).to.eql(["echo", "build-2", "ok"])
+      })
+
+      it("should throw if named Build action is missing", async () => {
+        try {
+          configGraph.getBuilds({ names: ["missing-build"] })
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+
+    describe("getDeploys", () => {
+      it("should return all registered Deploy actions", async () => {
+        const deployActions = configGraph.getDeploys()
+
+        expect(getNames(deployActions).sort()).to.eql(["deploy-1", "deploy-2"])
+
+        const spec1 = deployActions[0].getConfig("spec")
+        expect(spec1.deployCommand).to.eql(["echo", "deploy-1", "ok"])
+
+        const spec2 = deployActions[1].getConfig("spec")
+        expect(spec2.deployCommand).to.eql(["echo", "deploy-2", "ok"])
+      })
+
+      it("should throw if named Deploy action is missing", async () => {
+        try {
+          configGraph.getDeploys({ names: ["missing-deploy"] })
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+
+    describe("getRuns", () => {
+      it("should return all registered Run actions", async () => {
+        const runActions = configGraph.getRuns()
+
+        expect(getNames(runActions).sort()).to.eql(["run-1", "run-2"])
+
+        const spec1 = runActions[0].getConfig("spec")
+        expect(spec1.runCommand).to.eql(["echo", "run-1", "ok"])
+
+        const spec2 = runActions[1].getConfig("spec")
+        expect(spec2.runCommand).to.eql(["echo", "run-2", "ok"])
+      })
+
+      it("should throw if named Run action is missing", async () => {
+        try {
+          configGraph.getRuns({ names: ["missing-run"] })
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+
+    describe("getTests", () => {
+      it("should return all registered Test actions", async () => {
+        const testActions = configGraph.getTests()
+
+        expect(getNames(testActions).sort()).to.eql(["test-1", "test-2"])
+
+        const spec1 = testActions[0].getConfig("spec")
+        expect(spec1.testCommand).to.eql(["echo", "test-1", "ok"])
+
+        const spec2 = testActions[1].getConfig("spec")
+        expect(spec2.testCommand).to.eql(["echo", "test-2", "ok"])
+      })
+
+      it("should throw if named Test action is missing", async () => {
+        try {
+          configGraph.getTests({ names: ["missing-test"] })
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+  })
+
+  describe("getActionByKind", () => {
+    describe("getBuild", () => {
+      it("should return the specified Build action", async () => {
+        const buildAction = configGraph.getBuild("build-1")
+
+        expect(buildAction.name).to.equal("build-1")
+
+        const spec = buildAction.getConfig("spec")
+        expect(spec.buildCommand).to.eql(["echo", "build-1", "ok"])
+      })
+
+      it("should throw if Build action is missing", async () => {
+        try {
+          configGraph.getBuild("missing-build")
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+
+    describe("getDeploy", () => {
+      it("should return the specified Deploy action", async () => {
+        const deployAction = configGraph.getDeploy("deploy-1")
+
+        expect(deployAction.name).to.equal("deploy-1")
+
+        const spec = deployAction.getConfig("spec")
+        expect(spec.deployCommand).to.eql(["echo", "deploy-1", "ok"])
+      })
+
+      it("should throw if Deploy action is missing", async () => {
+        try {
+          configGraph.getDeploy("missing-deploy")
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+
+    describe("getRun", () => {
+      it("should return the specified Run action", async () => {
+        const runAction = configGraph.getRun("run-1")
+
+        expect(runAction.name).to.equal("run-1")
+
+        const spec = runAction.getConfig("spec")
+        expect(spec.runCommand).to.eql(["echo", "run-1", "ok"])
+      })
+
+      it("should throw if Run action is missing", async () => {
+        try {
+          configGraph.getRun("missing-run")
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+
+    describe("getTest", () => {
+      it("should return the specified Test action", async () => {
+        const testAction = configGraph.getTest("test-1")
+
+        expect(testAction.name).to.equal("test-1")
+
+        const spec = testAction.getConfig("spec")
+        expect(spec.testCommand).to.eql(["echo", "test-1", "ok"])
+      })
+
+      it("should throw if Test action is missing", async () => {
+        try {
+          configGraph.getTest("missing-test")
+        } catch (err) {
+          expect(err.type).to.equal("graph")
+          return
+        }
+
+        throw new Error("Expected error")
+      })
+    })
+  })
+})
+
+describe("ConfigGraph (module-based configs)", () => {
   let gardenA: Garden
   let graphA: ConfigGraph
   let tmpPath: string
@@ -108,316 +418,6 @@ describe("ConfigGraph", () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const module = graph.getModule("module-b")
     expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
-  })
-
-  // TODO-G2: implement the test cases similar to the existing module-based getBuild(s)/getDeploys/getRun(s)/getTest(s)
-  context("action based config", () => {
-    let tmpDir: tmp.DirectoryResult
-    let garden: TestGarden
-    let configGraph: ConfigGraph
-
-    // Minimalistic test plugin with no-op behaviour and without any schema validation constraints,
-    // because we only need to unit test the processing of action configs into the action definitions.
-    const testPlugin = customizedTestPlugin({
-      name: "test",
-      createActionTypes: {
-        Build: [
-          {
-            name: "test",
-            docs: "Test Build action",
-            schema: joi.object(),
-            handlers: {},
-          },
-        ],
-        Deploy: [
-          {
-            name: "test",
-            docs: "Test Deploy action",
-            schema: joi.object(),
-            handlers: {},
-          },
-        ],
-        Run: [
-          {
-            name: "test",
-            docs: "Test Run action",
-            schema: joi.object(),
-            handlers: {},
-          },
-        ],
-        Test: [
-          {
-            name: "test",
-            docs: "Test Test action",
-            schema: joi.object(),
-            handlers: {},
-          },
-        ],
-      },
-    })
-
-    // Helpers to create minimalistic action configs.
-    // Each action type has its own simple spec with a single field named `${lowercase(kind)}Command`.
-
-    const makeBuild = (name: string) =>
-      makeAction({
-        basePath: tmpDir.path,
-        name,
-        kind: "Build",
-        spec: {
-          buildCommand: ["echo", name, "ok"],
-        },
-        disabled: false,
-      })
-
-    const makeDeploy = (name: string) =>
-      makeAction({
-        basePath: tmpDir.path,
-        name,
-        kind: "Deploy",
-        spec: {
-          deployCommand: ["echo", name, "ok"],
-        },
-        disabled: false,
-      })
-
-    const makeRun = (name: string) =>
-      makeAction({
-        basePath: tmpDir.path,
-        name,
-        kind: "Run",
-        spec: {
-          runCommand: ["echo", name, "ok"],
-        },
-        disabled: false,
-      })
-
-    const makeTest = (name: string) =>
-      makeAction({
-        basePath: tmpDir.path,
-        name,
-        kind: "Test",
-        spec: {
-          testCommand: ["echo", name, "ok"],
-        },
-        disabled: false,
-      })
-
-    before(async () => {
-      tmpDir = await tmp.dir({ unsafeCleanup: true })
-      await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
-
-      // init Garden and some actions of each kind
-      garden = await makeGarden(tmpDir, testPlugin)
-      const validActionConfigs: BaseActionConfig[] = [
-        makeBuild("build-1"),
-        makeBuild("build-2"),
-        makeDeploy("deploy-1"),
-        makeDeploy("deploy-2"),
-        makeRun("run-1"),
-        makeRun("run-2"),
-        makeTest("test-1"),
-        makeTest("test-2"),
-      ]
-      garden.setActionConfigs([], [...validActionConfigs])
-      configGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    })
-
-    after(async () => {
-      await tmpDir.cleanup()
-    })
-
-    describe("getActionsByKind", () => {
-      describe("getBuilds", () => {
-        it("should return all registered Build actions", async () => {
-          const buildActions = configGraph.getBuilds()
-
-          expect(getNames(buildActions).sort()).to.eql(["build-1", "build-2"])
-
-          const spec1 = buildActions[0].getConfig("spec")
-          expect(spec1.buildCommand).to.eql(["echo", "build-1", "ok"])
-
-          const spec2 = buildActions[1].getConfig("spec")
-          expect(spec2.buildCommand).to.eql(["echo", "build-2", "ok"])
-        })
-
-        it("should throw if named Build action is missing", async () => {
-          try {
-            configGraph.getBuilds({ names: ["missing-build"] })
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-
-      describe("getDeploys", () => {
-        it("should return all registered Deploy actions", async () => {
-          const deployActions = configGraph.getDeploys()
-
-          expect(getNames(deployActions).sort()).to.eql(["deploy-1", "deploy-2"])
-
-          const spec1 = deployActions[0].getConfig("spec")
-          expect(spec1.deployCommand).to.eql(["echo", "deploy-1", "ok"])
-
-          const spec2 = deployActions[1].getConfig("spec")
-          expect(spec2.deployCommand).to.eql(["echo", "deploy-2", "ok"])
-        })
-
-        it("should throw if named Deploy action is missing", async () => {
-          try {
-            configGraph.getDeploys({ names: ["missing-deploy"] })
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-
-      describe("getRuns", () => {
-        it("should return all registered Run actions", async () => {
-          const runActions = configGraph.getRuns()
-
-          expect(getNames(runActions).sort()).to.eql(["run-1", "run-2"])
-
-          const spec1 = runActions[0].getConfig("spec")
-          expect(spec1.runCommand).to.eql(["echo", "run-1", "ok"])
-
-          const spec2 = runActions[1].getConfig("spec")
-          expect(spec2.runCommand).to.eql(["echo", "run-2", "ok"])
-        })
-
-        it("should throw if named Run action is missing", async () => {
-          try {
-            configGraph.getRuns({ names: ["missing-run"] })
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-
-      describe("getTests", () => {
-        it("should return all registered Test actions", async () => {
-          const testActions = configGraph.getTests()
-
-          expect(getNames(testActions).sort()).to.eql(["test-1", "test-2"])
-
-          const spec1 = testActions[0].getConfig("spec")
-          expect(spec1.testCommand).to.eql(["echo", "test-1", "ok"])
-
-          const spec2 = testActions[1].getConfig("spec")
-          expect(spec2.testCommand).to.eql(["echo", "test-2", "ok"])
-        })
-
-        it("should throw if named Test action is missing", async () => {
-          try {
-            configGraph.getTests({ names: ["missing-test"] })
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-    })
-
-    describe("getActionByKind", () => {
-      describe("getBuild", () => {
-        it("should return the specified Build action", async () => {
-          const buildAction = configGraph.getBuild("build-1")
-
-          expect(buildAction.name).to.equal("build-1")
-
-          const spec = buildAction.getConfig("spec")
-          expect(spec.buildCommand).to.eql(["echo", "build-1", "ok"])
-        })
-
-        it("should throw if Build action is missing", async () => {
-          try {
-            configGraph.getBuild("missing-build")
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-
-      describe("getDeploy", () => {
-        it("should return the specified Deploy action", async () => {
-          const deployAction = configGraph.getDeploy("deploy-1")
-
-          expect(deployAction.name).to.equal("deploy-1")
-
-          const spec = deployAction.getConfig("spec")
-          expect(spec.deployCommand).to.eql(["echo", "deploy-1", "ok"])
-        })
-
-        it("should throw if Deploy action is missing", async () => {
-          try {
-            configGraph.getDeploy("missing-deploy")
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-
-      describe("getRun", () => {
-        it("should return the specified Run action", async () => {
-          const runAction = configGraph.getRun("run-1")
-
-          expect(runAction.name).to.equal("run-1")
-
-          const spec = runAction.getConfig("spec")
-          expect(spec.runCommand).to.eql(["echo", "run-1", "ok"])
-        })
-
-        it("should throw if Run action is missing", async () => {
-          try {
-            configGraph.getRun("missing-run")
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-
-      describe("getTest", () => {
-        it("should return the specified Test action", async () => {
-          const testAction = configGraph.getTest("test-1")
-
-          expect(testAction.name).to.equal("test-1")
-
-          const spec = testAction.getConfig("spec")
-          expect(spec.testCommand).to.eql(["echo", "test-1", "ok"])
-        })
-
-        it("should throw if Test action is missing", async () => {
-          try {
-            configGraph.getTest("missing-test")
-          } catch (err) {
-            expect(err.type).to.equal("graph")
-            return
-          }
-
-          throw new Error("Expected error")
-        })
-      })
-    })
   })
 
   describe("getModules", () => {
