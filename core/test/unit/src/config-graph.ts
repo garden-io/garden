@@ -240,6 +240,17 @@ describe("ConfigGraph", () => {
           const spec2 = buildActions[1].getConfig("spec")
           expect(spec2.buildCommand).to.eql(["echo", "build-2", "ok"])
         })
+
+        it("should throw if named Build action is missing", async () => {
+          try {
+            configGraph.getBuilds({ names: ["missing-build"] })
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
+        })
       })
 
       describe("getDeploys", () => {
@@ -253,6 +264,17 @@ describe("ConfigGraph", () => {
 
           const spec2 = deployActions[1].getConfig("spec")
           expect(spec2.deployCommand).to.eql(["echo", "deploy-2", "ok"])
+        })
+
+        it("should throw if named Deploy action is missing", async () => {
+          try {
+            configGraph.getDeploys({ names: ["missing-deploy"] })
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
         })
       })
 
@@ -268,6 +290,17 @@ describe("ConfigGraph", () => {
           const spec2 = runActions[1].getConfig("spec")
           expect(spec2.runCommand).to.eql(["echo", "run-2", "ok"])
         })
+
+        it("should throw if named Run action is missing", async () => {
+          try {
+            configGraph.getRuns({ names: ["missing-run"] })
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
+        })
       })
 
       describe("getTests", () => {
@@ -282,6 +315,17 @@ describe("ConfigGraph", () => {
           const spec2 = testActions[1].getConfig("spec")
           expect(spec2.testCommand).to.eql(["echo", "test-2", "ok"])
         })
+
+        it("should throw if named Test action is missing", async () => {
+          try {
+            configGraph.getTests({ names: ["missing-test"] })
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
+        })
       })
     })
 
@@ -295,6 +339,17 @@ describe("ConfigGraph", () => {
           const spec = buildAction.getConfig("spec")
           expect(spec.buildCommand).to.eql(["echo", "build-1", "ok"])
         })
+
+        it("should throw if Build action is missing", async () => {
+          try {
+            configGraph.getBuild("missing-build")
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
+        })
       })
 
       describe("getDeploy", () => {
@@ -305,6 +360,17 @@ describe("ConfigGraph", () => {
 
           const spec = deployAction.getConfig("spec")
           expect(spec.deployCommand).to.eql(["echo", "deploy-1", "ok"])
+        })
+
+        it("should throw if Deploy action is missing", async () => {
+          try {
+            configGraph.getDeploy("missing-deploy")
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
         })
       })
 
@@ -317,6 +383,17 @@ describe("ConfigGraph", () => {
           const spec = runAction.getConfig("spec")
           expect(spec.runCommand).to.eql(["echo", "run-1", "ok"])
         })
+
+        it("should throw if Run action is missing", async () => {
+          try {
+            configGraph.getRun("missing-run")
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
+        })
       })
 
       describe("getTest", () => {
@@ -327,6 +404,17 @@ describe("ConfigGraph", () => {
 
           const spec = testAction.getConfig("spec")
           expect(spec.testCommand).to.eql(["echo", "test-1", "ok"])
+        })
+
+        it("should throw if Test action is missing", async () => {
+          try {
+            configGraph.getTest("missing-test")
+          } catch (err) {
+            expect(err.type).to.equal("graph")
+            return
+          }
+
+          throw new Error("Expected error")
         })
       })
     })
