@@ -4,21 +4,21 @@ on:
   release:
     types: [published]
 
-permissions:  # added using https://github.com/step-security/secure-workflows
+permissions: # added using https://github.com/step-security/secure-workflows
   contents: read
 
 jobs:
   publish-npm-package:
-    runs-on: macOS-latest
+    runs-on: macos-latest
     steps:
       - name: Set Environment Variables
         run: |
           echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e
-      - name: Use Node.js 14.x
+      - name: Use Node.js 16.x
         uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e
         with:
-          node-version: 14.x
+          node-version: 16.x
       - name: Build package
         run: |
           yarn
