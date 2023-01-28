@@ -1,5 +1,5 @@
 kind: Project
-name: vote
+name: vote-modules
 environments:
   - name: local
     variables:

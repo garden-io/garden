@@ -1,5 +1,5 @@
 kind: Project
-name: templated-k8s-container
+name: templated-k8s-container-modules
 environments:
   - name: local
   - name: testing

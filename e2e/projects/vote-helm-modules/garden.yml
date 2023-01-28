@@ -1,5 +1,5 @@
 kind: Project
-name: vote-helm
+name: vote-helm-modules
 environments:
   - name: local
     variables:
