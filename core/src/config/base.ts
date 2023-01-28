@@ -223,8 +223,9 @@ export function prepareProjectResource(spec: any): ProjectResource {
   )
 }
 
-export function prepareActionResource(spec: any, configPath: string, relPath: string) {
+export function prepareActionResource(spec: any, configFilePath: string, relPath: string) {
   delete spec.path
+  delete spec.configPath
 
   if (spec.internal) {
     throw new ConfigurationError(`Found invalid key "internal" in config at ${relPath}`, {
@@ -234,7 +235,8 @@ export function prepareActionResource(spec: any, configPath: string, relPath: st
   }
 
   spec.internal = {
-    basePath: dirname(configPath),
+    basePath: dirname(configFilePath),
+    configFilePath,
   }
   return spec
 }
