@@ -110,7 +110,7 @@ describe("PreReleaseTests", () => {
     })
   })
 
-  if (project === "demo-project") {
+  if (project === "demo-project" || project === "demo-project-modules") {
     describe("demo-project", () => {
       describe("top-level sanity checks", () => {
         it("runs the deploy command in watch mode", async () => {
