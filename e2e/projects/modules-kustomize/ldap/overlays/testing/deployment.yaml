@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ldap
+spec:
+  replicas: 3
+  template:
+    spec:
+      volumes:
+        - name: ldap-data
+          # Note: Modified the original example here, to get it deploying reliably
+          emptyDir: {}
+          # gcePersistentDisk:
+          #   pdName: ldap-persistent-storage

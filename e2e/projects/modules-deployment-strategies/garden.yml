@@ -1,0 +1,39 @@
+kind: Project
+name: deployment-strategies
+environments:
+  - name: local
+  - name: local-default
+  - name: local-blue-green
+  - name: testing
+    defaultNamespace: ${var.userId}
+providers:
+    # Default deployment strategy
+  - name: local-kubernetes
+    environments: [local]
+    # Same as above but explicit
+  - name: local-kubernetes
+    environments: [local-default]
+    deploymentStrategy: rolling
+    # Blue-green deployment strategy.
+  - name: local-kubernetes
+    environments: [local-blue-green]
+    deploymentStrategy: blue-green
+    # Testing environment
+  - name: kubernetes
+    environments: [testing]
+    deploymentStrategy: blue-green
+    # Replace the below values as appropriate
+    context: gke_garden-ci_europe-west1-b_core-ci
+    namespace: ${project.name}-testing-${var.userId}
+    defaultHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
+    buildMode: kaniko
+    deploymentRegistry:
+      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
+      namespace: garden-ci   # <- set this to the project ID of the target cluster
+    imagePullSecrets:
+      # Make sure this matches the name and namespace of the imagePullSecret you've created
+      # to authenticate with your registry (if needed)
+      - name: gcr-config
+        namespace: default
+variables:
+  userId: ${local.username}

@@ -1,0 +1,28 @@
+kind: Module
+name: hello
+description: Greeting service
+type: container
+services:
+  - name: hello
+    args: [npm, start]
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /hello
+        port: http
+    dependencies:
+      - node-migration
+tests:
+  - name: unit
+    args: [npm, test]
+tasks:
+  - name: node-migration
+    command: [/bin/sh, -c]
+    # The postgres health check appears to go through before the server accepts remote connections,
+    # so we set a long initial delay.
+    # https://github.com/CrunchyData/crunchy-containers/issues/653
+    args: ["sleep 15 && knex migrate:latest"]
+    description: Creates the users table.
+    dependencies:
+      - postgres

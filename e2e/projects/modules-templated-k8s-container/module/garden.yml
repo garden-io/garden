@@ -1,0 +1,7 @@
+kind: Module
+type: templated
+template: k8s-container
+name: my-service
+inputs:
+  containerPort: 8080
+  servicePort: 80

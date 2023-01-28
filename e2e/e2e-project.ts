@@ -9,7 +9,7 @@
 import execa from "execa"
 import minimist from "minimist"
 import { resolve } from "path"
-import { examplesDir } from "./helpers"
+import { projectsDir } from "./helpers"
 import dedent from "dedent"
 import chalk from "chalk"
 import { join } from "path"
@@ -42,7 +42,7 @@ async function run() {
   }
 
   // Abort if examples dir is dirty to prevent changes being checked out
-  const projectDir = resolve(examplesDir, project)
+  const projectDir = resolve(projectsDir, project)
   try {
     await execa("git", ["diff-index", "--quiet", "HEAD", projectDir])
   } catch (_error) {
