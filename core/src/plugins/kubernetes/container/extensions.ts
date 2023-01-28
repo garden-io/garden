@@ -27,7 +27,7 @@ import { getBuildkitBuildStatus, buildkitBuildHandler } from "./build/buildkit"
 import { BuildStatusHandler, BuildHandler } from "./build/common"
 import { getKanikoBuildStatus, kanikoBuild } from "./build/kaniko"
 import { getLocalBuildStatus, localBuild } from "./build/local"
-import { k8sContainerDeploy } from "./deployment"
+import { deleteContainerDeploy, k8sContainerDeploy } from "./deployment"
 import { execInContainer } from "./exec"
 import { k8sGetContainerBuildActionOutputs, validateDeploySpec } from "./handlers"
 import { k8sGetContainerDeployLogs } from "./logs"
@@ -72,6 +72,7 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
   name: "container",
   handlers: {
     deploy: k8sContainerDeploy,
+    delete: deleteContainerDeploy,
     exec: execInContainer,
     getLogs: k8sGetContainerDeployLogs,
     getPortForward: async (params) => {
