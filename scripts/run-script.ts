@@ -15,10 +15,18 @@ import { resolve } from "path"
 const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
-const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.5.js")
+const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-berry.cjs")
 
 export async function getPackages({ scope, ignore }: { scope?: string; ignore?: string } = {}) {
-  let packages = JSON.parse((await execa("node", [yarnPath, "--silent", "workspaces", "info"])).stdout)
+  let packages: any = {}
+
+  const packagesJson = await execa("node", [yarnPath, "workspaces", "list", "--json", "--recursive", "--verbose"])
+
+  packagesJson.stdout.split("\n").map((j) => JSON.parse(j)).map((p) => {
+    if (p.location !== ".") {
+      packages[p.name] = p
+    }
+  })
 
   if (scope) {
     packages = pickBy(packages, (_, k) => minimatch(k, scope))
@@ -168,6 +176,6 @@ async function runInPackages(args: string[]) {
 }
 
 runInPackages(process.argv.slice(2)).catch((err) => {
-  console.log(chalk.redBright(err))
+  console.log(err)
   process.exit(1)
 })

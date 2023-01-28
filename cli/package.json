@@ -41,10 +41,10 @@
     "lodash": "^4.17.20",
     "minimist": "^1.2.6",
     "mocha": "^10.2.0",
-    "pkg": "5.7.0",
-    "postinstall-postinstall": "^2.1.0",
+    "pkg": "^5.7.0",
     "prettier": "^2.1.0",
     "split2": "^3.2.2",
+    "tempy": "^1.0.1",
     "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
     "tslint-microsoft-contrib": "^6.2.0",
@@ -61,7 +61,6 @@
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/generate-docs.js",
     "lint": "tslint -p .",
-    "postinstall": "patch-package",
     "test": "mocha"
   },
   "pkg": {
@@ -70,11 +69,6 @@
       "build/src/cli.js",
       "node_modules/@garden-io/**/*.js",
       "node_modules/es-get-iterator/**/*.js"
-    ]
-  },
-  "workspaces": {
-    "nohoist": [
-      "pkg"
     ]
   }
 }

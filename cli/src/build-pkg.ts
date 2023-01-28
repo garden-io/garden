@@ -17,13 +17,14 @@ import { pick } from "lodash"
 import minimist from "minimist"
 import { createHash } from "crypto"
 import { createReadStream } from "fs"
+import tempy from "tempy"
 
 require("source-map-support").install()
 
 const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
-const tmpDir = resolve(repoRoot, "tmp", "pkg")
+const tmpDir = tempy.directory()
 const tmpStaticDir = resolve(tmpDir, "static")
-const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
+const pkgPath = resolve(repoRoot, "node_modules", ".bin", "pkg")
 const prebuildInstallPath = resolve(repoRoot, "node_modules", ".bin", "prebuild-install")
 const distPath = resolve(repoRoot, "dist")
 const sqliteBinFilename = "better_sqlite3.node"
@@ -81,16 +82,31 @@ async function buildBinaries(args: string[]) {
   console.log(chalk.cyan("Creating temp directory at " + tmpDir))
   await remove(tmpDir)
   await mkdirp(tmpDir)
+  const cliPath = resolve(tmpDir, "cli")
+  await mkdirp(cliPath)
 
   // Copy static dir, stripping out undesired files for the dist build
   console.log(chalk.cyan("Copying static directory"))
   await exec("rsync", ["-r", "-L", "--exclude=.garden", "--exclude=.git", STATIC_DIR, tmpDir])
+
+  console.log(chalk.cyan("Initializing static dir repo"))
   await exec("git", ["init"], { cwd: tmpStaticDir })
 
   // Copy each package to the temp dir
   console.log(chalk.cyan("Getting package info"))
-  const res = (await exec("yarn", ["--json", "workspaces", "info"])).stdout
-  const workspaces = JSON.parse(JSON.parse(res).data)
+
+  let workspaces: any = {}
+
+  const packagesJson = await exec("yarn", ["workspaces", "list", "--json", "--recursive", "--verbose"])
+
+  packagesJson.stdout
+    .split("\n")
+    .map((j) => JSON.parse(j))
+    .map((p) => {
+      if (p.location !== ".") {
+        workspaces[p.location] = p
+      }
+    })
 
   console.log(chalk.cyan("Copying packages"))
   await Bluebird.map(Object.entries(workspaces), async ([name, info]: [string, any]) => {
@@ -122,7 +138,7 @@ async function buildBinaries(args: string[]) {
       const depInfo = workspaces[depName]
       const targetRoot = resolve(tmpDir, depInfo.location)
       const relPath = relative(packageRoot, targetRoot)
-      packageJson.dependencies[depName] = "file:" + relPath
+      packageJson.dependencies[depInfo.name] = "file:" + relPath
     }
 
     if (version === "edge") {
@@ -136,10 +152,13 @@ async function buildBinaries(args: string[]) {
     console.log(chalk.green(" ✓ " + name))
   })
 
+  console.log(chalk.cyan("Copying yarn files"))
+  await exec("cp", ["-r", ".yarnrc.yml", "yarn.lock", ".yarn", "patches", cliPath], { cwd: repoRoot })
+
   // Run yarn install in the cli package
   console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
-  const cliPath = resolve(tmpDir, workspaces["@garden-io/cli"].location)
-  await exec("yarn", ["--production"], { cwd: cliPath })
+  await exec("yarn", ["workspaces", "focus", "--production"], { cwd: cliPath })
+  await exec("yarn", [], { cwd: cliPath, env: { YARN_ENABLE_IMMUTABLE_INSTALLS: "false" } })
 
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
@@ -335,6 +354,6 @@ async function tarball(targetName: string, version: string): Promise<void> {
 }
 
 buildBinaries(process.argv.slice(2)).catch((err) => {
-  console.error(chalk.red(err.message))
+  console.error(err)
   process.exit(1)
 })

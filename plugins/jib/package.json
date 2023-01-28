@@ -23,7 +23,7 @@
     "strip-ansi": "^6.0.0"
   },
   "scripts": {
-    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo",
+    "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo || true",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "tslint -p .",
     "test": "mocha"

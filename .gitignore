@@ -9,6 +9,8 @@ npm-debug.log*
 node_modules
 /vendor/
 .pnp.js
+.yarn/cache
+.yarn/install-state.gz
 
 # IDEs
 .idea

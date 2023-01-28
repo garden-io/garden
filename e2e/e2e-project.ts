@@ -74,7 +74,7 @@ async function run() {
     }
   }
 
-  const mochaBinPath = resolve(__dirname, "node_modules/.bin/mocha")
+  const mochaBinPath = resolve(__dirname, "..", "node_modules/.bin/mocha")
   await execa(mochaBinPath, mochaOpts, {
     cwd: __dirname,
     stdio: "inherit",
