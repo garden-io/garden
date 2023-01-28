@@ -59,5 +59,9 @@ describe("ResolveActionTask", () => {
     it("throws if static outputs don't match schema", async () => {
       throw "TODO"
     })
+
+    it("applies default values from schemas to the resolved action spec", async () => {
+      throw "TODO"
+    })
   })
 })
