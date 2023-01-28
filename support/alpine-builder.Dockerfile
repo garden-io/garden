@@ -31,7 +31,8 @@ ADD sdk /garden-tmp/sdk
 # Install the CLI deps
 WORKDIR /garden-tmp/cli
 
-RUN yarn --production && \
+# Need multiple attempts unfortunately, the old yarn version doesn't handle network issues quite gracefully
+RUN for i in 1 2 3 4 5; do yarn --production && break || sleep 5; done && \
   # Fix for error in this particular package
   rm -rf node_modules/es-get-iterator/test
 

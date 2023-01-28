@@ -15,7 +15,7 @@ import { resolve } from "path"
 const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
-const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.5.js")
+const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.19.js")
 
 export async function getPackages({ scope, ignore }: { scope?: string; ignore?: string } = {}) {
   let packages = JSON.parse((await execa("node", [yarnPath, "--silent", "workspaces", "info"])).stdout)
@@ -79,7 +79,12 @@ async function runInPackages(args: string[]) {
       return
     }
 
-    const proc = execa(yarnPath, ["run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
+    const proc = execa("node", [yarnPath, "run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
+
+    proc.on("error", (error) => {
+      console.log(chalk.redBright(`\nCould not run ${script} script in package ${packageName}: ${error}`))
+      process.exit(1)
+    })
 
     const stream = split2()
     stream.on("data", (data) => {

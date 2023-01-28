@@ -83,13 +83,13 @@ commands:
     steps:
       - restore_cache:
           keys:
-            - yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
-            - yarn-v4-<<parameters.context>>
+            - yarn-v5-<<parameters.context>>-{{ checksum "yarn.lock" }}
+            - yarn-v5-<<parameters.context>>
 
       - run: yarn
 
       - save_cache:
-          key: yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
+          key: yarn-v5-<<parameters.context>>-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
 
