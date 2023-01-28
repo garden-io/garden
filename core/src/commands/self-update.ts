@@ -13,12 +13,14 @@ import { BooleanParameter, ChoicesParameter, StringParameter } from "../cli/para
 import { dedent } from "../util/string"
 import { basename, dirname, join, resolve } from "path"
 import chalk from "chalk"
-import { getArchitecture, getPackageVersion, getPlatform } from "../util/util"
-import axios from "axios"
+import { getPackageVersion, getPlatform } from "../util/util"
 import { RuntimeError } from "../exceptions"
 import { makeTempDir } from "../util/fs"
 import { createReadStream, createWriteStream } from "fs"
 import { copy, mkdirp, move, readdir, remove } from "fs-extra"
+import { got } from "../util/http"
+import { promisify } from "node:util"
+import stream from "stream"
 
 const selfUpdateArgs = {
   version: new StringParameter({
@@ -106,21 +108,14 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     log.info(chalk.white("Checking for latest version..."))
 
-    const latestVersionRes = await axios({
-      url: "https://github.com/garden-io/garden/releases/latest",
-      responseType: "json",
-      headers: {
-        Accept: "application/json",
-      },
-    })
+    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
+    const latestVersion = latestVersionRes.tag_name
 
-    if (!latestVersionRes.data.tag_name) {
-      throw new RuntimeError(`Unable to detect latest Garden version: ${latestVersionRes.data}`, {
+    if (!latestVersion) {
+      throw new RuntimeError(`Unable to detect latest Garden version: ${latestVersionRes}`, {
         response: latestVersionRes,
       })
     }
-
-    const latestVersion = latestVersionRes.data.tag_name
 
     if (!desiredVersion) {
       desiredVersion = latestVersion
@@ -169,7 +164,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       if (!platform) {
         platform = getPlatform() === "darwin" ? "macos" : getPlatform()
       }
-      const architecture = getArchitecture()
+      const architecture = "amd64" // getArchitecture()
       const extension = platform === "windows" ? "zip" : "tar.gz"
       const build = `${platform}-${architecture}`
 
@@ -182,37 +177,21 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       const tempPath = join(tempDir.path, filename)
 
       try {
-        const res = await axios({
-          url,
-          responseType: "stream",
-        })
-
-        const writer = createWriteStream(tempPath)
-        res.data.pipe(writer)
-
-        await new Promise((_resolve, reject) => {
-          writer.on("finish", _resolve)
-          writer.on("error", reject)
-          res.data.on("error", reject)
-        })
+        // See https://github.com/sindresorhus/got/blob/main/documentation/3-streams.md
+        const pipeline = promisify(stream.pipeline)
+        await pipeline(got.stream(url), createWriteStream(tempPath))
       } catch (err) {
-        if (err.response?.status === 404) {
+        if (err.code === "ERR_NON_2XX_3XX_RESPONSE" && err.response?.statusCode === 404) {
           log.info("")
           log.error(chalk.redBright(`Could not find version ${desiredVersion} for ${build}.`))
 
           // Print the latest available stable versions
           try {
-            const res = await axios({
-              url: "https://api.github.com/repos/garden-io/garden/releases?per_page=100",
-              responseType: "json",
-              headers: {
-                Accept: "application/vnd.github.v3+json",
-              },
-            })
+            const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
 
             const latestVersions = [
               chalk.cyan("edge"),
-              ...res.data
+              ...res
                 .filter((r: any) => !r.prerelease && !r.draft)
                 .map((r: any) => chalk.cyan(r.name))
                 .slice(0, 10),
