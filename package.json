@@ -27,7 +27,6 @@
     "@types/semver": "^7.2.0",
     "@types/treeify": "^1.0.0",
     "@yarnpkg/pnpify": "^2.1.0",
-    "axios": "^0.21.2",
     "chalk": "^4.1.0",
     "csv": "^6.0.5",
     "deline": "^1.0.4",
