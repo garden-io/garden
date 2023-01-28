@@ -1,0 +1,20 @@
+kind: Module
+type: jib-container
+name: spring-boot
+build:
+  # The example provides both gradle and maven configuration, you can switch to gradle here.
+  projectType: maven
+  # Push to local docker daemon when running a local cluster
+  # Note: You could also specify a deploymentRegistry or set the `image` field if you prefer to push to a registry,
+  #       but that'll obviously be much slower.
+  dockerBuild: ${environment.name == "local"}
+  mavenPhases: [ "clean", "package" ]
+services:
+  - name: spring-boot
+    ports:
+      - name: http
+        containerPort: 8080
+    healthCheck:
+      httpGet:
+        path: /
+        port: http
