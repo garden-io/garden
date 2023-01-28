@@ -751,9 +751,12 @@ export const containerDeploySchemaKeys = () => ({
 })
 
 export const containerDeploySchema = () =>
-  joi.object().keys({
-    ...containerDeploySchemaKeys(),
-  })
+  joi
+    .object()
+    .keys({
+      ...containerDeploySchemaKeys(),
+    })
+    .meta({ name: "container-deploy" })
 
 export interface ContainerRegistryConfig {
   hostname: string

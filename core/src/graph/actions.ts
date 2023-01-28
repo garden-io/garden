@@ -35,7 +35,7 @@ import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { ProjectConfigContext } from "../config/template-contexts/project"
 import { validateWithPath } from "../config/validation"
-import { ConfigurationError, InternalError, PluginError } from "../exceptions"
+import { ConfigurationError, InternalError, PluginError, ValidationError } from "../exceptions"
 import type { Garden } from "../garden"
 import type { LogEntry } from "../logger/log-entry"
 import { ActionTypeDefinition } from "../plugin/action-types"
@@ -48,6 +48,7 @@ import { dedent } from "../util/string"
 import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
+import chalk from "chalk"
 
 export async function actionConfigsToGraph({
   garden,
@@ -88,8 +89,17 @@ export async function actionConfigsToGraph({
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
   await Bluebird.map(Object.values(configsByKey), async (config) => {
-    const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey })
-    graph.addAction(action)
+    try {
+      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey })
+      graph.addAction(action)
+    } catch (error) {
+      throw new ConfigurationError(
+        chalk.redBright(
+          `\nError parsing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
+        ) + chalk.red(error.message),
+        { error, config }
+      )
+    }
   })
 
   graph.validate()
@@ -410,8 +420,12 @@ function dependenciesFromActionConfig(
   }
 
   const deps: ActionDependency[] = config.dependencies.map((d) => {
-    const { kind, name } = parseActionReference(d)
-    return { kind, name, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
+    try {
+      const { kind, name } = parseActionReference(d)
+      return { kind, name, explicit: true, needsExecutedOutputs: false, needsStaticOutputs: false }
+    } catch (error) {
+      throw new ValidationError(`Invalid dependency specified: ${error.message}`, { error, config })
+    }
   })
 
   function addDep(ref: ActionReference, attributes: ActionDependencyAttributes) {

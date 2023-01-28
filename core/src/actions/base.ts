@@ -592,12 +592,14 @@ export abstract class ResolvedRuntimeAction<
 
   constructor(params: ResolvedActionWrapperParams<Config>) {
     super(params)
+
     this.resolved = true
 
     this.dependencyResults = params.dependencyResults
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies
     this._staticOutputs = params.staticOutputs
+    this._config.spec = params.spec
   }
 
   /**
