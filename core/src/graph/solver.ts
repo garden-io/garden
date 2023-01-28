@@ -7,10 +7,10 @@
  */
 
 import type { BaseTask, Task } from "../tasks/base"
-import type { LogEntry, LogEntryMetadata, TaskLogStatus } from "../logger/log-entry"
+import type { LogEntry } from "../logger/log-entry"
 import { GardenBaseError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/util"
-import { DependencyGraph } from "./common"
+import { DependencyGraph, metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
 import { TypedEventEmitter } from "../util/events"
 import { groupBy, keyBy } from "lodash"
@@ -538,15 +538,3 @@ class GraphError extends GardenBaseError<GraphErrorDetail> {
 // class CircularDependenciesError extends GardenBaseError {
 //   type = "circular-dependencies"
 // }
-
-function metadataForLog(task: Task, status: TaskLogStatus): LogEntryMetadata {
-  return {
-    task: {
-      type: task.type,
-      key: task.getKey(),
-      status,
-      uid: task.uid,
-      versionString: task.version,
-    },
-  }
-}

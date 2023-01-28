@@ -67,7 +67,10 @@ export async function actionConfigsToGraph({
   for (const group of groupConfigs) {
     for (const config of group.actions) {
       config.internal.groupName = group.name
-      config.internal.configFilePath = group.internal?.configFilePath
+
+      if (group.internal?.configFilePath) {
+        config.internal.configFilePath = group.internal.configFilePath
+      }
 
       const key = actionReferenceToString(config)
       const existing = configsByKey[key]

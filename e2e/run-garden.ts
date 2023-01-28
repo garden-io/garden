@@ -89,7 +89,7 @@ export function commandReloadedStep(): WatchTestStep {
   return {
     description: "command reloaded",
     condition: async (logEntries: JsonLogEntry[]) => {
-      return searchLog(logEntries, /Module configuration changed, reloading/)
+      return searchLog(logEntries, /Configuration changed, reloading/)
     },
   }
 }

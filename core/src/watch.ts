@@ -320,7 +320,7 @@ export class Watcher extends EventEmitter {
     this.actions = graph.getActions()
   }
 
-  private matchactions(paths: ChangedPath[]) {
+  private matchActions(paths: ChangedPath[]) {
     return this.actions.filter((a) =>
       some(
         paths,
@@ -368,7 +368,7 @@ export class Watcher extends EventEmitter {
   }
 
   private sourcesChanged(paths: ChangedPath[]) {
-    const changedActions = this.matchactions(paths)
+    const changedActions = this.matchActions(paths)
 
     this.log.silly(`Matched ${changedActions.length} actions`)
 
