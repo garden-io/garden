@@ -1013,10 +1013,6 @@ workflows:
       #     requires: [build]
       #     kubernetesVersion: "1.22.2"
       #     minikubeVersion: "v1.25.2"
-      #     # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
-      #     # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
-      #     # integration tests.
-      #     skipTests: cluster-buildkit kaniko remote-only
       # - test-minikube:
       #     name: vm-1.23-minikube
       #     requires: [build]
