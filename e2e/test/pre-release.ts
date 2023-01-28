@@ -29,6 +29,7 @@ import {
   stringifyJsonLog,
 } from "../helpers"
 import username from "username"
+import { realpath } from "fs-extra"
 
 function log(msg: string) {
   console.log(chalk.magentaBright(msg))
@@ -64,22 +65,21 @@ describe("PreReleaseTests", () => {
   }
 
   async function runWithEnv(command: string[]) {
-    const dir = resolve(projectsDir, project)
-    return runGarden(dir, getCommand(command))
+    return runGarden(projectPath, getCommand(command))
   }
 
   function watchWithEnv(command: string[]) {
-    const dir = resolve(projectsDir, project)
-    return new GardenWatch(dir, getCommand(command))
+    return new GardenWatch(projectPath, getCommand(command))
   }
 
   const namespaces = getProjectNamespaces()
-  const projectPath = resolve(projectsDir, project)
+  let projectPath: string
 
   before(async () => {
     log("deleting .garden folder")
     await removeExampleDotGardenDir(projectPath)
     log("ready")
+    projectPath = await realpath(resolve(projectsDir, project))
   })
 
   after(async () => {
@@ -87,8 +87,8 @@ describe("PreReleaseTests", () => {
     await deleteExampleNamespaces(namespaces)
     // Checkout changes to example dir when running locally
     if (!env) {
-      log("Checking out example project directories to HEAD")
-      await execa("git", ["checkout", projectsDir])
+      log("Checking out example project directory to HEAD")
+      await execa("git", ["checkout", projectPath])
     }
   })
 
@@ -172,7 +172,6 @@ describe("PreReleaseTests", () => {
   if (project === "code-synchronization") {
     describe("code-synchronization", () => {
       it("runs the dev command with code-synchronization enabled", async () => {
-        const currentProjectPath = resolve(projectsDir, "code-synchronization")
         const gardenWatch = watchWithEnv(["dev"])
 
         const testSteps = [
@@ -182,7 +181,7 @@ describe("PreReleaseTests", () => {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
               await replaceInFile({
-                files: resolve(currentProjectPath, "node-service/src/app.js"),
+                files: resolve(projectPath, "node-service/src/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",
               })
@@ -204,7 +203,6 @@ describe("PreReleaseTests", () => {
 
       it("should get logs after code-synchronization", async () => {
         const gardenWatch = watchWithEnv(["dev"])
-        const currentProjectPath = resolve(projectsDir, "code-synchronization")
 
         const testSteps = [
           waitingForChangesStep(),
@@ -215,7 +213,7 @@ describe("PreReleaseTests", () => {
               return searchLog(logEntries, /App started/)
             },
           },
-          changeFileStep(resolve(currentProjectPath, "node-service/src/app.js"), "change node-service/src/app.js"),
+          changeFileStep(resolve(projectPath, "node-service/src/app.js"), "change node-service/src/app.js"),
           {
             description: "get logs for node-service after code-synchronization event",
             condition: async () => {

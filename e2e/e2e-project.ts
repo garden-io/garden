@@ -13,6 +13,7 @@ import { projectsDir } from "./helpers"
 import dedent from "dedent"
 import chalk from "chalk"
 import { join } from "path"
+import { realpath } from "fs-extra"
 
 export const parsedArgs = minimist(process.argv.slice(2))
 
@@ -42,7 +43,8 @@ async function run() {
   }
 
   // Abort if examples dir is dirty to prevent changes being checked out
-  const projectDir = resolve(projectsDir, project)
+  const projectDir = await realpath(resolve(projectsDir, project))
+
   try {
     await execa("git", ["diff-index", "--quiet", "HEAD", projectDir])
   } catch (_error) {
@@ -61,6 +63,10 @@ async function run() {
   )
 
   const mochaOpts = ["--config", join(__dirname, ".mocharc.yml")]
+
+  if (parsedArgs.b) {
+    mochaOpts.push("-b")
+  }
 
   for (const [key, value] of Object.entries(parsedArgs)) {
     if (key !== "_" && key !== "--") {
