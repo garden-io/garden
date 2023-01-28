@@ -376,9 +376,10 @@ jobs:
       - run:
           name: Run e2e test
           command: |
-            git checkout examples
-            git checkout e2e/projects
-            yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>>
+            cd e2e/projects/<<parameters.project>>
+            git checkout .
+            cd ~/project
+            yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
       - cleanup_remote_cluster
 
   build-docker-alpine:
@@ -938,12 +939,12 @@ workflows:
       #     name: e2e-code-synchronization
       #     project: code-synchronization
       #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-demo-project
-      #     project: demo-project
-      #     environment: remote
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-demo-project
+          project: demo-project
+          environment: remote
+          requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project-modules
