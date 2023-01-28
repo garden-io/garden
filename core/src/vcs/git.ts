@@ -29,8 +29,8 @@ import isGlob = require("is-glob")
 import chalk = require("chalk")
 import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
+import AsyncLock from "async-lock"
 
-const AsyncLock = require("async-lock")
 const gitConfigAsyncLock = new AsyncLock()
 
 const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
@@ -81,12 +81,14 @@ export class GitHandler extends VcsHandler {
   profiler: Profiler
   private readonly gitSafeDirs: Set<string>
   private gitSafeDirsRead: boolean
+  private lock: AsyncLock
 
   constructor(...args: [string, string, string, TreeCache]) {
     super(...args)
     this.profiler = getDefaultProfiler()
     this.gitSafeDirs = new Set<string>()
     this.gitSafeDirsRead = false
+    this.lock = new AsyncLock()
   }
 
   gitCli(log: LogEntry, cwd: string, failOnPrompt = false): GitCli {
@@ -138,60 +140,67 @@ export class GitHandler extends VcsHandler {
       return
     }
 
-    const git = this.gitCli(log, path, failOnPrompt)
-
-    if (!this.gitSafeDirsRead) {
-      await gitConfigAsyncLock.acquire(".gitconfig", async () => {
-        if (!this.gitSafeDirsRead) {
-          const gitCli = this.gitCli(log, path, failOnPrompt)
-          try {
-            const safeDirectories = await gitCli("config", "--get-all", "safe.directory")
-            safeDirectories.forEach((safeDir) => this.gitSafeDirs.add(safeDir))
-          } catch (err) {
-            // ignore the error if there are no safe directories defined
-            log.debug(`Error reading safe directories from the .gitconfig: ${err}`)
-          }
-          this.gitSafeDirsRead = true
-        }
-      })
-    }
-
-    try {
-      await git("status")
-      this.gitSafeDirs.add(path)
-    } catch (err) {
-      // Git has stricter repo ownerships checks since 2.36.0
-      if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
-        log.warn(
-          chalk.yellow(
-            `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
-          )
-        )
-
-        if (!this.gitSafeDirs.has(path)) {
-          await gitConfigAsyncLock.acquire(".gitconfig", async () => {
-            if (!this.gitSafeDirs.has(path)) {
-              const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path, currentPlatformName)
-              // Add the safe directory globally to be able to run git command outside a (trusted) git repo
-              // Wrap the path in quotes to pass it as a single argument in case if it contains any whitespaces
-              await git("config", "--global", "--add", "safe.directory", `'${gitConfigCompatiblePath}'`)
-              this.gitSafeDirs.add(path)
-              log.debug(`Configured git to trust repository in ${path}`)
-            }
-          })
-        }
-
+    // Avoid multiple concurrent checks on the same path
+    await this.lock.acquire(`safe-dir:${path}`, async () => {
+      if (this.gitSafeDirs.has(path)) {
         return
-      } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
-        throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
-      } else {
-        log.error(
-          `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
-        )
-        throw err
       }
-    }
-    this.gitSafeDirs.add(path)
+
+      const git = this.gitCli(log, path, failOnPrompt)
+
+      if (!this.gitSafeDirsRead) {
+        await gitConfigAsyncLock.acquire(".gitconfig", async () => {
+          if (!this.gitSafeDirsRead) {
+            const gitCli = this.gitCli(log, path, failOnPrompt)
+            try {
+              const safeDirectories = await gitCli("config", "--get-all", "safe.directory")
+              safeDirectories.forEach((safeDir) => this.gitSafeDirs.add(safeDir))
+            } catch (err) {
+              // ignore the error if there are no safe directories defined
+              log.debug(`Error reading safe directories from the .gitconfig: ${err}`)
+            }
+            this.gitSafeDirsRead = true
+          }
+        })
+      }
+
+      try {
+        await git("status")
+        this.gitSafeDirs.add(path)
+      } catch (err) {
+        // Git has stricter repo ownerships checks since 2.36.0
+        if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: unsafe repository")) {
+          log.warn(
+            chalk.yellow(
+              `It looks like you're using Git 2.36.0 or newer and the directory "${path}" is owned by someone else. It will be added to safe.directory list in the .gitconfig.`
+            )
+          )
+
+          if (!this.gitSafeDirs.has(path)) {
+            await gitConfigAsyncLock.acquire(".gitconfig", async () => {
+              if (!this.gitSafeDirs.has(path)) {
+                const gitConfigCompatiblePath = this.toGitConfigCompatiblePath(path, currentPlatformName)
+                // Add the safe directory globally to be able to run git command outside a (trusted) git repo
+                // Wrap the path in quotes to pass it as a single argument in case if it contains any whitespaces
+                await git("config", "--global", "--add", "safe.directory", `'${gitConfigCompatiblePath}'`)
+                this.gitSafeDirs.add(path)
+                log.debug(`Configured git to trust repository in ${path}`)
+              }
+            })
+          }
+
+          return
+        } else if (err.exitCode === 128 && err.stderr?.toLowerCase().includes("fatal: not a git repository")) {
+          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+        } else {
+          log.error(
+            `Unexpected Git error occurred while running 'git status' from path "${path}". Exit code: ${err.exitCode}. Error message: ${err.stderr}`
+          )
+          throw err
+        }
+      }
+      this.gitSafeDirs.add(path)
+    })
   }
 
   async getRepoRoot(log: LogEntry, path: string, failOnPrompt = false) {
@@ -199,23 +208,30 @@ export class GitHandler extends VcsHandler {
       return this.repoRoots.get(path)
     }
 
-    await this.ensureSafeDirGitRepo(log, STATIC_DIR, failOnPrompt)
-    await this.ensureSafeDirGitRepo(log, path, failOnPrompt)
-
-    const git = this.gitCli(log, path, failOnPrompt)
-
-    try {
-      const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
-      this.repoRoots.set(path, repoRoot)
-      return repoRoot
-    } catch (err) {
-      if (err.exitCode === 128) {
-        // Throw nice error when we detect that we're not in a repo root
-        throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
-      } else {
-        throw err
+    // Make sure we're not asking concurrently for the same root
+    return this.lock.acquire(`repo-root:${path}`, async () => {
+      if (this.repoRoots.has(path)) {
+        return this.repoRoots.get(path)
       }
-    }
+
+      await this.ensureSafeDirGitRepo(log, STATIC_DIR, failOnPrompt)
+      await this.ensureSafeDirGitRepo(log, path, failOnPrompt)
+
+      const git = this.gitCli(log, path, failOnPrompt)
+
+      try {
+        const repoRoot = (await git("rev-parse", "--show-toplevel"))[0]
+        this.repoRoots.set(path, repoRoot)
+        return repoRoot
+      } catch (err) {
+        if (err.exitCode === 128) {
+          // Throw nice error when we detect that we're not in a repo root
+          throw new RuntimeError(notInRepoRootErrorMessage(path), { path })
+        } else {
+          throw err
+        }
+      }
+    })
   }
 
   /**

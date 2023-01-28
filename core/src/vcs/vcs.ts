@@ -317,13 +317,13 @@ export function hashStrings(hashes: string[]) {
 }
 
 export function getResourceTreeCacheKey(config: ModuleConfig | BaseActionConfig) {
-  const cacheKey = [config.kind || "Module", getConfigBasePath(config)]
+  const cacheKey = ["source", getConfigBasePath(config)]
 
   if (config.include) {
-    cacheKey.push("include", hashStrings(config.include))
+    cacheKey.push("include", hashStrings(config.include.sort()))
   }
   if (config.exclude) {
-    cacheKey.push("exclude", hashStrings(config.exclude))
+    cacheKey.push("exclude", hashStrings(config.exclude.sort()))
   }
 
   return cacheKey
