@@ -1,0 +1,39 @@
+kind: Project
+name: remote-sources
+sources:
+  - name: web-services
+    # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.4.0
+  - name: db-services
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
+environments:
+  - name: local
+    variables:
+      baseHostname: vote.local.app.garden
+  - name: testing
+    variables:
+      baseHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [testing]
+    # Replace the below values as appropriate
+    context: gke_garden-ci_europe-west1-b_core-ci
+    namespace: ${project.name}-testing-${var.userId}
+    defaultHostname: ${var.baseHostname}
+    buildMode: kaniko
+    deploymentRegistry:
+      hostname: eu.gcr.io # <- set this according to the region your cluster runs in
+      namespace: garden-ci # <- set this to the project ID of the target cluster
+    imagePullSecrets:
+      # Make sure this matches the name and namespace of the imagePullSecret you've created
+      # to authenticate with your registry (if needed)
+      - name: gcr-config
+        namespace: default
+variables:
+  userId: ${local.username}
+  postgres-database: postgres
+  # Only use for testing!
+  postgres-username: postgres
+  postgres-password: test-password

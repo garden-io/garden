@@ -1,0 +1,2 @@
+require 'sinatra/activerecord/rake'
+require './user_model.rb'

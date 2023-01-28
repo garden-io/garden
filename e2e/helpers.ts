@@ -18,7 +18,7 @@ import { JsonLogEntry } from "@garden-io/core/build/src/logger/writers/json-term
 import { WatchTestConditionState } from "./run-garden"
 
 export const parsedArgs = parseArgs(process.argv.slice(2))
-export const examplesDir = resolve(GARDEN_CORE_ROOT, "..", "examples")
+export const projectsDir = resolve(GARDEN_CORE_ROOT, "..", "e2e", "projects")
 
 export async function removeExampleDotGardenDir(projectRoot: string) {
   try {

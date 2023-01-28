@@ -21,7 +21,7 @@ import {
   sleepStep,
 } from "../run-garden"
 import {
-  examplesDir,
+  projectsDir,
   deleteExampleNamespaces,
   parsedArgs,
   searchLog,
@@ -64,17 +64,17 @@ describe("PreReleaseTests", () => {
   }
 
   async function runWithEnv(command: string[]) {
-    const dir = resolve(examplesDir, project)
+    const dir = resolve(projectsDir, project)
     return runGarden(dir, getCommand(command))
   }
 
   function watchWithEnv(command: string[]) {
-    const dir = resolve(examplesDir, project)
+    const dir = resolve(projectsDir, project)
     return new GardenWatch(dir, getCommand(command))
   }
 
   const namespaces = getProjectNamespaces()
-  const projectPath = resolve(examplesDir, project)
+  const projectPath = resolve(projectsDir, project)
 
   before(async () => {
     log("deleting .garden folder")
@@ -88,7 +88,7 @@ describe("PreReleaseTests", () => {
     // Checkout changes to example dir when running locally
     if (!env) {
       log("Checking out example project directories to HEAD")
-      await execa("git", ["checkout", examplesDir])
+      await execa("git", ["checkout", projectsDir])
     }
   })
 
@@ -113,7 +113,7 @@ describe("PreReleaseTests", () => {
   if (project === "demo-project") {
     describe("demo-project", () => {
       describe("top-level sanity checks", () => {
-        it("runs the deploy command", async () => {
+        it("runs the deploy command in watch mode", async () => {
           const gardenWatch = watchWithEnv(["deploy", "--watch"])
 
           const testSteps = [
@@ -172,7 +172,7 @@ describe("PreReleaseTests", () => {
   if (project === "code-synchronization") {
     describe("code-synchronization", () => {
       it("runs the dev command with code-synchronization enabled", async () => {
-        const currentProjectPath = resolve(examplesDir, "code-synchronization")
+        const currentProjectPath = resolve(projectsDir, "code-synchronization")
         const gardenWatch = watchWithEnv(["dev"])
 
         const testSteps = [
@@ -204,7 +204,7 @@ describe("PreReleaseTests", () => {
 
       it("should get logs after code-synchronization", async () => {
         const gardenWatch = watchWithEnv(["dev"])
-        const currentProjectPath = resolve(examplesDir, "code-synchronization")
+        const currentProjectPath = resolve(projectsDir, "code-synchronization")
 
         const testSteps = [
           waitingForChangesStep(),

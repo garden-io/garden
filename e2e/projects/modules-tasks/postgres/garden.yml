@@ -1,0 +1,16 @@
+kind: Module
+description: Postgres database for storing user names
+type: helm
+name: postgres
+chart: postgresql
+repo: https://charts.bitnami.com/bitnami
+version: "11.6.12"
+serviceResource:
+  kind: StatefulSet
+  name: postgres
+values:
+  # This is a more digestable name than the default one in the template
+  fullnameOverride: postgres
+  auth:
+    # This should of course not be used in production
+    postgresPassword: postgres

@@ -1,0 +1,19 @@
+kind: Module
+description: The API backend for the voting UI
+type: helm
+name: api
+base: base-chart
+serviceResource:
+  containerModule: api-image
+dependencies:
+  - redis
+values:
+  name: api
+  image:
+    repository: ${modules.api-image.outputs.deployment-image-name}
+    tag: ${modules.api-image.version}
+  ingress:
+    enabled: true
+    paths: [/]
+    hosts: ["api.${var.baseHostname}"]
+  healthCheckPath: /api
