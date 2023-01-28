@@ -68,8 +68,14 @@ export type LoggerEventName = keyof LoggerEvents
 export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
 
 export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
-  deployStartedAt?: Date
-  deployCompletedAt?: Date
+  /**
+   * ISO format date string
+   */
+  deployStartedAt?: string
+  /**
+   * ISO format date string
+   */
+  deployCompletedAt?: string
 }
 
 export interface CommandInfoPayload extends CommandInfo {
@@ -152,14 +158,20 @@ export interface Events extends LoggerEvents {
 
   // TaskGraph events
   taskPending: {
-    addedAt: Date
+    /**
+     * ISO format date string
+     */
+    addedAt: string
     batchId: string
     key: string
     type: string
     name: string
   }
   taskProcessing: {
-    startedAt: Date
+    /**
+     * ISO format date string
+     */
+    startedAt: string
     batchId: string
     key: string
     type: string
@@ -169,17 +181,26 @@ export interface Events extends LoggerEvents {
   taskComplete: GraphResultEventPayload
   taskError: GraphResultEventPayload
   taskCancelled: {
-    cancelledAt: Date
+    /**
+     * ISO format date string
+     */
+    cancelledAt: string
     batchId: string
     type: string
     key: string
     name: string
   }
   taskGraphProcessing: {
-    startedAt: Date
+    /**
+     * ISO format date string
+     */
+    startedAt: string
   }
   taskGraphComplete: {
-    completedAt: Date
+    /**
+     * ISO format date string
+     */
+    completedAt: string
   }
   watchingForChanges: {}
   log: {
@@ -235,8 +256,14 @@ export interface Events extends LoggerEvents {
     actionUid?: string
     status: {
       state: BuildState
-      startedAt?: Date
-      completedAt?: Date
+      /**
+       * ISO format date string
+       */
+      startedAt?: string
+      /**
+       * ISO format date string
+       */
+      completedAt?: string
     }
   }
   taskStatus: {
