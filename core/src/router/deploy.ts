@@ -107,7 +107,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params: { ...params, log },
         handlerType: "delete",
         defaultHandler: async (p) => {
-          const msg = `No delete service handler available for action type ${p.action.type}`
+          const msg = `No delete handler available for ${p.action.kind} action type ${p.action.type}`
           p.log.setError(msg)
           return {
             state: "not-ready" as ActionState,
