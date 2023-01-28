@@ -1,5 +1,5 @@
 kind: Project
-name: tasks
+name: tasks-modules
 environments:
   - name: local
   - name: testing

@@ -1,5 +1,5 @@
 kind: Project
-name: jib-container
+name: jib-container-modules
 environments:
   - name: local
   - name: remote

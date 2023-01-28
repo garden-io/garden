@@ -1,5 +1,5 @@
 kind: Project
-name: remote-sources
+name: remote-sources-modules
 sources:
   - name: web-services
     # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
