@@ -608,6 +608,39 @@ describe("ConfigGraph (module-based configs)", () => {
     expect(module.build.dependencies).to.eql([{ name: "module-a", copy: [] }])
   })
 
+  describe("getActions", () => {
+    it("returns all actions in graph", () => {
+      const actions = graphA.getActions()
+      expect(actions.map((a) => a.key()).sort()).to.eql([
+        "build.module-a",
+        "build.module-b",
+        "build.module-c",
+        "deploy.service-a",
+        "deploy.service-b",
+        "deploy.service-c",
+        "run.task-a",
+        "run.task-a2",
+        "run.task-b",
+        "run.task-c",
+        "test.module-a-integration",
+        "test.module-a-unit",
+        "test.module-b-unit",
+        "test.module-c-integ",
+        "test.module-c-unit",
+      ])
+    })
+
+    it("returns actions matching the given references", () => {
+      const actions = graphA.getActions({
+        refs: [
+          { kind: "Build", name: "module-a" },
+          { kind: "Run", name: "task-c" },
+        ],
+      })
+      expect(actions.map((a) => a.key()).sort()).to.eql(["build.module-a", "run.task-c"])
+    })
+  })
+
   describe("getModules", () => {
     it("should scan and return all registered modules in the context", async () => {
       const modules = graphA.getModules()

@@ -139,11 +139,6 @@ export class ModuleRouter extends BaseRouter {
 
     const result = await handler(<any>handlerParams)
 
-    for (const config of result.actions || []) {
-      config.internal.configFilePath = module.configPath
-      config.internal.moduleName = module.name
-    }
-
     // TODO-G2: Ensure some fields get copied over correctly
     // (path, configPath, templateName, plugin, disabled, allowPublish, variables+varfiles on Group)
     // Validate action names

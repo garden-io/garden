@@ -215,12 +215,12 @@ export async function processActions({
 
     garden.events.on("actionConfigChanged", async (event) => {
       if (await validateConfigChange(garden, log, event.path, "changed")) {
-        const moduleNames = event.names
-        const section = moduleNames.length === 1 ? moduleNames[0] : undefined
+        const actionNames = event.names
+        const section = actionNames.length === 1 ? actionNames[0] : undefined
         log.info({
           symbol: "info",
           section,
-          msg: `Module configuration changed, reloading...`,
+          msg: `Configuration changed, reloading...`,
         })
         resolve({})
       }

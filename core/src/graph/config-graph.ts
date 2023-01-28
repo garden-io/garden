@@ -158,10 +158,10 @@ export abstract class BaseConfigGraph<
 
   getActions({ refs }: { refs?: ActionReference[] } = {}): A[] {
     // TODO: maybe we can optimize this one :P
-    const all = flatten(Object.values(this.actions).map((a) => Object.values(a)))
+    const all = Object.values(this.actions).flatMap((a) => <A[]>Object.values(a))
     if (refs) {
       const stringRefs = refs.map(actionReferenceToString)
-      return all.filter((a) => stringRefs.includes(a.stringReference()))
+      return all.filter((a) => stringRefs.includes(a.key()))
     } else {
       return all
     }

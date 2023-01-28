@@ -726,6 +726,11 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
         inheritModuleToAction(module, action)
       }
 
+      if (!result.group.internal) {
+        result.group.internal = {}
+      }
+      result.group.internal.configFilePath = module.configPath
+
       groups.push(result.group)
     }
 
