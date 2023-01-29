@@ -118,6 +118,7 @@
     "parse-git-config": "^3.0.0",
     "path-is-inside": "^1.0.2",
     "pluralize": "^8.0.0",
+    "proper-lockfile": "^4.1.2",
     "proper-url-join": "^2.1.1",
     "readdir-enhanced": "^6.0.4",
     "recursive-readdir": "^2.2.2",
@@ -153,7 +154,8 @@
     "wrap-ansi": "^7.0.0",
     "ws": "^7.4.6",
     "xml-js": "^1.6.11",
-    "yaml-lint": "^1.2.4"
+    "yaml-lint": "^1.2.4",
+    "zod": "^3.20.2"
   },
   "devDependencies": {
     "@commitlint/cli": "^8.3.5",
@@ -204,6 +206,7 @@
     "@types/path-is-inside": "^1.0.0",
     "@types/pluralize": "0.0.29",
     "@types/prettyjson": "0.0.29",
+    "@types/proper-lockfile": "^4.1.2",
     "@types/ps-tree": "^1.1.2",
     "@types/recursive-readdir": "^2.2.0",
     "@types/request": "^2.48.5",

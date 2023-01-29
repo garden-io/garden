@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { uniqBy } from "lodash"
+import { keyBy } from "lodash"
 import chalk from "chalk"
 
 import { PROJECT_SOURCES_DIR_NAME, MODULE_SOURCES_DIR_NAME } from "../constants"
-import { LinkedSource, localConfigKeys } from "../config-store"
+import { LinkedSource } from "../config-store/local"
 import { ParameterError } from "../exceptions"
 import { GardenModule } from "../types/module"
 import { join } from "path"
@@ -47,8 +47,8 @@ export function hashRepoUrl(url: string) {
 export function hasRemoteSource(module: GardenModule): boolean {
   return !!module.repositoryUrl
 }
-export function getConfigKey(type: ExternalSourceType): string {
-  return type === "project" ? localConfigKeys().linkedProjectSources : localConfigKeys().linkedModuleSources
+export function getConfigKey(type: ExternalSourceType) {
+  return type === "project" ? "linkedProjectSources" : "linkedModuleSources"
 }
 
 /**
@@ -57,8 +57,8 @@ export function getConfigKey(type: ExternalSourceType): string {
  */
 export async function getLinkedSources(garden: Garden, type?: ExternalSourceType): Promise<LinkedSource[]> {
   const localConfig = await garden.configStore.get()
-  const linkedModuleSources = localConfig.linkedModuleSources || []
-  const linkedProjectSources = localConfig.linkedProjectSources || []
+  const linkedModuleSources = Object.values(localConfig.linkedModuleSources)
+  const linkedProjectSources = Object.values(localConfig.linkedProjectSources)
   if (type === "module") {
     return linkedModuleSources
   } else if (type === "project") {
@@ -77,9 +77,9 @@ export async function addLinkedSources({
   sourceType: ExternalSourceType
   sources: LinkedSource[]
 }): Promise<LinkedSource[]> {
-  const linked = uniqBy([...(await getLinkedSources(garden, sourceType)), ...sources], "name")
-  await garden.configStore.set([getConfigKey(sourceType)], linked)
-  return linked
+  const linked = keyBy([...(await getLinkedSources(garden, sourceType)), ...sources], "name")
+  await garden.configStore.set(getConfigKey(sourceType), linked)
+  return Object.values(linked)
 }
 
 export async function removeLinkedSources({
@@ -107,6 +107,6 @@ export async function removeLinkedSources({
   }
 
   const linked = currentlyLinked.filter(({ name }) => !names.includes(name))
-  await garden.configStore.set([getConfigKey(sourceType)], linked)
+  await garden.configStore.set(getConfigKey(sourceType), keyBy(linked, "name"))
   return linked
 }

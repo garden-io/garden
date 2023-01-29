@@ -6,144 +6,180 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import tmp from "tmp-promise"
-import { ConfigStore } from "../../../src/config-store"
 import { expect } from "chai"
+import { emptyGlobalConfig, GlobalConfigStore, legacyGlobalConfigFilename } from "../../../src/config-store/global"
+import { makeTempDir, TempDirectory } from "../../helpers"
+import { dedent } from "../../../src/util/string"
 import { resolve } from "path"
-
-type ExecConfig = {}
-
-export class ExecConfigStore extends ConfigStore<ExecConfig> {
-  getConfigPath(gardenDirPath: string): string {
-    return resolve(gardenDirPath, "local-config.yml")
-  }
-
-  validate(config): ExecConfig {
-    return config
-  }
-}
+import { writeFile } from "fs-extra"
+import { legacyLocalConfigFilename, LocalConfigStore } from "../../../src/config-store/local"
 
 describe("ConfigStore", () => {
-  let config: ConfigStore
-  let tmpDir
+  let store: GlobalConfigStore
+  let tmpDir: TempDirectory
 
-  before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-    config = new ExecConfigStore(tmpDir.path)
-  })
-
-  after(async () => {
-    await tmpDir.cleanup()
+  beforeEach(async () => {
+    tmpDir = await makeTempDir()
+    store = new GlobalConfigStore(tmpDir.path)
   })
 
   afterEach(async () => {
-    await config.clear()
+    await tmpDir.cleanup()
   })
 
   describe("set", () => {
-    it("should set a simple key/value pair", async () => {
-      await config.set(["key"], "value")
-      expect(await config.get()).to.eql({ key: "value" })
+    it("sets a whole config section if no key is set", async () => {
+      const input = { lastRun: new Date() }
+      await store.set("versionCheck", input)
+      const output = await store.get("versionCheck")
+      expect(input).to.eql(output)
     })
 
-    it("should set nested keys and create objects as needed", async () => {
-      await config.set(["nested", "a", "aa"], "value-a")
-      await config.set(["nested", "b", "bb"], "value-b")
-      expect(await config.get()).to.eql({
-        nested: { a: { aa: "value-a" }, b: { bb: "value-b" } },
-      })
-      await config.set(["nested", "b", "bb"], "value-bbb")
-      expect(await config.get()).to.eql({
-        nested: { a: { aa: "value-a" }, b: { bb: "value-bbb" } },
-      })
-    })
-
-    it("should optionally set multiple key-value pairs", async () => {
-      await config.set([
-        { keyPath: ["a", "aa"], value: "value-a" },
-        { keyPath: ["b", "bb"], value: "value-b" },
-      ])
-      expect(await config.get()).to.eql({
-        a: { aa: "value-a" },
-        b: { bb: "value-b" },
-      })
-    })
-
-    it("should throw if setting a nested key on a non-object", async () => {
-      await config.set(["key"], "value")
-
-      try {
-        await config.set(["key", "nested"], "value")
-      } catch (err) {
-        expect(err.type).to.equal("local-config")
-        return
-      }
-
-      throw new Error("Expected error")
+    it("sets a specific key in a section if specified", async () => {
+      const input = { lastRun: new Date() }
+      await store.set("versionCheck", "lastRun", input.lastRun)
+      const output = await store.get("versionCheck")
+      expect(input).to.eql(output)
     })
   })
 
   describe("get", () => {
-    it("should return full config if no key specified", async () => {
-      await config.set(["nested", "key"], "value")
-      expect(await config.get()).to.eql({ nested: { key: "value" } })
+    it("implicitly initializes the config if needed", async () => {
+      const empty = await store.get()
+      expect(empty).to.eql(emptyGlobalConfig)
     })
 
-    it("should return specific key if specified", async () => {
-      await config.set(["key"], "value")
-      expect(await config.get(["key"])).to.equal("value")
+    it("returns full config if no section or key specified", async () => {
+      const versionCheck = { lastRun: new Date() }
+      await store.set("versionCheck", versionCheck)
+      const output = await store.get()
+      expect(output).to.eql({
+        ...emptyGlobalConfig,
+        versionCheck,
+      })
     })
 
-    it("should return specific nested key if specified", async () => {
-      await config.set(["key", "nested"], "value")
-      expect(await config.get(["key", "nested"])).to.equal("value")
+    it("returns config section if no key is specified", async () => {
+      const versionCheck = { lastRun: new Date() }
+      await store.set("versionCheck", versionCheck)
+      const output = await store.get("versionCheck")
+      expect(output).to.eql(versionCheck)
     })
 
-    it("should throw if key is not found", async () => {
-      let res
-
-      try {
-        res = await config.get(["key"])
-      } catch (err) {
-        expect(err.type).to.equal("local-config")
-        return
-      }
-
-      throw new Error("Expected error, got " + res)
+    it("returns specific key if specified", async () => {
+      const versionCheck = { lastRun: new Date() }
+      await store.set("versionCheck", versionCheck)
+      const output = await store.get("versionCheck", "lastRun")
+      expect(output).to.eql(versionCheck.lastRun)
     })
   })
 
   describe("clear", () => {
-    it("should clear the configuration", async () => {
-      await config.set(["key"], "value")
-      await config.clear()
-      expect(await config.get()).to.eql({})
+    it("clears the configuration", async () => {
+      const empty = await store.get()
+      await store.set("analytics", "firstRunAt", new Date())
+      await store.clear()
+      expect(await store.get()).to.eql(empty)
     })
   })
 
-  describe("delete", () => {
-    it("should delete the specified key from the configuration", async () => {
-      await config.set([
-        { keyPath: ["a", "aa"], value: "value-a" },
-        { keyPath: ["b", "bb"], value: "value-b" },
-      ])
-      await config.delete(["a", "aa"])
+  describe("LocalConfigStore", () => {
+    const legacyLocalConfig = dedent`
+      analytics:
+        projectId: foo
+      linkedModuleSources:
+        - name: name-a
+          path: path-a
+      linkedProjectSources:
+        - name: name-b
+          path: path-b
+    `
 
-      expect(await config.get(["b", "bb"])).to.eql("value-b")
+    it("correctly migrates legacy config if new config is missing", async () => {
+      const localStore = new LocalConfigStore(tmpDir.path)
 
-      let res
-      try {
-        res = await config.get(["a", "aa"])
-      } catch (err) {
-        expect(err.type).to.equal("local-config")
-        return
-      }
-      throw new Error("Expected error, got " + res)
+      const legacyPath = resolve(tmpDir.path, legacyLocalConfigFilename)
+      await writeFile(legacyPath, legacyLocalConfig)
+
+      const config = await localStore.get()
+
+      expect(config).to.eql({
+        analytics: {
+          projectId: "foo"
+        },
+        linkedModuleSources: {
+          "name-a": { name: "name-a", path: "path-a" },
+        },
+        linkedProjectSources: {
+          "name-b": { name: "name-b", path: "path-b" },
+        },
+      })
     })
 
-    it("should return undefined if key is not found", async () => {
-      const res = await config.delete(["key"])
-      expect(res).to.be.undefined
+    it("doesn't migrate legacy config if new config file already exists", async () => {
+      const localStore = new LocalConfigStore(tmpDir.path)
+
+      await localStore.set("analytics", {})
+
+      const legacyPath = resolve(tmpDir.path, legacyLocalConfigFilename)
+      await writeFile(legacyPath, legacyLocalConfig)
+
+      const config = await localStore.get()
+      expect(config).to.eql({
+        analytics: {},
+        linkedModuleSources: {},
+        linkedProjectSources: {},
+      })
+    })
+  })
+
+  describe("GlobalConfigStore", () => {
+    const legacyGlobalConfig = dedent`
+      analytics:
+        firstRunAt: 'Sun, 29 Jan 2023 00:59:37 GMT'
+        lastRunAt: 'Sun, 29 Jan 2023 00:59:57 GMT'
+        anonymousUserId: fasgdjhfgaskfjhsdgfkjas
+        cloudVersion: 0
+        # optedIn: # empty value
+        cloudProfileEnabled: false
+      versionCheck:
+        lastRun: '2023-01-29T01:00:41.999Z'
+      requirementsCheck:
+        lastRunDateUNIX: 1674954074151
+        lastRunGardenVersion: "0.12.48"
+        passed: true
+    `
+
+    it("correctly migrates legacy config if new config is missing", async () => {
+      const legacyPath = resolve(tmpDir.path, legacyGlobalConfigFilename)
+      await writeFile(legacyPath, legacyGlobalConfig)
+
+      const config = await store.get()
+
+      expect(config).to.eql({
+        analytics: {
+          anonymousUserId: "fasgdjhfgaskfjhsdgfkjas",
+          cloudProfileEnabled: false,
+          firstRunAt: new Date("Sun, 29 Jan 2023 00:59:37 GMT"),
+          optedOut: false,
+        },
+        requirementsCheck: {
+          lastRunDateUNIX: 1674954074151,
+          lastRunGardenVersion: "0.12.48",
+          passed: true,
+        },
+        versionCheck: {},
+      })
+    })
+
+    it("doesn't migrate legacy config if new config file already exists", async () => {
+      await store.set("analytics", {})
+
+      const legacyPath = resolve(tmpDir.path, legacyGlobalConfigFilename)
+      await writeFile(legacyPath, legacyGlobalConfig)
+
+      const config = await store.get()
+      expect(config).to.eql(emptyGlobalConfig)
     })
   })
 })

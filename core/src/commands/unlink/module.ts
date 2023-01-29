@@ -11,7 +11,7 @@ import dedent = require("dedent")
 import { Command, CommandResult, CommandParams } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
-import { localConfigKeys, LinkedSource } from "../../config-store"
+import { LinkedSource } from "../../config-store/local"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 
 const unlinkModuleArguments = {
@@ -56,7 +56,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
     const { modules = [] } = args
 
     if (opts.all) {
-      await garden.configStore.set([localConfigKeys().linkedModuleSources], [])
+      await garden.configStore.set("linkedModuleSources", {})
       log.info("Unlinked all modules")
       return { result: [] }
     }

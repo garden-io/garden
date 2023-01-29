@@ -28,7 +28,7 @@ import {
   expectFuzzyMatch,
 } from "../../helpers"
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
-import { LinkedSource } from "../../../src/config-store"
+import { LinkedSource } from "../../../src/config-store/local"
 import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
 import { createGardenPlugin, PluginDependency, ProviderActionName } from "../../../src/plugin/plugin"

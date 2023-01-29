@@ -1136,6 +1136,13 @@
   resolved "https://registry.yarnpkg.com/@types/prettyjson/-/prettyjson-0.0.29.tgz#3d9176d583e1839aa5c83b088487003652ce38ff"
   integrity sha512-Zu4jAKE46yc6R8JrVkCBWbXhs18dUgI/JlbID4jziFgUBgEdAHxFekR5TlEnk9phHdGE80QlCznRBaxlk0rl7w==
 
+"@types/proper-lockfile@^4.1.2":
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/@types/proper-lockfile/-/proper-lockfile-4.1.2.tgz#49537cee7134055ee13a1833b76a1c298f39bb26"
+  integrity sha512-kd4LMvcnpYkspDcp7rmXKedn8iJSCoa331zRRamUp5oanKt/CefbEGPQP7G89enz7sKD4bvsr8mHSsC8j5WOvA==
+  dependencies:
+    "@types/retry" "*"
+
 "@types/ps-tree@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@types/ps-tree/-/ps-tree-1.1.2.tgz#5c60773a38ffb1402e049902a7b7a8d3c67cd59a"
@@ -1182,6 +1189,11 @@
   integrity sha512-85Y2BjiufFzaMIlvJDvTTB8Fxl2xfLo4HgmHzVBz08w4wDePCTjYw66PdrolO0kzli3yam/YCgRufyo1DdQVTA==
   dependencies:
     "@types/node" "*"
+
+"@types/retry@*":
+  version "0.12.2"
+  resolved "https://registry.yarnpkg.com/@types/retry/-/retry-0.12.2.tgz#ed279a64fa438bb69f2480eda44937912bb7480a"
+  integrity sha512-XISRgDJ2Tc5q4TRqvgJtzsRkFYNJzZrhTdtMoGVBttwzzQJkPnS3WWTFc7kuDRoPtPakl+T+OfdEUjYJj7Jbow==
 
 "@types/retry@^0.12.0":
   version "0.12.0"
@@ -8448,6 +8460,15 @@ propagate@^2.0.0:
   resolved "https://registry.yarnpkg.com/propagate/-/propagate-2.0.1.tgz#40cdedab18085c792334e64f0ac17256d38f9a45"
   integrity sha512-vGrhOavPSTz4QVNuBNdcNXePNdNMaO1xj9yBeH1ScQPjk/rhg9sSlCXPhMkFuaNNW/syTvYqsnbIJxMBfRbbag==
 
+proper-lockfile@^4.1.2:
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/proper-lockfile/-/proper-lockfile-4.1.2.tgz#c8b9de2af6b2f1601067f98e01ac66baa223141f"
+  integrity sha512-TjNPblN4BwAWMXU8s9AEz4JmQxnD1NNL7bNOY/AKUzyamc379FWASUhc/K1pL2noVb+XmZKLL68cjzLsiOAMaA==
+  dependencies:
+    graceful-fs "^4.2.4"
+    retry "^0.12.0"
+    signal-exit "^3.0.2"
+
 proper-url-join@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/proper-url-join/-/proper-url-join-2.1.1.tgz#ee4146edc08f512a0ee1053a355e06950691d06f"
@@ -11261,3 +11282,8 @@ zip-stream@^3.0.1:
     archiver-utils "^2.1.0"
     compress-commons "^3.0.0"
     readable-stream "^3.6.0"
+
+zod@^3.20.2:
+  version "3.20.2"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.20.2.tgz#068606642c8f51b3333981f91c0a8ab37dfc2807"
+  integrity sha512-1MzNQdAvO+54H+EaK5YpyEy0T+Ejo/7YLHS93G3RnYWh5gaotGHwGeN/ZO687qEDU2y4CdStQYXVHIgrUl5UVQ==

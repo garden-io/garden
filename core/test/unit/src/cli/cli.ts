@@ -38,8 +38,7 @@ import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-termin
 import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
-import { GlobalConfigStore, RequirementsCheck } from "../../../../src/config-store"
-import { ExecConfigStore } from "../config-store"
+import { GlobalConfigStore } from "../../../../src/config-store/global"
 import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
 
@@ -1120,7 +1119,7 @@ describe("cli", () => {
 
       before(async () => {
         tmpDir = await tmp.dir({ unsafeCleanup: true })
-        config = new ExecConfigStore(tmpDir.path) as GlobalConfigStore
+        config = new GlobalConfigStore(tmpDir.path)
       })
 
       after(async () => {
@@ -1139,7 +1138,7 @@ describe("cli", () => {
       })
 
       it("should call requirementCheckFunction if requirementsCheck hasn't passed", async () => {
-        await config.set(["requirementsCheck"], { passed: false } as RequirementsCheck)
+        await config.set("requirementsCheck", { passed: false })
         const requirementCheckFunction = td.func<() => Promise<void>>()
         await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
 
@@ -1150,12 +1149,12 @@ describe("cli", () => {
         const requirementCheckFunction = td.func<() => Promise<void>>()
         await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
 
-        const requirementsCheckConfig = (await config.get(["requirementsCheck"])) as RequirementsCheck
+        const requirementsCheckConfig = await config.get("requirementsCheck")
         expect(requirementsCheckConfig.passed).to.equal(true)
       })
 
       it("should not call requirementCheckFunction if requirementsCheck has been passed", async () => {
-        await config.set(["requirementsCheck"], { passed: true } as RequirementsCheck)
+        await config.set("requirementsCheck", { passed: true })
         const requirementCheckFunction = td.func<() => Promise<void>>()
         await validateRuntimeRequirementsCached(log, config, requirementCheckFunction)
 
