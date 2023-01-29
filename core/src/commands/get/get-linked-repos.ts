@@ -9,7 +9,7 @@
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { Command, CommandParams, CommandResult } from "../base"
-import { LinkedSource } from "../../config-store"
+import { LinkedSource } from "../../config-store/local"
 import { printHeader } from "../../logger/util"
 import { getLinkedSources } from "../../util/ext-source-util"
 import { renderTable } from "../../util/string"

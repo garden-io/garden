@@ -17,7 +17,7 @@ import { DEFAULT_API_VERSION, gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { Logger, LogLevel } from "../../../../src/logger/logger"
-import { AnalyticsGlobalConfig } from "../../../../src/config-store"
+import { AnalyticsGlobalConfig } from "../../../../src/config-store/global"
 import { ProjectResource } from "../../../../src/config/project"
 
 class FakeCloudApi extends CloudApi {
@@ -56,10 +56,9 @@ describe("AnalyticsHandler", () => {
   const time = new Date()
   const basicConfig: AnalyticsGlobalConfig = {
     anonymousUserId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
-    firstRunAt: time.toUTCString(),
-    latestRunAt: time.toUTCString(),
-    optedIn: true,
-    cloudVersion: 0,
+    firstRunAt: time,
+    latestRunAt: time,
+    optedOut: false,
     cloudProfileEnabled: false,
   }
 
@@ -95,19 +94,19 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should initialize the analytics config if missing", async () => {
-      await garden.globalConfigStore.delete(["analytics"])
-      const currentConfig = await garden.globalConfigStore.get()
+      await garden.globalConfigStore.set("analytics", {})
+      const currentConfig = await garden.globalConfigStore.get("analytics")
 
       //  Verify that it was deleted
-      expect(currentConfig.analytics).to.be.undefined
+      expect(currentConfig).to.eql({})
 
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const newConfig = await garden.globalConfigStore.get()
-      expect(newConfig.analytics?.anonymousUserId).to.be.a("string")
-      expect(newConfig.analytics).to.eql({
-        anonymousUserId: newConfig.analytics?.anonymousUserId,
+      const newConfig = await garden.globalConfigStore.get("analytics")
+      expect(newConfig.anonymousUserId).to.be.a("string")
+      expect(newConfig).to.eql({
+        anonymousUserId: newConfig.anonymousUserId,
         firstRunAt: now.toUTCString(),
         latestRunAt: now.toUTCString(),
         optedIn: true,
@@ -116,35 +115,35 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should create a valid anonymous user ID on first run", async () => {
-      await garden.globalConfigStore.delete(["analytics"])
+      await garden.globalConfigStore.set("analytics", {})
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const config = await garden.globalConfigStore.get()
+      const config = await garden.globalConfigStore.get("analytics")
 
-      expect(validateUuid(config.analytics?.anonymousUserId!)).to.eql(true)
+      expect(validateUuid(config.anonymousUserId!)).to.eql(true)
     })
     it("should set user ID to ci-user if in CI", async () => {
-      await garden.globalConfigStore.delete(["analytics"])
+      await garden.globalConfigStore.set("analytics", {})
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
 
-      const config = await garden.globalConfigStore.get()
+      const config = await garden.globalConfigStore.get("analytics")
 
-      expect(config.analytics?.anonymousUserId!).to.eql("ci-user")
+      expect(config.anonymousUserId!).to.eql("ci-user")
     })
     it("should not override anonymous user ID on subsequent runs", async () => {
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const config = await garden.globalConfigStore.get()
-      expect(config.analytics?.anonymousUserId).to.eql(basicConfig.anonymousUserId)
+      const config = await garden.globalConfigStore.get("analytics")
+      expect(config.anonymousUserId).to.eql(basicConfig.anonymousUserId)
     })
     it("should update the analytics config if it already exists", async () => {
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const config = await garden.globalConfigStore.get()
-      expect(config.analytics).to.eql({
+      const config = await garden.globalConfigStore.get("analytics")
+      expect(config).to.eql({
         anonymousUserId: basicConfig.anonymousUserId,
         firstRunAt: basicConfig.firstRunAt,
         latestRunAt: now.toUTCString(),
@@ -154,7 +153,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should print an info message if first Garden run", async () => {
-      await garden.globalConfigStore.delete(["analytics"])
+      await garden.globalConfigStore.set("analytics", {})
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const msgs = garden.log.root.getLogEntries().map((l) => l.getMessages())
       const infoMsg = msgs.find((messageArr) => messageArr[0].msg?.includes("Thanks for installing Garden!"))
@@ -163,7 +162,7 @@ describe("AnalyticsHandler", () => {
     })
     it("should NOT print an info message on subsequent runs", async () => {
       // The existens of base config suggests it's not the first run
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const msgs = garden.log.root.getLogEntries().map((l) => l.getMessages())
       const infoMsg = msgs.find((messageArr) => messageArr[0].msg?.includes("Thanks for installing Garden!"))
@@ -181,7 +180,7 @@ describe("AnalyticsHandler", () => {
         .reply(200)
 
       const now = freezeTime()
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       await analytics.flush()
@@ -224,9 +223,9 @@ describe("AnalyticsHandler", () => {
         })
         .reply(200)
 
-      await garden.globalConfigStore.set(["analytics"], {
+      await garden.globalConfigStore.set("analytics", {
         ...basicConfig,
-        optedIn: false,
+        optedOut: true,
       })
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       await analytics.flush()
@@ -236,7 +235,7 @@ describe("AnalyticsHandler", () => {
       expect(payload).to.be.undefined
     })
     it("should be enabled by default", async () => {
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       expect(analytics.isEnabled).to.be.true
@@ -244,7 +243,7 @@ describe("AnalyticsHandler", () => {
     it("should be disabled if env var for disabling analytics is set", async () => {
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
@@ -252,9 +251,9 @@ describe("AnalyticsHandler", () => {
       expect(analytics.isEnabled).to.be.false
     })
     it("should be disabled if user opted out", async () => {
-      await garden.globalConfigStore.set(["analytics"], {
+      await garden.globalConfigStore.set("analytics", {
         ...basicConfig,
-        optedIn: false,
+        optedOut: true,
       })
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
@@ -281,13 +280,13 @@ describe("AnalyticsHandler", () => {
     })
 
     it("should not replace the anonymous user ID with the Cloud user ID", async () => {
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
 
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
-      const newConfig = await garden.globalConfigStore.get()
-      expect(newConfig.analytics).to.eql({
+      const newConfig = await garden.globalConfigStore.get("analytics")
+      expect(newConfig).to.eql({
         anonymousUserId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
         firstRunAt: basicConfig.firstRunAt,
         latestRunAt: now.toUTCString(),
@@ -297,7 +296,7 @@ describe("AnalyticsHandler", () => {
       })
     })
     it("should be enabled unless env var for disabling is set", async () => {
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const isEnabledWhenNoEnvVar = analytics.isEnabled
 
@@ -324,7 +323,7 @@ describe("AnalyticsHandler", () => {
         .reply(200)
 
       const now = freezeTime()
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       await analytics.flush()
@@ -366,7 +365,7 @@ describe("AnalyticsHandler", () => {
 
       const originalEnvVar = gardenEnv.GARDEN_DISABLE_ANALYTICS
       gardenEnv.GARDEN_DISABLE_ANALYTICS = true
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       gardenEnv.GARDEN_DISABLE_ANALYTICS = originalEnvVar
       await analytics.flush()
@@ -393,7 +392,7 @@ describe("AnalyticsHandler", () => {
     it("should return the event with the correct project metadata", async () => {
       scope.post(`/v1/batch`).reply(200)
 
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
       const event = analytics.trackCommand("testCommand")
@@ -432,7 +431,7 @@ describe("AnalyticsHandler", () => {
     it("should set the CI info if applicable", async () => {
       scope.post(`/v1/batch`).reply(200)
 
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo: { isCi: true, ciName: "foo" } })
       const event = analytics.trackCommand("testCommand")
@@ -487,7 +486,7 @@ describe("AnalyticsHandler", () => {
         },
       ])
 
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
@@ -531,7 +530,7 @@ describe("AnalyticsHandler", () => {
       garden = await makeTestGarden(root)
       garden.vcsInfo.originUrl = remoteOriginUrl
 
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       const now = freezeTime()
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
@@ -607,7 +606,7 @@ describe("AnalyticsHandler", () => {
         .delay(1500)
         .reply(200)
 
-      await garden.globalConfigStore.set(["analytics"], basicConfig)
+      await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
 
       analytics.trackCommand("test-command-A")

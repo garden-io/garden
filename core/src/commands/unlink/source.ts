@@ -11,7 +11,7 @@ import dedent = require("dedent")
 import { Command, CommandResult, CommandParams } from "../base"
 import { removeLinkedSources } from "../../util/ext-source-util"
 import { printHeader } from "../../logger/util"
-import { localConfigKeys, LinkedSource } from "../../config-store"
+import { LinkedSource } from "../../config-store/local"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 
 const unlinkSourceArguments = {
@@ -56,7 +56,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
     const { sources = [] } = args
 
     if (opts.all) {
-      await garden.configStore.set([localConfigKeys().linkedProjectSources], [])
+      await garden.configStore.set("linkedProjectSources", {})
       log.info("Unlinked all sources")
       return { result: [] }
     }

@@ -9,8 +9,8 @@
 import codenamize = require("@codenamize/codenamize")
 import { platform, release } from "os"
 import ci = require("ci-info")
-import { isEmpty, uniq } from "lodash"
-import { globalConfigKeys, AnalyticsGlobalConfig } from "../config-store"
+import { uniq } from "lodash"
+import { AnalyticsGlobalConfig } from "../config-store/global"
 import { getPackageVersion, uuidv4, sleep } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
@@ -59,10 +59,14 @@ export function getAnonymousUserId({
  * A recurring user is a user that is using Garden again after 12 hours
  * or more since first run.
  */
-function getIsRecurringUser(firstRunAt: string, latestRunAt: string) {
+function getIsRecurringUser(firstRunAt?: Date, latestRunAt?: Date) {
+  if (!firstRunAt || !latestRunAt) {
+    return false
+  }
+
   const msInHour = 60 * 60 * 1000
-  const t1 = new Date(firstRunAt).getTime()
-  const t2 = new Date(latestRunAt).getTime()
+  const t1 = firstRunAt.getTime()
+  const t2 = latestRunAt.getTime()
   const hoursSinceFirstRun = Math.abs(t1 - t2) / msInHour
   return hoursSinceFirstRun > 12
 }
@@ -105,8 +109,8 @@ interface PropertiesBase {
   isCI: boolean
   sessionId: string
   projectMetadata: ProjectMetadata
-  firstRunAt: string
-  latestRunAt: string
+  firstRunAt?: Date
+  latestRunAt?: Date
   isRecurringUser: boolean
 }
 
@@ -163,8 +167,8 @@ interface IdentifyEvent {
     platformVersion: string
     gardenVersion: string
     isCI: boolean
-    firstRunAt: string
-    latestRunAt: string
+    firstRunAt?: Date
+    latestRunAt?: Date
     isRecurringUser: boolean
   }
 }
@@ -225,6 +229,7 @@ export class AnalyticsHandler {
     garden,
     log,
     analyticsConfig,
+    anonymousUserId,
     moduleConfigs,
     cloudUser,
     isEnabled,
@@ -233,6 +238,7 @@ export class AnalyticsHandler {
     garden: Garden
     log: LogEntry
     analyticsConfig: AnalyticsGlobalConfig
+    anonymousUserId: string
     moduleConfigs: ModuleConfig[]
     isEnabled: boolean
     cloudUser?: UserResult
@@ -297,10 +303,10 @@ export class AnalyticsHandler {
 
     this.isRecurringUser = getIsRecurringUser(analyticsConfig.firstRunAt, analyticsConfig.latestRunAt)
 
-    const userIdV2 = AnalyticsHandler.hashV2(analyticsConfig.anonymousUserId)
+    const userIdV2 = AnalyticsHandler.hashV2(anonymousUserId)
     this.identify({
       userId: this.cloudUserId,
-      anonymousId: analyticsConfig.anonymousUserId,
+      anonymousId: anonymousUserId,
       traits: {
         userIdV2,
         customer: cloudUser?.organization.name,
@@ -354,8 +360,8 @@ export class AnalyticsHandler {
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
   static async factory({ garden, log, ciInfo }: { garden: Garden; log: LogEntry; ciInfo: CiInfo }) {
-    const currentAnalyticsConfig = (await garden.globalConfigStore.get()).analytics
-    const isFirstRun = isEmpty(currentAnalyticsConfig)
+    const currentAnalyticsConfig = await garden.globalConfigStore.get("analytics")
+    const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()
 
     let cloudUser: UserResult | undefined
@@ -383,13 +389,13 @@ export class AnalyticsHandler {
       isEnabled = false
     } else if (cloudUser) {
       isEnabled = true
-    } else if (currentAnalyticsConfig?.optedIn === false) {
+    } else if (currentAnalyticsConfig?.optedOut === true) {
       isEnabled = false
     } else {
       isEnabled = true
     }
 
-    const now = new Date().toUTCString()
+    const now = new Date()
 
     const firstRunAt = currentAnalyticsConfig?.firstRunAt || now
     const latestRunAt = now
@@ -398,14 +404,23 @@ export class AnalyticsHandler {
       anonymousUserId,
       firstRunAt,
       latestRunAt,
-      optedIn: currentAnalyticsConfig?.optedIn === false ? false : true,
-      cloudVersion: currentAnalyticsConfig?.cloudVersion || 0,
+      optedOut: currentAnalyticsConfig?.optedOut,
+      cloudVersion: currentAnalyticsConfig?.cloudVersion,
       cloudProfileEnabled: !!cloudUser,
     }
 
-    await garden.globalConfigStore.set([globalConfigKeys.analytics], analyticsConfig)
+    await garden.globalConfigStore.set("analytics", analyticsConfig)
 
-    return new AnalyticsHandler({ garden, log, analyticsConfig, moduleConfigs, cloudUser, isEnabled, ciInfo })
+    return new AnalyticsHandler({
+      garden,
+      log,
+      analyticsConfig,
+      moduleConfigs,
+      cloudUser,
+      isEnabled,
+      ciInfo,
+      anonymousUserId,
+    })
   }
 
   /**
@@ -463,12 +478,12 @@ export class AnalyticsHandler {
   }
 
   /**
-   * It sets the optedIn property in the globalConfigStore.
+   * It sets the optedOut property in the globalConfigStore.
    * This is the property checked to decide if an event should be tracked or not.
    */
-  async setAnalyticsOptIn(isOptedIn: boolean) {
-    this.analyticsConfig.optedIn = isOptedIn
-    await this.garden.globalConfigStore.set([globalConfigKeys.analytics, "optedIn"], isOptedIn)
+  async setAnalyticsOptOut(isOptedOut: boolean) {
+    this.analyticsConfig.optedOut = isOptedOut
+    await this.garden.globalConfigStore.set("analytics", "optedOut", isOptedOut)
   }
 
   /**

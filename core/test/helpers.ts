@@ -17,13 +17,13 @@ import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginP
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv, LOCAL_CONFIG_FILENAME } from "../src/constants"
+import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { ConfigureModuleParams } from "../src/plugin/handlers/Module/configure"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { SuiteFunction, TestFunction } from "mocha"
-import { AnalyticsGlobalConfig } from "../src/config-store"
+import { AnalyticsGlobalConfig } from "../src/config-store/global"
 import { EventLogEntry, TestGarden, TestGardenOpts } from "../src/util/testing"
 import { Logger, LogLevel } from "../src/logger/logger"
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
@@ -57,6 +57,7 @@ import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/conf
 import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
 import { GraphResultMap } from "../src/graph/results"
+import { localConfigFilename } from "../src/config-store/local"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -562,7 +563,7 @@ export function freezeTime(date?: Date) {
 }
 
 export async function resetLocalConfig(gardenDirPath: string) {
-  const path = join(gardenDirPath, LOCAL_CONFIG_FILENAME)
+  const path = join(gardenDirPath, localConfigFilename)
   if (await pathExists(path)) {
     await truncate(path)
   }
@@ -693,7 +694,7 @@ export async function enableAnalytics(garden: TestGarden) {
   // Throws if analytics is not set
   try {
     // Need to clone object!
-    originalAnalyticsConfig = { ...((await garden.globalConfigStore.get(["analytics"])) as AnalyticsGlobalConfig) }
+    originalAnalyticsConfig = { ...(await garden.globalConfigStore.get("analytics")) }
   } catch {}
 
   gardenEnv.GARDEN_DISABLE_ANALYTICS = false
@@ -702,9 +703,9 @@ export async function enableAnalytics(garden: TestGarden) {
 
   const resetConfig = async () => {
     if (originalAnalyticsConfig) {
-      await garden.globalConfigStore.set(["analytics"], originalAnalyticsConfig)
+      await garden.globalConfigStore.set("analytics", originalAnalyticsConfig)
     } else {
-      await garden.globalConfigStore.delete(["analytics"])
+      await garden.globalConfigStore.set("analytics", {})
     }
     gardenEnv.GARDEN_DISABLE_ANALYTICS = originalDisableAnalyticsEnvVar
     gardenEnv.ANALYTICS_DEV = originalAnalyticsDevEnvVar

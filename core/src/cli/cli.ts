@@ -65,7 +65,7 @@ import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
-import { GlobalConfigStore, RequirementsCheck } from "../config-store"
+import { GlobalConfigStore } from "../config-store/global"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments: EnvironmentConfig[] = gardenOpts.environmentName
@@ -749,17 +749,15 @@ export async function validateRuntimeRequirementsCached(
   globalConfig: GlobalConfigStore,
   requirementCheckFunction: () => Promise<void>
 ) {
-  let requirementsCheck: RequirementsCheck | undefined
-  try {
-    requirementsCheck = (await globalConfig.get(["requirementsCheck"])) as RequirementsCheck
-  } catch {} // throws if requirementsCheck not yet populated
+  const requirementsCheck = await globalConfig.get("requirementsCheck")
+
   if (!requirementsCheck || !requirementsCheck.passed) {
     const setReqCheck = async (passed: boolean) => {
-      await globalConfig.set(["requirementsCheck"], {
+      await globalConfig.set("requirementsCheck", {
         lastRunDateUNIX: Date.now(),
         lastRunGardenVersion: getPackageVersion(),
         passed,
-      } as RequirementsCheck)
+      })
     }
     try {
       log.debug("checking for garden runtime requirements")

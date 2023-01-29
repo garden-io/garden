@@ -48,7 +48,8 @@ import { getLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
 import { loadConfigResources, findProjectConfig, GardenResource, moduleTemplateKind } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi, allowUnknown } from "./config/common"
-import { LocalConfigStore, ConfigStore, GlobalConfigStore, LinkedSource } from "./config-store"
+import { GlobalConfigStore } from "./config-store/global"
+import { LocalConfigStore, LinkedSource } from "./config-store/local"
 import { getLinkedSources, ExternalSourceType } from "./util/ext-source-util"
 import { ModuleConfig } from "./config/module"
 import { convertModules, ModuleResolver } from "./resolve-module"
@@ -213,7 +214,7 @@ export class Garden {
   public readonly projectId?: string
   public readonly enterpriseDomain?: string
   public sessionId: string
-  public readonly configStore: ConfigStore
+  public readonly configStore: LocalConfigStore
   public readonly globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache

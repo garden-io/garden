@@ -12,8 +12,6 @@ import { homedir } from "os"
 
 export const isPkg = !!(<any>process).pkg
 
-export const LOCAL_CONFIG_FILENAME = "local-config.yml"
-export const GLOBAL_CONFIG_FILENAME = "global-config.yml"
 export const GARDEN_CORE_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(__dirname, "..", "..")
 export const GARDEN_CLI_ROOT = isPkg ? resolve(process.execPath, "..") : resolve(GARDEN_CORE_ROOT, "..", "cli")
 export const STATIC_DIR = isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static")

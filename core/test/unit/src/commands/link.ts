@@ -54,7 +54,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedModuleSources } = await garden.configStore.get()
+      const linkedModuleSources = await garden.configStore.get("linkedModuleSources")
 
       expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
     })
@@ -74,7 +74,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedModuleSources } = await garden.configStore.get()
+      const linkedModuleSources = await garden.configStore.get("linkedModuleSources")
 
       expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
     })
@@ -153,7 +153,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedProjectSources } = await garden.configStore.get()
+      const linkedProjectSources = await garden.configStore.get("linkedProjectSources")
 
       expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
     })
@@ -171,7 +171,7 @@ describe("LinkCommand", () => {
         opts: withDefaultGlobalOpts({}),
       })
 
-      const { linkedProjectSources } = await garden.configStore.get()
+      const linkedProjectSources = await garden.configStore.get("linkedProjectSources")
 
       expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
     })
