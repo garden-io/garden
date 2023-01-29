@@ -50,7 +50,6 @@ import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
 import { defaultDotIgnoreFile } from "../util/fs"
-import type { GardenProcess } from "../db/entities/garden-process"
 import { CoreEventStream } from "../server/core-event-stream"
 import { GardenPluginReference } from "../plugin/plugin"
 import { renderError } from "../logger/renderers"
@@ -65,7 +64,8 @@ import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
-import { GlobalConfigStore } from "../config-store/global"
+import { GardenProcess, GlobalConfigStore } from "../config-store/global"
+import { registerProcess } from "../process"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments: EnvironmentConfig[] = gardenOpts.environmentName
@@ -278,7 +278,9 @@ ${renderCommands(commands)}
     const log = logger.placeholder()
     const footerLog = logger.placeholder()
 
-    await validateRuntimeRequirementsCached(logger, new GlobalConfigStore(), checkRequirements)
+    const globalConfigStore = new GlobalConfigStore()
+
+    await validateRuntimeRequirementsCached(logger, globalConfigStore, checkRequirements)
 
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
@@ -290,7 +292,7 @@ ${renderCommands(commands)}
       const cloudDomain: string | undefined = getGardenCloudDomain(config)
 
       if (cloudDomain) {
-        cloudApi = await CloudApi.factory({ log, cloudDomain })
+        cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })
       } else {
         log.debug("Cloud/Enterprise domain not configured. Aborting.")
       }
@@ -310,7 +312,7 @@ ${renderCommands(commands)}
       }
     })
 
-    const coreEventStream = new CoreEventStream({ log, sessionId })
+    const coreEventStream = new CoreEventStream({ log, sessionId, globalConfigStore })
 
     const commandInfo = {
       name: command.getFullName(),
@@ -376,7 +378,7 @@ ${renderCommands(commands)}
 
           if (processRecord) {
             // Update the db record for the process
-            await processRecord.setCommand({
+            await globalConfigStore.update("activeProcesses", String(processRecord.pid), {
               command: command.name,
               sessionId: garden.sessionId,
               persistent,
@@ -636,11 +638,8 @@ ${renderCommands(commands)}
     }
 
     if (!processRecord) {
-      // Note: Lazy-loading for startup performance
-      const { ensureConnected } = require("../db/connection")
-      await ensureConnected()
-      const { GardenProcess: GP } = require("../db/entities/garden-process")
-      processRecord = await GP.register(args)
+      const globalConfigStore = new GlobalConfigStore()
+      processRecord = await registerProcess(globalConfigStore, command.getFullName(), args)
     }
 
     this.processRecord = processRecord!

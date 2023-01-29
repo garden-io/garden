@@ -53,6 +53,7 @@ import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
 import { convertExecModule } from "../../../src/plugins/exec/exec"
+import { getLogMessages } from "../../../src/util/testing"
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -4728,6 +4729,48 @@ describe("Garden", () => {
         })
 
         expect(path).to.equal(linkedModulePath)
+      })
+    })
+  })
+
+  describe("warnings", () => {
+    let garden: TestGarden
+    const key = randomString()
+
+    beforeEach(async () => {
+      garden = await makeTestGardenA()
+    })
+
+    describe("hideWarning", () => {
+      it("should flag a warning key as hidden", async () => {
+        await garden.hideWarning(key)
+        const record = await garden.configStore.get("warnings", key)
+        expect(record.hidden).to.be.true
+      })
+
+      it("should be a no-op if a key is already hidden", async () => {
+        await garden.hideWarning(key)
+        await garden.hideWarning(key)
+      })
+    })
+
+    describe("emitWarning", () => {
+      it("should log a warning if the key has not been hidden", async () => {
+        const log = garden.log.placeholder()
+        const message = "Oh noes!"
+        await garden.emitWarning({ key, log, message })
+        const logs = getLogMessages(log)
+        expect(logs.length).to.equal(1)
+        expect(logs[0]).to.equal(message + `\nRun garden util hide-warning ${key} to disable this warning.`)
+      })
+
+      it("should not log a warning if the key has been hidden", async () => {
+        const log = garden.log.placeholder()
+        const message = "Oh noes!"
+        await garden.hideWarning(key)
+        await garden.emitWarning({ key, log, message })
+        const logs = getLogMessages(log)
+        expect(logs.length).to.equal(0)
       })
     })
   })

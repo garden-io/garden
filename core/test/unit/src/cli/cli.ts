@@ -31,8 +31,6 @@ import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { Logger, getLogger } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
-import { GardenProcess } from "../../../../src/db/entities/garden-process"
-import { ensureConnected } from "../../../../src/db/connection"
 import { startServer, GardenServer } from "../../../../src/server/server"
 import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
@@ -41,21 +39,19 @@ import { expectError } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
+import { registerProcess } from "../../../../src/process"
 
 describe("cli", () => {
   let cli: GardenCli
-
-  before(async () => {
-    await ensureConnected()
-  })
+  const globalConfigStore = new GlobalConfigStore()
 
   beforeEach(() => {
     cli = new GardenCli()
   })
 
   afterEach(async () => {
-    if (cli.processRecord && cli.processRecord._id) {
-      await cli.processRecord.remove()
+    if (cli.processRecord && cli.processRecord.pid) {
+      await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
     }
   })
 
@@ -376,7 +372,7 @@ describe("cli", () => {
 
     it("updates the GardenProcess entry if given with command info before running (no server)", async () => {
       const args = ["test-command", "--root", projectRootA]
-      const record = await GardenProcess.register(args)
+      const record = await registerProcess(globalConfigStore, "test-command", args)
 
       class TestCommand extends Command {
         name = "test-command"
@@ -403,13 +399,13 @@ describe("cli", () => {
       try {
         await cli.run({ args, exitOnError: false, processRecord: record })
       } finally {
-        await record.remove()
+        await globalConfigStore.delete("activeProcesses", String(record.pid))
       }
     })
 
     it("updates the GardenProcess entry if given with command info before running (with server)", async () => {
       const args = ["test-command", "--root", projectRootA]
-      const record = await GardenProcess.register(args)
+      const record = await registerProcess(globalConfigStore, "test-command", args)
 
       class TestCommand extends Command {
         name = "test-command"
@@ -440,7 +436,7 @@ describe("cli", () => {
       try {
         await cli.run({ args, exitOnError: false, processRecord: record })
       } finally {
-        await record.remove()
+        await globalConfigStore.delete("activeProcesses", String(record.pid))
       }
     })
 
@@ -454,8 +450,8 @@ describe("cli", () => {
       await server.start()
       server.setGarden(serverGarden)
 
-      const record = await GardenProcess.register(["serve"])
-      await record.setCommand({
+      const record = await registerProcess(serverGarden.globalConfigStore, "serve", ["serve"])
+      await serverGarden.globalConfigStore.update("activeProcesses", String(record.pid), {
         command: "serve",
         sessionId: serverGarden.sessionId,
         persistent: true,
@@ -487,7 +483,7 @@ describe("cli", () => {
       try {
         await cli.run({ args, exitOnError: false })
       } finally {
-        await record.remove()
+        await serverGarden.globalConfigStore.delete("activeProcesses", String(record.pid))
         await server.close()
       }
 

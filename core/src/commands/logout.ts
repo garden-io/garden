@@ -29,31 +29,30 @@ export class LogOutCommand extends Command {
   }
 
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
-    // Note: lazy-loading for startup performance
-    const { ClientAuthToken } = require("../db/entities/client-auth-token")
+    // The Enterprise API is missing from the Garden class for commands with noProject
+    // so we initialize it here.
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
+    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
 
-    const token = await ClientAuthToken.findOne()
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
-
-    if (!token) {
-      log.info({ msg: `You're already logged out from ${distroName}.` })
-      return {}
+    if (!cloudDomain) {
+      throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
     }
 
-    try {
-      // The Enterprise API is missing from the Garden class for commands with noProject
-      // so we initialize it here.
-      const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
-      const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
+    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
 
-      if (!cloudDomain) {
-        throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+    try {
+      const token = await garden.globalConfigStore.get("clientAuthTokens", cloudDomain)
+
+      if (!token) {
+        log.info({ msg: `You're already logged out from ${distroName}.` })
+        return {}
       }
 
       const cloudApi = await CloudApi.factory({
         log,
         cloudDomain,
         skipLogging: true,
+        globalConfigStore: garden.globalConfigStore,
       })
 
       if (!cloudApi) {
@@ -72,7 +71,7 @@ export class LogOutCommand extends Command {
       })
     } finally {
       log.info({ msg: `Succesfully logged out from ${distroName}.` })
-      await CloudApi.clearAuthToken(log)
+      await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
     }
     return {}
   }

@@ -33,6 +33,13 @@ const localSchema = z.object({
 
   linkedModuleSources: z.record(linkedSourceSchema),
   linkedProjectSources: z.record(linkedSourceSchema),
+
+  warnings: z.record(
+    z.object({
+      hidden: z.boolean().optional().describe("Whether the warning has been hidden by the user."),
+      lastShown: z.coerce.date().optional().describe("When the warning was last shown."),
+    })
+  ),
 })
 
 export type LocalConfig = z.infer<typeof localSchema>
@@ -58,6 +65,7 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
       analytics: {},
       linkedModuleSources: {},
       linkedProjectSources: {},
+      warnings: {},
     }
 
     if (!migrate) {
@@ -77,7 +85,7 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
       if (parsed?.linkedProjectSources) {
         config.linkedProjectSources = keyBy(parsed.linkedProjectSources, "name")
       }
-      config = this.validate(config)
+      config = this.validate(config, "initializing")
     } catch {}
 
     return config

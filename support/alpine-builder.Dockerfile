@@ -41,5 +41,4 @@ ADD static /garden/static
 # Create the binary
 RUN mkdir -p /garden \
   && node_modules/.bin/pkg --compress Brotli --target node18-alpine-x64 . --output /garden/garden \
-  && cp node_modules/better-sqlite3/build/Release/better_sqlite3.node /garden \
   && /garden/garden version

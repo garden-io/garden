@@ -6,9 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
+import {
+  BufferedEventStream,
+  BufferedEventStreamParams,
+  ConnectBufferedEventStreamParams,
+} from "../cloud/buffered-event-stream"
 import { Profile } from "../util/profiling"
 import { isEqual } from "lodash"
+import { GlobalConfigStore } from "../config-store/global"
 
 const targetUpdateIntervalMsec = 1000
 
@@ -18,6 +23,12 @@ export class CoreEventStream extends BufferedEventStream {
 
   private targetPollIntervalId?: NodeJS.Timeout
   private ignoreHost: string | undefined
+  private globalConfigStore: GlobalConfigStore
+
+  constructor(params: BufferedEventStreamParams & { globalConfigStore: GlobalConfigStore }) {
+    super(params)
+    this.globalConfigStore = params.globalConfigStore
+  }
 
   connect(params: ConnectBufferedEventStreamParams & { ignoreHost?: string }) {
     // Need this so the serve command doesn't try to send events to itself.
@@ -35,10 +46,7 @@ export class CoreEventStream extends BufferedEventStream {
       return []
     }
 
-    // Note: lazy-loading for performance
-    const { GardenProcess } = await import("../db/entities/garden-process")
-
-    const running = await GardenProcess.getActiveProcesses()
+    const running = Object.values(await this.globalConfigStore.get("activeProcesses"))
     const servers = running.filter(
       (p) =>
         !!p.persistent &&

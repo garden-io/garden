@@ -10,34 +10,19 @@ import { expect } from "chai"
 import { makeTestGardenA, TestEventBus, TestGarden } from "../../../helpers"
 import { GardenServer } from "../../../../src/server/server"
 import { CoreEventStream } from "../../../../src/server/core-event-stream"
-import { GardenProcess } from "../../../../src/db/entities/garden-process"
-import { randomString } from "../../../../src/util/string"
-import { ensureConnected, getConnection } from "../../../../src/db/connection"
 import pEvent from "p-event"
+import { GardenProcess } from "../../../../src/config-store/global"
+import process from "process"
 
 describe("CoreEventStream", () => {
   let streamer: CoreEventStream
   let garden: TestGarden
-
-  const testArg = "test-" + randomString(10)
-
-  before(async () => {
-    await ensureConnected()
-  })
 
   beforeEach(async () => {
     garden = await makeTestGardenA()
   })
 
   afterEach(async () => {
-    // Clean up test records
-    await getConnection()
-      .getRepository(GardenProcess)
-      .createQueryBuilder()
-      .delete()
-      .where(`arguments = :arg`, { arg: testArg })
-      .execute()
-
     await streamer?.close()
   })
 
@@ -64,6 +49,7 @@ describe("CoreEventStream", () => {
     streamer = new CoreEventStream({
       log: garden.log,
       sessionId: garden.sessionId!,
+      globalConfigStore: garden.globalConfigStore,
     })
     streamer.connect({
       garden,
@@ -87,9 +73,11 @@ describe("CoreEventStream", () => {
   describe("updateTargets", () => {
     it("updates and returns the current list of active servers", async () => {
       // Correctly matched
-      const recordA = await GardenProcess.register([testArg])
-      const values = {
+      const recordA: GardenProcess = {
+        pid: process.pid,
+        startedAt: new Date(),
         command: "serve",
+        arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -99,23 +87,26 @@ describe("CoreEventStream", () => {
         environmentName: garden.environmentName,
         namespace: garden.namespace,
       }
-      await recordA.setCommand(values)
+      await garden.globalConfigStore.set("activeProcesses", String(recordA.pid), recordA)
 
       // Inactive
-      const recordB = await GardenProcess.register([testArg])
-      recordB.pid = 9999999
-      await recordB.setCommand(values)
+      const recordB = {
+        ...recordA,
+        pid: 9999999,
+      }
+      await garden.globalConfigStore.set("activeProcesses", String(recordB.pid), recordB)
 
       // Different namespace
-      const recordC = await GardenProcess.register([testArg])
-      await recordC.setCommand({
-        ...values,
+      const recordC = {
+        ...recordA,
         namespace: "foo",
-      })
+      }
+      await garden.globalConfigStore.set("activeProcesses", String(recordC.pid), recordC)
 
       streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
+        globalConfigStore: garden.globalConfigStore,
       })
       streamer.connect({
         garden,
@@ -127,14 +118,16 @@ describe("CoreEventStream", () => {
       const processes = await streamer.updateTargets()
 
       expect(processes.length).to.equal(1)
-      expect(processes[0]._id).to.equal(recordA._id)
+      expect(processes[0]).to.eql(recordA)
     })
 
     it("emits a serversUpdated event when a server is removed", async () => {
       // Correctly matched
-      const record = await GardenProcess.register([testArg])
-      const values = {
+      const proc: GardenProcess = {
+        pid: process.pid,
+        startedAt: new Date(),
         command: "serve",
+        arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -144,11 +137,12 @@ describe("CoreEventStream", () => {
         environmentName: garden.environmentName,
         namespace: garden.namespace,
       }
-      await record.setCommand(values)
+      await garden.globalConfigStore.set("activeProcesses", String(proc.pid), proc)
 
       streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
+        globalConfigStore: garden.globalConfigStore,
       })
       streamer.connect({
         garden,
@@ -158,16 +152,18 @@ describe("CoreEventStream", () => {
       })
 
       await streamer.updateTargets()
-      await record.remove()
+      await garden.globalConfigStore.delete("activeProcesses", String(proc.pid))
       await streamer.updateTargets()
 
       garden.events.expectEvent("serversUpdated", { servers: [] })
     })
 
     it("emits a serversUpdated event when a server is added", async () => {
-      const record = await GardenProcess.register([testArg])
-      const values = {
+      const proc: GardenProcess = {
+        pid: process.pid,
+        startedAt: new Date(),
         command: "serve",
+        arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -181,6 +177,7 @@ describe("CoreEventStream", () => {
       streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
+        globalConfigStore: garden.globalConfigStore,
       })
       streamer.connect({
         garden,
@@ -190,18 +187,20 @@ describe("CoreEventStream", () => {
       })
 
       await streamer.updateTargets()
-      await record.setCommand(values)
+      await garden.globalConfigStore.set("activeProcesses", String(proc.pid), proc)
       await streamer.updateTargets()
 
       garden.events.expectEvent("serversUpdated", {
-        servers: [{ host: values.serverHost, command: "serve", serverAuthKey: "foo" }],
+        servers: [{ host: proc.serverHost!, command: "serve", serverAuthKey: "foo" }],
       })
     })
 
     it("ignores servers matching ignoreHost", async () => {
-      const record = await GardenProcess.register([testArg])
-      const values = {
+      const proc: GardenProcess = {
+        pid: process.pid,
+        startedAt: new Date(),
         command: "serve",
+        arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
         serverHost: "http://localhost:123456",
@@ -215,16 +214,17 @@ describe("CoreEventStream", () => {
       streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
+        globalConfigStore: garden.globalConfigStore,
       })
       streamer.connect({
         garden,
         targets: [],
         streamEvents: true,
         streamLogEntries: true,
-        ignoreHost: values.serverHost,
+        ignoreHost: proc.serverHost!,
       })
 
-      await record.setCommand(values)
+      await garden.globalConfigStore.set("activeProcesses", String(proc.pid), proc)
       const processes = await streamer.updateTargets()
 
       expect(processes.length).to.equal(0)
@@ -234,6 +234,7 @@ describe("CoreEventStream", () => {
       streamer = new CoreEventStream({
         log: garden.log,
         sessionId: garden.sessionId!,
+        globalConfigStore: garden.globalConfigStore,
       })
       const processes = await streamer.updateTargets()
       expect(processes).to.eql([])
@@ -245,6 +246,7 @@ describe("CoreEventStream", () => {
     streamer = new CoreEventStream({
       log: garden.log,
       sessionId: garden.sessionId!,
+      globalConfigStore: garden.globalConfigStore,
     })
     streamer.connect({
       garden,
@@ -254,9 +256,11 @@ describe("CoreEventStream", () => {
     })
 
     // Create a new process record
-    const record = await GardenProcess.register([testArg])
-    await record.setCommand({
+    await garden.globalConfigStore.set("activeProcesses", String(process.pid), {
+      pid: process.pid,
+      startedAt: new Date(),
       command: "serve",
+      arguments: [],
       sessionId: garden.sessionId,
       persistent: true,
       serverHost: "http://localhost:123456",

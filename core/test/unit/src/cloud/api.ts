@@ -6,74 +6,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { expect } from "chai"
-import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { getLogger } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
-import { add } from "date-fns"
 import { uuidv4 } from "../../../../src/util/util"
-import { cleanupAuthTokens } from "../../../helpers"
+import { randomString } from "../../../../src/util/string"
+import { GlobalConfigStore } from "../../../../src/config-store/global"
 
 /**
  * Note: Running these tests locally will delete your saved auth token, if any.
  */
 describe("CloudApi", () => {
   const log = getLogger().placeholder()
-
-  after(cleanupAuthTokens)
+  const domain = "https://garden." + randomString()
+  const globalConfigStore = new GlobalConfigStore()
 
   describe("saveAuthToken", () => {
-    beforeEach(cleanupAuthTokens)
-
     it("should persist an auth token to the local config db", async () => {
       const testAuthToken = {
         token: uuidv4(),
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await CloudApi.saveAuthToken(log, testAuthToken)
-      const savedToken = await ClientAuthToken.findOne()
+      await CloudApi.saveAuthToken(log, globalConfigStore, testAuthToken, domain)
+      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.exist
-      expect(savedToken!.token).to.eql(testAuthToken.token)
-    })
-
-    it("should never persist more than one auth token to the local config db", async () => {
-      await Bluebird.map(
-        [
-          {
-            token: uuidv4(),
-            refreshToken: uuidv4(),
-            tokenValidity: 9999,
-          },
-          {
-            token: uuidv4(),
-            refreshToken: uuidv4(),
-            tokenValidity: 9999,
-          },
-          {
-            token: uuidv4(),
-            refreshToken: uuidv4(),
-            tokenValidity: 9999,
-          },
-        ],
-        async (token) => {
-          try {
-            await CloudApi.saveAuthToken(log, token)
-          } catch (err) {}
-        }
-      )
-      const count = await ClientAuthToken.count()
-      expect(count).to.eql(1)
+      expect(savedToken).to.equal(testAuthToken.token)
     })
   })
 
   describe("getAuthToken", () => {
-    beforeEach(cleanupAuthTokens)
-
     it("should return null when no auth token is present", async () => {
-      const savedToken = await CloudApi.getAuthToken(log)
+      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.be.undefined
     })
 
@@ -83,8 +48,8 @@ describe("CloudApi", () => {
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await CloudApi.saveAuthToken(log, testToken)
-      const savedToken = await CloudApi.getAuthToken(log)
+      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain)
+      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
       expect(savedToken).to.eql(testToken.token)
     })
 
@@ -93,59 +58,30 @@ describe("CloudApi", () => {
       const testToken = "token-from-env"
       gardenEnv.GARDEN_AUTH_TOKEN = testToken
       try {
-        const savedToken = await CloudApi.getAuthToken(log)
+        const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
         expect(savedToken).to.eql(testToken)
       } finally {
         gardenEnv.GARDEN_AUTH_TOKEN = tokenBackup
       }
     })
-
-    it("should clean up duplicate auth tokens in the erroneous case when several exist", async () => {
-      await Bluebird.map(
-        [
-          {
-            token: uuidv4(),
-            refreshToken: uuidv4(),
-            validity: add(new Date(), { seconds: 3600 }),
-          },
-          {
-            token: uuidv4(),
-            refreshToken: uuidv4(),
-            validity: add(new Date(), { seconds: 3600 }),
-          },
-          {
-            token: uuidv4(),
-            refreshToken: uuidv4(),
-            validity: add(new Date(), { seconds: 3600 }),
-          },
-        ],
-        async (token) => {
-          await ClientAuthToken.createQueryBuilder().insert().values(token).execute()
-        }
-      )
-      await CloudApi.getAuthToken(log)
-      const count = await ClientAuthToken.count()
-      expect(count).to.eql(1)
-    })
   })
 
   describe("clearAuthToken", () => {
-    beforeEach(cleanupAuthTokens)
-
     it("should delete a saved auth token", async () => {
       const testToken = {
         token: uuidv4(),
         refreshToken: uuidv4(),
         tokenValidity: 9999,
       }
-      await CloudApi.saveAuthToken(log, testToken)
-      await CloudApi.clearAuthToken(log)
-      const count = await ClientAuthToken.count()
-      expect(count).to.eql(0)
+      await CloudApi.saveAuthToken(log, globalConfigStore, testToken, domain)
+      await CloudApi.clearAuthToken(log, globalConfigStore, domain)
+      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
+      expect(savedToken).to.be.undefined
     })
 
     it("should not throw an exception if no auth token exists", async () => {
-      await CloudApi.clearAuthToken(log)
+      await CloudApi.clearAuthToken(log, globalConfigStore, domain)
+      await CloudApi.clearAuthToken(log, globalConfigStore, domain)
     })
   })
 })

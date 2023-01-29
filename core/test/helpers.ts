@@ -26,7 +26,6 @@ import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store/global"
 import { EventLogEntry, TestGarden, TestGardenOpts } from "../src/util/testing"
 import { Logger, LogLevel } from "../src/logger/logger"
-import { ClientAuthToken } from "../src/db/entities/client-auth-token"
 import { GardenCli } from "../src/cli/cli"
 import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
@@ -738,10 +737,6 @@ export function initTestLogger() {
       type: "quiet",
     })
   } catch (_) {}
-}
-
-export async function cleanupAuthTokens() {
-  await ClientAuthToken.createQueryBuilder().delete().execute()
 }
 
 export function makeCommandParams<T extends Parameters = {}, U extends Parameters = {}>({

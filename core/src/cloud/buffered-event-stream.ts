@@ -89,6 +89,12 @@ export interface ApiLogBatch extends ApiBatchBase {
 
 export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
 
+export interface BufferedEventStreamParams {
+  log: LogEntry
+  cloudApi?: CloudApi
+  sessionId: string
+}
+
 /**
  * Buffers events and log entries and periodically POSTs them to Garden Cloud or another Garden service.
  *
@@ -129,7 +135,7 @@ export class BufferedEventStream {
    */
   private maxBatchBytes = 600 * 1024 // 600 kilobytes
 
-  constructor({ log, cloudApi, sessionId }: { log: LogEntry; cloudApi?: CloudApi; sessionId: string }) {
+  constructor({ log, cloudApi, sessionId }: BufferedEventStreamParams) {
     this.sessionId = sessionId
     this.log = log
     this.cloudApi = cloudApi

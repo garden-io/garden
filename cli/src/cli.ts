@@ -9,6 +9,7 @@
 import { shutdown } from "@garden-io/core/build/src/util/util"
 import { GardenCli, RunOutput } from "@garden-io/core/build/src/cli/cli"
 import { GardenPluginReference } from "@garden-io/core/build/src/plugin/plugin"
+import { GlobalConfigStore } from "@garden-io/core/build/src/config-store/global"
 
 // These plugins are always registered
 export const getBundledPlugins = (): GardenPluginReference[] => [
@@ -44,7 +45,10 @@ export async function runCli({
     console.log(err.message)
     code = 1
   } finally {
-    await cli?.processRecord?.remove()
+    if (cli?.processRecord) {
+      const globalConfigStore = new GlobalConfigStore()
+      await globalConfigStore.delete("activeProcesses", String(cli.processRecord.pid))
+    }
     await shutdown(code)
   }
 

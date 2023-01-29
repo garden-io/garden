@@ -11,7 +11,6 @@ import timekeeper from "timekeeper"
 import { getDefaultProfiler } from "../src/util/profiling"
 import { gardenEnv } from "../src/constants"
 import { testFlags } from "../src/util/util"
-import { ensureConnected } from "../src/db/connection"
 import { initTestLogger, testProjectTempDirs } from "./helpers"
 import Bluebird from "bluebird"
 
@@ -24,9 +23,6 @@ exports.mochaHooks = {
     getDefaultProfiler().setEnabled(true)
     gardenEnv.GARDEN_DISABLE_ANALYTICS = true
     testFlags.disableShutdown = true
-
-    // Ensure we're connected to the sqlite db
-    await ensureConnected()
   },
 
   async afterAll() {

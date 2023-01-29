@@ -8,8 +8,6 @@
 
 import { withDefaultGlobalOpts, projectRootA, makeTestGarden } from "../../../../helpers"
 import { expect } from "chai"
-import { Warning } from "../../../../../src/db/entities/warning"
-import { getConnection } from "../../../../../src/db/connection"
 import { HideWarningCommand } from "../../../../../src/commands/util/hide-warning"
 import { randomString } from "../../../../../src/util/string"
 import { getLogMessages } from "../../../../../src/util/testing"
@@ -30,14 +28,14 @@ describe("HideWarningCommand", () => {
         headerLog: garden.log,
         footerLog: garden.log,
       })
-      await Warning.emit({
+      await garden.emitWarning({
         key,
         log,
         message: "foo",
       })
       expect(getLogMessages(log).length).to.equal(0)
     } finally {
-      await getConnection().getRepository(Warning).createQueryBuilder().delete().where({ key }).execute()
+      await garden.configStore.delete("warnings", key)
     }
   })
 })

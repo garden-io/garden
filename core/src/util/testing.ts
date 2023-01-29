@@ -19,7 +19,7 @@ import { GardenBaseError, GardenError, InternalError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
-import { resolve } from "path"
+import { join, resolve } from "path"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
 import { getLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
@@ -32,6 +32,8 @@ import { ActionConfig, ActionKind, ActionStatus } from "../actions/types"
 import { WrappedActionRouterHandlers } from "../router/base"
 import { BuiltinArgs, Command, CommandResult } from "../commands/base"
 import { validateSchema } from "../config/validation"
+import { mkdirp, remove } from "fs-extra"
+import { GlobalConfigStore } from "../config-store/global"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -182,6 +184,12 @@ export class TestGarden extends Garden {
     }
 
     garden["cacheKey"] = cacheKey
+
+    const globalDir = join(garden.gardenDirPath, "_global")
+    await remove(globalDir)
+    await mkdirp(globalDir)
+
+    garden["globalConfigStore"] = new GlobalConfigStore(globalDir)
 
     return garden
   }

@@ -38,6 +38,7 @@ export class LoginCommand extends Command {
 
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
     const currentDirectory = garden.projectRoot
+    const globalConfigStore = garden.globalConfigStore
     const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
 
     // The Enterprise API is missing from the Garden class for commands with noProject
@@ -50,7 +51,7 @@ export class LoginCommand extends Command {
     }
 
     try {
-      const enterpriseApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true })
+      const enterpriseApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true, globalConfigStore })
 
       if (enterpriseApi) {
         log.info({ msg: `You're already logged in to ${distroName}.` })
@@ -71,7 +72,7 @@ export class LoginCommand extends Command {
 
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
-    await CloudApi.saveAuthToken(log, tokenResponse)
+    await CloudApi.saveAuthToken(log, globalConfigStore, tokenResponse, cloudDomain)
     log.info({ msg: `Successfully logged in to ${distroName}.` })
     return {}
   }

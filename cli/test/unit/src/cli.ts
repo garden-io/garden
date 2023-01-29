@@ -16,14 +16,11 @@ import { testRoot } from "../../helpers"
 import { GardenCli } from "@garden-io/core/build/src/cli/cli"
 import { projectRootA } from "@garden-io/core/build/test/helpers"
 import { Command, CommandParams } from "@garden-io/core/build/src/commands/base"
-import { GardenProcess } from "@garden-io/core/build/src/db/entities/garden-process"
-import { ensureConnected } from "@garden-io/core/build/src/db/connection"
 import { randomString } from "@garden-io/core/build/src/util/string"
+import { GlobalConfigStore } from "@garden-io/core/src/config-store/global"
 
 describe("runCli", () => {
-  before(async () => {
-    await ensureConnected()
-  })
+  const globalConfigStore = new GlobalConfigStore()
 
   it("should add bundled plugins", async () => {
     const projectRoot = resolve(testRoot, "test-projects", "bundled-projects")
@@ -42,7 +39,7 @@ describe("runCli", () => {
 
       printHeader() {}
       async action({}: CommandParams) {
-        const allProcesses = await GardenProcess.getActiveProcesses()
+        const allProcesses = Object.values(await globalConfigStore.get("activeProcesses"))
         const record = find(allProcesses, (p) => p.command)
 
         if (record) {
@@ -79,7 +76,7 @@ describe("runCli", () => {
 
     await runCli({ args: [cmd.name, "--root", projectRootA], cli })
 
-    const allProcesses = await GardenProcess.getActiveProcesses()
+    const allProcesses = Object.values(await globalConfigStore.get("activeProcesses"))
     const record = find(allProcesses, (p) => p.command)
 
     expect(record).to.be.undefined

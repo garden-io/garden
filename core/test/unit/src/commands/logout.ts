@@ -8,25 +8,16 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { getDataDir, cleanupAuthTokens, makeCommandParams, TestGardenCli } from "../../../helpers"
+import { getDataDir, makeCommandParams, TestGardenCli } from "../../../helpers"
 import { makeDummyGarden } from "../../../../src/cli/cli"
-import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { randomString } from "../../../../src/util/string"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { LogOutCommand } from "../../../../src/commands/logout"
 import { getLogMessages } from "../../../../src/util/testing"
-import { ensureConnected } from "../../../../src/db/connection"
 
 describe("LogoutCommand", () => {
-  beforeEach(async () => {
-    await ensureConnected()
-    await cleanupAuthTokens()
-  })
-
-  after(async () => {
-    await cleanupAuthTokens()
-  })
+  const domain = "https://garden." + randomString()
 
   it("should logout from Garden Cloud", async () => {
     const postfix = randomString()
@@ -43,20 +34,20 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await CloudApi.saveAuthToken(garden.log, testToken)
+    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, domain)
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
     td.replace(CloudApi.prototype, "post", async () => {})
 
     // Double check token actually exists
-    const savedToken = await ClientAuthToken.findOne()
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
-    const tokenAfterLogout = await ClientAuthToken.findOne()
+    const tokenAfterLogout = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
@@ -92,21 +83,21 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await CloudApi.saveAuthToken(garden.log, testToken)
+    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, domain)
     // Throw when initializing Enterprise API
     td.replace(CloudApi.prototype, "factory", async () => {
       throw new Error("Not tonight")
     })
 
     // Double check token actually exists
-    const savedToken = await ClientAuthToken.findOne()
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
-    const tokenAfterLogout = await ClientAuthToken.findOne()
+    const tokenAfterLogout = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
@@ -128,21 +119,21 @@ describe("LogoutCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
-    await CloudApi.saveAuthToken(garden.log, testToken)
+    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, domain)
     // Throw when using Enterprise API to call call logout endpoint
     td.replace(CloudApi.prototype, "post", async () => {
       throw new Error("Not tonight")
     })
 
     // Double check token actually exists
-    const savedToken = await ClientAuthToken.findOne()
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
-    const tokenAfterLogout = await ClientAuthToken.findOne()
+    const tokenAfterLogout = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist

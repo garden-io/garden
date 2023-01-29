@@ -84,13 +84,13 @@ graphResults:
 
 **Update your preferences regarding analytics.**
 
-To help us make Garden better, you can opt in to the collection of usage data.
+To help us make Garden better, we collect some analytics data about its usage.
 We make sure all the data collected is anonymized and stripped of sensitive
 information. We collect data about which commands are run, what tasks they trigger,
 which API calls are made to your local Garden server, as well as some info
 about the environment in which Garden runs.
 
-You will be asked if you want to opt-in when running Garden for the
+You will be asked if you want to opt out when running Garden for the
 first time and you can use this command to update your preferences later.
 
 Examples:
