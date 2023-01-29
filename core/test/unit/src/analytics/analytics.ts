@@ -17,12 +17,12 @@ import { DEFAULT_API_VERSION, gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { Logger, LogLevel } from "../../../../src/logger/logger"
-import { AnalyticsGlobalConfig } from "../../../../src/config-store/global"
+import { AnalyticsGlobalConfig, GlobalConfigStore } from "../../../../src/config-store/global"
 import { ProjectResource } from "../../../../src/config/project"
 
 class FakeCloudApi extends CloudApi {
   static async factory(params: { log: LogEntry; projectConfig?: ProjectResource; skipLogging?: boolean }) {
-    return new FakeCloudApi(params.log, "https://garden.io")
+    return new FakeCloudApi(params.log, "https://garden.io", new GlobalConfigStore())
   }
   async getProfile() {
     return {

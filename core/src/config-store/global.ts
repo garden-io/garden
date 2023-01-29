@@ -18,10 +18,27 @@ import { cloneDeep, omit } from "lodash"
 export const legacyGlobalConfigFilename = "global-config.yml"
 export const globalConfigFilename = "global-config.json"
 export const emptyGlobalConfig: GlobalConfig = {
+  activeProcesses: {},
   analytics: {},
+  clientAuthTokens: {},
   versionCheck: {},
   requirementsCheck: {},
 }
+
+const activeProcessSchema = z.object({
+  pid: z.number().int().describe("The PID of the process."),
+  startedAt: z.coerce.date().describe("When the process was started."),
+  arguments: z.array(z.string()).describe("The arguments the process was started with."),
+  sessionId: z.string().nullable().describe("The sessionId associated with the process, if applicable."),
+  projectRoot: z.string().nullable().describe("Which project root the process started in, if applicable."),
+  projectName: z.string().nullable().describe("Which project name the process is running with, if applicable."),
+  environmentName: z.string().nullable().describe("Which environment name the process is running with, if applicable."),
+  namespace: z.string().nullable().describe("Which namespace name the process is running with, if applicable."),
+  persistent: z.boolean().default(false).describe("Whether the process is persistent."),
+  serverHost: z.string().url().nullable().describe("The base URL to reach the process server, if applicable."),
+  serverAuthKey: z.string().nullable().describe("The auth key to the process server, if applicable."),
+  command: z.string().describe("The command the process is running."),
+})
 
 const analyticsGlobalConfigSchema = z.object({
   firstRunAt: z.coerce.date().optional().describe("When the current user first used the CLI."),
@@ -33,11 +50,25 @@ const analyticsGlobalConfigSchema = z.object({
   cloudProfileEnabled: z.boolean().optional().describe("Whether the user has a Garden Cloud profile."),
 })
 
+const clientAuthTokenSchema = z.object({
+  token: z.string(),
+  refreshToken: z.string(),
+  validity: z.coerce.date(),
+})
+
 const globalConfigSchema = z.object({
+  // Note: Indexed on PID
+  activeProcesses: z.record(z.string().describe("The process PID (as a string)"), activeProcessSchema),
+
   analytics: analyticsGlobalConfigSchema,
+
+  // Note: Indexed on cloud domain
+  clientAuthTokens: z.record(z.string().describe("The Garden Cloud domain"), clientAuthTokenSchema),
+
   versionCheck: z.object({
     lastRun: z.coerce.date().optional().describe("When the automatic version check was last run."),
   }),
+
   requirementsCheck: z.object({
     lastRunDateUNIX: z.number().optional().describe("UNIX timestamp of the last run of the runtime requirements check"),
     lastRunGardenVersion: z.string().optional().describe("The Garden CLI version at the time of last check."),
@@ -47,6 +78,8 @@ const globalConfigSchema = z.object({
 
 export type GlobalConfig = z.infer<typeof globalConfigSchema>
 export type AnalyticsGlobalConfig = GlobalConfig["analytics"]
+export type ClientAuthToken = z.infer<typeof clientAuthTokenSchema>
+export type GardenProcess = z.infer<typeof activeProcessSchema>
 
 export class GlobalConfigStore extends ConfigStore<typeof globalConfigSchema> {
   schema = globalConfigSchema
@@ -87,7 +120,7 @@ export class GlobalConfigStore extends ConfigStore<typeof globalConfigSchema> {
         config.requirementsCheck = parsed.requirementsCheck
       }
 
-      return this.validate(config)
+      return this.validate(config, "initializing")
     } catch {
       return cloneDeep(emptyGlobalConfig)
     }

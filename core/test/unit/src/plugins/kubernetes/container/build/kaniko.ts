@@ -13,13 +13,13 @@ import {
   getKanikoBuilderPodManifest,
 } from "../../../../../../../src/plugins/kubernetes/container/build/kaniko"
 import { expect } from "chai"
-import { DeepPartial } from "typeorm-with-better-sqlite3"
 import {
   defaultResources,
   DEFAULT_KANIKO_IMAGE,
   KubernetesProvider,
 } from "../../../../../../../src/plugins/kubernetes/config"
 import { k8sUtilImageName } from "../../../../../../../src/plugins/kubernetes/constants"
+import { DeepPartial } from "utility-types"
 
 describe("kaniko build", () => {
   it("should return as successful when immutable tag already exists in destination", () => {

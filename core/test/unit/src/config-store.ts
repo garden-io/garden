@@ -105,7 +105,7 @@ describe("ConfigStore", () => {
 
       expect(config).to.eql({
         analytics: {
-          projectId: "foo"
+          projectId: "foo",
         },
         linkedModuleSources: {
           "name-a": { name: "name-a", path: "path-a" },

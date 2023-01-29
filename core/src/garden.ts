@@ -94,7 +94,6 @@ import {
   ActionTypeMap,
 } from "./plugins"
 import { deline, naturalList, wordWrap } from "./util/string"
-import { ensureConnected } from "./db/connection"
 import { DependencyGraph } from "./graph/common"
 import { Profile, profileAsync } from "./util/profiling"
 import username from "username"
@@ -215,7 +214,7 @@ export class Garden {
   public readonly enterpriseDomain?: string
   public sessionId: string
   public readonly configStore: LocalConfigStore
-  public readonly globalConfigStore: GlobalConfigStore
+  public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
   private actionRouter: ActionRouter
@@ -418,6 +417,20 @@ export class Garden {
   clearCaches() {
     this.cache.clear()
     this.solver.clearCache()
+  }
+
+  async emitWarning({ key, log, message }: { key: string; log: LogEntry; message: string }) {
+    const existing = await this.configStore.get("warnings", key)
+
+    if (!existing || !existing.hidden) {
+      log.warn(
+        chalk.yellow(message + `\nRun ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
+      )
+    }
+  }
+
+  async hideWarning(key: string) {
+    await this.configStore.set("warnings", key, { hidden: true })
   }
 
   // TODO: would be nice if this returned a type based on the input tasks
@@ -1451,9 +1464,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const _username = (await username()) || ""
   const projectName = config.name
   const log = opts.log || getLogger().placeholder()
-
-  // Connect to the state storage
-  await ensureConnected()
 
   const { sources: projectSources, path: projectRoot } = config
   const commandInfo = opts.commandInfo

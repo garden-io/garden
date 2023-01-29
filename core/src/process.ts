@@ -22,6 +22,7 @@ import { Action } from "./actions/types"
 import { actionReferenceToString } from "./actions/base"
 import { GraphResults } from "./graph/results"
 import { GardenModule } from "./types/module"
+import { GardenProcess, GlobalConfigStore } from "./config-store/global"
 
 export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
 
@@ -287,4 +288,54 @@ async function validateConfigChange(
     }
   }
   return true
+}
+
+/**
+ * Register the currently running process in the global config store,
+ * and clean up any inactive processes from the store along the way.
+ */
+export async function registerProcess(
+  globalConfigStore: GlobalConfigStore,
+  command: string,
+  args: string[]
+): Promise<GardenProcess> {
+  const processes = Object.values(await globalConfigStore.get("activeProcesses"))
+
+  // TODO: avoid multiple writes here
+  await Bluebird.map(processes, async (p) => {
+    if (!isRunning(p.pid)) {
+      await globalConfigStore.delete("activeProcesses", String(p.pid))
+    }
+  })
+
+  const pid = process.pid
+
+  const record: GardenProcess = {
+    command,
+    arguments: args,
+    pid,
+    startedAt: new Date(),
+    sessionId: null,
+    projectName: null,
+    projectRoot: null,
+    environmentName: null,
+    namespace: null,
+    persistent: false,
+    serverAuthKey: null,
+    serverHost: null,
+  }
+
+  await globalConfigStore.set("activeProcesses", String(pid), record)
+
+  return record
+}
+
+function isRunning(pid: number) {
+  // Taken from https://stackoverflow.com/a/21296291. Doesn't actually kill the process.
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
 }

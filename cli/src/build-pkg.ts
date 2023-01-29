@@ -24,9 +24,7 @@ const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
-const prebuildInstallPath = resolve(repoRoot, "node_modules", ".bin", "prebuild-install")
 const distPath = resolve(repoRoot, "dist")
-const sqliteBinFilename = "better_sqlite3.node"
 
 // Allow larger heap size than default
 const nodeOptions = ["max-old-space-size=4096"]
@@ -268,27 +266,6 @@ async function pkgCommon({
     ],
     { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
   )
-
-  console.log(` - ${targetName} -> ${sqliteBinFilename}`)
-
-  // Copy the package to avoid conflicts with other targets
-  const betterSqlitePath = resolve(sourcePath, "node_modules", "better-sqlite3")
-  const tmpRoot = resolve(tmpDir, "better-sqlite3")
-  const tmpPath = resolve(tmpRoot, targetName)
-  await mkdirp(tmpRoot)
-  await remove(tmpPath)
-  await copy(betterSqlitePath, tmpPath)
-
-  const { nodeBinaryPlatform } = targets[targetName]
-
-  await exec(
-    prebuildInstallPath,
-    ["--download", "--runtime", "node", "--arch", "x64", "--platform", nodeBinaryPlatform, "--force"],
-    {
-      cwd: tmpPath,
-    }
-  )
-  await copy(resolve(tmpPath, "build", "Release", sqliteBinFilename), resolve(targetPath, sqliteBinFilename))
 
   console.log(` - ${targetName} -> static`)
   await copyStatic(targetName)
