@@ -26,7 +26,7 @@ import execa = require("execa")
 import { KubernetesDeployAction } from "./kubernetes-type/config"
 import { HelmDeployAction } from "./helm/config"
 import { DeployAction } from "../../actions/deploy"
-import { GetPortForwardResult } from "../../plugin/handlers/deploy/get-port-forward"
+import { GetPortForwardResult } from "../../plugin/handlers/Deploy/get-port-forward"
 import { Resolved } from "../../actions/types"
 
 // TODO: implement stopPortForward handler

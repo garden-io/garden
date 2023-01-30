@@ -21,13 +21,13 @@ import {
   defaultDockerfileName,
 } from "./moduleConfig"
 import { buildContainer, getContainerBuildActionOutputs, getContainerBuildStatus } from "./build"
-import { ConfigureModuleParams } from "../../plugin/handlers/module/configure"
-import { SuggestModulesParams, SuggestModulesResult } from "../../plugin/handlers/module/suggest"
+import { ConfigureModuleParams } from "../../plugin/handlers/Module/configure"
+import { SuggestModulesParams, SuggestModulesResult } from "../../plugin/handlers/Module/suggest"
 import { listDirectory } from "../../util/fs"
 import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
-import { GetModuleOutputsParams } from "../../plugin/handlers/module/get-outputs"
-import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
+import { GetModuleOutputsParams } from "../../plugin/handlers/Module/get-outputs"
+import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
 import { ExecActionConfig, ExecBuildConfig } from "../exec/config"
 import {
   containerBuildOutputsSchema,

@@ -20,7 +20,7 @@ import { expect } from "chai"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { writeFile } from "fs-extra"
-import { GetRunResult } from "../../../../../src/plugin/handlers/run/get-result"
+import { GetRunResult } from "../../../../../src/plugin/handlers/Run/get-result"
 
 const now = new Date()
 

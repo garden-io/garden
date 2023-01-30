@@ -8,7 +8,7 @@
 
 import { ConfigurationError } from "../../../exceptions"
 import { KubernetesProvider } from "../config"
-import { ConfigureModuleParams } from "../../../plugin/handlers/module/configure"
+import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure"
 import {
   ContainerBuildAction,
   ContainerBuildOutputs,
@@ -16,7 +16,7 @@ import {
   ContainerModule,
   ContainerServiceSpec,
 } from "../../container/moduleConfig"
-import { GetModuleOutputsParams } from "../../../plugin/handlers/module/get-outputs"
+import { GetModuleOutputsParams } from "../../../plugin/handlers/Module/get-outputs"
 import { containerHelpers } from "../../container/helpers"
 import { getContainerModuleOutputs } from "../../container/container"
 import { getContainerBuildActionOutputs } from "../../container/build"

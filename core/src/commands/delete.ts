@@ -9,7 +9,7 @@
 import { Command, CommandGroup, CommandParams, CommandResult } from "./base"
 import dedent from "dedent"
 import { printHeader } from "../logger/util"
-import { EnvironmentStatusMap } from "../plugin/handlers/provider/getEnvironmentStatus"
+import { EnvironmentStatusMap } from "../plugin/handlers/Provider/getEnvironmentStatus"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
 import { joi, joiIdentifierMap } from "../config/common"
 import { environmentStatusSchema } from "../config/status"
@@ -18,7 +18,7 @@ import { deline } from "../util/string"
 import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
 import { omit, mapValues } from "lodash"
-import { GetDeployStatus, getDeployStatusSchema } from "../plugin/handlers/deploy/get-status"
+import { GetDeployStatus, getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status"
 
 // TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {

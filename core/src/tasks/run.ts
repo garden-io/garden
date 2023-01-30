@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
-import { GetRunResult } from "../plugin/handlers/run/get-result"
+import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { executeAction } from "../actions/helpers"
 
 export interface RunTaskParams extends BaseActionTaskParams<RunAction> {}

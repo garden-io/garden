@@ -9,7 +9,7 @@
 import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "./base"
 import { GraphResults } from "../graph/results"
 import { DeployAction, isDeployAction } from "../actions/deploy"
-import { DeployStatus, GetDeployStatus } from "../plugin/handlers/deploy/get-status"
+import { DeployStatus, GetDeployStatus } from "../plugin/handlers/Deploy/get-status"
 
 export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {
   /**

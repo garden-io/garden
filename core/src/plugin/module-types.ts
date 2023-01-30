@@ -7,16 +7,16 @@
  */
 
 import Joi = require("@hapi/joi")
-import { ConfigureModuleParams, ConfigureModuleResult, configure } from "./handlers/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult, configure } from "./handlers/Module/configure"
 import { joiIdentifier, joi, joiSchema } from "../config/common"
 import { GardenModule } from "../types/module"
 import { ActionHandlerParamsBase, outputSchemaDocs, WrappedActionHandler } from "./base"
 import { mapValues } from "lodash"
 import { dedent } from "../util/string"
-import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./handlers/module/suggest"
+import { suggestModules, SuggestModulesParams, SuggestModulesResult } from "./handlers/Module/suggest"
 import { templateStringLiteral } from "../docs/common"
-import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./handlers/module/get-outputs"
-import { convert, ConvertModuleParams, ConvertModuleResult } from "./handlers/module/convert"
+import { getModuleOutputs, GetModuleOutputsParams, GetModuleOutputsResult } from "./handlers/Module/get-outputs"
+import { convert, ConvertModuleParams, ConvertModuleResult } from "./handlers/Module/convert"
 import { baseHandlerSchema } from "./handlers/base/base"
 import { ResolvedActionHandlerDescriptions } from "./plugin"
 

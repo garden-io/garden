@@ -26,20 +26,20 @@ import {
   getProviderHandlerNames,
   ProviderHandlers,
 } from "../plugin/plugin"
-import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../plugin/handlers/provider/cleanupEnvironment"
+import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../plugin/handlers/Provider/cleanupEnvironment"
 import {
   EnvironmentStatusMap,
   GetEnvironmentStatusParams,
   EnvironmentStatus,
-} from "../plugin/handlers/provider/getEnvironmentStatus"
+} from "../plugin/handlers/Provider/getEnvironmentStatus"
 import { Omit } from "../util/util"
-import { DebugInfoMap } from "../plugin/handlers/provider/getDebugInfo"
-import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../plugin/handlers/provider/prepareEnvironment"
-import { ConfigureProviderParams, ConfigureProviderResult } from "../plugin/handlers/provider/configureProvider"
+import { DebugInfoMap } from "../plugin/handlers/Provider/getDebugInfo"
+import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../plugin/handlers/Provider/prepareEnvironment"
+import { ConfigureProviderParams, ConfigureProviderResult } from "../plugin/handlers/Provider/configureProvider"
 import { PluginContext, PluginEventBroker } from "../plugin-context"
-import { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/provider/augmentGraph"
+import { AugmentGraphResult, AugmentGraphParams } from "../plugin/handlers/Provider/augmentGraph"
 import { Profile } from "../util/profiling"
-import { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/provider/getDashboardPage"
+import { GetDashboardPageParams, GetDashboardPageResult } from "../plugin/handlers/Provider/getDashboardPage"
 import { BaseRouter, BaseRouterParams, CommonParams } from "./base"
 
 /**

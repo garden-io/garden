@@ -28,7 +28,7 @@ import { ensureFile, remove } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
-import { ConvertModuleParams } from "../../plugin/handlers/module/convert"
+import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
 import {
   ExecActionConfig,
   ExecBuild,
@@ -46,8 +46,8 @@ import {
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
 import { runResultToActionState } from "../../actions/base"
-import { DeployStatus } from "../../plugin/handlers/deploy/get-status"
-import { BuildStatus } from "../../plugin/handlers/build/get-status"
+import { DeployStatus } from "../../plugin/handlers/Deploy/get-status"
+import { BuildStatus } from "../../plugin/handlers/Build/get-status"
 import { Resolved } from "../../actions/types"
 
 const persistentLocalProcRetryIntervalMs = 2500

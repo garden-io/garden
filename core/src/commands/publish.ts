@@ -18,7 +18,7 @@ import {
 import { PublishTask } from "../tasks/publish"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { publishResultSchema } from "../plugin/handlers/build/publish"
+import { publishResultSchema } from "../plugin/handlers/Build/publish"
 import { joiIdentifierMap } from "../config/common"
 import { StringsParameter, BooleanParameter, StringOption } from "../cli/params"
 

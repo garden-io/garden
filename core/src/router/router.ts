@@ -23,7 +23,7 @@ import { buildRouter } from "./build"
 import { deployRouter } from "./deploy"
 import { runRouter } from "./run"
 import { testRouter } from "./test"
-import type { DeployStatus } from "../plugin/handlers/deploy/get-status"
+import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import type { GetActionOutputsParams, GetActionOutputsResult } from "../plugin/handlers/base/get-outputs"
 import type { ActionKind, BaseActionConfig, ResolvedAction } from "../actions/types"
 

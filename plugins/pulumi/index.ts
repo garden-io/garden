@@ -25,7 +25,7 @@ import { join } from "path"
 import { pathExists } from "fs-extra"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import { omit } from "lodash"
-import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/module/convert"
+import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 
 // Need to make these variables to avoid escaping issues
 const moduleOutputsTemplateString = "${runtime.services.<module-name>.outputs.<key>}"

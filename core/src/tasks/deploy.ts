@@ -13,7 +13,7 @@ import { getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
 import { Profile } from "../util/profiling"
 import { DeployAction } from "../actions/deploy"
-import { DeployStatus } from "../plugin/handlers/deploy/get-status"
+import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { executeAction } from "../actions/helpers"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {}

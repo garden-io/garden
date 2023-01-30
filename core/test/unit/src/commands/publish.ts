@@ -14,9 +14,9 @@ import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } 
 import { taskResultOutputs } from "../../../helpers"
 import { cloneDeep } from "lodash"
 import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
-import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/build/publish"
+import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
-import { ConvertModuleParams } from "../../../../src/plugin/handlers/module/convert"
+import { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/convert"
 
 const projectRootB = getDataDir("test-project-b")
 

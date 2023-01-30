@@ -11,7 +11,7 @@ import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, 
 import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
-import { BuildStatus } from "../plugin/handlers/build/get-status"
+import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { executeAction } from "../actions/helpers"
 
 export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {

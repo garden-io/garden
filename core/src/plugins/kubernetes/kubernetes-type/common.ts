@@ -23,7 +23,7 @@ import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceS
 import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
 import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
-import { CommonRunParams } from "../../../plugin/handlers/run/run"
+import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
 import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
 import { KubernetesRunAction } from "./run"
