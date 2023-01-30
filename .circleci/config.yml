@@ -25,7 +25,7 @@ orbs:
       docker_layer_caching: true
 
   runner-image: &runner-image
-    image: gardendev/circleci-runner:16.18.0-1
+    image: gardendev/circleci-runner:18.12.0
 
   # Configuration for our node jobs
   node-config: &node-config
@@ -183,13 +183,17 @@ commands:
             # ...export for subsequent runs...
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 16
-            nvm alias default 16
+            nvm install v18
+            nvm alias default v18
             nvm use default
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
             sudo npm install -g yarn
+      - run:
+          name: "Enforce nvm use default"
+          command: |
+            echo "nvm use default" >> $BASH_ENV
 
   configure_remote_cluster:
     description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
@@ -801,7 +805,7 @@ jobs:
       - *attach-workspace
       # - run:
       #     name: Configure Node.js
-      #     command: nvm install 16 && nvm alias default 16
+      #     command: nvm install v18 && nvm alias default v18
       - run:
           name: brew install
           command: brew install docker kubectl git rsync

@@ -21,8 +21,8 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 # install node
-nvm install 16
-nvm alias default 16
+nvm install v18
+nvm alias default v18
 nvm use default
 
 # install/update global packages
