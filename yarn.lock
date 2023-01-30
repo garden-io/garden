@@ -360,10 +360,10 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@garden-io/platform-api-types@1.345.0":
-  version "1.345.0"
-  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.345.0.tgz#512cc3486778ab2f14a271f85a093da52ab24f1e"
-  integrity sha512-EcZyIrPpHcyQ1jcpUV7x6qzlflBdiwCUL3aHD2Lhu+QJGJwEtdckrP3wy+acVW5Qdx5HFP7bb5ST4JH6R8eibw==
+"@garden-io/platform-api-types@1.367.0":
+  version "1.367.0"
+  resolved "https://registry.yarnpkg.com/@garden-io/platform-api-types/-/platform-api-types-1.367.0.tgz#8a8f032e9f000068fb87a47ab3d10f01646ab976"
+  integrity sha512-L2BpaC7JiI2P50nZFbPMTdE39ofszgnt3mLVpXKw0OWBnlZjvZc0cAEq8/vO8vHTL423t6pCoveUo3X+to2SEA==
 
 "@google-cloud/kms@^1.6.3":
   version "1.6.3"
@@ -1091,10 +1091,10 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-13.13.45.tgz#e6676bcca092bae5751d015f074a234d5a82eb63"
   integrity sha512-703YTEp8AwQeapI0PTXDOj+Bs/mtdV/k9VcTP7z/de+lx6XjFMKdB+JhKnK+6PZ5za7omgZ3V6qm/dNkMj/Zow==
 
-"@types/node@^16":
-  version "16.18.11"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.18.11.tgz#cbb15c12ca7c16c85a72b6bdc4d4b01151bb3cae"
-  integrity sha512-3oJbGBUWuS6ahSnEq1eN2XrCyf4YsWI8OyCvo7c64zQJNplk3mO84t53o8lfTk+2ji59g5ycfc6qQ3fdHliHuA==
+"@types/node@^18":
+  version "18.11.18"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.11.18.tgz#8dfb97f0da23c2293e554c5a50d61ef134d7697f"
+  integrity sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==
 
 "@types/normalize-package-data@^2.4.0":
   version "2.4.0"
@@ -1962,13 +1962,6 @@ axios@^0.17.1:
   dependencies:
     follow-redirects "^1.2.5"
     is-buffer "^1.1.5"
-
-axios@^0.21.2:
-  version "0.21.2"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-0.21.2.tgz#21297d5084b2aeeb422f5d38e7be4fbb82239017"
-  integrity sha512-87otirqUw3e8CzHTMO+/9kh/FSgXt/eVDvipijwDtEuwbkySWZ9SBm6VEubmJ/kLKEoLQV/POhxXFb66bfekfg==
-  dependencies:
-    follow-redirects "^1.14.0"
 
 babel-polyfill@6.26.0:
   version "6.26.0"
@@ -4212,7 +4205,7 @@ fn.name@1.x.x:
   resolved "https://registry.yarnpkg.com/fn.name/-/fn.name-1.1.0.tgz#26cad8017967aea8731bc42961d04a3d5988accc"
   integrity sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==
 
-follow-redirects@^1.14.0, follow-redirects@^1.2.5:
+follow-redirects@^1.2.5:
   version "1.14.8"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.8.tgz#016996fb9a11a100566398b1c6839337d7bfa8fc"
   integrity sha512-1x0S9UVJHsQprFcEC/qnNzBLcIxsjAV905f/UkQxbclCsoTWlacCNOpQa/anodLl2uaEKFhfWOvM2Qg77+15zA==
