@@ -190,6 +190,10 @@ commands:
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
             sudo npm install -g yarn
+      - run:
+          name: "Enforce nvm use default"
+          command: |
+            echo "nvm use default" >> $BASH_ENV
 
   configure_remote_cluster:
     description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
