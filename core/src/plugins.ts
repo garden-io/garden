@@ -18,7 +18,7 @@ import {
 } from "./plugin/plugin"
 import type { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
-import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy } from "lodash"
+import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy, Dictionary } from "lodash"
 import { findByName, pushToKey, getNames, isNotNull } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
@@ -36,9 +36,13 @@ export async function loadAndResolvePlugins(
   registeredPlugins: RegisterPluginParam[],
   configs: GenericProviderConfig[]
 ) {
-  const initializedPlugins: PluginMap = {}
   const loadedPlugins = keyBy(await Bluebird.map(registeredPlugins, (p) => loadPlugin(log, projectRoot, p)), "name")
 
+  return resolvePlugins(log, loadedPlugins, configs)
+}
+
+export function resolvePlugins(log: LogEntry, loadedPlugins: Dictionary<GardenPlugin>, configs: GenericProviderConfig[]) {
+  const initializedPlugins: PluginMap = {}
   const validatePlugin = (name: string) => {
     if (initializedPlugins[name]) {
       return initializedPlugins[name]
@@ -69,7 +73,7 @@ export async function loadAndResolvePlugins(
       if (!base) {
         throw new PluginError(
           `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
-            `but that plugin has not been registered.`,
+          `but that plugin has not been registered.`,
           { loadedPlugins: Object.keys(loadedPlugins), base: plugin.base }
         )
       }
