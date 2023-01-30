@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+import { cloneDeep } from "lodash"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { joi } from "../../../../src/config/common"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
@@ -14,7 +15,13 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { ManyActionTypeDefinitions } from "../../../../src/plugin/action-types"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { createActionRouter } from "../../../../src/router/base"
-import { projectRootA, expectError, makeTestGarden, TestGarden, getDefaultProjectConfig } from "../../../helpers"
+import {
+  projectRootA,
+  expectError,
+  makeTestGarden,
+  TestGarden,
+  getDefaultProjectConfig,
+} from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
 
 describe("BaseActionRouter", () => {
@@ -431,12 +438,33 @@ describe("BaseActionRouter", () => {
   })
 
   describe("validateActionOutputs", () => {
+    let graph: ConfigGraph
+    let log: LogEntry
+    let resolvedBuildAction: ResolvedBuildAction
+    let testPlugins: GardenPlugin[]
+
+    before(async () => {
+      const data = await getRouterTestData()
+      graph = data.graph
+      log = data.log
+      testPlugins = [data.plugins.basePlugin, data.plugins.testPluginA]
+      resolvedBuildAction = data.resolvedBuildAction
+    })
+
     it("validates static outputs", async () => {
-      throw "TODO"
+      const { router } = await createTestRouter(testPlugins)
+
+      await expectError(async () => await router.validateActionOutputs(resolvedBuildAction, "static", { foo: 123 }), {
+        contains: "Error validating static action outputs from Build 'module-a': key .foo must be a string.",
+      })
     })
 
     it("validates runtime outputs", async () => {
-      throw "TODO"
+      const { router } = await createTestRouter(testPlugins)
+
+      await expectError(async () => await router.validateActionOutputs(resolvedBuildAction, "runtime", { foo: 123 }), {
+        contains: "Error validating runtime action outputs from Build 'module-a': key .foo must be a string.",
+      })
     })
 
     it("throws if no schema is set and a key is set", async () => {
@@ -444,7 +472,23 @@ describe("BaseActionRouter", () => {
     })
 
     it("validates against base schemas", async () => {
-      throw "TODO"
+      const plugins = cloneDeep({ base: testPlugins[0], pluginA: testPlugins[1] })
+      delete plugins.pluginA.createActionTypes.Build[0].runtimeOutputsSchema
+      delete plugins.pluginA.createActionTypes.Build[0].staticOutputsSchema
+      plugins.base.createActionTypes.Build[0].runtimeOutputsSchema = joi.object().keys({
+        thisPropertyFromBaseMustBePresent: joi.number(),
+      })
+      const { router } = await createTestRouter([plugins.base, plugins.pluginA])
+
+      await expectError(
+        async () =>
+          await router.validateActionOutputs(resolvedBuildAction, "runtime", {
+            thisPropertyFromBaseMustBePresent: "this should be a number",
+          }),
+        {
+          contains: "key .thispropertyfrombasemustbepresent must be a number",
+        }
+      )
     })
   })
 })
