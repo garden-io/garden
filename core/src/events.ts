@@ -88,8 +88,12 @@ export interface CommandInfoPayload extends CommandInfo {
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
   const payload = sanitizeObject(omit(result, "dependencyResults"))
+
+  // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
+  if (result.error) {
+    payload.error = omit(result.error, "detail")
+  }
   if (result.output) {
-    // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
     payload.output = omit(result.output, "dependencyResults", "log", "buildLog", "detail")
     if (result.output.version) {
       payload.output.version = result.output.version.versionString || null
