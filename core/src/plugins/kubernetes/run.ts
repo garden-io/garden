@@ -214,7 +214,7 @@ export async function runAndCopy({
     const outputStream = new PassThrough()
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
     })
 
     return runWithArtifacts({

@@ -205,21 +205,9 @@ export interface Events extends LoggerEvents {
   watchingForChanges: {}
   log: {
     /**
-     * Number of milliseconds since the epoch OR a date string.
-     *
-     * We need to allow both numberic and string types for backwards compatibility
-     * with Garden Cloud.
-     *
-     * Garden Cloud supports numeric date strings for log streaming as of v1.360.
-     * We can change this to just 'number' once all Cloud instances are up to date.
-     *
-     * Note that even though this has always been typed as a 'number' we've been
-     * attaching string timestamps to this payload because of missing types further
-     * up the pipe.
-     *
-     * TODO: Change to type 'number'.
+     * ISO format date string
      */
-    timestamp: number | string
+    timestamp: string
     actionUid: string
     entity: {
       moduleName: string

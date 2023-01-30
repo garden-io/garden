@@ -444,7 +444,7 @@ async function run({
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
   })
 
   const res = await exec(command.join(" "), [], {
