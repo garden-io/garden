@@ -47,10 +47,10 @@ interface TargetSpec {
 }
 
 const targets: { [name: string]: TargetSpec } = {
-  "macos-amd64": { pkgType: "node16-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
-  "linux-amd64": { pkgType: "node16-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
-  "windows-amd64": { pkgType: "node16-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
-  "alpine-amd64": { pkgType: "node16-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
+  "macos-amd64": { pkgType: "node18-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
+  "linux-amd64": { pkgType: "node18-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
+  "windows-amd64": { pkgType: "node18-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
+  "alpine-amd64": { pkgType: "node18-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
 }
 
 /**

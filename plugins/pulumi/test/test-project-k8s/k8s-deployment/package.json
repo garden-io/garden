@@ -1,7 +1,7 @@
 {
   "name": "pulumi-k8s-deployment",
   "devDependencies": {
-    "@types/node": "^16"
+    "@types/node": "^18"
   },
   "dependencies": {
     "@pulumi/pulumi": "^3.0.0",

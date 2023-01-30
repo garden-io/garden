@@ -1,11 +1,11 @@
 {
-    "name": "pulumi-k8s",
-    "devDependencies": {
-        "@types/node": "^16"
-    },
-    "dependencies": {
-        "@pulumi/pulumi": "^3.0.0",
-        "@pulumi/kubernetes": "^3.0.0",
-        "@pulumi/kubernetesx": "^0.1.5"
-    }
+  "name": "pulumi-k8s",
+  "devDependencies": {
+    "@types/node": "^18"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.0.0",
+    "@pulumi/kubernetes": "^3.0.0",
+    "@pulumi/kubernetesx": "^0.1.5"
+  }
 }
