@@ -32,7 +32,7 @@ import { LinkedSource } from "../../../src/config-store"
 import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
 import { createGardenPlugin, PluginDependency, ProviderActionName } from "../../../src/plugin/plugin"
-import { ConfigureProviderParams } from "../../../src/plugin/handlers/provider/configureProvider"
+import { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import {
   ModuleConfig,

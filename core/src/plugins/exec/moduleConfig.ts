@@ -20,7 +20,7 @@ import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "..
 import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
 import { dedent } from "../../util/string"
 import { artifactsSchema, ExecDevModeSpec } from "./config"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { omit } from "lodash"
 

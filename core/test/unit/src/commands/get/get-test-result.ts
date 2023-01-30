@@ -13,7 +13,7 @@ import { LogEntry } from "../../../../../src/logger/log-entry"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { join } from "path"
 import { writeFile } from "fs-extra"
-import { GetTestResult } from "../../../../../src/plugin/handlers/test/get-result"
+import { GetTestResult } from "../../../../../src/plugin/handlers/Test/get-result"
 
 const now = new Date()
 

@@ -15,7 +15,7 @@ import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { executeAction } from "../actions/helpers"
 import { TestAction } from "../actions/test"
-import { GetTestResult } from "../plugin/handlers/test/get-result"
+import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { TestConfig } from "../config/test"
 import { moduleTestNameToActionName } from "../types/module"
 

@@ -13,7 +13,7 @@ import chalk from "chalk"
 import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
-import { GetRunResult, getRunResultSchema } from "../../plugin/handlers/run/get-result"
+import { GetRunResult, getRunResultSchema } from "../../plugin/handlers/Run/get-result"
 
 const getRunResultArgs = {
   name: new StringParameter({

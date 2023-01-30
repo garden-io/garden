@@ -13,7 +13,7 @@ import { joi } from "../../../config/common"
 import { ActionTypeHandlerSpec } from "../base/base"
 import { runBaseParams } from "../../base"
 import { GetTestResult, getTestResultSchema } from "./get-result"
-import { CommonRunParams } from "../run/run"
+import { CommonRunParams } from "../Run/run"
 import { Resolved } from "../../../actions/types"
 import { actionParamsSchema } from "../../plugin"
 

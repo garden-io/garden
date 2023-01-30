@@ -16,7 +16,7 @@ import {
   TestGarden,
 } from "../../../helpers"
 import { expect } from "chai"
-import { EnvironmentStatus } from "../../../../src/plugin/handlers/provider/getEnvironmentStatus"
+import { EnvironmentStatus } from "../../../../src/plugin/handlers/Provider/getEnvironmentStatus"
 import { ModuleConfig } from "../../../../src/config/module"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"

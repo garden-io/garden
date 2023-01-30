@@ -13,7 +13,7 @@ import {
   KubernetesProvider,
   namespaceSchema,
 } from "../config"
-import { ConfigureProviderParams } from "../../../plugin/handlers/provider/configureProvider"
+import { ConfigureProviderParams } from "../../../plugin/handlers/Provider/configureProvider"
 import { joiProviderName, joi } from "../../../config/common"
 import { getKubeConfig } from "../api"
 import { configureMicrok8sAddons } from "./microk8s"

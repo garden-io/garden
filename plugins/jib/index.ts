@@ -25,12 +25,12 @@ import {
 import { joi } from "@garden-io/core/build/src/config/common"
 import { renderOutputStream } from "@garden-io/core/build/src/util/util"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
-import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/module/configure"
+import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure"
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import { cloneDeep, pick } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
 import { detectProjectType, getBuildFlags, JibBuildConfig, JibContainerModule } from "./util"
-import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/module/convert"
+import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 import { PluginEventLogContext } from "@garden-io/core/src/plugin-context"
 
 export interface JibProviderConfig extends GenericProviderConfig {}

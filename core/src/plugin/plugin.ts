@@ -12,7 +12,7 @@ import { mapValues } from "lodash"
 import { dedent } from "../util/string"
 import { pluginCommandSchema, PluginCommand } from "./command"
 import { toolSchema, PluginToolSpec } from "./tools"
-import { DashboardPage, dashboardPagesSchema } from "./handlers/provider/getDashboardPage"
+import { DashboardPage, dashboardPagesSchema } from "./handlers/Provider/getDashboardPage"
 import {
   createModuleTypeSchema,
   extendModuleTypeSchema,

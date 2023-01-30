@@ -10,27 +10,27 @@ import {
   CleanupEnvironmentParams,
   CleanupEnvironmentResult,
   cleanupEnvironment,
-} from "./handlers/provider/cleanupEnvironment"
+} from "./handlers/Provider/cleanupEnvironment"
 import {
   ConfigureProviderParams,
   ConfigureProviderResult,
   configureProvider,
-} from "./handlers/provider/configureProvider"
+} from "./handlers/Provider/configureProvider"
 import {
   EnvironmentStatus,
   GetEnvironmentStatusParams,
   getEnvironmentStatus,
-} from "./handlers/provider/getEnvironmentStatus"
+} from "./handlers/Provider/getEnvironmentStatus"
 import {
   PrepareEnvironmentParams,
   PrepareEnvironmentResult,
   prepareEnvironment,
-} from "./handlers/provider/prepareEnvironment"
+} from "./handlers/Provider/prepareEnvironment"
 import { ActionHandler, ResolvedActionHandlerDescriptions } from "./base"
 import { mapValues } from "lodash"
-import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./handlers/provider/getDebugInfo"
-import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./handlers/provider/augmentGraph"
-import { GetDashboardPageParams, GetDashboardPageResult, getDashboardPage } from "./handlers/provider/getDashboardPage"
+import { getDebugInfo, DebugInfo, GetDebugInfoParams } from "./handlers/Provider/getDebugInfo"
+import { AugmentGraphResult, AugmentGraphParams, augmentGraph } from "./handlers/Provider/augmentGraph"
+import { GetDashboardPageParams, GetDashboardPageResult, getDashboardPage } from "./handlers/Provider/getDashboardPage"
 import { baseHandlerSchema } from "./handlers/base/base"
 
 export type ProviderHandlers = {

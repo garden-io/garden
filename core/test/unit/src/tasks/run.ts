@@ -13,7 +13,7 @@ import { ProjectConfig } from "../../../../src/config/project"
 import execa from "execa"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { RunTask } from "../../../../src/tasks/run"
-import { GetRunResult } from "../../../../src/plugin/handlers/run/get-result"
+import { GetRunResult } from "../../../../src/plugin/handlers/Run/get-result"
 import { joi } from "../../../../src/config/common"
 
 describe("RunTask", () => {

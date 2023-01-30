@@ -30,7 +30,7 @@ import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "@gard
 import { joi } from "@garden-io/core/build/src/config/common"
 import { DOCS_BASE_URL } from "@garden-io/core/build/src/constants"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
-import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/module/convert"
+import { ConvertModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 
 type TerraformProviderConfig = GenericProviderConfig &
   TerraformBaseSpec & {

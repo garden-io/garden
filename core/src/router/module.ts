@@ -26,14 +26,14 @@ import {
 } from "../plugin/plugin"
 import { Omit, getNames } from "../util/util"
 import { getPluginBases, getPluginDependencies } from "../plugins"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../plugin/handlers/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../plugin/handlers/Module/configure"
 import { PluginEventBroker } from "../plugin-context"
 import { BuildDependencyConfig } from "../config/module"
 import { Profile } from "../util/profiling"
 import { ConfigGraph } from "../graph/config-graph"
-import { GetModuleOutputsParams, GetModuleOutputsResult } from "../plugin/handlers/module/get-outputs"
+import { GetModuleOutputsParams, GetModuleOutputsResult } from "../plugin/handlers/Module/get-outputs"
 import { BaseRouter, BaseRouterParams } from "./base"
-import { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/module/convert"
+import { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/Module/convert"
 
 export interface DeployManyParams {
   graph: ConfigGraph

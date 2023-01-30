@@ -22,7 +22,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { LogLevel } from "../../../../src/logger/logger"
 import { DeployLogEntry } from "../../../../src/types/service"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
-import { GetDeployLogs } from "../../../../src/plugin/handlers/deploy/get-logs"
+import { GetDeployLogs } from "../../../../src/plugin/handlers/Deploy/get-logs"
 import { BaseActionConfig } from "../../../../src/actions/types"
 
 // TODO-G2: rename test cases to match the new graph model semantics

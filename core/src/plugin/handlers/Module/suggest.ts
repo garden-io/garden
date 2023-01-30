@@ -9,7 +9,7 @@
 import { dedent } from "../../../util/string"
 import { AddModuleSpec } from "../../../config/module"
 import { joi, joiArray } from "../../../config/common"
-import { addModuleSchema } from "../provider/augmentGraph"
+import { addModuleSchema } from "../Provider/augmentGraph"
 import { LogEntry } from "../../../logger/log-entry"
 import { ActionHandlerParamsBase } from "../../plugin"
 

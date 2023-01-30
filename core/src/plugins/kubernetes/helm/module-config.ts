@@ -20,7 +20,7 @@ import { dedent, deline } from "../../../util/string"
 import { GardenService } from "../../../types/service"
 import { ContainerModule } from "../../container/moduleConfig"
 import { baseBuildSpecSchema } from "../../../config/module"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/module/configure"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/Module/configure"
 import {
   containerModuleSchema,
   kubernetesLocalModeSchema,

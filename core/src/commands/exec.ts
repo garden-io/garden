@@ -12,7 +12,7 @@ import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
 import { StringParameter, BooleanParameter, ParameterValues } from "../cli/params"
-import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/deploy/exec"
+import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/Deploy/exec"
 import { executeAction } from "../graph/actions"
 
 const execArgs = {

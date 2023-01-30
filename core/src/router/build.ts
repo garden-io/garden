@@ -10,10 +10,10 @@ import chalk from "chalk"
 
 import { renderOutputStream, uuidv4 } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
-import { BuildState } from "../plugin/handlers/build/get-status"
+import { BuildState } from "../plugin/handlers/Build/get-status"
 import { BaseRouterParams, createActionRouter } from "./base"
 import { ActionState } from "../actions/types"
-import { PublishActionResult } from "../plugin/handlers/build/publish"
+import { PublishActionResult } from "../plugin/handlers/Build/publish"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Build", baseParams, {
