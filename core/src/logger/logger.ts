@@ -19,9 +19,10 @@ import { gardenEnv } from "../constants"
 import { deepFilter, getEnumKeys, safeDumpYaml } from "../util/util"
 import { isArray, isEmpty, isPlainObject, mapValues, range } from "lodash"
 import { isPrimitive } from "../config/common"
+import { InkTerminalWriter } from "./writers/ink-terminal-writer"
 
-export type LoggerType = "quiet" | "basic" | "fancy" | "json"
-export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json"])
+export type LoggerType = "quiet" | "basic" | "fancy" | "json" | "ink"
+export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json", "ink"])
 
 export enum LogLevel {
   error = 0,
@@ -157,11 +158,13 @@ const eventLogLevel = LogLevel.debug
 export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   switch (loggerType) {
     case "basic":
-      return new BasicTerminalWriter(level)
+      return new BasicTerminalWriter({ level })
     case "fancy":
-      return new FancyTerminalWriter(level)
+      return new FancyTerminalWriter({ level })
     case "json":
-      return new JsonTerminalWriter(level)
+      return new JsonTerminalWriter({ level })
+    case "ink":
+      return new InkTerminalWriter({ level })
     case "quiet":
       return undefined
   }

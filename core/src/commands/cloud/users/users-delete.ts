@@ -24,7 +24,7 @@ type Args = typeof usersDeleteArgs
 
 export class UsersDeleteCommand extends Command<Args> {
   name = "delete"
-  help = "Delete users."
+  help = "Delete users from Garden Cloud."
   description = dedent`
     Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
     which you which you can get from the \`garden cloud users list\` command.

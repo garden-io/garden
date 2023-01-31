@@ -15,12 +15,13 @@ import { platform, release } from "os"
 import qs from "qs"
 import stringWidth from "string-width"
 import { maxBy, zip } from "lodash"
+import { Logger } from "../logger/logger"
 
 import { ParameterValues, Parameter, Parameters } from "./params"
-import { InternalError, ParameterError } from "../exceptions"
+import { GardenBaseError, InternalError, ParameterError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
-import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv } from "../constants"
+import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore } from "../config-store/global"
 import { got } from "../util/http"
@@ -30,6 +31,8 @@ import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
 import { validateGitInstall } from "../vcs/vcs"
+import { renderError } from "../logger/renderers"
+import { FileWriter } from "../logger/writers/file-writer"
 
 let _cliStyles: any
 
@@ -108,7 +111,13 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
   }
 }
 
-export function pickCommand(commands: (Command | CommandGroup)[], args: string[]) {
+export interface PickCommandResult {
+  command: Command<{}, {}, any> | CommandGroup | undefined
+  rest: string[]
+  matchedPath: undefined
+}
+
+export function pickCommand(commands: (Command | CommandGroup)[], args: string[]): PickCommandResult {
   // Sorting by reverse path length to make sure we pick the most specific command
   let matchedPath: string[] | undefined = undefined
 
@@ -134,10 +143,12 @@ export function prepareMinimistOpts({
   options,
   cli,
   skipDefault = false,
+  skipGlobalDefault = false,
 }: {
   options: { [key: string]: Parameter<any> }
   cli: boolean
   skipDefault?: boolean
+  skipGlobalDefault?: boolean
 }) {
   // Tell minimist which flags are to be treated explicitly as booleans and strings
   const booleanKeys = Object.keys(pickBy(options, (spec) => spec.type === "boolean"))
@@ -148,13 +159,15 @@ export function prepareMinimistOpts({
   const defaultValues = {}
 
   for (const [name, spec] of Object.entries(options)) {
-    if (!skipDefault) {
+    const _skipDefault = skipDefault || (globalOptions[name] && skipGlobalDefault)
+
+    if (!_skipDefault) {
       defaultValues[name] = spec.getDefaultValue(cli)
     }
 
     if (spec.alias) {
       aliases[name] = spec.alias
-      if (!skipDefault) {
+      if (!_skipDefault) {
         defaultValues[spec.alias] = defaultValues[name]
       }
     }
@@ -176,7 +189,13 @@ export function prepareMinimistOpts({
  * @param cli         If true, prefer `param.cliDefault` to `param.defaultValue`
  * @param skipDefault Defaults to `false`. If `true`, don't populate default values.
  */
-export function parseCliArgs(params: { stringArgs: string[]; command?: Command; cli: boolean; skipDefault?: boolean }) {
+export function parseCliArgs(params: {
+  stringArgs: string[]
+  command?: Command
+  cli: boolean
+  skipDefault?: boolean
+  skipGlobalDefault?: boolean
+}) {
   const opts = prepareMinimistOpts({
     options: { ...globalOptions, ...(params.command?.options || {}) },
     ...params,
@@ -199,17 +218,23 @@ export function parseCliArgs(params: { stringArgs: string[]; command?: Command; 
  * @param cli         Set to false if `cliOnly` options should be ignored
  */
 export function processCliArgs<A extends Parameters, O extends Parameters>({
+  log,
   rawArgs,
   parsedArgs,
   command,
   matchedPath,
   cli,
+  inheritedOpts,
+  warnOnGlobalOpts,
 }: {
+  log?: LogEntry
   rawArgs: string[]
   parsedArgs: minimist.ParsedArgs
   command: Command<A, O>
   matchedPath?: string[]
   cli: boolean
+  inheritedOpts?: Partial<ParameterValues<GlobalOptions>>
+  warnOnGlobalOpts?: boolean
 }) {
   const parsed = parseCliArgs({ stringArgs: rawArgs, cli, skipDefault: true })
   const commandName = matchedPath || command.getPath()
@@ -331,11 +356,32 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
   // For example, we don't want `${command.params contains 'dev-mode'}` to be `true` when running `garden deploy`
   // unless the `--dev` flag was actually passed (since the user would expect the option value to be an array if
   // present).
-  const cleanedProcessedOpts = pickBy(processedOpts, (value) => !(value === undefined || value === null))
+  let opts = <ParameterValues<GlobalOptions> & ParameterValues<O>>(
+    pickBy(processedOpts, (value) => !(value === undefined || value === null))
+  )
+
+  if (!command.isCustom) {
+    if (inheritedOpts) {
+      opts = { ...inheritedOpts, ...opts }
+    }
+
+    if (warnOnGlobalOpts && log) {
+      const usedGlobalOptions = Object.entries(parsedArgs)
+        .filter(([name, value]) => globalOptions[name] && !!value)
+        .map(([name, _]) => `--${name}`)
+
+      if (usedGlobalOptions.length > 0) {
+        log.warn({
+          symbol: "warning",
+          msg: chalk.yellow(`Command includes global options that will be ignored: ${usedGlobalOptions.join(", ")}`),
+        })
+      }
+    }
+  }
 
   return {
     args: <BuiltinArgs & ParameterValues<A>>processedArgs,
-    opts: <ParameterValues<GlobalOptions> & ParameterValues<O>>cleanedProcessedOpts,
+    opts,
   }
 }
 
@@ -419,4 +465,25 @@ function renderParameters(params: Parameters, formatName: (name: string, param: 
     ...tablePresets["no-borders"],
     colWidths: [nameColWidth, textColWidth],
   })
+}
+
+export function renderCommandErrors(logger: Logger, errors: Error[], logEntry?: LogEntry) {
+  const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
+
+  const log = logEntry || logger
+
+  for (const error of gardenErrors) {
+    const entry = log.error({
+      msg: error.message,
+      error,
+    })
+    // Output error details to console when log level is silly
+    log.silly({
+      msg: renderError(entry),
+    })
+  }
+
+  if (logger.getWriters().find((w) => w instanceof FileWriter)) {
+    log.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
+  }
 }

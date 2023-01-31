@@ -49,7 +49,7 @@ export class MigrateCommand extends Command<Args, Opts> {
   noProject = true
   arguments = migrateArgs
   options = migrateOpts
-  help = "Migrate `garden.yml` configuration files to version 0.12"
+  help = "Migrate `garden.yml` configuration files from older versions."
 
   description = dedent`
     Scans the project for \`garden.yml\` configuration files and updates those that are not compatible with version 0.12.

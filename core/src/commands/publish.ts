@@ -27,6 +27,9 @@ export const publishArgs = {
     help:
       "The name(s) of the builds (or modules) to publish (skip to publish every build). " +
       "Use comma as a separator to specify multiple names.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Build)
+    },
   }),
 }
 

@@ -31,15 +31,18 @@ import { ExecaError } from "execa"
 import { formatGardenErrorWithDetail, LogLevel } from "../logger/logger"
 import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
-import { globalOptions, StringParameter } from "../cli/params"
-import { getBuiltinCommands } from "./commands"
-import { getCustomCommands } from "./custom"
+import { GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
 import { GardenCli } from "../cli/cli"
+import { getCustomCommands } from "./custom"
+import { getBuiltinCommands } from "./commands"
 
 const runWorkflowArgs = {
   workflow: new StringParameter({
     help: "The name of the workflow to be run.",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.workflowConfigs)
+    },
   }),
 }
 
@@ -226,7 +229,7 @@ export interface RunStepParams {
   headerLog: LogEntry
   bodyLog: LogEntry
   footerLog: LogEntry
-  inheritedOpts: any
+  inheritedOpts: ParameterValues<GlobalOptions>
   step: WorkflowStepSpec
   stepIndex: number
   stepCount: number
@@ -313,64 +316,40 @@ function printResult({
   )
 }
 
-export async function runStepCommand({
-  cli,
-  garden,
-  bodyLog,
-  footerLog,
-  headerLog,
-  inheritedOpts,
-  step,
-}: RunStepCommandParams): Promise<CommandResult<any>> {
+export async function runStepCommand(params: RunStepCommandParams): Promise<CommandResult<any>> {
+  const { cli, garden, bodyLog, footerLog, headerLog, inheritedOpts, step } = params
   let rawArgs = step.command!
 
-  const builtinCommands = getBuiltinCommands()
-  let { command, rest, matchedPath } = pickCommand(builtinCommands, step.command!)
+  let { command, rest, matchedPath } = pickCommand(getBuiltinCommands(), rawArgs)
 
-  let args: CommandParams["args"] = {}
-  let opts = inheritedOpts
-
-  if (command) {
-    // Built-in command found
-    const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false })
-    const processedArgs = processCliArgs({ rawArgs, parsedArgs, command, matchedPath, cli: false })
-    args = processedArgs.args
-    opts = { ...inheritedOpts, ...processedArgs.opts }
-
-    const usedGlobalOptions = Object.entries(parsedArgs)
-      .filter(([name, value]) => globalOptions[name] && !!value)
-      .map(([name, _]) => `--${name}`)
-
-    if (usedGlobalOptions.length > 0) {
-      bodyLog.warn({
-        symbol: "warning",
-        msg: chalk.yellow(`Step command includes global options that will be ignored: ${usedGlobalOptions.join(", ")}`),
-      })
-    }
-  } else {
+  if (!command) {
     // Check for custom command
-    const customCommands = await getCustomCommands(builtinCommands, garden.projectRoot)
-    const picked = pickCommand(customCommands, step.command!)
+    const customCommands = await getCustomCommands(garden.projectRoot)
+    const picked = pickCommand(customCommands, rawArgs)
     command = picked.command
     rest = picked.rest
     matchedPath = picked.matchedPath
-
-    const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false })
-
-    if (command) {
-      const processedArgs = processCliArgs({ rawArgs, parsedArgs, command, matchedPath, cli: false })
-      args = processedArgs.args
-      opts = processedArgs.opts
-    }
   }
 
   if (!command) {
-    throw new ConfigurationError(`Could not find Garden command '${step.command!.join(" ")}`, {
+    throw new ConfigurationError(`Could not find Garden command '${rawArgs.join(" ")}`, {
       step,
     })
   }
 
-  const params = {
+  const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
+  const { args, opts } = processCliArgs({
+    log: bodyLog,
+    rawArgs,
+    parsedArgs,
+    command,
+    matchedPath,
+    cli: false,
+    inheritedOpts,
+    warnOnGlobalOpts: true,
+  })
+
+  const commandParams = {
     cli,
     garden,
     footerLog,
@@ -380,7 +359,7 @@ export async function runStepCommand({
     opts,
   }
 
-  const persistent = command.isPersistent(params)
+  const persistent = command.isPersistent(commandParams)
 
   if (persistent) {
     throw new ConfigurationError(
@@ -391,7 +370,7 @@ export async function runStepCommand({
     )
   }
 
-  return await command.action(params)
+  return await command.action(commandParams)
 }
 
 export async function runStepScript({ garden, bodyLog, step }: RunStepParams): Promise<CommandResult<any>> {

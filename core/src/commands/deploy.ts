@@ -32,6 +32,9 @@ export const deployArgs = {
   names: new StringsParameter({
     help: deline`The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything).
       Use comma as a separator to specify multiple names.`,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
 }
 
@@ -45,6 +48,9 @@ export const deployOpts = {
       with dev mode enabled.
     `,
     alias: "dev",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
   "local-mode": new StringsParameter({
     help: deline`[EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled.
@@ -56,9 +62,15 @@ export const deployOpts = {
     i.e. if the same deploys are passed to both \`--dev\` and \`--local\` options.
     `,
     alias: "local",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
   "skip": new StringsParameter({
     help: "The name(s) of deploys you'd like to skip.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
   "skip-dependencies": new BooleanParameter({
     help: deline`
@@ -129,13 +141,9 @@ export class DeployCommand extends Command<Args, Opts> {
     this.garden?.events.emit("_exit", {})
   }
 
-  async action({
-    garden,
-    log,
-    footerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+    const { garden, log, footerLog, args, opts } = params
+
     this.garden = garden
 
     if (opts.watch) {
@@ -205,6 +213,7 @@ export class DeployCommand extends Command<Args, Opts> {
       log,
       actions,
       initialTasks,
+      persistent: this.isPersistent(params),
     })
 
     return handleProcessResults(footerLog, "deploy", results)

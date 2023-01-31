@@ -21,6 +21,7 @@ import { resolve } from "path"
 import { isArray } from "lodash"
 import { gardenEnv } from "../constants"
 import { envSupportsEmoji } from "../logger/util"
+import { ConfigDump } from "../garden"
 
 export const OUTPUT_RENDERERS = {
   json: (data: DeepPrimitiveMap) => {
@@ -41,6 +42,12 @@ function splitDuration(duration: string) {
     .filter(Boolean)
 }
 
+interface GetSuggestionsParams {
+  configDump: ConfigDump
+}
+
+type GetSuggestionsCallback = (params: GetSuggestionsParams) => string[]
+
 export interface ParameterConstructor<T> {
   help: string
   required?: boolean
@@ -53,6 +60,8 @@ export interface ParameterConstructor<T> {
   cliOnly?: boolean
   hidden?: boolean
   spread?: boolean
+  suggestionPriority?: number
+  getSuggestions?: GetSuggestionsCallback
 }
 
 export abstract class Parameter<T> {
@@ -62,14 +71,17 @@ export abstract class Parameter<T> {
   _valueType: T
 
   defaultValue: T | undefined
-  help: string
-  required: boolean
-  alias?: string
-  hints?: string
-  valueName: string
-  overrides: string[]
-  hidden: boolean
-  spread: boolean
+  readonly help: string
+  readonly required: boolean
+  readonly alias?: string
+  readonly hints?: string
+  readonly valueName: string
+  readonly overrides: string[]
+  readonly hidden: boolean
+  readonly spread: boolean
+
+  private readonly _getSuggestions?: GetSuggestionsCallback
+  public readonly suggestionPriority: number
 
   readonly cliDefault: T | undefined // Optionally specify a separate default for CLI invocation
   readonly cliOnly: boolean // If true, only expose in the CLI, and not in the HTTP/WS server.
@@ -86,6 +98,8 @@ export abstract class Parameter<T> {
     cliOnly,
     hidden,
     spread,
+    suggestionPriority,
+    getSuggestions,
   }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
@@ -98,6 +112,8 @@ export abstract class Parameter<T> {
     this.cliOnly = cliOnly || false
     this.hidden = hidden || false
     this.spread = spread || false
+    this.suggestionPriority = suggestionPriority || 1
+    this._getSuggestions = getSuggestions
   }
 
   // TODO: merge this and the parseString method?
@@ -115,8 +131,12 @@ export abstract class Parameter<T> {
     return cli && this.cliDefault !== undefined ? this.cliDefault : this.defaultValue
   }
 
-  async autoComplete(): Promise<string[]> {
-    return []
+  getSuggestions(params: GetSuggestionsParams): string[] {
+    if (this._getSuggestions) {
+      return this._getSuggestions(params)
+    } else {
+      return []
+    }
   }
 }
 
@@ -256,6 +276,8 @@ export class ChoicesParameter extends Parameter<string> {
   }
 
   coerce(input: string) {
+    input = String(input)
+
     if (this.choices.includes(input)) {
       return input
     } else {
@@ -269,7 +291,7 @@ export class ChoicesParameter extends Parameter<string> {
     }
   }
 
-  async autoComplete() {
+  getSuggestions() {
     return this.choices
   }
 }
@@ -320,6 +342,9 @@ export class EnvironmentOption extends StringParameter {
       help,
       required: false,
       alias: "e",
+      getSuggestions: ({ configDump }) => {
+        return configDump.allEnvironmentNames
+      },
     })
   }
 

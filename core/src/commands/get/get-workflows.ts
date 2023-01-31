@@ -14,6 +14,9 @@ import { prettyPrintWorkflow } from "../helpers"
 const getWorkflowsArgs = {
   workflows: new StringsParameter({
     help: "Specify workflow(s) to list. Use comma as a separator to specify multiple workflows.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.workflowConfigs)
+    },
   }),
 }
 

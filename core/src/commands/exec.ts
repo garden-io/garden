@@ -16,9 +16,12 @@ import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers
 import { executeAction } from "../graph/actions"
 
 const execArgs = {
-  service: new StringParameter({
-    help: "The service to exec the command in.",
+  deploy: new StringParameter({
+    help: "The Deploy to exec the command in.",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
   // TODO: make this variadic
   command: new StringParameter({
@@ -76,7 +79,7 @@ export class ExecCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<ExecInDeployResult>> {
-    const serviceName = args.service
+    const serviceName = args.deploy
     const command = this.getCommand(args)
 
     const graph = await garden.getConfigGraph({ log, emit: false })

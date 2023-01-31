@@ -8,10 +8,12 @@
     "test/integ/*.ts",
     "test/integ/src/**/*.ts",
     "test/unit/*.ts",
-    "test/unit/src/**/*.ts"
+    "test/unit/src/**/*.ts",
+    "src/commands/dev.tsx"
   ],
   "compilerOptions": {
     "composite": true,
-    "outDir": "build"
+    "outDir": "build",
+    "jsx": "react"
   }
 }

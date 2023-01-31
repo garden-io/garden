@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { max, fromPairs, zip } from "lodash"
-import { findByName } from "../util/util"
+import { findByName, getNames } from "../util/util"
 import { dedent, renderTable, tablePresets } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
@@ -25,6 +25,9 @@ const pluginArgs = {
   plugin: new StringOption({
     help: "The name of the plugin, whose command you wish to run.",
     required: false,
+    getSuggestions: ({ configDump }) => {
+      return getNames(configDump.providers)
+    },
   }),
   command: new StringOption({
     help: "The name of the command to run.",

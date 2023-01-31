@@ -41,7 +41,7 @@ type Opts = typeof groupsListOpts
 
 export class GroupsListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "List groups."
+  help = "List groups defined in Garden Cloud."
   description = dedent`
     List all groups from Garden Cloud. This is useful for getting the group IDs when creating
     users via the \`garden cloud users create\` command.

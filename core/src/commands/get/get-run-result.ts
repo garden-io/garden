@@ -19,6 +19,9 @@ const getRunResultArgs = {
   name: new StringParameter({
     help: "The name of the run (or task, if using modules)",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Run)
+    },
   }),
 }
 
@@ -32,7 +35,7 @@ export type GetRunResultCommandResult = Result | null
 
 export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandResult> {
   name = "run-result"
-  help = "Outputs the latest execution result of a provided run (or task, if using modules)."
+  help = "Outputs the latest result of a run (or task, if using modules)."
   aliases = ["task-result"]
 
   streamEvents = true

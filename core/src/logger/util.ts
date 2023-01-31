@@ -11,9 +11,9 @@ import chalk, { Chalk } from "chalk"
 import { LogLevel } from "./logger"
 import { Logger } from "./logger"
 import { LogEntry, LogEntryParams, EmojiName, LogEntryMessage } from "./log-entry"
-import { padEnd } from "lodash"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
+import stringWidth from "string-width"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {
@@ -242,8 +242,43 @@ export function printWarningMessage(log: LogEntry, text: string) {
   return log.info({ emoji: "warning", msg: chalk.bold.yellow(text) })
 }
 
-export function renderDivider() {
-  return padEnd("", 80, "━")
+interface DividerOpts {
+  width?: number
+  char?: string
+  titlePadding?: number
+  color?: Chalk
+  title?: string
+  padding?: number
+}
+
+const getSideDividerWidth = (width: number, titleWidth: number) => (width - titleWidth) / 2
+const getNumberOfCharsPerWidth = (char: string, width: number) => width / stringWidth(char)
+
+// Adapted from https://github.com/JureSotosek/ink-divider
+export function renderDivider({
+  width = 80,
+  char = "━",
+  titlePadding = 1,
+  color,
+  title,
+  padding = 0,
+}: DividerOpts = {}) {
+  const pad = " "
+
+  if (!color) {
+    color = chalk.white
+  }
+
+  const titleString = title ? `${pad.repeat(titlePadding) + title + pad.repeat(titlePadding)}` : ""
+  const titleWidth = stringWidth(titleString)
+
+  const dividerWidth = getSideDividerWidth(width, titleWidth)
+  const numberOfCharsPerSide = getNumberOfCharsPerWidth(char, dividerWidth)
+  const dividerSideString = color(char.repeat(numberOfCharsPerSide))
+
+  const paddingString = pad.repeat(padding)
+
+  return paddingString + dividerSideString + titleString + dividerSideString + paddingString
 }
 
 export function renderMessageWithDivider(prefix: string, msg: string, isError: boolean, color?: Chalk) {

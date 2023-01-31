@@ -14,9 +14,9 @@ import chalk from "chalk"
 
 import { formatForTerminal, renderMsg, getLeftOffset } from "../renderers"
 import { LogEntry } from "../log-entry"
-import { Logger, LogLevel } from "../logger"
+import { Logger } from "../logger"
 import { getChildEntries, getTerminalWidth, interceptStream } from "../util"
-import { Writer } from "./base"
+import { BaseWriterParams, Writer } from "./base"
 import { gardenEnv } from "../../constants"
 
 const INTERVAL_MS = 60
@@ -51,8 +51,8 @@ export class FancyTerminalWriter extends Writer {
   private lastInterceptAt: number | null
   private updatePending: boolean
 
-  constructor(level: LogLevel = LogLevel.info) {
-    super(level)
+  constructor(params: BaseWriterParams = {}) {
+    super(params)
     this.intervalID = null
     this.spinners = {} // Each entry has it's own spinner
     this.prevOutput = []

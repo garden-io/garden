@@ -108,6 +108,9 @@ const deleteDeployArgs = {
   names: new StringsParameter({
     help:
       "The name(s) of the deploy(s) (or services if using modules) to delete. Use comma as a separator to specify multiple names.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
 }
 type DeleteDeployArgs = typeof deleteDeployArgs

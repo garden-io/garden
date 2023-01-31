@@ -31,7 +31,7 @@ type Opts = typeof usersListOpts
 
 export class UsersListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "List users."
+  help = "List users defined in Garden Cloud."
   description = dedent`
     List all users from Garden Cloud. Optionally filter on group names or user names.
 

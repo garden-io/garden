@@ -17,7 +17,7 @@ export interface GraphOutput {
 
 export class GetGraphCommand extends Command {
   name = "graph"
-  help = "Outputs the dependency relationships specified in this project's garden.yml files."
+  help = "Outputs the dependency relationships across the project."
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Get graph", "chart_with_upwards_trend")

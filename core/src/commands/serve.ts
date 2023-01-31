@@ -6,21 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
 import { PrepareParams } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
 import { startServer } from "../server/server"
-import { IntegerParameter } from "../cli/params"
+import { Parameters, IntegerParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
-import chalk = require("chalk")
 import { Garden } from "../garden"
-import { processActions } from "../process"
+import { dedent } from "../util/string"
+import chalk from "chalk"
 
 export const defaultServerPort = 9700
 
-const serveArgs = {}
+export const serveArgs: Parameters = {}
 
-const serveOpts = {
+export const serveOpts = {
   port: new IntegerParameter({
     help: `The port number for the server to listen on.`,
     defaultValue: defaultServerPort,
@@ -30,7 +29,11 @@ const serveOpts = {
 export type ServeCommandArgs = typeof serveArgs
 export type ServeCommandOpts = typeof serveOpts
 
-export class ServeCommand extends Command<ServeCommandArgs, ServeCommandOpts> {
+export class ServeCommand<
+  A extends ServeCommandArgs = ServeCommandArgs,
+  O extends ServeCommandOpts = ServeCommandOpts,
+  R = any
+> extends Command<A, O, R> {
   name = "serve"
   aliases = ["dashboard"]
   help = "Starts the Garden Core API server for the current project and environment."
@@ -38,16 +41,16 @@ export class ServeCommand extends Command<ServeCommandArgs, ServeCommandOpts> {
   cliOnly = true
   streamEvents = true
   hidden = true
-  private garden?: Garden
+  protected garden?: Garden
 
   description = dedent`
-    Starts the Garden Core API servier for the current project, and your selected environment+namespace.
+    Starts the Garden Core API server for the current project, and your selected environment+namespace.
 
     Note: You must currently run one server per environment and namespace.
   `
 
-  arguments = serveArgs
-  options = serveOpts
+  arguments = <A>serveArgs
+  options = <O>serveOpts
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Server", "bar_chart")
@@ -55,6 +58,7 @@ export class ServeCommand extends Command<ServeCommandArgs, ServeCommandOpts> {
 
   terminate() {
     this.garden?.events.emit("_exit", {})
+    this.server?.close().catch(() => {})
   }
 
   isPersistent() {
@@ -80,29 +84,16 @@ export class ServeCommand extends Command<ServeCommandArgs, ServeCommandOpts> {
     })
   }
 
-  async action({
-    garden,
-    log,
-    footerLog,
-  }: CommandParams<ServeCommandArgs, ServeCommandOpts>): Promise<CommandResult<{}>> {
-    log.info(
-      chalk.gray(
-        `Connected to environment ${chalk.white.bold(garden.namespace)}.${chalk.white.bold(garden.environmentName)}`
-      )
-    )
-
+  async action({ garden }: CommandParams<A, O>): Promise<CommandResult<R>> {
     this.garden = garden
-    const graph = await garden.getConfigGraph({ log, emit: true })
-    this.server!.setGarden(garden)
 
-    await processActions({
-      garden,
-      graph,
-      log,
-      actions: [],
-      initialTasks: [],
+    const server = this.server!
+    server.setGarden(garden)
+
+    return new Promise((resolve) => {
+      server.on("close", () => {
+        resolve({})
+      })
     })
-
-    return {}
   }
 }

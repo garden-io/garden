@@ -48,7 +48,7 @@ type Opts = typeof secretsCreateOpts
 
 export class SecretsCreateCommand extends Command<Args, Opts> {
   name = "create"
-  help = "Create secrets"
+  help = "Create secrets in Garden Cloud."
   description = dedent`
     Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
     them to an environment, or an environment and a user.

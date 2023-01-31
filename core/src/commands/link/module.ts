@@ -23,6 +23,9 @@ const linkModuleArguments = {
   module: new StringParameter({
     help: "Name of the module to link.",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
   path: new PathParameter({
     help: "Path to the local directory that contains the module.",
@@ -38,7 +41,7 @@ interface Output {
 
 export class LinkModuleCommand extends Command<Args> {
   name = "module"
-  help = "Link a module to a local directory."
+  help = "Link a remote module to a local directory."
   arguments = linkModuleArguments
 
   outputsSchema = () =>

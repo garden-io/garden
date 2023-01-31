@@ -35,6 +35,7 @@ import { LogOutCommand } from "./logout"
 import { ToolsCommand } from "./tools"
 import { UtilCommand } from "./util/util"
 import { SelfUpdateCommand } from "./self-update"
+import { memoize } from "lodash"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
@@ -67,6 +68,6 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new ValidateCommand(),
 ]
 
-export function getBuiltinCommands() {
+export const getBuiltinCommands = memoize(() => {
   return getCoreCommands().flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
-}
+})

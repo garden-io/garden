@@ -24,6 +24,7 @@ interface ProcessParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
+  persistent: boolean
   initialTasks: BaseTask[]
 }
 
@@ -36,7 +37,13 @@ export interface ProcessResults {
   restartRequired?: boolean
 }
 
-export async function processActions({ garden, log, actions, initialTasks }: ProcessActionsParams): Promise<ProcessResults> {
+export async function processActions({
+  garden,
+  log,
+  actions,
+  initialTasks,
+  persistent,
+}: ProcessActionsParams): Promise<ProcessResults> {
   log.silly("Starting processActions")
 
   // Let the user know if any actions are linked to a local path
@@ -55,7 +62,7 @@ export async function processActions({ garden, log, actions, initialTasks }: Pro
 
   const results = await garden.processTasks({ tasks: initialTasks, log })
 
-  if (!garden.persistent) {
+  if (!persistent) {
     return {
       graphResults: results.results,
       restartRequired: false,

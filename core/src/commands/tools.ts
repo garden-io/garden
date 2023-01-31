@@ -24,6 +24,10 @@ const toolsArgs = {
   tool: new StringOption({
     help: "The name of the tool to run.",
     required: false,
+    getSuggestions: (_) => {
+      // TODO
+      return []
+    },
   }),
 }
 
