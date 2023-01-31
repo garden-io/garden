@@ -250,6 +250,53 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
           targetPath: "terraform.exe",
         },
       },
+    ]
+  },
+  "1.3.7": {
+    name: "terraform-1-3-7",
+    description: "The terraform CLI, v1.3.7",
+    type: "binary",
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_darwin_amd64.zip",
+        sha256: "b00465acc7bdef57ba468b84b9162786e472dc97ad036a9e3526dde510563e2d",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_darwin_arm64.zip",
+        sha256: "6cda396999c9a27cb90c4902913c10ac0afe1bfceb957ed50a4298c5872979cf",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_linux_amd64.zip",
+        sha256: "b8cf184dee15dfa89713fe56085313ab23db22e17284a9a27c0999c67ce3021e",
+        extract: {
+          format: "zip",
+          targetPath: "terraform",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: "https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_windows_amd64.zip",
+        sha256: "b0970f5febf9ab7c76babebacf9bbe9aa781743c5004e8f5ba142e51cf5e259a",
+        extract: {
+          format: "zip",
+          targetPath: "terraform.exe",
+        },
+      },
     ],
   },
 }
