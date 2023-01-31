@@ -10,7 +10,12 @@ import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
 import { LogEntry } from "../../../logger/log-entry"
-import { KuberetesResourceConfig, KubernetesPluginContext, KubernetesProvider, KubernetesResourceSpec } from "../config"
+import {
+  KubernetesResourceConfig,
+  KubernetesPluginContext,
+  KubernetesProvider,
+  KubernetesResourceSpec,
+} from "../config"
 import { getSystemNamespace } from "../namespace"
 import { got, GotTextOptions } from "../../../util/http"
 import {
@@ -114,7 +119,7 @@ export function getSecurityContext(
 }
 
 export function stringifyResources(resources: KubernetesResourceSpec) {
-  const stringify = (r: KuberetesResourceConfig) => ({
+  const stringify = (r: KubernetesResourceConfig) => ({
     cpu: millicpuToString(r.cpu),
     memory: megabytesToString(r.memory),
     ...(r.ephemeralStorage ? { "ephemeral-storage": megabytesToString(r.ephemeralStorage) } : {}),
