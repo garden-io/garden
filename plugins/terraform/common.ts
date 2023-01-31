@@ -64,7 +64,8 @@ export async function tfValidate(params: TerraformParams) {
     if (
       reasons.includes("Could not satisfy plugin requirements") ||
       reasons.includes("Module not installed") ||
-      reasons.includes("Could not load plugin")
+      reasons.includes("Could not load plugin") ||
+      reasons.includes("Missing required provider")
     ) {
       // We need to run `terraform init` and retry validation
       log.debug("Initializing Terraform")
