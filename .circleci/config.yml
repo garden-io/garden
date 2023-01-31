@@ -827,7 +827,7 @@ jobs:
       - configure_remote_cluster
       - run:
           name: Deploy demo-project
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-macos dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic --env remote
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-macos dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote
       - cleanup_remote_cluster
 
   test-windows:
@@ -860,7 +860,7 @@ jobs:
           name: Deploy demo-project
           command: |
             $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
-            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --env remote --force-build
+            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build
       - run:
           name: Cleanup
           command: (kubectl delete namespace --wait=false demo-project-$env:CIRCLE_BUILD_NUM-win) -or $true

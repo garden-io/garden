@@ -303,6 +303,9 @@ export class Garden {
         : params.opts.legacyBuildSync
 
     const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
+    if (legacyBuildSync) {
+      this.log.silly(`Using rsync build staging mode`)
+    }
     this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
 
     // make sure we're on a supported platform
