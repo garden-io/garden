@@ -333,7 +333,8 @@ export const gardenPlugin = () =>
 
               include: [module.spec.dockerfilePath],
 
-              timeout: 10,
+              // TODO-G2 schema validation fails if the timeout is defined
+              // timeout: 10,
 
               spec: {
                 dockerfilePath: module.spec.dockerfilePath,
