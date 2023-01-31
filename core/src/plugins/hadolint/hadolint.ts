@@ -332,7 +332,6 @@ export const gardenPlugin = () =>
               ...params.baseFields,
 
               include: [module.spec.dockerfilePath],
-              configFilePath: module.configPath,
 
               timeout: 10,
 
@@ -340,6 +339,7 @@ export const gardenPlugin = () =>
                 dockerfilePath: module.spec.dockerfilePath,
               },
             }
+            action.internal.configFilePath = module.configPath
 
             return { actions: [action] }
           },
