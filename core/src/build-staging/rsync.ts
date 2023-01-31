@@ -16,23 +16,29 @@ import { validateInstall } from "../util/validateInstall"
 export const minRsyncVersion = "3.1.0"
 const versionRegex = /rsync\s+version\s+v?(\d+.\d+.\d+)/
 
-/**
- * throws if no rsync is installed or version is too old
- */
-export async function validateRsyncInstall() {
-  await validateInstall({
-    minVersion: minRsyncVersion,
-    name: "rsync",
-    versionCommand: { cmd: "rsync", args: ["--version"] },
-    versionRegex,
-  })
-}
+export class BuildStagingRsync extends BuildStaging {
+  private rsyncPath = "rsync"
 
-export class BuildDirRsync extends BuildStaging {
-  static async factory(projectRoot: string, gardenDirPath: string) {
-    await validateRsyncInstall()
+  private validated: boolean
 
-    return new BuildDirRsync(projectRoot, gardenDirPath)
+  setRsyncPath(rsyncPath: string) {
+    this.rsyncPath = rsyncPath
+  }
+
+  /**
+   * throws if no rsync is installed or version is too old
+   */
+  async validate() {
+    if (this.validated) {
+      return
+    }
+    await validateInstall({
+      minVersion: minRsyncVersion,
+      name: "rsync",
+      versionCommand: { cmd: this.rsyncPath, args: ["--version"] },
+      versionRegex,
+    })
+    this.validated = true
   }
 
   /**
@@ -41,6 +47,8 @@ export class BuildDirRsync extends BuildStaging {
    * If withDelete = true, files/folders in destinationPath that are not in sourcePath will also be deleted.
    */
   protected async sync(params: SyncParams): Promise<void> {
+    await this.validate()
+
     const { sourceRoot, targetRoot, sourceRelPath, targetRelPath, withDelete, log, files } = params
 
     const sourceShouldBeDirectory = !sourceRelPath || sourceRelPath.endsWith("/")
