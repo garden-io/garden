@@ -29,6 +29,7 @@ import Bluebird from "bluebird"
 import { ModuleTypeMap, getModuleTypeBases } from "./types/module"
 import { ActionKind, actionKinds } from "./actions/types"
 import type { ActionTypeDefinition } from "./plugin/action-types"
+import { ObjectSchema } from "@hapi/joi"
 
 export async function loadAndResolvePlugins(
   log: LogEntry,
@@ -41,7 +42,11 @@ export async function loadAndResolvePlugins(
   return resolvePlugins(log, loadedPlugins, configs)
 }
 
-export function resolvePlugins(log: LogEntry, loadedPlugins: Dictionary<GardenPlugin>, configs: GenericProviderConfig[]) {
+export function resolvePlugins(
+  log: LogEntry,
+  loadedPlugins: Dictionary<GardenPlugin>,
+  configs: GenericProviderConfig[]
+) {
   const initializedPlugins: PluginMap = {}
   const validatePlugin = (name: string) => {
     if (initializedPlugins[name]) {
@@ -73,7 +78,7 @@ export function resolvePlugins(log: LogEntry, loadedPlugins: Dictionary<GardenPl
       if (!base) {
         throw new PluginError(
           `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
-          `but that plugin has not been registered.`,
+            `but that plugin has not been registered.`,
           { loadedPlugins: Object.keys(loadedPlugins), base: plugin.base }
         )
       }
@@ -93,6 +98,13 @@ export function resolvePlugins(log: LogEntry, loadedPlugins: Dictionary<GardenPl
           but that plugin has not been registered.`,
           { loadedPlugins: Object.keys(loadedPlugins), dependency: dep }
         )
+      }
+    }
+
+    for (const kind of actionKinds) {
+      for (const spec of plugin.createActionTypes[kind]) {
+        const { runtimeOutputsSchema, staticOutputsSchema } = spec
+        validateOutputSchemas(plugin, runtimeOutputsSchema, staticOutputsSchema)
       }
     }
 
@@ -121,6 +133,27 @@ export function resolvePlugins(log: LogEntry, loadedPlugins: Dictionary<GardenPl
 
   // Resolve module type definitions
   return Object.values(resolveModuleDefinitions(resolvedPlugins, configs))
+}
+
+function validateOutputSchemas(
+  plugin: GardenPlugin,
+  runtimeOutputsSchema?: ObjectSchema,
+  staticOutputsSchema?: ObjectSchema
+) {
+  const unknownFlagIsSet = staticOutputsSchema?.$_getFlag("unknown")
+  if (unknownFlagIsSet) {
+    throw new PluginError(`Plugin '${plugin.name}' allows unknown keys in the staticOutputsSchema`, {})
+  }
+
+  const runtimeSchema = Object.keys(runtimeOutputsSchema?.describe().keys || {})
+  const staticSchema = Object.keys(staticOutputsSchema?.describe().keys || {})
+  const commonKeys = runtimeSchema.filter((value) => staticSchema.includes(value))
+  if (commonKeys.length > 0) {
+    throw new PluginError(
+      `Plugin '${plugin.name}' has overlapping keys in staticOutputsSchema and runtimeOutputsSchema`,
+      { commonKeys }
+    )
+  }
 }
 
 export async function loadPlugin(log: LogEntry, projectRoot: string, nameOrPlugin: RegisterPluginParam) {
