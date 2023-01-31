@@ -118,8 +118,8 @@ export const baseActionConfigSchema = createSchema({
     internal: joi
       .object()
       .keys({
-        basePath: joi.posixPath().required().meta({ internal: true }),
-        configFilePath: joi.posixPath().optional().meta({ internal: true }),
+        basePath: joi.string().required().meta({ internal: true }),
+        configFilePath: joi.string().optional().meta({ internal: true }),
         groupName: joi.string().optional().meta({ internal: true }),
         moduleName: joi.string().optional().meta({ internal: true }),
         resolved: joi.boolean().optional().meta({ internal: true }),
