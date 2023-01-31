@@ -4,6 +4,7 @@ environments:
   - name: local
 providers:
   - name: terraform
+    version: "${var.tf-version}"
     variables:
       my-variable: base
 variables:

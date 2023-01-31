@@ -250,7 +250,7 @@ export const terraformCliSpecs: { [version: string]: PluginToolSpec } = {
           targetPath: "terraform.exe",
         },
       },
-    ]
+    ],
   },
   "1.3.7": {
     name: "terraform-1-3-7",

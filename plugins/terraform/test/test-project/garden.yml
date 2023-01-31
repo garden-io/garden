@@ -10,7 +10,7 @@ providers:
     allowDestroy: ${environment.name != 'prod'}
     autoApply: ${environment.name != 'prod'}
     initRoot: tf
-    version: "0.13.3"
+    version: "${var.tf-version}"
     workspace: ${var.workspace}
     variables:
       my-variable: foo
