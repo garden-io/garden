@@ -11,8 +11,6 @@ import {
   portForwardsSchema,
   PortForwardSpec,
   KubernetesTargetResourceSpec,
-  KubernetesLocalModeSpec,
-  kubernetesLocalModeSchema,
   k8sDeploymentTimeoutSchema,
   namespaceNameSchema,
 } from "../config"
@@ -23,6 +21,7 @@ import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { defaultTargetSchema } from "../helm/config"
 import type { KubernetesRunActionConfig } from "./run"
 import type { KubernetesTestActionConfig } from "./test"
+import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -38,6 +37,7 @@ export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySp
   devMode?: KubernetesDeployDevModeSpec
   localMode?: KubernetesLocalModeSpec
 }
+
 export type KubernetesDeployActionConfig = DeployActionConfig<"kubernetes", KubernetesDeployActionSpec>
 export type KubernetesDeployAction = DeployAction<KubernetesDeployActionConfig>
 
