@@ -15,13 +15,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { ManyActionTypeDefinitions } from "../../../../src/plugin/action-types"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { createActionRouter } from "../../../../src/router/base"
-import {
-  projectRootA,
-  expectError,
-  makeTestGarden,
-  TestGarden,
-  getDefaultProjectConfig,
-} from "../../../helpers"
+import { projectRootA, expectError, makeTestGarden, TestGarden, getDefaultProjectConfig } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
 
 describe("BaseActionRouter", () => {
@@ -438,15 +432,11 @@ describe("BaseActionRouter", () => {
   })
 
   describe("validateActionOutputs", () => {
-    let graph: ConfigGraph
-    let log: LogEntry
     let resolvedBuildAction: ResolvedBuildAction
     let testPlugins: GardenPlugin[]
 
     before(async () => {
       const data = await getRouterTestData()
-      graph = data.graph
-      log = data.log
       testPlugins = [data.plugins.basePlugin, data.plugins.testPluginA]
       resolvedBuildAction = data.resolvedBuildAction
     })
