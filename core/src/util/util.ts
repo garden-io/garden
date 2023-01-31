@@ -207,7 +207,8 @@ export interface ExecOpts extends execa.Options {
  */
 export async function exec(cmd: string, args: string[], opts: ExecOpts = {}) {
   // Ensure buffer is always set to true so that we can read the error output
-  opts = { windowsHide: true, ...opts, buffer: true, all: true }
+  // Defaulting cwd to process.cwd() to avoid defaulting to a virtual path after packaging with pkg
+  opts = { cwd: process.cwd(), windowsHide: true, ...opts, buffer: true, all: true }
   const proc = execa(cmd, args, omit(opts, ["stdout", "stderr"]))
 
   opts.stdout && proc.stdout && proc.stdout.pipe(opts.stdout)
@@ -273,7 +274,7 @@ export interface SpawnOutput {
 export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   const {
     timeoutSec: timeout = 0,
-    cwd,
+    cwd = process.cwd(), // This is to avoid running from a virtual path after packaging in pkg
     data,
     ignoreError = false,
     env,
