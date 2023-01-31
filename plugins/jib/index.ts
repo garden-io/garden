@@ -21,7 +21,7 @@ import { getGitHubUrl } from "@garden-io/core/build/src/docs/common"
 import {
   containerBuildSpecSchema,
   containerModuleSpecSchema,
-} from "../../core/build/src/plugins/container/moduleConfig"
+} from "@garden-io/core/build/src/plugins/container/moduleConfig"
 import { joi } from "@garden-io/core/build/src/config/common"
 import { renderOutputStream } from "@garden-io/core/build/src/util/util"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
@@ -31,7 +31,7 @@ import { cloneDeep, pick } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
 import { detectProjectType, getBuildFlags, JibBuildConfig, JibContainerModule } from "./util"
 import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
-import { PluginEventLogContext } from "@garden-io/core/src/plugin-context"
+import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
 
