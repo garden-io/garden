@@ -244,7 +244,7 @@ export const gardenPlugin = () =>
             const outputStream = split2()
             outputStream.on("error", () => {})
             outputStream.on("data", (data: Buffer) => {
-              ctx.events.emit("log", { timestamp: new Date().getTime(), data, ...logEventContext })
+              ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
               buildLog += data.toString()
             })
 

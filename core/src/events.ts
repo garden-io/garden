@@ -68,8 +68,14 @@ export type LoggerEventName = keyof LoggerEvents
 export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
 
 export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
-  deployStartedAt?: Date
-  deployCompletedAt?: Date
+  /**
+   * ISO format date string
+   */
+  deployStartedAt?: string
+  /**
+   * ISO format date string
+   */
+  deployCompletedAt?: string
 }
 
 export interface CommandInfoPayload extends CommandInfo {
@@ -156,14 +162,20 @@ export interface Events extends LoggerEvents {
 
   // TaskGraph events
   taskPending: {
-    addedAt: Date
+    /**
+     * ISO format date string
+     */
+    addedAt: string
     batchId: string
     key: string
     type: string
     name: string
   }
   taskProcessing: {
-    startedAt: Date
+    /**
+     * ISO format date string
+     */
+    startedAt: string
     batchId: string
     key: string
     type: string
@@ -173,36 +185,33 @@ export interface Events extends LoggerEvents {
   taskComplete: GraphResultEventPayload
   taskError: GraphResultEventPayload
   taskCancelled: {
-    cancelledAt: Date
+    /**
+     * ISO format date string
+     */
+    cancelledAt: string
     batchId: string
     type: string
     key: string
     name: string
   }
   taskGraphProcessing: {
-    startedAt: Date
+    /**
+     * ISO format date string
+     */
+    startedAt: string
   }
   taskGraphComplete: {
-    completedAt: Date
+    /**
+     * ISO format date string
+     */
+    completedAt: string
   }
   watchingForChanges: {}
   log: {
     /**
-     * Number of milliseconds since the epoch OR a date string.
-     *
-     * We need to allow both numberic and string types for backwards compatibility
-     * with Garden Cloud.
-     *
-     * Garden Cloud supports numeric date strings for log streaming as of v1.360.
-     * We can change this to just 'number' once all Cloud instances are up to date.
-     *
-     * Note that even though this has always been typed as a 'number' we've been
-     * attaching string timestamps to this payload because of missing types further
-     * up the pipe.
-     *
-     * TODO: Change to type 'number'.
+     * ISO format date string
      */
-    timestamp: number | string
+    timestamp: string
     actionUid: string
     entity: {
       moduleName: string
@@ -239,8 +248,14 @@ export interface Events extends LoggerEvents {
     actionUid?: string
     status: {
       state: BuildState
-      startedAt?: Date
-      completedAt?: Date
+      /**
+       * ISO format date string
+       */
+      startedAt?: string
+      /**
+       * ISO format date string
+       */
+      completedAt?: string
     }
   }
   taskStatus: {

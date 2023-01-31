@@ -257,7 +257,7 @@ export class TaskGraph extends EventEmitter2 {
     if (this.index.contains(node)) {
       const task = node.task
       this.garden.events.emit("taskPending", {
-        addedAt: new Date(),
+        addedAt: new Date().toISOString(),
         batchId: node.batchId,
         key: node.key,
         name: task.getName(),
@@ -346,7 +346,7 @@ export class TaskGraph extends EventEmitter2 {
       this.log.silly(safeDumpYaml(this.index.inspect(), { noRefs: true }))
 
       this.garden.events.emit("taskGraphProcessing", {
-        startedAt: new Date(),
+        startedAt: new Date().toISOString(),
       })
     }
 
@@ -357,7 +357,7 @@ export class TaskGraph extends EventEmitter2 {
     if (this.index.length === 0 && this.pendingBatches.length === 0 && this.inProgressBatches.length === 0) {
       // done!
       this.logEntryMap.counter && this.logEntryMap.counter.setDone({ symbol: "info" })
-      this.garden.events.emit("taskGraphComplete", { completedAt: new Date() })
+      this.garden.events.emit("taskGraphComplete", { completedAt: new Date().toISOString() })
       return
     }
 
@@ -430,7 +430,7 @@ export class TaskGraph extends EventEmitter2 {
           type,
           key,
           batchId,
-          startedAt: new Date(),
+          startedAt: new Date().toISOString(),
           versionString: task.version,
         })
         result = await node.process(dependencyResults)
@@ -472,7 +472,7 @@ export class TaskGraph extends EventEmitter2 {
    * Recursively remove node's dependants, without removing node.
    */
   private cancelDependants(node: TaskNode) {
-    const cancelledAt = new Date()
+    const cancelledAt = new Date().toISOString()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
       this.garden.events.emit("taskCancelled", {

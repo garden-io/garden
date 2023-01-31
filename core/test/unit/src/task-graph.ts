@@ -130,7 +130,7 @@ describe("task-graph", () => {
     })
 
     it("should emit a taskPending event when adding a task", async () => {
-      const now = freezeTime()
+      const now = freezeTime().toISOString()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
@@ -183,7 +183,7 @@ describe("task-graph", () => {
     })
 
     it("should emit events when processing and completing a task", async () => {
-      const now = freezeTime()
+      const now = freezeTime().toISOString()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
@@ -207,7 +207,7 @@ describe("task-graph", () => {
     })
 
     it("should emit a taskError event when failing a task", async () => {
-      const now = freezeTime()
+      const now = freezeTime().toISOString()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)

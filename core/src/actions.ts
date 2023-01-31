@@ -376,7 +376,7 @@ export class ActionRouter implements TypeGuard {
     const actionUid = uuidv4()
     params.events = params.events || new PluginEventBroker()
     let result: BuildResult
-    const startedAt = new Date()
+    const startedAt = new Date().toISOString()
     const moduleName = params.module.name
     const moduleVersion = params.module.version.versionString
     params.events.on("log", ({ timestamp, data, origin, log }) => {
@@ -410,7 +410,7 @@ export class ActionRouter implements TypeGuard {
         status: {
           state,
           startedAt,
-          completedAt: new Date(),
+          completedAt: new Date().toISOString(),
         },
       })
     }
@@ -573,7 +573,7 @@ export class ActionRouter implements TypeGuard {
       })
     })
     const serviceVersion = params.service.version
-    const deployStartedAt = new Date()
+    const deployStartedAt = new Date().toISOString()
     this.garden.events.emit("serviceStatus", {
       serviceName,
       moduleName,
@@ -592,7 +592,7 @@ export class ActionRouter implements TypeGuard {
       status: {
         ...omit(result, "detail"),
         deployStartedAt,
-        deployCompletedAt: new Date(),
+        deployCompletedAt: new Date().toISOString(),
       },
     })
     this.emitNamespaceEvents(result.namespaceStatuses)

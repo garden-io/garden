@@ -194,7 +194,7 @@ export async function waitForResources({
   }
 
   const emitLog = (msg: string) =>
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
 
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log.info({
