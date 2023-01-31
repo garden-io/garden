@@ -36,6 +36,7 @@ import {
   optionsWithAliasValues,
   getCliStyles,
   checkRequirements,
+  renderCommandErrors,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import {
@@ -52,7 +53,6 @@ import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/
 import { defaultDotIgnoreFile } from "../util/fs"
 import { CoreEventStream } from "../server/core-event-stream"
 import { GardenPluginReference } from "../plugin/plugin"
-import { renderError } from "../logger/renderers"
 import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
@@ -355,7 +355,7 @@ ${renderCommands(commands)}
     // Print header log before we know the namespace to prevent content from
     // jumping.
     // TODO: Link to Cloud namespace page here.
-    const nsLog = headerLog.info("")
+    const nsLog = headerLog.placeholder()
 
     do {
       try {
@@ -689,22 +689,8 @@ ${renderCommands(commands)}
 
     let code = 0
     if (gardenErrors.length > 0) {
-      for (const error of gardenErrors) {
-        const entry = logger.error({
-          msg: error.message,
-          error,
-        })
-        // Output error details to console when log level is silly
-        logger.silly({
-          msg: renderError(entry),
-        })
-      }
-
-      if (logger.getWriters().find((w) => w instanceof FileWriter)) {
-        logger.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
-        await waitForOutputFlush()
-      }
-
+      renderCommandErrors(logger, gardenErrors)
+      await waitForOutputFlush()
       code = commandResult.exitCode || 1
     }
     if (exitOnError) {
@@ -739,7 +725,7 @@ ${renderCommands(commands)}
       return []
     }
 
-    return await getCustomCommands(Object.values(this.commands), projectRoot)
+    return await getCustomCommands(projectRoot)
   }
 }
 

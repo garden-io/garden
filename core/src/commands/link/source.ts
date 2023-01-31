@@ -24,6 +24,9 @@ const linkSourceArguments = {
   source: new StringParameter({
     help: "Name of the source to link as declared in the project config.",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return configDump.sources.map((s) => s.name)
+    },
   }),
   path: new PathParameter({
     help: "Path to the local directory that contains the source.",

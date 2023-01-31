@@ -33,6 +33,7 @@ import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
 import { clientRequestNames, ClientRouter } from "./client-router"
+import { EventEmitter } from "eventemitter3"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -84,7 +85,7 @@ export async function startServer({ log, port }: { log: LogEntry; port?: number 
   return server
 }
 
-export class GardenServer {
+export class GardenServer extends EventEmitter {
   private log: LogEntry
   private debugLog: LogEntry
   private server: Server
@@ -101,6 +102,7 @@ export class GardenServer {
   public readonly authKey: string
 
   constructor({ log, port }: { log: LogEntry; port?: number }) {
+    super()
     this.log = log
     this.debugLog = this.log.placeholder({ level: LogLevel.debug, childEntriesInheritLevel: true })
     this.garden = undefined
@@ -143,6 +145,11 @@ export class GardenServer {
         } catch {}
       } while (!this.server)
     }
+
+    // TODO: pipe every event
+    this.server.on("close", () => {
+      this.emit("close")
+    })
 
     this.log.info("")
     this.statusLog = this.log.placeholder()
@@ -319,6 +326,7 @@ export class GardenServer {
    */
   private addWebsocketEndpoint(app: websockify.App) {
     const wsRouter = new Router()
+    const commands = prepareCommands()
 
     wsRouter.get("/ws", async (ctx) => {
       // The typing for koa-websocket isn't working currently
@@ -337,7 +345,7 @@ export class GardenServer {
       const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
         const event = { type, ...(<object>payload) }
         this.log.debug(`Send event: ${JSON.stringify(event)}`)
-        websocket.send(JSON.stringify(event), (err) => {
+        websocket.send(JSON.stringify(event), (err: Error) => {
           if (err) {
             this.debugLog.debug({ error: toGardenError(err) })
           }
@@ -399,7 +407,7 @@ export class GardenServer {
       websocket.on("close", cleanup)
 
       // Respond to commands.
-      websocket.on("message", (msg) => {
+      websocket.on("message", (msg: string | Buffer) => {
         let request: any
 
         this.log.debug("Got request: " + msg)
@@ -433,7 +441,6 @@ export class GardenServer {
           }
 
           try {
-            const commands = prepareCommands()
             const { command, log, args, opts } = parseRequest(
               ctx,
               this.debugLog,

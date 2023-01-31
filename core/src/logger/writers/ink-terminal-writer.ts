@@ -9,19 +9,30 @@
 import { basicRender } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
-import { Writer } from "./base"
+import { BaseWriterParams, Writer } from "./base"
 
-export class BasicTerminalWriter extends Writer {
-  type = "basic"
+type WriteCallback = (data: string) => void
 
-  render(entry: LogEntry, logger: Logger): string | null {
-    return basicRender(entry, logger)
+export class InkTerminalWriter extends Writer {
+  type = "ink"
+
+  private writeCallback: WriteCallback
+
+  constructor(params: BaseWriterParams) {
+    super(params)
+    this.writeCallback = (data: string) => {
+      this.output.write(data)
+    }
+  }
+
+  setWriteCallback(cb: WriteCallback) {
+    this.writeCallback = cb
   }
 
   onGraphChange(entry: LogEntry, logger: Logger) {
-    const out = this.render(entry, logger)
+    const out = basicRender(entry, logger)
     if (out) {
-      this.output.write(out)
+      this.writeCallback(out)
     }
   }
 

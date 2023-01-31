@@ -17,6 +17,9 @@ import { StringsParameter, BooleanParameter } from "../../cli/params"
 const unlinkModuleArguments = {
   modules: new StringsParameter({
     help: "The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
 }
 

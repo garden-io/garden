@@ -25,6 +25,9 @@ const runArgs = {
       Use comma as a separator to specify multiple names.
       Accepts glob patterns (e.g. init* would run both 'init' and 'initialize').
     `,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Run)
+    },
   }),
 }
 
@@ -45,6 +48,9 @@ const runOpts = {
     help: deline`
       The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
     `,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
   "watch": watchParameter,
   "skip": new StringsParameter({
@@ -52,6 +58,9 @@ const runOpts = {
       The name(s) of Runs you'd like to skip. Accepts glob patterns
       (e.g. init* would skip both 'init' and 'initialize').
     `,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Run)
+    },
   }),
   "skip-dependencies": new BooleanParameter({
     help: dedent`
@@ -94,7 +103,9 @@ export class RunCommand extends Command<Args, Opts> {
     printHeader(headerLog, msg, "runner")
   }
 
-  async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>) {
+  async action(params: CommandParams<Args, Opts>) {
+    const { garden, log, footerLog, args, opts } = params
+
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
     }
@@ -230,6 +241,7 @@ export class RunCommand extends Command<Args, Opts> {
       log,
       actions,
       initialTasks,
+      persistent: this.isPersistent(params),
     })
 
     return handleProcessResults(footerLog, "test", results)

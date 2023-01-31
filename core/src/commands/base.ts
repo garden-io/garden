@@ -26,6 +26,7 @@ import { renderOptions, renderCommands, renderArguments, getCliStyles } from "..
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
+import { CommandLine } from "../cli/command-line"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -59,6 +60,7 @@ export interface PrepareParams<T extends Parameters = {}, U extends Parameters =
   headerLog: LogEntry
   footerLog: LogEntry
   log: LogEntry
+  commandLine?: CommandLine
 }
 
 export interface CommandParams<T extends Parameters = {}, U extends Parameters = {}> extends PrepareParams<T, U> {
@@ -68,7 +70,7 @@ export interface CommandParams<T extends Parameters = {}, U extends Parameters =
 
 type DataCallback = (data: string) => void
 
-export abstract class Command<T extends Parameters = {}, U extends Parameters = {}, R = any> {
+export abstract class Command<A extends Parameters = {}, O extends Parameters = {}, R = any> {
   abstract name: string
   abstract help: string
 
@@ -76,8 +78,8 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   aliases?: string[]
 
   allowUndefinedArguments: boolean = false
-  arguments: T
-  options: U
+  arguments: A
+  options: O
   _resultType: R
 
   outputsSchema?: () => Joi.ObjectSchema
@@ -89,6 +91,8 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   server: GardenServer | undefined = undefined
+  isCustom: boolean = false // Used to identify custom commands
+  isInteractive: boolean = false // Set to true for internal commands in interactive command-line commands
 
   subscribers: DataCallback[]
   terminated: boolean
@@ -181,7 +185,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     }
   }
 
-  getLoggerType(_: CommandParamsBase<T, U>): LoggerType {
+  getLoggerType(_: CommandParamsBase<A, O>): LoggerType {
     return "fancy"
   }
 
@@ -203,7 +207,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   /**
    * Called to check if the command would run persistently, with the given args/opts
    */
-  isPersistent(_: PrepareParams<T, U>) {
+  isPersistent(_: PrepareParams<A, O>) {
     return false
   }
 
@@ -211,7 +215,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
    * Called by the CLI before the command's action is run, but is not called again
    * if the command restarts. Useful for commands in watch mode.
    */
-  async prepare(_: PrepareParams<T, U>): Promise<void> {}
+  async prepare(_: PrepareParams<A, O>): Promise<void> {}
 
   /**
    * Called by e.g. the WebSocket server to terminate persistent commands.
@@ -241,13 +245,13 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
     }
   }
 
-  abstract printHeader(params: PrintHeaderParams<T, U>): void
+  printHeader(_: PrintHeaderParams<A, O>) {}
 
   // Note: Due to a current TS limitation (apparently covered by https://github.com/Microsoft/TypeScript/issues/7011),
   // subclass implementations need to explicitly set the types in the implemented function signature. So for now we
   // can't enforce the types of `args` and `opts` automatically at the abstract class level and have to specify
   // the types explicitly on the subclassed methods.
-  abstract action(params: CommandParams<T, U>): Promise<CommandResult<R>>
+  abstract action(params: CommandParams<A, O>): Promise<CommandResult<R>>
 
   /**
    * Called on all commands and checks if the command is protected.
@@ -313,6 +317,14 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
     return out + "\n"
   }
+}
+
+export abstract class InteractiveCommand<A extends Parameters = {}, O extends Parameters = {}, R = any> extends Command<
+  A,
+  O,
+  R
+> {
+  isInteractive = true
 }
 
 export abstract class CommandGroup extends Command {
@@ -415,11 +427,11 @@ export const processCommandResultSchema = () =>
  * Handles the command result and logging for commands the return results of type ProcessResults.
  * This applies to commands that can run in watch mode.
  */
-export async function handleProcessResults(
+export function handleProcessResults(
   log: LogEntry,
   taskType: string,
   results: ProcessResults
-): Promise<CommandResult<ProcessCommandResult>> {
+): CommandResult<ProcessCommandResult> {
   const graphResults = results.graphResults.getMap()
 
   const failed = pickBy(graphResults, (r) => r && r.error)

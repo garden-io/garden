@@ -1443,6 +1443,7 @@ export class Garden {
       projectRoot: this.projectRoot,
       projectId: this.projectId,
       domain: this.cloudDomain,
+      sources: this.projectSources,
     }
   }
 }
@@ -1699,6 +1700,7 @@ export interface ConfigDump {
   projectRoot: string
   projectId?: string
   domain?: string
+  sources: SourceConfig[]
 }
 
 interface GetConfigGraphParams {

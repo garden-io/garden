@@ -30,7 +30,7 @@ import { DeepPrimitiveMap } from "../../../../src/config/common"
 import { getLogLevelChoices, LogLevel, parseLogLevel } from "../../../../src/logger/logger"
 import { ExecCommand } from "../../../../src/commands/exec"
 
-const validLogLevels = ["error", "warn", "info", "verbose", "debug", "silly", "0", "1", "2", "3", "4", "5"]
+const validLogLevels = getLogLevelChoices()
 
 describe("getPackageVersion", () => {
   it("should return the version in package.json", async () => {

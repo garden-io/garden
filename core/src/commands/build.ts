@@ -29,6 +29,9 @@ import { watchParameter, watchRemovedWarning } from "./helpers"
 const buildArgs = {
   names: new StringsParameter({
     help: "Specify builds to run. Use comma as a separator to specify multiple names.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Build)
+    },
   }),
 }
 
@@ -74,13 +77,9 @@ export class BuildCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Build", "hammer")
   }
 
-  async action({
-    garden,
-    log,
-    footerLog,
-    args,
-    opts,
-  }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+  async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
+    const { garden, log, footerLog, args, opts } = params
+
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
     }
@@ -124,6 +123,7 @@ export class BuildCommand extends Command<Args, Opts> {
       graph,
       log,
       actions,
+      persistent: this.isPersistent(params),
       initialTasks,
     })
 

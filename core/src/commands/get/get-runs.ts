@@ -16,6 +16,9 @@ import { keyBy } from "lodash"
 const getRunsArgs = {
   names: new StringsParameter({
     help: "Specify run(s)/task(s) to list. Use comma as a separator to specify multiple names.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Run)
+    },
   }),
 }
 

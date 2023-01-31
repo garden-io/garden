@@ -25,6 +25,9 @@ const getModulesArgs = {
   modules: new StringsParameter({
     help:
       "Specify module(s) to list. Use comma as a separator to specify multiple modules. Skip to return all modules.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
 }
 

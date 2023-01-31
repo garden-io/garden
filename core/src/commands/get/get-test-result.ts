@@ -23,10 +23,16 @@ const getTestResultArgs = {
     help:
       "The name of the test. If this test belongs to a module, specify the module name here instead, and specify the test name from the module in the second argument.",
     required: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Test)
+    },
   }),
   moduleTestName: new StringOption({
     help: "When the test belongs to a module, specify its name here (i.e. as the second argument).",
     required: false,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.moduleConfigs)
+    },
   }),
 }
 

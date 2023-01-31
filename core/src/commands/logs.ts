@@ -27,6 +27,9 @@ const logsArgs = {
     help:
       "The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). " +
       "Use comma as a separator to specify multiple names.",
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
   }),
 }
 

@@ -56,7 +56,7 @@ export class FileWriter extends Writer {
   protected fileTransportOptions: FileTransportOptions
 
   constructor(logFilePath: string, config: FileWriterConfig) {
-    super(config.level)
+    super({ level: config.level })
 
     const { fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS, level } = config
     this.level = level
