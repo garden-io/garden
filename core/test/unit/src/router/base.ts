@@ -15,13 +15,7 @@ import { LogEntry } from "../../../../src/logger/log-entry"
 import { ManyActionTypeDefinitions } from "../../../../src/plugin/action-types"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { createActionRouter } from "../../../../src/router/base"
-import {
-  projectRootA,
-  expectError,
-  makeTestGarden,
-  TestGarden,
-  getDefaultProjectConfig,
-} from "../../../helpers"
+import { projectRootA, expectError, makeTestGarden, TestGarden, getDefaultProjectConfig } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
 
 describe("BaseActionRouter", () => {
@@ -454,9 +448,12 @@ describe("BaseActionRouter", () => {
     it("validates static outputs", async () => {
       const { router } = await createTestRouter(testPlugins)
 
-      await expectError(async () => await router.validateActionOutputs(resolvedBuildAction, "static", { foo: 123 }), {
-        contains: "Error validating static action outputs from Build 'module-a': key .foo must be a string.",
-      })
+      await expectError(
+        async () => await router.validateActionOutputs(resolvedBuildAction, "static", { staticKey: 123 }),
+        {
+          contains: ["Error validating static action outputs from Build", "key .staticKey must be a string."],
+        }
+      )
     })
 
     it("validates runtime outputs", async () => {
