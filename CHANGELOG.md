@@ -1,4 +1,38 @@
 
+<a name="0.12.49-0"></a>
+## [0.12.49-0](https://github.com/garden-io/garden/compare/0.12.48...0.12.49-0) (2023-01-31)
+
+### Bug Fixes
+
+* re-initialize providers changing environments ([#3481](https://github.com/garden-io/garden/issues/3481)) ([02903809f](https://github.com/garden-io/garden/commit/02903809f))
+* **cli:** failure in self-update command due to GitHub API change ([99fcd90c7](https://github.com/garden-io/garden/commit/99fcd90c7))
+* **events:** update log event timestamp type be string or number ([4241e4523](https://github.com/garden-io/garden/commit/4241e4523))
+* **events:** use ISO format date strings in event payload ([#3618](https://github.com/garden-io/garden/issues/3618)) ([42a76f339](https://github.com/garden-io/garden/commit/42a76f339))
+* **exec:** more informative error msg on timeout ([#3584](https://github.com/garden-io/garden/issues/3584)) ([0808531db](https://github.com/garden-io/garden/commit/0808531db))
+* **framework:** omit detail property of errors ([24f32fad3](https://github.com/garden-io/garden/commit/24f32fad3))
+* **framework:** increase consistency in verbose plugin logs ([236987d52](https://github.com/garden-io/garden/commit/236987d52))
+* **helm:** stream logs to CLI and Garden Cloud ([#3582](https://github.com/garden-io/garden/issues/3582)) ([22d46a497](https://github.com/garden-io/garden/commit/22d46a497))
+* **kubernetes:** detect that pod has been killed ([#3571](https://github.com/garden-io/garden/issues/3571)) ([9193a857d](https://github.com/garden-io/garden/commit/9193a857d))
+* **kubernetes:** make preStop command work with busybox ([#3568](https://github.com/garden-io/garden/issues/3568)) ([b062281a0](https://github.com/garden-io/garden/commit/b062281a0))
+* **scripts:** release.ts unintentionally also ran scripts ([#3626](https://github.com/garden-io/garden/issues/3626)) ([e7024fe63](https://github.com/garden-io/garden/commit/e7024fe63))
+* **terraform:** fix checksums for terraform 1.2.9 darwin builds ([#3630](https://github.com/garden-io/garden/issues/3630)) ([21ea30f42](https://github.com/garden-io/garden/commit/21ea30f42))
+* **terraform:** update condition to trigger tf init ([#3632](https://github.com/garden-io/garden/issues/3632)) ([ac5fbf4a9](https://github.com/garden-io/garden/commit/ac5fbf4a9))
+
+### Features
+
+* allow to specify commit for remote sources ([78ddb509e](https://github.com/garden-io/garden/commit/78ddb509e))
+* **commands:** add experimental watch disable flag for dev mode ([2d8bf03e5](https://github.com/garden-io/garden/commit/2d8bf03e5))
+* **kubernetes:** add sync helper commands ([e2a084af0](https://github.com/garden-io/garden/commit/e2a084af0))
+
+### Improvements
+
+* **cli:** trim binary size by approx 1/3 ([ee3554eb0](https://github.com/garden-io/garden/commit/ee3554eb0))
+* **cloud:** automate remote project creation ([#3462](https://github.com/garden-io/garden/issues/3462)) ([f8f2cf706](https://github.com/garden-io/garden/commit/f8f2cf706))
+* **dev-mode:** address PR comments ([53f824002](https://github.com/garden-io/garden/commit/53f824002))
+* **examples:** add a rust example ([#3503](https://github.com/garden-io/garden/issues/3503)) ([e04324ad6](https://github.com/garden-io/garden/commit/e04324ad6))
+* **helm:** relax path validation requirements for valueFiles ([#3445](https://github.com/garden-io/garden/issues/3445)) ([24589b62c](https://github.com/garden-io/garden/commit/24589b62c))
+* **server:** ensure serverReady event has correct type ([81350c768](https://github.com/garden-io/garden/commit/81350c768))
+
 <a name="0.12.48"></a>
 ## [0.12.48](https://github.com/garden-io/garden/compare/0.12.47...0.12.48) (2022-12-16)
 
