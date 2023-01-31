@@ -15,8 +15,6 @@ import { baseBuildSpecSchema } from "../../../config/module"
 import { dedent } from "../../../util/string"
 import {
   containerModuleSchema,
-  kubernetesLocalModeSchema,
-  KubernetesLocalModeSpec,
   kubernetesTaskSchema,
   KubernetesTaskSpec,
   kubernetesTestSchema,
@@ -28,6 +26,7 @@ import {
 import { ContainerModule } from "../../container/moduleConfig"
 import { kubernetesModuleDevModeSchema, KubernetesModuleDevModeSpec } from "../dev-mode"
 import { KubernetesTypeCommonDeploySpec, kubernetesCommonDeploySpecKeys } from "./config"
+import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
 
 // A Kubernetes Module always maps to a single Service
 export type KubernetesModuleSpec = KubernetesServiceSpec

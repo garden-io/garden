@@ -8,8 +8,6 @@
 
 import { DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
 import {
-  kubernetesLocalModeSchema,
-  KubernetesLocalModeSpec,
   KubernetesTargetResourceSpec,
   namespaceNameSchema,
   PortForwardSpec,
@@ -19,6 +17,7 @@ import {
 import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
+import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
 
 // DEPLOY //
 

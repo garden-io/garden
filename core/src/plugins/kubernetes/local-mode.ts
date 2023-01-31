@@ -6,11 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerDeployAction, ContainerLocalModeSpec } from "../container/config"
-import { gardenAnnotationKey } from "../../util/string"
+import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
+import { dedent, gardenAnnotationKey } from "../../util/string"
 import { remove, set } from "lodash"
 import { SyncableResource } from "./types"
-import { PrimitiveMap } from "../../config/common"
+import { joi, PrimitiveMap } from "../../config/common"
 import {
   k8sReverseProxyImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,
@@ -20,7 +20,7 @@ import {
 import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, prepareEnvVars } from "./util"
 import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
-import { KubernetesPluginContext } from "./config"
+import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
 import { LogEntry } from "../../logger/log-entry"
 import chalk from "chalk"
 import { rmSync } from "fs"
@@ -33,9 +33,9 @@ import { OsCommand, ProcessMessage, RecoverableProcess, RetryInfo } from "../../
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
 import { HelmDeployAction } from "./helm/config"
+import { KubernetesDeployAction } from "./kubernetes-type/config"
 import getPort = require("get-port")
 import touch = require("touch")
-import { KubernetesDeployAction } from "./kubernetes-type/config"
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode"
 
@@ -45,6 +45,36 @@ const AsyncLock = require("async-lock")
 const sshKeystoreAsyncLock = new AsyncLock()
 
 const portForwardRetryTimeoutMs = 5000
+
+export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
+  containerName?: string
+  target?: KubernetesTargetResourceSpec
+}
+
+export const kubernetesLocalModeSchema = () =>
+  containerLocalModeSchema().keys({
+    containerName: joi
+      .string()
+      .optional()
+      .description(
+        "When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the default container name to proxy traffic from."
+      ),
+    target: targetResourceSpecSchema().description(
+      "The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`."
+    ),
+  }).description(dedent`
+    Configures the local application which will send and receive network requests instead of the target resource specified by \`localMode.target\` or \`defaultTarget\`. One of those fields must be specified to enable local mode for the action.
+
+    The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+    Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
+
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
+    Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+    Health checks are disabled for services running in local mode.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
+  `)
 
 interface ConfigureLocalModeParams {
   ctx: PluginContext

@@ -23,8 +23,6 @@ import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../plugin/handlers/Module/configure"
 import {
   containerModuleSchema,
-  kubernetesLocalModeSchema,
-  KubernetesLocalModeSpec,
   kubernetesTaskSchema,
   KubernetesTaskSpec,
   kubernetesTestSchema,
@@ -41,6 +39,7 @@ import { kubernetesModuleDevModeSchema, KubernetesModuleDevModeSpec } from "../d
 import { helmChartNameSchema, helmChartRepoSchema, helmChartVersionSchema, helmCommonSchemaKeys } from "./config"
 import { pathExists } from "fs-extra"
 import { helmChartYamlFilename } from "./common"
+import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
 
 export const defaultHelmTimeout = 300
 
