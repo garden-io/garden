@@ -6,38 +6,160 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-describe("loadAndResolvePlugins", () => {
-  // TODO-G2: not implemented
-  // it("throws if action type staticOutputsSchema and runtimeOutputsSchema have overlapping keys", async () => {
-  //   throw "TODO"
-  // })
-  // it("throws if action type staticOutputsSchema allows unknown keys", async () => {
-  //   throw "TODO"
-  // })
+import { expect } from "chai"
+import { joi } from "../../../src/config/common"
+import { getLogger } from "../../../src/logger/logger"
+import { createGardenPlugin } from "../../../src/plugin/plugin"
+import { resolvePlugins } from "../../../src/plugins"
+import { expectError } from "../../helpers"
+
+describe("resolvePlugins", () => {
+  const log = getLogger().placeholder()
+
+  it("throws if action type staticOutputsSchema and runtimeOutputsSchema have overlapping keys", async () => {
+    const plugin = createGardenPlugin({ name: "test" })
+    plugin.createActionTypes.Build = [
+      {
+        name: "test",
+        docs: "foo",
+        schema: joi.object(),
+        staticOutputsSchema: joi.object().keys({
+          commonKey: joi.string(),
+        }),
+        runtimeOutputsSchema: joi.object().keys({
+          commonKey: joi.string(),
+        }),
+        handlers: {},
+      },
+    ]
+
+    await expectError(async () => resolvePlugins(log, { test: plugin }, [{ name: "test" }]), {
+      contains: "has overlapping keys in staticoutputsschema and runtimeoutputsschema",
+    })
+  })
+
+  it("throws if action type staticOutputsSchema allows unknown keys", async () => {
+    const plugin = createGardenPlugin({ name: "test" })
+    plugin.createActionTypes.Build = [
+      {
+        name: "test",
+        docs: "foo",
+        schema: joi.object(),
+        staticOutputsSchema: joi
+          .object()
+          .keys({
+            foo: joi.string(),
+          })
+          .unknown(true), // <---
+        handlers: {},
+      },
+    ]
+
+    await expectError(async () => resolvePlugins(log, { test: plugin }, [{ name: "test" }]), {
+      contains: "allows unknown keys in the staticoutputsschema",
+    })
+  })
 
   it("inherits created action type from base plugin", async () => {
-    throw "TODO"
+    const base = createGardenPlugin({ name: "base" })
+    base.createActionTypes.Build = [
+      {
+        name: "base",
+        docs: "foo",
+        schema: joi.object(),
+        handlers: {
+          build: async (asd: any) => ({
+            detail: {},
+            outputs: {
+              foo: "bar",
+            },
+            state: "ready",
+          }),
+        },
+      },
+    ]
+
+    const dependant = createGardenPlugin({ name: "dependant", base: "base" })
+
+    const result = resolvePlugins(log, { base, dependant }, [{ name: "test" }])
+    const inheritedActionType = result.find((plugin) => plugin.name === "dependant")?.createActionTypes.Build[0]
+    expect(inheritedActionType).to.exist
+    expect(inheritedActionType?.name).to.eql("base")
   })
 
   it("throws if redefining an action type created in base", async () => {
-    throw "TODO"
+    const base = createGardenPlugin({ name: "base" })
+    base.createActionTypes.Build = [
+      {
+        name: "base",
+        docs: "foo",
+        schema: joi.object(),
+        handlers: {
+          build: async (asd: any) => ({
+            detail: {},
+            outputs: {
+              foo: "bar",
+            },
+            state: "ready",
+          }),
+        },
+      },
+    ]
+
+    const dependant = createGardenPlugin({ name: "dependant", base: "base" })
+    dependant.createActionTypes.Build = [
+      {
+        name: "base",
+        docs: "foo",
+        schema: joi.object(),
+        handlers: {
+          build: async (asd: any) => ({
+            detail: {},
+            outputs: {
+              foo: "bar",
+            },
+            state: "ready",
+          }),
+        },
+      },
+    ]
+
+    await expectError(async () => resolvePlugins(log, { base, dependant }, [{ name: "test" }]), {
+      contains: "plugin 'dependant' redeclares the 'base' build type, already declared by its base.",
+    })
   })
 
   it("inherits action type extension from base plugin", async () => {
-    throw "TODO"
-  })
+    const base = createGardenPlugin({ name: "base" })
+    base.createActionTypes.Build = [
+      {
+        name: "base",
+        docs: "asd",
+        schema: joi.object(),
+        handlers: {
+          build: async (asd: any) => ({
+            detail: {},
+            outputs: {
+              foo: "bar",
+            },
+            state: "ready",
+          }),
+        },
+      },
+    ]
+    base.extendActionTypes.Build = [
+      {
+        name: "extension",
+        handlers: {
+          validate: async (prop) => ({}),
+        },
+      },
+    ]
+    const dependant = createGardenPlugin({ name: "dependant", base: "base" })
 
-  context("base is not configured", () => {
-    it("pulls created action type from base", async () => {
-      throw "TODO"
-    })
-
-    it("pulls action type extension from base if not defined in plugin", async () => {
-      throw "TODO"
-    })
-
-    it("coalesces action type extension from base if both define one", async () => {
-      throw "TODO"
-    })
+    const result = resolvePlugins(log, { base, dependant }, [{ name: "test" }])
+    const inheritedExtendActionType = result.find((plugin) => plugin.name === "dependant")?.extendActionTypes.Build[0]
+    expect(inheritedExtendActionType).to.exist
+    expect(inheritedExtendActionType?.name).to.eql("extension")
   })
 })
