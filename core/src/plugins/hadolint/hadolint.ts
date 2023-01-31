@@ -91,12 +91,12 @@ export const gardenPlugin = () =>
 
         const existingHadolintDockerfiles = actions
           // Can't really reason about templated dockerfile spec field
-          .filter((a) => a.isCompatible("hadolint") && !mayContainTemplateString(a.getConfig("spec").dockerfile))
-          .map((a) => resolve(a.basePath(), a.getConfig("spec").dockerfile))
+          .filter((a) => a.isCompatible("hadolint") && !mayContainTemplateString(a.getConfig("spec").dockerfilePath))
+          .map((a) => resolve(a.basePath(), a.getConfig("spec").dockerfilePath))
 
         return {
           addActions: await Bluebird.filter(actions, async (action) => {
-            const dockerfile = action.getConfig("spec").dockerfile
+            const dockerfile = action.getConfig("spec").dockerfilePath
 
             // Make sure we don't step on an existing custom hadolint module
             if (
@@ -122,7 +122,7 @@ export const gardenPlugin = () =>
 
             allTestNames.add(name)
 
-            const dockerfilePath = action.getConfig("spec").dockerfile || defaultDockerfileName
+            const dockerfilePath = action.getConfig("spec").dockerfilePath || defaultDockerfileName
 
             const include = mayContainTemplateString(dockerfilePath) ? undefined : [dockerfilePath]
 
@@ -189,7 +189,7 @@ export const gardenPlugin = () =>
 
             run: async ({ ctx, log, action }) => {
               const spec = action.getSpec()
-              const dockerfilePath = join(module.path, spec.dockerfilePath)
+              const dockerfilePath = join(action.basePath(), spec.dockerfilePath)
               const startedAt = new Date()
               let dockerfile: string
 
@@ -197,13 +197,13 @@ export const gardenPlugin = () =>
                 dockerfile = (await readFile(dockerfilePath)).toString()
               } catch {
                 throw new ConfigurationError(`hadolint: Could not find Dockerfile at ${spec.dockerfilePath}`, {
-                  modulePath: module.path,
+                  actionPath: action.basePath(),
                   ...spec,
                 })
               }
 
               let configPath: string
-              const moduleConfigPath = join(module.path, configFilename)
+              const moduleConfigPath = join(action.basePath(), configFilename)
               const projectConfigPath = join(ctx.projectRoot, configFilename)
 
               if (await pathExists(moduleConfigPath)) {
