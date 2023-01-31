@@ -91,11 +91,6 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   spec: Spec
 }
 
-export interface BaseRuntimeActionConfig<K extends ActionKind = ActionKind, N = string, S = any>
-  extends BaseActionConfig<K, N, S> {
-  build?: string
-}
-
 export interface ActionConfigTypes {
   Build: BuildActionConfig<string, any>
   Deploy: DeployActionConfig<string, any>
