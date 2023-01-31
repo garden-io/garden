@@ -12,11 +12,14 @@ async function convert(path: string) {
   const rl = jsonl.readlines(absPath)
 
   while (true) {
-    const { value, done } = await rl.next()
+    const { value, done } = <any>(await rl.next())
     if (done) {
       break
     }
     console.log(`[${value.timestamp}] ${value.msg}`)
+    if (value.errorDetail) {
+      console.log(`[Error detail]: ${value.errorDetail}`)
+    }
   }
 }
 
