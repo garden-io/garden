@@ -443,9 +443,12 @@ describe("BaseActionRouter", () => {
     it("validates static outputs", async () => {
       const { router } = await createTestRouter(testPlugins)
 
-      await expectError(async () => await router.validateActionOutputs(resolvedBuildAction, "static", { foo: 123 }), {
-        contains: "Error validating static action outputs from Build 'module-a': key .foo must be a string.",
-      })
+      await expectError(
+        async () => await router.validateActionOutputs(resolvedBuildAction, "static", { staticKey: 123 }),
+        {
+          contains: ["Error validating static action outputs from Build", "key .staticKey must be a string."],
+        }
+      )
     })
 
     it("validates runtime outputs", async () => {
