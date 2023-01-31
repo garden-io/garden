@@ -170,9 +170,10 @@ describe("deploy actions", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const result = await actionRouter.deploy.delete({ log, action: resolvedDeployAction, graph })
       expect(result).to.eql({
-        forwardablePorts: [],
         state: "ready",
         detail: {
+          forwardablePorts: [],
+          outputs: {},
           detail: {},
           state: "ready",
         },
