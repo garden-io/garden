@@ -107,7 +107,7 @@ import {
   ModuleTemplateConfig,
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
-import { BuildDirRsync } from "./build-staging/rsync"
+import { BuildStagingRsync } from "./build-staging/rsync"
 import { CloudApi, CloudProject, EnterpriseApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
@@ -289,7 +289,10 @@ export class Garden {
         ? gardenEnv.GARDEN_LEGACY_BUILD_STAGE || (platform() === "win32" && !gardenEnv.GARDEN_EXPERIMENTAL_BUILD_STAGE)
         : params.opts.legacyBuildSync
 
-    const buildDirCls = legacyBuildSync ? BuildDirRsync : BuildStaging
+    const buildDirCls = legacyBuildSync ? BuildStagingRsync : BuildStaging
+    if (legacyBuildSync) {
+      this.log.silly(`Using rsync build staging mode`)
+    }
     this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
 
     // make sure we're on a supported platform

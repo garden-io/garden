@@ -18,7 +18,9 @@ import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-st
 import { LogEntry } from "../../../../src/logger/log-entry"
 import Bluebird from "bluebird"
 import { TestGardenOpts } from "../../../../src/util/testing"
-import { BuildDirRsync, minRsyncVersion } from "../../../../src/build-staging/rsync"
+import { BuildStagingRsync, minRsyncVersion } from "../../../../src/build-staging/rsync"
+import { GardenModule } from "../../../../src/types/module"
+import { ConfigGraph } from "../../../../src/config-graph"
 
 /*
   Module dependency diagram for build-dir test project
@@ -238,15 +240,6 @@ describe("BuildStaging", () => {
 describe("BuildStagingRsync", () => {
   let garden: TestGarden
 
-  function expectCommonRsyncVersionErrorMsg(err) {
-    expect(err.message).to.include(
-      `Please make sure rsync (version ${minRsyncVersion} or later) is installed and on your PATH.`
-    )
-    expect(err.message).to.include(
-      "More about garden installation and requirements can be found in our documentation at https://docs.garden.io/getting-started/1-installation#requirements"
-    )
-  }
-
   before(async () => {
     garden = await makeGarden({ legacyBuildSync: true })
   })
@@ -255,97 +248,72 @@ describe("BuildStagingRsync", () => {
     await garden.buildStaging.clear()
   })
 
-  it("should have ensured the existence of the build dir when Garden was initialized", async () => {
-    const buildDirExists = await pathExists(garden.buildStaging.buildDirPath)
-    expect(buildDirExists).to.eql(true)
-  })
-
-  it("should throw if rsync is not on PATH", async () => {
-    const orgPath = process.env.PATH
-
-    try {
-      process.env.PATH = ""
-      await expectError(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        (err) => {
-          expect(err.message).to.include("Could not find rsync binary.")
-          expectCommonRsyncVersionErrorMsg(err)
-        }
-      )
-    } finally {
-      process.env.PATH = orgPath
-    }
-  })
-
-  it(`should work with rsync v${minRsyncVersion}`, async () => {
-    const orgPath = process.env.PATH
-
-    try {
-      process.env.PATH = getDataDir("dummy-rsync", "min-version")
-      await BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath)
-    } finally {
-      process.env.PATH = orgPath
-    }
-  })
-
-  it("should work with rsync v3.2.3", async () => {
-    const orgPath = process.env.PATH
-
-    try {
-      process.env.PATH = getDataDir("dummy-rsync", "new-version")
-      await BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath)
-    } finally {
-      process.env.PATH = orgPath
-    }
-  })
-
-  it("should throw if rsync is too old", async () => {
-    const orgPath = process.env.PATH
-
-    try {
-      process.env.PATH = getDataDir("dummy-rsync", "old-version")
-      await expectError(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        (err) => {
-          expect(err.message).to.include("Found rsync binary but the version is too old (2.1.2).")
-          expectCommonRsyncVersionErrorMsg(err)
-        }
-      )
-    } finally {
-      process.env.PATH = orgPath
-    }
-  })
-
-  it("should throw if rsync returns invalid version", async () => {
-    const orgPath = process.env.PATH
-
-    try {
-      process.env.PATH = getDataDir("dummy-rsync", "invalid")
-      await expectError(
-        () => BuildDirRsync.factory(garden.projectRoot, garden.gardenDirPath),
-        (err) => {
-          expect(err.message).to.include(
-            `Could not detect rsync binary version in the version command's output: "rsync  version ABCDEF  protocol version 31".`
-          )
-          expectCommonRsyncVersionErrorMsg(err)
-        }
-      )
-    } finally {
-      process.env.PATH = orgPath
-    }
-  })
-
   describe("(common)", () => commonSyncTests(false))
 
   describe("sync", () => {
+    let buildStaging: BuildStagingRsync
+    let graph: ConfigGraph
+    let module: GardenModule
+
+    beforeEach(async () => {
+      buildStaging = new BuildStagingRsync(garden.projectRoot, garden.gardenDirPath)
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      module = graph.getModule("module-a")
+    })
+
     it("should not sync symlinks that point outside the module root", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const module = graph.getModule("symlink-outside-module")
+      const moduleWithSymlink = graph.getModule("symlink-outside-module")
 
-      await garden.buildStaging.syncFromSrc(module, garden.log)
+      await garden.buildStaging.syncFromSrc(moduleWithSymlink, garden.log)
 
-      const buildDir = await garden.buildStaging.ensureBuildPath(module)
+      const buildDir = garden.buildStaging.getBuildPath(moduleWithSymlink)
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
+    })
+
+    it("should throw if rsync is not on PATH", async () => {
+      const orgPath = process.env.PATH
+
+      try {
+        process.env.PATH = ""
+        await expectError(
+          () => buildStaging.syncFromSrc(module, garden.log),
+          (err) => {
+            expect(err.message).to.include("Could not find rsync binary")
+          }
+        )
+      } finally {
+        process.env.PATH = orgPath
+      }
+    })
+
+    it(`should work with rsync v${minRsyncVersion}`, async () => {
+      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "min-version", "rsync"))
+      await buildStaging.validate()
+    })
+
+    it("should work with rsync v3.2.3", async () => {
+      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "new-version", "rsync"))
+      await buildStaging.validate()
+    })
+
+    it("should throw if rsync is too old", async () => {
+      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "old-version", "rsync"))
+      await expectError(
+        () => buildStaging.syncFromSrc(module, garden.log),
+        (err) => {
+          expect(err.message).to.include("Found rsync binary but the version is too old")
+        }
+      )
+    })
+
+    it("should throw if rsync returns invalid version", async () => {
+      buildStaging.setRsyncPath(getDataDir("dummy-rsync", "invalid", "rsync"))
+      await expectError(
+        () => buildStaging.syncFromSrc(module, garden.log),
+        (err) => {
+          expect(err.message).to.include("Could not detect rsync binary version in the version command's output")
+        }
+      )
     })
   })
 })
