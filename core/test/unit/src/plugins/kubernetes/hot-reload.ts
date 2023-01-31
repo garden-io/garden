@@ -108,7 +108,7 @@ describe("configureHotReload", () => {
                       command: [
                         "/bin/sh",
                         "-c",
-                        "until pgrep -f '^[^ ]+rsync' > /dev/null; do echo waiting for rsync to finish...; sleep 1; done",
+                        "until test $(pgrep -f '^[^ ]+rsync' | wc -l) = 1; do echo waiting for rsync to finish...; sleep 1; done",
                       ],
                     },
                   },
@@ -240,7 +240,7 @@ describe("configureHotReload", () => {
                   command: [
                     "/bin/sh",
                     "-c",
-                    "until pgrep -f '^[^ ]+rsync' > /dev/null; do echo waiting for rsync to finish...; sleep 1; done",
+                    "until test $(pgrep -f '^[^ ]+rsync' | wc -l) = 1; do echo waiting for rsync to finish...; sleep 1; done",
                   ],
                 },
               },
