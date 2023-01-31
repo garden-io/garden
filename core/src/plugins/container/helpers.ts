@@ -237,7 +237,7 @@ const helpers = {
 
   async imageExistsLocally(identifier: string, log: LogEntry, ctx: PluginContext) {
     const result = await helpers.dockerCli({
-      cwd: module.path,
+      cwd: ctx.projectRoot,
       args: ["images", identifier, "-q"],
       log,
       ctx,
@@ -254,7 +254,7 @@ const helpers = {
       let res: SpawnOutput
 
       try {
-        res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
+        res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`], { cwd: cliPath })
       } catch (err) {
         return [key, undefined]
       }
