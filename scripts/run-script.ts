@@ -2,7 +2,6 @@
 
 import execa from "execa"
 import minimist from "minimist"
-import minimatch from "minimatch"
 import Bluebird from "bluebird"
 import { max, padEnd, padStart, mapValues, pickBy } from "lodash"
 import { DepGraph } from "dependency-graph"
@@ -11,34 +10,11 @@ import chalk from "chalk"
 import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
 import { resolve } from "path"
+import { getPackages, yarnPath } from "./script-utils"
 
 const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
-const yarnPath = resolve(__dirname, "..", ".yarn", "releases", "yarn-1.22.5.js")
-
-export async function getPackages({ scope, ignore }: { scope?: string; ignore?: string } = {}) {
-  let packages = JSON.parse((await execa("node", [yarnPath, "--silent", "workspaces", "info"])).stdout)
-
-  if (scope) {
-    packages = pickBy(packages, (_, k) => minimatch(k, scope))
-  }
-
-  if (ignore) {
-    packages = pickBy(packages, (_, k) => !minimatch(k, ignore))
-  }
-
-  return mapValues(packages, (p, k) => {
-    const location = resolve(__dirname, "..", p.location)
-    return {
-      ...p,
-      name: k,
-      location,
-      packageJson: require(resolve(location, "package.json")),
-      shortName: k.split("/")[1],
-    }
-  })
-}
 
 async function runInPackages(args: string[]) {
   const argv = minimist(args, { boolean: ["bail", "parallel"], default: { bail: true } })
