@@ -126,7 +126,7 @@ export const gardenPlugin = () =>
 
             const include = mayContainTemplateString(dockerfilePath) ? undefined : [dockerfilePath]
 
-            return {
+            const testAction: HadolintTestConfig = {
               kind: "Test",
               type: "hadolint",
               name,
@@ -139,6 +139,7 @@ export const gardenPlugin = () =>
                 dockerfilePath,
               },
             }
+            return testAction
           }),
         }
       },
@@ -323,25 +324,24 @@ export const gardenPlugin = () =>
           convert: async (params) => {
             const { module } = params
 
-            return {
-              actions: [
-                {
-                  kind: "Test",
-                  type: "hadolint",
-                  name: module.name,
+            const action: HadolintTestConfig = {
+              kind: "Test",
+              type: "hadolint",
+              name: module.name,
 
-                  ...params.baseFields,
-                  configFilePath: module.configPath,
+              ...params.baseFields,
 
-                  include: [module.spec.dockerfilePath],
+              include: [module.spec.dockerfilePath],
+              configFilePath: module.configPath,
 
-                  timeout: 10,
-                  spec: {
-                    dockerfilePath: module.spec.dockerfilePath,
-                  },
-                },
-              ],
+              timeout: 10,
+
+              spec: {
+                dockerfilePath: module.spec.dockerfilePath,
+              },
             }
+
+            return { actions: [action] }
           },
         },
       },
