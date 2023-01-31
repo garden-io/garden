@@ -114,7 +114,7 @@ export async function helm({
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
     if (emitLogEvents) {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
     }
   })
 
