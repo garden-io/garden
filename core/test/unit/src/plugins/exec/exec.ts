@@ -15,7 +15,14 @@ import { Garden } from "../../../../../src/garden"
 import { ExecProvider, gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
-import { getDataDir, makeTestModule, expectError, createProjectConfig } from "../../../../helpers"
+import {
+  getDataDir,
+  makeTestModule,
+  expectError,
+  createProjectConfig,
+  TestGarden,
+  makeModuleConfig,
+} from "../../../../helpers"
 import { RunTask } from "../../../../../src/tasks/run"
 import { makeTestGarden } from "../../../../helpers"
 import { ModuleConfig } from "../../../../../src/config/module"
@@ -28,8 +35,11 @@ import { sleep } from "../../../../../src/util/util"
 import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
-import { GardenModule } from "../../../../../src/types/module"
 import { PluginContext } from "../../../../../src/plugin-context"
+import { convertModules } from "../../../../../src/resolve-module"
+import tmp from "tmp-promise"
+import { ProjectConfig } from "../../../../../src/config/project"
+import execa from "execa"
 
 describe("exec plugin", () => {
   const testProjectRoot = getDataDir("test-project-exec")
@@ -511,7 +521,49 @@ describe("exec plugin", () => {
     })
   })
 
+  /**
+   * Test specs in this block use {@link convertModules} helper function
+   * to test the whole module-to-action conversion chain,
+   * including the creation of {@link ConvertModuleParams} object and passing it to {@link ModuleRouter#convert}
+   * via the {@link ActionRouter}.
+   *
+   * This has been done because mocking of {@link ConvertModuleParams} is not easy and can be fragile,
+   * as it requires implementation of naming-conversion and construction of services, tasks and tests.
+   *
+   * In order to test the {@link ExecModule}-to-action conversion,
+   * the test {@link Garden} instance must have a configured "exec" provider and "exec" plugin.
+   *
+   * Each test spec used temporary Garden project initialized in a tmp dir,
+   * and doesn't use any disk-located pre-defined test projects.
+   *
+   * Each test spec defines a minimalistic module-based config and re-initializes the {@link ConfigGraph} instance.
+   */
   describe("convert", () => {
+    async function makeGarden(tmpDirResult: tmp.DirectoryResult): Promise<TestGarden> {
+      const config: ProjectConfig = createProjectConfig({
+        path: tmpDirResult.path,
+        providers: [{ name: "exec" }],
+      })
+
+      return TestGarden.factory(tmpDirResult.path, { config, plugins: [gardenPlugin()] })
+    }
+
+    let tmpDir: tmp.DirectoryResult
+    let tmpGarden: TestGarden
+    let tmpGraph: ConfigGraph
+
+    before(async () => {
+      tmpDir = await tmp.dir({ unsafeCleanup: true })
+      await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+      tmpGarden = await makeGarden(tmpDir)
+    })
+
+    after(async () => {
+      await tmpDir.cleanup()
+    })
+
+    beforeEach(async () => {})
+
     it("adds configured variables to the Group", async () => {
       throw "TODO"
     })
