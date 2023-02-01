@@ -7,7 +7,7 @@ tocTitle: "`exec`"
 
 ## Description
 
-A simple provider that allows running arbitary scripts when initializing providers, and provides the exec
+A simple provider that allows running arbitrary scripts when initializing providers, and provides the exec
 module type.
 
 _Note: This provider is always loaded when running Garden. You only need to explicitly declare it in your provider
