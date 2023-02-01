@@ -36,7 +36,7 @@ import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfi
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
 import { PluginContext } from "../../../../../src/plugin-context"
-import { convertModules } from "../../../../../src/resolve-module"
+import { convertModules, findGroupConfig } from "../../../../../src/resolve-module"
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa from "execa"
@@ -565,7 +565,33 @@ describe("exec plugin", () => {
     beforeEach(async () => {})
 
     it("adds configured variables to the Group", async () => {
-      throw "TODO"
+      const moduleA = "module-a"
+      const taskCommand = ["echo", moduleA]
+      const variables = { FOO: "foo", BAR: "bar" }
+      tmpGarden.setActionConfigs([
+        makeModuleConfig(tmpGarden.projectRoot, {
+          name: moduleA,
+          type: "exec",
+          variables,
+          spec: {
+            tasks: [
+              {
+                name: "task-a",
+                command: taskCommand,
+              },
+            ],
+          },
+        }),
+      ])
+      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const module = tmpGraph.getModule(moduleA)
+
+      const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+      expect(result.groups).to.exist
+
+      const group = findGroupConfig(result, moduleA)!
+      expect(group).to.exist
+      expect(group.variables).to.eql(variables)
     })
 
     it("adds a Build action if build.command is set", async () => {
