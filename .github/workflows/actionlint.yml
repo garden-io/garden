@@ -38,6 +38,5 @@ jobs:
           tar xvzf actionlint.tar.gz actionlint
         shell: bash
       - name: Check workflow files
-        # NOTE(steffen): The ignore is needed until https://github.com/rhysd/actionlint/pull/190 is merged
         run: ./actionlint -color
         shell: bash
