@@ -68,7 +68,7 @@ describe("resolvePlugins", () => {
         docs: "foo",
         schema: joi.object(),
         handlers: {
-          build: async (asd: any) => ({
+          build: async () => ({
             detail: {},
             outputs: {
               foo: "bar",
@@ -95,7 +95,7 @@ describe("resolvePlugins", () => {
         docs: "foo",
         schema: joi.object(),
         handlers: {
-          build: async (asd: any) => ({
+          build: async () => ({
             detail: {},
             outputs: {
               foo: "bar",
@@ -113,7 +113,7 @@ describe("resolvePlugins", () => {
         docs: "foo",
         schema: joi.object(),
         handlers: {
-          build: async (asd: any) => ({
+          build: async () => ({
             detail: {},
             outputs: {
               foo: "bar",
@@ -137,7 +137,7 @@ describe("resolvePlugins", () => {
         docs: "asd",
         schema: joi.object(),
         handlers: {
-          build: async (asd: any) => ({
+          build: async () => ({
             detail: {},
             outputs: {
               foo: "bar",
@@ -151,7 +151,7 @@ describe("resolvePlugins", () => {
       {
         name: "extension",
         handlers: {
-          validate: async (prop) => ({}),
+          validate: async () => ({}),
         },
       },
     ]
