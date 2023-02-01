@@ -626,7 +626,59 @@ describe("exec plugin", () => {
     })
 
     it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
-      throw "TODO"
+      const moduleNameA = "module-a"
+      const moduleNameB = "module-b"
+      const buildCommandA = ["echo", moduleNameA]
+      const buildCommandB = ["echo", moduleNameB]
+
+      tmpGarden.setActionConfigs([
+        makeModuleConfig(tmpGarden.projectRoot, {
+          name: moduleNameA,
+          type: "exec",
+          spec: {
+            build: {
+              command: buildCommandA,
+            },
+          },
+        }),
+        makeModuleConfig(tmpGarden.projectRoot, {
+          name: moduleNameB,
+          type: "exec",
+          spec: {
+            build: {
+              command: buildCommandB,
+              dependencies: [
+                {
+                  name: moduleNameA,
+                  copy: [
+                    {
+                      source: "./module-a.out",
+                      target: "a/module-a.out",
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        }),
+      ])
+      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      // const moduleA = tmpGraph.getModule(moduleNameA)
+      const moduleB = tmpGraph.getModule(moduleNameB)
+
+      const result = await convertModules(tmpGarden, tmpGarden.log, [moduleB], tmpGraph.moduleGraph)
+      expect(result.groups).to.exist
+
+      const groupB = findGroupConfig(result, moduleNameB)!
+      expect(groupB.actions).to.exist
+      expect(groupB.actions.length).to.eql(1)
+
+      const buildB = findActionConfigInGroup(groupB, "Build", moduleNameB)! as BuildActionConfig
+      expect(buildB).to.exist
+      expect(buildB.name).to.eql(moduleNameB)
+      expect(buildB.spec.command).to.eql(buildCommandB)
+      // TODO-G2 this still fails; check if is the test config correct
+      expect(buildB.copyFrom).be.not.empty
     })
 
     it("converts the repositoryUrl field", async () => {
