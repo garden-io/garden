@@ -9,8 +9,13 @@
 import td from "testdouble"
 
 import { PluginContext } from "../../../../../src/plugin-context"
-import { gardenPlugin, ContainerProvider, convertContainerModule } from "../../../../../src/plugins/container/container"
-import { getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
+import {
+  gardenPlugin,
+  ContainerProvider,
+  convertContainerModule,
+  configureContainerModule,
+} from "../../../../../src/plugins/container/container"
+import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { GardenModule, moduleFromConfig } from "../../../../../src/types/module"
@@ -19,6 +24,9 @@ import {
   ContainerBuildActionSpec,
   ContainerModule,
   ContainerModuleConfig,
+  defaultContainerResources,
+  defaultDeploymentStrategy,
+  defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
 import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
 import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
@@ -31,6 +39,9 @@ import { resolve } from "path"
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
   const modulePath = resolve(projectRoot, "module-a")
+
+  const defaultCpu = defaultContainerResources.cpu
+  const defaultMemory = defaultContainerResources.memory
 
   const baseConfig: ContainerModuleConfig = {
     allowPublish: false,
@@ -212,694 +223,694 @@ describe("plugins.container", () => {
       expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
     })
   })
+
+  //   describe("convert", () => {
+  //     // TODO-G2: adapt from exec convert tests
+  //     it("TODO", () => {
+  //       throw "TODO"
+  //     })
+  //   })
+
+  describe("configureContainerModule", () => {
+    const containerModuleConfig: ContainerModuleConfig = {
+      allowPublish: false,
+      build: {
+        dependencies: [],
+      },
+      disabled: false,
+      apiVersion: DEFAULT_API_VERSION,
+      name: "module-a",
+      path: modulePath,
+      type: "container",
+
+      spec: {
+        build: {
+          dependencies: [],
+          timeout: DEFAULT_BUILD_TIMEOUT,
+        },
+        buildArgs: {},
+        extraFlags: [],
+        services: [
+          {
+            name: "service-a",
+            annotations: {},
+            args: ["echo"],
+            dependencies: [],
+            daemon: false,
+            disabled: false,
+            ingresses: [
+              {
+                annotations: {},
+                path: "/",
+                port: "http",
+              },
+            ],
+            env: {
+              SOME_ENV_VAR: "value",
+            },
+            healthCheck: {
+              httpGet: {
+                path: "/health",
+                port: "http",
+              },
+              livenessTimeoutSeconds: 10,
+              readinessTimeoutSeconds: 10,
+            },
+            limits: {
+              cpu: 123,
+              memory: 456,
+            },
+            cpu: defaultCpu,
+            memory: defaultMemory,
+            ports: [
+              {
+                name: "http",
+                protocol: "TCP",
+                containerPort: 8080,
+                servicePort: 8080,
+              },
+            ],
+            replicas: 1,
+            volumes: [],
+            deploymentStrategy: defaultDeploymentStrategy,
+          },
+        ],
+        tasks: [
+          {
+            name: "task-a",
+            args: ["echo", "OK"],
+            artifacts: [],
+            cacheResult: true,
+            dependencies: [],
+            disabled: false,
+            env: {
+              TASK_ENV_VAR: "value",
+            },
+            cpu: defaultCpu,
+            memory: defaultMemory,
+            timeout: null,
+            volumes: [],
+          },
+        ],
+        tests: [
+          {
+            name: "unit",
+            args: ["echo", "OK"],
+            artifacts: [],
+            dependencies: [],
+            disabled: false,
+            env: {
+              TEST_ENV_VAR: "value",
+            },
+            cpu: defaultCpu,
+            memory: defaultMemory,
+            timeout: null,
+            volumes: [],
+          },
+        ],
+      },
+
+      serviceConfigs: [],
+      taskConfigs: [],
+      testConfigs: [],
+    }
+
+    it("should validate and parse a container module", async () => {
+      const result = await configureContainerModule({ ctx, moduleConfig: containerModuleConfig, log })
+
+      expect(result).to.eql({
+        moduleConfig: {
+          allowPublish: false,
+          build: { dependencies: [] },
+          disabled: false,
+          apiVersion: DEFAULT_API_VERSION,
+          name: "module-a",
+          include: [defaultDockerfileName],
+          path: modulePath,
+          type: "container",
+          spec: {
+            build: {
+              dependencies: [],
+              timeout: DEFAULT_BUILD_TIMEOUT,
+            },
+            buildArgs: {},
+            extraFlags: [],
+            services: [
+              {
+                name: "service-a",
+                annotations: {},
+                args: ["echo"],
+                dependencies: [],
+                disabled: false,
+                daemon: false,
+                ingresses: [
+                  {
+                    annotations: {},
+                    path: "/",
+                    port: "http",
+                  },
+                ],
+                env: {
+                  SOME_ENV_VAR: "value",
+                },
+                healthCheck: {
+                  httpGet: { path: "/health", port: "http" },
+                  readinessTimeoutSeconds: 10,
+                  livenessTimeoutSeconds: 10,
+                },
+                limits: {
+                  cpu: 123,
+                  memory: 456,
+                },
+                cpu: defaultCpu,
+                memory: defaultMemory,
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
+                replicas: 1,
+                volumes: [],
+                deploymentStrategy: defaultDeploymentStrategy,
+              },
+            ],
+            tasks: [
+              {
+                name: "task-a",
+                args: ["echo", "OK"],
+                artifacts: [],
+                cacheResult: true,
+                dependencies: [],
+                disabled: false,
+                env: {
+                  TASK_ENV_VAR: "value",
+                },
+                cpu: defaultCpu,
+                memory: defaultMemory,
+                timeout: null,
+                volumes: [],
+              },
+            ],
+            tests: [
+              {
+                name: "unit",
+                args: ["echo", "OK"],
+                artifacts: [],
+                dependencies: [],
+                disabled: false,
+                env: {
+                  TEST_ENV_VAR: "value",
+                },
+                cpu: defaultCpu,
+                memory: defaultMemory,
+                timeout: null,
+                volumes: [],
+              },
+            ],
+          },
+          buildConfig: {
+            buildArgs: {},
+            dockerfile: undefined,
+            extraFlags: [],
+            targetImage: undefined,
+          },
+          serviceConfigs: [
+            {
+              name: "service-a",
+              dependencies: [],
+              disabled: false,
+
+              spec: {
+                name: "service-a",
+                annotations: {},
+                args: ["echo"],
+                dependencies: [],
+                disabled: false,
+                daemon: false,
+                ingresses: [
+                  {
+                    annotations: {},
+                    path: "/",
+                    port: "http",
+                  },
+                ],
+                env: {
+                  SOME_ENV_VAR: "value",
+                },
+                healthCheck: {
+                  httpGet: { path: "/health", port: "http" },
+                  readinessTimeoutSeconds: 10,
+                  livenessTimeoutSeconds: 10,
+                },
+                limits: {
+                  cpu: 123,
+                  memory: 456,
+                },
+                cpu: defaultCpu,
+                memory: defaultMemory,
+                ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
+                replicas: 1,
+                volumes: [],
+                deploymentStrategy: defaultDeploymentStrategy,
+              },
+            },
+          ],
+          taskConfigs: [
+            {
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              name: "task-a",
+              spec: {
+                args: ["echo", "OK"],
+                artifacts: [],
+                cacheResult: true,
+                dependencies: [],
+                disabled: false,
+                env: {
+                  TASK_ENV_VAR: "value",
+                },
+                cpu: defaultCpu,
+                memory: defaultMemory,
+                name: "task-a",
+                timeout: null,
+                volumes: [],
+              },
+              timeout: null,
+            },
+          ],
+          testConfigs: [
+            {
+              name: "unit",
+              dependencies: [],
+              disabled: false,
+              spec: {
+                name: "unit",
+                args: ["echo", "OK"],
+                artifacts: [],
+                dependencies: [],
+                disabled: false,
+                env: {
+                  TEST_ENV_VAR: "value",
+                },
+                cpu: defaultCpu,
+                memory: defaultMemory,
+                timeout: null,
+                volumes: [],
+              },
+              timeout: null,
+            },
+          ],
+        },
+      })
+    })
+
+    it("should add service volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: DEFAULT_API_VERSION,
+        name: "module-a",
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [
+            {
+              name: "service-a",
+              annotations: {},
+              args: ["echo"],
+              dependencies: [],
+              daemon: false,
+              disabled: false,
+              ingresses: [],
+              env: {},
+              healthCheck: {},
+              limits: {
+                cpu: 123,
+                memory: 456,
+              },
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              ports: [],
+              replicas: 1,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+              deploymentStrategy: defaultDeploymentStrategy,
+            },
+          ],
+          tasks: [],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configureContainerModule({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.serviceConfigs[0].dependencies).to.eql(["volume-module"])
+    })
+
+    it("should add task volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: DEFAULT_API_VERSION,
+        name: "module-a",
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [],
+          tasks: [
+            {
+              name: "task-a",
+              args: [],
+              artifacts: [],
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: null,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+            },
+          ],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configureContainerModule({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.taskConfigs[0].dependencies).to.eql(["volume-module"])
+    })
+
+    it("should add test volume modules as build and runtime dependencies", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: DEFAULT_API_VERSION,
+        name: "module-a",
+        path: modulePath,
+        type: "container",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [],
+          tasks: [],
+          tests: [
+            {
+              name: "test-a",
+              args: [],
+              artifacts: [],
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: null,
+              volumes: [
+                {
+                  name: "test",
+                  containerPath: "/",
+                  module: "volume-module",
+                },
+              ],
+            },
+          ],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      const result = await configureContainerModule({ ctx, moduleConfig, log })
+
+      expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
+      expect(result.moduleConfig.testConfigs[0].dependencies).to.eql(["volume-module"])
+    })
+
+    it("should fail with invalid port in ingress spec", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: DEFAULT_API_VERSION,
+        name: "module-a",
+        path: modulePath,
+        type: "test",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [
+            {
+              name: "service-a",
+              annotations: {},
+              args: ["echo"],
+              dependencies: [],
+              daemon: false,
+              disabled: false,
+              ingresses: [
+                {
+                  annotations: {},
+                  path: "/",
+                  port: "bla",
+                },
+              ],
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              env: {},
+              ports: [],
+              replicas: 1,
+              volumes: [],
+              deploymentStrategy: defaultDeploymentStrategy,
+            },
+          ],
+          tasks: [
+            {
+              name: "task-a",
+              args: ["echo"],
+              artifacts: [],
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: null,
+              volumes: [],
+            },
+          ],
+          tests: [
+            {
+              name: "unit",
+              args: ["echo", "OK"],
+              artifacts: [],
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: null,
+              volumes: [],
+            },
+          ],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      await expectError(() => configureContainerModule({ ctx, moduleConfig, log }), "configuration")
+    })
+
+    it("should fail with invalid port in httpGet healthcheck spec", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: DEFAULT_API_VERSION,
+        name: "module-a",
+        path: modulePath,
+        type: "test",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [
+            {
+              name: "service-a",
+              annotations: {},
+              args: ["echo"],
+              dependencies: [],
+              daemon: false,
+              disabled: false,
+              ingresses: [],
+              env: {},
+              healthCheck: {
+                httpGet: {
+                  path: "/",
+                  port: "bla",
+                },
+              },
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              ports: [],
+              replicas: 1,
+              volumes: [],
+              deploymentStrategy: defaultDeploymentStrategy,
+            },
+          ],
+          tasks: [
+            {
+              name: "task-a",
+              args: ["echo"],
+              artifacts: [],
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: null,
+              volumes: [],
+            },
+          ],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      await expectError(() => configureContainerModule({ ctx, moduleConfig, log }), "configuration")
+    })
+
+    it("should fail with invalid port in tcpPort healthcheck spec", async () => {
+      const moduleConfig: ContainerModuleConfig = {
+        allowPublish: false,
+        build: {
+          dependencies: [],
+        },
+        disabled: false,
+        apiVersion: DEFAULT_API_VERSION,
+        name: "module-a",
+        path: modulePath,
+        type: "test",
+
+        spec: {
+          build: {
+            dependencies: [],
+            timeout: DEFAULT_BUILD_TIMEOUT,
+          },
+          buildArgs: {},
+          extraFlags: [],
+          services: [
+            {
+              name: "service-a",
+              annotations: {},
+              args: ["echo"],
+              dependencies: [],
+              daemon: false,
+              disabled: false,
+              ingresses: [],
+              env: {},
+              healthCheck: {
+                tcpPort: "bla",
+              },
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              ports: [],
+              replicas: 1,
+              volumes: [],
+              deploymentStrategy: defaultDeploymentStrategy,
+            },
+          ],
+          tasks: [
+            {
+              name: "task-a",
+              args: ["echo"],
+              artifacts: [],
+              cacheResult: true,
+              dependencies: [],
+              disabled: false,
+              env: {},
+              cpu: defaultCpu,
+              memory: defaultMemory,
+              timeout: null,
+              volumes: [],
+            },
+          ],
+          tests: [],
+        },
+
+        serviceConfigs: [],
+        taskConfigs: [],
+        testConfigs: [],
+      }
+
+      await expectError(() => configureContainerModule({ ctx, moduleConfig, log }), "configuration")
+    })
+  })
 })
-
-//   describe("convert", () => {
-//     // TODO-G2: adapt from exec convert tests
-//     it("TODO", () => {
-//       throw "TODO"
-//     })
-//   })
-
-//   describe("configureContainerModule", () => {
-//     const containerModuleConfig: ContainerModuleConfig = {
-//       allowPublish: false,
-//       build: {
-//         dependencies: [],
-//       },
-//       disabled: false,
-//       apiVersion: DEFAULT_API_VERSION,
-//       name: "module-a",
-//       path: modulePath,
-//       type: "container",
-
-//       spec: {
-//         build: {
-//           dependencies: [],
-//           timeout: DEFAULT_BUILD_TIMEOUT,
-//         },
-//         buildArgs: {},
-//         extraFlags: [],
-//         services: [
-//           {
-//             name: "service-a",
-//             annotations: {},
-//             args: ["echo"],
-//             dependencies: [],
-//             daemon: false,
-//             disabled: false,
-//             ingresses: [
-//               {
-//                 annotations: {},
-//                 path: "/",
-//                 port: "http",
-//               },
-//             ],
-//             env: {
-//               SOME_ENV_VAR: "value",
-//             },
-//             healthCheck: {
-//               httpGet: {
-//                 path: "/health",
-//                 port: "http",
-//               },
-//               livenessTimeoutSeconds: 10,
-//               readinessTimeoutSeconds: 10,
-//             },
-//             limits: {
-//               cpu: 123,
-//               memory: 456,
-//             },
-//             cpu: defaultCpu,
-//             memory: defaultMemory,
-//             ports: [
-//               {
-//                 name: "http",
-//                 protocol: "TCP",
-//                 containerPort: 8080,
-//                 servicePort: 8080,
-//               },
-//             ],
-//             replicas: 1,
-//             volumes: [],
-//             deploymentStrategy: defaultDeploymentStrategy,
-//           },
-//         ],
-//         tasks: [
-//           {
-//             name: "task-a",
-//             args: ["echo", "OK"],
-//             artifacts: [],
-//             cacheResult: true,
-//             dependencies: [],
-//             disabled: false,
-//             env: {
-//               TASK_ENV_VAR: "value",
-//             },
-//             cpu: defaultCpu,
-//             memory: defaultMemory,
-//             timeout: null,
-//             volumes: [],
-//           },
-//         ],
-//         tests: [
-//           {
-//             name: "unit",
-//             args: ["echo", "OK"],
-//             artifacts: [],
-//             dependencies: [],
-//             disabled: false,
-//             env: {
-//               TEST_ENV_VAR: "value",
-//             },
-//             cpu: defaultCpu,
-//             memory: defaultMemory,
-//             timeout: null,
-//             volumes: [],
-//           },
-//         ],
-//       },
-
-//       serviceConfigs: [],
-//       taskConfigs: [],
-//       testConfigs: [],
-//     }
-
-//     it("should validate and parse a container module", async () => {
-//       const result = await configure({ ctx, moduleConfig: containerModuleConfig, log })
-
-//       expect(result).to.eql({
-//         moduleConfig: {
-//           allowPublish: false,
-//           build: { dependencies: [] },
-//           disabled: false,
-//           apiVersion: DEFAULT_API_VERSION,
-//           name: "module-a",
-//           include: [defaultDockerfileName],
-//           path: modulePath,
-//           type: "container",
-//           spec: {
-//             build: {
-//               dependencies: [],
-//               timeout: DEFAULT_BUILD_TIMEOUT,
-//             },
-//             buildArgs: {},
-//             extraFlags: [],
-//             services: [
-//               {
-//                 name: "service-a",
-//                 annotations: {},
-//                 args: ["echo"],
-//                 dependencies: [],
-//                 disabled: false,
-//                 daemon: false,
-//                 ingresses: [
-//                   {
-//                     annotations: {},
-//                     path: "/",
-//                     port: "http",
-//                   },
-//                 ],
-//                 env: {
-//                   SOME_ENV_VAR: "value",
-//                 },
-//                 healthCheck: {
-//                   httpGet: { path: "/health", port: "http" },
-//                   readinessTimeoutSeconds: 10,
-//                   livenessTimeoutSeconds: 10,
-//                 },
-//                 limits: {
-//                   cpu: 123,
-//                   memory: 456,
-//                 },
-//                 cpu: defaultCpu,
-//                 memory: defaultMemory,
-//                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
-//                 replicas: 1,
-//                 volumes: [],
-//                 deploymentStrategy: defaultDeploymentStrategy,
-//               },
-//             ],
-//             tasks: [
-//               {
-//                 name: "task-a",
-//                 args: ["echo", "OK"],
-//                 artifacts: [],
-//                 cacheResult: true,
-//                 dependencies: [],
-//                 disabled: false,
-//                 env: {
-//                   TASK_ENV_VAR: "value",
-//                 },
-//                 cpu: defaultCpu,
-//                 memory: defaultMemory,
-//                 timeout: null,
-//                 volumes: [],
-//               },
-//             ],
-//             tests: [
-//               {
-//                 name: "unit",
-//                 args: ["echo", "OK"],
-//                 artifacts: [],
-//                 dependencies: [],
-//                 disabled: false,
-//                 env: {
-//                   TEST_ENV_VAR: "value",
-//                 },
-//                 cpu: defaultCpu,
-//                 memory: defaultMemory,
-//                 timeout: null,
-//                 volumes: [],
-//               },
-//             ],
-//           },
-//           buildConfig: {
-//             buildArgs: {},
-//             dockerfile: undefined,
-//             extraFlags: [],
-//             targetImage: undefined,
-//           },
-//           serviceConfigs: [
-//             {
-//               name: "service-a",
-//               dependencies: [],
-//               disabled: false,
-
-//               spec: {
-//                 name: "service-a",
-//                 annotations: {},
-//                 args: ["echo"],
-//                 dependencies: [],
-//                 disabled: false,
-//                 daemon: false,
-//                 ingresses: [
-//                   {
-//                     annotations: {},
-//                     path: "/",
-//                     port: "http",
-//                   },
-//                 ],
-//                 env: {
-//                   SOME_ENV_VAR: "value",
-//                 },
-//                 healthCheck: {
-//                   httpGet: { path: "/health", port: "http" },
-//                   readinessTimeoutSeconds: 10,
-//                   livenessTimeoutSeconds: 10,
-//                 },
-//                 limits: {
-//                   cpu: 123,
-//                   memory: 456,
-//                 },
-//                 cpu: defaultCpu,
-//                 memory: defaultMemory,
-//                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
-//                 replicas: 1,
-//                 volumes: [],
-//                 deploymentStrategy: defaultDeploymentStrategy,
-//               },
-//             },
-//           ],
-//           taskConfigs: [
-//             {
-//               cacheResult: true,
-//               dependencies: [],
-//               disabled: false,
-//               name: "task-a",
-//               spec: {
-//                 args: ["echo", "OK"],
-//                 artifacts: [],
-//                 cacheResult: true,
-//                 dependencies: [],
-//                 disabled: false,
-//                 env: {
-//                   TASK_ENV_VAR: "value",
-//                 },
-//                 cpu: defaultCpu,
-//                 memory: defaultMemory,
-//                 name: "task-a",
-//                 timeout: null,
-//                 volumes: [],
-//               },
-//               timeout: null,
-//             },
-//           ],
-//           testConfigs: [
-//             {
-//               name: "unit",
-//               dependencies: [],
-//               disabled: false,
-//               spec: {
-//                 name: "unit",
-//                 args: ["echo", "OK"],
-//                 artifacts: [],
-//                 dependencies: [],
-//                 disabled: false,
-//                 env: {
-//                   TEST_ENV_VAR: "value",
-//                 },
-//                 cpu: defaultCpu,
-//                 memory: defaultMemory,
-//                 timeout: null,
-//                 volumes: [],
-//               },
-//               timeout: null,
-//             },
-//           ],
-//         },
-//       })
-//     })
-
-//     it("should add service volume modules as build and runtime dependencies", async () => {
-//       const moduleConfig: ContainerModuleConfig = {
-//         allowPublish: false,
-//         build: {
-//           dependencies: [],
-//         },
-//         disabled: false,
-//         apiVersion: DEFAULT_API_VERSION,
-//         name: "module-a",
-//         path: modulePath,
-//         type: "container",
-
-//         spec: {
-//           build: {
-//             dependencies: [],
-//             timeout: DEFAULT_BUILD_TIMEOUT,
-//           },
-//           buildArgs: {},
-//           extraFlags: [],
-//           services: [
-//             {
-//               name: "service-a",
-//               annotations: {},
-//               args: ["echo"],
-//               dependencies: [],
-//               daemon: false,
-//               disabled: false,
-//               ingresses: [],
-//               env: {},
-//               healthCheck: {},
-//               limits: {
-//                 cpu: 123,
-//                 memory: 456,
-//               },
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               ports: [],
-//               replicas: 1,
-//               volumes: [
-//                 {
-//                   name: "test",
-//                   containerPath: "/",
-//                   module: "volume-module",
-//                 },
-//               ],
-//               deploymentStrategy: defaultDeploymentStrategy,
-//             },
-//           ],
-//           tasks: [],
-//           tests: [],
-//         },
-
-//         serviceConfigs: [],
-//         taskConfigs: [],
-//         testConfigs: [],
-//       }
-
-//       const result = await configure({ ctx, moduleConfig, log })
-
-//       expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
-//       expect(result.moduleConfig.serviceConfigs[0].dependencies).to.eql(["volume-module"])
-//     })
-
-//     it("should add task volume modules as build and runtime dependencies", async () => {
-//       const moduleConfig: ContainerModuleConfig = {
-//         allowPublish: false,
-//         build: {
-//           dependencies: [],
-//         },
-//         disabled: false,
-//         apiVersion: DEFAULT_API_VERSION,
-//         name: "module-a",
-//         path: modulePath,
-//         type: "container",
-
-//         spec: {
-//           build: {
-//             dependencies: [],
-//             timeout: DEFAULT_BUILD_TIMEOUT,
-//           },
-//           buildArgs: {},
-//           extraFlags: [],
-//           services: [],
-//           tasks: [
-//             {
-//               name: "task-a",
-//               args: [],
-//               artifacts: [],
-//               cacheResult: true,
-//               dependencies: [],
-//               disabled: false,
-//               env: {},
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               timeout: null,
-//               volumes: [
-//                 {
-//                   name: "test",
-//                   containerPath: "/",
-//                   module: "volume-module",
-//                 },
-//               ],
-//             },
-//           ],
-//           tests: [],
-//         },
-
-//         serviceConfigs: [],
-//         taskConfigs: [],
-//         testConfigs: [],
-//       }
-
-//       const result = await configure({ ctx, moduleConfig, log })
-
-//       expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
-//       expect(result.moduleConfig.taskConfigs[0].dependencies).to.eql(["volume-module"])
-//     })
-
-//     it("should add test volume modules as build and runtime dependencies", async () => {
-//       const moduleConfig: ContainerModuleConfig = {
-//         allowPublish: false,
-//         build: {
-//           dependencies: [],
-//         },
-//         disabled: false,
-//         apiVersion: DEFAULT_API_VERSION,
-//         name: "module-a",
-//         path: modulePath,
-//         type: "container",
-
-//         spec: {
-//           build: {
-//             dependencies: [],
-//             timeout: DEFAULT_BUILD_TIMEOUT,
-//           },
-//           buildArgs: {},
-//           extraFlags: [],
-//           services: [],
-//           tasks: [],
-//           tests: [
-//             {
-//               name: "test-a",
-//               args: [],
-//               artifacts: [],
-//               dependencies: [],
-//               disabled: false,
-//               env: {},
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               timeout: null,
-//               volumes: [
-//                 {
-//                   name: "test",
-//                   containerPath: "/",
-//                   module: "volume-module",
-//                 },
-//               ],
-//             },
-//           ],
-//         },
-
-//         serviceConfigs: [],
-//         taskConfigs: [],
-//         testConfigs: [],
-//       }
-
-//       const result = await configure({ ctx, moduleConfig, log })
-
-//       expect(result.moduleConfig.build.dependencies).to.eql([{ name: "volume-module", copy: [] }])
-//       expect(result.moduleConfig.testConfigs[0].dependencies).to.eql(["volume-module"])
-//     })
-
-//     it("should fail with invalid port in ingress spec", async () => {
-//       const moduleConfig: ContainerModuleConfig = {
-//         allowPublish: false,
-//         build: {
-//           dependencies: [],
-//         },
-//         disabled: false,
-//         apiVersion: DEFAULT_API_VERSION,
-//         name: "module-a",
-//         path: modulePath,
-//         type: "test",
-
-//         spec: {
-//           build: {
-//             dependencies: [],
-//             timeout: DEFAULT_BUILD_TIMEOUT,
-//           },
-//           buildArgs: {},
-//           extraFlags: [],
-//           services: [
-//             {
-//               name: "service-a",
-//               annotations: {},
-//               args: ["echo"],
-//               dependencies: [],
-//               daemon: false,
-//               disabled: false,
-//               ingresses: [
-//                 {
-//                   annotations: {},
-//                   path: "/",
-//                   port: "bla",
-//                 },
-//               ],
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               env: {},
-//               ports: [],
-//               replicas: 1,
-//               volumes: [],
-//               deploymentStrategy: defaultDeploymentStrategy,
-//             },
-//           ],
-//           tasks: [
-//             {
-//               name: "task-a",
-//               args: ["echo"],
-//               artifacts: [],
-//               cacheResult: true,
-//               dependencies: [],
-//               disabled: false,
-//               env: {},
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               timeout: null,
-//               volumes: [],
-//             },
-//           ],
-//           tests: [
-//             {
-//               name: "unit",
-//               args: ["echo", "OK"],
-//               artifacts: [],
-//               dependencies: [],
-//               disabled: false,
-//               env: {},
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               timeout: null,
-//               volumes: [],
-//             },
-//           ],
-//         },
-
-//         serviceConfigs: [],
-//         taskConfigs: [],
-//         testConfigs: [],
-//       }
-
-//       await expectError(() => configure({ ctx, moduleConfig, log }), "configuration")
-//     })
-
-//     it("should fail with invalid port in httpGet healthcheck spec", async () => {
-//       const moduleConfig: ContainerModuleConfig = {
-//         allowPublish: false,
-//         build: {
-//           dependencies: [],
-//         },
-//         disabled: false,
-//         apiVersion: DEFAULT_API_VERSION,
-//         name: "module-a",
-//         path: modulePath,
-//         type: "test",
-
-//         spec: {
-//           build: {
-//             dependencies: [],
-//             timeout: DEFAULT_BUILD_TIMEOUT,
-//           },
-//           buildArgs: {},
-//           extraFlags: [],
-//           services: [
-//             {
-//               name: "service-a",
-//               annotations: {},
-//               args: ["echo"],
-//               dependencies: [],
-//               daemon: false,
-//               disabled: false,
-//               ingresses: [],
-//               env: {},
-//               healthCheck: {
-//                 httpGet: {
-//                   path: "/",
-//                   port: "bla",
-//                 },
-//               },
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               ports: [],
-//               replicas: 1,
-//               volumes: [],
-//               deploymentStrategy: defaultDeploymentStrategy,
-//             },
-//           ],
-//           tasks: [
-//             {
-//               name: "task-a",
-//               args: ["echo"],
-//               artifacts: [],
-//               cacheResult: true,
-//               dependencies: [],
-//               disabled: false,
-//               env: {},
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               timeout: null,
-//               volumes: [],
-//             },
-//           ],
-//           tests: [],
-//         },
-
-//         serviceConfigs: [],
-//         taskConfigs: [],
-//         testConfigs: [],
-//       }
-
-//       await expectError(() => configure({ ctx, moduleConfig, log }), "configuration")
-//     })
-
-//     it("should fail with invalid port in tcpPort healthcheck spec", async () => {
-//       const moduleConfig: ContainerModuleConfig = {
-//         allowPublish: false,
-//         build: {
-//           dependencies: [],
-//         },
-//         disabled: false,
-//         apiVersion: DEFAULT_API_VERSION,
-//         name: "module-a",
-//         path: modulePath,
-//         type: "test",
-
-//         spec: {
-//           build: {
-//             dependencies: [],
-//             timeout: DEFAULT_BUILD_TIMEOUT,
-//           },
-//           buildArgs: {},
-//           extraFlags: [],
-//           services: [
-//             {
-//               name: "service-a",
-//               annotations: {},
-//               args: ["echo"],
-//               dependencies: [],
-//               daemon: false,
-//               disabled: false,
-//               ingresses: [],
-//               env: {},
-//               healthCheck: {
-//                 tcpPort: "bla",
-//               },
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               ports: [],
-//               replicas: 1,
-//               volumes: [],
-//               deploymentStrategy: defaultDeploymentStrategy,
-//             },
-//           ],
-//           tasks: [
-//             {
-//               name: "task-a",
-//               args: ["echo"],
-//               artifacts: [],
-//               cacheResult: true,
-//               dependencies: [],
-//               disabled: false,
-//               env: {},
-//               cpu: defaultCpu,
-//               memory: defaultMemory,
-//               timeout: null,
-//               volumes: [],
-//             },
-//           ],
-//           tests: [],
-//         },
-
-//         serviceConfigs: [],
-//         taskConfigs: [],
-//         testConfigs: [],
-//       }
-
-//       await expectError(() => configure({ ctx, moduleConfig, log }), "configuration")
-//     })
-//   })
 
 //   describe("getBuildStatus", () => {
 //     it("should return ready:true if build exists locally", async () => {
