@@ -18,7 +18,7 @@ import { dedent } from "../../util/string"
 import { exec, ExecOpts, runScript, sleep } from "../../util/util"
 import { RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
-import { providerConfigBaseSchema } from "../../config/provider"
+import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
 import execa, { ExecaError, ExecaChildProcess } from "execa"
 import chalk = require("chalk")
 import { renderMessageWithDivider } from "../../logger/util"
@@ -51,6 +51,10 @@ import { BuildStatus } from "../../plugin/handlers/Build/get-status"
 import { Resolved } from "../../actions/types"
 
 const persistentLocalProcRetryIntervalMs = 2500
+
+export interface ExecProviderConfig extends GenericProviderConfig {}
+
+export type ExecProvider = Provider<ExecProviderConfig>
 
 interface ExecProc {
   key: string
