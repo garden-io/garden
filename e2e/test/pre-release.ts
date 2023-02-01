@@ -44,7 +44,7 @@ describe("PreReleaseTests", () => {
   const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : username.sync()
 
   if (!project) {
-    throw new Error(`Must specify project name with --project parameter`)
+    throw new Error("Must specify project name with --project parameter")
   }
 
   function getProjectNamespaces() {
@@ -138,7 +138,7 @@ describe("PreReleaseTests", () => {
           const workflowName = "full-test"
           const logEntries = await runWithEnv(["run-workflow", workflowName])
           expect(
-            searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, `g`)),
+            searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, "g")),
             `expected to find "Workflow ${workflowName} completed successfully." in log output.`
           ).to.eql("passed")
         })

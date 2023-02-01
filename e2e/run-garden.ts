@@ -27,14 +27,12 @@ export const showLog = !!parsedArgs.showlog
 const DEFAULT_ARGS = ["--logger-type", "json", "--log-level", "silly"]
 const logActivityIntervalMsec = 60 * 1000 // How frequently to log a message while waiting for proc to finish
 
-// tslint:disable: no-console
+/* eslint-disable no-console */
 
 export function waitingForChangesStep(): WatchTestStep {
   return {
     description: "tasks completed, waiting for code changes",
-    condition: async (logEntries: JsonLogEntry[]) => {
-      return searchLog(logEntries, /Waiting for code changes/)
-    },
+    condition: async (logEntries: JsonLogEntry[]) => searchLog(logEntries, /Waiting for code changes/),
   }
 }
 
@@ -88,9 +86,7 @@ export function touchFileStep(path: string, description: string): WatchTestStep 
 export function commandReloadedStep(): WatchTestStep {
   return {
     description: "command reloaded",
-    condition: async (logEntries: JsonLogEntry[]) => {
-      return searchLog(logEntries, /Configuration changed, reloading/)
-    },
+    condition: async (logEntries: JsonLogEntry[]) => searchLog(logEntries, /Configuration changed, reloading/),
   }
 }
 
@@ -165,9 +161,9 @@ export type WatchTestConditionState = "waiting" | "passed" | "failed"
 
 /**
  * Return values:
- *   "waiting": the condition hasn't passed or failed yet
- *   "passed": condition has passed (proceed to next step)
- *   "failed": condition has failed (terminates the watch command)
+ * - "waiting": the condition hasn't passed or failed yet
+ * - "passed": condition has passed (proceed to next step)
+ * - "failed": condition has failed (terminates the watch command)
  */
 export type WatchTestCondition = (logEntries: JsonLogEntry[]) => Promise<WatchTestConditionState>
 
@@ -256,7 +252,7 @@ export class GardenWatch {
     this.proc.on("exit", closeHandler)
 
     this.proc.on("disconnect", () => {
-      error = new Error(`Disconnected from process`)
+      error = new Error("Disconnected from process")
       this.running = false
     })
 
