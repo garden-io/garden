@@ -21,7 +21,7 @@ jobs:
     - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e
       if: github.event.release.prerelease != true
     - name: Use Node.js 12.x
-      uses: actions/setup-node@f1f314fca9dfce2769ece7d933488f076716723e
+      uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c
       if: github.event.release.prerelease != true
       with:
         node-version: 12.x
