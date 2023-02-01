@@ -53,6 +53,14 @@ orbs:
       tags:
         ignore: /.*/
 
+  # Only run jobs on 0.13 (bonsai)
+  only-bonsai: &only-bonsai
+    filters:
+      branches:
+        only: "0.13"
+      tags:
+        ignore: /.*/
+
   # Only run on versioned tags
   only-tags: &only-tags
     filters:
@@ -301,10 +309,14 @@ jobs:
       - build_dist
   build-dist-edge:
     <<: *node-config
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
     resource_class: large
     steps:
       - build_dist:
-          version: edge
+          version: <<parameters.version>>
 
   lint:
     <<: *node-config
@@ -554,6 +566,10 @@ jobs:
               ${VERSION} ./dist
   release-service-dist-edge:
     <<: *release-config
+    parameters:
+      version:
+        description: The version tag/name to set
+        type: string
     steps:
       - *attach-workspace
       - run:
@@ -563,7 +579,7 @@ jobs:
             # using the gh cli, and then we upload the artifacts using ghr.
             # We do not create a new release here, as this would spam our fellow coder's
             # GitHub timelines
-            VERSION=edge
+            VERSION=<<parameters.version>>
 
             # Update the release hash
             gh release edit ${VERSION} \
@@ -1107,6 +1123,12 @@ workflows:
 
       - build-dist-edge:
           <<: *only-main
+          version: edge
+          requires: [build]
+      - build-dist-edge:
+          <<: *only-bonsai
+          name: build-dist-edge-bonsai
+          version: edge-bonsai
           requires: [build]
       - release-service-docker:
           <<: *only-main
@@ -1114,7 +1136,13 @@ workflows:
           requires: [build-dist-edge]
       - release-service-dist-edge:
           <<: *only-main
+          version: edge
           requires: [build-dist-edge]
+      - release-service-dist-edge:
+          <<: *only-bonsai
+          name: release-service-dist-edge-bonsai
+          version: edge-bonsai
+          requires: [build-dist-edge-bonsai]
 
   tags:
     jobs:
