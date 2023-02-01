@@ -110,7 +110,7 @@ function makeModuleCommand(commandName: string): PluginCommand {
 
 function findAction(graph: ConfigGraph, name: string): TerraformDeploy {
   if (!name) {
-    throw new ParameterError(`The first command argument must be an action name.`, { name })
+    throw new ParameterError("The first command argument must be an action name.", { name })
   }
 
   const action = graph.getDeploy(name)

@@ -219,7 +219,7 @@ export const gardenPlugin = () =>
               return {
                 suggestions: [
                   {
-                    description: `based on found .tf files`,
+                    description: "based on found .tf files",
                     module: {
                       type: "terraform",
                       name,
