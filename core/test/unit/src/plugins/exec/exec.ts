@@ -36,10 +36,11 @@ import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfi
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
 import { PluginContext } from "../../../../../src/plugin-context"
-import { convertModules, findGroupConfig } from "../../../../../src/resolve-module"
+import { convertModules, findActionConfigInGroup, findGroupConfig } from "../../../../../src/resolve-module"
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa from "execa"
+import { BuildActionConfig } from "../../../../../src/actions/build"
 
 describe("exec plugin", () => {
   const testProjectRoot = getDataDir("test-project-exec")
@@ -595,7 +596,33 @@ describe("exec plugin", () => {
     })
 
     it("adds a Build action if build.command is set", async () => {
-      throw "TODO"
+      const moduleA = "module-a"
+      const buildCommand = ["echo", moduleA]
+      tmpGarden.setActionConfigs([
+        makeModuleConfig(tmpGarden.projectRoot, {
+          name: moduleA,
+          type: "exec",
+          spec: {
+            build: {
+              command: buildCommand,
+            },
+          },
+        }),
+      ])
+      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const module = tmpGraph.getModule(moduleA)
+
+      const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+      expect(result.groups).to.exist
+
+      const group = findGroupConfig(result, moduleA)!
+      expect(group.actions).to.exist
+      expect(group.actions.length).to.eql(1)
+
+      const build = findActionConfigInGroup(group, "Build", moduleA) as BuildActionConfig
+      expect(build).to.exist
+      expect(build.name).to.eql(moduleA)
+      expect(build.spec.command).to.eql(buildCommand)
     })
 
     it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
