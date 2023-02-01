@@ -1,0 +1,43 @@
+name: GitHub Action Lint
+on:
+  pull_request:
+    paths:
+      - ".github/**/*"
+
+
+
+permissions:
+  contents: read
+
+env:
+  ACTIONLINT_VERSION: "1.6.17"
+  ACTIONLINT_SHA256: "a4641cd9b81e06070936fa017feb1f4f69cec0ceed41f00072e94910beb6bdd7"
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518 # 2.1.0
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            objects.githubusercontent.com:443
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # 3.0.2
+      - name: Download actionlint
+        run: |
+          curl -s -L -o actionlint.tar.gz "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          if ! sha256sum actionlint.tar.gz | grep "${ACTIONLINT_SHA256}"; then
+            echo "Checksum verification failed. Please make sure that nobody tampered with the releases of github.com/rhysd/actionlint"
+            echo "Actual checksum: "
+            sha256sum actionlint.tar.gz
+            exit 1
+          fi
+          tar -ztvf actionlint.tar.gz
+          tar xvzf actionlint.tar.gz actionlint
+        shell: bash
+      - name: Check workflow files
+        # NOTE(steffen): The ignore is needed until https://github.com/rhysd/actionlint/pull/190 is merged
+        run: ./actionlint -color
+        shell: bash
