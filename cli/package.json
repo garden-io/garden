@@ -45,11 +45,6 @@
     "postinstall-postinstall": "^2.1.0",
     "prettier": "^2.1.0",
     "split2": "^3.2.2",
-    "tslint": "^6.1.3",
-    "tslint-config-prettier": "^1.18.0",
-    "tslint-microsoft-contrib": "^6.2.0",
-    "tslint-no-unused": "^0.2.0-alpha.1",
-    "tslint-plugin-prettier": "^2.3.0",
     "typescript": "^4.7.4",
     "username": "^5.1.0"
   },
@@ -60,7 +55,7 @@
     "clean": "shx rm -rf build dist",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/generate-docs.js",
-    "lint": "tslint -p .",
+    "lint": "eslint -c .eslintrc.js --ext .ts src/",
     "postinstall": "patch-package",
     "test": "mocha"
   },

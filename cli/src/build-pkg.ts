@@ -29,7 +29,7 @@ const distPath = resolve(repoRoot, "dist")
 // Allow larger heap size than default
 const nodeOptions = ["max-old-space-size=4096"]
 
-// tslint:disable: no-console
+/* eslint-disable no-console */
 
 interface TargetHandlerParams {
   targetName: string
@@ -301,7 +301,7 @@ async function tarball(targetName: string, version: string): Promise<void> {
       hash.end()
       const sha256 = hash.read()
 
-      // tslint:disable-next-line: no-floating-promises
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       writeFile(hashPath, sha256 + "\n")
         .catch(reject)
         .then(_resolve)
