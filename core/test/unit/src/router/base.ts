@@ -432,15 +432,11 @@ describe("BaseActionRouter", () => {
   })
 
   describe("validateActionOutputs", () => {
-    let graph: ConfigGraph
-    let log: LogEntry
     let resolvedBuildAction: ResolvedBuildAction
     let testPlugins: GardenPlugin[]
 
     before(async () => {
       const data = await getRouterTestData()
-      graph = data.graph
-      log = data.log
       testPlugins = [data.plugins.basePlugin, data.plugins.testPluginA]
       resolvedBuildAction = data.resolvedBuildAction
     })

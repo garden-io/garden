@@ -95,23 +95,19 @@ function getRouterUnitTestPlugins() {
   const baseOutputsSchema = () => joi.object().keys({ base: joi.string() })
   const testOutputSchema = () => baseOutputsSchema().keys({ foo: joi.string() })
 
-  const staticOutputsSchema = joi
-    .object()
-    .keys({
-      staticKey: joi.string()
-    })
+  const staticOutputsSchema = joi.object().keys({
+    staticKey: joi.string(),
+  })
 
-  const runtimeOutputsSchema = joi
-    .object()
-    .keys({
-      runtimeKey: joi.string(),
-      base: joi.string(),
-      foo: joi.string(),
-      plugin: joi.any().optional(),
-      resolvedEnvName: joi.any().optional(),
-      resolvedActionVersion: joi.any().optional(),
-      isTestPluginABuildActionBuildHandlerReturn: joi.any().optional()
-    })
+  const runtimeOutputsSchema = joi.object().keys({
+    runtimeKey: joi.string(),
+    base: joi.string(),
+    foo: joi.string(),
+    plugin: joi.any().optional(),
+    resolvedEnvName: joi.any().optional(),
+    resolvedActionVersion: joi.any().optional(),
+    isTestPluginABuildActionBuildHandlerReturn: joi.any().optional(),
+  })
 
   const basePlugin = createGardenPlugin({
     name: "base",
