@@ -22,6 +22,7 @@ import {
   spawn,
   relationshipClasses,
   safeDumpYaml,
+  isValidDateInstance,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
 import { splitFirst } from "../../../../src/util/util"
@@ -385,6 +386,28 @@ describe("util", () => {
             c: c
         d: d\n
       `)
+    })
+  })
+  describe("isValidDateInstance", () => {
+    it("should validate a date instance and return the instance or undefined", () => {
+      const validA = new Date()
+      const validB = new Date("2023-02-01T19:46:42.266Z")
+      const validC = new Date(1675280826163)
+
+      // Tricking the compiler. We need to test for this because
+      // date strings can be created from runtime values that we don't validate.
+      const undef = undefined as any
+      const invalidA = new Date(undef)
+      const invalidB = new Date("foo")
+      const invalidC = new Date("")
+
+      expect(isValidDateInstance(validA)).to.be.true
+      expect(isValidDateInstance(validB)).to.be.true
+      expect(isValidDateInstance(validC)).to.be.true
+
+      expect(isValidDateInstance(invalidA)).to.be.false
+      expect(isValidDateInstance(invalidB)).to.be.false
+      expect(isValidDateInstance(invalidC)).to.be.false
     })
   })
 })
