@@ -8,11 +8,15 @@
 
 import td from "testdouble"
 
-import { Garden } from "../../../../../src/garden"
 import { PluginContext } from "../../../../../src/plugin-context"
-import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
-import { getDataDir, makeTestGarden } from "../../../../helpers"
+import { gardenPlugin, ContainerProvider, convertContainerModule } from "../../../../../src/plugins/container/container"
+import { getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
 import { LogEntry } from "../../../../../src/logger/log-entry"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { GardenModule } from "../../../../../src/types/module"
+import { expect } from "chai"
+import { ContainerBuildActionSpec, ContainerModule } from "../../../../../src/plugins/container/moduleConfig"
+import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
 // import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 // import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
 // import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
@@ -61,19 +65,18 @@ describe("plugins.container", () => {
     testConfigs: [],
   }
   */
-  let garden: Garden
-  // eslint-disable-next-line 
+  let garden: TestGarden
   let ctx: PluginContext
-  // eslint-disable-next-line 
   let log: LogEntry
   let containerProvider: ContainerProvider
+  let graph: ConfigGraph
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
     containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
-
+    graph = await garden.getConfigGraph({ log, emit: false })
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
   })
 
@@ -82,20 +85,72 @@ describe("plugins.container", () => {
   })
 
   describe("convertContainerModule", () => {
+    const getModuleConvertBaseParams = (module: GardenModule) => ({
+      baseFields: {
+        copyFrom: [],
+        disabled: false,
+        internal: {
+          basePath: "module-a",
+        },
+      },
+      convertBuildDependency: () => "buildDep",
+      convertRuntimeDependencies: () => ["runtimeDep"],
+      convertTestName: () => "testName",
+      ctx,
+      dummyBuild: undefined,
+      log,
+      module,
+      prepareRuntimeDependencies: () => ["preopRuntimeDep"],
+      services: [],
+      tasks: [],
+      tests: [],
+    })
     it("creates a Build action if there is a Dockerfile detected", async () => {
-      throw "TODO"
+      const module = graph.getModule("module-a")
+      const result = await convertContainerModule(getModuleConvertBaseParams(module))
+      const build = result.group.actions.find((a) => a.kind === "Build")!
+      expect(build).to.exist
+      expect(build.type).to.be.eql("container")
     })
 
     it("creates a Build action if there is a Dockerfile explicitly configured", async () => {
-      throw "TODO"
+      const module = graph.getModule("module-a") as ContainerModule
+      module._config.spec.dockerfile = "Dockerfile"
+      const result = await convertContainerModule(getModuleConvertBaseParams(module))
+      const build = result.group.actions.find((a) => a.kind === "Build")!
+      expect(build).to.exist
+      expect(build.type).to.be.eql("container")
     })
 
     it("returns the dummy Build action if no Dockerfile and an exec Build is needed", async () => {
-      throw "TODO"
+      const module = graph.getModule("module-a") as ContainerModule
+      module.version.files.pop() // remove automatically picked up Dockerfile
+      const dummyBuild: ExecBuildConfig = {
+        internal: {
+          basePath: ".",
+        },
+        kind: "Build",
+        name: "dummyBuild",
+        spec: {
+          env: {},
+        },
+        type: "exec",
+      }
+      const result = await convertContainerModule({ ...getModuleConvertBaseParams(module), dummyBuild })
+      const build = result.group.actions.find((a) => a.kind === "Build")!
+      expect(build).to.exist
+      expect(build.type).to.be.eql("exec")
+      expect(build.name).to.be.eql("dummyBuild")
     })
 
-    it("sets spec.image from module image field", async () => {
-      throw "TODO"
+    it("sets spec.localId from module image field", async () => {
+      const module = graph.getModule("module-a") as ContainerModule
+      module.spec.image = "customImage"
+      const result = await convertContainerModule(getModuleConvertBaseParams(module))
+      const build = result.group.actions.find((a) => a.kind === "Build")!
+      expect(build).to.exist
+      expect(build.type).to.be.eql("container")
+      expect((<ContainerBuildActionSpec>build.spec).localId).to.be.eql("customImage")
     })
   })
 })
