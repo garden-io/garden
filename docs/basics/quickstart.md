@@ -22,7 +22,7 @@ In the guide we'll:
 You need the following dependencies on your local machine to use Garden:
 
 * Git (v2.14 or newer)
-* rsync (v3.1.0 or newer)
+* _[Windows only]_ rsync (v3.1.0 or newer)
 
 Run `git version` and `rsync --version` to verify that a recent enough version of Git and rsync is installed.
 

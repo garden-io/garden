@@ -37,8 +37,8 @@ export interface SyncParams {
 /**
  * Lazily construct a directory of modules inside which all build steps are performed.
  *
- * NOTE: This base implementation is still considered experimental! See rsync.ts for the BuildStagingRsync class that is
- * used by default.
+ * NOTE: This base implementation still has known issues on Windows!
+ * See rsync.ts for the BuildStagingRsync class that is used by default on Windows.
  */
 @Profile()
 export class BuildStaging {

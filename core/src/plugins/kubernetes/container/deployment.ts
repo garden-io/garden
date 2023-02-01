@@ -867,15 +867,6 @@ export function configureVolumes(
   podSpec.containers[0].volumeMounts = volumeMounts
 }
 
-/**
- * Removes leading slash, and ensures there's exactly one trailing slash.
- *
- * converts /src/foo into src/foo/
- */
-export function rsyncTargetPath(path: string) {
-  return path.replace(/^\/*/, "").replace(/\/*$/, "/")
-}
-
 export const deleteContainerDeploy: DeployActionHandler<"delete", ContainerDeployAction> = async (params) => {
   const { ctx, log, action } = params
   const k8sCtx = <KubernetesPluginContext>ctx

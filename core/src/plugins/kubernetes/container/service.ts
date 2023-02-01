@@ -63,7 +63,3 @@ export async function createServiceResources(
 
   return [createServiceResource(action)]
 }
-
-export function rsyncPortName(serviceName: string) {
-  return `garden-rsync-${serviceName}`
-}
