@@ -18,7 +18,7 @@ jobs:
       run: |
         echo This is running against a pre-release.
         echo Skipping all the next steps.
-    - uses: actions/checkout@50fbc622fc4ef5163becd7fab6573eac35f8462e
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       if: github.event.release.prerelease != true
     - name: Use Node.js 12.x
       uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c
