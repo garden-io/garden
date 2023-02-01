@@ -74,7 +74,7 @@ export const toolSchema = () =>
       .string()
       .allow("library", "binary")
       .description(
-        `Set this to "library" if the tool is not an executable. Set to "binary" if it should be exposed as a command.`
+        "Set this to \"library\" if the tool is not an executable. Set to \"binary\" if it should be exposed as a command."
       ),
     builds: joi.array().items(toolBuildSchema()).required().description(deline`
         List of platform and architecture builds, with URLs and (if applicable) archive extraction information.

@@ -14,9 +14,7 @@ export const clusterInit: PluginCommand = {
   name: "cluster-init",
   description: "Initialize or update cluster-wide Garden services.",
 
-  title: ({ environmentName }) => {
-    return `Initializing/updating cluster-wide services for ${chalk.white(environmentName)} environment`
-  },
+  title: ({ environmentName }) => `Initializing/updating cluster-wide services for ${chalk.white(environmentName)} environment`,
 
   handler: async ({ ctx, log }) => {
     const status = await getEnvironmentStatus({ ctx, log })

@@ -110,15 +110,13 @@ export class UsersListCommand extends Command<{}, Opts> {
     log.debug(`Found ${filtered.length} users that match filters`)
 
     const heading = ["Name", "ID", `${vcsProviderTitle} Username`, "Groups", "Created At"].map((s) => chalk.bold(s))
-    const rows: string[][] = filtered.map((u) => {
-      return [
+    const rows: string[][] = filtered.map((u) => [
         chalk.cyan.bold(u.name),
         String(u.id),
         u.vcsUsername || "",
         u.groups.map((g) => g.name).join(", "),
         new Date(u.createdAt).toUTCString(),
-      ]
-    })
+      ])
 
     log.info(renderTable([heading].concat(rows)))
 

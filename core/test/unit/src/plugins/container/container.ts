@@ -62,9 +62,9 @@ describe("plugins.container", () => {
   }
   */
   let garden: Garden
-  // tslint:disable-next-line: no-unused
+  // eslint-disable-next-line 
   let ctx: PluginContext
-  // tslint:disable-next-line: no-unused
+  // eslint-disable-next-line 
   let log: LogEntry
   let containerProvider: ContainerProvider
 

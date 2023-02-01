@@ -23,13 +23,11 @@ import { gardenEnv } from "../constants"
 import { envSupportsEmoji } from "../logger/util"
 
 export const OUTPUT_RENDERERS = {
-  json: (data: DeepPrimitiveMap) => {
-    return stringify(data, null, 2)
-  },
-  yaml: (data: DeepPrimitiveMap) => {
+  json: (data: DeepPrimitiveMap) => stringify(data, null, 2),
+  yaml: (data: DeepPrimitiveMap) =>
     // Convert data to JSON object so that `safeDumpYaml` renders any errors.
-    return safeDumpYaml(JSON.parse(JSON.stringify(data)), { noRefs: true })
-  },
+     safeDumpYaml(JSON.parse(JSON.stringify(data)), { noRefs: true })
+  ,
 }
 
 export const validDurationUnits = ["d", "h", "m", "s"]

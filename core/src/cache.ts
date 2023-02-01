@@ -32,35 +32,35 @@ interface ContextNode {
 }
 
 /**
- *  A simple in-memory cache that additionally indexes keys in a tree by a seperate context key, so that keys
- *  can be invalidated based on surrounding context.
+ * A simple in-memory cache that additionally indexes keys in a tree by a seperate context key, so that keys
+ * can be invalidated based on surrounding context.
  *
- *  For example, we can cache the version of a directory path, and then invalidate every cached key under a
- *  parent path:
+ * For example, we can cache the version of a directory path, and then invalidate every cached key under a
+ * parent path:
  *
- *  ```
- *  const cache = new TreeCache()
+ * ```
+ * const cache = new TreeCache()
  *
- *  # The context parameter (last parameter) here is the path to the module source
- *  cache.set(["modules", "my-module-a"], module, ["modules", "module-path-a"])
- *  cache.set(["modules", "my-module-b"], module, ["modules", "module-path-b"])
+ * # The context parameter (last parameter) here is the path to the module source
+ * cache.set(["modules", "my-module-a"], module, ["modules", "module-path-a"])
+ * cache.set(["modules", "my-module-b"], module, ["modules", "module-path-b"])
  *
- *  # Invalidates the cache for module-a
- *  cache.invalidate(["modules", "module-path-a"])
+ * # Invalidates the cache for module-a
+ * cache.invalidate(["modules", "module-path-a"])
  *
- *  # Also invalidates the cache for module-a
- *  cache.invalidateUp(["modules", "module-path-a", "subdirectory"])
+ * # Also invalidates the cache for module-a
+ * cache.invalidateUp(["modules", "module-path-a", "subdirectory"])
  *
- *  # Invalidates the cache for both modules
- *  cache.invalidateDown(["modules"])
- *  ```
+ * # Invalidates the cache for both modules
+ * cache.invalidateDown(["modules"])
+ * ```
  *
- *  This is useful, for example, when listening for filesystem events to make sure cached items stay in
- *  sync after making changes to sources.
+ * This is useful, for example, when listening for filesystem events to make sure cached items stay in
+ * sync after making changes to sources.
  *
- *  A single cache entry can also have multiple invalidation contexts, which is helpful when a cache key
- *  can be invalidated by changes to multiple contexts (say for a module version, which should also be
- *  invalidated when dependencies are updated).
+ * A single cache entry can also have multiple invalidation contexts, which is helpful when a cache key
+ * can be invalidated by changes to multiple contexts (say for a module version, which should also be
+ * invalidated when dependencies are updated).
  *
  */
 export class TreeCache {
@@ -78,14 +78,14 @@ export class TreeCache {
 
   set(log: LogEntry, key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
     if (key.length === 0) {
-      throw new ParameterError(`Cache key must have at least one part`, {
+      throw new ParameterError("Cache key must have at least one part", {
         key,
         contexts,
       })
     }
 
     if (contexts.length === 0) {
-      throw new ParameterError(`Must specify at least one context`, {
+      throw new ParameterError("Must specify at least one context", {
         key,
         contexts,
       })
@@ -111,7 +111,7 @@ export class TreeCache {
       let node = this.contextTree
 
       if (context.length === 0) {
-        throw new ParameterError(`Context key must have at least one part`, {
+        throw new ParameterError("Context key must have at least one part", {
           key,
           context,
         })

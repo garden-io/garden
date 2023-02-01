@@ -42,7 +42,7 @@ export class SecretsDeleteCommand extends Command<Args> {
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
     const secretsToDelete = (args.ids || []).map((id) => parseInt(id, 10))
     if (secretsToDelete.length === 0) {
-      throw new CommandError(`No secret IDs provided.`, {
+      throw new CommandError("No secret IDs provided.", {
         args,
       })
     }

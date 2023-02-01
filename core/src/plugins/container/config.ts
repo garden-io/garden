@@ -620,18 +620,18 @@ const containerPrivilegedSchema = () =>
     .boolean()
     .optional()
     .description(
-      `If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false.`
+      "If true, run the main container in privileged mode. Processes in privileged containers are essentially equivalent to root on the host. Defaults to false."
     )
 
 const containerAddCapabilitiesSchema = () =>
-  joi.sparseArray().items(joi.string()).optional().description(`POSIX capabilities to add when running the container.`)
+  joi.sparseArray().items(joi.string()).optional().description("POSIX capabilities to add when running the container.")
 
 const containerDropCapabilitiesSchema = () =>
   joi
     .sparseArray()
     .items(joi.string())
     .optional()
-    .description(`POSIX capabilities to remove when running the container.`)
+    .description("POSIX capabilities to remove when running the container.")
 
 interface ContainerCommonRuntimeSpec {
   args: string[]

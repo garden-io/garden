@@ -150,7 +150,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
             users: userBatch,
             addToGroups,
           }
-          const res = await api.post<CreateUserBulkResponse>(`/users/bulk`, { body })
+          const res = await api.post<CreateUserBulkResponse>("/users/bulk", { body })
           const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResultApi[]
           results.push(...successes.map((s) => makeUserFromResponse(s)))
 

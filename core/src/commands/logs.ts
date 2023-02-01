@@ -146,17 +146,15 @@ export class LogsCommand extends Command<Args, Opts> {
     }
 
     if (tag && tag.length > 0) {
-      const parameterErrorMsg = `Unable to parse the given --tag flags. Format should be key=value.`
+      const parameterErrorMsg = "Unable to parse the given --tag flags. Format should be key=value."
       try {
-        tagFilters = tag.map((tagGroup: string) => {
-          return tagGroup.split(",").map((t: string) => {
+        tagFilters = tag.map((tagGroup: string) => tagGroup.split(",").map((t: string) => {
             const parsed = Object.entries(dotenv.parse(t))[0]
             if (!parsed) {
               throw new ParameterError(parameterErrorMsg, { tags: tag })
             }
             return parsed
-          })
-        })
+          }))
       } catch {
         throw new ParameterError(parameterErrorMsg, { tags: tag })
       }
@@ -205,12 +203,10 @@ export class LogsCommand extends Command<Args, Opts> {
         return true
       }
       // We OR together the filter results of each tag option instance.
-      return some(tagFilters, (andFilter: LogsTagAndFilter) => {
+      return some(tagFilters, (andFilter: LogsTagAndFilter) =>
         // We AND together the filter results within a given tag option instance.
-        return every(andFilter, ([key, value]: LogsTagFilter) => {
-          return isMatch(entry.tags?.[key] || "", value)
-        })
-      })
+         every(andFilter, ([key, value]: LogsTagFilter) => isMatch(entry.tags?.[key] || "", value))
+      )
     }
 
     const formatEntry = (entry: DeployLogEntry) => {

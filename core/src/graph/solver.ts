@@ -83,12 +83,12 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.lock = new AsyncLock()
 
     this.on("start", () => {
-      this.log.silly(`GraphSolver: start`)
+      this.log.silly("GraphSolver: start")
       this.emit("loop", {})
     })
 
     this.on("loop", () => {
-      this.log.silly(`GraphSolver: loop`)
+      this.log.silly("GraphSolver: loop")
       this.loop()
     })
   }
@@ -111,9 +111,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     return this.lock.acquire("solve", async () => {
       const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
-          tasks.map((t) => {
-            return this.requestTask({ solver: _this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
-          }),
+          tasks.map((t) => this.requestTask({ solver: _this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })),
           (r) => r.task.getKey()
         )
 

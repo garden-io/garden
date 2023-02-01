@@ -128,7 +128,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
         log.info(
           chalk.gray(
-            `Port forward: ` +
+            "Port forward: " +
               chalk.underline(proxy.localUrl) +
               ` → ${targetHost}:${proxy.spec.targetPort}` +
               (proxy.spec.name ? ` (${proxy.spec.name})` : "")

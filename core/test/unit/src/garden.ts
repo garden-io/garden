@@ -3824,7 +3824,7 @@ describe("Garden", () => {
       await expectError(() => garden.resolveModules({ log: garden.log }), {
         contains: [
           "Failed resolving one or more modules:",
-          // tslint:disable-next-line: max-line-length
+          // eslint-disable-next-line max-len
           "foo: Error validating configuration for module 'foo' (base schema from 'base' plugin): key .base is required",
         ],
       })

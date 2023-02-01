@@ -8,7 +8,7 @@
 
 export const rsyncPort = 873
 export const rsyncPortName = "garden-rsync"
-export const buildSyncVolumeName = `garden-sync`
+export const buildSyncVolumeName = "garden-sync"
 
 export const CLUSTER_REGISTRY_PORT = 5000
 export const CLUSTER_REGISTRY_DEPLOYMENT_NAME = "garden-docker-registry"

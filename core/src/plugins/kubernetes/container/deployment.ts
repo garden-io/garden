@@ -111,7 +111,7 @@ export async function startContainerDevSync({
     // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
     // it's not rendered.
     symbol: "info",
-    msg: chalk.grey(`Deploying in dev mode`),
+    msg: chalk.grey("Deploying in dev mode"),
   })
 
   const defaultNamespace = await getAppNamespace(ctx, log, ctx.provider)
@@ -305,7 +305,7 @@ export const deployContainerServiceBlueGreen = async (
       namespace,
       ctx,
       provider: k8sCtx.provider,
-      actionName: `Update service`,
+      actionName: "Update service",
       resources: [serviceManifest],
       log,
       timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
@@ -313,7 +313,7 @@ export const deployContainerServiceBlueGreen = async (
 
     // Clenup unused deployments:
     // as a feature we delete all the deployments which don't match any deployed Service.
-    log.verbose(`Cleaning up old workloads`)
+    log.verbose("Cleaning up old workloads")
     await deleteObjectsBySelector({
       ctx,
       log,
@@ -634,7 +634,7 @@ export async function createWorkloadManifest({
   if (enableLocalMode && localModeSpec) {
     // no op here, local mode will be configured later after all manifests are ready
   } else if (enableDevMode && devModeSpec) {
-    log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in dev mode`) })
+    log.debug({ section: action.key(), msg: chalk.gray("-> Configuring in dev mode") })
 
     const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
 

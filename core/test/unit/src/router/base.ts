@@ -143,7 +143,7 @@ describe("BaseActionRouter", () => {
 
     context("when no providers extend the action type with requested handler", () => {
       // TODO
-      // tslint:disable-next-line: max-line-length
+      // eslint-disable-next-line max-len
       // https://github.com/garden-io/garden/blob/bbe493b16baf35150e2a883bcb5613ef13d54dcd/core/test/unit/src/actions.ts#L1072
     })
 

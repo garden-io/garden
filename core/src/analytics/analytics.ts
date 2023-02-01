@@ -586,7 +586,7 @@ export class AnalyticsHandler {
   }
 
   /**
-   *  Tracks a Garden Module configuration error
+   * Tracks a Garden Module configuration error
    *
    * @param {string} moduleType The type of the module causing the configuration error
    * @returns

@@ -32,7 +32,7 @@ export class SortedStreamIntersection<T> extends Readable {
     this.started = false
   }
 
-  // tslint:disable-next-line: function-name
+  // eslint-disable-next-line
   _read() {
     if (!this.started) {
       this.start()
@@ -52,7 +52,7 @@ export class SortedStreamIntersection<T> extends Readable {
         this.lastValues[i] = value
 
         if (lastValue !== undefined && this.comparisonFn(lastValue, value) > 0) {
-          this.emit("error", new InternalError(`Received unordered stream`, { streamIndex: i }))
+          this.emit("error", new InternalError("Received unordered stream", { streamIndex: i }))
           return
         }
 

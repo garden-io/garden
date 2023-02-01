@@ -175,11 +175,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return result
     },
 
-    getPortForward: async (params) => {
-      return params.router.callHandler({ params, handlerType: "getPortForward" })
-    },
+    getPortForward: async (params) => params.router.callHandler({ params, handlerType: "getPortForward" }),
 
-    stopPortForward: async (params) => {
-      return params.router.callHandler({ params, handlerType: "stopPortForward" })
-    },
+    stopPortForward: async (params) => params.router.callHandler({ params, handlerType: "stopPortForward" }),
   })

@@ -73,7 +73,7 @@ export class LinkSourceCommand extends Command<Args> {
 
       throw new ParameterError(
         `Remote source ${chalk.underline(sourceName)} not found in project config.` +
-          ` Did you mean to use the "link module" command?`,
+          " Did you mean to use the \"link module\" command?",
         {
           availableRemoteSources,
           input: sourceName,

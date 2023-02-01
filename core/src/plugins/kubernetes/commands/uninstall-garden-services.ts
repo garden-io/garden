@@ -16,9 +16,7 @@ export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
   description: "Clean up all installed cluster-wide Garden services.",
 
-  title: ({ environmentName }) => {
-    return `Removing cluster-wide services for ${chalk.white(environmentName)} environment`
-  },
+  title: ({ environmentName }) => `Removing cluster-wide services for ${chalk.white(environmentName)} environment`,
 
   handler: async ({ ctx, log }) => {
     const k8sCtx = <KubernetesPluginContext>ctx

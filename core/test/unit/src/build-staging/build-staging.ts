@@ -386,7 +386,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
       const notCopiedPath = join(buildDirD, "B", "build", "unused.txt")
       expect(await pathExists(notCopiedPath)).to.eql(false)
     } catch (e) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(nodetree(buildStaging.buildDirPath))
       throw e
     }

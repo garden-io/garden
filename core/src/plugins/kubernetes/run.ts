@@ -96,9 +96,7 @@ export interface RunLogEntry {
   msg: string
 }
 
-export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, msg }: PodLogEntryConverterParams) => {
-  return { timestamp, msg }
-}
+export const makeRunLogEntry: PodLogEntryConverter<RunLogEntry> = ({ timestamp, msg }: PodLogEntryConverterParams) => ({ timestamp, msg })
 
 export const runContainerExcludeFields: (keyof V1Container)[] = ["readinessProbe", "livenessProbe", "startupProbe"]
 
@@ -443,6 +441,7 @@ async function runWithoutArtifacts({
 /**
  * Wraps a given {@code cmd} into a script to redirect its stdout and stderr to the same tmp file.
  * See https://stackoverflow.com/a/20564208
+ *
  * @param cmd the command to wrap
  */
 function getCommandExecutionScript(cmd: string[]) {
@@ -458,10 +457,11 @@ ${cmd.join(" ")}
 
 /**
  * For given {@code artifacts} prepares a script which will:
- *   1. Create temp directory in the container
- *   2. Create directories for each target, as necessary
- *   3. Recursively (and silently) copy all specified artifact files/directories into the temp directory
- *   4. Tarball the directory and pipe to stdout
+ * 1. Create temp directory in the container
+ * 2. Create directories for each target, as necessary
+ * 3. Recursively (and silently) copy all specified artifact files/directories into the temp directory
+ * 4. Tarball the directory and pipe to stdout
+ *
  * @param artifacts the artifacts to be processed
  */
 function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
@@ -767,7 +767,7 @@ export class PodRunner extends PodRunnerParams {
     const spec = params.pod.spec
 
     if (!spec.containers || spec.containers.length === 0) {
-      throw new PluginError(`Pod spec for PodRunner must contain at least one container`, {
+      throw new PluginError("Pod spec for PodRunner must contain at least one container", {
         spec,
       })
     }
@@ -1083,6 +1083,7 @@ export class PodRunner extends PodRunnerParams {
 
   /**
    * Sets TTY settings for Pod and creates it.
+   *
    * @throws {KubernetesError}
    */
   private async createPod({ log, tty }: { log: LogEntry; tty: boolean }) {
@@ -1126,9 +1127,7 @@ export class PodRunner extends PodRunnerParams {
       type: KnownErrorType
       detail: PodErrorDetails
     }
-    const isKnownError = (error: any): error is KnownError => {
-      return knownErrorTypes.includes(error.type) && !!error.detail
-    }
+    const isKnownError = (error: any): error is KnownError => knownErrorTypes.includes(error.type) && !!error.detail
 
     // Rethrow any unexpected/unknown error
     if (!isKnownError(err)) {

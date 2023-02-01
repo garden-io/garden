@@ -225,12 +225,12 @@ export class CloudApi {
     } else {
       // Refresh the token if it's invalid.
       if (!tokenIsValid) {
-        enterpriseLog?.debug({ msg: `Current auth token is invalid, refreshing` })
+        enterpriseLog?.debug({ msg: "Current auth token is invalid, refreshing" })
         try {
           // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
           await api.refreshToken(token!)
         } catch (err) {
-          enterpriseLog?.setError({ msg: `Invalid session`, append: true })
+          enterpriseLog?.setError({ msg: "Invalid session", append: true })
           enterpriseLog?.warn(deline`
           Your session is invalid and could not be refreshed. If you were previously logged
           in to another instance of ${distroName}, please log out first and then
@@ -241,7 +241,7 @@ export class CloudApi {
       }
 
       // Start refresh interval if using JWT
-      log.debug({ msg: `Starting refresh interval.` })
+      log.debug({ msg: "Starting refresh interval." })
       api.startInterval()
     }
 
@@ -286,7 +286,7 @@ export class CloudApi {
    * token and deletes all others.
    */
   static async getStoredAuthToken(log: LogEntry, globalConfigStore: GlobalConfigStore, domain: string) {
-    log.silly(`Retrieving client auth token config store`)
+    log.silly("Retrieving client auth token config store")
     return globalConfigStore.get("clientAuthTokens", domain)
   }
 
@@ -361,7 +361,7 @@ export class CloudApi {
     let response: ListProjectsResponse
 
     try {
-      response = await this.get<ListProjectsResponse>(`/projects`)
+      response = await this.get<ListProjectsResponse>("/projects")
     } catch (err) {
       this.log.debug(`Attempt to list all projects failed with ${err}`)
       throw err
@@ -401,7 +401,7 @@ export class CloudApi {
         importFromVcsProvider: false,
       }
 
-      response = await this.post<CreateProjectsForRepoResponse>(`/projects/`, {
+      response = await this.post<CreateProjectsForRepoResponse>("/projects/", {
         body: createRequest,
       })
     } catch (err) {
@@ -450,9 +450,7 @@ export class CloudApi {
 
       let cookies: any
       if (res.headers["set-cookie"] instanceof Array) {
-        cookies = res.headers["set-cookie"].map((cookieStr) => {
-          return Cookie.parse(cookieStr)
-        })
+        cookies = res.headers["set-cookie"].map((cookieStr) => Cookie.parse(cookieStr))
       } else {
         cookies = [Cookie.parse(res.headers["set-cookie"] || "")]
       }
@@ -465,7 +463,7 @@ export class CloudApi {
       }
       await CloudApi.saveAuthToken(this.log, this.globalConfigStore, tokenObj, this.domain)
     } catch (err) {
-      this.log.debug({ msg: `Failed to refresh the token.` })
+      this.log.debug({ msg: "Failed to refresh the token." })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
       throw new EnterpriseApiError(
         `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
@@ -524,9 +522,9 @@ export class CloudApi {
             if (error) {
               // Intentionally skipping search params in case they contain tokens or sensitive data.
               const href = options.url.origin + options.url.pathname
-              const description = retryDescription || `Request`
+              const description = retryDescription || "Request"
               retryLog = retryLog || this.log.debug("")
-              const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
+              const statusCodeDescription = error.code ? ` (status code ${error.code})` : ""
               retryLog.setState(deline`
                 ${description} failed with error ${error.message}${statusCodeDescription},
                 retrying (${retryCount}/${retryLimit}) (url=${href})
@@ -553,7 +551,7 @@ export class CloudApi {
     const res = await got<T>(url.href, requestOptions)
 
     if (!isObject(res.body)) {
-      throw new EnterpriseApiError(`Unexpected API response`, {
+      throw new EnterpriseApiError("Unexpected API response", {
         path,
         body: res?.body,
       })
@@ -649,7 +647,7 @@ export class CloudApi {
 
   async getProject(): Promise<CloudProject | undefined> {
     if (!this.projectId) {
-      this.log.debug(`Could not retrieve a project which has not yet been configured`)
+      this.log.debug("Could not retrieve a project which has not yet been configured")
       return
     }
 
@@ -674,7 +672,7 @@ export class CloudApi {
       return this._profile
     }
 
-    const res = await this.get<GetProfileResponse>(`/profile`)
+    const res = await this.get<GetProfileResponse>("/profile")
     this._profile = res.data
     return this._profile
   }

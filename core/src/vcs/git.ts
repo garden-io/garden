@@ -33,7 +33,7 @@ import AsyncLock from "async-lock"
 
 const gitConfigAsyncLock = new AsyncLock()
 
-const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline(`git submodule update --recursive`)}?`
+const submoduleErrorSuggestion = `Perhaps you need to run ${chalk.underline("git submodule update --recursive")}?`
 const hashConcurrencyLimit = 50
 const currentPlatformName = process.platform
 

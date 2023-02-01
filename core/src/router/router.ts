@@ -168,8 +168,7 @@ export class ActionRouter extends BaseRouter {
 
     const deploys = graph.getDeploys({ names })
 
-    const tasks = deploys.map((action) => {
-      return new DeleteDeployTask({
+    const tasks = deploys.map((action) => new DeleteDeployTask({
         garden: this.garden,
         graph,
         action,
@@ -181,8 +180,7 @@ export class ActionRouter extends BaseRouter {
         devModeDeployNames: [],
         localModeDeployNames: [],
         fromWatch: false,
-      })
-    })
+      }))
 
     const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true })
 

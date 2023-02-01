@@ -53,7 +53,7 @@ export function getExecuteTaskForAction<T extends Action>(
     return new test.TestTask({ ...baseParams, action })
   } else {
     // Shouldn't happen
-    throw new InternalError(`Unexpected action kind`, {})
+    throw new InternalError("Unexpected action kind", {})
   }
 }
 

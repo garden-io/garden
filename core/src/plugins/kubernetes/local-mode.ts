@@ -445,9 +445,8 @@ const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): str
   return !!retriesLeft ? `${retryingMsg}, ${retriesLeft} attempts left` : "no retries left"
 }
 
-const composeMessage = (processMessage: ProcessMessage, customMessage: string): string => {
-  return `[PID=${processMessage.pid}] ${customMessage}`
-}
+const composeMessage = (processMessage: ProcessMessage, customMessage: string): string =>
+  `[PID=${processMessage.pid}] ${customMessage}`
 
 const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage): string => {
   let message = composeMessage(processMessage, customMessage)
@@ -817,9 +816,9 @@ function composeSshTunnelProcessTree(
 
 /**
  * Configures the necessary port forwarding to replace a k8s service by a local one:
- *   1. Starts a local service if a corresponding command is provided in local mode config.
- *   2. Opens SSH tunnel between the local machine and the k8s resource.
- *   3. Starts reverse port forwarding from the proxy's containerPort to the local app port.
+ * 1. Starts a local service if a corresponding command is provided in local mode config.
+ * 2. Opens SSH tunnel between the local machine and the k8s resource.
+ * 3. Starts reverse port forwarding from the proxy's containerPort to the local app port.
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
   const { targetResource, action, namespace, log, containerName } = configParams
@@ -898,7 +897,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     status: "active",
     section,
     msg: chalk.gray(
-      `Starting the process tree for the local mode ssh tunnels:\n` +
+      "Starting the process tree for the local mode ssh tunnels:\n" +
         `${compositeSshTunnel.renderProcessTree(sshTunnelCmdRenderer)}`
     ),
   })

@@ -366,21 +366,21 @@ export class Logger implements LogNode {
 
   getLogEntries(): LogEntry[] {
     if (!this.storeEntries) {
-      throw new InternalError(`Cannot get entries when storeEntries=false`, {})
+      throw new InternalError("Cannot get entries when storeEntries=false", {})
     }
     return getChildEntries(this).filter((entry) => !entry.fromStdStream)
   }
 
   filterBySection(section: string): LogEntry[] {
     if (!this.storeEntries) {
-      throw new InternalError(`Cannot filter entries when storeEntries=false`, {})
+      throw new InternalError("Cannot filter entries when storeEntries=false", {})
     }
     return getChildEntries(this).filter((entry) => entry.getLatestMessage().section === section)
   }
 
   findById(id: string): LogEntry | void {
     if (!this.storeEntries) {
-      throw new InternalError(`Cannot find entry when storeEntries=false`, {})
+      throw new InternalError("Cannot find entry when storeEntries=false", {})
     }
     return findLogEntry(this, (node) => node.id === id)
   }

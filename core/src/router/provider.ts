@@ -317,7 +317,7 @@ export class ProviderRouter extends BaseRouter {
     } else {
       throw new ParameterError(
         `No '${handlerType}' handler configured in environment '${this.garden.environmentName}'. ` +
-          `Are you missing a provider configuration?`,
+          "Are you missing a provider configuration?",
         errorDetails
       )
     }

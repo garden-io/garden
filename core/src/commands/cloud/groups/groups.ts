@@ -65,7 +65,7 @@ export class GroupsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const res = await api.get<ListGroupsResponse>(`/groups`)
+    const res = await api.get<ListGroupsResponse>("/groups")
     const groups: Groups[] = res.data.map((group) => ({
       name: group.name,
       id: group.id,
@@ -90,9 +90,7 @@ export class GroupsListCommand extends Command<{}, Opts> {
     log.debug(`Found ${filtered.length} groups that match filters`)
 
     const heading = ["Name", "ID", "Default Admin Group"].map((s) => chalk.bold(s))
-    const rows: string[][] = filtered.map((g) => {
-      return [chalk.cyan.bold(g.name), String(g.id), String(g.defaultAdminGroup)]
-    })
+    const rows: string[][] = filtered.map((g) => [chalk.cyan.bold(g.name), String(g.id), String(g.defaultAdminGroup)])
 
     log.info(renderTable([heading].concat(rows)))
 

@@ -67,7 +67,7 @@ export async function createIngressResources(
   const apiVersion = await getIngressApiVersion(log, api, supportedIngressApiVersions)
 
   if (!apiVersion) {
-    log.warn(chalk.yellow(`Could not find a supported Ingress API version in the target cluster`))
+    log.warn(chalk.yellow("Could not find a supported Ingress API version in the target cluster"))
     return []
   }
 
@@ -175,7 +175,7 @@ async function getIngress(
 
   if (!hostname) {
     // this should be caught when parsing the module
-    throw new PluginError(`Missing hostname in ingress spec`, { deploySpec: action.getSpec(), ingressSpec: spec })
+    throw new PluginError("Missing hostname in ingress spec", { deploySpec: action.getSpec(), ingressSpec: spec })
   }
 
   const certificate = await pickCertificate(action, api, provider, hostname)

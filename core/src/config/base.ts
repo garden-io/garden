@@ -359,7 +359,7 @@ export async function loadVarfile({
   defaultPath: string | undefined
 }): Promise<PrimitiveMap> {
   if (!path && !defaultPath) {
-    throw new ParameterError(`Neither a path nor a defaultPath was provided.`, { configRoot, path, defaultPath })
+    throw new ParameterError("Neither a path nor a defaultPath was provided.", { configRoot, path, defaultPath })
   }
   const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
   const exists = await pathExists(resolvedPath)

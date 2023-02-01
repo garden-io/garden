@@ -104,7 +104,7 @@ export function pMemoizeDecorator<FunctionToMemoize extends AnyAsyncFunction, Ca
     delete descriptor.writable
 
     descriptor.get = function () {
-      // tslint:disable: no-invalid-this
+      /* eslint-disable no-invalid-this */
       if (!instanceMap.has(this)) {
         const value = pMemoize(input, options) as FunctionToMemoize
         instanceMap.set(this, value)

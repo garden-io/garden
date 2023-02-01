@@ -157,7 +157,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     }
 
     if (!type) {
-      throw new ParameterError(`Must specify --type if --interactive=false`, {})
+      throw new ParameterError("Must specify --type if --interactive=false", {})
     }
 
     presetValues.kind = "Module"

@@ -99,7 +99,7 @@ export class RunCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   printHeader({ headerLog }: PrepareParams<Args, Opts>) {
-    const msg = `Run`
+    const msg = "Run"
     printHeader(headerLog, msg, "runner")
   }
 
@@ -143,7 +143,7 @@ export class RunCommand extends Command<Args, Opts> {
 
     if (!includeNames && !opts.module) {
       throw new ParameterError(
-        `A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.`,
+        "A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.",
         { args, opts }
       )
     }

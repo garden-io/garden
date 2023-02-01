@@ -568,7 +568,7 @@ export class ModuleResolver {
       module.outputs = validateWithPath({
         config: module.outputs,
         schema: description.moduleOutputsSchema,
-        configType: `outputs for module`,
+        configType: "outputs for module",
         name: module.name,
         path: module.configPath || module.path,
         projectRoot: this.garden.projectRoot,
@@ -599,7 +599,7 @@ export class ModuleResolver {
   /**
    * Resolves module variables with the following precedence order:
    *
-   *   garden.cliVariables > module varfile > config.variables
+   * garden.cliVariables > module varfile > config.variables
    */
   private async resolveVariables(
     config: ModuleConfig,
@@ -702,9 +702,7 @@ export async function convertModules(garden: Garden, log: LogEntry, modules: Gar
       },
 
       convertBuildDependency,
-      convertTestName: (d: string) => {
-        return module.name + "-" + d
-      },
+      convertTestName: (d: string) => module.name + "-" + d,
 
       convertRuntimeDependencies,
       prepareRuntimeDependencies(deps: string[], build?: BuildActionConfig<string, any>) {

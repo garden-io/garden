@@ -77,20 +77,14 @@ const objHandlers: { [kind: string]: StatusHandler } = {
     return { state, resource }
   },
 
-  Pod: async ({ resource }: StatusHandlerParams<V1Pod>) => {
-    return checkWorkloadPodStatus(resource, [<KubernetesServerResource<V1Pod>>resource])
-  },
+  Pod: async ({ resource }: StatusHandlerParams<V1Pod>) => checkWorkloadPodStatus(resource, [<KubernetesServerResource<V1Pod>>resource]),
 
-  ReplicaSet: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicaSet>) => {
-    return checkWorkloadPodStatus(
+  ReplicaSet: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicaSet>) => checkWorkloadPodStatus(
       resource,
       await getPods(api, namespace, (<KubernetesServerResource<V1ReplicaSet>>resource).spec.selector!.matchLabels!)
-    )
-  },
+    ),
 
-  ReplicationController: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicationController>) => {
-    return checkWorkloadPodStatus(resource, await getPods(api, namespace, resource.spec!.selector!))
-  },
+  ReplicationController: async ({ api, namespace, resource }: StatusHandlerParams<V1ReplicationController>) => checkWorkloadPodStatus(resource, await getPods(api, namespace, resource.spec!.selector!)),
 
   Service: async ({ resource }: StatusHandlerParams<V1Service>) => {
     if (resource.spec.type === "ExternalName") {
@@ -120,9 +114,7 @@ export async function checkResourceStatuses(
   manifests: KubernetesResource[],
   log: LogEntry
 ): Promise<ResourceStatus[]> {
-  return Bluebird.map(manifests, async (manifest) => {
-    return checkResourceStatus(api, namespace, manifest, log)
-  })
+  return Bluebird.map(manifests, async (manifest) => checkResourceStatus(api, namespace, manifest, log))
 }
 
 export async function checkResourceStatus(
@@ -196,7 +188,7 @@ export async function waitForResources({
   const emitLog = (msg: string) =>
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
 
-  const waitingMsg = `Waiting for resources to be ready...`
+  const waitingMsg = "Waiting for resources to be ready..."
   const statusLine = log.info({
     symbol: "info",
     section: actionName,
@@ -205,7 +197,7 @@ export async function waitForResources({
   emitLog(waitingMsg)
 
   if (resources.length === 0) {
-    const noResourcesMsg = `No resources to wait`
+    const noResourcesMsg = "No resources to wait"
     emitLog(noResourcesMsg)
     statusLine.setState({ symbol: "info", section: actionName, msg: noResourcesMsg })
     return []
@@ -272,7 +264,7 @@ export async function waitForResources({
     }
   }
 
-  const readyMsg = `Resources ready`
+  const readyMsg = "Resources ready"
   emitLog(readyMsg)
   statusLine.setState({ symbol: "info", section: actionName, msg: readyMsg })
 
@@ -320,7 +312,7 @@ export async function compareDeployedResources(
 
   if (missingObjectNames.length === manifests.length) {
     // All resources missing.
-    log.verbose(`All resources missing from cluster`)
+    log.verbose("All resources missing from cluster")
     result.state = "missing"
     return result
   } else if (missingObjectNames.length > 0) {
@@ -331,7 +323,7 @@ export async function compareDeployedResources(
   }
 
   // From here, the state can only be "ready" or "outdated", so we proceed to compare the old & new specs.
-  log.debug(`Getting currently deployed resource statuses...`)
+  log.debug("Getting currently deployed resource statuses...")
 
   const deployedObjectStatuses: ResourceStatus[] = await Bluebird.map(deployedResources, async (resource) =>
     checkResourceStatus(api, namespace, resource, log)
@@ -355,7 +347,7 @@ export async function compareDeployedResources(
     return result
   }
 
-  log.verbose(`Comparing expected and deployed resources...`)
+  log.verbose("Comparing expected and deployed resources...")
 
   for (let [newManifest, deployedResource] of zip(manifests, deployedResources) as KubernetesResource[][]) {
     let manifest = cloneDeep(newManifest)
@@ -454,7 +446,7 @@ export async function compareDeployedResources(
     }
   }
 
-  log.verbose(`All resources match.`)
+  log.verbose("All resources match.")
 
   result.state = "ready"
   return result
@@ -517,9 +509,7 @@ function removeNullAndUndefined<T>(value: T | Iterable<T>): T | Iterable<T> | { 
 function removeEmptyEnvValues(resource: KubernetesResource): KubernetesResource {
   if (resource.spec?.template?.spec?.containers && resource.spec.template.spec.containers.length > 0) {
     const containerSpecs = resource.spec.template.spec.containers.map((container: V1Container) => {
-      const env = container.env?.map((envKvPair) => {
-        return envKvPair.value === "" ? omit(envKvPair, "value") : envKvPair
-      })
+      const env = container.env?.map((envKvPair) => envKvPair.value === "" ? omit(envKvPair, "value") : envKvPair)
       if (env) {
         container["env"] = env
       }

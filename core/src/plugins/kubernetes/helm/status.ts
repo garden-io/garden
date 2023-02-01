@@ -274,7 +274,7 @@ export async function getReleaseStatus({
 }
 
 /**
- *  Returns Helm workload resources that have been marked as "paused" by Garden Cloud's AEC functionality
+ * Returns Helm workload resources that have been marked as "paused" by Garden Cloud's AEC functionality
  */
 export async function getPausedResources({
   ctx,
@@ -296,9 +296,9 @@ export async function getPausedResources({
     workloads.map((workload) => api.readBySpec({ log, namespace, manifest: workload }))
   )
 
-  const pausedWorkloads = deployedResources.filter((resource) => {
-    return resource?.metadata?.annotations?.[gardenCloudAECPauseAnnotation] === "paused"
-  })
+  const pausedWorkloads = deployedResources.filter(
+    (resource) => resource?.metadata?.annotations?.[gardenCloudAECPauseAnnotation] === "paused"
+  )
   return pausedWorkloads
 }
 

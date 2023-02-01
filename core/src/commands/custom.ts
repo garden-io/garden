@@ -173,7 +173,7 @@ export class CustomCommandWrapper extends Command {
 
       // Doing runtime check to avoid updating hundreds of test invocations with a new required param, sorry. - JE
       if (!cli) {
-        throw new InternalError(`Missing cli argument in custom command wrapper.`, {})
+        throw new InternalError("Missing cli argument in custom command wrapper.", {})
       }
 
       // Pass explicitly set global opts with the command, if they're not set in the command itself.
@@ -241,7 +241,7 @@ export async function getCustomCommands(builtinCommands: (Command | CommandGroup
       }
 
       if (builtinNames.includes(r.name)) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log(
           chalk.yellow(
             `Ignoring custom command ${r.name} because it conflicts with a built-in command with the same name`

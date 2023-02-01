@@ -290,13 +290,11 @@ export function getActionTypeHandlerDescriptions<K extends ActionKind>(
     return _actionTypeHandlerDescriptions[kind]
   }
 
-  _actionTypeHandlerDescriptions[kind] = mapValues(actionTypeClasses[kind], (cls, name: any) => {
-    return {
+  _actionTypeHandlerDescriptions[kind] = mapValues(actionTypeClasses[kind], (cls, name: any) => ({
       name,
       cls,
       ...cls.describe(),
-    }
-  })
+    }))
 
   return _actionTypeHandlerDescriptions[kind]
 }
@@ -391,11 +389,9 @@ const createActionTypeSchema = (kind: ActionKind) => {
     .description(`Define a ${titleKind} action.`)
 }
 
-export const createActionTypesSchema = () => {
-  return joi
+export const createActionTypesSchema = () => joi
     .object()
     .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(createActionTypeSchema(k)).unique("name")))
-}
 
 const extendActionTypeSchema = (kind: ActionKind) => {
   const titleKind = titleize(kind)
@@ -410,8 +406,6 @@ const extendActionTypeSchema = (kind: ActionKind) => {
     .description(`Extend a ${titleKind} action.`)
 }
 
-export const extendActionTypesSchema = () => {
-  return joi
+export const extendActionTypesSchema = () => joi
     .object()
     .keys(mapValues(actionTypeClasses, (_, k: ActionKind) => joiArray(extendActionTypeSchema(k)).unique("name")))
-}

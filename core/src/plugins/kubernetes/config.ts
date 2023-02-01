@@ -531,12 +531,12 @@ export const kubernetesConfigBase = () =>
           .sparseArray()
           .items(joi.string())
           .description(
-            `Specify extra flags to use when building the container image with kaniko. Flags set on \`container\` modules take precedence over these.`
+            "Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules take precedence over these."
           ),
         image: joi
           .string()
           .default(DEFAULT_KANIKO_IMAGE)
-          .description(`Change the kaniko image (repository/image:tag) to use when building in kaniko mode.`),
+          .description("Change the kaniko image (repository/image:tag) to use when building in kaniko mode."),
         namespace: joi
           .string()
           .allow(null)
@@ -872,7 +872,7 @@ export const targetContainerNameSchema = () =>
   joi
     .string()
     .description(
-      `The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.`
+      "The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec."
     )
 
 export const podSelectorSchema = () =>

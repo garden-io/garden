@@ -186,7 +186,7 @@ export const getKanikoFlags = (flags?: string[], topLevelFlags?: string[]): stri
   const flagToKey = (flag: string) => {
     const found = flag.match(/--([a-zA-Z]*)/)
     if (found === null) {
-      throw new ConfigurationError(`Invalid format for a kaniko flag`, { flag })
+      throw new ConfigurationError("Invalid format for a kaniko flag", { flag })
     }
     return found[0]
   }

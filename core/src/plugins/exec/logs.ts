@@ -421,7 +421,7 @@ export class ExecLogsFollower {
       return new Promise((res, _rej) => {
         splitStream.on("data", (_line) => {
           if (count >= maxLinesToScan) {
-            this.log.debug(`Log file is too large to properly tail. Tail may start at wrong position.`)
+            this.log.debug("Log file is too large to properly tail. Tail may start at wrong position.")
             res(count)
           }
           count++

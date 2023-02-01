@@ -69,16 +69,14 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     : action
         .getSpec("ports")
         .filter((p) => p.protocol === "TCP")
-        .map((p) => {
-          return {
+        .map((p) => ({
             name: p.name,
             protocol: "TCP",
             targetPort: p.servicePort,
             preferredLocalPort: p.localPort,
             // TODO: this needs to be configurable
             // urlProtocol: "http",
-          }
-        })
+          }))
 
   const detail = {
     forwardablePorts,

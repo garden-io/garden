@@ -165,8 +165,7 @@ async function suggestModules({ name, path }: SuggestModulesParams): Promise<Sug
   )
 
   return {
-    suggestions: dockerfiles.map((dockerfileName) => {
-      return {
+    suggestions: dockerfiles.map((dockerfileName) => ({
         description: `based on found ${chalk.white(dockerfileName)}`,
         module: {
           kind: "Module",
@@ -174,8 +173,7 @@ async function suggestModules({ name, path }: SuggestModulesParams): Promise<Sug
           name,
           dockerfile: dockerfileName,
         },
-      }
-    }),
+      })),
   }
 }
 

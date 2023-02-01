@@ -64,7 +64,7 @@ const actionSourceSpecSchema = () =>
         .posixPath()
         .relativeOnly()
         .description(
-          `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!`
+          "A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!"
         ),
       repository: joi
         .object()
@@ -72,7 +72,7 @@ const actionSourceSpecSchema = () =>
           url: joiRepositoryUrl().required(),
         })
         .description(
-          `When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository).`
+          "When set, Garden will import the action source from this repository, but use this action configuration (and not scan for configs in the separate repository)."
         ),
     })
     .description(

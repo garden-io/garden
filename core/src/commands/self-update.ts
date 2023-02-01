@@ -24,20 +24,20 @@ import stream from "stream"
 
 const selfUpdateArgs = {
   version: new StringParameter({
-    help: `Specify which version to switch/update to.`,
+    help: "Specify which version to switch/update to.",
   }),
 }
 
 const selfUpdateOpts = {
   "force": new BooleanParameter({
-    help: `Install the Garden CLI even if the specified or detected latest version is the same as the current version.`,
+    help: "Install the Garden CLI even if the specified or detected latest version is the same as the current version.",
   }),
   "install-dir": new StringParameter({
-    help: `Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.`,
+    help: "Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.",
   }),
   "platform": new ChoicesParameter({
     choices: ["macos", "linux", "windows"],
-    help: `Override the platform, instead of detecting it automatically.`,
+    help: "Override the platform, instead of detecting it automatically.",
   }),
 }
 
@@ -198,7 +198,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
             ]
 
             log.info(
-              chalk.white.bold(`Here are the latest available versions: `) + latestVersions.join(chalk.white(", "))
+              chalk.white.bold("Here are the latest available versions: ") + latestVersions.join(chalk.white(", "))
             )
           } catch {}
 

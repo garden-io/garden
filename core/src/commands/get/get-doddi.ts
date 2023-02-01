@@ -30,7 +30,7 @@ export class GetDoddiCommand extends Command {
 
   async action(): Promise<CommandResult> {
     const image = (await readFile(join(STATIC_DIR, "doddi.txt"))).toString()
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(image)
 
     try {

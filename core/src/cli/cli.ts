@@ -436,7 +436,7 @@ ${renderCommands(commands)}
         }
 
         if (cloudApi && garden.projectId) {
-          log.silly(`Connecting Garden instance to GE BufferedEventStream`)
+          log.silly("Connecting Garden instance to GE BufferedEventStream")
           const connectParams: ConnectBufferedEventStreamParams = {
             garden,
             streamEvents,
@@ -552,7 +552,7 @@ ${renderCommands(commands)}
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
       if (exitOnError) {
         logger && logger.stop()
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log(consoleOutput)
         await waitForOutputFlush()
         await shutdown(abortCode)

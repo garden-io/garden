@@ -280,12 +280,12 @@ export class FileStatsHelper {
    * - `path` must be an absolute path. An error is thrown otherwise.
    * - If the `path` itself does not exist, null is returned.
    * - If the `path` points to a symlink, it is recursively resolved and `target` is set with the final destination
-   *   path and stats.
+   * path and stats.
    * - By default, absolute symlinks are not allowed, i.e. if one is encountered, `target` will be undefined.
-   *   Set `allowAbsoluteSymlinks: true` to permit resolution of absolute symlinks.
+   * Set `allowAbsoluteSymlinks: true` to permit resolution of absolute symlinks.
    * - If the path is a symlink but the target is not resolvable (a target can't be found or symlinks are circular),
-   *   `stats.isSymbolicLink()` will be `true` and `target` will be undefined. You may want to handle that case
-   *   specifically.
+   * `stats.isSymbolicLink()` will be `true` and `target` will be undefined. You may want to handle that case
+   * specifically.
    * - If a callback is not provided, a Promise is returned.
    */
   extendedStat(params: ExtendedStatsParams): Promise<ExtendedStats | null>

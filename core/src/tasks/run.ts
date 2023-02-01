@@ -45,7 +45,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         action,
         log,
       })
-      log.setSuccess({ msg: chalk.green(`Done`), append: true })
+      log.setSuccess({ msg: chalk.green("Done"), append: true })
 
       // Should return a null value here if there is no result
       if (status.detail === null) {
@@ -89,7 +89,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         append: true,
       })
     } else {
-      log.setError(`Failed!`)
+      log.setError("Failed!")
       throw new RunTaskError(status.detail?.log)
     }
 

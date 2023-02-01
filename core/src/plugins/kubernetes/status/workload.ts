@@ -107,9 +107,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
     }
   }
 
-  const failWithCondition = (condition: Condition) => {
-    return fail(`${condition.reason} - ${condition.message}`)
-  }
+  const failWithCondition = (condition: Condition) => fail(`${condition.reason} - ${condition.message}`)
 
   // Check the reported rollout status on the workload resource itself.
   const out = await getRolloutStatus(workload)
@@ -184,7 +182,7 @@ async function getRolloutStatus(workload: Workload) {
   // See `https://github.com/kubernetes/kubernetes/blob/master/pkg/kubectl/rollout_status.go` for a reference
   // for this logic.
   if (workload.metadata.generation! > workload.status!.observedGeneration!) {
-    out.lastMessage = `Waiting for spec update to be observed...`
+    out.lastMessage = "Waiting for spec update to be observed..."
     out.state = "deploying"
   } else if (workload.kind === "DaemonSet") {
     const status = <V1DaemonSetStatus>workload.status
@@ -220,7 +218,7 @@ async function getRolloutStatus(workload: Workload) {
         }
       }
     } else if (status.updateRevision !== status.currentRevision) {
-      out.lastMessage = `Waiting for rolling update to complete...`
+      out.lastMessage = "Waiting for rolling update to complete..."
       out.state = "deploying"
     }
   } else {

@@ -15,7 +15,7 @@
  * Returns `true` if:
  * - all enumerable keys of *subset* are also enumerable in *superset*, and
  * - every value assigned to an enumerable key of *subset* strictly equals
- *   the value assigned to the same key of *superset* – or is a subset of it.
+ * the value assigned to the same key of *superset* – or is a subset of it.
  *
  * @param  {Object}  superset
  * @param  {Object}  subset

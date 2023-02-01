@@ -41,7 +41,7 @@ export const getHelmDeployLogs: DeployActionHandler<"getLogs", HelmDeployAction>
         resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
         break
       } catch (err) {
-        log.debug(`Failed getting deployed resources. Retrying...`)
+        log.debug("Failed getting deployed resources. Retrying...")
         log.silly(err.message)
       }
       await sleep(2000)

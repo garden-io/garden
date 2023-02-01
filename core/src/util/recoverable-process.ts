@@ -145,8 +145,8 @@ export type RecoverableProcessState = InitialProcessState | ActiveProcessState |
  * and a locally deployed application.
  *
  * That connection must meet 2 requirements:
- *  - it must run in background
- *  - it must be fault-tolerant
+ * - it must run in background
+ * - it must be fault-tolerant
  *
  * Here, fault-tolerance means that the connection should be able to recover automatically
  * if any of its port-forwards crashes.
@@ -159,8 +159,8 @@ export type RecoverableProcessState = InitialProcessState | ActiveProcessState |
  *
  * In general, the connection from the example above can be considered as a composition of some persistent processes.
  * That composition connects the processes with parent-child relations. Let's assume that:
- *  - each single process depends on only 1 process (i.e. it has only parent)
- *  - each process can have multiple children
+ * - each single process depends on only 1 process (i.e. it has only parent)
+ * - each process can have multiple children
  *
  * Under these assumptions, the composition of the persistent processes can be represented by a tree data structure.
  * The tree data structure reflects the parent-child relationships between the persistent processes.
@@ -198,8 +198,8 @@ export type RecoverableProcessState = InitialProcessState | ActiveProcessState |
  * See {@link RecoverableProcess#startAll()} and {@link RecoverableProcess#stopAll()} to start/stop a process tree.
  *
  * TODO. Ideas on further improvements:
- *  - ability to attach/detach a process tree to/from a running process
- *  - support multiple parents if necessary
+ * - ability to attach/detach a process tree to/from a running process
+ * - support multiple parents if necessary
  */
 export class RecoverableProcess {
   public readonly command: OsCommand
@@ -359,7 +359,7 @@ export class RecoverableProcess {
       const catchCriticalErrorsFn = this.stderrListener?.catchCriticalErrors
       if (!!catchCriticalErrorsFn && catchCriticalErrorsFn(chunk)) {
         const message =
-          `Failed to start local mode. ` +
+          "Failed to start local mode. " +
           `Command '${renderOsCommand(this.command)}' terminated with critical error: ${chunk.toString()}.`
         logDebugError("stderr", message)
         await this.fail()
@@ -385,7 +385,7 @@ export class RecoverableProcess {
       const catchCriticalErrorsFn = this.stdoutListener?.catchCriticalErrors
       if (!!catchCriticalErrorsFn && catchCriticalErrorsFn(chunk)) {
         const message =
-          `Failed to start local mode. ` +
+          "Failed to start local mode. " +
           `Command '${renderOsCommand(this.command)}' terminated with critical error: ${chunk.toString()}.`
         logDebugError("stdout", message)
         await this.fail()

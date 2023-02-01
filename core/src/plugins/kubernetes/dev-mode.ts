@@ -69,7 +69,7 @@ export interface KubernetesModuleDevModeSpec extends ContainerDevModeSpec {
 export const kubernetesModuleDevModeSchema = () =>
   containerDevModeSchema().keys({
     containerName: joiIdentifier().description(
-      `Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.`
+      "Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used."
     ),
   }).description(dedent`
     Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
@@ -399,7 +399,7 @@ export async function configureDevMode({
     }
 
     // Inject mutagen agent on init
-    const gardenVolumeName = `garden`
+    const gardenVolumeName = "garden"
     const gardenVolumeMount = {
       name: gardenVolumeName,
       mountPath: "/.garden",

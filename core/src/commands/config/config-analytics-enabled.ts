@@ -51,9 +51,9 @@ export class ConfigAnalyticsEnabled extends Command {
     await analyticsClient.setAnalyticsOptOut(!args.enable)
 
     if (args.enable) {
-      log.setSuccess(`Thanks for helping us make Garden better! Anonymized analytics collection is now active.`)
+      log.setSuccess("Thanks for helping us make Garden better! Anonymized analytics collection is now active.")
     } else {
-      log.setSuccess(`The collection of anonymous CLI usage data is now disabled.`)
+      log.setSuccess("The collection of anonymous CLI usage data is now disabled.")
     }
 
     return {}

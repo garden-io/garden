@@ -35,7 +35,7 @@ export class LogOutCommand extends Command {
     const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
 
     if (!cloudDomain) {
-      throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+      throw new ConfigurationError("Project config is missing a cloud domain.", {})
     }
 
     const distroName = getCloudDistributionName(garden.enterpriseDomain || "")

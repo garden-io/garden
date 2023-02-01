@@ -105,7 +105,7 @@ export class ToolsCommand extends Command<Args, Opts> {
       toolName = split[1]
     } else {
       throw new ParameterError(
-        `Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>.`,
+        "Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>.",
         { args }
       )
     }
@@ -198,13 +198,11 @@ async function printTools(garden: Garden, log: LogEntry) {
 
   const tools = await getTools(garden)
 
-  const rows = tools.map((tool) => {
-    return [
+  const rows = tools.map((tool) => [
       ` ${chalk.cyan(tool.pluginName + ".")}${chalk.cyan.bold(tool.name)}`,
       chalk.gray(`[${tool.type}]`),
       tool.description,
-    ]
-  })
+    ])
 
   const maxRowLength = max(rows.map((r) => r[0].length))!
 

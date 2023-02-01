@@ -73,7 +73,7 @@ export class LinkModuleCommand extends Command<Args> {
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
-          ` Did you mean to use the "link source" command?`,
+          " Did you mean to use the \"link source\" command?",
         {
           modulesWithRemoteSource,
           input: module,

@@ -124,7 +124,7 @@ export function getDefaultProfiler() {
 /**
  * Class decorator that collects profiling data on every method invocation (if GARDEN_ENABLE_PROFILING is true).
  */
-// tslint:disable-next-line: function-name
+// eslint-disable-next-line
 export function Profile(profiler?: Profiler) {
   if (!profiler) {
     profiler = getDefaultProfiler()
@@ -145,7 +145,7 @@ export function Profile(profiler?: Profiler) {
 
       const wrapped = function (this: any, ...args: any[]) {
         const start = performance.now()
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         const result = originalMethod.apply(this, args)
 
         if (!profiler!.isEnabled()) {

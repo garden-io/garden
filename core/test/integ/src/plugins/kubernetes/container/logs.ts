@@ -234,7 +234,7 @@ describe("kubernetes", () => {
 
         // Start following logs even when no services is deployed
         // (we don't wait for the Promise since it won't resolve unless we close the connection)
-        // tslint:disable-next-line: no-floating-promises
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         logsFollower.followLogs({ limitBytes: null })
         await sleep(1500)
 

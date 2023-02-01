@@ -119,7 +119,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
       // Make sure arguments don't have default values
       if (arg.defaultValue) {
-        throw new InternalError(`A positional argument cannot have a default value`, {
+        throw new InternalError("A positional argument cannot have a default value", {
           commandName,
           arg,
         })
@@ -128,7 +128,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
       if (arg.required) {
         // Make sure required arguments don't follow optional ones
         if (foundOptional) {
-          throw new InternalError(`A required argument cannot follow an optional one`, {
+          throw new InternalError("A required argument cannot follow an optional one", {
             commandName,
             arg,
           })
@@ -139,7 +139,7 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
 
       // Make sure only last argument is spread
       if (arg.spread && i < args.length - 1) {
-        throw new InternalError(`Only the last command argument can set spread to true`, {
+        throw new InternalError("Only the last command argument can set spread to true", {
           commandName,
           arg,
         })

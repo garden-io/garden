@@ -49,15 +49,13 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
       filter: (depNode) => depNode.kind === "Deploy" && this.deleteDeployNames.includes(depNode.name),
     })
 
-    const depTasks = deps.filter(isDeployAction).map((action) => {
-      return new DeleteDeployTask({
+    const depTasks = deps.filter(isDeployAction).map((action) => new DeleteDeployTask({
         ...this.getBaseDependencyParams(),
         action,
         force: this.force,
         deleteDeployNames: this.deleteDeployNames,
         dependantsFirst: true,
-      })
-    })
+      }))
 
     return [resolveTask, ...depTasks]
   }
