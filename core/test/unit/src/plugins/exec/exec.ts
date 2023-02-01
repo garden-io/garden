@@ -12,7 +12,7 @@ import { join } from "path"
 import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
-import { gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
+import { ExecProvider, gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import { getDataDir, makeTestModule, expectError, createProjectConfig } from "../../../../helpers"
@@ -28,18 +28,24 @@ import { sleep } from "../../../../../src/util/util"
 import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
+import { GardenModule } from "../../../../../src/types/module"
+import { PluginContext } from "../../../../../src/plugin-context"
 
 describe("exec plugin", () => {
   const testProjectRoot = getDataDir("test-project-exec")
   const plugin = gardenPlugin()
 
   let garden: Garden
+  let ctx: PluginContext
+  let execProvider: ExecProvider
   let graph: ConfigGraph
   let log: LogEntry
 
   beforeEach(async () => {
     garden = await makeTestGarden(testProjectRoot, { plugins: [plugin] })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    execProvider = await garden.resolveProvider(garden.log, "exec")
+    ctx = await garden.getPluginContext({ provider: execProvider, templateContext: undefined, events: undefined })
     log = garden.log
     await garden.clearBuilds()
   })
@@ -370,8 +376,6 @@ describe("exec plugin", () => {
         },
         spec: { local: true },
       })
-      const provider = await garden.resolveProvider(garden.log, "test-plugin")
-      const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       await expectError(async () => await configureExecModule({ ctx, moduleConfig, log }), "configuration")
     })
   })
