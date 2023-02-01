@@ -32,6 +32,7 @@ import username from "username"
 import { realpath } from "fs-extra"
 
 function log(msg: string) {
+  // eslint-disable-next-line
   console.log(chalk.magentaBright(msg))
 }
 
@@ -192,6 +193,7 @@ describe("PreReleaseTests", () => {
             description: "node-service returns the updated response text",
             condition: async () => {
               const callLogEntries = await runWithEnv(["call", "node-service"])
+              // eslint-disable-next-line
               console.log(callLogEntries.map((l) => stringifyJsonLog(l)).join("\n"))
               return searchLog(callLogEntries, /Hello from foo/)
             },

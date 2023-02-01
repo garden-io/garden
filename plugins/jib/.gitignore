@@ -4,4 +4,3 @@
 *.d.ts.map
 test/*.js
 test/*.d.ts
-!.eslintrc.js
