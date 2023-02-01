@@ -6,16 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ensureFile, readFile, writeFile } from "fs-extra"
+import { ensureFile, readFile } from "fs-extra"
 import { z, ZodType } from "zod"
 import { lock } from "proper-lockfile"
 import { InternalError } from "../exceptions"
 import { dump } from "js-yaml"
+import writeFileAtomic from "write-file-atomic"
 
 // Just a shorthand to make the code below a little more compact
 type I<T extends ZodType<any>> = z.infer<T>
 
 export abstract class ConfigStore<T extends z.ZodObject<any>> {
+  fileMode: number | undefined
+
   abstract schema: T
 
   abstract getConfigPath(): string
@@ -170,6 +173,6 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   }
 
   private async writeConfig(config: I<T>) {
-    await writeFile(this.getConfigPath(), JSON.stringify(config))
+    await writeFileAtomic(this.getConfigPath(), JSON.stringify(config), { mode: this.fileMode })
   }
 }

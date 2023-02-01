@@ -82,6 +82,7 @@ export type ClientAuthToken = z.infer<typeof clientAuthTokenSchema>
 export type GardenProcess = z.infer<typeof activeProcessSchema>
 
 export class GlobalConfigStore extends ConfigStore<typeof globalConfigSchema> {
+  fileMode = 0o600
   schema = globalConfigSchema
 
   constructor(private configDir: string = GARDEN_GLOBAL_PATH) {
