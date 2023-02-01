@@ -36,7 +36,7 @@ _If you’re using Garden or if you like the project, please ★ star this repos
 
 ### **Getting started**
 
-The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/5-min-quickstart).
+The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/quickstart).
 
 ### **Who should use Garden?**
 
