@@ -26,13 +26,13 @@ import { PulumiDeploy, PulumiProvider } from "./config"
 import chalk from "chalk"
 import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
 
-export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
+export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) =>
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services
   // in the project), since we'd need to walk through them and delete each in turn.
   //
   // Instead, the `garden plugins pulumi destroy` command can be used.
-  return {}
-}
+   ({})
+
 
 export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
   // Make sure the configured root path exists
@@ -128,7 +128,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
     await applyConfig(pulumiParams)
     planPath = null
   }
-  log.verbose(`Applying pulumi stack...`)
+  log.verbose("Applying pulumi stack...")
   const upArgs = ["up", "--yes", "--color", "always", "--config-file", getStackConfigPath(action, ctx.environmentName)]
   planPath && upArgs.push("--plan", planPath)
   await pulumi(ctx, provider).spawnAndStreamLogs({
@@ -171,7 +171,7 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
 
   const cli = pulumi(ctx, provider)
   await selectStack(pulumiParams)
-  log.verbose(`Destroying pulumi stack...`)
+  log.verbose("Destroying pulumi stack...")
   await cli.spawnAndStreamLogs({
     args: ["destroy", "--yes", "--config-file", getStackConfigPath(action, ctx.environmentName)],
     cwd: root,

@@ -247,8 +247,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       })
       .filter(isDeployAction)
 
-    const tasks = deps.map((action) => {
-      return new PulumiPluginCommandTask({
+    const tasks = deps.map((action) => new PulumiPluginCommandTask({
         garden: this.garden,
         graph: this.graph,
         log: this.log,
@@ -258,8 +257,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
         skipRuntimeDependencies: this.skipRuntimeDependencies,
         runFn: this.runFn,
         pulumiParams: this.pulumiParams,
-      })
-    })
+      }))
 
     return [this.getResolveTask(this.action), ...tasks]
   }
