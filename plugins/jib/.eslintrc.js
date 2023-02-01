@@ -14,7 +14,8 @@ Happy linting! 💖
 module.exports = {
     "env": {
         "browser": true,
-        "es6": true
+        "es6": true,
+        "node": true
     },
     "extends": [
         "prettier"
@@ -105,7 +106,7 @@ module.exports = {
         "jsdoc/newline-after-description": "error",
         "linebreak-style": "off",
         "max-len": [
-            "error",
+            "warn",
             {
                 "code": 120
             }

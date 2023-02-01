@@ -14,7 +14,8 @@ Happy linting! 💖
 module.exports = {
     "env": {
         "browser": true,
-        "es6": true
+        "es6": true,
+        "node": true
     },
     "extends": [
         "prettier"
@@ -113,7 +114,7 @@ module.exports = {
         "new-parens": "off",
         "newline-per-chained-call": "off",
         "no-console": [
-            "error",
+            "off",
             {
                 "allow": [
                     "warn",
