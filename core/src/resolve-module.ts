@@ -628,7 +628,17 @@ export interface ModuleConfigResolveOpts extends ContextResolveOpts {
   configContext: ModuleConfigContext
 }
 
-export async function convertModules(garden: Garden, log: LogEntry, modules: GardenModule[], graph: ModuleGraph) {
+export interface ConvertModulesResult {
+  groups: GroupConfig[]
+  actions: BaseActionConfig[]
+}
+
+export async function convertModules(
+  garden: Garden,
+  log: LogEntry,
+  modules: GardenModule[],
+  graph: ModuleGraph
+): Promise<ConvertModulesResult> {
   const allServices = keyBy(graph.getServices(), "name")
   const allTasks = keyBy(graph.getTasks(), "name")
 
