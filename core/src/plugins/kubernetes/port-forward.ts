@@ -102,7 +102,7 @@ export async function getPortForward({
 
     const k8sCtx = <KubernetesPluginContext>ctx
 
-    // Forward random free local port to the remote rsync container.
+    // Forward random free local port to the remote container.
     localPort = await getPort()
     const portMapping = `${localPort}:${port}`
 

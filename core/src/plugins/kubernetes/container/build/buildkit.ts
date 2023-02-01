@@ -23,7 +23,6 @@ import {
   BuildHandler,
   syncToBuildSync,
   getUtilContainer,
-  utilRsyncPort,
   ensureBuilderSecret,
   builderToleration,
 } from "./common"
@@ -100,7 +99,6 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     api,
     namespace,
     deploymentName: buildkitDeploymentName,
-    rsyncPort: utilRsyncPort,
   })
 
   log.setState(`Building image ${localId}...`)
@@ -425,7 +423,7 @@ export function getBuildkitDeployment(
                 },
               ],
             },
-            // Attach a util container for the rsync server and to use skopeo
+            // Attach the util container
             getUtilContainer(authSecretName, provider),
           ],
           imagePullSecrets,

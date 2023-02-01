@@ -16,13 +16,7 @@ import { makeTempDir } from "../../util/fs"
 import { KubeApi } from "./api"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { buildkitDeploymentName, ensureBuildkit } from "./container/build/buildkit"
-import {
-  ensureUtilDeployment,
-  syncToBuildSync,
-  utilContainerName,
-  utilDeploymentName,
-  utilRsyncPort,
-} from "./container/build/common"
+import { ensureUtilDeployment, syncToBuildSync, utilContainerName, utilDeploymentName } from "./container/build/common"
 import { loadToLocalK8s } from "./container/build/local"
 import { containerHandlers } from "./container/handlers"
 import { getNamespaceStatus } from "./namespace"
@@ -134,7 +128,6 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
       api,
       namespace,
       deploymentName,
-      rsyncPort: utilRsyncPort,
       sourcePath: extractPath,
     })
 

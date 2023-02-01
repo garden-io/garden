@@ -102,7 +102,6 @@ export const kanikoBuild: BuildHandler = async (params) => {
     api,
     namespace: projectNamespace,
     deploymentName: utilDeploymentName,
-    rsyncPort: utilRsyncPort,
   })
 
   log.setState(`Building image ${localId}...`)

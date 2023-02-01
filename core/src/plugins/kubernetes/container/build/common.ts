@@ -7,7 +7,6 @@
  */
 
 import AsyncLock from "async-lock"
-import pRetry from "p-retry"
 import { ContainerBuildAction, ContainerRegistryConfig } from "../../../container/moduleConfig"
 import { getRunningDeploymentPod } from "../../util"
 import {
@@ -21,16 +20,12 @@ import { KubeApi } from "../../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../../config"
 import { PodRunner } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
-import { basename, resolve } from "path"
-import { getPortForward } from "../../port-forward"
-import { normalizeLocalRsyncPath } from "../../../../util/fs"
-import { exec, hashString, sleep } from "../../../../util/util"
+import { hashString, sleep } from "../../../../util/util"
 import { InternalError, RuntimeError } from "../../../../exceptions"
 import { LogEntry } from "../../../../logger/log-entry"
 import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
-import { gardenEnv } from "../../../../constants"
 import { ensureMutagenSync, flushMutagenSync, getKubectlExecDestination, terminateMutagenSync } from "../../mutagen"
 import { randomString } from "../../../../util/string"
 import { V1Container, V1Service } from "@kubernetes/client-node"
@@ -77,12 +72,11 @@ interface SyncToSharedBuildSyncParams {
   action: ContainerBuildAction
   namespace: string
   deploymentName: string
-  rsyncPort: number
   sourcePath?: string
 }
 
 export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
-  const { ctx, action, log, api, namespace, deploymentName, rsyncPort } = params
+  const { ctx, action, log, api, namespace, deploymentName } = params
 
   const sourcePath = params.sourcePath || action.getBuildPath()
 
@@ -100,91 +94,61 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     namespace,
   })
 
-  if (gardenEnv.GARDEN_K8S_BUILD_SYNC_MODE === "mutagen") {
-    // Sync using mutagen
-    const key = `build-sync-${action.name}-${randomString(8)}`
-    const targetPath = `/data/${ctx.workingCopyId}/${action.name}`
+  // Sync using mutagen
+  const key = `build-sync-${action.name}-${randomString(8)}`
+  const targetPath = `/data/${ctx.workingCopyId}/${action.name}`
 
-    // Make sure the target path exists
-    const runner = new PodRunner({
-      ctx,
-      provider: ctx.provider,
-      api,
-      pod: buildSyncPod,
-      namespace,
-    })
+  // Make sure the target path exists
+  const runner = new PodRunner({
+    ctx,
+    provider: ctx.provider,
+    api,
+    pod: buildSyncPod,
+    namespace,
+  })
 
-    await runner.exec({
-      log,
-      command: ["sh", "-c", "mkdir -p " + targetPath],
-      containerName: utilContainerName,
-      buffer: true,
-    })
+  await runner.exec({
+    log,
+    command: ["sh", "-c", "mkdir -p " + targetPath],
+    containerName: utilContainerName,
+    buffer: true,
+  })
 
-    try {
-      const resourceName = `Deployment/${deploymentName}`
+  try {
+    const resourceName = `Deployment/${deploymentName}`
 
-      log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
+    log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
 
-      // -> Create the sync
-      await ensureMutagenSync({
-        ctx,
-        log,
-        key,
-        logSection: action.name,
-        sourceDescription: `Module ${action.name} build path`,
-        targetDescription: "Build sync Pod",
-        config: {
-          alpha: sourcePath,
-          beta: await getKubectlExecDestination({
-            ctx,
-            log,
-            namespace,
-            containerName: utilContainerName,
-            resourceName,
-            targetPath,
-          }),
-          mode: "one-way-replica",
-          ignore: [],
-        },
-      })
-
-      // -> Flush the sync once
-      await flushMutagenSync(ctx, log, key)
-      log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
-    } finally {
-      // -> Terminate the sync
-      await terminateMutagenSync(ctx, log, key)
-      log.debug(`Sync connection terminated`)
-    }
-  } else {
-    // Sync the build context to the remote sync service
-    // -> Get a tunnel to the service
-    log.setState("Syncing files to cluster...")
-    const syncFwd = await getPortForward({
+    // -> Create the sync
+    await ensureMutagenSync({
       ctx,
       log,
-      namespace,
-      targetResource: `Pod/${buildSyncPod.metadata.name}`,
-      port: rsyncPort,
+      key,
+      logSection: action.name,
+      sourceDescription: `Module ${action.name} build path`,
+      targetDescription: "Build sync Pod",
+      config: {
+        alpha: sourcePath,
+        beta: await getKubectlExecDestination({
+          ctx,
+          log,
+          namespace,
+          containerName: utilContainerName,
+          resourceName,
+          targetPath,
+        }),
+        mode: "one-way-replica",
+        ignore: [],
+      },
     })
 
-    // -> Run rsync
-    const sourceParent = resolve(sourcePath, "..")
-    const dirName = basename(sourcePath)
-
-    // The '/./' trick is used to automatically create the correct target directory with rsync:
-    // https://stackoverflow.com/questions/1636889/rsync-how-can-i-configure-it-to-create-target-directory-on-server
-    let src = normalizeLocalRsyncPath(`${sourceParent}`) + `/./${dirName}/`
-    const destination = `rsync://localhost:${syncFwd.localPort}/volume/${ctx.workingCopyId}/`
-    const syncArgs = [...commonSyncArgs, "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
-
-    log.debug(`Syncing from ${src} to ${destination}`)
-    // We retry a few times, because we may get intermittent connection issues or concurrency issues
-    await pRetry(() => exec("rsync", syncArgs), {
-      retries: 5,
-      minTimeout: 1000,
-    })
+    // -> Flush the sync once
+    await flushMutagenSync(ctx, log, key)
+    log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
+  } finally {
+    // -> Terminate the sync
+    await terminateMutagenSync(ctx, log, key)
+    log.debug(`Sync connection terminated`)
   }
 
   log.setState("File sync to cluster complete")
