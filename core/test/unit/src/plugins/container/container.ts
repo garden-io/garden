@@ -13,29 +13,24 @@ import { gardenPlugin, ContainerProvider, convertContainerModule } from "../../.
 import { getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
 import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { GardenModule } from "../../../../../src/types/module"
+import { GardenModule, moduleFromConfig } from "../../../../../src/types/module"
 import { expect } from "chai"
-import { ContainerBuildActionSpec, ContainerModule } from "../../../../../src/plugins/container/moduleConfig"
+import {
+  ContainerBuildActionSpec,
+  ContainerModule,
+  ContainerModuleConfig,
+} from "../../../../../src/plugins/container/moduleConfig"
 import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
+import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
+import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { resolve } from "path"
 // import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 // import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/moduleConfig"
 // import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
-  // const modulePath = getDataDir( "test-project-container", "module-a")
-  // const relDockerfilePath = "docker-dir/Dockerfile"
-
-  // const plugin = gardenPlugin()
-  // const handlers = plugin.createActionTypes!.Build[0].handlers
-  /*
-  const configure = handlers.configure!
-  const build = handlers.build!
-  const publishModule = handlers.publish!
-  const getBuildStatus = handlers.getStatus!
-
-  const defaultCpu = defaultContainerResources.cpu
-  const defaultMemory = defaultContainerResources.memory
+  const modulePath = resolve(projectRoot, "module-a")
 
   const baseConfig: ContainerModuleConfig = {
     allowPublish: false,
@@ -64,11 +59,9 @@ describe("plugins.container", () => {
     taskConfigs: [],
     testConfigs: [],
   }
-  */
+
   let garden: TestGarden
-  // tslint:disable-next-line: no-unused
   let ctx: PluginContext
-  // tslint:disable-next-line: no-unused
   let log: LogEntry
   let containerProvider: ContainerProvider
   let graph: ConfigGraph
@@ -155,143 +148,71 @@ describe("plugins.container", () => {
       expect((<ContainerBuildActionSpec>build.spec).localId).to.be.eql("customImage")
     })
   })
+
+  describe("version calculations", () => {
+    async function getTestModule(moduleConfig: ContainerModuleConfig) {
+      return moduleFromConfig({ garden, log, config: moduleConfig, buildDependencies: [], forceVersion: true })
+    }
+
+    it("has same build version if nothing is changed", async () => {
+      const baseModule = await getTestModule(baseConfig)
+      const baseModule2 = await getTestModule(baseConfig)
+
+      expect(baseModule.version.versionString).to.equal(baseModule2.version.versionString)
+    })
+
+    it("has different build version if buildArgs are added", async () => {
+      const baseModule = await getTestModule(baseConfig)
+      const changedBuild = await getTestModule({
+        ...baseConfig,
+        spec: {
+          ...baseConfig.spec,
+          buildArgs: { foo: "bar" },
+        },
+      })
+      expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+    })
+
+    it("has different build version if a targetImage is set", async () => {
+      const baseModule = await getTestModule(baseConfig)
+      const changedBuild = await getTestModule({
+        ...baseConfig,
+        spec: {
+          ...baseConfig.spec,
+          build: {
+            ...baseConfig.spec.build,
+            targetImage: "foo",
+          },
+        },
+      })
+      expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+    })
+
+    it("has different build version if extraFlags are added", async () => {
+      const baseModule = await getTestModule(baseConfig)
+      const changedBuild = await getTestModule({
+        ...baseConfig,
+        spec: {
+          ...baseConfig.spec,
+          extraFlags: ["foo"],
+        },
+      })
+      expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+    })
+
+    it("has different build version if dockerfile is changed", async () => {
+      const baseModule = await getTestModule(baseConfig)
+      const changedBuild = await getTestModule({
+        ...baseConfig,
+        spec: {
+          ...baseConfig.spec,
+          dockerfile: "foo.Dockerfile",
+        },
+      })
+      expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
+    })
+  })
 })
-
-//   async function getTestModule(moduleConfig: ContainerModuleConfig) {
-//     const parsed = await configure({ ctx, moduleConfig, log })
-//     return moduleFromConfig({ garden, log, config: parsed.moduleConfig, buildDependencies: [], forceVersion: true })
-//   }
-
-//   async function getTestBuildAction(moduleConfig: ModuleConfig<any, any, any, any>) {
-//     const parsed = await configure({ ctx, moduleConfig, log })
-//     return actionFromConfig({
-//       garden,
-//       log,
-//       config: parsed.moduleConfig,
-//       configsByKey: {},
-//       router: await garden.getActionRouter(),
-//       graph: await garden.getConfigGraph({ log, emit: false }),
-//     }) as Promise<BuildAction>
-//   }
-
-//   it("has a stable build version even if a services, tests and tasks are added", async () => {
-//     const baseModule = await getTestModule(baseConfig)
-//     const withRuntime = await getTestModule({
-//       ...baseConfig,
-//       spec: {
-//         ...baseConfig.spec,
-//         services: [
-//           {
-//             name: "service-a",
-//             annotations: {},
-//             args: ["echo"],
-//             dependencies: [],
-//             daemon: false,
-//             disabled: false,
-//             ingresses: [],
-//             env: {
-//               SOME_ENV_VAR: "value",
-//             },
-//             limits: {
-//               cpu: 123,
-//               memory: 456,
-//             },
-//             cpu: defaultCpu,
-//             memory: defaultMemory,
-//             ports: [],
-//             replicas: 1,
-//             volumes: [],
-//             deploymentStrategy: defaultDeploymentStrategy,
-//           },
-//         ],
-//         tasks: [
-//           {
-//             name: "task-a",
-//             args: ["echo", "OK"],
-//             artifacts: [],
-//             cacheResult: true,
-//             dependencies: [],
-//             disabled: false,
-//             env: {
-//               TASK_ENV_VAR: "value",
-//             },
-//             cpu: defaultCpu,
-//             memory: defaultMemory,
-//             timeout: null,
-//             volumes: [],
-//           },
-//         ],
-//         tests: [
-//           {
-//             name: "unit",
-//             args: ["echo", "OK"],
-//             artifacts: [],
-//             dependencies: [],
-//             disabled: false,
-//             env: {
-//               TEST_ENV_VAR: "value",
-//             },
-//             cpu: defaultCpu,
-//             memory: defaultMemory,
-//             timeout: null,
-//             volumes: [],
-//           },
-//         ],
-//       },
-//     })
-//     expect(baseModule.version.versionString).to.equal(withRuntime.version.versionString)
-//   })
-
-//   it("has different build version if buildArgs are added", async () => {
-//     const baseModule = await getTestModule(baseConfig)
-//     const changedBuild = await getTestModule({
-//       ...baseConfig,
-//       spec: {
-//         ...baseConfig.spec,
-//         buildArgs: { foo: "bar" },
-//       },
-//     })
-//     expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
-//   })
-
-//   it("has different build version if a targetImage is set", async () => {
-//     const baseModule = await getTestModule(baseConfig)
-//     const changedBuild = await getTestModule({
-//       ...baseConfig,
-//       spec: {
-//         ...baseConfig.spec,
-//         build: {
-//           ...baseConfig.spec.build,
-//           targetImage: "foo",
-//         },
-//       },
-//     })
-//     expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
-//   })
-
-//   it("has different build version if extraFlags are added", async () => {
-//     const baseModule = await getTestModule(baseConfig)
-//     const changedBuild = await getTestModule({
-//       ...baseConfig,
-//       spec: {
-//         ...baseConfig.spec,
-//         extraFlags: ["foo"],
-//       },
-//     })
-//     expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
-//   })
-
-//   it("has different build version if dockerfile is changed", async () => {
-//     const baseModule = await getTestModule(baseConfig)
-//     const changedBuild = await getTestModule({
-//       ...baseConfig,
-//       spec: {
-//         ...baseConfig.spec,
-//         dockerfile: "foo.Dockerfile",
-//       },
-//     })
-//     expect(baseModule.version.versionString).to.not.equal(changedBuild.version.versionString)
-//   })
 
 //   describe("convert", () => {
 //     // TODO-G2: adapt from exec convert tests
