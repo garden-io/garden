@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-// No idea why tslint complains over this line
-// eslint-disable-next-lineno-unused
 import { IncomingMessage } from "http"
 import { ReadStream } from "tty"
 import Bluebird from "bluebird"
