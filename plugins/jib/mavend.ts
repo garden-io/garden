@@ -188,5 +188,19 @@ export async function mvnd({
 
       return res
     })
+  } else {
+    const res = execa(mvndPath, args, {
+      cwd,
+      env: {
+        JAVA_HOME: openJdkPath,
+      },
+    })
+
+    if (outputStream) {
+      res.stdout?.pipe(outputStream)
+      res.stderr?.pipe(outputStream)
+    }
+
+    return res
   }
 }
