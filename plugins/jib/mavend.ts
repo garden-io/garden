@@ -126,7 +126,8 @@ async function verifyMavendPath(mvndPath: string) {
   }
 
   const versionOutput = await checkMavenVersion(mvndPath)
-  const isMavend = versionOutput.toLowerCase().includes("mavend")
+
+  const isMavend = versionOutput.toLowerCase().includes("mvnd")
   if (!isMavend) {
     throw new RuntimeError(
       `${baseErrorMessage(mvndPath)} It looks like the Maven Daemon path points to a non-Maven executable binary.`,
@@ -166,7 +167,7 @@ export async function mvnd({
     const tool = getMvndTool(ctx)
     mvndPath = await tool.getPath(log)
   }
-  
+
   log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
 
   const res = execa(mvndPath, args, {
@@ -182,5 +183,4 @@ export async function mvnd({
   }
 
   return res
-
 }

@@ -111,6 +111,13 @@ build:
   # Defines the Maven phases to be executed during the Garden build step.
   mavenPhases:
 
+  # Defines the location of the custom executable Maven Daemon binary.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Maven.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+  mavendPath:
+
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
 
@@ -1014,6 +1021,19 @@ Defines the Maven phases to be executed during the Garden build step.
 | Type            | Default       | Required |
 | --------------- | ------------- | -------- |
 | `array[string]` | `["compile"]` | No       |
+
+### `build.mavendPath`
+
+[build](#build) > mavendPath
+
+Defines the location of the custom executable Maven Daemon binary.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `build.extraFlags[]`
 

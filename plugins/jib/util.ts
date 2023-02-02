@@ -30,7 +30,7 @@ interface JibModuleSpec extends ContainerModuleSpec {
 }
 
 export type JibContainerModule = GardenModule<JibModuleSpec>
-export type JibPluginType = "gradle" | "maven"
+export type JibPluginType = "gradle" | "maven" | "mavend"
 
 const gradlePaths = [
   "build.gradle",
@@ -42,6 +42,8 @@ const gradlePaths = [
   "gradlew.cmd",
 ]
 const mavenPaths = ["pom.xml", ".mvn"]
+
+const mavendPaths = ["pom.xml", ".mvnd"]
 
 export function detectProjectType(module: GardenModule): JibPluginType {
   const moduleFiles = module.version.files
@@ -62,7 +64,17 @@ export function detectProjectType(module: GardenModule): JibPluginType {
     }
   }
 
-  throw new ConfigurationError(`Could not detect a gradle or maven project to build module ${module.name}`, {})
+  for (const filename of mavendPaths) {
+    const path = resolve(module.path, filename)
+    if (moduleFiles.includes(path)) {
+      return "mavend"
+    }
+  }
+
+  throw new ConfigurationError(
+    `Could not detect a gradle or maven project or mavend project to build module ${module.name}`,
+    {}
+  )
 }
 
 export function getBuildFlags(module: JibContainerModule, projectType: JibModuleBuildSpec["projectType"]) {
