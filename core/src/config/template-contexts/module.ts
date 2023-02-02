@@ -31,7 +31,7 @@ class ConfigThisContext extends ConfigContext {
   )
   public buildPath: string
 
-  @schema(joiIdentifier().description("The name of the action/module."))
+  @schema(joiIdentifier().description(`The name of the action/module.`))
   public name: string
 
   @schema(
@@ -177,7 +177,7 @@ class RuntimeConfigContext extends ConfigContext {
 }
 
 export class ParentContext extends ConfigContext {
-  @schema(joiIdentifier().description("The name of the parent module."))
+  @schema(joiIdentifier().description(`The name of the parent module.`))
   public name: string
 
   constructor(root: ConfigContext, name: string) {
@@ -187,7 +187,7 @@ export class ParentContext extends ConfigContext {
 }
 
 export class TemplateContext extends ConfigContext {
-  @schema(joiIdentifier().description("The name of the template."))
+  @schema(joiIdentifier().description(`The name of the template.`))
   public name: string
 
   constructor(root: ConfigContext, name: string) {
@@ -197,14 +197,14 @@ export class TemplateContext extends ConfigContext {
 }
 
 export class ModuleTemplateConfigContext extends ProjectConfigContext {
-  @schema(ParentContext.getSchema().description("Information about the templated config being resolved."))
+  @schema(ParentContext.getSchema().description(`Information about the templated config being resolved.`))
   public parent: ParentContext
 
-  @schema(TemplateContext.getSchema().description("Information about the template used when generating the config."))
+  @schema(TemplateContext.getSchema().description(`Information about the template used when generating the config.`))
   public template: TemplateContext
 
   @schema(
-    joiVariables().description("The inputs provided when resolving the template.").meta({
+    joiVariables().description(`The inputs provided when resolving the template.`).meta({
       keyPlaceholder: "<input-key>",
     })
   )
@@ -286,7 +286,7 @@ export interface ModuleConfigContextParams extends OutputConfigContextParams {
  */
 export class ModuleConfigContext extends OutputConfigContext {
   @schema(
-    joiVariables().description("The inputs provided to the config through a template, if applicable.").meta({
+    joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
       keyPlaceholder: "<input-key>",
     })
   )
@@ -294,14 +294,14 @@ export class ModuleConfigContext extends OutputConfigContext {
 
   @schema(
     ParentContext.getSchema().description(
-      "Information about the config parent, if any (usually a template, if applicable)."
+      `Information about the config parent, if any (usually a template, if applicable).`
     )
   )
   public parent?: ParentContext
 
   @schema(
     TemplateContext.getSchema().description(
-      "Information about the template used when generating the config, if applicable."
+      `Information about the template used when generating the config, if applicable.`
     )
   )
   public template?: TemplateContext

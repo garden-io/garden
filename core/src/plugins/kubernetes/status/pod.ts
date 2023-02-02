@@ -158,18 +158,24 @@ export async function getPodLogs({
  * Get a formatted list of log tails for each of the specified pods. Used for debugging and error logs.
  */
 export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods: KubernetesPod[]): Promise<string> {
-  const allLogs = await Bluebird.map(pods, async (pod) => ({
+  const allLogs = await Bluebird.map(pods, async (pod) => {
+    return {
       podName: pod.metadata.name,
       // Putting 5000 bytes as a length limit in addition to the line limit, just as a precaution in case someone
       // accidentally logs a binary file or something.
       containers: await getPodLogs({ api, namespace, pod, byteLimit: 5000, lineLimit: POD_LOG_LINES }),
-    }))
+    }
+  })
 
   return allLogs
-    .map(({ podName, containers }) => (
+    .map(({ podName, containers }) => {
+      return (
         chalk.blueBright(`\n****** ${podName} ******\n`) +
-        containers.map(({ containerName, log }) => chalk.gray(`------ ${containerName} ------`) + (log || "<no logs>"))
-      ))
+        containers.map(({ containerName, log }) => {
+          return chalk.gray(`------ ${containerName} ------`) + (log || "<no logs>")
+        })
+      )
+    })
     .join("\n\n")
 }
 

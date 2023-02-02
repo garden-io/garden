@@ -436,7 +436,7 @@ ${renderCommands(commands)}
         }
 
         if (cloudApi && garden.projectId) {
-          log.silly("Connecting Garden instance to GE BufferedEventStream")
+          log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           const connectParams: ConnectBufferedEventStreamParams = {
             garden,
             streamEvents,

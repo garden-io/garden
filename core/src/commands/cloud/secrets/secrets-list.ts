@@ -108,13 +108,15 @@ export class SecretsListCommand extends Command<{}, Opts> {
     log.debug(`Found ${filtered.length} secrets that match filters`)
 
     const heading = ["Name", "ID", "Environment", "User", "Created At"].map((s) => chalk.bold(s))
-    const rows: string[][] = filtered.map((s) => [
+    const rows: string[][] = filtered.map((s) => {
+      return [
         chalk.cyan.bold(s.name),
         String(s.id),
         s.environment?.name || "[none]",
         s.user?.name || "[none]",
         new Date(s.createdAt).toUTCString(),
-      ])
+      ]
+    })
 
     log.info(renderTable([heading].concat(rows)))
 

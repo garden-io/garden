@@ -337,7 +337,7 @@ export async function renderHelmTemplateString({
   // TODO-G2: see if we can lift this limitation
   if (!chartPath) {
     throw new ConfigurationError(
-      "Referencing Helm template strings is currently only supported for local Helm charts",
+      `Referencing Helm template strings is currently only supported for local Helm charts`,
       {}
     )
   }

@@ -33,10 +33,12 @@ export type DependencyGraphNode = {
 @Profile()
 export class DependencyGraph<T> extends DepGraph<T> {
   static fromGraphNodes<G extends GraphNodes | ModuleGraphNodes>(dependencyGraph: G) {
-    const withDeps = (node: ConfigGraphNode | ModuleDependencyGraphNode): DependencyGraphNode => ({
+    const withDeps = (node: ConfigGraphNode | ModuleDependencyGraphNode): DependencyGraphNode => {
+      return {
         key: nodeKey(node.kind, node.name),
         dependencies: node.dependencies.map((d) => nodeKey(d.kind, d.name)),
-      })
+      }
+    }
 
     const graph = new DependencyGraph<string>()
     const nodes = Object.values(dependencyGraph).map((n) => withDeps(n))
@@ -125,11 +127,13 @@ export async function resolveVariables({
   variables?: DeepPrimitiveMap
   varfiles?: string[]
 }) {
-  const varsByFile = await Bluebird.map(varfiles || [], (path) => loadVarfile({
+  const varsByFile = await Bluebird.map(varfiles || [], (path) => {
+    return loadVarfile({
       configRoot: basePath,
       path,
       defaultPath: undefined,
-    }))
+    })
+  })
 
   const output: DeepPrimitiveMap = {}
 

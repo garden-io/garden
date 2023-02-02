@@ -24,7 +24,7 @@ export const k8sPublishContainerBuild: BuildActionHandler<"publish", ContainerBu
     // user might be authenticating with their registries.
     // We also generally prefer this because the remote cluster very likely doesn't (and shouldn't) have
     // privileges to push to production registries.
-    log.setState("Pulling from remote registry...")
+    log.setState(`Pulling from remote registry...`)
     const localId = action.getOutput("localImageId")
     const remoteId = action.getOutput("deploymentImageId")
     await pullBuild({ ctx: k8sCtx, action, log, localId, remoteId })

@@ -438,7 +438,7 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     } else if (typeof assertion === "string") {
       throw new Error(`Expected ${assertion} error (got no error)`)
     } else {
-      throw new Error("Expected error (got no error)")
+      throw new Error(`Expected error (got no error)`)
     }
   }
 

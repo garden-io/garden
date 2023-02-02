@@ -27,10 +27,10 @@ const joiOptions: Joi.ValidationOptions = {
   messages: {
     "any.unknown": `{{#label}} is not allowed at path ${joiPathPlaceholder}`,
     "object.missing": `object at ${joiPathPlaceholder} must contain at least one of {{#peersWithLabels}}`,
-    "object.nand": "{{#mainWithLabel}} can\'t be specified simultaneously with {{#peersWithLabels}}",
+    "object.nand": `{{#mainWithLabel}} can\'t be specified simultaneously with {{#peersWithLabels}}`,
     "object.unknown": `key "{{#child}}" is not allowed at path ${joiPathPlaceholder}`,
-    "object.with": "\"{{#mainWithLabel}}\" must be specified with \"{{#peerWithLabel}}\"",
-    "object.without": "\"{{#mainWithLabel}}\" can\'t be specified with \"{{#peerWithLabel}}\"",
+    "object.with": `"{{#mainWithLabel}}" must be specified with "{{#peerWithLabel}}"`,
+    "object.without": `"{{#mainWithLabel}}" can\'t be specified with "{{#peerWithLabel}}"`,
     "object.xor": `object at ${joiPathPlaceholder} can only contain one of {{#peersWithLabels}}`,
   },
   errors: errorPrefs,

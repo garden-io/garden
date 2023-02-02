@@ -75,7 +75,9 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
     delete: deleteContainerDeploy,
     exec: execInContainer,
     getLogs: k8sGetContainerDeployLogs,
-    getPortForward: async (params) => getPortForwardHandler({ ...params, namespace: undefined }),
+    getPortForward: async (params) => {
+      return getPortForwardHandler({ ...params, namespace: undefined })
+    },
     getStatus: k8sGetContainerDeployStatus,
     validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())

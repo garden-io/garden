@@ -122,7 +122,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
           log: "",
         }
         garden.events.emit("workflowStepSkipped", { index })
-        outerLog.info("\n")
+        outerLog.info(`\n`)
         continue
       }
 
@@ -163,7 +163,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
           stepResult = await runStepScript(stepParams)
         } else {
           garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
-          throw new ConfigurationError("Workflow steps must specify either a command or a script.", { step })
+          throw new ConfigurationError(`Workflow steps must specify either a command or a script.`, { step })
         }
       } catch (err) {
         garden.events.emit("workflowStepError", getStepEndEvent(index, stepStartedAt))
@@ -384,7 +384,7 @@ export async function runStepCommand({
 
   if (persistent) {
     throw new ConfigurationError(
-      "Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, commands with watch flags set etc.)",
+      `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, commands with watch flags set etc.)`,
       {
         step,
       }
@@ -414,7 +414,7 @@ export async function runStepScript({ garden, bodyLog, step }: RunStepParams): P
     })
 
     bodyLog.error("")
-    bodyLog.error({ msg: "Script failed with the following error:", error: scriptError })
+    bodyLog.error({ msg: `Script failed with the following error:`, error: scriptError })
     bodyLog.error("")
     bodyLog.error(error.stderr)
 
@@ -451,13 +451,15 @@ export function shouldBeDropped(stepIndex: number, steps: WorkflowStepSpec[], st
      * steps to "handle" that error.
      *
      * Example: Here, steps a, b and c don't have a `when` modifier, and e1, e2 and e3 have `when: onError`.
-     * [a, b, e1, e2, c, e3]
+     *   [a, b, e1, e2, c, e3]
      * If a throws an error, we run e1 and e2, but drop c and e3.
      */
     const errorBelongsToPreviousSequence =
-      previousOnErrorStepIndexes.find((prevOnErrorIdx) =>
-        steps.find((s, idx) => !["never", "onError"].includes(s.when || "") && prevOnErrorIdx < idx && idx < stepIndex)
-      ) !== undefined
+      previousOnErrorStepIndexes.find((prevOnErrorIdx) => {
+        return steps.find(
+          (s, idx) => !["never", "onError"].includes(s.when || "") && prevOnErrorIdx < idx && idx < stepIndex
+        )
+      }) !== undefined
     return errorBelongsToPreviousSequence
   }
 

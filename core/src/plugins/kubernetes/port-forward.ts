@@ -168,7 +168,6 @@ export async function getPortForward({
       proc.stderr!.on("data", (line) => {
         log.silly(`[${targetResource} port forwarder] ${line}`)
         output += line
-        // eslint-disable-next-line max-len
         // Following this: https://github.com/nkubala/skaffold/blob/0d52436f792b862e06311c42065afd8e2363771c/pkg/skaffold/kubernetes/portforward/kubectl_forwarder.go#L177
         // Note: It'd be much more robust to avoid kubectl here, but it's more work to implement.
         if (

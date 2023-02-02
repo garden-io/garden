@@ -205,7 +205,9 @@ export class CliWrapper {
   }
 }
 
-const findBuildSpec = (spec: PluginToolSpec, plat: string, arch: string) => spec.builds.find((build) => build.platform === plat && build.architecture === arch)
+const findBuildSpec = (spec: PluginToolSpec, plat: string, arch: string) => {
+  return spec.builds.find((build) => build.platform === plat && build.architecture === arch)
+}
 
 export interface PluginTools {
   [key: string]: PluginTool

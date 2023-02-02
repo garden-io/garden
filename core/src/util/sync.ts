@@ -15,11 +15,11 @@ import { LogLevel } from "../logger/logger"
  * `withDelete` and `files` parameters.
  *
  * @param destinationPath
- * May be a local path or a remote destination.
+ *   May be a local path or a remote destination.
  * @param withDelete
- * If `true`, files/folders in `destinationPath` that are not in `sourcePath` will also be deleted.
+ *   If `true`, files/folders in `destinationPath` that are not in `sourcePath` will also be deleted.
  * @param files
- * If provided, only those paths will be synced. Should be relative paths from `sourcePath`.
+ *   If provided, only those paths will be synced. Should be relative paths from `sourcePath`.
  */
 export async function syncWithOptions({
   log,

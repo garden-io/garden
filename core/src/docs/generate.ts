@@ -26,8 +26,9 @@ import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
 import { DEFAULT_API_VERSION } from "../constants"
 
+/* eslint-disable no-console */
+
 export async function generateDocs(targetDir: string, plugins: GardenPluginReference[]) {
-  /* eslint-disable no-console */
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
@@ -44,7 +45,6 @@ export async function generateDocs(targetDir: string, plugins: GardenPluginRefer
 }
 
 export async function writeConfigReferenceDocs(docsRoot: string, plugins: GardenPlugin[]) {
-  /* eslint-disable no-console */
   const referenceDir = resolve(docsRoot, "reference")
 
   const providers = [
@@ -100,7 +100,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     providersReadme.push(`* [\`${provider.name}\`](./${provider.name}.md)`)
   }
 
-  writeFileSync(resolve(providerDir, "README.md"), providersReadme.join("\n"))
+  writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
 
   // Render module types
   const actionTypeDir = resolve(docsRoot, "reference", "action-types")
@@ -109,7 +109,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   const actionTypeDefinitions = await garden.getActionTypes()
 
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
-    actionsReadme.push("* `kind`")
+    actionsReadme.push(`* \`kind\``)
     for (const [type, definition] of Object.entries(types)) {
       const dir = resolve(actionTypeDir, kind)
       await mkdirp(dir)
@@ -122,7 +122,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     }
   }
 
-  await writeFile(resolve(actionTypeDir, "README.md"), actionsReadme.join("\n"))
+  await writeFile(resolve(actionTypeDir, `README.md`), actionsReadme.join("\n"))
 
   // Render module types
   const moduleTypeDir = resolve(docsRoot, "reference", "module-types")
@@ -138,7 +138,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     moduleReadme.push(`* [\`${name}\`](./${name}.md)`)
   }
 
-  writeFileSync(resolve(moduleTypeDir, "README.md"), moduleReadme.join("\n"))
+  writeFileSync(resolve(moduleTypeDir, `README.md`), moduleReadme.join("\n"))
 
   // Render other config file references
   async function renderConfigTemplate(configType: string, context: any) {

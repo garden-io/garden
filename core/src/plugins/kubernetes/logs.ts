@@ -61,7 +61,9 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
     const pods = await getAllPods(api, params.defaultNamespace, params.resources)
     let tail = params.tail
     if (!tail) {
-      const containers = pods.flatMap((pod) => pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/)))
+      const containers = pods.flatMap((pod) => {
+        return pod.spec!.containers.map((c) => c.name).filter((n) => !n.match(/garden-/))
+      })
       tail = Math.floor(maxLogLinesInMemory / containers.length)
 
       params.log.debug(`Tail parameter not set explicitly. Setting to ${tail} to prevent log overflow.`)
@@ -103,7 +105,8 @@ async function readLogs<T>({
     sinceSeconds: since ? parseDuration(since, "s") || undefined : undefined,
   })
 
-  const allLines = logs.flatMap(({ containerName, log: _log }) => _log.split("\n").map((line) => {
+  const allLines = logs.flatMap(({ containerName, log: _log }) => {
+    return _log.split("\n").map((line) => {
       line = line.trimEnd()
       const res = { containerName }
       try {
@@ -113,7 +116,8 @@ async function readLogs<T>({
       } catch {
         return entryConverter({ ...res, msg: line })
       }
-    }))
+    })
+  })
 
   for (const line of sortBy(allLines, "timestamp")) {
     void stream.write(line)
@@ -492,7 +496,8 @@ export interface PodLogEntryConverterParams {
 
 export type PodLogEntryConverter<T> = (p: PodLogEntryConverterParams) => T
 
-export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<DeployLogEntry> = (serviceName) => ({ timestamp, msg, level, containerName }: PodLogEntryConverterParams) => ({
+export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<DeployLogEntry> = (serviceName) => {
+  return ({ timestamp, msg, level, containerName }: PodLogEntryConverterParams) => ({
     name: serviceName,
     timestamp,
     msg,
@@ -501,3 +506,4 @@ export const makeServiceLogEntry: (serviceName: string) => PodLogEntryConverter<
       container: containerName || "",
     },
   })
+}

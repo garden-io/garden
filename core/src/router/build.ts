@@ -115,14 +115,18 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       }
     },
 
-    publish: async (params) => params.router.callHandler({ params, handlerType: "publish", defaultHandler: dummyPublishHandler }),
+    publish: async (params) => {
+      return params.router.callHandler({ params, handlerType: "publish", defaultHandler: dummyPublishHandler })
+    },
   })
 
-const dummyPublishHandler = async ({ action }): Promise<PublishActionResult> => ({
+const dummyPublishHandler = async ({ action }): Promise<PublishActionResult> => {
+  return {
     state: "unknown",
     detail: {
       message: chalk.yellow(`No publish handler available for type ${action.type}`),
       published: false,
     },
     outputs: {},
-  })
+  }
+}

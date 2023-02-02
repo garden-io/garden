@@ -429,14 +429,18 @@ export abstract class BaseConfigGraph<
 
     const sortedNodeKeys = toposort(simpleEdges)
 
-    const edgeSortIndex = (e: ConfigGraphEdge) => sortedNodeKeys.findIndex((k: string) => k === nodeKey(e.dependency.kind, e.dependency.name))
+    const edgeSortIndex = (e: ConfigGraphEdge) => {
+      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(e.dependency.kind, e.dependency.name))
+    }
     edges = edges.sort((e1, e2) => edgeSortIndex(e2) - edgeSortIndex(e1))
     const renderedEdges = edges.map((e) => ({
       dependant: e.dependant.render(),
       dependency: e.dependency.render(),
     }))
 
-    const nodeSortIndex = (n: ConfigGraphNode) => sortedNodeKeys.findIndex((k: string) => k === nodeKey(n.kind, n.name))
+    const nodeSortIndex = (n: ConfigGraphNode) => {
+      return sortedNodeKeys.findIndex((k: string) => k === nodeKey(n.kind, n.name))
+    }
     const renderedNodes = nodes.sort((n1, n2) => nodeSortIndex(n2) - nodeSortIndex(n1)).map((n) => n.render())
 
     return {

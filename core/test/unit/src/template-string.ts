@@ -19,7 +19,7 @@ import { expectError } from "../../helpers"
 import stripAnsi = require("strip-ansi")
 import { dedent } from "../../../src/util/string"
 
-/* eslint-disable no-template-curly-in-string */
+/* eslint-disable no-invalid-template-strings */
 
 class TestContext extends ConfigContext {
   constructor(context) {

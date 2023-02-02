@@ -151,7 +151,7 @@ export const workflowConfigSchema = () =>
         .array()
         .items(triggerSchema())
         .description(
-          "A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only)."
+          `A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only).`
         )
         .meta({ enterprise: true }),
     })
@@ -201,7 +201,8 @@ export interface WorkflowStepSpec {
   when?: workflowStepModifier
 }
 
-export const workflowStepSchema = () => joi
+export const workflowStepSchema = () => {
+  return joi
     .object()
     .keys({
       name: joiIdentifier().description(dedent`
@@ -245,7 +246,7 @@ export const workflowStepSchema = () => joi
         .boolean()
         .default(false)
         .description(
-          "Set to true to skip this step. Use this with template conditionals to skip steps for certain environments or scenarios."
+          `Set to true to skip this step. Use this with template conditionals to skip steps for certain environments or scenarios.`
         )
         .example("${environment.name != 'prod'}"),
       when: joi.string().allow("onSuccess", "onError", "always", "never").default("onSuccess").description(dedent`
@@ -266,6 +267,7 @@ export const workflowStepSchema = () => joi
     })
     .xor("command", "script")
     .description("A workflow step. Must specify either `command` or `script` (but not both).")
+}
 
 export type workflowStepModifier = "onSuccess" | "onError" | "always" | "never"
 

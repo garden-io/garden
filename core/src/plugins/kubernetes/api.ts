@@ -6,6 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+// No idea why tslint complains over this line
+// eslint-disable-next-lineno-unused
 import { IncomingMessage } from "http"
 import { ReadStream } from "tty"
 import Bluebird from "bluebird"
@@ -561,7 +563,7 @@ export class KubeApi {
     const apiVersion = manifest.apiVersion
 
     if (!apiVersion) {
-      throw new KubernetesError("Missing apiVersion on resource", {
+      throw new KubernetesError(`Missing apiVersion on resource`, {
         manifest,
       })
     }
@@ -571,7 +573,7 @@ export class KubeApi {
     }
 
     if (!namespace) {
-      throw new KubernetesError("Missing namespace on resource and no namespace specified", {
+      throw new KubernetesError(`Missing namespace on resource and no namespace specified`, {
         manifest,
       })
     }
@@ -1002,7 +1004,7 @@ async function requestWithRetry<R>(
           return await retry(usedRetries + 1)
         } else {
           if (usedRetries === maxRetries) {
-            retryLog.setState(chalk.red("Kubernetes API: Maximum retry count exceeded"))
+            retryLog.setState(chalk.red(`Kubernetes API: Maximum retry count exceeded`))
           }
           throw err
         }

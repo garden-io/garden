@@ -65,7 +65,9 @@ export async function startPortProxies({
     return []
   }
 
-  return Bluebird.map(status.forwardablePorts || [], (spec) => startPortProxy({ garden, graph, log, action, spec }))
+  return Bluebird.map(status.forwardablePorts || [], (spec) => {
+    return startPortProxy({ garden, graph, log, action, spec })
+  })
 }
 
 interface StartPortProxyParams {

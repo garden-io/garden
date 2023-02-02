@@ -615,7 +615,7 @@ export async function getTargetResource({
 
   if (!targetKind) {
     // This should be caught in config/schema validation
-    throw new InternalError("Neither kind nor podSelector set in resource query", { query })
+    throw new InternalError(`Neither kind nor podSelector set in resource query`, { query })
   }
 
   if (manifests) {
@@ -674,7 +674,7 @@ export async function getTargetResource({
 
   if (!targetName) {
     // This should be caught in config/schema validation
-    throw new InternalError("Must specify name in resource/target query", { query })
+    throw new InternalError(`Must specify name in resource/target query`, { query })
   }
 
   try {
@@ -686,7 +686,7 @@ export async function getTargetResource({
       target = await api.apps.readNamespacedStatefulSet(targetName, namespace)
     } else {
       // This should be caught in config/schema validation
-      throw new InternalError("Unsupported kind specified in resource/target query", { query })
+      throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
     }
     return target
   } catch (err) {
@@ -784,7 +784,7 @@ export function getK8sProvider(providers: ProviderMap): KubernetesProvider {
   const provider = Object.values(providers).find((p) => p.name === "kubernetes" || p.name === "local-kubernetes")
 
   if (!provider) {
-    throw new ConfigurationError("Could not find a configured kubernetes (or local-kubernetes) provider", {
+    throw new ConfigurationError(`Could not find a configured kubernetes (or local-kubernetes) provider`, {
       configuredProviders: Object.keys(providers),
     })
   }

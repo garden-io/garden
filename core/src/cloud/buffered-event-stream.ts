@@ -289,9 +289,9 @@ export class BufferedEventStream {
         }
         const targetUrl = `${target.host}/${path}`
         this.log.silly(`Flushing ${description} to ${targetUrl}`)
-        this.log.silly("--------")
+        this.log.silly(`--------`)
         this.log.silly(`data: ${JSON.stringify(data)}`)
-        this.log.silly("--------")
+        this.log.silly(`--------`)
 
         const headers = makeAuthHeader(target.clientAuthToken || "")
         return got.post(`${targetUrl}`, { json: data, headers })
@@ -314,7 +314,7 @@ export class BufferedEventStream {
       return
     }
 
-    this.log.silly("Flushing all remaining events and log entries")
+    this.log.silly(`Flushing all remaining events and log entries`)
     const flushPromises: Promise<any>[] = []
     try {
       while (this.bufferedEvents.length > 0 || this.bufferedLogEntries.length > 0) {
@@ -348,7 +348,7 @@ export class BufferedEventStream {
     while (batchBytes < this.maxBatchBytes && buffered.length > 0) {
       let nextRecordBytes = Buffer.from(JSON.stringify(buffered[0])).length
       if (nextRecordBytes > this.maxBatchBytes) {
-        this.log.error("Event or log entry too large to flush, dropping it.")
+        this.log.error(`Event or log entry too large to flush, dropping it.`)
         this.log.debug(JSON.stringify(buffered[0]))
         buffered.shift() // Drop first record.
         nextRecordBytes = Buffer.from(JSON.stringify(buffered[0])).length

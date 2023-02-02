@@ -41,7 +41,7 @@ export const pullImage: PluginCommand = {
     const provider = k8sCtx.provider
 
     if (provider.config.buildMode === "local-docker") {
-      throw new PluginError("Cannot pull images with buildMode=local-docker", {
+      throw new PluginError(`Cannot pull images with buildMode=local-docker`, {
         provider,
       })
     }

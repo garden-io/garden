@@ -123,7 +123,7 @@ export class TestCommand extends Command<Args, Opts> {
   private garden?: Garden
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Running Tests", "thermometer")
+    printHeader(headerLog, `Running Tests`, "thermometer")
   }
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
@@ -154,7 +154,7 @@ export class TestCommand extends Command<Args, Opts> {
     }
 
     if (opts.interactive && opts.watch) {
-      throw new ParameterError("The --interactive/-i option cannot be used with the --watch/-w flag.", {
+      throw new ParameterError(`The --interactive/-i option cannot be used with the --watch/-w flag.`, {
         args,
         opts,
       })
@@ -200,7 +200,7 @@ export class TestCommand extends Command<Args, Opts> {
     )
 
     if (opts.interactive && initialTasks.length !== 1) {
-      throw new ParameterError("The --interactive/-i option can only be used if a single test is selected.", {
+      throw new ParameterError(`The --interactive/-i option can only be used if a single test is selected.`, {
         args,
         opts,
       })

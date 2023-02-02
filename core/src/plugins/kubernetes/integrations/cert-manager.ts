@@ -77,12 +77,12 @@ interface WaitForResourcesParams {
  *
  * @export
  * @param {WaitForResourcesParams} {
- * ctx,
- * provider,
- * log,
- * resourcesType,
- * resources,
- * predicate }
+ *   ctx,
+ *   provider,
+ *   log,
+ *   resourcesType,
+ *   resources,
+ *   predicate }
  */
 export async function waitForResourcesWith({
   ctx,
@@ -98,7 +98,7 @@ export async function waitForResourcesWith({
   const statusLine = log.info({
     symbol: "info",
     section: resourcesType,
-    msg: "Waiting for resources to be ready...",
+    msg: `Waiting for resources to be ready...`,
   })
 
   const namespace = await getAppNamespace(ctx, log, provider)
@@ -118,7 +118,7 @@ export async function waitForResourcesWith({
     }
   }
 
-  statusLine.setState({ symbol: "info", section: resourcesType, msg: "Resources ready" })
+  statusLine.setState({ symbol: "info", section: resourcesType, msg: `Resources ready` })
 }
 
 /**
@@ -225,7 +225,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
   if (!systemCertManagerReady || !systemManagedCertificatesReady) {
     const entry = log.info({
       section: "cert-manager",
-      msg: "Verifying installation...",
+      msg: `Verifying installation...`,
       status: "active",
     })
 
@@ -254,7 +254,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
       const certsLog = entry.info({
         symbol: "info",
         section: "TLS certificates",
-        msg: "Processing certificates...",
+        msg: `Processing certificates...`,
         status: "active",
       })
       const api = await KubeApi.factory(log, ctx, provider)
@@ -382,8 +382,8 @@ export interface GetCertificateParams {
  *
  * @export
  * @param {GetCertificateParams} {
- * tlsCertificate,
- * issuerName,
+ *   tlsCertificate,
+ *   issuerName,
  * }
  * @returns
  */

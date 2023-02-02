@@ -462,7 +462,7 @@ export function resolveProjectConfig({
  * specified on the top-level `variables` key using a JSON Merge Patch (https://tools.ietf.org/html/rfc7396).
  * We also attempt to load the configured varfiles, and include those in the merge. The precedence order is as follows:
  *
- * environment.varfile > environment.variables > project.varfile > project.variables
+ *   environment.varfile > environment.variables > project.varfile > project.variables
  *
  * Variables passed through the `--var` CLI option have the highest precedence, and are merged in later in the flow
  * (see `resolveGardenParams`).

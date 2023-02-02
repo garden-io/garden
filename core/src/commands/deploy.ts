@@ -75,7 +75,7 @@ export const deployOpts = {
     alias: "nodeps",
   }),
   "forward": new BooleanParameter({
-    help: "Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --watch/-w, --dev/--dev-mode or --local/--local-mode are set.",
+    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --watch/-w, --dev/--dev-mode or --local/--local-mode are set.`,
   }),
 }
 
@@ -148,7 +148,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (opts.watch && (opts["dev-mode"] || opts["local-mode"])) {
       throw new ParameterError(
-        "The -w/--watch flag cannot currently be used at the same time as the --local or --dev mode flags. This is to avoid potentially conflicting actions happening while you're syncing code or working with local processes.",
+        `The -w/--watch flag cannot currently be used at the same time as the --local or --dev mode flags. This is to avoid potentially conflicting actions happening while you're syncing code or working with local processes.`,
         { opts }
       )
     }

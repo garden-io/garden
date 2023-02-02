@@ -40,7 +40,7 @@ export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
   }
 
   if (!status.includes("microk8s is running")) {
-    throw new RuntimeError("Unable to get microk8s status. Is the cluster installed and running?", {
+    throw new RuntimeError(`Unable to get microk8s status. Is the cluster installed and running?`, {
       status,
       statusCommandResult,
     })

@@ -78,7 +78,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Cleanup namespace", "skull_and_crossbones")
+    printHeader(headerLog, `Cleanup namespace`, "skull_and_crossbones")
   }
 
   async action({
@@ -176,7 +176,8 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     const dependantsFirst = opts["dependants-first"] || opts["with-dependants"]
     const deleteDeployNames = actions.map((a) => a.name)
 
-    const tasks = actions.map((action) => new DeleteDeployTask({
+    const tasks = actions.map((action) => {
+      return new DeleteDeployTask({
         garden,
         graph,
         log,
@@ -188,7 +189,8 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
         devModeDeployNames: [],
         localModeDeployNames: [],
         fromWatch: false,
-      }))
+      })
+    })
 
     const processed = await garden.processTasks({ tasks, log })
     const result = deletedDeployStatuses(processed.results)

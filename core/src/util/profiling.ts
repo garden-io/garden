@@ -124,7 +124,6 @@ export function getDefaultProfiler() {
 /**
  * Class decorator that collects profiling data on every method invocation (if GARDEN_ENABLE_PROFILING is true).
  */
-// eslint-disable-next-line
 export function Profile(profiler?: Profiler) {
   if (!profiler) {
     profiler = getDefaultProfiler()

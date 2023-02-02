@@ -24,7 +24,7 @@ export function resolveAction<T extends Action>(action: T, params: ResolveAction
     return new ResolvedTestAction({ ...action["params"], ...params })
   } else {
     // This should never happen
-    throw new InternalError("Unexpected action kind", {})
+    throw new InternalError(`Unexpected action kind`, {})
   }
 }
 
@@ -42,6 +42,6 @@ export function executeAction<T extends ResolvedAction>(
     return new ExecutedTestAction({ ...action["params"], ...params }) as Executed<T>
   } else {
     // This should never happen
-    throw new InternalError("Unexpected action kind", {})
+    throw new InternalError(`Unexpected action kind`, {})
   }
 }

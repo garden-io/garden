@@ -505,7 +505,7 @@ const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (param
     log.warn({
       section: action.key(),
       symbol: "warning",
-      msg: chalk.gray("Missing cleanupCommand, unable to clean up service"),
+      msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
     })
     return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
   }

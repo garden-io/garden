@@ -82,7 +82,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
 
     if (userId !== undefined && !envName) {
       throw new CommandError(
-        "Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.",
+        `Got user ID but not environment name. Secrets scoped to users must be scoped to environments as well.`,
         {
           args,
           opts,
@@ -169,7 +169,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       count++
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }
-        const res = await api.post<CreateSecretResponse>("/secrets", { body })
+        const res = await api.post<CreateSecretResponse>(`/secrets`, { body })
         results.push(makeSecretFromResponse(res.data))
       } catch (err) {
         errors.push({

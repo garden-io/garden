@@ -22,7 +22,7 @@ const serveArgs = {}
 
 const serveOpts = {
   port: new IntegerParameter({
-    help: "The port number for the server to listen on.",
+    help: `The port number for the server to listen on.`,
     defaultValue: defaultServerPort,
   }),
 }

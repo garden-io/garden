@@ -47,12 +47,12 @@ export const configure = () => ({
       log: logEntrySchema(),
       moduleConfig: baseModuleSpecSchema().required(),
     })
-    .meta({ name: "handlers.module.configure.params" }),
+    .meta({ name: `handlers.module.configure.params` }),
 
   resultSchema: joi
     .object()
     .keys({
       moduleConfig: moduleConfigSchema(),
     })
-    .meta({ name: "handlers.module.configure.result" }),
+    .meta({ name: `handlers.module.configure.result` }),
 })

@@ -73,15 +73,15 @@ export class ClientRouter {
     let emoji: EmojiName
     if (req.hotReload) {
       emoji = "fire"
-      prefix = "Hot reload-enabled deployment"
+      prefix = `Hot reload-enabled deployment`
     } else {
       // local mode always takes precedence over dev mode
       if (req.localMode) {
         emoji = "left_right_arrow"
-        prefix = "Local-mode deployment"
+        prefix = `Local-mode deployment`
       } else if (req.devMode) {
         emoji = "zap"
-        prefix = "Dev-mode deployment"
+        prefix = `Dev-mode deployment`
       } else {
         emoji = "rocket"
         prefix = "Deployment"

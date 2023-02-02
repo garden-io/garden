@@ -88,13 +88,13 @@ export class BuildStaging {
       const sourceBuildPath = sourceBuild.getBuildPath()
 
       if (isAbsolute(copy.sourcePath)) {
-        throw new ConfigurationError("Source path in build dependency copy spec must be a relative path", {
+        throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
           copySpec: copy,
         })
       }
 
       if (isAbsolute(copy.targetPath)) {
-        throw new ConfigurationError("Target path in build dependency copy spec must be a relative path", {
+        throw new ConfigurationError(`Target path in build dependency copy spec must be a relative path`, {
           copySpec: copy,
         })
       }
@@ -164,7 +164,7 @@ export class BuildStaging {
     }
 
     if (sourceRelPath && isAbsolute(sourceRelPath)) {
-      throw new InternalError("Build staging: Got absolute path for sourceRelPath", {
+      throw new InternalError(`Build staging: Got absolute path for sourceRelPath`, {
         sourceRoot,
         targetRoot,
         sourceRelPath,
@@ -173,7 +173,7 @@ export class BuildStaging {
     }
 
     if (targetRelPath && isAbsolute(targetRelPath)) {
-      throw new InternalError("Build staging: Got absolute path for targetRelPath", {
+      throw new InternalError(`Build staging: Got absolute path for targetRelPath`, {
         sourceRoot,
         targetRoot,
         sourceRelPath,
@@ -263,7 +263,7 @@ export class BuildStaging {
 
     // Throw if file list is specified and source+target are not both directories
     if (files && (!sourceStat?.isDirectory() || !targetStat?.isDirectory())) {
-      throw new InternalError("Build staging: Both source and target must be directories when specifying a file list", {
+      throw new InternalError(`Build staging: Both source and target must be directories when specifying a file list`, {
         sourceRoot,
         sourceStat,
         targetPath,

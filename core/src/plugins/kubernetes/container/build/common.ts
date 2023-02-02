@@ -155,7 +155,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     } finally {
       // -> Terminate the sync
       await terminateMutagenSync(ctx, log, key)
-      log.debug("Sync connection terminated")
+      log.debug(`Sync connection terminated`)
     }
   } else {
     // Sync the build context to the remote sync service
@@ -218,7 +218,7 @@ export async function skopeoBuildStatus({
 
   if (!deploymentRegistry) {
     // This is validated in the provider configure handler, so this is an internal error if it happens
-    throw new InternalError("Expected configured deploymentRegistry for remote build", { config: provider.config })
+    throw new InternalError(`Expected configured deploymentRegistry for remote build`, { config: provider.config })
   }
 
   const outputs = k8sGetContainerBuildActionOutputs({ action, provider })

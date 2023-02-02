@@ -81,7 +81,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     const log = this.log.info({
       section: action.key(),
-      msg: "Running...",
+      msg: `Running...`,
       status: "active",
     })
 
@@ -107,7 +107,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       })
     } else {
       const exitCode = status.detail?.exitCode
-      const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : "Failed!"
+      const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
       log.setError({
         msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
         append: true,

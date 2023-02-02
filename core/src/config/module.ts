@@ -251,7 +251,7 @@ export const baseModuleSpecKeys = () => ({
 })
 
 export const baseModuleSpecSchema = () =>
-  coreModuleSpecSchema().keys(baseModuleSpecKeys()).meta({ name: "module-spec-base" })
+  coreModuleSpecSchema().keys(baseModuleSpecKeys()).meta({ name: `module-spec-base` })
 
 export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
   extends BaseModuleSpec {
@@ -317,7 +317,7 @@ export const moduleConfigSchema = () =>
     })
     .description("The configuration for a module.")
     .unknown(false)
-    .meta({ name: "module-config-base" })
+    .meta({ name: `module-config-base` })
 
 export const baseModuleSchemaKeys = () =>
   Object.keys(baseModuleSpecSchema().describe().keys).concat([

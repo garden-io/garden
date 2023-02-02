@@ -101,7 +101,8 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
     const graph = await garden.getConfigGraph({ log, emit: true })
     const builds = graph.getBuilds({ names: args.names })
 
-    const tasks = builds.map((action) => new PublishTask({
+    const tasks = builds.map((action) => {
+      return new PublishTask({
         garden,
         graph,
         log,
@@ -112,7 +113,8 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
         localModeDeployNames: [],
         fromWatch: false,
         force: false,
-      }))
+      })
+    })
 
     const processed = await garden.processTasks({ tasks, log, throwOnError: true })
     return handleProcessResults(footerLog, "publish", { graphResults: processed.results })

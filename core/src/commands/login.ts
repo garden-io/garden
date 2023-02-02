@@ -47,7 +47,7 @@ export class LoginCommand extends Command {
     const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
 
     if (!cloudDomain) {
-      throw new ConfigurationError("Project config is missing a cloud domain.", {})
+      throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
     }
 
     try {
@@ -93,7 +93,7 @@ export async function login(log: LogEntry, enterpriseDomain: string, events: Eve
   })
   await server.close()
   if (!response) {
-    throw new InternalError("Error: Did not receive an auth token after logging in.", {})
+    throw new InternalError(`Error: Did not receive an auth token after logging in.`, {})
   }
 
   return response

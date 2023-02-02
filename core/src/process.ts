@@ -114,12 +114,12 @@ export async function processActions({
     // keep port forwards alive without enabling watch or dev mode.
     await new Promise((resolve) => {
       garden.events.on("_restart", () => {
-        log.debug({ symbol: "info", msg: "Manual restart triggered" })
+        log.debug({ symbol: "info", msg: `Manual restart triggered` })
         resolve({})
       })
 
       garden.events.on("_exit", () => {
-        log.debug({ symbol: "info", msg: "Manual exit triggered" })
+        log.debug({ symbol: "info", msg: `Manual exit triggered` })
         restartRequired = false
         resolve({})
       })
@@ -174,12 +174,12 @@ export async function processActions({
     })
 
     garden.events.on("_restart", () => {
-      log.debug({ symbol: "info", msg: "Manual restart triggered" })
+      log.debug({ symbol: "info", msg: `Manual restart triggered` })
       resolve({})
     })
 
     garden.events.on("_exit", () => {
-      log.debug({ symbol: "info", msg: "Manual exit triggered" })
+      log.debug({ symbol: "info", msg: `Manual exit triggered` })
       restartRequired = false
       resolve({})
     })
@@ -188,7 +188,7 @@ export async function processActions({
       if (await validateConfigChange(garden, log, garden.projectRoot, "changed")) {
         log.info({
           symbol: "info",
-          msg: "Project configuration changed, reloading...",
+          msg: `Project configuration changed, reloading...`,
         })
         resolve({})
       }
@@ -221,7 +221,7 @@ export async function processActions({
         log.info({
           symbol: "info",
           section,
-          msg: "Configuration changed, reloading...",
+          msg: `Configuration changed, reloading...`,
         })
         resolve({})
       }

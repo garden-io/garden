@@ -166,11 +166,13 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
   },
 
-  getModuleOutputs: async ({ moduleConfig }) => ({
+  getModuleOutputs: async ({ moduleConfig }) => {
+    return {
       outputs: {
         "release-name": moduleConfig.spec.releaseName || moduleConfig.name,
       },
-    }),
+    }
+  },
 
   suggestModules: async ({ name, path }: SuggestModulesParams): Promise<SuggestModulesResult> => {
     const chartPath = join(path, helmChartYamlFilename)

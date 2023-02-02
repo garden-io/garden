@@ -194,7 +194,7 @@ export class GardenServer {
       const authToken = ctx.header[authTokenHeader] || ctx.query.key
 
       if (authToken !== this.authKey) {
-        ctx.throw(401, "Unauthorized request")
+        ctx.throw(401, `Unauthorized request`)
         return
       }
       return next()
@@ -351,7 +351,7 @@ export class GardenServer {
 
       // TODO: Only allow auth key authentication
       if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
-        error("401 Unauthorized")
+        error(`401 Unauthorized`)
         const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
         websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
         return

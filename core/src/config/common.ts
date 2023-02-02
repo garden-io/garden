@@ -366,7 +366,9 @@ joi = joi.extend({
       args: [
         {
           name: "jsonSchema",
-          assert: (value) => !!value,
+          assert: (value) => {
+            return !!value
+          },
           message: "must be a valid JSON Schema with type=object",
           normalize: (value) => {
             if (value.type !== "object") {
@@ -810,7 +812,9 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
       const meta: MetadataKeys = { ...spec.meta }
       meta.name = name
 
-      keys = mapValues(keys, (v) => typeof v === "function" ? v() : v)
+      keys = mapValues(keys, (v) => {
+        return typeof v === "function" ? v() : v
+      })
 
       if (spec.extend) {
         const base = spec.extend()

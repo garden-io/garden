@@ -61,9 +61,9 @@ export function helpTextMaxWidth() {
 export async function checkForStaticDir() {
   if (!(await pathExists(STATIC_DIR))) {
     throw new InternalError(
-      "Could not find the static data directory. Garden is packaged with a data directory " +
-        "called 'static', which should be located next to your garden binary. Please try reinstalling, " +
-        "and make sure the release archive is fully extracted to the target directory.",
+      `Could not find the static data directory. Garden is packaged with a data directory ` +
+        `called 'static', which should be located next to your garden binary. Please try reinstalling, ` +
+        `and make sure the release archive is fully extracted to the target directory.`,
       {}
     )
   }
@@ -359,7 +359,9 @@ export function renderCommands(commands: Command[]) {
 
   const sortedCommands = sortBy(commands, (cmd) => cmd.getFullName())
 
-  const rows = sortedCommands.map((command) => [` ${chalk.cyan(command.getFullName())}`, command.help])
+  const rows = sortedCommands.map((command) => {
+    return [` ${chalk.cyan(command.getFullName())}`, command.help]
+  })
 
   const maxCommandLength = max(rows.map((r) => r[0]!.length))!
 

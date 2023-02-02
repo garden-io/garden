@@ -105,10 +105,10 @@ export abstract class BaseRouter {
     const base = this.wrapBase(handler.base)
 
     const wrapped = Object.assign(
-      async (params: any) =>
+      async (params: any) => {
         // Override the base parameter, to recursively allow each base to call its base.
-         handler({ ...params, base })
-      ,
+        return handler({ ...params, base })
+      },
       { ...handler, base, wrapped: handler }
     )
 
@@ -182,7 +182,9 @@ export function createActionRouter<K extends ActionKind>(
   const router = new Router(kind, baseParams)
 
   const wrapped = mapValues(handlers, (h, key) => {
-    const handler = (params: any) => h({ ...params, router, garden: baseParams.garden, handlers: wrapped })
+    const handler = (params: any) => {
+      return h({ ...params, router, garden: baseParams.garden, handlers: wrapped })
+    }
     router[key] = handler
     return handler
   })
@@ -233,7 +235,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     }
 
     // TODO-G2B: work out why this cast is needed
-    const defaultHandler: any = async (params) => ({ config: params.config })
+    const defaultHandler: any = async (params) => {
+      return { config: params.config }
+    }
 
     const handler = await this.getHandler({
       handlerType: "configure",
@@ -449,7 +453,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
         // This should never happen
         throw new InternalError(
           `Unable to find any matching configuration when selecting ${actionType}/${String(handlerType)} handler ` +
-            "(please report this as a bug).",
+            `(please report this as a bug).`,
           { handlers, configs }
         )
       } else {

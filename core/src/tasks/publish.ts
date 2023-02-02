@@ -106,7 +106,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
 
     if (result.detail?.published) {
       log.setSuccess({
-        msg: chalk.green(result.detail.message || "Ready"),
+        msg: chalk.green(result.detail.message || `Ready`),
         append: true,
       })
     } else if (result.detail?.message) {

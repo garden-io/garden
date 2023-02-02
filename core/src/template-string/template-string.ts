@@ -92,7 +92,9 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
   const parser = getParser()
   try {
     const parsed = parser.parse(string, {
-      getKey: (key: string[], resolveOpts?: ContextResolveOpts) => context.resolve({ key, nodePath: [], opts: { ...opts, ...(resolveOpts || {}) } }),
+      getKey: (key: string[], resolveOpts?: ContextResolveOpts) => {
+        return context.resolve({ key, nodePath: [], opts: { ...opts, ...(resolveOpts || {}) } })
+      },
       getValue,
       resolveNested: (nested: string) => resolveTemplateString(nested, context, opts),
       buildBinaryExpression,
@@ -111,7 +113,9 @@ export function resolveTemplateString(string: string, context: ConfigContext, op
       callHelperFunction,
     })
 
-    const outputs: ResolvedClause[] = parsed.map((p: any) => isPlainObject(p) ? p : { resolved: getValue(p) })
+    const outputs: ResolvedClause[] = parsed.map((p: any) => {
+      return isPlainObject(p) ? p : { resolved: getValue(p) }
+    })
 
     // We need to manually propagate errors in the parser, so we catch them here
     for (const r of outputs) {
@@ -472,7 +476,7 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     }
 
     if (!ref[2]) {
-      throw new ConfigurationError("Found invalid runtime reference (missing name)", { config, ref })
+      throw new ConfigurationError(`Found invalid runtime reference (missing name)`, { config, ref })
     }
     if (!isString(ref[2])) {
       throw new ConfigurationError("Found invalid runtime reference (name is not a string)", { config, ref })

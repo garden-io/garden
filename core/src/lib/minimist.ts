@@ -87,7 +87,7 @@ export function customMinimist(args, opts: minimist.Opts): minimist.ParsedArgs {
   function setKey(obj, keys, value) {
     let o = obj
     for (let i = 0; i < keys.length - 1; i++) {
-      // eslint-disable-next-line no-shadow,@typescript-eslint/no-shadow
+      // eslint-disable-next-line no-shadowed-variable
       let key = keys[i]
       if (key === "__proto__") {
         return
@@ -390,4 +390,3 @@ declare namespace minimist {
     "_": string[]
   }
 }
-

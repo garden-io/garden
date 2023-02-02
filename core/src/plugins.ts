@@ -69,7 +69,7 @@ export async function loadAndResolvePlugins(
       if (!base) {
         throw new PluginError(
           `Plugin '${plugin.name}' specifies plugin '${plugin.base}' as a base, ` +
-            "but that plugin has not been registered.",
+            `but that plugin has not been registered.`,
           { loadedPlugins: Object.keys(loadedPlugins), base: plugin.base }
         )
       }

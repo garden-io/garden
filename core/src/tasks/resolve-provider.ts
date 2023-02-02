@@ -102,12 +102,12 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     const rawProviderConfigs = this.garden.getRawProviderConfigs()
     const plugins = keyBy(this.allPlugins, "name")
 
-    const matchDependencies = (depName: string) =>
+    const matchDependencies = (depName: string) => {
       // Match against a provider if its name matches directly, or it inherits from a base named `depName`
-       rawProviderConfigs.filter(
+      return rawProviderConfigs.filter(
         (c) => c.name === depName || getPluginBaseNames(c.name, plugins).includes(depName)
       )
-
+    }
 
     // Make sure explicit dependencies are configured
     pluginDeps.map((dep) => {
@@ -123,7 +123,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     })
 
     return flatten(
-      allDeps.map((dep) => matchDependencies(dep.name).map((config) => {
+      allDeps.map((dep) => {
+        return matchDependencies(dep.name).map((config) => {
           const plugin = plugins[config.name]
 
           return new ResolveProviderTask({
@@ -138,7 +139,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
             forceInit: this.forceInit,
             fromWatch: false,
           })
-        }))
+        })
+      })
     )
   }
 
@@ -165,7 +167,8 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     this.log.silly(`Validating ${providerName} config`)
 
-    const validateConfig = (config: GenericProviderConfig) => <GenericProviderConfig>validateWithPath({
+    const validateConfig = (config: GenericProviderConfig) => {
+      return <GenericProviderConfig>validateWithPath({
         config: omit(config, "path"),
         schema: this.plugin.configSchema || joi.object(),
         path: this.garden.projectRoot,
@@ -173,6 +176,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
         configType: "provider configuration",
         ErrorClass: ConfigurationError,
       })
+    }
 
     resolvedConfig = validateConfig(resolvedConfig)
     resolvedConfig.path = this.garden.projectRoot
@@ -357,7 +361,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     if (this.forceInit || !status.ready) {
       // Deliberately setting the text on the parent log here
-      this.log.setState("Preparing environment...")
+      this.log.setState(`Preparing environment...`)
 
       const envLogEntry = this.log.info({
         status: "active",

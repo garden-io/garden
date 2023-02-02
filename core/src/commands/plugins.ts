@@ -140,7 +140,9 @@ async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[
       return plugin
     }
 
-    const rows = commands.map((command) => [` ${chalk.cyan(pluginName + " " + command.name)}`, command.description])
+    const rows = commands.map((command) => {
+      return [` ${chalk.cyan(pluginName + " " + command.name)}`, command.description]
+    })
 
     const maxCommandLengthAnsi = max(rows.map((r) => r[0].length))!
 

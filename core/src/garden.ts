@@ -304,7 +304,7 @@ export class Garden {
 
     const buildDirCls = legacyBuildSync ? BuildStagingRsync : BuildStaging
     if (legacyBuildSync) {
-      this.log.silly("Using rsync build staging mode")
+      this.log.silly(`Using rsync build staging mode`)
     }
     this.buildStaging = new buildDirCls(params.projectRoot, params.gardenDirPath)
 
@@ -470,9 +470,11 @@ export class Garden {
     )
 
     const skipPaths = flatten(
-      await Bluebird.map(skipDirectories, async (path: string) => (await readdir(path))
+      await Bluebird.map(skipDirectories, async (path: string) => {
+        return (await readdir(path))
           .map((relPath) => resolve(path, relPath))
-          .filter((absPath) => configPaths.has(absPath)))
+          .filter((absPath) => configPaths.has(absPath))
+      })
     )
     this.watcher = new Watcher({
       garden: this,
@@ -523,7 +525,7 @@ export class Garden {
         return
       }
 
-      this.log.silly("Loading plugins")
+      this.log.silly(`Loading plugins`)
       const rawConfigs = this.getRawProviderConfigs()
 
       this.loadedPlugins = await loadAndResolvePlugins(this.log, this.projectRoot, this.registeredPlugins, rawConfigs)
@@ -630,7 +632,7 @@ export class Garden {
         return
       }
 
-      log.silly("Resolving providers")
+      log.silly(`Resolving providers`)
 
       log = log.info({
         section: "providers",
@@ -837,7 +839,7 @@ export class Garden {
     const resolvedProviders = await this.resolveProviders(log)
     const rawModuleConfigs = await this.getRawModuleConfigs()
 
-    log = log.info({ status: "active", section: "graph", msg: "Resolving actions and modules..." })
+    log = log.info({ status: "active", section: "graph", msg: `Resolving actions and modules...` })
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
@@ -1124,18 +1126,20 @@ export class Garden {
         return
       }
 
-      this.log.silly("Scanning for configs")
+      this.log.silly(`Scanning for configs`)
 
       // Add external sources that are defined at the project level. External sources are either kept in
       // the .garden/sources dir (and cloned there if needed), or they're linked to a local path via the link command.
       const linkedSources = await getLinkedSources(this, "project")
       const projectSources = this.getProjectSources()
-      const extSourcePaths = await Bluebird.map(projectSources, ({ name, repositoryUrl }) => this.loadExtSourcePath({
+      const extSourcePaths = await Bluebird.map(projectSources, ({ name, repositoryUrl }) => {
+        return this.loadExtSourcePath({
           name,
           linkedSources,
           repositoryUrl,
           sourceType: "project",
-        }))
+        })
+      })
 
       const dirsToScan = [this.projectRoot, ...extSourcePaths]
       const configPaths = flatten(await Bluebird.map(dirsToScan, (path) => this.scanForConfigs(path)))
@@ -1358,10 +1362,12 @@ export class Garden {
         environment.
     `)
     // Sanitize error details
-    const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => ({
+    const overlappingModules = moduleOverlaps.map(({ module, overlaps }) => {
+      return {
         module: { name: module.name, path: resolve(this.projectRoot, module.path) },
         overlaps: overlaps.map(({ name, path }) => ({ name, path: resolve(this.projectRoot, path) })),
-      }))
+      }
+    })
     return { message, detail: { overlappingModules } }
   }
 

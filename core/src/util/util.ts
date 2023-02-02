@@ -188,7 +188,7 @@ export function makeErrorMsg({
     msg +=
       lines.length > nLinesToShow
         ? `\n\nHere are the last ${nLinesToShow} lines of the output:`
-        : "\n\nHere's the full output:"
+        : `\n\nHere's the full output:`
     msg += `\n\n${trimEnd(out, "\n")}`
   }
   return msg
@@ -300,7 +300,7 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
 
   if (tty) {
     if (data) {
-      throw new ParameterError("Cannot pipe to stdin when tty=true", { cmd, args, opts })
+      throw new ParameterError(`Cannot pipe to stdin when tty=true`, { cmd, args, opts })
     }
     _process.stdin.setEncoding("utf8")
     // raw mode is not available if we're running without a TTY
@@ -809,7 +809,6 @@ export class StringCollector extends Writable {
     })
   }
 
-  // eslint-disable-next-line
   _write(chunk: Buffer, _: string, callback: () => void) {
     this.chunks.push(Buffer.from(chunk))
     callback()

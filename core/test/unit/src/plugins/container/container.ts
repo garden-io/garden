@@ -66,7 +66,9 @@ describe("plugins.container", () => {
   }
   */
   let garden: TestGarden
+  // eslint-disable-next-line no-unused
   let ctx: PluginContext
+  // eslint-disable-next-line no-unused
   let log: LogEntry
   let containerProvider: ContainerProvider
   let graph: ConfigGraph

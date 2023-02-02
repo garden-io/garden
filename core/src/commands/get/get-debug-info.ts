@@ -290,7 +290,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
       // One or multiple providers threw an error while processing.
       // Skip the step but still create a report.
       providerEntry.setWarn({
-        msg: chalk.yellow("Failed to collect providers info. Skipping this step."),
+        msg: chalk.yellow(`Failed to collect providers info. Skipping this step.`),
         append: true,
       })
     }

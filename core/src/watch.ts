@@ -85,7 +85,7 @@ export class Watcher extends EventEmitter {
     this.running = false
 
     if (this.watcher) {
-      this.log.debug("Watcher: Clearing handlers")
+      this.log.debug(`Watcher: Clearing handlers`)
       this.watcher.removeAllListeners()
       // We re-use the FSWatcher instance on Mac to avoid fsevents segfaults, but don't need to on other platforms
       if (process.platform !== "darwin") {
@@ -113,7 +113,7 @@ export class Watcher extends EventEmitter {
 
       // We keep a single instance of FSWatcher to avoid segfault issues on Mac
       if (watcher) {
-        this.log.debug("Watcher: Using existing FSWatcher")
+        this.log.debug(`Watcher: Using existing FSWatcher`)
         this.watcher = watcher
 
         this.log.debug(`Watcher: Ignoring paths ${ignored.join(", ")}`)
@@ -141,7 +141,7 @@ export class Watcher extends EventEmitter {
           }
         }
 
-        this.log.debug("Watcher: Starting FSWatcher")
+        this.log.debug(`Watcher: Starting FSWatcher`)
         this.watcher = watch(this.paths, {
           ignoreInitial: true,
           ignorePermissionErrors: true,
@@ -224,13 +224,15 @@ export class Watcher extends EventEmitter {
       }
 
       // First filter actions by path prefix, and include/exclude filters if applicable
-      const applicableactions = this.actions.filter((m) => some(allChanged, (p) => {
+      const applicableactions = this.actions.filter((m) => {
+        return some(allChanged, (p) => {
           const { include, exclude } = m.getConfig()
           return (
             p.path.startsWith(m.basePath()) &&
             (isConfigFilename(basename(p.path)) || matchPath(p.path, include, exclude))
           )
-        }))
+        })
+      })
 
       // No need to proceed if no actions are affected
       if (applicableactions.length === 0) {
@@ -313,7 +315,7 @@ export class Watcher extends EventEmitter {
   }
 
   private async updateactions() {
-    this.log.silly("Watcher: Updating list of actions")
+    this.log.silly(`Watcher: Updating list of actions`)
     const graph = await this.garden.getConfigGraph({ log: this.log, emit: false })
     this.actions = graph.getActions()
   }
