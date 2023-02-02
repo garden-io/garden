@@ -31,11 +31,10 @@ export const gardenPlugin = () =>
 
         return {
           addActions: actions
-            .filter(
-              (action) =>
-                // Pick all container or container-based Builds
-                action.kind === "Build" && action.isCompatible("container")
-            )
+            .filter((action) => {
+              // Pick all container or container-based Builds
+              return action.kind === "Build" && action.isCompatible("container")
+            })
             .map((action) => {
               const baseName = "conftest-" + action.name
 
