@@ -55,7 +55,7 @@
     "clean": "shx rm -rf build dist",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "generate-docs": "node ./build/src/generate-docs.js",
-    "lint": "eslint -c ../.eslintrc.js --ext .ts src/",
+    "lint": "eslint -c ../.eslintrc --ext .ts src/",
     "postinstall": "patch-package",
     "test": "mocha"
   },

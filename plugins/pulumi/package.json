@@ -21,7 +21,7 @@
   },
   "scripts": {
     "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "eslint -c ../../.eslintrc.js --ignore-pattern '*.d.ts*' --ignore-pattern 'test/**' --ext .ts .",
+    "lint": "eslint -c ../../.eslintrc --ignore-pattern '*.d.ts*' --ignore-pattern 'test/**' --ext .ts .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",

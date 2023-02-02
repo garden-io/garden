@@ -46,6 +46,6 @@
     "dev": "tsc --build . -w --preserveWatchOutput",
     "e2e-project": "ts-node e2e-project.ts",
     "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "eslint -c ../.eslintrc.js --ignore-pattern 'projects/**' --ext .ts ."
+    "lint": "eslint -c ../.eslintrc --ignore-pattern 'projects/**' --ext .ts ."
   }
 }

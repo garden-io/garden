@@ -25,7 +25,7 @@
   "scripts": {
     "clean": "rm -f *.js *.d.ts *.map tsconfig.buildinfo tsconfig.tsbuildinfo",
     "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "eslint -c ../../.eslintrc.js --ignore-pattern '*.d.ts*' --ext .ts .",
+    "lint": "eslint -c ../../.eslintrc --ignore-pattern '*.d.ts*' --ext .ts .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",
