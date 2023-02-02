@@ -6,160 +6,123 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { expect } from "chai"
+import td from "testdouble"
+import { ResolvedBuildAction, BuildActionConfig } from "../../../../../src/actions/build"
+import { ConfigGraph } from "../../../../../src/graph/config-graph"
+import { LogEntry } from "../../../../../src/logger/log-entry"
+import { PluginContext } from "../../../../../src/plugin-context"
+import { buildContainer, getContainerBuildStatus } from "../../../../../src/plugins/container/build"
+import { ContainerProvider, gardenPlugin } from "../../../../../src/plugins/container/container"
+import { containerHelpers } from "../../../../../src/plugins/container/helpers"
+import { joinWithPosix } from "../../../../../src/util/fs"
+import { getDataDir, TestGarden, makeTestGarden, getPropertyName } from "../../../../helpers"
+
 context("build.ts", () => {
+  const projectRoot = getDataDir("test-project-container")
+  let garden: TestGarden
+  let ctx: PluginContext
+  let log: LogEntry
+  let containerProvider: ContainerProvider
+  let graph: ConfigGraph
+
+  beforeEach(async () => {
+    garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
+    log = garden.log
+    containerProvider = await garden.resolveProvider(garden.log, "container")
+    ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
+    graph = await garden.getConfigGraph({ log, emit: false })
+  })
+
+  const getAction = async () => await garden.resolveAction({ action: graph.getBuild("module-a"), log, graph })
+
   describe("getContainerBuildStatus", () => {
     it("should return ready if build exists locally", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
+      const action = await getAction()
+      td.replace(
+        containerHelpers,
+        getPropertyName(containerHelpers, (c) => c.imageExistsLocally),
+        async () => "fake image identifier string"
+      )
 
-      const module = td.object(await getTestModule(baseConfig))
-
-      td.replace(helpers, "imageExistsLocally", async () => true)
-
-      const result = await getBuildStatus({ ctx, log, module })
-      expect(result).to.eql({ ready: true })
+      const result = await getContainerBuildStatus({ ctx, log, action })
+      expect(result.state).to.eql("ready")
     })
 
     it("should return not-ready if build does not exist locally", async () => {
-      td.replace(helpers, "hasDockerfile", () => true)
+      const action = await getAction()
+      td.replace(
+        containerHelpers,
+        getPropertyName(containerHelpers, (c) => c.imageExistsLocally),
+        async () => null
+      )
 
-      const module = td.object(await getTestModule(baseConfig))
-
-      td.replace(helpers, "imageExistsLocally", async () => false)
-
-      const result = await getBuildStatus({ ctx, log, module })
-      expect(result).to.eql({ ready: false })
+      const result = await getContainerBuildStatus({ ctx, log, action })
+      expect(result.state).to.eql("not-ready")
     })
   })
 
-  describe("build", () => {
+  describe("buildContainer", () => {
     beforeEach(() => {
-      td.replace(helpers, "checkDockerServerVersion", () => null)
+      td.replace(containerHelpers, "checkDockerServerVersion", () => null)
     })
 
-    it("should pull image if image tag is set and the module doesn't container a Dockerfile", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image"
-      const module = td.object(await getTestModule(config))
-
-      td.replace(helpers, "hasDockerfile", () => false)
-      td.replace(helpers, "pullImage", async () => null)
-      td.replace(helpers, "imageExistsLocally", async () => false)
-
-      const result = await build({ ctx, log, module })
-
-      expect(result).to.eql({ fetched: true })
-    })
+    function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
+      return [
+        "build",
+        "-t",
+        "some/image",
+        "--build-arg",
+        `GARDEN_MODULE_VERSION=${action.versionString()}`,
+        "--build-arg",
+        `GARDEN_BUILD_VERSION=${action.versionString()}`,
+        "--file",
+        joinWithPosix(action.getBuildPath(), action.getSpec().dockerfile),
+        buildPath,
+      ]
+    }
 
     it("should build image if module contains Dockerfile", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image"
-      const module = td.object(await getTestModule(config))
+      const action = await getAction()
 
-      td.replace(helpers, "hasDockerfile", () => true)
-      td.replace(helpers, "imageExistsLocally", async () => false)
+      td.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 
-      module.outputs["local-image-id"] = "some/image"
+      const buildPath = action.getBuildPath()
 
-      const cmdArgs = [
-        "build",
-        "-t",
-        "some/image",
-        "--build-arg",
-        `GARDEN_MODULE_VERSION=${module.version.versionString}`,
-        module.buildPath,
-      ]
-
-      td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
-        expect(cwd).to.equal(module.buildPath)
+      const cmdArgs = getCmdArgs(action, buildPath)
+      td.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
+        expect(cwd).to.equal(buildPath)
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
         return { all: "log" }
       })
-
-      const result = await build({ ctx, log, module })
-
-      expect(result).to.eql({
-        buildLog: "log",
-        fresh: true,
-        details: { identifier: "some/image" },
-      })
-    })
-
-    it("should set build target image parameter if configured", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.image = "some/image"
-      config.spec.build.targetImage = "foo"
-      const module = td.object(await getTestModule(config))
-
-      td.replace(helpers, "hasDockerfile", () => true)
-      td.replace(helpers, "imageExistsLocally", async () => false)
-
-      module.outputs["local-image-id"] = "some/image"
-
-      const cmdArgs = [
-        "build",
-        "-t",
-        "some/image",
-        "--build-arg",
-        `GARDEN_MODULE_VERSION=${module.version.versionString}`,
-        "--target",
-        "foo",
-        module.buildPath,
-      ]
-
-      td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
-        expect(cwd).to.equal(module.buildPath)
-        expect(args).to.eql(cmdArgs)
-        expect(_ctx).to.exist
-        return { all: "log" }
-      })
-
-      const result = await build({ ctx, log, module })
-
-      expect(result).to.eql({
-        buildLog: "log",
-        fresh: true,
-        details: { identifier: "some/image" },
-      })
+      const result = await buildContainer({ ctx, log, action })
+      expect(result.state).to.eql("ready")
+      expect(result.detail?.buildLog).to.eql("log")
+      expect(result.detail?.fresh).to.eql(true)
+      expect(result.outputs.localImageId).to.eql("some/image")
     })
 
     it("should build image using the user specified Dockerfile path", async () => {
-      const config = cloneDeep(baseConfig)
-      config.spec.dockerfile = relDockerfilePath
+      const action = await getAction()
+      action.getSpec().dockerfile = "docker-dir/Dockerfile"
 
-      td.replace(helpers, "hasDockerfile", () => true)
+      td.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 
-      const module = td.object(await getTestModule(config))
+      const buildPath = action.getBuildPath()
 
-      td.replace(helpers, "imageExistsLocally", async () => false)
-
-      module.outputs["local-image-id"] = "some/image"
-
-      const cmdArgs = [
-        "build",
-        "-t",
-        "some/image",
-        "--build-arg",
-        `GARDEN_MODULE_VERSION=${module.version.versionString}`,
-        "--file",
-        join(module.buildPath, relDockerfilePath),
-        module.buildPath,
-      ]
-
-      td.replace(helpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
-        expect(cwd).to.equal(module.buildPath)
+      const cmdArgs = getCmdArgs(action, buildPath)
+      td.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
+        expect(cwd).to.equal(buildPath)
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
         return { all: "log" }
       })
-
-      const result = await build({ ctx, log, module })
-
-      expect(result).to.eql({
-        buildLog: "log",
-        fresh: true,
-        details: { identifier: "some/image" },
-      })
+      const result = await buildContainer({ ctx, log, action })
+      expect(result.state).to.eql("ready")
+      expect(result.detail?.buildLog).to.eql("log")
+      expect(result.detail?.fresh).to.eql(true)
+      expect(result.outputs.localImageId).to.eql("some/image")
     })
   })
 })
