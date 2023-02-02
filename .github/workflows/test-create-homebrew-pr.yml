@@ -1,0 +1,38 @@
+name: Test homebrew release
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/*create-homebrew-pr.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/reusable-create-homebrew-pr.yml
+    with:
+      release-version: edge
+      commit-message: |
+        This is just a test. DO NOT MERGE
+
+        You can safely close this PR. This is a test PR created by https://github.com/${{ github.repository }}/pull/${{ github.event.number }}
+
+        TEST: Bump {{formulaName}} to {{version}}.
+
+        @${{ github.triggering_actor }} Please close this pull request.
+    secrets: inherit
+
+  test-skip:
+    uses: ./.github/workflows/reusable-create-homebrew-pr.yml
+    with:
+      release-condition: false
+      release-version: edge
+      commit-message: |
+        Do not merge. This PR should not exist.
+
+        This PR has been created by https://github.com/${{ github.repository }}/pull/${{ github.event.number }}
+        and it means that there is a bug in the github workflow for homebrew releases (precondition check did not work).
+
+        @${{ github.triggering_actor }} Please fix the bug in your pull request and close this PR.
+    secrets: inherit

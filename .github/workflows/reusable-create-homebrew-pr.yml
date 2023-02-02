@@ -1,0 +1,52 @@
+name: Reusable create homebrew PR
+on:
+  workflow_call:
+    inputs:
+      release-condition:
+        type: string
+        required: false
+        description: "Example: false"
+      release-version:
+        type: string
+        required: true
+        description: "Example: 0.48.0"
+      commit-message:
+        type: string
+        description: "Commit message for homebrew repository."
+        default: |
+          Bump {{formulaName}} to {{version}}.
+
+          For more info: https://github.com/garden-io/garden
+
+permissions:
+  contents: read
+
+jobs:
+  homebrew-create-pr:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checks release pre-condition
+        if: inputs.release-condition == 'false'
+        run: |
+          echo The release-condition evaluated to false.
+          echo Skipping all the next steps.
+      - name: Create PR on Homebrew Formula repository
+        if: inputs.release-condition != 'false'
+        uses: stefreak/bump-homebrew-formula-action@82352c3cbbc2acdec5a064502447b555f18496fc
+        with:
+          tag-name: ${{ inputs.release-version }}
+          formula-name: garden-cli
+          formula-path: Formula/garden-cli.rb
+          homebrew-tap: garden-io/homebrew-garden
+          base-branch: main
+          create-pullrequest: true
+          download-url: https://download.garden.io/core/${{ inputs.release-version }}/garden-${{ inputs.release-version }}-macos-amd64.tar.gz
+          commit-message: ${{ inputs.commit-message }}
+        env:
+          COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
+      - name: Adding markdown summary
+        if: inputs.release-condition != 'false'
+        run: |
+          echo '### Manual Steps required to finish publishing to Homebrew' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Please review the new PR in https://github.com/garden-io/homebrew-garden/pulls' >> "$GITHUB_STEP_SUMMARY"
