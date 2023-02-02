@@ -48,7 +48,7 @@ import { taskFromConfig } from "./types/task"
 import { testFromConfig } from "./types/test"
 import { BuildActionConfig, BuildCopyFrom, isBuildActionConfig } from "./actions/build"
 import type { GroupConfig } from "./config/group"
-import type { ActionConfig, BaseActionConfig } from "./actions/types"
+import type { ActionConfig, ActionKind, BaseActionConfig } from "./actions/types"
 import type { ModuleGraph } from "./graph/modules"
 import type { GraphResults } from "./graph/results"
 import type { ExecBuildConfig } from "./plugins/exec/config"
@@ -631,6 +631,14 @@ export interface ModuleConfigResolveOpts extends ContextResolveOpts {
 export interface ConvertModulesResult {
   groups: GroupConfig[]
   actions: BaseActionConfig[]
+}
+
+export function findGroupConfig(result: ConvertModulesResult, groupName: string) {
+  return result.groups.find((g) => g.name === groupName)
+}
+
+export function findActionConfigInGroup(group: GroupConfig, kind: ActionKind, name: string) {
+  return group.actions.find((a) => a.kind === kind && a.name === name)
 }
 
 export async function convertModules(
