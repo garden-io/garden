@@ -49,7 +49,6 @@ export interface PulumiPlan {
   config: DeepPrimitiveMap
 
   // Represents the desired state and planned operations to perform (along with other fields).
-  /* eslint-disable-next-line max-len */
   // See: https://github.com/pulumi/pulumi/blob/c721e8905b0639b3d4aa1d51d0753f6c99b13984/sdk/go/common/apitype/plan.go#L61-L68
   resourcePlans: {
     [resourceUrn: string]: {
@@ -237,7 +236,9 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   const pulumiVars = spec.pulumiVariables
   let varfileContents: DeepPrimitiveMap[]
   try {
-    varfileContents = await Bluebird.map(spec.pulumiVarfiles, async (varfilePath: string) => loadPulumiVarfile({ action, ctx, log, varfilePath }))
+    varfileContents = await Bluebird.map(spec.pulumiVarfiles, async (varfilePath: string) => {
+      return loadPulumiVarfile({ action, ctx, log, varfilePath })
+    })
   } catch (err) {
     throw new FilesystemError(
       `An error occurred while reading pulumi varfiles for action ${action.name}: ${err.message}`,

@@ -53,7 +53,7 @@ export class GlobalPulumi extends CliWrapper {
     try {
       return await which("pulumi")
     } catch (err) {
-      throw new RuntimeError("Pulumi version is set to null, and pulumi CLI could not be found on PATH", {})
+      throw new RuntimeError(`Pulumi version is set to null, and pulumi CLI could not be found on PATH`, {})
     }
   }
 }
