@@ -693,7 +693,34 @@ describe("exec plugin", () => {
     })
 
     it("sets buildAtSource on Build if local:true", async () => {
-      throw "TODO"
+      const moduleA = "module-a"
+      const buildCommand = ["echo", moduleA]
+      tmpGarden.setActionConfigs([
+        makeModuleConfig(tmpGarden.projectRoot, {
+          name: moduleA,
+          type: "exec",
+          spec: {
+            local: true, // <---
+            build: {
+              command: buildCommand,
+            },
+          },
+        }),
+      ])
+      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const module = tmpGraph.getModule(moduleA)
+
+      const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+      expect(result.groups).to.exist
+
+      const group = findGroupConfig(result, moduleA)!
+      expect(group.actions).to.exist
+      expect(group.actions.length).to.eql(1)
+
+      const build = findActionConfigInGroup(group, "Build", moduleA)! as BuildActionConfig
+      expect(build).to.exist
+      expect(build.spec.command).to.eql(buildCommand)
+      expect(build.buildAtSource).to.be.true
     })
 
     it("correctly maps a serviceConfig to a Deploy with a build", async () => {
