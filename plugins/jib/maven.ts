@@ -64,7 +64,7 @@ export function getMvnTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".maven"))
 
   if (!tool) {
-    throw new PluginError("Could not find configured maven tool", { tools: ctx.tools })
+    throw new PluginError(`Could not find configured maven tool`, { tools: ctx.tools })
   }
 
   return tool
@@ -78,12 +78,12 @@ async function checkMavenVersion(mvnPath: string) {
     const res = await execa(mvnPath, ["--version"])
     return res.stdout
   } catch (err) {
-    const composeErrorMessage = (e: any): string => {
-      if (e.code === "EACCES") {
+    const composeErrorMessage = (err: any): string => {
+      if (err.code === "EACCES") {
         return `${baseErrorMessage(
           mvnPath
         )} It looks like the Maven path defined in the config is not an executable binary.`
-      } else if (e.code === "ENOENT") {
+      } else if (err.code === "ENOENT") {
         return `${baseErrorMessage(mvnPath)} The Maven path defined in the configuration does not exist.`
       } else {
         return baseErrorMessage(mvnPath)

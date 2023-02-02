@@ -61,7 +61,7 @@ export function getGradleTool(ctx: PluginContext) {
   const tool = find(ctx.tools, (_, k) => k.endsWith(".gradle"))
 
   if (!tool) {
-    throw new PluginError("Could not find configured gradle tool", { tools: ctx.tools })
+    throw new PluginError(`Could not find configured gradle tool`, { tools: ctx.tools })
   }
 
   return tool
@@ -75,12 +75,12 @@ async function checkGradleVersion(gradlePath: string) {
     const res = await execa(gradlePath, ["--version"])
     return res.stdout
   } catch (err) {
-    const composeErrorMessage = (e: any): string => {
-      if (e.code === "EACCES") {
+    const composeErrorMessage = (err: any): string => {
+      if (err.code === "EACCES") {
         return `${baseErrorMessage(
           gradlePath
         )} It looks like the Gradle path defined in the config is not an executable binary.`
-      } else if (e.code === "ENOENT") {
+      } else if (err.code === "ENOENT") {
         return `${baseErrorMessage(gradlePath)} The Gradle path defined in the configuration does not exist.`
       } else {
         return baseErrorMessage(gradlePath)

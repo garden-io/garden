@@ -117,7 +117,7 @@ const jibBuildSchemaKeys = () => ({
   extraFlags: joi
     .sparseArray()
     .items(joi.string())
-    .description("Specify extra flags to pass to maven/gradle when building the container image."),
+    .description(`Specify extra flags to pass to maven/gradle when building the container image.`),
 })
 
 const jibModuleSchema = () =>
