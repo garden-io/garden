@@ -12,28 +12,28 @@ import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
 import execa from "execa"
 
-const mvndVersion = "0.8.2"
+const mvndVersion = "0.9.0"
 const mvndSpec = {
   description: "The Maven Daemon CLI.",
   baseUrl: `https://github.com/apache/maven-mvnd/releases/download/${mvndVersion}/`,
   linux: {
     filename: `maven-mvnd-${mvndVersion}-linux-amd64.tar.gz`,
-    sha256: "5bcd4c3e45b767d562aa8d81583461abeb4fd6626ea1b8a1d961f34ef472f115",
+    sha256: "64acc68f2a3e25a0662eb62bf87cf2641706245505572ca1d20f933c7190f148",
     targetPath: `maven-mvnd-${mvndVersion}-linux-amd64/bin/mvnd`,
   },
   darwin_aarch64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-aarch64.tar.gz`,
-    sha256: "b3fab0126188072ea80784c4bcc726bf398e0115ed37f3e243e14c84a2fe7e45",
+    sha256: "bca67a44cc3716a7da46926acff41b3864d62e5da6982b9e998eca42d2f9bfac",
     targetPath: `maven-mvnd-${mvndVersion}-darwin-aarch64/bin/mvnd`,
   },
   darwin_amd64: {
     filename: `maven-mvnd-${mvndVersion}-darwin-amd64.tar.gz`,
-    sha256: "889278f2e2a88450dcb074558a136fe06f9874db9b8d224674a5163a92ef2b69",
+    sha256: "b94fb24d92cd971b6368df14f44bf77b5614a422dfe9f6f115b32b11860c1d6b",
     targetPath: `maven-mvnd-${mvndVersion}-darwin-amd64/bin/mvnd`,
   },
   windows: {
     filename: `maven-mvnd-${mvndVersion}-windows-amd64.zip`,
-    sha256: "bfe6115b643ecb54b52a46df9e5b790035e54e67e21c10f964c7d58f633b7f22",
+    sha256: "7ddf8204f39ba72e55618cac31cae2ac917ea4f9b74ee3bc808bf5d210139420",
     targetPath: `maven-mvnd-${mvndVersion}-windows-amd64/bin/mvnd.cmd`,
   },
 }
@@ -102,7 +102,7 @@ const baseErrorMessage = (mvnPath: string): string =>
 async function checkMavenVersion(mvndPath: string) {
   try {
     const res = await execa(mvndPath, ["--version"])
-    return res.stdout
+    return res.stderr
   } catch (err) {
     const composeErrorMessage = (err: any): string => {
       if (err.code === "EACCES") {
@@ -126,7 +126,6 @@ async function verifyMavendPath(mvndPath: string) {
   }
 
   const versionOutput = await checkMavenVersion(mvndPath)
-
   const isMavend = versionOutput.toLowerCase().includes("mvnd")
   if (!isMavend) {
     throw new RuntimeError(
@@ -167,7 +166,7 @@ export async function mvnd({
     const tool = getMvndTool(ctx)
     mvndPath = await tool.getPath(log)
   }
-  
+
   log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
 
   const res = execa(mvndPath, args, {
@@ -183,5 +182,4 @@ export async function mvnd({
   }
 
   return res
-
 }
