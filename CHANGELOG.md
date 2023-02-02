@@ -1,4 +1,11 @@
 
+<a name="0.12.50"></a>
+## [0.12.50](https://github.com/garden-io/garden/compare/0.12.49...0.12.50) (2023-02-01)
+
+### Bug Fixes
+
+* **logs:** ensure invalid dates are handled properly ([e0c4420fc](https://github.com/garden-io/garden/commit/e0c4420fc))
+
 <a name="0.12.49"></a>
 ## [0.12.49](https://github.com/garden-io/garden/compare/0.12.48...0.12.49) (2023-01-31)
 

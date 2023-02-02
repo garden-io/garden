@@ -99,7 +99,7 @@ services:
     env: ${modules.frontend.env} # <--- Reference the env variable defined above
 ```
 
-See also this [example project](https://github.com/garden-io/garden/tree/0.12.49/examples/local-service).
+See also this [example project](https://github.com/garden-io/garden/tree/0.12.50/examples/local-service).
 
 ## Next Steps
 
