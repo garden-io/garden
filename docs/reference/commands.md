@@ -3398,6 +3398,8 @@ Examples:
 
 **Starts the Garden dashboard for the current project and environment.**
 
+Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out Garden Cloud at https://cloud.app.garden.
+
 Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
 
 The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
