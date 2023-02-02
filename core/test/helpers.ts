@@ -413,7 +413,11 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}): ModuleConfig
   return merge(cloneDeep(defaultModuleConfig), params)
 }
 
-// Similar to `makeTestModule`, but uses a more minimal default config.
+/**
+ * Similar to {@link makeTestModule}, but uses a more minimal default config.
+ * @param path the project root path
+ * @param from the partial module config to override the default values
+ */
 export function makeModuleConfig(path: string, from: Partial<ModuleConfig>): ModuleConfig {
   return {
     apiVersion: DEFAULT_API_VERSION,
