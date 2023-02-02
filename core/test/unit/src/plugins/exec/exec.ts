@@ -46,6 +46,7 @@ import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa from "execa"
 import { BuildActionConfig } from "../../../../../src/actions/build"
+import { DeployActionConfig } from "../../../../../src/actions/deploy"
 
 describe("exec plugin", () => {
   const testProjectRoot = getDataDir("test-project-exec")
@@ -746,12 +747,53 @@ describe("exec plugin", () => {
     })
 
     it("correctly maps a serviceConfig to a Deploy with a build", async () => {
-      throw "TODO"
-
       // Dependencies
       // build field
       // timeout
       // service spec
+
+      const moduleNameA = "module-a"
+      const buildCommandA = ["echo", moduleNameA]
+      const serviceNameA = "service-a"
+      const deployCommandA = ["echo", "deployed", serviceNameA]
+      const moduleConfigA = makeModuleConfig(tmpGarden.projectRoot, {
+        name: moduleNameA,
+        type: "exec",
+        spec: {
+          // <--- build field
+          build: {
+            command: buildCommandA,
+          },
+          services: [
+            {
+              name: serviceNameA,
+              deployCommand: deployCommandA,
+            },
+          ],
+        },
+      })
+
+      tmpGarden.setActionConfigs([moduleConfigA])
+      // this will produce modules with `serviceConfigs` fields initialized
+      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+
+      const moduleA = tmpGraph.getModule(moduleNameA)
+
+      // this will use `serviceConfigs` defined in modules
+      const result = await convertModules(tmpGarden, tmpGarden.log, [moduleA], tmpGraph.moduleGraph)
+      expect(result.groups).to.exist
+
+      const groupA = findGroupConfig(result, moduleNameA)!
+      expect(groupA).to.exist
+
+      const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+      expect(buildA).to.exist
+      expect(buildA.dependencies).to.eql([])
+
+      const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
+      expect(deployA).to.exist
+      expect(deployA.build).to.eql(moduleNameA)
+      expect(deployA.dependencies).to.eql([])
     })
 
     it("correctly maps a serviceConfig to a Deploy with no build", async () => {
