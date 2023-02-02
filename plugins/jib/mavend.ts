@@ -8,9 +8,12 @@
 
 import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
+import AsyncLock from "async-lock"
 import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
 import execa from "execa"
+
+const buildLock = new AsyncLock()
 
 const mvndVersion = "0.9.0"
 const mvndSpec = {
@@ -157,6 +160,7 @@ export async function mvnd({
   outputStream?: Writable
 }) {
   let mvndPath: string
+  let lockacquired = false
   if (!!mavendPath) {
     log.verbose(`Using explicitly specified Maven Daemon binary from ${mavendPath}`)
     mvndPath = mavendPath
@@ -166,20 +170,23 @@ export async function mvnd({
     const tool = getMvndTool(ctx)
     mvndPath = await tool.getPath(log)
   }
+  if (lockacquired) {
+    return buildLock.acquire("mvnd", async () => {
+      log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
 
-  log.debug(`Execing ${mvndPath} ${args.join(" ")}`)
+      const res = execa(mvndPath, args, {
+        cwd,
+        env: {
+          JAVA_HOME: openJdkPath,
+        },
+      })
 
-  const res = execa(mvndPath, args, {
-    cwd,
-    env: {
-      JAVA_HOME: openJdkPath,
-    },
-  })
+      if (outputStream) {
+        res.stdout?.pipe(outputStream)
+        res.stderr?.pipe(outputStream)
+      }
 
-  if (outputStream) {
-    res.stdout?.pipe(outputStream)
-    res.stderr?.pipe(outputStream)
+      return res
+    })
   }
-
-  return res
 }
