@@ -681,6 +681,9 @@ describe("exec plugin", () => {
       expect(buildB.copyFrom).be.not.empty
     })
 
+    /**
+     * See TODO-G2 comments in {@link preprocessActionConfig}.
+     */
     it("converts the repositoryUrl field", async () => {
       throw "TODO"
     })
