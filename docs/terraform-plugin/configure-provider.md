@@ -16,7 +16,7 @@ providers:
   ...
 ```
 
-If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or modules), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.46/examples/terraform-gke):
+If you'd like to apply the stack when starting Garden, and then reference the stack outputs in other providers (or modules), you need to add a couple of more flags. Here's the project config from the aforementioned [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.50/examples/terraform-gke):
 
 ```yaml
 kind: Project

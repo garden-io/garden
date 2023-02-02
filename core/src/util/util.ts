@@ -909,3 +909,10 @@ export function getGitHubIssueLink(title: string, type: "bug" | "feature-request
     return `https://github.com/garden-io/garden/issues/new?assignees=&labels=&template=BUG_REPORT.md&title=${title}`
   }
 }
+
+/**
+ * Check if a given date instance is valid.
+ */
+export function isValidDateInstance(d: any) {
+  return !isNaN(d) && d instanceof Date
+}
