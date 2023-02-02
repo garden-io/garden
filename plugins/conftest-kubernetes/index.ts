@@ -44,12 +44,12 @@ export const gardenPlugin = () =>
         const allTestNames = new Set(actions.filter((a) => a.kind === "Test").map((m) => m.name))
 
         return {
-          addActions: await Bluebird.filter(
-            actions,
-            async (action) =>
+          addActions: await Bluebird.filter(actions, async (action) => {
+            return (
               // Pick all kubernetes or helm modules
               action.isCompatible("kubernetes") || action.isCompatible("helm")
-          ).map((action) => {
+            )
+          }).map((action) => {
             const baseName = "conftest-" + action.name
 
             let name = baseName
