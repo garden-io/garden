@@ -59,29 +59,49 @@ export async function tfValidate(params: TerraformParams) {
   })
 
   if (res.valid === false) {
-    const reasons = res.diagnostics.map((d: any) => d.summary)
-
-    if (
-      reasons.includes("Could not satisfy plugin requirements") ||
-      reasons.includes("Module not installed") ||
-      reasons.includes("Could not load plugin") ||
-      reasons.includes("Missing required provider")
-    ) {
-      // We need to run `terraform init` and retry validation
-      log.debug("Initializing Terraform")
-      await tfInit(params)
-
-      const retryRes = await terraform(ctx, provider).json({
+    // We need to run `terraform init` and retry validation
+    log.debug(`Validation failed, trying to run "terraform init".`)
+    let retryRes: any
+    let initError: any
+    try {
+      await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
+      retryRes = await terraform(ctx, provider).json({
         log,
         args,
         ignoreError: true,
         cwd: root,
       })
-      if (retryRes.valid === "false") {
-        throw tfValidationError(retryRes)
+    } catch (error) {
+      // We catch the error thrown by the terraform init request
+      log.debug("Terraform init failed with error: ${error.message}")
+      initError = error
+    }
+
+    // If the original validate request has failed and there is an error thrown by the init request
+    // OR the second validate try has failed, we throw a new ConfigurationError.
+    if ((res?.valid === false && initError) || retryRes?.valid === false) {
+      let errorMsg = dedent`Failed validating Terraform configuration:`
+
+      // It failed when running "terraform init": in this case we only add the error from the
+      // first validation try
+      if (initError) {
+        const resultErrors = res.diagnostics.map(
+          (d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`
+        )
+        errorMsg += dedent`\n\n${resultErrors.join("\n")}
+
+    Garden tried running "terraform init" but got the following error:\n
+    ${initError.message}`
+      } else {
+        // "terraform init" went through but there is still a validation error afterwards so we
+        // add the retry error.
+        const resultErrors = retryRes.diagnostics.map(
+          (d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`
+        )
+        errorMsg += dedent`\n\n${resultErrors.join("\n")}`
       }
-    } else {
-      throw tfValidationError(res)
+
+      throw new ConfigurationError(errorMsg, { failedResponse: retryRes || res, initError })
     }
   }
 }
@@ -105,13 +125,6 @@ export async function getTfOutputs(params: TerraformParams) {
 
 export function getRoot(ctx: PluginContext, provider: TerraformProvider) {
   return resolve(ctx.projectRoot, provider.config.initRoot || ".")
-}
-
-export function tfValidationError(result: any) {
-  const errors = result.diagnostics.map((d: any) => `${startCase(d.severity)}: ${d.summary}\n${d.detail || ""}`)
-  return new ConfigurationError(dedent`Failed validating Terraform configuration:\n\n${errors.join("\n")}`, {
-    result,
-  })
 }
 
 interface TerraformParamsWithVariables extends TerraformParamsWithWorkspace {
@@ -246,7 +259,7 @@ export async function getWorkspaces(params: TerraformParams) {
   const { ctx, log, provider, root } = params
 
   // Must in some cases ensure init is complete before listing workspaces
-  await tfInit(params)
+  await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
 
   const res = await terraform(ctx, provider).stdout({ args: ["workspace", "list"], cwd: root, log })
   let selected = "default"
@@ -292,8 +305,4 @@ export async function setWorkspace(params: TerraformParamsWithWorkspace) {
   } else {
     await terraform(ctx, provider).stdout({ args: ["workspace", "new", workspace], cwd: root, log })
   }
-}
-
-export async function tfInit({ ctx, log, provider, root }: TerraformParams) {
-  await terraform(ctx, provider).exec({ log, args: ["init"], cwd: root, timeoutSec: 600 })
 }
