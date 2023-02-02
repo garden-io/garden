@@ -32,7 +32,6 @@ export class SortedStreamIntersection<T> extends Readable {
     this.started = false
   }
 
-  // tslint:disable-next-line: function-name
   _read() {
     if (!this.started) {
       this.start()

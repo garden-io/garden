@@ -41,7 +41,7 @@ export async function runCli({
     result = await cli.run({ args, exitOnError })
     code = result.code
   } catch (err) {
-    // tslint:disable-next-line: no-console
+    // eslint-disable-next-line no-console
     console.log(err.message)
     code = 1
   } finally {

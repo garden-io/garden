@@ -198,7 +198,7 @@ export let joi: Schema = Joi.extend({
   rules: {
     allowGlobs: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_setFlag("allowGlobs", true)
       },
       validate(value) {
@@ -208,7 +208,7 @@ export let joi: Schema = Joi.extend({
     },
     absoluteOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("absoluteOnly")
       },
       validate(value, { error }) {
@@ -221,7 +221,7 @@ export let joi: Schema = Joi.extend({
     },
     filenameOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("filenameOnly")
       },
       validate(value, { error }) {
@@ -234,7 +234,7 @@ export let joi: Schema = Joi.extend({
     },
     relativeOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("relativeOnly")
       },
       validate(value, { error }) {
@@ -247,7 +247,7 @@ export let joi: Schema = Joi.extend({
     },
     subPathOnly: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("subPathOnly")
       },
       validate(value, { error }) {
@@ -282,7 +282,7 @@ joi = joi.extend({
   rules: {
     requireHash: {
       method() {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule("requireHash")
       },
       validate(value, { error }) {
@@ -358,9 +358,9 @@ joi = joi.extend({
   rules: {
     jsonSchema: {
       method(jsonSchema: object) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         this.$_setFlag("jsonSchema", jsonSchema)
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_addRule(<any>{ name: "jsonSchema", args: { jsonSchema } })
       },
       args: [
@@ -580,7 +580,7 @@ joi = joi.extend({
         },
       ],
       method(value: string) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_setFlag("kind", value.toLowerCase())
       },
       validate(value) {
@@ -596,7 +596,7 @@ joi = joi.extend({
         },
       ],
       method(value: string) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         return this.$_setFlag("name", value)
       },
       validate(value) {

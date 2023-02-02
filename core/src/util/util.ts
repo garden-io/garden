@@ -90,7 +90,7 @@ export async function shutdown(code?: number) {
   // This is a good place to log exitHookNames if needed.
   if (!testFlags.disableShutdown) {
     if (gardenEnv.GARDEN_ENABLE_PROFILING) {
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log(getDefaultProfiler().report())
     }
     process.exit(code)
@@ -809,7 +809,6 @@ export class StringCollector extends Writable {
     })
   }
 
-  // tslint:disable-next-line: function-name
   _write(chunk: Buffer, _: string, callback: () => void) {
     this.chunks.push(Buffer.from(chunk))
     callback()

@@ -17,7 +17,7 @@ import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { JibBuildAction } from "../util"
 
 describe("jib-container", function () {
-  // tslint:disable-next-line: no-invalid-this
+  // eslint-disable-next-line no-invalid-this
   this.timeout(180 * 1000) // initial jib build can take a long time
 
   const projectRoot = join(__dirname, "test-project")

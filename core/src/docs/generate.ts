@@ -26,8 +26,9 @@ import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
 import { DEFAULT_API_VERSION } from "../constants"
 
+/* eslint-disable no-console */
+
 export async function generateDocs(targetDir: string, plugins: GardenPluginReference[]) {
-  // tslint:disable: no-console
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
@@ -44,7 +45,6 @@ export async function generateDocs(targetDir: string, plugins: GardenPluginRefer
 }
 
 export async function writeConfigReferenceDocs(docsRoot: string, plugins: GardenPlugin[]) {
-  // tslint:disable: no-console
   const referenceDir = resolve(docsRoot, "reference")
 
   const providers = [

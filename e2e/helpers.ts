@@ -42,6 +42,7 @@ export async function deleteExampleNamespaces(namespaces: string[]) {
   // Note: we don't wait for the kubectl command to return, since that's basically a fire-and-forget and would cost
   // a lot of time to wait for.
   deleteNamespacesKubectl(namespacesToDelete).catch((err) => {
+    // eslint-disable-next-line
     console.error(chalk.red.bold(`Error when cleaning namespaces: ${err.message}`))
   })
 }

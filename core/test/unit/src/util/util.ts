@@ -107,7 +107,7 @@ describe("util", () => {
     before(function () {
       // These tests depend the underlying OS and are only executed on macOS and linux
       if (!isLinuxOrDarwin()) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         this.skip()
       }
     })
@@ -171,7 +171,7 @@ describe("util", () => {
     before(function () {
       // These tests depend on the underlying OS and are only executed on macOS and linux
       if (!isLinuxOrDarwin()) {
-        // tslint:disable-next-line: no-invalid-this
+        // eslint-disable-next-line no-invalid-this
         this.skip()
       }
     })

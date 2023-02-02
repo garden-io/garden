@@ -20,7 +20,7 @@
   },
   "scripts": {
     "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "tslint -p .",
+    "lint": "eslint -c ../../.eslintrc --ignore-pattern '*.d.ts*' --ext .ts .",
     "test": "mocha"
   },
   "author": "Garden Technologies, Inc. <info@garden.io>",

@@ -26,17 +26,12 @@
   "devDependencies": {
     "@types/node": "^18",
     "prettier": "^2.1.1",
-    "tslint": "^6.1.3",
-    "tslint-config-prettier": "^1.18.0",
-    "tslint-microsoft-contrib": "^6.2.0",
-    "tslint-no-unused": "^0.2.0-alpha.1",
-    "tslint-plugin-prettier": "^2.3.0",
     "typescript": "^4.7.4"
   },
   "scripts": {
     "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "fix-format": "prettier --write \"**/*.ts\"",
-    "lint": "tslint -p ."
+    "lint": "eslint -c ../.eslintrc --ignore-pattern '*.d.ts*' --ext .ts ."
   }
 }

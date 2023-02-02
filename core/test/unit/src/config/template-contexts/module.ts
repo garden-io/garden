@@ -144,7 +144,7 @@ describe("ModuleConfigContext", () => {
     before(async () => {
       const modules = graph.getModules()
       deployA = graph.getDeploy("service-a")
-      // tslint:disable-next-line: no-unused
+      // eslint-disable-next-line no-unused
       const deployB = graph.getDeploy("service-b")
       // const testB = graph.getTest("test-b")
       module = graph.getModule("module-b")

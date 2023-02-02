@@ -160,7 +160,7 @@ export async function getPortForward({
           registeredPortForwards[key] = portForward
           resolved = true
           // Setting a sleep because kubectl returns a bit early sometimes
-          // tslint:disable-next-line: no-floating-promises
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           sleep(250).then(() => resolve(portForward))
         }
       })
@@ -168,7 +168,6 @@ export async function getPortForward({
       proc.stderr!.on("data", (line) => {
         log.silly(`[${targetResource} port forwarder] ${line}`)
         output += line
-        // tslint:disable-next-line: max-line-length
         // Following this: https://github.com/nkubala/skaffold/blob/0d52436f792b862e06311c42065afd8e2363771c/pkg/skaffold/kubernetes/portforward/kubectl_forwarder.go#L177
         // Note: It'd be much more robust to avoid kubectl here, but it's more work to implement.
         if (

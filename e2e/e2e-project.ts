@@ -35,11 +35,11 @@ Example: ./core/bin/e2e-project.ts --binPath=/path/to/garden --project=demo-proj
 `
 
 async function run() {
-  // tslint:disable: no-console
+  /* eslint-disable no-console */
   const project = parsedArgs.project
 
   if (!project) {
-    throw new Error(`Must specify project name with --project parameter`)
+    throw new Error("Must specify project name with --project parameter")
   }
 
   // Abort if examples dir is dirty to prevent changes being checked out

@@ -186,7 +186,7 @@ async function createProxy({ garden, graph, log, action, spec }: StartPortProxyP
     // net.Server.listen doesn't call the handler until a connection is established, in which
     // case we can actually go ahead and contact the remote. Indeed, we need to in case the remote
     // responds on connection.
-    // tslint:disable-next-line: no-floating-promises
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     getRemote()
 
     const writeToRemote = (remote: Socket, data: Buffer) => {

@@ -49,7 +49,6 @@ export interface PulumiPlan {
   config: DeepPrimitiveMap
 
   // Represents the desired state and planned operations to perform (along with other fields).
-  /* tslint:disable-next-line:max-line-length */
   // See: https://github.com/pulumi/pulumi/blob/c721e8905b0639b3d4aa1d51d0753f6c99b13984/sdk/go/common/apitype/plan.go#L61-L68
   resourcePlans: {
     [resourceUrn: string]: {

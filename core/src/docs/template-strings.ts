@@ -91,7 +91,7 @@ const contexts: ContextSpec[] = [
 ]
 
 export function writeTemplateStringReferenceDocs(docsRoot: string) {
-  // tslint:disable: no-console
+  /* eslint-disable no-console */
   const referenceDir = resolve(docsRoot, "reference")
   const outputDir = resolve(referenceDir, "template-strings")
   const templatesDir = resolve(TEMPLATES_DIR, "template-strings")

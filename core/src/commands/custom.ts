@@ -241,7 +241,7 @@ export async function getCustomCommands(builtinCommands: (Command | CommandGroup
       }
 
       if (builtinNames.includes(r.name)) {
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         console.log(
           chalk.yellow(
             `Ignoring custom command ${r.name} because it conflicts with a built-in command with the same name`

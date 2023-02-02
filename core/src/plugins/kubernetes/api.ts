@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-// No idea why tslint complains over this line
-// tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
 import { ReadStream } from "tty"
 import Bluebird from "bluebird"
@@ -153,7 +151,7 @@ type WrappedList<T extends List> = T["items"] extends Array<infer V> ? Kubernete
 type WrappedApi<T> = {
   // Wrap each API method
   [P in keyof T]:
-  T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage, body: infer U }>
+  T[P] extends (...args: infer A) => Promise<{ response: IncomingMessage; body: infer U }>
   ? (
     // If so we wrap it and return the `body` part of the output directly and...
     // If it's a list, we cast to a KubernetesServerList, which in turn wraps the array type
@@ -827,6 +825,7 @@ export class KubeApi {
 
   /**
    * Create an ad-hoc Pod. Use this method to handle race-condition cases when creating Pods.
+   *
    * @throws {KubernetesError}
    */
   async createPod(namespace: string, pod: KubernetesPod) {

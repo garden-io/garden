@@ -32,6 +32,7 @@ import username from "username"
 import { realpath } from "fs-extra"
 
 function log(msg: string) {
+  // eslint-disable-next-line
   console.log(chalk.magentaBright(msg))
 }
 
@@ -44,7 +45,7 @@ describe("PreReleaseTests", () => {
   const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : username.sync()
 
   if (!project) {
-    throw new Error(`Must specify project name with --project parameter`)
+    throw new Error("Must specify project name with --project parameter")
   }
 
   function getProjectNamespaces() {
@@ -138,7 +139,7 @@ describe("PreReleaseTests", () => {
           const workflowName = "full-test"
           const logEntries = await runWithEnv(["run-workflow", workflowName])
           expect(
-            searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, `g`)),
+            searchLog(logEntries, new RegExp(`Workflow ${workflowName} completed successfully.`, "g")),
             `expected to find "Workflow ${workflowName} completed successfully." in log output.`
           ).to.eql("passed")
         })
@@ -192,6 +193,7 @@ describe("PreReleaseTests", () => {
             description: "node-service returns the updated response text",
             condition: async () => {
               const callLogEntries = await runWithEnv(["call", "node-service"])
+              // eslint-disable-next-line
               console.log(callLogEntries.map((l) => stringifyJsonLog(l)).join("\n"))
               return searchLog(callLogEntries, /Hello from foo/)
             },

@@ -53,7 +53,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
       await api.upsert({ kind: "Secret", namespace: "default", obj: authSecret, log: garden.log })
     } catch (err) {
       // This is expected when running without access to gcloud (e.g. in minikube tests)
-      // tslint:disable-next-line: no-console
+      // eslint-disable-next-line no-console
       console.log("Warning: Unable to decrypt docker auth secret")
       const authSecret: KubernetesResource<V1Secret> = {
         apiVersion: "v1",
