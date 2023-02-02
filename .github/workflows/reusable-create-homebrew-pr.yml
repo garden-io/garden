@@ -48,5 +48,5 @@ jobs:
       - name: Adding markdown summary
         if: inputs.release-condition != 'false'
         run: |
-          echo '### Manual Steps required to finish publishing to Homebrew' >> $GITHUB_STEP_SUMMARY
-          echo 'Please review the new PR in https://github.com/garden-io/homebrew-garden/pulls' >> $GITHUB_STEP_SUMMARY
+          echo '### Manual Steps required to finish publishing to Homebrew' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Please review the new PR in https://github.com/garden-io/homebrew-garden/pulls' >> "$GITHUB_STEP_SUMMARY"
