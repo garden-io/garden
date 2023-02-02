@@ -40,7 +40,7 @@ export class GlobalTerraform extends CliWrapper {
     try {
       return await which("terraform")
     } catch (err) {
-      throw new RuntimeError("Terraform version is set to null, and terraform CLI could not be found on PATH", {})
+      throw new RuntimeError(`Terraform version is set to null, and terraform CLI could not be found on PATH`, {})
     }
   }
 }
