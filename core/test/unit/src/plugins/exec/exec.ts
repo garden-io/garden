@@ -36,7 +36,12 @@ import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfi
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
 import { PluginContext } from "../../../../../src/plugin-context"
-import { convertModules, findActionConfigInGroup, findGroupConfig } from "../../../../../src/resolve-module"
+import {
+  convertModules,
+  ConvertModulesResult,
+  findActionConfigInGroup,
+  findGroupConfig,
+} from "../../../../../src/resolve-module"
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
 import execa from "execa"
@@ -692,35 +697,52 @@ describe("exec plugin", () => {
       throw "TODO"
     })
 
-    it("sets buildAtSource on Build if local:true", async () => {
-      const moduleA = "module-a"
-      const buildCommand = ["echo", moduleA]
-      tmpGarden.setActionConfigs([
-        makeModuleConfig(tmpGarden.projectRoot, {
-          name: moduleA,
-          type: "exec",
-          spec: {
-            local: true, // <---
-            build: {
-              command: buildCommand,
+    describe("sets buildAtSource on Build", () => {
+      async function getTestModule(name: string, local: boolean) {
+        const buildCommand = ["echo", name]
+        tmpGarden.setActionConfigs([
+          makeModuleConfig(tmpGarden.projectRoot, {
+            name,
+            type: "exec",
+            spec: {
+              local, // <---
+              build: {
+                command: buildCommand,
+              },
             },
-          },
-        }),
-      ])
-      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
-      const module = tmpGraph.getModule(moduleA)
+          }),
+        ])
+        tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        return tmpGraph.getModule(name)
+      }
 
-      const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
-      expect(result.groups).to.exist
+      function assertBuildAtSource(moduleName: string, result: ConvertModulesResult, buildAtSource: boolean) {
+        expect(result.groups).to.exist
 
-      const group = findGroupConfig(result, moduleA)!
-      expect(group.actions).to.exist
-      expect(group.actions.length).to.eql(1)
+        const group = findGroupConfig(result, moduleName)!
+        expect(group.actions).to.exist
+        expect(group.actions.length).to.eql(1)
 
-      const build = findActionConfigInGroup(group, "Build", moduleA)! as BuildActionConfig
-      expect(build).to.exist
-      expect(build.spec.command).to.eql(buildCommand)
-      expect(build.buildAtSource).to.be.true
+        const build = findActionConfigInGroup(group, "Build", moduleName)! as BuildActionConfig
+        expect(build).to.exist
+        expect(build.buildAtSource).to.eql(buildAtSource)
+      }
+
+      it("sets buildAtSource on Build if local:true", async () => {
+        const moduleA = "module-a"
+        const module = await getTestModule(moduleA, true)
+        const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+
+        assertBuildAtSource(module.name, result, true)
+      })
+
+      it("does not set buildAtSource on Build if local:false", async () => {
+        const moduleA = "module-a"
+        const module = await getTestModule(moduleA, false)
+        const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+
+        assertBuildAtSource(module.name, result, false)
+      })
     })
 
     it("correctly maps a serviceConfig to a Deploy with a build", async () => {
