@@ -18,7 +18,7 @@ import { ClientAuthToken } from "../../../../src/db/entities/client-auth-token"
 import { dedent, randomString } from "../../../../src/util/string"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
+import { gardenEnv } from "../../../../src/constants"
 import { EnterpriseApiError } from "../../../../src/exceptions"
 import { ensureConnected } from "../../../../src/db/connection"
 import { getLogMessages } from "../../../../src/util/testing"
@@ -171,13 +171,11 @@ describe("LoginCommand", () => {
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
+    // If the token exist, we have used the fallback domain
     const savedToken = await ClientAuthToken.findOne()
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
-
-    // Check the local config to contain the default domain
-    expect(await garden.configStore.get(["cloud", "domain"])).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
   })
 
   it("should throw if the user has an invalid auth token", async () => {

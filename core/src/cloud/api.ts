@@ -11,7 +11,7 @@ import { IncomingHttpHeaders } from "http"
 import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
 import { EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
-import { gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import type { ClientAuthToken as ClientAuthTokenType } from "../db/entities/client-auth-token"
 import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
@@ -26,7 +26,6 @@ import {
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import { ProjectResource } from "../config/project"
-import { LocalConfig } from "../config-store"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -139,20 +138,17 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomain(projectConfig?: ProjectResource, localConfig?: LocalConfig): string | undefined {
-  if (!projectConfig) {
-    return undefined
-  }
+export function getGardenCloudDomainWithFallback(projectConfig: ProjectResource): string {
+  return getGardenCloudDomain(projectConfig) || DEFAULT_GARDEN_CLOUD_DOMAIN
+}
 
+export function getGardenCloudDomain(projectConfig: ProjectResource): string | undefined {
   let cloudDomain: string | undefined
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
   } else if (projectConfig.domain) {
     cloudDomain = new URL(projectConfig.domain).origin
-  } else if (localConfig && localConfig.cloud) {
-    // Fall-back to the cloud domain set on garden login
-    cloudDomain = localConfig.cloud.domain
   }
 
   return cloudDomain
@@ -200,18 +196,22 @@ export class CloudApi {
     skipLogging = false,
   }: {
     log: LogEntry
-    cloudDomain: string
+    cloudDomain?: string
     skipLogging?: boolean
   }) {
     log.debug("Initializing Garden Cloud API client.")
 
     const token = await CloudApi.getClientAuthTokenFromDb(log)
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.debug("User is not logged in. Aborting.")
+      log.debug("User is not logged in, proceeding without a cloud API connection.")
       return null
     }
 
-    const api = new CloudApi(log, cloudDomain)
+    // The user token is set at this point. If the cloud domain is not set
+    // it means we are logged in to the default domain
+    const fallbackCloudDomain: string = cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
+
+    const api = new CloudApi(log, fallbackCloudDomain)
     const tokenIsValid = await api.checkClientAuthToken()
 
     const distroName = getCloudDistributionName(api.domain)

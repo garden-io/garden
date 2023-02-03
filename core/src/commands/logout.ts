@@ -8,12 +8,11 @@
 
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api"
+import { CloudApi, getGardenCloudDomainWithFallback } from "../cloud/api"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 import { ProjectResource } from "../config/project"
 import { ConfigurationError } from "../exceptions"
-import { LocalConfig, localConfigKeys } from "../config-store"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -34,16 +33,19 @@ export class LogOutCommand extends Command {
     const { ClientAuthToken } = require("../db/entities/client-auth-token")
 
     const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
-    const localConfig: LocalConfig | undefined = await garden.configStore.get()
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig, localConfig)
-    const distroName = getCloudDistributionName(cloudDomain || "")
 
-    if (!cloudDomain) {
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
       throw new ConfigurationError(
-        `Could not find a domain, you are either not logged in or has not defined a project domain.`,
-        {}
+        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        {
+          root: garden.projectRoot,
+        }
       )
     }
+
+    const cloudDomain: string = getGardenCloudDomainWithFallback(projectConfig)
+    const distroName = getCloudDistributionName(cloudDomain)
 
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
@@ -52,7 +54,7 @@ export class LogOutCommand extends Command {
       const token = await ClientAuthToken.findOne()
 
       if (!token) {
-        log.info({ msg: `You're already logged out from ${distroName}.` })
+        log.info({ msg: `You're already logged out from ${distroName} at ${cloudDomain}.` })
         return {}
       }
 
@@ -77,10 +79,10 @@ export class LogOutCommand extends Command {
         msg,
       })
     } finally {
-      log.info({ msg: `Succesfully logged out from ${distroName}.` })
-      // remove the domain from the local config and clear the auth token
-      await garden.configStore.delete([localConfigKeys().cloud])
+      // always clear the auth token
       await CloudApi.clearAuthToken(log)
+
+      log.info({ msg: `Succesfully logged out from ${distroName} at ${cloudDomain}.` })
     }
     return {}
   }

@@ -9,15 +9,13 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
+import { AuthTokenResponse, CloudApi, getGardenCloudDomainWithFallback } from "../cloud/api"
 import { LogEntry } from "../logger/log-entry"
-import { InternalError } from "../exceptions"
+import { ConfigurationError, InternalError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events"
 import { getCloudDistributionName } from "../util/util"
 import { ProjectResource } from "../config/project"
-import { LocalConfig, localConfigKeys } from "../config-store"
-import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants"
 
 export class LoginCommand extends Command {
   name = "login"
@@ -39,11 +37,19 @@ export class LoginCommand extends Command {
   }
 
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
-    const currentDirectory = garden.projectRoot
-
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(currentDirectory)
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
+
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
+      throw new ConfigurationError(
+        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        {
+          root: garden.projectRoot,
+        }
+      )
+    }
 
     // Garden works by default without Garden Cloud. In order to use cloud, a domain
     // must be known to cloud for any command needing a logged in user.
@@ -51,21 +57,13 @@ export class LoginCommand extends Command {
     // The cloud domain is resolved in the following order:
     // - 1. GARDEN_CLOUD_DOMAIN config variable
     // - 2. `domain`-field from the project config
-    // - 3. cloud.domain key in the .garden/local-config.yml
+    // - 3. fallback to the default garden cloud domain
     //
-    // The fallback behavior on the local config is set when running login and unset
-    // when running logout. This enables the default mode of garden commands to be
-    // run without being logged in to Garden Cloud.
-    const localConfig: LocalConfig | undefined = await garden.configStore.get()
-    let cloudDomain: string | undefined = getGardenCloudDomain(projectConfig, localConfig)
+    // If the fallback was used, we rely on the token to decide if the Cloud API instance
+    // should use the default domain or not. The token lifecycle ends on logout.
+    let cloudDomain: string = getGardenCloudDomainWithFallback(projectConfig)
 
-    if (!cloudDomain) {
-      // Since this is the login command, we fallback to use the default Garden Cloud
-      // domain if it has not already been resolved by the method defined above.
-      cloudDomain = DEFAULT_GARDEN_CLOUD_DOMAIN
-    }
-
-    const distroName = getCloudDistributionName(cloudDomain || "")
+    const distroName = getCloudDistributionName(cloudDomain)
 
     try {
       const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true })
@@ -90,12 +88,6 @@ export class LoginCommand extends Command {
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
     await CloudApi.saveAuthToken(log, tokenResponse)
-
-    // Update the local config with the cloud domain
-    if (cloudDomain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
-      await garden.configStore.set([localConfigKeys().cloud], { domain: cloudDomain })
-    }
-
     log.info({ msg: `Successfully logged in to ${distroName} at ${cloudDomain}.` })
 
     return {}

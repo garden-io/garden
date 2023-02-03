@@ -61,7 +61,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
+    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise at http://dummy-domain.com.")
   })
 
   it("should logout from Garden Cloud with default domain", async () => {
@@ -90,25 +90,13 @@ describe("LogoutCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    // emulate storing the domain in the local config after login
-    await garden.configStore.set(["cloud", "domain"], DEFAULT_GARDEN_CLOUD_DOMAIN)
-
-    // Check the local config to contain the default domain
-    expect(await garden.configStore.get(["cloud", "domain"])).to.eql(DEFAULT_GARDEN_CLOUD_DOMAIN)
-
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const tokenAfterLogout = await ClientAuthToken.findOne()
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Cloud.")
-
-    try {
-      await garden.configStore.get(["cloud", "domain"])
-    } catch (err) {
-      expect(err.type).to.equal("local-config")
-    }
+    expect(logOutput).to.include(`Succesfully logged out from Garden Cloud at ${DEFAULT_GARDEN_CLOUD_DOMAIN}.`)
   })
 
   it("should be a no-op if the user is already logged out", async () => {
@@ -122,7 +110,7 @@ describe("LogoutCommand", () => {
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
-    expect(logOutput).to.include("You're already logged out from Garden Enterprise.")
+    expect(logOutput).to.include("You're already logged out from Garden Enterprise at http://dummy-domain.com.")
   })
 
   it("should remove token even if Enterprise API can't be initialised", async () => {
@@ -158,7 +146,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
+    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise at http://dummy-domain.com.")
   })
 
   it("should remove token even if API calls fail", async () => {
@@ -194,6 +182,6 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise.")
+    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise at http://dummy-domain.com.")
   })
 })

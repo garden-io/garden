@@ -171,15 +171,10 @@ export interface AnalyticsLocalConfig {
   projectId: string
 }
 
-export interface CloudLocalConfig {
-  domain: string
-}
-
 export interface LocalConfig {
   linkedModuleSources?: LinkedSource[] // TODO Use KeyedSet instead of array
   linkedProjectSources?: LinkedSource[]
   analytics: AnalyticsLocalConfig
-  cloud?: CloudLocalConfig
 }
 
 const analyticsLocalConfigSchema = () =>
@@ -190,22 +185,10 @@ const analyticsLocalConfigSchema = () =>
     })
     .meta({ internal: true })
 
-// Used to indicate that this config has logged in to garden cloud
-// and that we should use the given domain. This is set on login
-// and removed on logout.
-const cloudLocalConfigSchema = () =>
-  joi
-    .object()
-    .keys({
-      domain: joi.string(),
-    })
-    .meta({ internal: true })
-
 const localConfigSchemaKeys = {
   linkedModuleSources: () => joiArray(linkedSourceSchema()),
   linkedProjectSources: () => joiArray(linkedSourceSchema()),
   analytics: () => analyticsLocalConfigSchema(),
-  cloud: () => cloudLocalConfigSchema(),
 }
 
 export const localConfigKeys = () =>

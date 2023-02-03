@@ -65,7 +65,7 @@ import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
-import { GlobalConfigStore, LocalConfigStore, RequirementsCheck } from "../config-store"
+import { GlobalConfigStore, RequirementsCheck } from "../config-store"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -287,13 +287,16 @@ ${renderCommands(commands)}
     let cloudApi: CloudApi | null = null
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
-      const gardenDirPath = resolve(workingDir, DEFAULT_GARDEN_DIR_NAME)
-      const localConfig = await new LocalConfigStore(gardenDirPath).get()
-      const cloudDomain: string | undefined = getGardenCloudDomain(config, localConfig)
 
-      if (cloudDomain) {
-        cloudApi = await CloudApi.factory({ log, cloudDomain })
-      } else {
+      let cloudDomain: string | undefined = undefined
+
+      if (config) {
+        cloudDomain = getGardenCloudDomain(config)
+      }
+
+      cloudApi = await CloudApi.factory({ log, cloudDomain })
+
+      if (!cloudApi) {
         log.debug("Cloud domain not configured, proceeding without a Garden Cloud connection.")
       }
     }
