@@ -977,171 +977,174 @@ describe("exec plugin", () => {
         await tmpDir.cleanup()
       })
 
-      it("adds configured variables to the Group", async () => {
-        const moduleA = "module-a"
-        const taskCommand = ["echo", moduleA]
-        const variables = { FOO: "foo", BAR: "bar" }
-        garden.setActionConfigs([
-          makeModuleConfig(garden.projectRoot, {
-            name: moduleA,
-            type: "exec",
-            variables,
-            spec: {
-              tasks: [
-                {
-                  name: "task-a",
-                  command: taskCommand,
-                },
-              ],
-            },
-          }),
-        ])
-        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const module = tmpGraph.getModule(moduleA)
-
-        const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
-        expect(result.groups).to.exist
-
-        const group = findGroupConfig(result, moduleA)!
-        expect(group).to.exist
-        expect(group.variables).to.eql(variables)
-      })
-
-      it("adds a Build action if build.command is set", async () => {
-        const moduleA = "module-a"
-        const buildCommand = ["echo", moduleA]
-        garden.setActionConfigs([
-          makeModuleConfig(garden.projectRoot, {
-            name: moduleA,
-            type: "exec",
-            spec: {
-              build: {
-                command: buildCommand,
-              },
-            },
-          }),
-        ])
-        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        const module = tmpGraph.getModule(moduleA)
-
-        const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
-        expect(result.groups).to.exist
-
-        const group = findGroupConfig(result, moduleA)!
-        expect(group.actions).to.exist
-        expect(group.actions.length).to.eql(1)
-
-        const build = findActionConfigInGroup(group, "Build", moduleA) as BuildActionConfig
-        expect(build).to.exist
-        expect(build.name).to.eql(moduleA)
-        expect(build.spec.command).to.eql(buildCommand)
-      })
-
-      it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
-        const moduleNameA = "module-a"
-        const moduleNameB = "module-b"
-        const buildCommandA = ["echo", moduleNameA]
-        const buildCommandB = ["echo", moduleNameB]
-
-        garden.setActionConfigs([
-          makeModuleConfig(garden.projectRoot, {
-            name: moduleNameA,
-            type: "exec",
-            spec: {
-              build: {
-                command: buildCommandA,
-              },
-            },
-          }),
-          makeModuleConfig(garden.projectRoot, {
-            name: moduleNameB,
-            type: "exec",
-            spec: {
-              build: {
-                command: buildCommandB,
-                dependencies: [
+      context("variables", () => {
+        it("adds configured variables to the Group", async () => {
+          const moduleA = "module-a"
+          const taskCommand = ["echo", moduleA]
+          const variables = { FOO: "foo", BAR: "bar" }
+          garden.setActionConfigs([
+            makeModuleConfig(garden.projectRoot, {
+              name: moduleA,
+              type: "exec",
+              variables,
+              spec: {
+                tasks: [
                   {
-                    name: moduleNameA,
-                    copy: [
-                      {
-                        source: "./module-a.out",
-                        target: "a/module-a.out",
-                      },
-                    ],
+                    name: "task-a",
+                    command: taskCommand,
                   },
                 ],
               },
-            },
-          }),
-        ])
-        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
-        // const moduleA = tmpGraph.getModule(moduleNameA)
-        const moduleB = tmpGraph.getModule(moduleNameB)
+            }),
+          ])
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+          const module = tmpGraph.getModule(moduleA)
 
-        const result = await convertModules(garden, garden.log, [moduleB], tmpGraph.moduleGraph)
-        expect(result.groups).to.exist
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
 
-        const groupB = findGroupConfig(result, moduleNameB)!
-        expect(groupB.actions).to.exist
-        expect(groupB.actions.length).to.eql(1)
-
-        const buildB = findActionConfigInGroup(groupB, "Build", moduleNameB)! as BuildActionConfig
-        expect(buildB).to.exist
-        expect(buildB.name).to.eql(moduleNameB)
-        expect(buildB.spec.command).to.eql(buildCommandB)
-        // TODO-G2 this still fails; check if is the test config correct
-        expect(buildB.copyFrom).be.not.empty
+          const group = findGroupConfig(result, moduleA)!
+          expect(group).to.exist
+          expect(group.variables).to.eql(variables)
+        })
       })
 
-      /**
-       * See TODO-G2 comments in {@link preprocessActionConfig}.
-       */
-      it("converts the repositoryUrl field", async () => {
-        throw "TODO"
-      })
-
-      it("sets Build dependencies correctly", async () => {
-        throw "TODO"
-      })
-
-      describe("sets buildAtSource on Build", () => {
-        async function getGraph(name: string, local: boolean) {
-          const buildCommand = ["echo", name]
+      context("Build action", () => {
+        it("adds a Build action if build.command is set", async () => {
+          const moduleA = "module-a"
+          const buildCommand = ["echo", moduleA]
           garden.setActionConfigs([
             makeModuleConfig(garden.projectRoot, {
-              name,
+              name: moduleA,
               type: "exec",
               spec: {
-                local, // <---
                 build: {
                   command: buildCommand,
                 },
               },
             }),
           ])
-          return garden.getConfigGraph({ log: garden.log, emit: false })
-        }
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+          const module = tmpGraph.getModule(moduleA)
 
-        function assertBuildAtSource(moduleName: string, result: ConvertModulesResult, buildAtSource: boolean) {
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
           expect(result.groups).to.exist
 
-          const group = findGroupConfig(result, moduleName)!
+          const group = findGroupConfig(result, moduleA)!
           expect(group.actions).to.exist
           expect(group.actions.length).to.eql(1)
 
-          const build = findActionConfigInGroup(group, "Build", moduleName)! as BuildActionConfig
+          const build = findActionConfigInGroup(group, "Build", moduleA) as BuildActionConfig
           expect(build).to.exist
-          expect(build.buildAtSource).to.eql(buildAtSource)
-        }
-
-        it("sets buildAtSource on Build if local:true", async () => {
-          const moduleA = "module-a"
-          const tmpGraph = await getGraph(moduleA, true)
-          const module = tmpGraph.getModule(moduleA)
-          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
-
-          assertBuildAtSource(module.name, result, true)
+          expect(build.name).to.eql(moduleA)
+          expect(build.spec.command).to.eql(buildCommand)
         })
+
+        it("adds a Build action if build.dependencies[].copy is set and adds a copy field", async () => {
+          const moduleNameA = "module-a"
+          const moduleNameB = "module-b"
+          const buildCommandA = ["echo", moduleNameA]
+          const buildCommandB = ["echo", moduleNameB]
+
+          garden.setActionConfigs([
+            makeModuleConfig(garden.projectRoot, {
+              name: moduleNameA,
+              type: "exec",
+              spec: {
+                build: {
+                  command: buildCommandA,
+                },
+              },
+            }),
+            makeModuleConfig(garden.projectRoot, {
+              name: moduleNameB,
+              type: "exec",
+              spec: {
+                build: {
+                  command: buildCommandB,
+                  dependencies: [
+                    {
+                      name: moduleNameA,
+                      copy: [
+                        {
+                          source: "./module-a.out",
+                          target: "a/module-a.out",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            }),
+          ])
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+          // const moduleA = tmpGraph.getModule(moduleNameA)
+          const moduleB = tmpGraph.getModule(moduleNameB)
+
+          const result = await convertModules(garden, garden.log, [moduleB], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupB = findGroupConfig(result, moduleNameB)!
+          expect(groupB.actions).to.exist
+          expect(groupB.actions.length).to.eql(1)
+
+          const buildB = findActionConfigInGroup(groupB, "Build", moduleNameB)! as BuildActionConfig
+          expect(buildB).to.exist
+          expect(buildB.name).to.eql(moduleNameB)
+          expect(buildB.spec.command).to.eql(buildCommandB)
+          // TODO-G2 this still fails; check if is the test config correct
+          expect(buildB.copyFrom).be.not.empty
+        })
+
+        /**
+         * See TODO-G2 comments in {@link preprocessActionConfig}.
+         */
+        it("converts the repositoryUrl field", async () => {
+          throw "TODO"
+        })
+
+        it("sets Build dependencies correctly", async () => {
+          throw "TODO"
+        })
+
+        describe("sets buildAtSource on Build", () => {
+          async function getGraph(name: string, local: boolean) {
+            const buildCommand = ["echo", name]
+            garden.setActionConfigs([
+              makeModuleConfig(garden.projectRoot, {
+                name,
+                type: "exec",
+                spec: {
+                  local, // <---
+                  build: {
+                    command: buildCommand,
+                  },
+                },
+              }),
+            ])
+            return garden.getConfigGraph({ log: garden.log, emit: false })
+          }
+
+          function assertBuildAtSource(moduleName: string, result: ConvertModulesResult, buildAtSource: boolean) {
+            expect(result.groups).to.exist
+
+            const group = findGroupConfig(result, moduleName)!
+            expect(group.actions).to.exist
+            expect(group.actions.length).to.eql(1)
+
+            const build = findActionConfigInGroup(group, "Build", moduleName)! as BuildActionConfig
+            expect(build).to.exist
+            expect(build.buildAtSource).to.eql(buildAtSource)
+          }
+
+          it("sets buildAtSource on Build if local:true", async () => {
+            const moduleA = "module-a"
+            const tmpGraph = await getGraph(moduleA, true)
+            const module = tmpGraph.getModule(moduleA)
+            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+
+            assertBuildAtSource(module.name, result, true)
+          })
 
         it("does not set buildAtSource on Build if local:false", async () => {
           const moduleA = "module-a"
@@ -1149,103 +1152,106 @@ describe("exec plugin", () => {
           const module = tmpGraph.getModule(moduleA)
           const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
-          assertBuildAtSource(module.name, result, false)
+            assertBuildAtSource(module.name, result, false)
+          })
         })
       })
 
-      it("correctly maps a serviceConfig to a Deploy with a build", async () => {
-        // Dependencies
-        // build field
-        // timeout
-        // service spec
+      context("Deploy/Run/Test (runtime) actions", () => {
+        it("correctly maps a serviceConfig to a Deploy with a build", async () => {
+          // Dependencies
+          // build field
+          // timeout
+          // service spec
 
-        const moduleNameA = "module-a"
-        const buildCommandA = ["echo", moduleNameA]
-        const serviceNameA = "service-a"
-        const deployCommandA = ["echo", "deployed", serviceNameA]
-        const moduleConfigA = makeModuleConfig(garden.projectRoot, {
-          name: moduleNameA,
-          type: "exec",
-          spec: {
-            // <--- build field
-            build: {
-              command: buildCommandA,
-            },
-            services: [
-              {
-                name: serviceNameA,
-                deployCommand: deployCommandA,
+          const moduleNameA = "module-a"
+          const buildCommandA = ["echo", moduleNameA]
+          const serviceNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", serviceNameA]
+          const moduleConfigA = makeModuleConfig(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: buildCommandA,
               },
-            ],
-          },
+              services: [
+                {
+                  name: serviceNameA,
+                  deployCommand: deployCommandA,
+                },
+              ],
+            },
+          })
+
+          garden.setActionConfigs([moduleConfigA])
+          // this will produce modules with `serviceConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `serviceConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          expect(buildA).to.exist
+          expect(buildA.dependencies).to.eql([])
+
+          const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
+          expect(deployA).to.exist
+          expect(deployA.build).to.eql(moduleNameA)
+          expect(deployA.dependencies).to.eql([])
         })
 
-        garden.setActionConfigs([moduleConfigA])
-        // this will produce modules with `serviceConfigs` fields initialized
-        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+        it("correctly maps a serviceConfig to a Deploy with no build", async () => {
+          throw "TODO"
 
-        const moduleA = tmpGraph.getModule(moduleNameA)
+          // Dependencies
+          // + build dependencies
+          // timeout
+          // service spec
+        })
 
-        // this will use `serviceConfigs` defined in modules
-        const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
-        expect(result.groups).to.exist
+        it("correctly maps a taskConfig to a Run with a build", async () => {
+          throw "TODO"
 
-        const groupA = findGroupConfig(result, moduleNameA)!
-        expect(groupA).to.exist
+          // Dependencies
+          // build field
+          // timeout
+          // task spec
+        })
 
-        const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
-        expect(buildA).to.exist
-        expect(buildA.dependencies).to.eql([])
+        it("correctly maps a taskConfig to a Run with no build", async () => {
+          throw "TODO"
 
-        const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
-        expect(deployA).to.exist
-        expect(deployA.build).to.eql(moduleNameA)
-        expect(deployA.dependencies).to.eql([])
-      })
+          // Dependencies
+          // + build dependencies
+          // timeout
+          // task spec
+        })
 
-      it("correctly maps a serviceConfig to a Deploy with no build", async () => {
-        throw "TODO"
+        it("correctly maps a testConfig to a Test with a build", async () => {
+          throw "TODO"
 
-        // Dependencies
-        // + build dependencies
-        // timeout
-        // service spec
-      })
+          // Dependencies
+          // build field
+          // timeout
+          // test spec
+        })
 
-      it("correctly maps a taskConfig to a Run with a build", async () => {
-        throw "TODO"
+        it("correctly maps a testConfig to a Test with no build", async () => {
+          throw "TODO"
 
-        // Dependencies
-        // build field
-        // timeout
-        // task spec
-      })
-
-      it("correctly maps a taskConfig to a Run with no build", async () => {
-        throw "TODO"
-
-        // Dependencies
-        // + build dependencies
-        // timeout
-        // task spec
-      })
-
-      it("correctly maps a testConfig to a Test with a build", async () => {
-        throw "TODO"
-
-        // Dependencies
-        // build field
-        // timeout
-        // test spec
-      })
-
-      it("correctly maps a testConfig to a Test with no build", async () => {
-        throw "TODO"
-
-        // Dependencies
-        // + build dependencies
-        // timeout
-        // test spec
+          // Dependencies
+          // + build dependencies
+          // timeout
+          // test spec
+        })
       })
     })
   })
