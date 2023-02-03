@@ -557,7 +557,6 @@ describe("exec plugin", () => {
 
     let tmpDir: tmp.DirectoryResult
     let tmpGarden: TestGarden
-    let tmpGraph: ConfigGraph
 
     before(async () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true })
@@ -568,8 +567,6 @@ describe("exec plugin", () => {
     after(async () => {
       await tmpDir.cleanup()
     })
-
-    beforeEach(async () => {})
 
     it("adds configured variables to the Group", async () => {
       const moduleA = "module-a"
@@ -590,7 +587,7 @@ describe("exec plugin", () => {
           },
         }),
       ])
-      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
       const module = tmpGraph.getModule(moduleA)
 
       const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
@@ -615,7 +612,7 @@ describe("exec plugin", () => {
           },
         }),
       ])
-      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
       const module = tmpGraph.getModule(moduleA)
 
       const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
@@ -668,7 +665,7 @@ describe("exec plugin", () => {
           },
         }),
       ])
-      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
       // const moduleA = tmpGraph.getModule(moduleNameA)
       const moduleB = tmpGraph.getModule(moduleNameB)
 
@@ -699,7 +696,7 @@ describe("exec plugin", () => {
     })
 
     describe("sets buildAtSource on Build", () => {
-      async function getTestModule(name: string, local: boolean) {
+      async function getGraph(name: string, local: boolean) {
         const buildCommand = ["echo", name]
         tmpGarden.setActionConfigs([
           makeModuleConfig(tmpGarden.projectRoot, {
@@ -713,8 +710,7 @@ describe("exec plugin", () => {
             },
           }),
         ])
-        tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
-        return tmpGraph.getModule(name)
+        return tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
       }
 
       function assertBuildAtSource(moduleName: string, result: ConvertModulesResult, buildAtSource: boolean) {
@@ -731,7 +727,8 @@ describe("exec plugin", () => {
 
       it("sets buildAtSource on Build if local:true", async () => {
         const moduleA = "module-a"
-        const module = await getTestModule(moduleA, true)
+        const tmpGraph = await getGraph(moduleA, true)
+        const module = tmpGraph.getModule(moduleA)
         const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
 
         assertBuildAtSource(module.name, result, true)
@@ -739,7 +736,8 @@ describe("exec plugin", () => {
 
       it("does not set buildAtSource on Build if local:false", async () => {
         const moduleA = "module-a"
-        const module = await getTestModule(moduleA, false)
+        const tmpGraph = await getGraph(moduleA, false)
+        const module = tmpGraph.getModule(moduleA)
         const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
 
         assertBuildAtSource(module.name, result, false)
@@ -775,7 +773,7 @@ describe("exec plugin", () => {
 
       tmpGarden.setActionConfigs([moduleConfigA])
       // this will produce modules with `serviceConfigs` fields initialized
-      tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+      const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
 
       const moduleA = tmpGraph.getModule(moduleNameA)
 
