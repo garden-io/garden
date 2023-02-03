@@ -283,6 +283,7 @@ export const gardenPlugin = () =>
                 openJdkPath,
                 mavendPath: module.spec.build.mavendPath,
                 outputStream,
+                lockacquired: module.spec.build.lockacquire,
               })
             } else {
               await gradle({

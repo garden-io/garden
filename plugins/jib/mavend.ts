@@ -150,6 +150,7 @@ export async function mvnd({
   openJdkPath,
   mavendPath,
   outputStream,
+  lockacquired,
 }: {
   ctx: PluginContext
   args: string[]
@@ -158,9 +159,10 @@ export async function mvnd({
   openJdkPath: string
   mavendPath?: string
   outputStream?: Writable
+  lockacquired?: boolean
 }) {
   let mvndPath: string
-  let lockacquired = false
+
   if (!!mavendPath) {
     log.verbose(`Using explicitly specified Maven Daemon binary from ${mavendPath}`)
     mvndPath = mavendPath
