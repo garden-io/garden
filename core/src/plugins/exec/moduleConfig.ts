@@ -226,15 +226,12 @@ interface ExecBuildSpec extends BaseBuildSpec {
   command: string[]
 }
 
-export interface ExecModuleSpecBase extends ModuleSpec {
+export interface ExecModuleSpec extends ModuleSpec {
   build: ExecBuildSpec
   env: { [key: string]: string }
   services: ExecServiceSpec[]
   tasks: ExecTaskSpec[]
   tests: ExecTestSpec[]
-}
-
-export interface ExecModuleSpec extends ExecModuleSpecBase {
   local?: boolean
 }
 
