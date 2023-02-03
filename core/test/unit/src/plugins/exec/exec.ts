@@ -47,6 +47,7 @@ import { ProjectConfig } from "../../../../../src/config/project"
 import execa from "execa"
 import { BuildActionConfig } from "../../../../../src/actions/build"
 import { DeployActionConfig } from "../../../../../src/actions/deploy"
+import { RunActionConfig } from "../../../../../src/actions/run"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -1146,11 +1147,11 @@ describe("exec plugin", () => {
             assertBuildAtSource(module.name, result, true)
           })
 
-        it("does not set buildAtSource on Build if local:false", async () => {
-          const moduleA = "module-a"
-          const tmpGraph = await getGraph(moduleA, false)
-          const module = tmpGraph.getModule(moduleA)
-          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
+          it("does not set buildAtSource on Build if local:false", async () => {
+            const moduleA = "module-a"
+            const tmpGraph = await getGraph(moduleA, false)
+            const module = tmpGraph.getModule(moduleA)
+            const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
             assertBuildAtSource(module.name, result, false)
           })
@@ -1218,12 +1219,53 @@ describe("exec plugin", () => {
         })
 
         it("correctly maps a taskConfig to a Run with a build", async () => {
-          throw "TODO"
-
           // Dependencies
           // build field
           // timeout
           // task spec
+
+          const moduleNameA = "module-a"
+          const buildCommandA = ["echo", moduleNameA]
+          const taskNameA = "task-a"
+          const commandA = ["echo", "deployed", taskNameA]
+          const moduleConfigA = makeModuleConfig(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: buildCommandA,
+              },
+              tasks: [
+                {
+                  name: taskNameA,
+                  command: commandA,
+                },
+              ],
+            },
+          })
+
+          garden.setActionConfigs([moduleConfigA])
+          // this will produce modules with `serviceConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `serviceConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          expect(buildA).to.exist
+          expect(buildA.dependencies).to.eql([])
+
+          const runA = findActionConfigInGroup(groupA, "Run", taskNameA)! as RunActionConfig
+          expect(runA).to.exist
+          expect(runA.build).to.eql(moduleNameA)
+          expect(runA.dependencies).to.eql([])
         })
 
         it("correctly maps a taskConfig to a Run with no build", async () => {
