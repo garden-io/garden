@@ -400,6 +400,7 @@ export const makeTestGarden = profileAsync(async function _makeTestGarden(
   }
 
   const plugins = [...testPlugins(), ...(opts.plugins || [])]
+
   return TestGarden.factory(targetRoot, { ...opts, plugins })
 })
 
