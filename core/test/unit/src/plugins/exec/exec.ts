@@ -965,12 +965,12 @@ describe("exec plugin", () => {
       }
 
       let tmpDir: tmp.DirectoryResult
-      let tmpGarden: TestGarden
+      let garden: TestGarden
 
       before(async () => {
         tmpDir = await tmp.dir({ unsafeCleanup: true })
         await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
-        tmpGarden = await makeGarden(tmpDir)
+        garden = await makeGarden(tmpDir)
       })
 
       after(async () => {
@@ -981,8 +981,8 @@ describe("exec plugin", () => {
         const moduleA = "module-a"
         const taskCommand = ["echo", moduleA]
         const variables = { FOO: "foo", BAR: "bar" }
-        tmpGarden.setActionConfigs([
-          makeModuleConfig(tmpGarden.projectRoot, {
+        garden.setActionConfigs([
+          makeModuleConfig(garden.projectRoot, {
             name: moduleA,
             type: "exec",
             variables,
@@ -996,10 +996,10 @@ describe("exec plugin", () => {
             },
           }),
         ])
-        const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = tmpGraph.getModule(moduleA)
 
-        const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+        const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
         expect(result.groups).to.exist
 
         const group = findGroupConfig(result, moduleA)!
@@ -1010,8 +1010,8 @@ describe("exec plugin", () => {
       it("adds a Build action if build.command is set", async () => {
         const moduleA = "module-a"
         const buildCommand = ["echo", moduleA]
-        tmpGarden.setActionConfigs([
-          makeModuleConfig(tmpGarden.projectRoot, {
+        garden.setActionConfigs([
+          makeModuleConfig(garden.projectRoot, {
             name: moduleA,
             type: "exec",
             spec: {
@@ -1021,10 +1021,10 @@ describe("exec plugin", () => {
             },
           }),
         ])
-        const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
         const module = tmpGraph.getModule(moduleA)
 
-        const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+        const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
         expect(result.groups).to.exist
 
         const group = findGroupConfig(result, moduleA)!
@@ -1043,8 +1043,8 @@ describe("exec plugin", () => {
         const buildCommandA = ["echo", moduleNameA]
         const buildCommandB = ["echo", moduleNameB]
 
-        tmpGarden.setActionConfigs([
-          makeModuleConfig(tmpGarden.projectRoot, {
+        garden.setActionConfigs([
+          makeModuleConfig(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
             spec: {
@@ -1053,7 +1053,7 @@ describe("exec plugin", () => {
               },
             },
           }),
-          makeModuleConfig(tmpGarden.projectRoot, {
+          makeModuleConfig(garden.projectRoot, {
             name: moduleNameB,
             type: "exec",
             spec: {
@@ -1074,11 +1074,11 @@ describe("exec plugin", () => {
             },
           }),
         ])
-        const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
         // const moduleA = tmpGraph.getModule(moduleNameA)
         const moduleB = tmpGraph.getModule(moduleNameB)
 
-        const result = await convertModules(tmpGarden, tmpGarden.log, [moduleB], tmpGraph.moduleGraph)
+        const result = await convertModules(garden, garden.log, [moduleB], tmpGraph.moduleGraph)
         expect(result.groups).to.exist
 
         const groupB = findGroupConfig(result, moduleNameB)!
@@ -1107,8 +1107,8 @@ describe("exec plugin", () => {
       describe("sets buildAtSource on Build", () => {
         async function getGraph(name: string, local: boolean) {
           const buildCommand = ["echo", name]
-          tmpGarden.setActionConfigs([
-            makeModuleConfig(tmpGarden.projectRoot, {
+          garden.setActionConfigs([
+            makeModuleConfig(garden.projectRoot, {
               name,
               type: "exec",
               spec: {
@@ -1119,7 +1119,7 @@ describe("exec plugin", () => {
               },
             }),
           ])
-          return tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+          return garden.getConfigGraph({ log: garden.log, emit: false })
         }
 
         function assertBuildAtSource(moduleName: string, result: ConvertModulesResult, buildAtSource: boolean) {
@@ -1138,7 +1138,7 @@ describe("exec plugin", () => {
           const moduleA = "module-a"
           const tmpGraph = await getGraph(moduleA, true)
           const module = tmpGraph.getModule(moduleA)
-          const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
           assertBuildAtSource(module.name, result, true)
         })
@@ -1147,7 +1147,7 @@ describe("exec plugin", () => {
           const moduleA = "module-a"
           const tmpGraph = await getGraph(moduleA, false)
           const module = tmpGraph.getModule(moduleA)
-          const result = await convertModules(tmpGarden, tmpGarden.log, [module], tmpGraph.moduleGraph)
+          const result = await convertModules(garden, garden.log, [module], tmpGraph.moduleGraph)
 
           assertBuildAtSource(module.name, result, false)
         })
@@ -1163,7 +1163,7 @@ describe("exec plugin", () => {
         const buildCommandA = ["echo", moduleNameA]
         const serviceNameA = "service-a"
         const deployCommandA = ["echo", "deployed", serviceNameA]
-        const moduleConfigA = makeModuleConfig(tmpGarden.projectRoot, {
+        const moduleConfigA = makeModuleConfig(garden.projectRoot, {
           name: moduleNameA,
           type: "exec",
           spec: {
@@ -1180,14 +1180,14 @@ describe("exec plugin", () => {
           },
         })
 
-        tmpGarden.setActionConfigs([moduleConfigA])
+        garden.setActionConfigs([moduleConfigA])
         // this will produce modules with `serviceConfigs` fields initialized
-        const tmpGraph = await tmpGarden.getConfigGraph({ log: tmpGarden.log, emit: false })
+        const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
         const moduleA = tmpGraph.getModule(moduleNameA)
 
         // this will use `serviceConfigs` defined in modules
-        const result = await convertModules(tmpGarden, tmpGarden.log, [moduleA], tmpGraph.moduleGraph)
+        const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
         expect(result.groups).to.exist
 
         const groupA = findGroupConfig(result, moduleNameA)!
