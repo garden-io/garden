@@ -23,6 +23,7 @@ interface JibModuleBuildSpec extends ContainerBuildSpec {
   mavendPath?: string
   mavenPhases: string[]
   gradlePath?: string
+  lockacquire?: boolean
 }
 
 interface JibModuleSpec extends ContainerModuleSpec {

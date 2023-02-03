@@ -122,6 +122,7 @@ export async function mvn({
   openJdkPath,
   mavenPath,
   outputStream,
+  lockacquired,
 }: {
   ctx: PluginContext
   args: string[]
@@ -130,9 +131,10 @@ export async function mvn({
   openJdkPath: string
   mavenPath?: string
   outputStream?: Writable
+  lockacquired?: boolean
 }) {
   let mvnPath: string
-  let lockacquired = false
+  //let lockacquired = false
   if (!!mavenPath) {
     log.verbose(`Using explicitly specified Maven binary from ${mavenPath}`)
     mvnPath = mavenPath

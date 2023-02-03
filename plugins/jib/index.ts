@@ -122,6 +122,11 @@ const jibModuleSchema = () =>
         **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
         To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
       `),
+      lockAcquire: joi
+        .boolean()
+        .optional()
+        .default(true)
+        .description("Control the functionality to enable/disable concurrency"),
       extraFlags: joi
         .sparseArray()
         .items(joi.string())
@@ -267,6 +272,7 @@ export const gardenPlugin = () =>
                 openJdkPath,
                 mavenPath: module.spec.build.mavenPath,
                 outputStream,
+                lockacquired: module.spec.build.lockacquire,
               })
             } else if (projectType === "mavend") {
               await mvnd({
