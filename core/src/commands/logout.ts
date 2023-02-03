@@ -13,6 +13,7 @@ import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 import { ProjectResource } from "../config/project"
 import { ConfigurationError } from "../exceptions"
+import { LocalConfig, localConfigKeys } from "../config-store"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -32,22 +33,27 @@ export class LogOutCommand extends Command {
     // Note: lazy-loading for startup performance
     const { ClientAuthToken } = require("../db/entities/client-auth-token")
 
-    const token = await ClientAuthToken.findOne()
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
+    const localConfig: LocalConfig | undefined = await garden.configStore.get()
+    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig, localConfig)
+    const distroName = getCloudDistributionName(cloudDomain || "")
 
-    if (!token) {
-      log.info({ msg: `You're already logged out from ${distroName}.` })
-      return {}
+    if (!cloudDomain) {
+      throw new ConfigurationError(
+        `Could not find a domain, you are either not logged in or has not defined a project domain.`,
+        {}
+      )
     }
 
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
-      const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
-      const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
 
-      if (!cloudDomain) {
-        throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+      const token = await ClientAuthToken.findOne()
+
+      if (!token) {
+        log.info({ msg: `You're already logged out from ${distroName}.` })
+        return {}
       }
 
       const cloudApi = await CloudApi.factory({
@@ -72,6 +78,8 @@ export class LogOutCommand extends Command {
       })
     } finally {
       log.info({ msg: `Succesfully logged out from ${distroName}.` })
+      // remove the domain from the local config and clear the auth token
+      await garden.configStore.delete([localConfigKeys().cloud])
       await CloudApi.clearAuthToken(log)
     }
     return {}

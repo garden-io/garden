@@ -15,7 +15,6 @@ import { printHeader } from "../logger/util"
 import chalk = require("chalk")
 import { Garden } from "../garden"
 import { processModules } from "../process"
-import { emoji as nodeEmoji } from "node-emoji"
 
 export const defaultDashboardPort = 9700
 

@@ -26,6 +26,7 @@ import {
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import { ProjectResource } from "../config/project"
+import { LocalConfig } from "../config-store"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -138,7 +139,7 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomain(projectConfig?: ProjectResource): string | undefined {
+export function getGardenCloudDomain(projectConfig?: ProjectResource, localConfig?: LocalConfig): string | undefined {
   if (!projectConfig) {
     return undefined
   }
@@ -149,6 +150,9 @@ export function getGardenCloudDomain(projectConfig?: ProjectResource): string | 
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
   } else if (projectConfig.domain) {
     cloudDomain = new URL(projectConfig.domain).origin
+  } else if (localConfig && localConfig.cloud) {
+    // Fall-back to the cloud domain set on garden login
+    cloudDomain = localConfig.cloud.domain
   }
 
   return cloudDomain

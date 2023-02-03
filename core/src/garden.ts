@@ -1288,7 +1288,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
   // fall back to get the domain from config if the cloudApi instance failed
-  // to login or was not defined
+  // to login or was not defined.
   const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
 
   // The cloudApi instance only has a project ID when the configured ID has
