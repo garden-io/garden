@@ -1278,12 +1278,54 @@ describe("exec plugin", () => {
         })
 
         it("correctly maps a testConfig to a Test with a build", async () => {
-          throw "TODO"
-
           // Dependencies
           // build field
           // timeout
           // test spec
+
+          const moduleNameA = "module-a"
+          const buildCommandA = ["echo", moduleNameA]
+          const testNameA = "test-a"
+          const convertedTestNameA = "module-a-test-a"
+          const commandA = ["echo", "deployed", testNameA]
+          const moduleConfigA = makeModuleConfig(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: buildCommandA,
+              },
+              tests: [
+                {
+                  name: testNameA,
+                  command: commandA,
+                },
+              ],
+            },
+          })
+
+          garden.setActionConfigs([moduleConfigA])
+          // this will produce modules with `serviceConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `serviceConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          expect(buildA).to.exist
+          expect(buildA.dependencies).to.eql([])
+
+          const testA = findActionConfigInGroup(groupA, "Test", convertedTestNameA)! as TestActionConfig
+          expect(testA).to.exist
+          expect(testA.build).to.eql(moduleNameA)
+          expect(testA.dependencies).to.eql([])
         })
 
         it("correctly maps a testConfig to a Test with no build", async () => {
