@@ -23,7 +23,7 @@ The following option flags can be used with any of the CLI commands:
   | `--root` | `-r` | path | Override project root directory (defaults to working directory). Can be absolute or relative to current directory.
   | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
   | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
-  | `--logger-type` |  | `quiet` `basic` `fancy` `json`  | Set logger type. fancy updates log lines in-place when their status changes (e.g. when tasks complete), basic appends a new log line when a log line&#x27;s status changes, json same as basic, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
+  | `--logger-type` |  | `quiet` `basic` `fancy` `json` `ink`  | Set logger type. fancy updates log lines in-place when their status changes (e.g. when tasks complete), basic appends a new log line when a log line&#x27;s status changes, json same as basic, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
   | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
   | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
@@ -518,13 +518,13 @@ Examples:
 
 #### Usage
 
-    garden exec <service> <command> [options]
+    garden exec <deploy> <command> [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `service` | Yes | The service to exec the command in.
+  | `deploy` | Yes | The Deploy to exec the command in.
   | `command` | Yes | The command to run.
 
 #### Options
@@ -551,7 +551,7 @@ stderr:
 
 ### garden cloud secrets list
 
-**List secrets.**
+**List secrets defined in Garden Cloud.**
 
 List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
@@ -575,7 +575,7 @@ Examples:
 
 ### garden cloud secrets create
 
-**Create secrets**
+**Create secrets in Garden Cloud.**
 
 Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
 them to an environment, or an environment and a user.
@@ -612,7 +612,7 @@ Examples:
 
 ### garden cloud secrets delete
 
-**Delete secrets.**
+**Delete secrets from Garden Cloud.**
 
 Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
 which you which you can get from the `garden cloud secrets list` command.
@@ -634,7 +634,7 @@ Examples:
 
 ### garden cloud users list
 
-**List users.**
+**List users defined in Garden Cloud.**
 
 List all users from Garden Cloud. Optionally filter on group names or user names.
 
@@ -657,7 +657,7 @@ Examples:
 
 ### garden cloud users create
 
-**Create users**
+**Create users in Garden Cloud.**
 
 Create users in Garden Cloud and optionally add the users to specific groups.
 You can get the group IDs from the `garden cloud users list` command.
@@ -696,7 +696,7 @@ Examples:
 
 ### garden cloud users delete
 
-**Delete users.**
+**Delete users from Garden Cloud.**
 
 Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
 which you which you can get from the `garden cloud users list` command.
@@ -718,7 +718,7 @@ Examples:
 
 ### garden cloud groups list
 
-**List groups.**
+**List groups defined in Garden Cloud.**
 
 List all groups from Garden Cloud. This is useful for getting the group IDs when creating
 users via the `garden cloud users create` command.
@@ -740,7 +740,7 @@ Examples:
 
 ### garden get graph
 
-**Outputs the dependency relationships specified in this project's garden.yml files.**
+**Outputs the dependency relationships across the project.**
 
 
 #### Usage
@@ -2748,7 +2748,7 @@ actions:
 
 ### garden get run-result
 
-**Outputs the latest execution result of a provided run (or task, if using modules).**
+**Outputs the latest result of a run (or task, if using modules).**
 
 
 #### Usage
@@ -2937,7 +2937,7 @@ sources:
 
 ### garden link module
 
-**Link a module to a local directory.**
+**Link a remote module to a local directory.**
 
 After linking a remote module, Garden will read the source from the module's local directory instead of from
 the remote URL. Garden can only link modules that have a remote source,
@@ -3012,7 +3012,7 @@ Examples:
 
 ### garden migrate
 
-**Migrate `garden.yml` configuration files to version 0.12**
+**Migrate `garden.yml` configuration files from older versions.**
 
 Scans the project for `garden.yml` configuration files and updates those that are not compatible with version 0.12.
 By default the command prints the updated versions to the terminal. You can optionally update the files in place with the `write` flag.

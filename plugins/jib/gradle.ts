@@ -74,7 +74,7 @@ async function checkGradleVersion(gradlePath: string) {
   try {
     const res = await execa(gradlePath, ["--version"])
     return res.stdout
-  } catch (err) {
+  } catch (error) {
     const composeErrorMessage = (err: any): string => {
       if (err.code === "EACCES") {
         return `${baseErrorMessage(
@@ -86,7 +86,7 @@ async function checkGradleVersion(gradlePath: string) {
         return baseErrorMessage(gradlePath)
       }
     }
-    throw new RuntimeError(composeErrorMessage(err), { gradlePath })
+    throw new RuntimeError(composeErrorMessage(error), { gradlePath })
   }
 }
 

@@ -615,8 +615,8 @@ export class KubeApi {
 
     try {
       await replace()
-    } catch (err) {
-      if (err.statusCode === 404) {
+    } catch (error) {
+      if (error.statusCode === 404) {
         try {
           await api[crudMap[kind].create](namespace, <any>obj)
           log.debug(`Created ${kind} ${namespace}/${name}`)
@@ -628,7 +628,7 @@ export class KubeApi {
           }
         }
       } else {
-        throw err
+        throw error
       }
     }
   }

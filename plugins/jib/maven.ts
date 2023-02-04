@@ -77,7 +77,7 @@ async function checkMavenVersion(mvnPath: string) {
   try {
     const res = await execa(mvnPath, ["--version"])
     return res.stdout
-  } catch (err) {
+  } catch (error) {
     const composeErrorMessage = (err: any): string => {
       if (err.code === "EACCES") {
         return `${baseErrorMessage(
@@ -89,7 +89,7 @@ async function checkMavenVersion(mvnPath: string) {
         return baseErrorMessage(mvnPath)
       }
     }
-    throw new RuntimeError(composeErrorMessage(err), { mvnPath })
+    throw new RuntimeError(composeErrorMessage(error), { mvnPath })
   }
 }
 

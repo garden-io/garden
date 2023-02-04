@@ -308,7 +308,7 @@ ${renderCommands(commands)}
     registerCleanupFunction("stream-session-cancelled-event", () => {
       if (!this.sessionFinished) {
         this.bufferedEventStream?.streamEvent("sessionCancelled", {})
-        this.bufferedEventStream?.flushAll()
+        this.bufferedEventStream?.flushAll().catch(() => {})
       }
     })
 
