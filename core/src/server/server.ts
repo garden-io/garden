@@ -92,7 +92,7 @@ export class GardenServer extends EventEmitter {
   private garden: Garden | undefined
   private clientRouter: ClientRouter | undefined
   private app: websockify.App
-  private analytics: AnalyticsHandler
+  private analytics?: AnalyticsHandler
   private incomingEvents: EventBus
   private statusLog: LogEntry
   private serversUpdatedListener: GardenEventListener<"serversUpdated">
@@ -188,6 +188,8 @@ export class GardenServer extends EventEmitter {
 
     // Listen for new servers
     garden.events.on("serversUpdated", this.serversUpdatedListener)
+
+    delete this.analytics
   }
 
   private async createApp() {
