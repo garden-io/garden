@@ -22,7 +22,8 @@ import { getCustomCommands } from "./custom"
 import { pick } from "lodash"
 import Divider from "ink-divider"
 import moment from "moment"
-import dedent from "dedent"
+import { LogEntry } from "../logger/log-entry"
+import { Garden } from "../garden"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -113,12 +114,29 @@ Let's get your development environment wired up.
     return super.action(params)
   }
 
+  async reload(log: LogEntry, garden: Garden, commandLine: CommandLine) {
+    try {
+      const newGarden = await Garden.factory(garden.projectRoot, garden.opts)
+      const configDump = await garden.dumpConfig({ log })
+
+      this.garden = newGarden
+      commandLine.update(newGarden, configDump)
+      this.server?.setGarden(newGarden)
+
+      commandLine.flashSuccess(`Project successfully reloaded!`)
+    } catch (error) {
+      log.error(`Failed reloading the project: ${error}`)
+      commandLine.flashError(`Failed reloading the project. See above logs for details.`)
+    } finally {
+      commandLine.enable()
+    }
+  }
+
   private async initCommandHandler(params: ActionParams, writer: InkTerminalWriter) {
     const _this = this
     const { garden, log, opts } = params
 
-    // TODO: This crashes the process if it fails. We may want to handle that gracefully and
-    // allow reloading on request.
+    // TODO: This crashes the process if it fails.
     const configDump = await garden.dumpConfig({ log })
 
     const builtinCommands = getBuiltinCommands()
@@ -137,6 +155,7 @@ Let's get your development environment wired up.
         new QuitCommand(quit),
         new QuietCommand(),
         new QuiteCommand(),
+        new ReloadCommand(this),
         new LogLevelCommand(writer),
       ],
       configDump,
@@ -201,6 +220,21 @@ class QuiteCommand extends InteractiveCommand {
 
   async action({ commandLine }: CommandParams) {
     commandLine?.flashMessage(chalk.italic("Indeed!"), { prefix: "🎩  " })
+    return {}
+  }
+}
+
+class ReloadCommand extends InteractiveCommand {
+  name = "reload"
+  help = "Reload the project and action/module configuration."
+
+  constructor(private devCommand: DevCommand) {
+    super()
+  }
+
+  async action({ garden, log, commandLine }: CommandParams) {
+    commandLine!.disable("Reloading project...")
+    await this.devCommand.reload(log, garden, commandLine!)
     return {}
   }
 }

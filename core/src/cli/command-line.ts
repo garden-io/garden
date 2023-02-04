@@ -11,12 +11,11 @@ import indentString from "indent-string"
 import { Key } from "ink"
 import sliceAnsi from "slice-ansi"
 import { Command, CommandGroup, CommandResult } from "../commands/base"
+import { getCustomCommands } from "../commands/custom"
 import { ConfigDump, Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
 import { TypedEventEmitter } from "../util/events"
-
-import { dedent } from "../util/string"
 import { Autocompleter, AutocompleteSuggestion } from "./autocomplete"
 import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
 import { GlobalOptions, ParameterValues } from "./params"
@@ -65,10 +64,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private messageCallback: SetStringCallback
   private messageTimeout: NodeJS.Timeout
 
-  private readonly autocompleter: Autocompleter
-  private readonly garden: Garden
+  private autocompleter: Autocompleter
+  private garden: Garden
   private readonly log: LogEntry
-  private readonly commands: Command[]
+  private commands: Command[]
   private readonly globalOpts: Partial<ParameterValues<GlobalOptions>>
 
   constructor({
@@ -106,6 +105,14 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     this.autocompleter = new Autocompleter({ log, commands, configDump, debug: true })
     this.init()
+  }
+
+  async update(garden: Garden, configDump: ConfigDump) {
+    const customCommands = await getCustomCommands(garden.projectRoot)
+
+    this.commands = this.commands.filter((c) => !c.isCustom).concat(customCommands)
+    this.garden = garden
+    this.autocompleter = new Autocompleter({ log: this.log, commands: this.commands, configDump, debug: true })
   }
 
   setCommandLineCallback(cb: SetStringCallback) {
@@ -419,7 +426,9 @@ ${renderDivider({ width })}
       })
 
       // Execute the command
-      this.flashMessage(`Running ${chalk.white.bold(command.getFullName())}...`)
+      if (!command.isInteractive) {
+        this.flashMessage(`Running ${chalk.white.bold(command.getFullName())}...`)
+      }
       const failMessage = `Failed running the ${command.getFullName()} command. Please see above for the logs.`
 
       command
