@@ -138,20 +138,16 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomainWithFallback(projectConfig: ProjectResource): string {
-  return getGardenCloudDomain(projectConfig) || DEFAULT_GARDEN_CLOUD_DOMAIN
-}
-
-export function getGardenCloudDomain(projectConfig: ProjectResource): string | undefined {
+export function getGardenCloudDomain(projectConfig?: ProjectResource): string {
   let cloudDomain: string | undefined
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (projectConfig.domain) {
+  } else if (projectConfig?.domain) {
     cloudDomain = new URL(projectConfig.domain).origin
   }
 
-  return cloudDomain
+  return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
 /**
@@ -196,22 +192,20 @@ export class CloudApi {
     skipLogging = false,
   }: {
     log: LogEntry
-    cloudDomain?: string
+    cloudDomain: string
     skipLogging?: boolean
   }) {
     log.debug("Initializing Garden Cloud API client.")
 
     const token = await CloudApi.getClientAuthTokenFromDb(log)
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.debug("User is not logged in, proceeding without a cloud API connection.")
+      log.debug(
+        "No auth token found, proceeding without access to Garden Cloud. Command results for this command run will not be available in Garden Cloud."
+      )
       return null
     }
 
-    // The user token is set at this point. If the cloud domain is not set
-    // it means we are logged in to the default domain
-    const fallbackCloudDomain: string = cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
-
-    const api = new CloudApi(log, fallbackCloudDomain)
+    const api = new CloudApi(log, cloudDomain)
     const tokenIsValid = await api.checkClientAuthToken()
 
     const distroName = getCloudDistributionName(api.domain)

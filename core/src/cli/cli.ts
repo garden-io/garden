@@ -45,13 +45,7 @@ import {
   parseEnvironment,
   ProjectResource,
 } from "../config/project"
-import {
-  ERROR_LOG_FILENAME,
-  DEFAULT_API_VERSION,
-  DEFAULT_GARDEN_DIR_NAME,
-  LOGS_DIR_NAME,
-  DEFAULT_GARDEN_CLOUD_DOMAIN,
-} from "../constants"
+import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
@@ -294,23 +288,9 @@ ${renderCommands(commands)}
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
 
-      let cloudDomain: string | undefined = undefined
-
-      if (config) {
-        cloudDomain = getGardenCloudDomain(config)
-      }
+      let cloudDomain: string = getGardenCloudDomain(config)
 
       cloudApi = await CloudApi.factory({ log, cloudDomain })
-
-      if (!cloudApi) {
-        log.debug("Cloud domain not configured, proceeding without a Garden Cloud connection.")
-
-        const msg = dedent`
-        \n${nodeEmoji.lightning}   ${chalk.cyan.bold(`Sign-up for our beta of Garden Cloud`)}
-        ${nodeEmoji.link}  ${chalk.blueBright.underline(DEFAULT_GARDEN_CLOUD_DOMAIN)}
-      `
-        footerLog.setState(msg)
-      }
     }
 
     // Init event & log streaming.

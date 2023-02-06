@@ -8,7 +8,7 @@
 
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import { CloudApi, getGardenCloudDomainWithFallback } from "../cloud/api"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 import { ProjectResource } from "../config/project"
@@ -44,7 +44,7 @@ export class LogOutCommand extends Command {
       )
     }
 
-    const cloudDomain: string = getGardenCloudDomainWithFallback(projectConfig)
+    const cloudDomain: string = getGardenCloudDomain(projectConfig)
     const distroName = getCloudDistributionName(cloudDomain)
 
     try {

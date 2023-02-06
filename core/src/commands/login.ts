@@ -9,7 +9,7 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
-import { AuthTokenResponse, CloudApi, getGardenCloudDomainWithFallback } from "../cloud/api"
+import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { LogEntry } from "../logger/log-entry"
 import { ConfigurationError, InternalError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
@@ -61,7 +61,7 @@ export class LoginCommand extends Command {
     //
     // If the fallback was used, we rely on the token to decide if the Cloud API instance
     // should use the default domain or not. The token lifecycle ends on logout.
-    let cloudDomain: string = getGardenCloudDomainWithFallback(projectConfig)
+    let cloudDomain: string = getGardenCloudDomain(projectConfig)
 
     const distroName = getCloudDistributionName(cloudDomain)
 
