@@ -56,7 +56,6 @@ describe("plugins.container", () => {
 
     spec: {
       build: {
-        dependencies: [],
         timeout: DEFAULT_BUILD_TIMEOUT,
       },
       buildArgs: {},
@@ -245,7 +244,6 @@ describe("plugins.container", () => {
 
       spec: {
         build: {
-          dependencies: [],
           timeout: DEFAULT_BUILD_TIMEOUT,
         },
         buildArgs: {},
@@ -350,7 +348,6 @@ describe("plugins.container", () => {
           type: "container",
           spec: {
             build: {
-              dependencies: [],
               timeout: DEFAULT_BUILD_TIMEOUT,
             },
             buildArgs: {},
@@ -535,7 +532,6 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT,
           },
           buildArgs: {},
@@ -598,7 +594,6 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT,
           },
           buildArgs: {},
@@ -653,7 +648,6 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT,
           },
           buildArgs: {},
@@ -707,7 +701,6 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT,
           },
           buildArgs: {},
@@ -789,7 +782,6 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT,
           },
           buildArgs: {},
@@ -858,7 +850,6 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            dependencies: [],
             timeout: DEFAULT_BUILD_TIMEOUT,
           },
           buildArgs: {},
