@@ -1046,6 +1046,9 @@ describe("exec plugin", () => {
           const buildCommandA = ["echo", moduleNameA]
           const buildCommandB = ["echo", moduleNameB]
 
+          const sourcePath = "./module-a.out"
+          const targetPath = "a/module-a.out"
+
           garden.setActionConfigs([
             makeModuleConfig(garden.projectRoot, {
               name: moduleNameA,
@@ -1059,26 +1062,29 @@ describe("exec plugin", () => {
             makeModuleConfig(garden.projectRoot, {
               name: moduleNameB,
               type: "exec",
+              // module-level build config
+              build: {
+                dependencies: [
+                  {
+                    name: moduleNameA,
+                    copy: [
+                      {
+                        source: sourcePath,
+                        target: targetPath,
+                      },
+                    ],
+                  },
+                ],
+              },
               spec: {
+                // exec-plugin specific build config defined in the spec
                 build: {
                   command: buildCommandB,
-                  dependencies: [
-                    {
-                      name: moduleNameA,
-                      copy: [
-                        {
-                          source: "./module-a.out",
-                          target: "a/module-a.out",
-                        },
-                      ],
-                    },
-                  ],
                 },
               },
             }),
           ])
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
-          // const moduleA = tmpGraph.getModule(moduleNameA)
           const moduleB = tmpGraph.getModule(moduleNameB)
 
           const result = await convertModules(garden, garden.log, [moduleB], tmpGraph.moduleGraph)
@@ -1092,8 +1098,7 @@ describe("exec plugin", () => {
           expect(buildB).to.exist
           expect(buildB.name).to.eql(moduleNameB)
           expect(buildB.spec.command).to.eql(buildCommandB)
-          // TODO-G2 this still fails; check if is the test config correct
-          expect(buildB.copyFrom).be.not.empty
+          expect(buildB.copyFrom).to.eql([{ build: moduleNameA, sourcePath, targetPath }])
         })
 
         /**
@@ -1172,7 +1177,7 @@ describe("exec plugin", () => {
             name: moduleNameA,
             type: "exec",
             spec: {
-              // <--- build field
+              // <--- plugin-level build field
               build: {
                 command: buildCommandA,
               },
@@ -1231,7 +1236,7 @@ describe("exec plugin", () => {
             name: moduleNameA,
             type: "exec",
             spec: {
-              // <--- build field
+              // <--- plugin-level build field
               build: {
                 command: buildCommandA,
               },
@@ -1291,7 +1296,7 @@ describe("exec plugin", () => {
             name: moduleNameA,
             type: "exec",
             spec: {
-              // <--- build field
+              // <--- plugin-level build field
               build: {
                 command: buildCommandA,
               },

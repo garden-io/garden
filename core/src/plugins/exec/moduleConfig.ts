@@ -222,7 +222,7 @@ export const execTaskSpecSchema = () =>
     })
     .description("A task that can be run in this module.")
 
-interface ExecBuildSpec extends BaseBuildConfig {
+interface ExecBuildSpec {
   command: string[]
 }
 
