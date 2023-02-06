@@ -28,6 +28,7 @@ import {
   parseEnvironment,
   getDefaultEnvironmentName,
   projectSourcesSchema,
+  ProxyConfig,
 } from "./config/project"
 import {
   findByName,
@@ -133,6 +134,8 @@ import { ActionTypeDefinition } from "./plugin/action-types"
 import { Task } from "./tasks/base"
 import { GraphResultFromTask, GraphResults } from "./graph/results"
 
+const defaultLocalAddress = "localhost"
+
 export interface ActionHandlerMap<T extends keyof ProviderHandlers> {
   [actionName: string]: ProviderHandlers[T]
 }
@@ -173,6 +176,7 @@ export interface GardenParams {
   cache: TreeCache
   disablePortForwards?: boolean
   dotIgnoreFile: string
+  proxy: ProxyConfig
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
   namespace: string
@@ -244,6 +248,7 @@ export class Garden {
   private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFile: string
+  public readonly proxy: ProxyConfig
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
@@ -282,6 +287,7 @@ export class Garden {
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
     this.dotIgnoreFile = params.dotIgnoreFile
+    this.proxy = params.proxy
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
     this.persistent = !!params.opts.persistent
@@ -1642,6 +1648,19 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     ...fixedProjectExcludes,
   ]
 
+  // Set proxy hostname with the following order of precedence: env var > config > default value ("localhost")
+  let proxyHostname: string
+  if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
+    proxyHostname = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+  } else if (config.proxy?.hostname) {
+    proxyHostname = config.proxy.hostname
+  } else {
+    proxyHostname = defaultLocalAddress
+  }
+  const proxy = {
+    hostname: proxyHostname,
+  }
+
   return {
     artifactsPath,
     vcsInfo,
@@ -1668,8 +1687,9 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     moduleExcludePatterns,
     workingCopyId,
     dotIgnoreFile: config.dotIgnoreFile,
-    moduleIncludePatterns: (config.modules || {}).include,
+    proxy,
     log,
+    moduleIncludePatterns: (config.modules || {}).include,
     username: _username,
     forceRefresh: opts.forceRefresh,
     cloudApi,
