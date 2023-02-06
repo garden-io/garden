@@ -33,7 +33,7 @@ import { TestTask } from "../../../../../src/tasks/test"
 import { readFile, remove } from "fs-extra"
 import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
-import { configureExecModule } from "../../../../../src/plugins/exec/moduleConfig"
+import { configureExecModule, ExecModuleConfig } from "../../../../../src/plugins/exec/moduleConfig"
 import { actionFromConfig } from "../../../../../src/graph/actions"
 import { TestAction, TestActionConfig } from "../../../../../src/actions/test"
 import { PluginContext } from "../../../../../src/plugin-context"
@@ -983,17 +983,27 @@ describe("exec plugin", () => {
           const taskCommand = ["echo", moduleA]
           const variables = { FOO: "foo", BAR: "bar" }
           garden.setActionConfigs([
-            makeModuleConfig(garden.projectRoot, {
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleA,
               type: "exec",
               variables,
               spec: {
+                build: {
+                  command: [],
+                },
+                services: [],
+                tests: [],
                 tasks: [
                   {
                     name: "task-a",
                     command: taskCommand,
+                    dependencies: [],
+                    disabled: false,
+                    env: {},
+                    timeout: 10,
                   },
                 ],
+                env: {},
               },
             }),
           ])
@@ -1014,13 +1024,17 @@ describe("exec plugin", () => {
           const moduleA = "module-a"
           const buildCommand = ["echo", moduleA]
           garden.setActionConfigs([
-            makeModuleConfig(garden.projectRoot, {
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleA,
               type: "exec",
               spec: {
                 build: {
                   command: buildCommand,
                 },
+                services: [],
+                tasks: [],
+                tests: [],
+                env: {},
               },
             }),
           ])
@@ -1050,16 +1064,20 @@ describe("exec plugin", () => {
           const targetPath = "a/module-a.out"
 
           garden.setActionConfigs([
-            makeModuleConfig(garden.projectRoot, {
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleNameA,
               type: "exec",
               spec: {
                 build: {
                   command: buildCommandA,
                 },
+                services: [],
+                tasks: [],
+                tests: [],
+                env: {},
               },
             }),
-            makeModuleConfig(garden.projectRoot, {
+            makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
               name: moduleNameB,
               type: "exec",
               // module-level build config
@@ -1081,6 +1099,10 @@ describe("exec plugin", () => {
                 build: {
                   command: buildCommandB,
                 },
+                services: [],
+                tasks: [],
+                tests: [],
+                env: {},
               },
             }),
           ])
@@ -1116,7 +1138,7 @@ describe("exec plugin", () => {
           async function getGraph(name: string, local: boolean) {
             const buildCommand = ["echo", name]
             garden.setActionConfigs([
-              makeModuleConfig(garden.projectRoot, {
+              makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
                 name,
                 type: "exec",
                 spec: {
@@ -1124,6 +1146,10 @@ describe("exec plugin", () => {
                   build: {
                     command: buildCommand,
                   },
+                  services: [],
+                  tasks: [],
+                  tests: [],
+                  env: {},
                 },
               }),
             ])
@@ -1173,7 +1199,7 @@ describe("exec plugin", () => {
           const buildCommandA = ["echo", moduleNameA]
           const serviceNameA = "service-a"
           const deployCommandA = ["echo", "deployed", serviceNameA]
-          const moduleConfigA = makeModuleConfig(garden.projectRoot, {
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
             spec: {
@@ -1185,8 +1211,15 @@ describe("exec plugin", () => {
                 {
                   name: serviceNameA,
                   deployCommand: deployCommandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
                 },
               ],
+              tasks: [],
+              tests: [],
+              env: {},
             },
           })
 
@@ -1232,7 +1265,7 @@ describe("exec plugin", () => {
           const buildCommandA = ["echo", moduleNameA]
           const taskNameA = "task-a"
           const commandA = ["echo", "deployed", taskNameA]
-          const moduleConfigA = makeModuleConfig(garden.projectRoot, {
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
             spec: {
@@ -1240,12 +1273,19 @@ describe("exec plugin", () => {
               build: {
                 command: buildCommandA,
               },
+              services: [],
+              tests: [],
               tasks: [
                 {
                   name: taskNameA,
                   command: commandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
                 },
               ],
+              env: {},
             },
           })
 
@@ -1292,7 +1332,7 @@ describe("exec plugin", () => {
           const testNameA = "test-a"
           const convertedTestNameA = "module-a-test-a"
           const commandA = ["echo", "deployed", testNameA]
-          const moduleConfigA = makeModuleConfig(garden.projectRoot, {
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
             spec: {
@@ -1300,12 +1340,19 @@ describe("exec plugin", () => {
               build: {
                 command: buildCommandA,
               },
+              services: [],
+              tasks: [],
               tests: [
                 {
                   name: testNameA,
                   command: commandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
                 },
               ],
+              env: {},
             },
           })
 
