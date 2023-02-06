@@ -17,7 +17,6 @@ import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { Log } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
-import { gardenEnv } from "./constants"
 import { DeployAction } from "./actions/deploy"
 import { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-forward"
 import { Executed } from "./actions/types"
@@ -30,8 +29,6 @@ interface PortProxy {
   action: DeployAction
   spec: ForwardablePort
 }
-
-const defaultLocalAddress = "localhost"
 
 const activeProxies: { [key: string]: PortProxy } = {}
 
@@ -226,19 +223,16 @@ async function createProxy({ garden, graph, log, action, spec }: StartPortProxyP
     })
   }
 
+  const defaultLocalAddress = garden.proxy.hostname
   let localIp = defaultLocalAddress
   let localPort: number | undefined
   const preferredLocalPort = spec.preferredLocalPort || spec.targetPort
-
-  if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
-    localIp = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
-  }
 
   while (true) {
     try {
       localPort = await getPort({ host: localIp, port: preferredLocalPort })
     } catch (err) {
-      if (err.code === "EADDRNOTAVAIL") {
+      if (err.code === "EADDRNOTAVAIL" && localIp !== defaultLocalAddress) {
         // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
         // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
         localIp = defaultLocalAddress
