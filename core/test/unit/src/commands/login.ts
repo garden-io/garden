@@ -115,7 +115,7 @@ describe("LoginCommand", () => {
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-    expect(logOutput).to.include("You're already logged in to Garden Enterprise at http://dummy-domain.com.")
+    expect(logOutput).to.include("You're already logged in to http://dummy-domain.com.")
   })
 
   it("should log in if the project config uses secrets in project variables", async () => {
@@ -269,7 +269,7 @@ describe("LoginCommand", () => {
 
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-      expect(logOutput).to.include("You're already logged in to Garden Enterprise at http://dummy-domain.com.")
+      expect(logOutput).to.include("You're already logged in to http://dummy-domain.com.")
     })
 
     it("should throw if the user has an invalid auth token in the environment", async () => {

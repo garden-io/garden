@@ -61,7 +61,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise at http://dummy-domain.com.")
+    expect(logOutput).to.include("Succesfully logged out from http://dummy-domain.com.")
   })
 
   it("should logout from Garden Cloud with default domain", async () => {
@@ -96,7 +96,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include(`Succesfully logged out from Garden Cloud at ${DEFAULT_GARDEN_CLOUD_DOMAIN}.`)
+    expect(logOutput).to.include(`Succesfully logged out from ${DEFAULT_GARDEN_CLOUD_DOMAIN}.`)
   })
 
   it("should be a no-op if the user is already logged out", async () => {
@@ -110,7 +110,7 @@ describe("LogoutCommand", () => {
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
-    expect(logOutput).to.include("You're already logged out from Garden Enterprise at http://dummy-domain.com.")
+    expect(logOutput).to.include("You're already logged out from http://dummy-domain.com.")
   })
 
   it("should remove token even if Enterprise API can't be initialised", async () => {
@@ -146,7 +146,7 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise at http://dummy-domain.com.")
+    expect(logOutput).to.include("Succesfully logged out from http://dummy-domain.com.")
   })
 
   it("should remove token even if API calls fail", async () => {
@@ -182,6 +182,6 @@ describe("LogoutCommand", () => {
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
     expect(tokenAfterLogout).to.not.exist
-    expect(logOutput).to.include("Succesfully logged out from Garden Enterprise at http://dummy-domain.com.")
+    expect(logOutput).to.include("Succesfully logged out from http://dummy-domain.com.")
   })
 })

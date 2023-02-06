@@ -23,7 +23,7 @@ import {
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getPackageVersion } from "../util/util"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import { ProjectResource } from "../config/project"
 
@@ -198,9 +198,11 @@ export class CloudApi {
     log.debug("Initializing Garden Cloud API client.")
 
     const token = await CloudApi.getClientAuthTokenFromDb(log)
+    const distroName = getCloudDistributionName(cloudDomain)
+
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
       log.debug(
-        "No auth token found, proceeding without access to Garden Cloud. Command results for this command run will not be available in Garden Cloud."
+        `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
       )
       return null
     }
@@ -208,8 +210,7 @@ export class CloudApi {
     const api = new CloudApi(log, cloudDomain)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const distroName = getCloudDistributionName(api.domain)
-    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
+    const section = getCloudLogSectionName(distroName)
 
     const enterpriseLog = skipLogging ? null : log.info({ section, msg: "Authorizing...", status: "active" })
 

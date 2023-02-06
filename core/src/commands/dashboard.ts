@@ -41,7 +41,7 @@ export class DashboardCommand extends Command<Args, Opts> {
   private garden?: Garden
 
   description = dedent`
-    Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out a beta version of Garden Cloud at ${DEFAULT_GARDEN_CLOUD_DOMAIN}.
+    Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out a beta version of Garden Cloud Dashboard at ${DEFAULT_GARDEN_CLOUD_DOMAIN}.
 
     -------------
 

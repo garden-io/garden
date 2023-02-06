@@ -54,7 +54,7 @@ export class LogOutCommand extends Command {
       const token = await ClientAuthToken.findOne()
 
       if (!token) {
-        log.info({ msg: `You're already logged out from ${distroName} at ${cloudDomain}.` })
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
         return {}
       }
 
@@ -82,7 +82,7 @@ export class LogOutCommand extends Command {
       // always clear the auth token
       await CloudApi.clearAuthToken(log)
 
-      log.info({ msg: `Succesfully logged out from ${distroName} at ${cloudDomain}.` })
+      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
     }
     return {}
   }
