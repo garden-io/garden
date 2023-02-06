@@ -171,6 +171,10 @@ export interface OutputSpec {
   value: Primitive
 }
 
+export interface ProxyConfig {
+  hostname: string
+}
+
 export interface ProjectConfig {
   apiVersion: string
   kind: "Project"
@@ -179,6 +183,7 @@ export interface ProjectConfig {
   id?: string
   domain?: string
   configPath?: string
+  proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFiles: string[]
   environments: EnvironmentConfig[]
@@ -319,6 +324,19 @@ export const projectDocsSchema = () =>
       `
         )
         .example([".gardenignore", ".gitignore"]),
+      proxy: joi.object().keys({
+        hostname: joi
+          .string()
+          .default("localhost")
+          .description(
+            dedent`
+        The URL that Garden uses when creating port forwards. Defaults to "localhost".
+
+        Note that the \`GARDEN_PROXY_DEFAULT_ADDRESS\` environment variable takes precedence over this value.
+        `
+          )
+          .example(["127.0.0.1"]),
+      }),
       modules: projectModulesSchema().description("Control where to scan for modules in the project."),
       outputs: joiSparseArray(projectOutputSchema())
         .unique("name")

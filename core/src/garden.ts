@@ -29,6 +29,7 @@ import {
   parseEnvironment,
   getDefaultEnvironmentName,
   projectSourcesSchema,
+  ProxyConfig,
 } from "./config/project"
 import {
   findByName,
@@ -117,6 +118,8 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 
+const defaultLocalAddress = "localhost"
+
 export interface ActionHandlerMap<T extends keyof PluginActionHandlers> {
   [actionName: string]: PluginActionHandlers[T]
 }
@@ -164,6 +167,7 @@ export interface GardenParams {
   cache: TreeCache
   disablePortForwards?: boolean
   dotIgnoreFiles: string[]
+  proxy: ProxyConfig
   environmentName: string
   environmentConfigs: EnvironmentConfig[]
   namespace: string
@@ -234,6 +238,7 @@ export class Garden {
   private readonly providerConfigs: GenericProviderConfig[]
   public readonly workingCopyId: string
   public readonly dotIgnoreFiles: string[]
+  public readonly proxy: ProxyConfig
   public readonly moduleIncludePatterns?: string[]
   public readonly moduleExcludePatterns: string[]
   public readonly persistent: boolean
@@ -269,6 +274,7 @@ export class Garden {
     this.secrets = params.secrets
     this.workingCopyId = params.workingCopyId
     this.dotIgnoreFiles = params.dotIgnoreFiles
+    this.proxy = params.proxy
     this.moduleIncludePatterns = params.moduleIncludePatterns
     this.moduleExcludePatterns = params.moduleExcludePatterns || []
     this.persistent = !!params.opts.persistent
@@ -1393,6 +1399,19 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     ...fixedProjectExcludes,
   ]
 
+  // Set proxy hostname with the following order of precedence: env var > config > default value ("localhost")
+  let proxyHostname: string
+  if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
+    proxyHostname = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+  } else if (config.proxy?.hostname) {
+    proxyHostname = config.proxy.hostname
+  } else {
+    proxyHostname = defaultLocalAddress
+  }
+  const proxy = {
+    hostname: proxyHostname,
+  }
+
   return {
     artifactsPath,
     vcsInfo,
@@ -1418,8 +1437,9 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     moduleExcludePatterns,
     workingCopyId,
     dotIgnoreFiles: config.dotIgnoreFiles,
-    moduleIncludePatterns: (config.modules || {}).include,
+    proxy,
     log,
+    moduleIncludePatterns: (config.modules || {}).include,
     username: _username,
     forceRefresh: opts.forceRefresh,
     cloudApi,
