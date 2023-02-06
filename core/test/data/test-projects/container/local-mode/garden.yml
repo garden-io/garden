@@ -17,7 +17,7 @@ services:
     # this is here to test that local mode always take precedence over dev mode
     devMode:
       sync:
-        - target: /
+        - target: /test
           mode: one-way
     healthCheck:
       httpGet:
