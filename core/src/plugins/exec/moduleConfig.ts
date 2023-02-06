@@ -11,76 +11,21 @@
  * CHANGES ARE REFLECTED IN THE CORRESPONDING ACTION SPECS + CONVERSION HANDLER.
  */
 
-import { joiArray, joiEnvVars, joi, joiSparseArray } from "../../config/common"
+import { joi, joiArray, joiEnvVars, joiSparseArray } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { GardenModule } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
-import { ModuleSpec, BaseBuildConfig, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
+import { baseBuildSpecSchema, ModuleConfig, ModuleSpec } from "../../config/module"
 import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
 import { dedent } from "../../util/string"
-import { artifactsSchema, ExecBuildConfig, ExecDevModeSpec } from "./config"
-import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
-import { ConfigurationError } from "../../exceptions"
-import { omit } from "lodash"
+import { artifactsSchema, ExecDevModeSpec } from "./config"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
   If the top level \`local\` directive is set to \`true\`, the command runs in the module source directory instead.
 `
 const localProcDefaultTimeoutSec = 10
-
-export async function configureExecModule({
-  moduleConfig,
-}: ConfigureModuleParams<ExecModule>): Promise<ConfigureModuleResult> {
-  const buildDeps = moduleConfig.build.dependencies
-  if (moduleConfig.spec.local && buildDeps.some((d) => d.copy.length > 0)) {
-    const buildDependenciesWithCopySpec = buildDeps
-      .filter((d) => !!d.copy)
-      .map((d) => d.name)
-      .join(", ")
-    throw new ConfigurationError(
-      dedent`
-      Invalid exec module configuration: Module ${moduleConfig.name} copies ${buildDependenciesWithCopySpec}
-
-      A local exec module cannot have a build dependency with a copy spec.
-    `,
-      {
-        buildDependenciesWithCopySpec,
-        buildConfig: moduleConfig.build,
-      }
-    )
-  }
-
-  // All the config keys that affect the build version
-  moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests", "services"])
-
-  moduleConfig.serviceConfigs = moduleConfig.spec.services.map((s) => ({
-    name: s.name,
-    dependencies: s.dependencies,
-    disabled: s.disabled,
-    spec: s,
-  }))
-
-  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
-    name: t.name,
-    cacheResult: false,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    timeout: t.timeout,
-    spec: t,
-  }))
-
-  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
-    name: t.name,
-    dependencies: t.dependencies,
-    disabled: t.disabled,
-    spec: t,
-    timeout: t.timeout,
-  }))
-
-  return { moduleConfig }
-}
 
 export interface ExecServiceSpec extends CommonServiceSpec {
   cleanupCommand?: string[]

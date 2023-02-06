@@ -7,20 +7,18 @@
  */
 
 import Bluebird from "bluebird"
-import { mapValues } from "lodash"
+import { mapValues, omit } from "lodash"
 import { join } from "path"
-import split2 = require("split2")
 import { joi, PrimitiveMap, StringMap } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { createGardenPlugin } from "../../plugin/plugin"
 import { LOGS_DIR } from "../../constants"
 import { dedent } from "../../util/string"
 import { exec, ExecOpts, runScript, sleep } from "../../util/util"
-import { RuntimeError, TimeoutError } from "../../exceptions"
+import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
-import execa, { ExecaError, ExecaChildProcess } from "execa"
-import chalk = require("chalk")
+import execa, { ExecaChildProcess, ExecaError } from "execa"
 import { renderMessageWithDivider } from "../../logger/util"
 import { LogLevel } from "../../logger/logger"
 import { createWriteStream } from "fs"
@@ -29,6 +27,7 @@ import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
 import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
+import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
 import {
   ExecActionConfig,
   ExecBuild,
@@ -37,18 +36,20 @@ import {
   ExecDeploy,
   execDeployActionSchema,
   ExecDevModeSpec,
-  execRunActionSchema,
   ExecRun,
+  execRunActionSchema,
   ExecTest,
   execTestActionSchema,
   ResolvedExecAction,
 } from "./config"
-import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
+import { ExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
 import { runResultToActionState } from "../../actions/base"
 import { DeployStatus } from "../../plugin/handlers/Deploy/get-status"
 import { BuildStatus } from "../../plugin/handlers/Build/get-status"
 import { Resolved } from "../../actions/types"
+import split2 = require("split2")
+import chalk = require("chalk")
 
 const persistentLocalProcRetryIntervalMs = 2500
 
@@ -513,6 +514,58 @@ const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (param
     })
     return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
   }
+}
+
+export async function configureExecModule({
+  moduleConfig,
+}: ConfigureModuleParams<ExecModule>): Promise<ConfigureModuleResult> {
+  const buildDeps = moduleConfig.build.dependencies
+  if (moduleConfig.spec.local && buildDeps.some((d) => d.copy.length > 0)) {
+    const buildDependenciesWithCopySpec = buildDeps
+      .filter((d) => !!d.copy)
+      .map((d) => d.name)
+      .join(", ")
+    throw new ConfigurationError(
+      dedent`
+      Invalid exec module configuration: Module ${moduleConfig.name} copies ${buildDependenciesWithCopySpec}
+
+      A local exec module cannot have a build dependency with a copy spec.
+    `,
+      {
+        buildDependenciesWithCopySpec,
+        buildConfig: moduleConfig.build,
+      }
+    )
+  }
+
+  // All the config keys that affect the build version
+  moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests", "services"])
+
+  moduleConfig.serviceConfigs = moduleConfig.spec.services.map((s) => ({
+    name: s.name,
+    dependencies: s.dependencies,
+    disabled: s.disabled,
+    spec: s,
+  }))
+
+  moduleConfig.taskConfigs = moduleConfig.spec.tasks.map((t) => ({
+    name: t.name,
+    cacheResult: false,
+    dependencies: t.dependencies,
+    disabled: t.disabled,
+    timeout: t.timeout,
+    spec: t,
+  }))
+
+  moduleConfig.testConfigs = moduleConfig.spec.tests.map((t) => ({
+    name: t.name,
+    dependencies: t.dependencies,
+    disabled: t.disabled,
+    spec: t,
+    timeout: t.timeout,
+  }))
+
+  return { moduleConfig }
 }
 
 export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>): ExecBuildConfig | undefined {
