@@ -418,7 +418,7 @@ export const makeTestModule = (params: Partial<ModuleConfig> = {}): ModuleConfig
  * @param path the project root path
  * @param from the partial module config to override the default values
  */
-export function makeModuleConfig(path: string, from: Partial<ModuleConfig>): ModuleConfig {
+export function makeModuleConfig<M extends ModuleConfig = ModuleConfig>(path: string, from: Partial<M>): ModuleConfig {
   return {
     apiVersion: DEFAULT_API_VERSION,
     allowPublish: false,
