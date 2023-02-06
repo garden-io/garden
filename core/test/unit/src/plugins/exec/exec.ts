@@ -1247,12 +1247,61 @@ describe("exec plugin", () => {
         })
 
         it("correctly maps a serviceConfig to a Deploy with no build", async () => {
-          throw "TODO"
-
           // Dependencies
           // + build dependencies
           // timeout
           // service spec
+
+          const moduleNameA = "module-a"
+          const serviceNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", serviceNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: [], // <--- empty build command
+              },
+              services: [
+                {
+                  name: serviceNameA,
+                  deployCommand: deployCommandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              tasks: [],
+              tests: [],
+              env: {},
+            },
+          })
+          delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
+
+          garden.setActionConfigs([moduleConfigA])
+          // this will produce modules with `serviceConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `serviceConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          // build action must be missing
+          expect(buildA).to.not.exist
+
+          const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
+          expect(deployA).to.exist
+          // no build name expected here
+          expect(deployA.build).to.not.exist
+          expect(deployA.dependencies).to.eql([])
         })
 
         it("correctly maps a taskConfig to a Run with a build", async () => {
