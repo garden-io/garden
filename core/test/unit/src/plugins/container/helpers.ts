@@ -52,7 +52,6 @@ describe("containerHelpers", () => {
 
     spec: {
       build: {
-        dependencies: [],
         timeout: DEFAULT_BUILD_TIMEOUT,
       },
       buildArgs: {},
@@ -389,7 +388,7 @@ describe("containerHelpers", () => {
         path: tmpDir.path,
         serviceConfigs: [],
         spec: {
-          build: { dependencies: [], timeout: 999 },
+          build: { timeout: 999 },
           buildArgs: {},
           extraFlags: [],
           services: [],
