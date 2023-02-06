@@ -81,7 +81,7 @@ Let's get your development environment wired up.
       inkWriter.setWriteCallback(write)
 
       const [line, setLine] = useState(commandLine.getBlankCommandLine())
-      // const [status, _setStatus] = useState("")
+      const [status, _setStatus] = useState("")
       const [message, setMessage] = useState("")
 
       // Note: Using callbacks here instead of events to make keypresses a bit more responsive
@@ -99,7 +99,7 @@ Let's get your development environment wired up.
             <Text>{line}</Text>
           </Box>
           <Box height={1} marginTop={1} marginLeft={2}>
-            <Text>{message}</Text>
+            <Text>{message || status}</Text>
           </Box>
         </Box>
       )

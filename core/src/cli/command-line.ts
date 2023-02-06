@@ -22,7 +22,7 @@ import { GlobalOptions, ParameterValues } from "./params"
 
 const defaultMessageDuration = 3000
 const commandLinePrefix = chalk.yellow("🌼  > ")
-const emptyCommandLinePlaceholder = chalk.gray(chalk.underline("<") + "enter command> (enter help for more info)")
+const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
 const inputChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789- _*!@$%&/="
 
 export type SetStringCallback = (data: string) => void
@@ -57,6 +57,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private suggestionIndex: number
   private autocompletingFrom: number
   private commandHistory: string[]
+  private showCursor: boolean
 
   private keyHandlers: { [key: string]: KeyHandler }
 
@@ -97,6 +98,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.suggestionIndex = -1
     this.autocompletingFrom = -1
     this.commandHistory = []
+    this.showCursor = true
 
     // This does nothing until a callback is supplied from outside
     this.commandLineCallback = () => {}
@@ -209,6 +211,11 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
       }
     })
 
+    this.setKeyHandler("ctrl-a", () => {
+      this.moveCursor(0)
+      this.renderCommandLine()
+    })
+
     this.setKeyHandler("fn-leftArrow", () => {
       this.moveCursor(0)
       this.renderCommandLine()
@@ -253,9 +260,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
       if (this.historyIndex > 0) {
         this.historyIndex--
         this.currentCommand = this.commandHistory[this.historyIndex]
-        if (this.cursorPosition > this.currentCommand.length) {
-          this.moveCursor(this.currentCommand.length)
-        }
+        this.moveCursor(this.currentCommand.length)
         this.renderCommandLine()
       }
     })
@@ -263,9 +268,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.setKeyHandler("downArrow", () => {
       if (this.historyIndex < this.commandHistory.length) {
         this.currentCommand = this.commandHistory[this.historyIndex]
-        if (this.cursorPosition > this.currentCommand.length) {
-          this.moveCursor(this.currentCommand.length)
-        }
+        this.moveCursor(this.currentCommand.length)
         this.historyIndex++
       } else if (this.historyIndex > 0) {
         this.currentCommand = ""
@@ -292,6 +295,11 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     this.enabled = true
     this.renderCommandLine()
+
+    setInterval(() => {
+      this.showCursor = !this.showCursor
+      this.renderCommandLine()
+    }, 600)
   }
 
   renderCommandLine() {
@@ -313,13 +321,20 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     }
 
     if (renderedCommand.length === 0) {
-      renderedCommand = emptyCommandLinePlaceholder
+      if (this.showCursor) {
+        renderedCommand = chalk.underline(sliceAnsi(emptyCommandLinePlaceholder, 0, 1))
+          + sliceAnsi(emptyCommandLinePlaceholder, 1)
+      } else {
+        renderedCommand = emptyCommandLinePlaceholder
+      }
     } else if (this.cursorPosition === renderedCommand.length) {
-      renderedCommand = renderedCommand + "_"
+      renderedCommand = renderedCommand + (this.showCursor ? "_" : " ")
     } else {
+      const cursorChar = sliceAnsi(renderedCommand, this.cursorPosition, this.cursorPosition + 1)
+
       renderedCommand =
         sliceAnsi(renderedCommand, 0, this.cursorPosition) +
-        chalk.underline(sliceAnsi(renderedCommand, this.cursorPosition, this.cursorPosition + 1)) +
+        (this.showCursor ? chalk.underline(cursorChar) : cursorChar) +
         sliceAnsi(renderedCommand, this.cursorPosition + 1)
     }
 
