@@ -82,7 +82,7 @@ export interface GenerateFileSpec {
 
 export interface ModuleSpec {}
 
-interface ModuleSpecCommon {
+interface ModuleConfigCommon {
   apiVersion?: string
   allowPublish?: boolean
   build?: BaseBuildConfig
@@ -99,11 +99,11 @@ interface ModuleSpecCommon {
   varfile?: string
 }
 
-export interface AddModuleSpec extends ModuleSpecCommon {
+export interface AddModuleConfig extends ModuleConfigCommon {
   [key: string]: any
 }
 
-export interface BaseModuleSpec extends ModuleSpecCommon {
+export interface BaseModuleConfig extends ModuleConfigCommon {
   apiVersion: string
   kind?: "Module"
   allowPublish: boolean
@@ -257,7 +257,7 @@ export const baseModuleSpecSchema = () =>
   coreModuleSpecSchema().keys(baseModuleSpecKeys()).meta({ name: `module-spec-base` })
 
 export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends {} = any, W extends {} = any>
-  extends BaseModuleSpec {
+  extends BaseModuleConfig {
   path: string
   configPath?: string
   plugin?: string // used to identify modules that are bundled as part of a plugin

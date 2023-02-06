@@ -7,7 +7,7 @@
  */
 
 import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema } from "./common"
-import { baseModuleSpecSchema, BaseModuleSpec, ModuleConfig } from "./module"
+import { baseModuleSpecSchema, BaseModuleConfig, ModuleConfig } from "./module"
 import { dedent, deline } from "../util/string"
 import { GardenResource, moduleTemplateKind, prepareModuleResource } from "./base"
 import { resolveTemplateStrings } from "../template-string/template-string"
@@ -29,7 +29,7 @@ const moduleTemplateReferenceUrl = "./template-strings/modules.md"
 
 export type ModuleTemplateKind = typeof moduleTemplateKind
 
-interface TemplatedModuleSpec extends Partial<BaseModuleSpec> {
+interface TemplatedModuleSpec extends Partial<BaseModuleConfig> {
   type: string
 }
 

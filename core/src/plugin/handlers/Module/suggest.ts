@@ -7,7 +7,7 @@
  */
 
 import { dedent } from "../../../util/string"
-import { AddModuleSpec } from "../../../config/module"
+import { AddModuleConfig } from "../../../config/module"
 import { joi, joiArray } from "../../../config/common"
 import { addModuleSchema } from "../Provider/augmentGraph"
 import { LogEntry } from "../../../logger/log-entry"
@@ -23,7 +23,7 @@ export interface SuggestModulesParams extends ActionHandlerParamsBase {
 
 export interface ModuleSuggestion {
   description: string
-  module: AddModuleSpec
+  module: AddModuleConfig
 }
 
 export interface SuggestModulesResult {
