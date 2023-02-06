@@ -392,11 +392,6 @@ export class ModuleResolver {
       config.build.dependencies = prepareBuildDependencies(config.build.dependencies).filter((dep) => dep.name)
     }
 
-    // We need to refilter the build dependencies on the spec in case one or more dependency names resolved to null.
-    if (config.spec.build && config.spec.build.dependencies) {
-      config.spec.build.dependencies = prepareBuildDependencies(config.spec.build.dependencies)
-    }
-
     // Validate the module-type specific spec
     if (description.schema) {
       config.spec = validateWithPath({
