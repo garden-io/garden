@@ -56,7 +56,12 @@ describe("LinkCommand", () => {
 
       const linkedModuleSources = await garden.configStore.get("linkedModuleSources")
 
-      expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
+      expect(linkedModuleSources).to.eql({
+        "module-a": {
+          name: "module-a",
+          path: localModulePath,
+        },
+      })
     })
 
     it("should handle relative paths", async () => {
@@ -76,7 +81,12 @@ describe("LinkCommand", () => {
 
       const linkedModuleSources = await garden.configStore.get("linkedModuleSources")
 
-      expect(linkedModuleSources).to.eql([{ name: "module-a", path: localModulePath }])
+      expect(linkedModuleSources).to.eql({
+        "module-a": {
+          name: "module-a",
+          path: localModulePath,
+        },
+      })
     })
 
     it("should throw if module to link does not have an external source", async () => {
@@ -155,7 +165,12 @@ describe("LinkCommand", () => {
 
       const linkedProjectSources = await garden.configStore.get("linkedProjectSources")
 
-      expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
+      expect(linkedProjectSources).to.eql({
+        "source-a": {
+          name: "source-a",
+          path: localSourcePath,
+        },
+      })
     })
 
     it("should handle relative paths", async () => {
@@ -166,14 +181,19 @@ describe("LinkCommand", () => {
         footerLog: log,
         args: {
           source: "source-a",
-          path: join("..", "test-project-local-project-sources", `source-a`),
+          path: join("..", "test-project-local-project-sources"),
         },
         opts: withDefaultGlobalOpts({}),
       })
 
       const linkedProjectSources = await garden.configStore.get("linkedProjectSources")
 
-      expect(linkedProjectSources).to.eql([{ name: "source-a", path: localSourcePath }])
+      expect(linkedProjectSources).to.eql({
+        "source-a": {
+          name: "source-a",
+          path: localSourcePath,
+        },
+      })
     })
 
     it("should return linked sources", async () => {
