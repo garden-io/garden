@@ -16,7 +16,7 @@ import { ArtifactSpec } from "../../config/validation"
 import { GardenModule } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
-import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
+import { ModuleSpec, BaseBuildConfig, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
 import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
 import { dedent } from "../../util/string"
 import { artifactsSchema, ExecBuildConfig, ExecDevModeSpec } from "./config"
@@ -222,7 +222,7 @@ export const execTaskSpecSchema = () =>
     })
     .description("A task that can be run in this module.")
 
-interface ExecBuildSpec extends BaseBuildSpec {
+interface ExecBuildSpec extends BaseBuildConfig {
   command: string[]
 }
 

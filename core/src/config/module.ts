@@ -65,7 +65,10 @@ export const buildDependencySchema = () =>
     ),
   })
 
-export interface BaseBuildSpec {
+/**
+ * Defines the module-level plugin- / provider-agnostic build configuration.
+ */
+export interface BaseBuildConfig {
   dependencies: BuildDependencyConfig[]
   timeout?: number
 }
@@ -82,7 +85,7 @@ export interface ModuleSpec {}
 interface ModuleSpecCommon {
   apiVersion?: string
   allowPublish?: boolean
-  build?: BaseBuildSpec
+  build?: BaseBuildConfig
   description?: string
   disabled?: boolean
   exclude?: string[]
@@ -104,7 +107,7 @@ export interface BaseModuleSpec extends ModuleSpecCommon {
   apiVersion: string
   kind?: "Module"
   allowPublish: boolean
-  build: BaseBuildSpec
+  build: BaseBuildConfig
   disabled: boolean
 }
 
