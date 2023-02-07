@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { InternalError } from "../exceptions"
 import { ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build"
 import { ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy"
 import { ExecutedRunAction, isRunAction, ResolvedRunAction } from "./run"
@@ -23,8 +22,8 @@ export function actionToResolved<T extends Action>(action: T, params: ResolveAct
   } else if (isTestAction(action)) {
     return new ResolvedTestAction({ ...action["params"], ...params })
   } else {
-    // This should never happen
-    throw new InternalError(`Unexpected action kind`, {})
+    const _exhaustiveCheck: never = action
+    return _exhaustiveCheck
   }
 }
 
@@ -41,7 +40,7 @@ export function resolvedActionToExecuted<T extends ResolvedAction>(
   } else if (isTestAction(action)) {
     return new ExecutedTestAction({ ...action["params"], ...params }) as Executed<T>
   } else {
-    // This should never happen
-    throw new InternalError(`Unexpected action kind`, {})
+    const _exhaustiveCheck: never = action
+    return _exhaustiveCheck
   }
 }
