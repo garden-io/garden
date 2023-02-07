@@ -7,13 +7,11 @@
  */
 
 import chalk from "chalk"
-import indentString from "indent-string"
 import { Key } from "ink"
-import { max } from "lodash"
+import { keyBy, max } from "lodash"
 import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
 import { Command, CommandGroup, CommandResult } from "../commands/base"
-import { getCustomCommands } from "../commands/custom"
 import { ConfigDump, Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
@@ -111,10 +109,17 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.init()
   }
 
-  async update(garden: Garden, configDump: ConfigDump) {
-    const customCommands = await getCustomCommands(garden.projectRoot)
+  async update(garden: Garden, configDump: ConfigDump, commands: Command[]) {
+    const byName = keyBy(
+      this.commands.filter((c) => !c.isCustom),
+      (c) => c.getFullName()
+    )
 
-    this.commands = this.commands.filter((c) => !c.isCustom).concat(customCommands)
+    for (const c of commands) {
+      byName[c.getFullName()] = c
+    }
+
+    this.commands = Object.values(byName)
     this.garden = garden
     this.autocompleter = new Autocompleter({ log: this.log, commands: this.commands, configDump, debug: true })
   }

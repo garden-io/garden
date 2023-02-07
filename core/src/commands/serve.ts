@@ -126,7 +126,7 @@ export class ServeCommand<
       const commands = await this.getCommands(garden)
 
       this.garden = newGarden
-      await this.commandLine?.update(newGarden, configDump)
+      await this.commandLine?.update(newGarden, configDump, commands)
       await this.server?.setGarden(newGarden)
       this.autocompleter = new Autocompleter({ log, commands, configDump })
 
