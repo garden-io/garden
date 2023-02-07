@@ -307,6 +307,7 @@ export const localModeRestartSchema = () =>
         .greater(-1)
         .optional()
         .default(defaultLocalModeMaxRestarts)
+        .allow(defaultLocalModeMaxRestarts)
         .description("Max number of the local application restarts. Unlimited by default."),
     })
     .optional()
