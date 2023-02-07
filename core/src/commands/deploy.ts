@@ -22,7 +22,6 @@ import {
 import { processActions } from "../process"
 import { printHeader } from "../logger/util"
 import { getMatchingDeployNames, watchParameter, watchRemovedWarning } from "./helpers"
-import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -131,12 +130,6 @@ export class DeployCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Deploy", "rocket")
   }
 
-  async prepare(params: PrepareParams<Args, Opts>) {
-    if (this.isPersistent(params)) {
-      this.server = await startServer({ log: params.footerLog })
-    }
-  }
-
   terminate() {
     this.garden?.events.emit("_exit", {})
   }
@@ -148,10 +141,6 @@ export class DeployCommand extends Command<Args, Opts> {
 
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
-    }
-
-    if (this.server) {
-      this.server.setGarden(garden)
     }
 
     const initGraph = await garden.getConfigGraph({ log, emit: true })
