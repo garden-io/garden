@@ -148,8 +148,7 @@ export class Autocompleter {
 
     if (lastArg?.startsWith("-")) {
       // 'tis most likely an option flag
-      // TODO
-      return []
+      return this.getOptionFlagSuggestions(params)
     }
 
     if (lastCompleteArg?.startsWith("-")) {
@@ -221,7 +220,14 @@ export class Autocompleter {
       ...command.options,
     }
 
-    return Object.keys(opts).map((k) => {
+    let keys = Object.keys(opts)
+
+    // Filter on partial option flag entered
+    if (lastArg && lastArg.startsWith("--") && lastArg.length > 2) {
+      keys = keys.filter((k) => k.startsWith(lastArg.slice(2)))
+    }
+
+    return keys.map((k) => {
       const split = [...matchedPath, ...rest]
       const s = "--" + k
 
