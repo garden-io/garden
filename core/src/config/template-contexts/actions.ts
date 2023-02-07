@@ -118,7 +118,7 @@ class ActionReferencesContext extends ConfigContext {
     this.tasks = this.run
 
     for (const action of actions) {
-      this[action.kind].set(
+      this[action.kind.toLowerCase()].set(
         action.name,
         new ActionResultContext({
           root: this,
