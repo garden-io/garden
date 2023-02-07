@@ -1804,7 +1804,23 @@ describe("getActionTemplateReferences", () => {
 
   context("runtime.*", () => {
     it("returns valid runtime references", () => {
-      throw "TODO"
+      const config = {
+        services: '${runtime["services"].service-a}',
+        tasks: '${runtime["tasks"].task-a}',
+      }
+      const actionTemplateReferences = getActionTemplateReferences(config)
+      expect(actionTemplateReferences).to.eql([
+        {
+          kind: "Deploy",
+          name: "service-a",
+          fullRef: ["runtime", "services", "service-a"],
+        },
+        {
+          kind: "Run",
+          name: "task-a",
+          fullRef: ["runtime", "tasks", "task-a"],
+        },
+      ])
     })
 
     it("throws if runtime ref has no kind", () => {
