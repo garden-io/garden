@@ -69,6 +69,12 @@ describe("Autocompleter", () => {
     expect(result.map((s) => s.line).sort()).to.eql(["link module", "link source"])
   })
 
+  it("filters option flags", () => {
+    const result = ac.getSuggestions("build --f")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.eql(["build --force", "build --force-refresh"])
+  })
+
   context("without config dump", () => {
     it("returns option flags after matched command", () => {
       const result = ac.getSuggestions("build")
