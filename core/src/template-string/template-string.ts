@@ -470,6 +470,9 @@ export function getActionTemplateReferences<T extends object>(config: T): Action
     if (!ref[1]) {
       throw new ConfigurationError("Found invalid runtime reference (missing kind)", { config, ref })
     }
+    if (!isString(ref[1])) {
+      throw new ConfigurationError("Found invalid runtime reference (kind is not a string)", { config, ref })
+    }
 
     if (ref[1] === "services") {
       kind = "Deploy"
