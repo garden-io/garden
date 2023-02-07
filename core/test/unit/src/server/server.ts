@@ -17,6 +17,7 @@ import getPort = require("get-port")
 import WebSocket = require("ws")
 import stripAnsi = require("strip-ansi")
 import { authTokenHeader } from "../../../../src/cloud/api"
+import { ServeCommand } from "../../../../src/commands/serve"
 
 describe("GardenServer", () => {
   let garden: Garden
@@ -24,10 +25,12 @@ describe("GardenServer", () => {
   let server: Server
   let port: number
 
+  const command = new ServeCommand()
+
   before(async () => {
     port = await getPort()
     garden = await makeTestGardenA()
-    gardenServer = await startServer({ log: garden.log, port })
+    gardenServer = await startServer({ log: garden.log, command, port })
     server = (<any>gardenServer).server
   })
 
@@ -35,8 +38,8 @@ describe("GardenServer", () => {
     server.close()
   })
 
-  beforeEach(() => {
-    gardenServer.setGarden(garden)
+  beforeEach(async () => {
+    await gardenServer.setGarden(garden)
   })
 
   it("should show no URL on startup", async () => {

@@ -40,6 +40,7 @@ import { GlobalConfigStore } from "../../../../src/config-store/global"
 import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
 import { registerProcess } from "../../../../src/process"
+import { ServeCommand } from "../../../../src/commands/serve"
 
 describe("cli", () => {
   let cli: GardenCli
@@ -421,14 +422,14 @@ describe("cli", () => {
       const args = ["test-command", "--root", projectRootA]
       const record = await registerProcess(globalConfigStore, "test-command", args)
 
-      class TestCommand extends Command {
+      class TestCommand extends ServeCommand {
         name = "test-command"
         help = "halp!"
 
         server: GardenServer
 
         async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
+          this.server = await startServer({ log: footerLog, command: this })
         }
 
         printHeader() {}
@@ -463,10 +464,10 @@ describe("cli", () => {
       // Note: We're using test-project-a and the default env+namespace both here and in the CLI run
       const serverGarden = await makeTestGardenA()
       const serverEventBus = new TestEventBus()
-      const server = new GardenServer({ log: serverGarden.log })
+      const server = new GardenServer({ log: serverGarden.log, command: new ServeCommand() })
       server["incomingEvents"] = serverEventBus
       await server.start()
-      server.setGarden(serverGarden)
+      await server.setGarden(serverGarden)
 
       const record = await registerProcess(serverGarden.globalConfigStore, "serve", ["serve"])
       await serverGarden.globalConfigStore.update("activeProcesses", String(record.pid), {
@@ -513,14 +514,14 @@ describe("cli", () => {
     it("tells the CoreEventStream to ignore the local server URL", async () => {
       const testEventBus = new TestEventBus()
 
-      class TestCommand extends Command {
+      class TestCommand extends ServeCommand {
         name = "test-command"
         help = "halp!"
 
         server: GardenServer
 
         async prepare({ footerLog }: PrepareParams) {
-          this.server = await startServer({ log: footerLog })
+          this.server = await startServer({ log: footerLog, command: this })
           this.server["incomingEvents"] = testEventBus
         }
 

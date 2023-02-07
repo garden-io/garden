@@ -66,6 +66,7 @@ import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess } from "../process"
+import { GardenServer } from "../server/server"
 import { ServeCommand } from "../commands/serve"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
@@ -385,7 +386,7 @@ ${renderCommands(commands)}
               command: command.name,
               sessionId: garden.sessionId,
               persistent,
-              serverHost: server?.port ? `http://localhost:${server?.port}` : null,
+              serverHost: server?.port ? `http://localhost:${server.port}` : null,
               serverAuthKey: server?.authKey || null,
               projectRoot: garden.projectRoot,
               projectName: garden.projectName,

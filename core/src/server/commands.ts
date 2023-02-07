@@ -8,7 +8,7 @@
 
 import Joi = require("@hapi/joi")
 import Koa = require("koa")
-import { Command, CommandGroup } from "../commands/base"
+import { Command } from "../commands/base"
 import { joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
@@ -69,6 +69,8 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: LogEntry, comma
   const optParams = extend({ ...globalOptions, ...command.options })
   const cmdOpts = mapParams(ctx, request.parameters, optParams)
 
+  // TODO: warn if using global opts (same as in processCliArgs())
+
   return {
     command,
     log: cmdLog,
@@ -77,8 +79,8 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: LogEntry, comma
   }
 }
 
-export function prepareCommands(): CommandMap {
-  const commands: CommandMap = {}
+export function prepareCommands(commands: Command[]): CommandMap {
+  const output: CommandMap = {}
 
   function addCommand(command: Command) {
     const requestSchema = baseRequestSchema().keys({
@@ -91,21 +93,15 @@ export function prepareCommands(): CommandMap {
         .unknown(false),
     })
 
-    commands[command.getKey()] = {
+    output[command.getKey()] = {
       command,
       requestSchema,
     }
-
-    if (command instanceof CommandGroup) {
-      command.getSubCommands().forEach(addCommand)
-    }
   }
 
-  // Need to import this here to avoid circular import issues
-  const { getCoreCommands } = require("../commands/commands")
-  getCoreCommands().forEach(addCommand)
+  commands.forEach(addCommand)
 
-  return commands
+  return output
 }
 
 function paramsToJoi(params?: Parameters) {
