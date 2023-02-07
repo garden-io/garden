@@ -162,4 +162,18 @@ describe("resolvePlugins", () => {
     expect(inheritedExtendActionType).to.exist
     expect(inheritedExtendActionType?.name).to.eql("extension")
   })
+
+  context("base is not configured", () => {
+    it("pulls created action type from base", async () => {
+      throw "TODO"
+    })
+
+    it("pulls action type extension from base if not defined in plugin", async () => {
+      throw "TODO"
+    })
+
+    it("coalesces action type extension from base if both define one", async () => {
+      throw "TODO"
+    })
+  })
 })
