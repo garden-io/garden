@@ -1779,6 +1779,15 @@ describe("getActionTemplateReferences", () => {
       throw "TODO"
     })
 
+    it("throws if runtime ref has no kind", () => {
+      const config = {
+        foo: "${runtime}",
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid runtime reference (missing kind)",
+      })
+    })
+
     it("throws if runtime ref has invalid kind", () => {
       const config = {
         foo: '${runtime["badkind"].some-name}',
