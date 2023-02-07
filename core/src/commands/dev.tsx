@@ -95,7 +95,7 @@ Let's get your development environment wired up.
 
       return (
         <Box flexDirection="column" paddingTop={1}>
-          <Divider title={"🌼 🌸 🌷 🌺 🌻"} width={width} dividerColor={"green"} />
+          <Divider title={"🌼 🌸 🌷 🌺 🌻 "} width={width} dividerColor={"green"} padding={0} />
           <Box height={1} marginLeft={1}>
             <Text>{line}</Text>
           </Box>
@@ -132,7 +132,7 @@ Let's get your development environment wired up.
     }))
 
     function quit() {
-      cl?.disable("Thanks for stopping by, love you! ❤️")
+      cl?.disable("🌷  Thanks for stopping by, love you! ❤️")
       _this.terminate()
     }
 

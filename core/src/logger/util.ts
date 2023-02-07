@@ -255,14 +255,7 @@ const getSideDividerWidth = (width: number, titleWidth: number) => (width - titl
 const getNumberOfCharsPerWidth = (char: string, width: number) => width / stringWidth(char)
 
 // Adapted from https://github.com/JureSotosek/ink-divider
-export function renderDivider({
-  width = 80,
-  char = "━",
-  titlePadding = 1,
-  color,
-  title,
-  padding = 0,
-}: DividerOpts = {}) {
+export function renderDivider({ width = 80, char = "─", titlePadding = 1, color, title, padding = 0 }: DividerOpts = {}) {
   const pad = " "
 
   if (!color) {
