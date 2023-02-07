@@ -295,6 +295,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           partialRuntimeResolution: false,
           modules: graph.getModules(),
           executedDependencies: action.getExecutedDependencies(),
+          resolvedDependencies: action.getResolvedDependencies(),
           variables: action.getVariables(),
         })
       : new ActionConfigContext(this.garden)

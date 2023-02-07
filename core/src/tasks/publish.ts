@@ -79,6 +79,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
         executedDependencies: action.getExecutedDependencies(),
+        resolvedDependencies: action.getResolvedDependencies(),
         variables: action.getVariables(),
       })
 

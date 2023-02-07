@@ -111,6 +111,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
           modules: this.graph.getModules(),
           partialRuntimeResolution: false,
           executedDependencies,
+          resolvedDependencies,
           variables: {},
         })
       )
@@ -131,6 +132,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
         executedDependencies,
+        resolvedDependencies,
         variables: groupVariables,
       })
     )
@@ -150,6 +152,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
         executedDependencies,
+        resolvedDependencies,
         variables,
       })
     )
