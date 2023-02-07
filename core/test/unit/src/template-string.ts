@@ -1712,7 +1712,35 @@ describe("collectTemplateReferences", () => {
 describe("getActionTemplateReferences", () => {
   context("action.*", () => {
     it("returns valid action references", () => {
-      throw "TODO"
+      const config = {
+        build: '${action["build"].build-a}',
+        deploy: '${action["deploy"].deploy-a}',
+        run: '${action["run"].run-a}',
+        test: '${action["test"].test-a}',
+      }
+      const actionTemplateReferences = getActionTemplateReferences(config)
+      expect(actionTemplateReferences).to.eql([
+        {
+          kind: "Build",
+          name: "build-a",
+          fullRef: ["action", "build", "build-a"],
+        },
+        {
+          kind: "Deploy",
+          name: "deploy-a",
+          fullRef: ["action", "deploy", "deploy-a"],
+        },
+        {
+          kind: "Run",
+          name: "run-a",
+          fullRef: ["action", "run", "run-a"],
+        },
+        {
+          kind: "Test",
+          name: "test-a",
+          fullRef: ["action", "test", "test-a"],
+        },
+      ])
     })
 
     it("throws if action ref has no kind", () => {
