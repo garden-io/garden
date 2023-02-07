@@ -1,4 +1,15 @@
 
+<a name="0.12.51-0"></a>
+## [0.12.51-0](https://github.com/garden-io/garden/compare/0.12.50...0.12.51-0) (2023-02-06)
+
+### Bug Fixes
+
+* **terraform:** improve init behaviour on validate and error messages ([#3663](https://github.com/garden-io/garden/issues/3663)) ([3901d2afc](https://github.com/garden-io/garden/commit/3901d2afc))
+
+### Improvements
+
+* **framework:** allow users to specify proxy hostname in project config ([dd50be4ee](https://github.com/garden-io/garden/commit/dd50be4ee))
+
 <a name="0.12.50"></a>
 ## [0.12.50](https://github.com/garden-io/garden/compare/0.12.49...0.12.50) (2023-02-01)
 
