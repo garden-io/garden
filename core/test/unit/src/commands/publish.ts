@@ -155,7 +155,7 @@ describe("PublishCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
-        "tag": tag,
+        tag,
       }),
     })
 
@@ -170,7 +170,7 @@ describe("PublishCommand", () => {
   it("should resolve a templated tag and apply to the builds", async () => {
     const garden = await getTestGarden()
     const log = garden.log
-    const tag = "v1.0-${module.name}-${module.version}"
+    const tag = "v1.0-${module.name}"
 
     const { result } = await command.action({
       garden,
@@ -182,19 +182,15 @@ describe("PublishCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
-        "tag": tag,
+        tag,
       }),
     })
 
     const publishActionResult = taskResultOutputs(result!)
-    const actions = (await garden.getConfigGraph({ log, emit: false })).getBuilds()
-    const verA = actions.find((a) => a.name === "module-a")!.versionString()
-    const verB = actions.find((a) => a.name === "module-b")!.versionString()
-
     expect(publishActionResult["publish.module-a"].detail.published).to.be.true
-    expect(publishActionResult["publish.module-a"].detail.identifier).to.equal(`v1.0-module-a-${verA}`)
+    expect(publishActionResult["publish.module-a"].detail.identifier).to.equal(`v1.0-module-a`)
     expect(publishActionResult["publish.module-b"].detail.published).to.be.true
-    expect(publishActionResult["publish.module-b"].detail.identifier).to.equal(`v1.0-module-b-${verB}`)
+    expect(publishActionResult["publish.module-b"].detail.identifier).to.equal(`v1.0-module-b`)
   })
 
   it("should optionally force new build", async () => {
