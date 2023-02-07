@@ -2263,7 +2263,7 @@ describe("Garden", () => {
       const configB = (await garden.getRawModuleConfigs(["foo-test-b"]))[0]
 
       expect(omitUndefined(configA)).to.eql({
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Module",
         build: {
           dependencies: [],
@@ -2297,7 +2297,7 @@ describe("Garden", () => {
         },
       })
       expect(omitUndefined(configB)).to.eql({
-        apiVersion: "garden.io/v0",
+        apiVersion: DEFAULT_API_VERSION,
         kind: "Module",
         build: {
           dependencies: [{ name: "foo-test-a", copy: [] }],
