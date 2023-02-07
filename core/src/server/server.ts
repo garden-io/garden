@@ -19,7 +19,7 @@ import getPort = require("get-port")
 import { omit } from "lodash"
 
 import { Garden } from "../garden"
-import { prepareCommands, parseRequest } from "./commands"
+import { prepareCommands, parseRequest, CommandMap } from "./commands"
 import { gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
@@ -32,8 +32,10 @@ import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
-import { clientRequestNames, ClientRouter } from "./client-router"
+import { clientRequestNames, ClientRequestType, ClientRouter } from "./client-router"
 import { EventEmitter } from "eventemitter3"
+import { ServeCommand } from "../commands/serve"
+import { getBuiltinCommands } from "../commands/commands"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -64,6 +66,12 @@ const websocketCloseEvents: WebsocketCloseEvents = {
   },
 }
 
+interface GardenServerParams {
+  log: LogEntry
+  command: ServeCommand
+  port?: number
+}
+
 /**
  * Start an HTTP server that exposes commands and events for the given Garden instance.
  *
@@ -74,13 +82,13 @@ const websocketCloseEvents: WebsocketCloseEvents = {
  * This is done so that a process can always create its own server, but we won't need that functionality once we
  * run a shared service across commands.
  */
-export async function startServer({ log, port }: { log: LogEntry; port?: number }) {
+export async function startServer(params: GardenServerParams) {
   // Start HTTP API server.
   // allow overriding automatic port picking
-  if (!port) {
-    port = gardenEnv.GARDEN_SERVER_PORT || undefined
+  if (!params.port) {
+    params.port = gardenEnv.GARDEN_SERVER_PORT || undefined
   }
-  const server = new GardenServer({ log, port })
+  const server = new GardenServer(params)
   await server.start()
   return server
 }
@@ -90,22 +98,25 @@ export class GardenServer extends EventEmitter {
   private debugLog: LogEntry
   private server: Server
   private garden: Garden | undefined
+  private commands: CommandMap
+  private serveCommand: ServeCommand
   private clientRouter: ClientRouter | undefined
   private app: websockify.App
   private analytics?: AnalyticsHandler
   private incomingEvents: EventBus
   private statusLog: LogEntry
   private serversUpdatedListener: GardenEventListener<"serversUpdated">
-  private activePersistentRequests: { [requestId: string]: { command: Command; connId: string } }
+  private activePersistentRequests: { [requestId: string]: { command: Command; connectionId: string } }
 
   public port: number | undefined
   public readonly authKey: string
 
-  constructor({ log, port }: { log: LogEntry; port?: number }) {
+  constructor({ log, command, port }: GardenServerParams) {
     super()
     this.log = log
     this.debugLog = this.log.placeholder({ level: LogLevel.debug, childEntriesInheritLevel: true })
-    this.garden = undefined
+    this.commands = prepareCommands(getBuiltinCommands()) // This gets updated when .setGarden() is called
+    this.serveCommand = command
     this.clientRouter = undefined
     this.port = port
     this.authKey = randomString(24)
@@ -114,8 +125,8 @@ export class GardenServer extends EventEmitter {
 
     this.serversUpdatedListener = ({ servers }) => {
       // Update status log line with new `garden serve` server, if any
-      for (const { host, command, serverAuthKey } of servers) {
-        if (command === "serve") {
+      for (const { host, command: commandName, serverAuthKey } of servers) {
+        if (commandName === "serve") {
           this.showUrl(`${host}?key=${serverAuthKey}`)
           return
         }
@@ -174,7 +185,7 @@ export class GardenServer extends EventEmitter {
     return this.server.close()
   }
 
-  setGarden(garden: Garden) {
+  async setGarden(garden: Garden) {
     if (this.garden) {
       this.garden.events.removeListener("serversUpdated", this.serversUpdatedListener)
     }
@@ -182,6 +193,8 @@ export class GardenServer extends EventEmitter {
     this.garden = garden
     this.garden.log = this.debugLog
     this.clientRouter = new ClientRouter(this.garden, this.log)
+
+    this.commands = prepareCommands(await this.serveCommand.getCommands(garden))
 
     // Serve artifacts as static assets
     this.app.use(mount("/artifacts", serve(garden.artifactsPath)))
@@ -194,8 +207,6 @@ export class GardenServer extends EventEmitter {
 
   private async createApp() {
     // prepare request-command map
-    const commands = prepareCommands()
-
     const app = websockify(new Koa())
     const http = new Router()
 
@@ -231,7 +242,7 @@ export class GardenServer extends EventEmitter {
 
       this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
 
-      const { command, log, args, opts } = parseRequest(ctx, this.debugLog, commands, ctx.request.body)
+      const { command, log, args, opts } = parseRequest(ctx, this.debugLog, this.commands, ctx.request.body)
 
       const prepareParams = {
         log,
@@ -327,12 +338,12 @@ export class GardenServer extends EventEmitter {
    * same connection.
    */
   private addWebsocketEndpoint(app: websockify.App) {
+    // TODO: split this method up
     const wsRouter = new Router()
-    const commands = prepareCommands()
 
     wsRouter.get("/ws", async (ctx) => {
-      // The typing for koa-websocket isn't working currently
-      const websocket: Koa.Context["ws"] = ctx["websocket"]
+      // The typing for koa-router isn't working currently
+      const websocket: Koa.Context["websocket"] = ctx["websocket"]
 
       if (!this.garden) {
         this.log.debug("Server not ready.")
@@ -341,27 +352,22 @@ export class GardenServer extends EventEmitter {
         return
       }
 
-      const connId = uuidv4()
+      const connectionId = uuidv4()
 
       // Helper to make JSON messages, make them type-safe, and to log errors.
-      const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
+      const send: SendWrapper = (type, payload) => {
         const event = { type, ...(<object>payload) }
-        this.log.debug(`Send event: ${JSON.stringify(event)}`)
-        websocket.send(JSON.stringify(event), (err: Error) => {
+        this.log.debug(`Send ${type} event: ${JSON.stringify(event)}`)
+        websocket.send(JSON.stringify(event), (err?: Error) => {
           if (err) {
             this.debugLog.debug({ error: toGardenError(err) })
           }
         })
       }
 
-      const error = (message: string, requestId?: string) => {
-        this.log.debug(message)
-        return send("error", { message, requestId })
-      }
-
       // TODO: Only allow auth key authentication
       if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
-        error(`401 Unauthorized`)
+        send("error", { message: `401 Unauthorized` })
         const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
         websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
         return
@@ -373,7 +379,7 @@ export class GardenServer extends EventEmitter {
       let isAlive = true
       let heartbeatInterval = setInterval(() => {
         if (!isAlive) {
-          this.log.debug(`Connection ${connId} timed out.`)
+          this.log.debug(`Connection ${connectionId} timed out.`)
           websocket.terminate()
         }
 
@@ -391,14 +397,14 @@ export class GardenServer extends EventEmitter {
       this.incomingEvents.onAny(eventListener)
 
       const cleanup = () => {
-        this.log.debug(`Connection ${connId} terminated, cleaning up.`)
+        this.log.debug(`Connection ${connectionId} terminated, cleaning up.`)
         clearInterval(heartbeatInterval)
 
         this.garden && this.garden.events.offAny(eventListener)
         this.incomingEvents.offAny(eventListener)
 
         for (const [id, req] of Object.entries(this.activePersistentRequests)) {
-          if (connId === req.connId) {
+          if (connectionId === req.connectionId) {
             req.command.terminate()
             delete this.activePersistentRequests[id]
           }
@@ -410,123 +416,143 @@ export class GardenServer extends EventEmitter {
 
       // Respond to commands.
       websocket.on("message", (msg: string | Buffer) => {
-        let request: any
-
-        this.log.debug("Got request: " + msg)
-
-        try {
-          request = JSON.parse(msg.toString())
-        } catch {
-          return error("Could not parse message as JSON")
-        }
-
-        const requestId = request.id
-
-        try {
-          joi.attempt(requestId, joi.string().uuid().required())
-        } catch {
-          return error("Message should contain an `id` field with a UUID value", requestId)
-        }
-
-        try {
-          joi.attempt(request.type, joi.string().required())
-        } catch {
-          return error("Message should contain a type field")
-        }
-
-        if (request.type === "command") {
-          // Start a command
-          const garden = this.garden
-
-          if (!garden) {
-            return send("error", { requestId, message: notReadyMessage })
-          }
-
-          try {
-            const { command, log, args, opts } = parseRequest(
-              ctx,
-              this.debugLog,
-              commands,
-              omit(request, ["id", "type"])
-            )
-
-            const prepareParams = {
-              log,
-              headerLog: log,
-              footerLog: log,
-              args,
-              opts,
-            }
-
-            const persistent = command.isPersistent(prepareParams)
-
-            command
-              .prepare(prepareParams)
-              .then(() => {
-                if (persistent) {
-                  send("commandStart", {
-                    requestId,
-                    args,
-                    opts,
-                  })
-                  this.activePersistentRequests[requestId] = { command, connId }
-
-                  command.subscribe((data: any) => {
-                    send("commandOutput", {
-                      requestId,
-                      command: command.getFullName(),
-                      data,
-                    })
-                  })
-                }
-
-                // TODO: validate result schema
-                return command.action({
-                  garden,
-                  log,
-                  headerLog: log,
-                  footerLog: log,
-                  args,
-                  opts,
-                })
-              })
-              .then((result) => {
-                send("commandResult", {
-                  requestId,
-                  result: result.result,
-                  errors: result.errors,
-                })
-              })
-              .catch((err) => {
-                error(err.message, requestId)
-              })
-          } catch (err) {
-            return error(err.message, requestId)
-          }
-        } else if (request.type === "commandStatus") {
-          const r = this.activePersistentRequests[requestId]
-          const status = r ? "active" : "not found"
-          send("commandStatus", {
-            requestId,
-            status,
-          })
-        } else if (request.type === "abortCommand") {
-          const req = this.activePersistentRequests[requestId]
-          req && req.command.terminate()
-          delete this.activePersistentRequests[requestId]
-        } else if (clientRequestNames.find((e) => e === request.type)) {
-          this.clientRouter?.dispatch(request.type, request)
-        } else {
-          return send("error", {
-            requestId,
-            message: `Unsupported request type: ${request.type}`,
-          })
-        }
+        this.handleWsMessage({ msg, ctx, send, connectionId })
       })
     })
 
     app.ws.use(<Koa.Middleware<any>>wsRouter.routes())
     app.ws.use(<Koa.Middleware<any>>wsRouter.allowedMethods())
+  }
+
+  private handleWsMessage({
+    msg,
+    ctx,
+    send,
+    connectionId,
+  }: {
+    msg: string | Buffer
+    ctx: Koa.ParameterizedContext
+    send: SendWrapper
+    connectionId: string
+  }) {
+    let request: any
+
+    this.log.debug("Got request: " + msg)
+
+    try {
+      request = JSON.parse(msg.toString())
+    } catch {
+      return send("error", { message: "Could not parse message as JSON" })
+    }
+
+    const requestId: string = request.id
+    const requestType: string = request.type
+
+    try {
+      joi.attempt(requestId, joi.string().uuid().required())
+    } catch {
+      return send("error", { message: "Message should contain an `id` field with a UUID value", requestId })
+    }
+
+    try {
+      joi.attempt(request.type, joi.string().required())
+    } catch {
+      return send("error", { message: "Message should contain a type field" })
+    }
+
+    if (requestType === "command") {
+      // Start a command
+      // IMPORTANT: We need to grab the Garden instance reference here, since it may be replaced upon
+      // in-process reload (e.g. via the reload command in `garden dev`)
+      const garden = this.garden
+
+      if (!garden) {
+        return send("error", { requestId, message: notReadyMessage })
+      }
+
+      try {
+        const { command, log, args, opts } = parseRequest(
+          ctx,
+          this.debugLog,
+          this.commands,
+          omit(request, ["id", "type"])
+        )
+
+        const prepareParams = {
+          log,
+          headerLog: log,
+          footerLog: log,
+          args,
+          opts,
+        }
+
+        const persistent = command.isPersistent(prepareParams)
+
+        command
+          .prepare(prepareParams)
+          .then(() => {
+            if (persistent) {
+              send("commandStart", {
+                requestId,
+                args,
+                opts,
+              })
+              this.activePersistentRequests[requestId] = { command, connectionId }
+
+              command.subscribe((data: any) => {
+                send("commandOutput", {
+                  requestId,
+                  command: command.getFullName(),
+                  data,
+                })
+              })
+            }
+
+            // TODO: validate result schema
+            return command.action({
+              garden,
+              log,
+              headerLog: log,
+              footerLog: log,
+              args,
+              opts,
+            })
+          })
+          .then((result) => {
+            send("commandResult", {
+              requestId,
+              result: result.result,
+              errors: result.errors,
+            })
+            delete this.activePersistentRequests[requestId]
+          })
+          .catch((err) => {
+            send("error", { message: err.message, requestId })
+            delete this.activePersistentRequests[requestId]
+          })
+      } catch (err) {
+        return send("error", { message: err.message, requestId })
+      }
+    } else if (requestType === "commandStatus") {
+      const r = this.activePersistentRequests[requestId]
+      const status = r ? "active" : "not found"
+      send("commandStatus", {
+        requestId,
+        status,
+      })
+    } else if (requestType === "abortCommand") {
+      const req = this.activePersistentRequests[requestId]
+      req && req.command.terminate()
+      delete this.activePersistentRequests[requestId]
+    } else if (clientRequestNames.find((e) => e === requestType)) {
+      // TODO-G2: get rid of ClientRouter entirely
+      this.clientRouter?.dispatch(<ClientRequestType>requestType, request).catch(() => {})
+    } else {
+      return send("error", {
+        requestId,
+        message: `Unsupported request type: ${requestType}`,
+      })
+    }
   }
 }
 
@@ -565,3 +591,8 @@ type ServerWebsocketMessageType = keyof ServerWebsocketMessages
 export type ServerWebsocketMessage = ServerWebsocketMessages[ServerWebsocketMessageType] & {
   type: ServerWebsocketMessageType
 }
+
+type SendWrapper<T extends ServerWebsocketMessageType = ServerWebsocketMessageType> = (
+  type: T,
+  payload: ServerWebsocketMessages[T]
+) => void

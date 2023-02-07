@@ -353,7 +353,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
   showHelp() {
     // TODO: group commands by category?
-    const width = (process.stdout?.columns || 100) - 4
+    const width = (process.stdout?.columns || 100) - 8
     const renderedCommands = renderCommands(
       this.commands.filter((c) => !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName())))
     )

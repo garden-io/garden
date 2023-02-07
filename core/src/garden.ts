@@ -623,6 +623,7 @@ export class Garden {
   }
 
   async resolveProviders(log: LogEntry, forceInit = false, names?: string[]): Promise<ProviderMap> {
+    // TODO-G2: split this out of the Garden class
     let providers: Provider[] = []
 
     await this.asyncLock.acquire("resolve-providers", async () => {
@@ -842,6 +843,7 @@ export class Garden {
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
   async getConfigGraph({ log, graphResults, emit }: GetConfigGraphParams): Promise<ConfigGraph> {
+    // TODO-G2: split this out of the Garden class
     await this.scanAndAddConfigs()
 
     const resolvedProviders = await this.resolveProviders(log)

@@ -11,19 +11,16 @@ import { renderDivider } from "../logger/util"
 import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
-import { getLogger, getLogLevelChoices, LoggerType, LogLevel } from "../logger/logger"
+import { getLogger, LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
 import chalk from "chalk"
-import { ChoicesParameter, globalOptions } from "../cli/params"
-import { getBuiltinCommands } from "./commands"
-import { getCustomCommands } from "./custom"
+import { globalOptions } from "../cli/params"
 import { pick } from "lodash"
 import Divider from "ink-divider"
 import moment from "moment"
-import { LogEntry } from "../logger/log-entry"
-import { Garden } from "../garden"
+import { getBuiltinCommands } from "./commands"
 
 const devCommandArgs = {
   ...serveArgs,
@@ -49,12 +46,14 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
   printHeader({ headerLog }) {
     const width = process.stdout?.columns ? process.stdout?.columns - 2 : 100
 
-    headerLog.info(chalk.magenta(`
-${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 " ), width })}
+    headerLog.info(
+      chalk.magenta(`
+${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 "), width })}
 
 ${chalk.bold(`Good ${getGreetingTime()}! Welcome to the Garden interactive development console.`)}
 Let's get your development environment wired up.
-    `))
+    `)
+    )
   }
 
   getLoggerType(): LoggerType {
@@ -73,7 +72,7 @@ Let's get your development environment wired up.
       })
     }
 
-    const commandLine = await this.initCommandHandler(params, inkWriter)
+    const commandLine = await this.initCommandHandler(params)
 
     const Dev: FC<{}> = ({}) => {
       // Stream log output directly to stdout, on top of the Ink components below
@@ -92,9 +91,11 @@ Let's get your development environment wired up.
         commandLine.keyStroke(input, key)
       })
 
+      const width = stdout ? stdout.columns - 2 : 50
+
       return (
         <Box flexDirection="column" paddingTop={1}>
-          <Divider title={"🌼 🌸 🌷 🌺 🌻"} width={stdout?.columns || 50} dividerColor={"green"} />
+          <Divider title={"🌼 🌸 🌷 🌺 🌻"} width={width} dividerColor={"green"} />
           <Box height={1} marginLeft={1}>
             <Text>{line}</Text>
           </Box>
@@ -107,60 +108,28 @@ Let's get your development environment wired up.
 
     render(<Dev />)
 
-    commandLine.flashSuccess(chalk.white.bold(`Dev console is ready to go! 🚀`))
-
     // TODO: detect config changes and notify user in status
 
-    return super.action(params)
+    return super.action({ ...params, commandLine })
   }
 
-  async reload(log: LogEntry, garden: Garden, commandLine: CommandLine) {
-    try {
-      const newGarden = await Garden.factory(garden.projectRoot, garden.opts)
-      const configDump = await garden.dumpConfig({ log })
-
-      this.garden = newGarden
-      commandLine.update(newGarden, configDump)
-      this.server?.setGarden(newGarden)
-
-      commandLine.flashSuccess(`Project successfully reloaded!`)
-    } catch (error) {
-      log.error(`Failed reloading the project: ${error}`)
-      commandLine.flashError(`Failed reloading the project. See above logs for details.`)
-    } finally {
-      commandLine.enable()
-    }
-  }
-
-  private async initCommandHandler(params: ActionParams, writer: InkTerminalWriter) {
+  private async initCommandHandler(params: ActionParams) {
     const _this = this
     const { garden, log, opts } = params
 
-    // TODO: This crashes the process if it fails.
-    const configDump = await garden.dumpConfig({ log })
-
-    const builtinCommands = getBuiltinCommands()
-    const customCommands = await getCustomCommands(garden.projectRoot)
+    // Custom commands are loaded later, along with the project config
+    const commands = getBuiltinCommands()
 
     /**
      * Help/utility commands
      */
-    const cl = new CommandLine({
+    const cl = (this.commandLine = new CommandLine({
       garden,
       log,
-      commands: [
-        ...builtinCommands,
-        ...customCommands,
-        new HelpCommand(),
-        new QuitCommand(quit),
-        new QuietCommand(),
-        new QuiteCommand(),
-        new ReloadCommand(this),
-        new LogLevelCommand(writer),
-      ],
-      configDump,
+      commands: [...commands, new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
+      configDump: undefined, // This gets loaded later
       globalOpts: pick(opts, Object.keys(globalOptions)),
-    })
+    }))
 
     function quit() {
       cl?.disable("Thanks for stopping by, love you! ❤️")
@@ -220,50 +189,6 @@ class QuiteCommand extends InteractiveCommand {
 
   async action({ commandLine }: CommandParams) {
     commandLine?.flashMessage(chalk.italic("Indeed!"), { prefix: "🎩  " })
-    return {}
-  }
-}
-
-class ReloadCommand extends InteractiveCommand {
-  name = "reload"
-  help = "Reload the project and action/module configuration."
-
-  constructor(private devCommand: DevCommand) {
-    super()
-  }
-
-  async action({ garden, log, commandLine }: CommandParams) {
-    commandLine!.disable("Reloading project...")
-    await this.devCommand.reload(log, garden, commandLine!)
-    return {}
-  }
-}
-
-const logLevelArguments = {
-  level: new ChoicesParameter({
-    choices: getLogLevelChoices(),
-    help: "The log level to set",
-    required: true,
-  }),
-}
-
-type LogLevelArguments = typeof logLevelArguments
-
-class LogLevelCommand extends InteractiveCommand<LogLevelArguments> {
-  name = "log-level"
-  help = "Change the maximum log level of (future) logs"
-
-  arguments = logLevelArguments
-
-  constructor(private writer: InkTerminalWriter) {
-    super()
-  }
-
-  async action({ commandLine, args }: CommandParams<LogLevelArguments>) {
-    // TODO: validate arg outside
-    const level = args.level
-    commandLine?.flashMessage(`Log level set to ${level}`)
-    this.writer.level = (level as unknown) as LogLevel
     return {}
   }
 }

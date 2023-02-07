@@ -13,10 +13,13 @@ import { CoreEventStream } from "../../../../src/server/core-event-stream"
 import pEvent from "p-event"
 import { GardenProcess } from "../../../../src/config-store/global"
 import process from "process"
+import { ServeCommand } from "../../../../src/commands/serve"
 
 describe("CoreEventStream", () => {
   let streamer: CoreEventStream
   let garden: TestGarden
+
+  const command = new ServeCommand()
 
   beforeEach(async () => {
     garden = await makeTestGardenA()
@@ -34,8 +37,8 @@ describe("CoreEventStream", () => {
     const serverEventBusA = new TestEventBus()
     const serverEventBusB = new TestEventBus()
 
-    const serverA = new GardenServer({ log: garden.log })
-    const serverB = new GardenServer({ log: garden.log })
+    const serverA = new GardenServer({ log: garden.log, command })
+    const serverB = new GardenServer({ log: garden.log, command })
 
     serverA["incomingEvents"] = serverEventBusA
     serverB["incomingEvents"] = serverEventBusB
@@ -43,8 +46,8 @@ describe("CoreEventStream", () => {
     await serverA.start()
     await serverB.start()
 
-    serverA.setGarden(garden)
-    serverB.setGarden(garden)
+    await serverA.setGarden(garden)
+    await serverB.setGarden(garden)
 
     streamer = new CoreEventStream({
       log: garden.log,
