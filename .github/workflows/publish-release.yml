@@ -44,7 +44,7 @@ jobs:
   release-homebrew:
     uses: ./.github/workflows/reusable-create-homebrew-pr.yml
     with:
-      release-condition: ${{ github.event.release.prerelease == true }}
+      release-condition: ${{ github.event.release.prerelease != true }}
       release-version: ${{ github.event.release.tag_name }}
       commit-message: |
         Bump {{formulaName}} to {{version}}.
