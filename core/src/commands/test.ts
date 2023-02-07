@@ -19,7 +19,6 @@ import { TestTask } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { dedent, deline } from "../util/string"
-import { isTestAction } from "../actions/test"
 import { ParameterError } from "../exceptions"
 import { watchParameter, watchRemovedWarning } from "./helpers"
 

@@ -425,6 +425,8 @@ describe("cli", () => {
         name = "test-command"
         help = "halp!"
 
+        server: GardenServer
+
         async prepare({ footerLog }: PrepareParams) {
           this.server = await startServer({ log: footerLog })
         }
@@ -514,6 +516,8 @@ describe("cli", () => {
       class TestCommand extends Command {
         name = "test-command"
         help = "halp!"
+
+        server: GardenServer
 
         async prepare({ footerLog }: PrepareParams) {
           this.server = await startServer({ log: footerLog })

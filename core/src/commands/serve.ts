@@ -8,12 +8,11 @@
 
 import { PrepareParams } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
-import { startServer } from "../server/server"
+import { GardenServer, startServer } from "../server/server"
 import { Parameters, IntegerParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import { Garden } from "../garden"
 import { dedent } from "../util/string"
-import chalk from "chalk"
 
 export const defaultServerPort = 9700
 
@@ -41,6 +40,8 @@ export class ServeCommand<
   cliOnly = true
   streamEvents = true
   hidden = true
+
+  public server?: GardenServer
   protected garden?: Garden
 
   description = dedent`

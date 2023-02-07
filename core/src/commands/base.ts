@@ -90,7 +90,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   protected: boolean = false
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
-  server: GardenServer | undefined = undefined
   isCustom: boolean = false // Used to identify custom commands
   isInteractive: boolean = false // Set to true for internal commands in interactive command-line commands
 

@@ -66,6 +66,7 @@ import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess } from "../process"
+import { ServeCommand } from "../commands/serve"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments: EnvironmentConfig[] = gardenOpts.environmentName
@@ -350,6 +351,8 @@ ${renderCommands(commands)}
 
     await command.prepare(prepareParams)
 
+    const server = command instanceof ServeCommand ? command.server : undefined
+
     contextOpts.persistent = persistent
     const { streamEvents, streamLogEntries } = command
     // Print header log before we know the namespace to prevent content from
@@ -382,8 +385,8 @@ ${renderCommands(commands)}
               command: command.name,
               sessionId: garden.sessionId,
               persistent,
-              serverHost: command.server?.port ? `http://localhost:${command.server.port}` : null,
-              serverAuthKey: command.server?.authKey || null,
+              serverHost: server?.port ? `http://localhost:${server?.port}` : null,
+              serverAuthKey: server?.authKey || null,
               projectRoot: garden.projectRoot,
               projectName: garden.projectName,
               environmentName: garden.environmentName,
@@ -392,7 +395,7 @@ ${renderCommands(commands)}
           }
 
           // Connect the core server event streamer (making sure it doesn't stream to the local server)
-          const commandServerUrl = command.server?.getBaseUrl() || undefined
+          const commandServerUrl = server?.getBaseUrl() || undefined
           coreEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
           await coreEventStream.updateTargets()
 
@@ -403,7 +406,7 @@ ${renderCommands(commands)}
             await cloudApi.registerSession({
               sessionId,
               commandInfo,
-              localServerPort: command.server?.port,
+              localServerPort: server?.port,
               environment: garden.environmentName,
               namespace: garden.namespace,
             })
@@ -520,7 +523,7 @@ ${renderCommands(commands)}
       } finally {
         if (!result.restartRequired) {
           await coreEventStream.close()
-          await command.server?.close()
+          await server?.close()
           cloudApi?.close()
         }
       }
