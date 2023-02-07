@@ -9,7 +9,9 @@
 import chalk from "chalk"
 import indentString from "indent-string"
 import { Key } from "ink"
+import { max } from "lodash"
 import sliceAnsi from "slice-ansi"
+import stringWidth from "string-width"
 import { Command, CommandGroup, CommandResult } from "../commands/base"
 import { getCustomCommands } from "../commands/custom"
 import { ConfigDump, Garden } from "../garden"
@@ -322,8 +324,8 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     if (renderedCommand.length === 0) {
       if (this.showCursor) {
-        renderedCommand = chalk.underline(sliceAnsi(emptyCommandLinePlaceholder, 0, 1))
-          + sliceAnsi(emptyCommandLinePlaceholder, 1)
+        renderedCommand =
+          chalk.underline(sliceAnsi(emptyCommandLinePlaceholder, 0, 1)) + sliceAnsi(emptyCommandLinePlaceholder, 1)
       } else {
         renderedCommand = emptyCommandLinePlaceholder
       }
@@ -351,26 +353,34 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.renderCommandLine()
   }
 
+  getTermWidth() {
+    // TODO: accept stdout in constructor
+    return process.stdout?.columns || 100
+  }
+
   showHelp() {
     // TODO: group commands by category?
-    const width = (process.stdout?.columns || 100) - 8
     const renderedCommands = renderCommands(
       this.commands.filter((c) => !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName())))
     )
 
+    const width = max(renderedCommands.split("\n").map((l) => stringWidth(l.trimEnd())))
+    const char = "┈"
+    const color = chalk.bold
+
     const helpText = `
-${renderDivider({ title: chalk.bold("help"), width })}
-${chalk.white.bold("Available commands:")}
+${renderDivider({ title: chalk.bold("help"), width, char, color })}
+${chalk.white.underline("Available commands:")}
 
 ${renderedCommands}
 
-${chalk.white.bold("Keys:")}
+${chalk.white.underline("Keys:")}
 
   ${chalk.gray(`[tab]: auto-complete  [up/down]: command history  [ctrl-d]: quit`)}
-${renderDivider({ width })}
+${renderDivider({ width, char, color })}
 `
 
-    this.log.info(indentString(helpText, 2, { indent: " " }))
+    this.log.info(helpText)
   }
 
   /**
@@ -440,9 +450,13 @@ ${renderDivider({ width })}
         warnOnGlobalOpts: true,
       })
 
+      const width = this.getTermWidth()
+
       // Execute the command
       if (!command.isInteractive) {
-        this.flashMessage(`Running ${chalk.white.bold(command.getFullName())}...`)
+        const msg = `Running ${chalk.white.bold(command.getFullName())}...`
+        this.flashMessage(msg)
+        this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
       }
       const failMessage = `Failed running the ${command.getFullName()} command. Please see above for the logs.`
 
@@ -459,12 +473,18 @@ ${renderDivider({ width })}
         .then((output: CommandResult) => {
           if (output.errors?.length) {
             renderCommandErrors(this.log.root, output.errors, this.log)
+            this.log.error({ msg: renderDivider({ width, color: chalk.red }) })
             this.flashError(failMessage)
           } else if (!command.isInteractive) {
-            this.flashSuccess(`${chalk.whiteBright(command.getFullName())} command completed successfully!`)
+            const msg = `${chalk.whiteBright(command.getFullName())} command completed successfully!`
+            this.flashSuccess(msg)
+            this.log.info({
+              msg: renderDivider({ width, title: chalk.green("✓ ") + msg, color: chalk.blueBright, char: "┈" }),
+            })
           }
         })
         .catch(() => {
+          this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
           this.flashError(failMessage)
         })
     } else {

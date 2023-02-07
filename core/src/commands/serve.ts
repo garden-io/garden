@@ -118,7 +118,7 @@ export class ServeCommand<
   }
 
   async reload(log: LogEntry, garden: Garden) {
-    this.commandLine?.disable("Loading Garden project...")
+    this.commandLine?.disable("🌸  Loading Garden project...")
 
     try {
       const newGarden = await Garden.factory(garden.projectRoot, garden.opts)
