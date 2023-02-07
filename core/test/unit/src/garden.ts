@@ -26,6 +26,7 @@ import {
   resetLocalConfig,
   testGitUrl,
   expectFuzzyMatch,
+  createProjectConfig,
 } from "../../helpers"
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store/local"
@@ -68,17 +69,11 @@ describe("Garden", () => {
 
     await execa("git", ["init", "--initial-branch=main"], { cwd: pathFoo })
 
-    projectConfigFoo = {
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
+    projectConfigFoo = createProjectConfig({
       name: "test",
       path: pathFoo,
-      defaultEnvironment: "default",
-      dotIgnoreFile: defaultDotIgnoreFile,
-      environments: [{ name: "default", defaultNamespace, variables: {} }],
       providers: [{ name: "foo" }],
-      variables: {},
-    }
+    })
   })
 
   after(async () => {
@@ -249,35 +244,25 @@ describe("Garden", () => {
     })
 
     it("should throw if project.environments is an empty array", async () => {
-      const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
+      const config: ProjectConfig = createProjectConfig({
         name: "test",
         path: pathFoo,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [], // <--
         providers: [{ name: "foo" }],
-        variables: {},
-      }
+      })
+      config.environments = [] // <--
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
         contains: "Error validating project environments: value must contain at least 1 items",
       })
     })
 
     it("should throw if project.environments is not set", async () => {
-      let config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
+      let config: ProjectConfig = createProjectConfig({
         name: "test",
         path: pathFoo,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [], // this is omited later to simulate a config where envs are not set
+        environments: [],
         providers: [{ name: "foo" }],
-        variables: {},
-      }
-
+      })
+      config.environments = [] // this is omitted later to simulate a config where envs are not set
       config = (omit(config, "environments") as any) as ProjectConfig
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
         contains: "Error validating project environments: value is required",
@@ -375,18 +360,12 @@ describe("Garden", () => {
     })
 
     it("should set the namespace attribute to the defaultNamespace, if applicable", async () => {
-      const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
+      const config: ProjectConfig = createProjectConfig({
         name: "test",
         path: pathFoo,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
-        variables: {},
-      }
-
+      })
       const garden = await TestGarden.factory(pathFoo, { config, environmentName: "default" })
 
       expect(garden.environmentName).to.equal("default")
@@ -394,18 +373,12 @@ describe("Garden", () => {
     })
 
     it("should throw if a namespace is not specified and the specified environment requires namespacing", async () => {
-      const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
+      const config: ProjectConfig = createProjectConfig({
         name: "test",
         path: pathFoo,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace: null, variables: {} }],
         providers: [{ name: "foo" }],
-        variables: {},
-      }
-
+      })
       await expectError(() => TestGarden.factory(pathFoo, { config, environmentName: "default" }), {
         contains:
           "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
@@ -413,18 +386,13 @@ describe("Garden", () => {
     })
 
     it("should optionally override project variables", async () => {
-      const config: ProjectConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        kind: "Project",
+      const config: ProjectConfig = createProjectConfig({
         name: "test",
         path: pathFoo,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
         providers: [{ name: "foo" }],
         variables: { foo: "default", bar: "something" },
-      }
-
+      })
       const garden = await TestGarden.factory(pathFoo, {
         config,
         environmentName: "default",
@@ -1483,17 +1451,11 @@ describe("Garden", () => {
   describe("resolveProviders", () => {
     it("should throw when plugins are missing", async () => {
       const garden = await TestGarden.factory(pathFoo, {
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test-plugin" }],
-          variables: {},
-        },
+        }),
       })
 
       await expectError(() => garden.resolveProviders(garden.log), {
@@ -1533,17 +1495,11 @@ describe("Garden", () => {
     })
 
     it("should call a configureProvider handler if applicable", async () => {
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: pathFoo,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "bar" }],
-        variables: {},
-      }
+      })
 
       const test = createGardenPlugin({
         name: "test",
@@ -1580,17 +1536,11 @@ describe("Garden", () => {
         name: "test",
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "${bla.ble}" }],
-        variables: {},
-      }
+      })
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(
@@ -1610,18 +1560,11 @@ describe("Garden", () => {
         name: "test",
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "${providers.foo.config.bla}" }],
-        variables: {},
-      }
-
+      })
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
       await expectError(() => garden.resolveProviders(garden.log))
     })
@@ -1659,17 +1602,11 @@ describe("Garden", () => {
         ],
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: "bar" }],
-        variables: {},
-      }
+      })
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
 
@@ -1688,17 +1625,11 @@ describe("Garden", () => {
         dependencies: [{ name: "test-a" }],
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }],
-        variables: {},
-      }
+      })
 
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -1714,17 +1645,11 @@ describe("Garden", () => {
         dependencies: [{ name: "test-a" }],
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }],
-        variables: {},
-      }
+      })
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [testA] })
 
@@ -1741,20 +1666,14 @@ describe("Garden", () => {
         name: "test-b",
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [
           { name: "test-a", foo: "${providers.test-b.outputs.foo}" },
           { name: "test-b", foo: "${providers.test-a.outputs.foo}" },
         ],
-        variables: {},
-      }
+      })
 
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -1776,20 +1695,14 @@ describe("Garden", () => {
         name: "test-b",
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [
           { name: "test-a", foo: "${providers.test-b.outputs.foo}" },
           { name: "test-b", dependencies: ["test-a"] },
         ],
-        variables: {},
-      }
+      })
 
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -1813,17 +1726,11 @@ describe("Garden", () => {
         dependencies: [{ name: "test-a" }],
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a", foo: "${providers.test-b.outputs.foo}" }, { name: "test-b" }],
-        variables: {},
-      }
+      })
 
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -1845,17 +1752,11 @@ describe("Garden", () => {
         }),
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
-        variables: {},
-      }
+      })
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
       const providers = keyBy(await garden.resolveProviders(garden.log), "name")
@@ -1872,17 +1773,11 @@ describe("Garden", () => {
         }),
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test", foo: 123 }],
-        variables: {},
-      }
+      })
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
 
@@ -1908,17 +1803,11 @@ describe("Garden", () => {
         },
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test" }],
-        variables: {},
-      }
+      })
 
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
 
@@ -1948,17 +1837,11 @@ describe("Garden", () => {
         name: "test-b",
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b", foo: "${providers.test-a.outputs.foo}" }],
-        variables: {},
-      }
+      })
 
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -1985,13 +1868,10 @@ describe("Garden", () => {
         name: "test-b",
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
         defaultEnvironment: "dev",
-        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [
           { name: "dev", defaultNamespace, variables: {} },
           { name: "prod", defaultNamespace, variables: {} },
@@ -2000,8 +1880,7 @@ describe("Garden", () => {
           { name: "test-a", environments: ["prod"] },
           { name: "test-b", foo: "${providers.test-a.outputs.foo || 'default'}" },
         ],
-        variables: {},
-      }
+      })
 
       const plugins = [testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -2016,17 +1895,12 @@ describe("Garden", () => {
         name: "test-a",
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
         environments: [{ name: "default", defaultNamespace, variables: { "my-variable": "bar" } }],
         providers: [{ name: "test-a", foo: "${var.my-variable}" }],
-        variables: {},
-      }
+      })
 
       const plugins = [testA]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -2059,17 +1933,11 @@ describe("Garden", () => {
         dependencies: [{ name: "base-a" }],
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }],
-        variables: {},
-      }
+      })
 
       const plugins = [baseA, testA, testB]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -2109,17 +1977,11 @@ describe("Garden", () => {
         dependencies: [{ name: "base-a" }],
       })
 
-      const projectConfig: ProjectConfig = {
-        apiVersion: "garden.io/v0",
-        kind: "Project",
+      const projectConfig: ProjectConfig = createProjectConfig({
         name: "test",
         path: projectRootA,
-        defaultEnvironment: "default",
-        dotIgnoreFile: defaultDotIgnoreFile,
-        environments: [{ name: "default", defaultNamespace, variables: {} }],
         providers: [{ name: "test-a" }, { name: "test-b" }, { name: "test-c" }],
-        variables: {},
-      }
+      })
 
       const plugins = [baseA, testA, testB, testC]
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins })
@@ -2145,17 +2007,11 @@ describe("Garden", () => {
           base: "base",
         })
 
-        const projectConfig: ProjectConfig = {
-          apiVersion: "garden.io/v0",
-          kind: "Project",
+        const projectConfig: ProjectConfig = createProjectConfig({
           name: "test",
           path: projectRootA,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test", foo: 123 }],
-          variables: {},
-        }
+        })
 
         const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [base, test] })
 
@@ -2190,17 +2046,11 @@ describe("Garden", () => {
           },
         })
 
-        const projectConfig: ProjectConfig = {
-          apiVersion: "garden.io/v0",
-          kind: "Project",
+        const projectConfig: ProjectConfig = createProjectConfig({
           name: "test",
           path: projectRootA,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
-          variables: {},
-        }
+        })
 
         const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [base, test] })
 
@@ -2223,13 +2073,9 @@ describe("Garden", () => {
       const remoteTag = "feature-branch"
       process.env.TEST_ENV_VAR = "foo"
       const garden = await TestGarden.factory(pathFoo, {
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { remoteTag } }],
           providers: [{ name: "test-plugin" }],
           variables: { sourceName: "${local.env.TEST_ENV_VAR}" },
@@ -2239,7 +2085,7 @@ describe("Garden", () => {
               repositoryUrl: "git://github.com/foo/bar.git#${var.remoteTag}",
             },
           ],
-        },
+        }),
       })
 
       const sources = garden.getProjectSources()
@@ -2253,13 +2099,9 @@ describe("Garden", () => {
       const remoteTag = "feature-branch"
       process.env.TEST_ENV_VAR = "foo"
       const garden = await TestGarden.factory(pathFoo, {
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { remoteTag } }],
           providers: [{ name: "test-plugin" }],
           variables: { sourceName: 123 },
@@ -2269,7 +2111,7 @@ describe("Garden", () => {
               repositoryUrl: "git://github.com/foo/bar.git#${var.remoteTag}",
             },
           ],
-        },
+        }),
       })
 
       expectError(() => garden.getProjectSources(), {
@@ -2644,17 +2486,12 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         plugins: [test],
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { some: { nested: { key: "my value" } } } }],
           providers: [{ name: "test" }],
-          variables: {},
-        },
+        }),
       })
 
       garden.setActionConfigs([
@@ -2696,17 +2533,12 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         plugins: [test],
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { some: { nested: { key: "my value" } } } }],
           providers: [{ name: "test" }],
-          variables: {},
-        },
+        }),
       })
 
       garden.setActionConfigs([
@@ -2748,17 +2580,11 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         plugins: [test],
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
-          variables: {},
-        },
+        }),
       })
 
       garden.setActionConfigs([
@@ -2800,17 +2626,11 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         plugins: [test],
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
-          variables: {},
-        },
+        }),
       })
 
       garden.setActionConfigs([
@@ -2852,17 +2672,12 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         plugins: [test],
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
           environments: [{ name: "default", defaultNamespace, variables: { obj: { b: "B", c: "c" } } }],
           providers: [{ name: "test" }],
-          variables: {},
-        },
+        }),
       })
 
       garden.setActionConfigs([
@@ -2916,17 +2731,11 @@ describe("Garden", () => {
 
       const garden = await TestGarden.factory(pathFoo, {
         plugins: [test],
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test" }],
-          variables: {},
-        },
+        }),
       })
 
       garden.setActionConfigs([
@@ -2992,17 +2801,12 @@ describe("Garden", () => {
         garden = await TestGarden.factory(pathFoo, {
           noCache: true,
           plugins: [test],
-          config: {
-            apiVersion: DEFAULT_API_VERSION,
-            kind: "Project",
+          config: createProjectConfig({
             name: "test",
             path: pathFoo,
-            defaultEnvironment: "default",
-            dotIgnoreFile: defaultDotIgnoreFile,
             environments: [{ name: "default", defaultNamespace, variables: { some: "variable" } }],
             providers: [{ name: "test" }],
-            variables: {},
-          },
+          }),
         })
       })
 
@@ -3325,17 +3129,11 @@ describe("Garden", () => {
     it("resolves and writes a module file in a remote module", async () => {
       const garden = await makeTestGarden(pathFoo, {
         noTempDir: true,
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test-plugin" }],
-          variables: {},
-        },
+        }),
       })
 
       const sourcePath = randomString(8) + ".log"
@@ -3390,17 +3188,11 @@ describe("Garden", () => {
     it("resolves and writes a module file in a linked remote module", async () => {
       const garden = await makeTestGarden(pathFoo, {
         noTempDir: true,
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [{ name: "test-plugin" }],
-          variables: {},
-        },
+        }),
       })
 
       const sourcePath = randomString(8) + ".log"
@@ -3484,18 +3276,12 @@ describe("Garden", () => {
 
         const garden = await makeTestGarden(pathFoo, {
           noTempDir: true,
-          config: {
-            apiVersion: DEFAULT_API_VERSION,
-            kind: "Project",
+          config: createProjectConfig({
             name: "test",
             path: pathFoo,
-            defaultEnvironment: "default",
-            dotIgnoreFile: defaultDotIgnoreFile,
-            environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
             sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
-            variables: {},
-          },
+          }),
         })
 
         const module = await garden.resolveModule("module-a")
@@ -3541,18 +3327,12 @@ describe("Garden", () => {
 
         const garden = await makeTestGarden(pathFoo, {
           noTempDir: true,
-          config: {
-            apiVersion: DEFAULT_API_VERSION,
-            kind: "Project",
+          config: createProjectConfig({
             name: "test",
             path: pathFoo,
-            defaultEnvironment: "default",
-            dotIgnoreFile: defaultDotIgnoreFile,
-            environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
             sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
-            variables: {},
-          },
+          }),
         })
 
         await addLinkedSources({
@@ -3683,17 +3463,11 @@ describe("Garden", () => {
   describe("getConfigGraph", () => {
     it("should throw an error if modules have circular build dependencies", async () => {
       const garden = await TestGarden.factory(pathFoo, {
-        config: {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Project",
+        config: createProjectConfig({
           name: "test",
           path: pathFoo,
-          defaultEnvironment: "default",
-          dotIgnoreFile: defaultDotIgnoreFile,
-          environments: [{ name: "default", defaultNamespace, variables: {} }],
           providers: [],
-          variables: {},
-        },
+        }),
       })
 
       garden.setActionConfigs([
