@@ -1797,6 +1797,24 @@ describe("getActionTemplateReferences", () => {
       })
     })
 
+    it("throws if runtime kind is not a string", () => {
+      const config = {
+        foo: "${runtime[123]}",
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid runtime reference (kind is not a string)",
+      })
+    })
+
+    it("throws if runtime kind is not resolvable", () => {
+      const config = {
+        foo: "${runtime[foo.bar].some-name}",
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid runtime reference (invalid kind '${foo.bar}')",
+      })
+    })
+
     it("throws if runtime ref has no name", () => {
       const config = {
         foo: '${runtime["tasks"]}',
