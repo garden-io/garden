@@ -1710,101 +1710,105 @@ describe("collectTemplateReferences", () => {
 })
 
 describe("getActionTemplateReferences", () => {
-  it("returns valid action references", () => {
-    throw "TODO"
-  })
+  context("action.*", () => {
+    it("returns valid action references", () => {
+      throw "TODO"
+    })
 
-  it("returns valid runtime references", () => {
-    throw "TODO"
-  })
+    it("throws if action ref has no kind", () => {
+      const config = {
+        foo: "${action}",
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid action reference (missing kind)",
+      })
+    })
 
-  it("throws if action ref has no kind", () => {
-    const config = {
-      foo: "${action}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid action reference (missing kind)",
+    it("throws if action ref has invalid kind", () => {
+      const config = {
+        foo: '${action["badkind"].some-name}',
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid action reference (invalid kind 'badkind')",
+      })
+    })
+
+    it("throws if action kind is not a string", () => {
+      const config = {
+        foo: "${action[123]}",
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid action reference (kind is not a string)",
+      })
+    })
+
+    it("throws if action kind is not resolvable", () => {
+      const config = {
+        foo: "${action[foo.bar].some-name}",
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid action reference (invalid kind '${foo.bar}')",
+      })
+    })
+
+    it("throws if action ref has no name", () => {
+      const config = {
+        foo: '${action["build"]}',
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid action reference (missing name)",
+      })
+    })
+
+    it("throws if action name is not a string", () => {
+      const config = {
+        foo: '${action["build"].123}',
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid action reference (name is not a string)",
+      })
+    })
+
+    it("throws if action name is not resolvable", () => {
+      throw "TODO"
     })
   })
 
-  it("throws if action ref has invalid kind", () => {
-    const config = {
-      foo: "${action[\"badkind\"].some-name}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid action reference (invalid kind 'badkind')",
+  context("runtime.*", () => {
+    it("returns valid runtime references", () => {
+      throw "TODO"
     })
-  })
 
-  it("throws if action kind is not a string", () => {
-    const config = {
-      foo: "${action[123]}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid action reference (kind is not a string)",
+    it("throws if runtime ref has invalid kind", () => {
+      const config = {
+        foo: '${runtime["badkind"].some-name}',
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid runtime reference (invalid kind 'badkind')",
+      })
     })
-  })
 
-  it("throws if action ref has no name", () => {
-    const config = {
-      foo: "${action[\"build\"]}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid action reference (missing name)",
+    it("throws if runtime ref has no name", () => {
+      const config = {
+        foo: '${runtime["tasks"]}',
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid runtime reference (missing name)",
+      })
     })
-  })
 
-  it("throws if action name is not a string", () => {
-    const config = {
-      foo: "${action[\"build\"].123}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid action reference (name is not a string)",
+    it("throws if runtime ref name is not a string", () => {
+      const config = {
+        foo: '${runtime["tasks"].123}',
+      }
+      expectError(() => getActionTemplateReferences(config), {
+        contains: "Found invalid runtime reference (name is not a string)",
+      })
     })
-  })
 
-  it("throws if runtime ref has invalid kind", () => {
-    const config = {
-      foo: "${runtime[\"badkind\"].some-name}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid runtime reference (invalid kind 'badkind')",
+    it("throws if runtime ref name is not resolvable", () => {
+      throw "TODO"
     })
-  })
-
-  it("throws if runtime ref has no name", () => {
-    const config = {
-      foo: "${runtime[\"tasks\"]}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid runtime reference (missing name)",
-    })
-  })
-
-  it("throws if runtime ref name is not a string", () => {
-    const config = {
-      foo: "${runtime[\"tasks\"].123}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid runtime reference (name is not a string)",
-    })
-  })
-
-  it("throws if action kind is not resolvable", () => {
-    const config = {
-      foo: "${action[foo.bar].some-name}",
-    }
-    expectError(() => getActionTemplateReferences(config), {
-      contains: "Found invalid action reference (invalid kind '${foo.bar}')",
-    })
-  })
-
-  it("throws if action name is not resolvable", () => {
-    throw "TODO"
-  })
-
-  it("throws if runtime dep name is not resolvable", () => {
-    throw "TODO"
   })
 })
 
