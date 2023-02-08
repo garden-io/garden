@@ -8,7 +8,7 @@
 
 import { Command, CommandResult, CommandParams } from "../base"
 import { ConfigDump } from "../../garden"
-import { environmentNameSchema } from "../../config/project"
+import { environmentNameSchema, projectSourceSchema } from "../../config/project"
 import { joiIdentifier, joiVariables, joiArray, joi, joiStringMap } from "../../config/common"
 import { providerConfigBaseSchema, providerSchema } from "../../config/provider"
 import { moduleConfigSchema } from "../../config/module"
@@ -65,6 +65,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       projectRoot: joi.string().description("The local path to the project root."),
       projectId: joi.string().optional().description("The project ID (Garden Cloud only)."),
       domain: joi.string().optional().description("The Garden Cloud domain (Garden Cloud only)."),
+      sources: joi.array().items(projectSourceSchema()).description("All configured external project sources."),
     })
 
   options = getConfigOptions
