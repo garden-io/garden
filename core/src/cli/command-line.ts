@@ -505,6 +505,22 @@ ${renderDivider({ width, char, color })}
       commandLine: this,
     }
 
+    const name = command.getFullName()
+
+    if (command.isPersistent(params)) {
+      if ((name === "test" || name === "run") && opts["interactive"]) {
+        // Specific error for interactive commands
+        this.flashError(`Commands cannot be run in interactive mode in the dev console. Please run those separately.`)
+      } else if (name === "dev") {
+        this.flashError(`Nice try :)`)
+      } else if (name === "logs") {
+        this.flashError(`Logs cannot currently be followed in the dev console. Please use a separate sheterminalll.`)
+      } else {
+        this.flashError(`This command cannot be run in the dev console. Please run it in a separate terminal.`)
+      }
+      return
+    }
+
     // Execute the command
     if (!command.isInteractive) {
       const msg = `Running ${chalk.white.bold(command.getFullName())}...`
