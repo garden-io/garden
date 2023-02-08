@@ -35,8 +35,6 @@ providers:
   - <<: *base
     environments: [kaniko-project-namespace]
     buildMode: kaniko
-    kaniko:
-      namespace: null
   - <<: *base
     environments: [kaniko-image-override]
     buildMode: kaniko

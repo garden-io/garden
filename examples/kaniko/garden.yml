@@ -8,8 +8,6 @@ providers:
   - name: local-kubernetes
     environments: [local]
     buildMode: kaniko
-    kaniko:
-      namespace: null # This will make the kaniko builder pod appear in the same namespace as the project
   - name: kubernetes
     environments: [remote]
     # Replace the below values as appropriate
@@ -17,8 +15,6 @@ providers:
     namespace: ${project.name}-testing-${var.userId}
     defaultHostname: ${project.name}-testing-${var.userId}.dev-1.sys.garden
     buildMode: kaniko
-    kaniko:
-      namespace: null # This will make the kaniko builder pod appear in the same namespace as the project
     deploymentRegistry:
       hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
       namespace: garden-ci   # <- set this to the project ID of the target cluster

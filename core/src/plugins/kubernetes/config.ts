@@ -540,12 +540,9 @@ export const kubernetesConfigBase = () =>
         namespace: joi
           .string()
           .allow(null)
-          .default(defaultSystemNamespace)
           .description(
             dedent`
-              Choose the namespace where the Kaniko pods will be run. Set to \`null\` to use the project namespace.
-
-              **IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace in an upcoming release!**
+              Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
             `
           ),
         nodeSelector: joiStringMap(joi.string()).description(

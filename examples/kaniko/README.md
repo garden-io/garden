@@ -16,7 +16,5 @@ providers:
   - name: local-kubernetes
     environments: [local]
     buildMode: kaniko
-    kaniko:
-      namespace: null # This will make the kaniko builder pod appear in the same namespace as the project
 ...
 ```
