@@ -80,12 +80,15 @@ Let's get your development environment wired up.
       inkWriter.setWriteCallback(write)
 
       const [line, setLine] = useState(commandLine.getBlankCommandLine())
-      const [status, _setStatus] = useState("")
+      const [status, setStatus] = useState("")
       const [message, setMessage] = useState("")
 
       // Note: Using callbacks here instead of events to make keypresses a bit more responsive
-      commandLine.setCommandLineCallback(setLine)
-      commandLine.setMessageCallback(setMessage)
+      commandLine.setCallbacks({
+        commandLine: setLine,
+        message: setMessage,
+        status: setStatus,
+      })
 
       useInput((input, key) => {
         commandLine.keyStroke(input, key)

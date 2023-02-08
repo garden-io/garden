@@ -11,19 +11,24 @@ import { Key } from "ink"
 import { keyBy, max } from "lodash"
 import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
-import { Command, CommandGroup, CommandResult } from "../commands/base"
+import { Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
 import { ConfigDump, Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
 import { TypedEventEmitter } from "../util/events"
+import { uuidv4 } from "../util/util"
 import { Autocompleter, AutocompleteSuggestion } from "./autocomplete"
 import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
 import { GlobalOptions, ParameterValues } from "./params"
 
-const defaultMessageDuration = 3000
+const defaultMessageDuration = 2000
 const commandLinePrefix = chalk.yellow("🌼  > ")
 const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
 const inputChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789- _*!@$%&/="
+
+const styles = {
+  command: chalk.white.bold,
+}
 
 export type SetStringCallback = (data: string) => void
 
@@ -58,10 +63,12 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private autocompletingFrom: number
   private commandHistory: string[]
   private showCursor: boolean
+  private runningCommands: { [id: string]: { command: Command; params: CommandParams } }
 
   private keyHandlers: { [key: string]: KeyHandler }
 
   private commandLineCallback: SetStringCallback
+  private statusCallback: SetStringCallback
   private messageCallback: SetStringCallback
   private messageTimeout: NodeJS.Timeout
 
@@ -99,10 +106,13 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.autocompletingFrom = -1
     this.commandHistory = []
     this.showCursor = true
+    this.runningCommands = {}
 
     // This does nothing until a callback is supplied from outside
     this.commandLineCallback = () => {}
     this.messageCallback = () => {}
+    this.statusCallback = () => {}
+
     this.keyHandlers = {}
 
     this.autocompleter = new Autocompleter({ log, commands, configDump, debug: true })
@@ -124,12 +134,18 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.autocompleter = new Autocompleter({ log: this.log, commands: this.commands, configDump, debug: true })
   }
 
-  setCommandLineCallback(cb: SetStringCallback) {
-    this.commandLineCallback = cb
-  }
-
-  setMessageCallback(cb: SetStringCallback) {
-    this.messageCallback = cb
+  setCallbacks({
+    commandLine,
+    message,
+    status,
+  }: {
+    commandLine: SetStringCallback
+    message: SetStringCallback
+    status: SetStringCallback
+  }) {
+    this.commandLineCallback = commandLine
+    this.messageCallback = message
+    this.statusCallback = status
   }
 
   getBlankCommandLine() {
@@ -348,6 +364,23 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.setCommandLine(commandLinePrefix + renderedCommand)
   }
 
+  renderStatus() {
+    let status = ""
+
+    const runningCommands = Object.values(this.runningCommands)
+
+    // TODO: show spinner here
+    if (runningCommands.length === 1) {
+      status = chalk.cyan(`🕙  Running ${styles.command(runningCommands[0].command.getFullName())} command...`)
+    } else if (runningCommands.length > 1) {
+      status =
+        chalk.cyan(`🕙  Running ${runningCommands.length} commands: `) +
+        styles.command(runningCommands.map((c) => c.command.getFullName()).join(", "))
+    }
+
+    this.statusCallback(status)
+  }
+
   disable(message: string) {
     this.enabled = false
     this.setCommandLine(message)
@@ -432,69 +465,79 @@ ${renderDivider({ width, char, color })}
     const rawArgs = this.currentCommand.split(" ")
     const { command, rest, matchedPath } = pickCommand(this.commands, rawArgs)
 
-    if (command) {
-      // Push the command to the top of the history
-      this.commandHistory = [...this.commandHistory.filter((cmd) => cmd !== this.currentCommand), this.currentCommand]
-      this.historyIndex = this.commandHistory.length
-
-      // Update command line
-      this.currentCommand = ""
-      this.moveCursor(0)
-      this.renderCommandLine()
-
-      // Prepare args and opts
-      const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
-      const { args, opts } = processCliArgs({
-        log: this.log,
-        rawArgs,
-        parsedArgs,
-        command,
-        matchedPath,
-        cli: false,
-        inheritedOpts: this.globalOpts,
-        warnOnGlobalOpts: true,
-      })
-
-      const width = this.getTermWidth()
-
-      // Execute the command
-      if (!command.isInteractive) {
-        const msg = `Running ${chalk.white.bold(command.getFullName())}...`
-        this.flashMessage(msg)
-        this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
-      }
-      const failMessage = `Failed running the ${command.getFullName()} command. Please see above for the logs.`
-
-      command
-        .action({
-          garden: this.garden,
-          log: this.log,
-          headerLog: this.log,
-          footerLog: this.log,
-          args,
-          opts,
-          commandLine: this,
-        })
-        .then((output: CommandResult) => {
-          if (output.errors?.length) {
-            renderCommandErrors(this.log.root, output.errors, this.log)
-            this.log.error({ msg: renderDivider({ width, color: chalk.red }) })
-            this.flashError(failMessage)
-          } else if (!command.isInteractive) {
-            const msg = `${chalk.whiteBright(command.getFullName())} command completed successfully!`
-            this.flashSuccess(msg)
-            this.log.info({
-              msg: renderDivider({ width, title: chalk.green("✓ ") + msg, color: chalk.blueBright, char: "┈" }),
-            })
-          }
-        })
-        .catch(() => {
-          this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
-          this.flashError(failMessage)
-        })
-    } else {
+    if (!command) {
       this.flashError(`Could not find command. Try typing ${chalk.white("help")} to see the available commands.`)
+      return
     }
+
+    // Push the command to the top of the history
+    this.commandHistory = [...this.commandHistory.filter((cmd) => cmd !== this.currentCommand), this.currentCommand]
+    this.historyIndex = this.commandHistory.length
+
+    // Update command line
+    this.currentCommand = ""
+    this.moveCursor(0)
+    this.renderCommandLine()
+
+    // Prepare args and opts
+    const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
+    const { args, opts } = processCliArgs({
+      log: this.log,
+      rawArgs,
+      parsedArgs,
+      command,
+      matchedPath,
+      cli: false,
+      inheritedOpts: this.globalOpts,
+      warnOnGlobalOpts: true,
+    })
+
+    const id = uuidv4()
+    const width = this.getTermWidth()
+
+    const params = {
+      garden: this.garden,
+      log: this.log,
+      headerLog: this.log,
+      footerLog: this.log,
+      args,
+      opts,
+      commandLine: this,
+    }
+
+    // Execute the command
+    if (!command.isInteractive) {
+      const msg = `Running ${chalk.white.bold(command.getFullName())}...`
+      this.flashMessage(msg)
+      this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
+      this.runningCommands[id] = { command, params }
+      this.renderStatus()
+    }
+    const failMessage = `Failed running the ${command.getFullName()} command. Please see above for the logs.`
+
+    command
+      .action(params)
+      .then((output: CommandResult) => {
+        if (output.errors?.length) {
+          renderCommandErrors(this.log.root, output.errors, this.log)
+          this.log.error({ msg: renderDivider({ width, color: chalk.red }) })
+          this.flashError(failMessage)
+        } else if (!command.isInteractive) {
+          const msg = `${chalk.whiteBright(command.getFullName())} command completed successfully!`
+          this.flashSuccess(msg)
+          this.log.info({
+            msg: renderDivider({ width, title: chalk.green("✓ ") + msg, color: chalk.blueBright, char: "┈" }),
+          })
+        }
+      })
+      .catch(() => {
+        this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
+        this.flashError(failMessage)
+      })
+      .finally(() => {
+        delete this.runningCommands[id]
+        this.renderStatus()
+      })
   }
 
   private getSuggestions(from: number): AutocompleteSuggestion[] {
