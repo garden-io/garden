@@ -312,7 +312,7 @@ describe("exec plugin", () => {
         garden: _garden,
         graph: _graph,
         action: taskB,
-        fromWatch: false,
+
         log: _garden.log,
         force: false,
         forceBuild: false,
@@ -338,7 +338,7 @@ describe("exec plugin", () => {
         garden: _garden,
         graph: _graph,
         action: run,
-        fromWatch: false,
+
         log: _garden.log,
         force: false,
         forceBuild: false,
@@ -362,7 +362,7 @@ describe("exec plugin", () => {
         garden: _garden,
         graph: _graph,
         action: test,
-        fromWatch: false,
+
         log: _garden.log,
         force: false,
         forceBuild: false,

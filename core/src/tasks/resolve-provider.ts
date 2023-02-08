@@ -137,7 +137,6 @@ export class ResolveProviderTask extends BaseTask<Provider> {
             force: this.force,
             forceRefresh: this.forceRefresh,
             forceInit: this.forceInit,
-            fromWatch: false,
           })
         })
       })

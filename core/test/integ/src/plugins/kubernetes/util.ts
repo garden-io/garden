@@ -98,7 +98,7 @@ describe("util", () => {
         action,
         force: false,
         devModeDeployNames: [],
-        fromWatch: false,
+
         localModeDeployNames: [],
       })
     })
@@ -136,7 +136,6 @@ describe("util", () => {
           action,
           devModeDeployNames: [],
           localModeDeployNames: [],
-          fromWatch: false,
         })
 
         const resource = await createWorkloadManifest({
@@ -182,7 +181,7 @@ describe("util", () => {
           graph,
           log: garden.log,
           action,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -427,7 +426,6 @@ describe("util", () => {
           action,
           devModeDeployNames: [],
           localModeDeployNames: [],
-          fromWatch: false,
         })
 
         await helmGarden.processTasks({ tasks: [deployTask], throwOnError: true })

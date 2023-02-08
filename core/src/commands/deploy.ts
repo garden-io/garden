@@ -19,17 +19,14 @@ import {
   processCommandResultSchema,
   ProcessCommandResult,
 } from "./base"
-import { getActionWatchTasks } from "../tasks/helpers"
 import { processActions } from "../process"
 import { printHeader } from "../logger/util"
-import { BaseTask } from "../tasks/base"
-import { getMatchingDeployNames } from "./helpers"
+import { getMatchingDeployNames, watchParameter, watchRemovedWarning } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
-import { ParameterError } from "../exceptions"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -41,11 +38,7 @@ export const deployArgs = {
 export const deployOpts = {
   "force": new BooleanParameter({ help: "Force re-deploy." }),
   "force-build": new BooleanParameter({ help: "Force re-build of build dependencies." }),
-  "watch": new BooleanParameter({
-    help: "Watch for changes and auto-deploy.",
-    alias: "w",
-    cliOnly: true,
-  }),
+  "watch": watchParameter,
   "dev-mode": new StringsParameter({
     help: deline`The name(s) of the deploys to deploy with dev mode enabled.
       Use comma as a separator to specify multiple names. Use * to deploy all
@@ -75,7 +68,7 @@ export const deployOpts = {
     alias: "nodeps",
   }),
   "forward": new BooleanParameter({
-    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --watch/-w, --dev/--dev-mode or --local/--local-mode are set.`,
+    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --dev/--dev-mode or --local/--local-mode are set.`,
   }),
 }
 
@@ -102,7 +95,6 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy my-deploy            # only deploy my-deploy
         garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
         garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-        garden deploy --watch              # watch for changes to code
         garden deploy --dev=my-deploy      # deploys all deploys, with dev mode enabled for my-deploy
         garden deploy --dev                # deploys all compatible deploys with dev mode enabled
         garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
@@ -120,7 +112,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch || !!opts["dev-mode"] || !!opts["local-mode"] || !!opts.forward
+    return !!opts["dev-mode"] || !!opts["local-mode"] || !!opts.forward
   }
 
   printHeader({ headerLog }) {
@@ -146,11 +138,8 @@ export class DeployCommand extends Command<Args, Opts> {
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
     this.garden = garden
 
-    if (opts.watch && (opts["dev-mode"] || opts["local-mode"])) {
-      throw new ParameterError(
-        `The -w/--watch flag cannot currently be used at the same time as the --local or --dev mode flags. This is to avoid potentially conflicting actions happening while you're syncing code or working with local processes.`,
-        { opts }
-      )
+    if (opts.watch) {
+      await watchRemovedWarning(garden, log)
     }
 
     if (this.server) {
@@ -193,7 +182,6 @@ export class DeployCommand extends Command<Args, Opts> {
       (name) => !localModeDeployNames.includes(name)
     )
 
-    const watch = opts.watch
     const force = opts.force
 
     const initialTasks = actions.map(
@@ -205,7 +193,6 @@ export class DeployCommand extends Command<Args, Opts> {
           action,
           force,
           forceBuild: opts["force-build"],
-          fromWatch: false,
           skipRuntimeDependencies,
           localModeDeployNames,
           devModeDeployNames,
@@ -216,29 +203,8 @@ export class DeployCommand extends Command<Args, Opts> {
       garden,
       graph: initGraph,
       log,
-      footerLog,
       actions,
       initialTasks,
-      skipWatch: [
-        // TODO-G2: include skipRuntimeDependencies here
-        ...initGraph.getDeploys({ names: devModeDeployNames }),
-        ...initGraph.getDeploys({ names: localModeDeployNames }),
-      ],
-      watch,
-      changeHandler: async (graph, updatedAction) => {
-        const tasks: BaseTask[] = await getActionWatchTasks({
-          garden,
-          graph,
-          log,
-          updatedAction,
-          deploysWatched: actions.map((s) => s.name),
-          localModeDeployNames,
-          devModeDeployNames,
-          testsWatched: [],
-        })
-
-        return tasks
-      },
     })
 
     return handleProcessResults(footerLog, "deploy", results)

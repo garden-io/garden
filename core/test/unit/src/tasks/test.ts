@@ -42,7 +42,6 @@ describe("TestTask", () => {
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
 
       const res = await garden.processTasks({ tasks: [testTask], throwOnError: true })

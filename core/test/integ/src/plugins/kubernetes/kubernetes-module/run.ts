@@ -39,7 +39,7 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -82,7 +82,7 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -115,7 +115,7 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -142,7 +142,7 @@ describe("runKubernetesTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -175,7 +175,7 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -198,7 +198,7 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -222,7 +222,7 @@ describe("runKubernetesTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })

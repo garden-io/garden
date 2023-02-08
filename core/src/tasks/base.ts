@@ -37,7 +37,6 @@ interface CommonTaskParams {
   garden: Garden
   log: LogEntry
   force: boolean
-  fromWatch: boolean
   skipDependencies?: boolean
 }
 
@@ -94,7 +93,6 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   public readonly uid: string
   public readonly force: boolean
   public readonly version: string
-  public readonly fromWatch: boolean
   public readonly skipDependencies: boolean
   protected readonly executeTask: boolean = false
   interactive = false
@@ -271,7 +269,6 @@ export abstract class BaseActionTask<
       garden: this.garden,
       log: this.log,
       graph: this.graph,
-      fromWatch: this.fromWatch,
       devModeDeployNames: this.devModeDeployNames,
       localModeDeployNames: this.localModeDeployNames,
       forceActions: this.forceActions,

@@ -8,20 +8,14 @@
 
 import Bluebird from "bluebird"
 import chalk from "chalk"
-import { keyBy, flatten } from "lodash"
 
 import { BaseTask } from "./tasks/base"
 import { Garden } from "./garden"
 import { LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
-import { dedent } from "./util/string"
-import { ConfigurationError } from "./exceptions"
-import { uniqByName } from "./util/util"
 import { renderDivider } from "./logger/util"
 import { Action } from "./actions/types"
-import { actionReferenceToString } from "./actions/base"
 import { GraphResults } from "./graph/results"
-import { GardenModule } from "./types/module"
 import { GardenProcess, GlobalConfigStore } from "./config-store/global"
 
 export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
@@ -30,22 +24,7 @@ interface ProcessParams {
   garden: Garden
   graph: ConfigGraph
   log: LogEntry
-  footerLog?: LogEntry
-  watch: boolean
-  /**
-   * If provided, and if `watch === true`, will log this to the statusline when waiting for changes
-   */
-  overRideWatchStatusLine?: string
-  /**
-   * If provided, and if `watch === true`, don't watch files in the roots of these actions and modules.
-   */
-  skipWatch?: Action[]
-  skipWatchModules?: GardenModule[]
   initialTasks: BaseTask[]
-  /**
-   * Use this if the behavior should be different on watcher changes than on initial processing
-   */
-  changeHandler: ProcessHandler
 }
 
 export interface ProcessActionsParams extends ProcessParams {
@@ -57,21 +36,7 @@ export interface ProcessResults {
   restartRequired?: boolean
 }
 
-let statusLine: LogEntry
-
-export async function processActions({
-  garden,
-  graph,
-  log,
-  footerLog,
-  actions,
-  initialTasks,
-  skipWatch,
-  skipWatchModules,
-  watch,
-  changeHandler,
-  overRideWatchStatusLine,
-}: ProcessActionsParams): Promise<ProcessResults> {
+export async function processActions({ garden, log, actions, initialTasks }: ProcessActionsParams): Promise<ProcessResults> {
   log.silly("Starting processActions")
 
   // Let the user know if any actions are linked to a local path
@@ -87,92 +52,19 @@ export async function processActions({
   }
 
   // true if one or more tasks failed when the task graph last finished processing all its nodes.
-  let taskErrorDuringLastProcess = false
-
-  if (watch && !!footerLog) {
-    if (!statusLine) {
-      statusLine = footerLog.info("").placeholder()
-    }
-
-    garden.events.on("taskGraphProcessing", () => {
-      taskErrorDuringLastProcess = false
-      statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
-    })
-  }
 
   const results = await garden.processTasks({ tasks: initialTasks, log })
 
-  if (!watch && !garden.persistent) {
+  if (!garden.persistent) {
     return {
       graphResults: results.results,
       restartRequired: false,
     }
   }
 
-  if (!watch && garden.persistent) {
-    // Garden process is persistent but not in watch mode. E.g. used to
-    // keep port forwards alive without enabling watch or dev mode.
-    await new Promise((resolve) => {
-      garden.events.on("_restart", () => {
-        log.debug({ symbol: "info", msg: `Manual restart triggered` })
-        resolve({})
-      })
-
-      garden.events.on("_exit", () => {
-        log.debug({ symbol: "info", msg: `Manual exit triggered` })
-        restartRequired = false
-        resolve({})
-      })
-    })
-    return {
-      graphResults: results.results,
-      restartRequired: false,
-    }
-  }
-
-  const deps = graph.getDependenciesForMany({
-    refs: actions.map((a) => a.reference()),
-    recursive: true,
-  })
-  const actionsToWatch = uniqByName([...deps, ...actions])
-  const actionsByRef = keyBy(actionsToWatch, (a) => a.key())
-
-  await garden.startWatcher({ graph, skipActions: skipWatch, skipModules: skipWatchModules })
-
-  const taskError = () => {
-    if (!!statusLine) {
-      statusLine.setState({
-        emoji: "heavy_exclamation_mark",
-        msg: chalk.red("One or more actions failed, see the log output above for details."),
-      })
-    }
-  }
-
-  const waiting = () => {
-    if (!!statusLine) {
-      statusLine.setState({
-        emoji: "clock2",
-        msg: chalk.gray(overRideWatchStatusLine || "Waiting for code changes..."),
-      })
-    }
-
-    garden.events.emit("watchingForChanges", {})
-  }
-
-  let restartRequired = true
-
+  // Garden process is persistent but not in watch mode. E.g. used to
+  // keep port forwards alive without enabling watch or dev mode.
   await new Promise((resolve) => {
-    garden.events.on("taskError", () => {
-      taskErrorDuringLastProcess = true
-      taskError()
-    })
-
-    garden.events.on("taskGraphComplete", () => {
-      if (!taskErrorDuringLastProcess) {
-        waiting()
-      }
-    })
-
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })
       resolve({})
@@ -180,114 +72,14 @@ export async function processActions({
 
     garden.events.on("_exit", () => {
       log.debug({ symbol: "info", msg: `Manual exit triggered` })
-      restartRequired = false
       resolve({})
     })
-
-    garden.events.on("projectConfigChanged", async () => {
-      if (await validateConfigChange(garden, log, garden.projectRoot, "changed")) {
-        log.info({
-          symbol: "info",
-          msg: `Project configuration changed, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("configAdded", async (event) => {
-      if (await validateConfigChange(garden, log, event.path, "added")) {
-        log.info({
-          symbol: "info",
-          msg: `Garden config added at ${event.path}, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("configRemoved", async (event) => {
-      if (await validateConfigChange(garden, log, event.path, "removed")) {
-        log.info({
-          symbol: "info",
-          msg: `Garden config at ${event.path} removed, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("actionConfigChanged", async (event) => {
-      if (await validateConfigChange(garden, log, event.path, "changed")) {
-        const actionNames = event.names
-        const section = actionNames.length === 1 ? actionNames[0] : undefined
-        log.info({
-          symbol: "info",
-          section,
-          msg: `Configuration changed, reloading...`,
-        })
-        resolve({})
-      }
-    })
-
-    garden.events.on("actionSourcesChanged", async (event) => {
-      graph = await garden.getConfigGraph({ log, emit: false })
-      const changedActionRefs = event.refs.filter((ref) => !!actionsByRef[actionReferenceToString(ref)])
-
-      if (changedActionRefs.length === 0) {
-        return
-      }
-
-      // Make sure the modules' versions are up to date.
-      const changedActions = graph.getActions({ refs: changedActionRefs })
-
-      const tasks = flatten(
-        await Bluebird.map(changedActions, async (a) => {
-          actionsByRef[a.name] = a
-          return changeHandler!(graph, a)
-        })
-      )
-      await garden.processTasks({ tasks, log })
-    })
-    waiting()
   })
 
   return {
-    graphResults: new GraphResults([]), // TODO: Return latest results for each task key processed between restarts?
-    restartRequired,
+    graphResults: results.results,
+    restartRequired: false,
   }
-}
-
-/**
- * When config files change / are added / are removed, we try initializing a new Garden instance
- * with the changed config files and performing a bit of validation on it before proceeding with
- * a restart. If a config error was encountered, we simply log the error and keep the existing
- * Garden instance.
- *
- * Returns true if no configuration errors occurred.
- */
-async function validateConfigChange(
-  garden: Garden,
-  log: LogEntry,
-  changedPath: string,
-  operationType: "added" | "changed" | "removed"
-): Promise<boolean> {
-  try {
-    const nextGarden = await Garden.factory(garden.projectRoot, garden.opts)
-    await nextGarden.getConfigGraph({ log, emit: false })
-    await nextGarden.close()
-  } catch (error) {
-    if (error instanceof ConfigurationError) {
-      const msg = dedent`
-        Encountered configuration error after ${changedPath} was ${operationType}:
-
-        ${error.message}
-
-        Keeping existing configuration and skipping restart.`
-      log.error({ symbol: "error", msg, error })
-      return false
-    } else {
-      throw error
-    }
-  }
-  return true
 }
 
 /**

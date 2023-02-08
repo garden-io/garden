@@ -116,7 +116,6 @@ describe("RunTask", () => {
         log: garden.log,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
 
       let result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })

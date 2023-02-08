@@ -38,7 +38,7 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -81,7 +81,7 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -114,7 +114,7 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -141,7 +141,7 @@ describe("runHelmTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -174,7 +174,7 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -197,7 +197,7 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -221,7 +221,7 @@ describe("runHelmTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })

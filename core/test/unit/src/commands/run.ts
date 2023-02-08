@@ -67,10 +67,6 @@ describe("RunCommand", () => {
   //   throw "TODO"
   // })
 
-  // it("throws if --interactive option is set along with --watch", async () => {
-  //   throw "TODO"
-  // })
-
   it("throws if no name and no --module flag is set", async () => {
     await expectError(
       () =>

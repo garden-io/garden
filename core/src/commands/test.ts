@@ -11,19 +11,17 @@ import {
   CommandParams,
   CommandResult,
   handleProcessResults,
-  PrepareParams,
   ProcessCommandResult,
   processCommandResultSchema,
 } from "./base"
 import { processActions } from "../process"
 import { TestTask } from "../tasks/test"
 import { printHeader } from "../logger/util"
-import { startServer } from "../server/server"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { dedent, deline } from "../util/string"
-import { Garden } from "../garden"
 import { isTestAction } from "../actions/test"
 import { ParameterError } from "../exceptions"
+import { watchParameter, watchRemovedWarning } from "./helpers"
 
 export const testArgs = {
   names: new StringsParameter({
@@ -61,11 +59,7 @@ export const testOpts = {
       The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
     `,
   }),
-  "watch": new BooleanParameter({
-    help: "Watch for changes in module(s) and auto-test.",
-    alias: "w",
-    cliOnly: true,
-  }),
+  "watch": watchParameter,
   "skip": new StringsParameter({
     help: deline`
       The name(s) of tests you'd like to skip. Accepts glob patterns
@@ -100,9 +94,6 @@ export class TestCommand extends Command<Args, Opts> {
     Runs all or specified tests defined in the project. Also run builds and other dependencies,
     including deploys if needed.
 
-    Optionally stays running and automatically re-runs tests if their sources
-    (or their dependencies' sources) change, with the --watch/-w flag.
-
     Examples:
 
         garden test                     # run all tests in the project
@@ -111,8 +102,6 @@ export class TestCommand extends Command<Args, Opts> {
         garden test *integ*             # run all Tests with a name containing 'integ'
         garden test *unit,*lint         # run all Tests ending with either 'unit' or 'lint' in the project
         garden test --force             # force Tests to be re-run, even if they've already run successfully
-        garden test --watch             # run all Tests and watch for changes to code
-        garden test my-test -w          # run the my-test Test action and re-run whenever its sources change
   `
 
   arguments = testArgs
@@ -120,24 +109,8 @@ export class TestCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  private garden?: Garden
-
   printHeader({ headerLog }) {
     printHeader(headerLog, `Running Tests`, "thermometer")
-  }
-
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch
-  }
-
-  async prepare(params: PrepareParams<Args, Opts>) {
-    if (this.isPersistent(params)) {
-      this.server = await startServer({ log: params.footerLog })
-    }
-  }
-
-  terminate() {
-    this.garden?.events.emit("_exit", {})
   }
 
   async action({
@@ -147,17 +120,8 @@ export class TestCommand extends Command<Args, Opts> {
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    this.garden = garden
-
-    if (this.server) {
-      this.server.setGarden(garden)
-    }
-
-    if (opts.interactive && opts.watch) {
-      throw new ParameterError(`The --interactive/-i option cannot be used with the --watch/-w flag.`, {
-        args,
-        opts,
-      })
+    if (opts.watch) {
+      await watchRemovedWarning(garden, log)
     }
 
     const graph = await garden.getConfigGraph({ log, emit: true })
@@ -190,7 +154,6 @@ export class TestCommand extends Command<Args, Opts> {
           log,
           force,
           forceBuild: opts["force-build"],
-          fromWatch: false,
           action,
           devModeDeployNames: [],
           localModeDeployNames: [],
@@ -210,30 +173,8 @@ export class TestCommand extends Command<Args, Opts> {
       garden,
       graph,
       log,
-      footerLog,
       actions,
       initialTasks,
-      watch: opts.watch,
-      changeHandler: async (updatedGraph, action) => {
-        if (!isTestAction(action)) {
-          return []
-        }
-
-        return [
-          new TestTask({
-            garden,
-            graph: updatedGraph,
-            log,
-            force,
-            forceActions: [],
-            fromWatch: false,
-            action,
-            devModeDeployNames: [],
-            skipRuntimeDependencies,
-            localModeDeployNames: [],
-          }),
-        ]
-      },
     })
 
     return handleProcessResults(footerLog, "test", results)

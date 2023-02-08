@@ -188,7 +188,6 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
         forceActions: [],
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
     })
 

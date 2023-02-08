@@ -111,7 +111,7 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
         tagTemplate: opts.tag,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
+
         force: false,
       })
     })

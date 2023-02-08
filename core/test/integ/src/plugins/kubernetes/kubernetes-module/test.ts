@@ -38,7 +38,7 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -64,7 +64,7 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -91,7 +91,7 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -124,7 +124,7 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -147,7 +147,7 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -172,7 +172,7 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })

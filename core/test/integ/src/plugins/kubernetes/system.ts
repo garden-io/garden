@@ -77,7 +77,7 @@ describe("System services", () => {
         localModeDeployNames: [],
         devModeDeployNames: [],
         force: false,
-        fromWatch: false,
+
         graph,
       })
       const key = testTask.getBaseKey()

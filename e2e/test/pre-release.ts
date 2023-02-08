@@ -111,27 +111,6 @@ describe("PreReleaseTests", () => {
     })
   })
 
-  if (project === "demo-project" || project === "demo-project-modules") {
-    describe("demo-project", () => {
-      describe("top-level sanity checks", () => {
-        it("runs the deploy command in watch mode", async () => {
-          const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-          const testSteps = [
-            taskCompletedStep("deploy.backend", 1),
-            waitingForChangesStep(),
-            changeFileStep(resolve(projectPath, "backend/main.go"), "change app code in backend service"),
-            taskCompletedStep("deploy.backend", 2),
-            changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
-            commandReloadedStep(),
-          ]
-
-          await gardenWatch.run({ testSteps })
-        })
-      })
-    })
-  }
-
   if (project === "vote") {
     describe("vote", () => {
       describe("top-level sanity checks", () => {
@@ -230,43 +209,6 @@ describe("PreReleaseTests", () => {
     })
   }
 
-  if (project === "vote-helm") {
-    describe("vote-helm: helm & dependency calculations", () => {
-      it("runs the deploy command", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-        const testSteps = [
-          waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "api-image/app.py"), "change api-image/app.py"),
-          taskCompletedStep("build.api-image", 2),
-          taskCompletedStep("build.api", 2),
-          taskCompletedStep("deploy.api", 2),
-          taskCompletedStep("deploy.vote", 2),
-        ]
-
-        await gardenWatch.run({ testSteps })
-      })
-    })
-  }
-
-  if (project === "vote") {
-    describe("vote: dependency calculations", () => {
-      it("runs the deploy command", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-        const testSteps = [
-          waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "api/app.py"), "change api/app.py"),
-          taskCompletedStep("build.api", 2),
-          taskCompletedStep("deploy.api", 2),
-          taskCompletedStep("deploy.vote", 2),
-        ]
-
-        await gardenWatch.run({ testSteps })
-      })
-    })
-  }
-
   if (project === "remote-sources") {
     describe("remote sources", () => {
       it("runs the update-remote command", async () => {
@@ -278,25 +220,6 @@ describe("PreReleaseTests", () => {
         const logEntries = await runWithEnv(["call", "result"])
         expect(searchLog(logEntries, /200 OK/), "expected to find '200 OK' in log output").to.eql("passed")
         expect(searchLog(logEntries, /Cats/), "expected to find 'Cats' in log output").to.eql("passed")
-      })
-    })
-  }
-
-  if (project === "deployment-strategies") {
-    describe("deployment-strategies: top-level sanity checks", () => {
-      it("runs the deploy command", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--watch"])
-
-        const testSteps = [
-          taskCompletedStep("deploy.backend", 1),
-          waitingForChangesStep(),
-          changeFileStep(resolve(projectPath, "backend/main.go"), "change app code in backend service"),
-          taskCompletedStep("deploy.backend", 2),
-          changeFileStep(resolve(projectPath, "backend/garden.yml"), "change garden.yml in backend service"),
-          commandReloadedStep(),
-        ]
-
-        await gardenWatch.run({ testSteps })
       })
     })
   }

@@ -69,7 +69,7 @@ export async function buildHelmModules(garden: Garden | TestGarden, graph: Confi
         log: garden.log,
         action,
         force: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })

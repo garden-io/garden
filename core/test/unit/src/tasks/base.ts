@@ -73,7 +73,6 @@ describe("BaseActionTask", () => {
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
 
       const deps = task.resolveStatusDependencies()
@@ -95,7 +94,6 @@ describe("BaseActionTask", () => {
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
 
       const deps = task.resolveProcessDependencies({ status: null })
@@ -120,7 +118,6 @@ describe("BaseActionTask", () => {
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
 
       const deps = task.resolveProcessDependencies({ status: null })
@@ -146,7 +143,6 @@ describe("BaseActionTask", () => {
         forceBuild: false,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
 
       const deps = task.resolveProcessDependencies({ status: { state: "ready", outputs: {} } })
@@ -170,7 +166,6 @@ describe("BaseActionTask", () => {
           skipRuntimeDependencies: true, // <-----
           devModeDeployNames: [],
           localModeDeployNames: [],
-          fromWatch: false,
         })
 
         const deps = task.resolveProcessDependencies({ status: null })

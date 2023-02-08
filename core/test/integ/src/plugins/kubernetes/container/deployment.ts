@@ -709,7 +709,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
 
           localModeDeployNames: [],
@@ -778,7 +778,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -816,7 +816,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -837,7 +837,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -872,7 +872,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })

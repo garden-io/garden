@@ -213,7 +213,6 @@ export async function resolveAction<T extends Action>({
     force: true,
     devModeDeployNames: [],
     localModeDeployNames: [],
-    fromWatch: false,
   })
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
@@ -253,7 +252,6 @@ export async function resolveActions<T extends Action>({
         force: true,
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
   )
 
@@ -285,7 +283,6 @@ export async function executeAction<T extends Action>({
     force: true,
     devModeDeployNames: [],
     localModeDeployNames: [],
-    fromWatch: false,
   })
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })

@@ -47,7 +47,6 @@ Examples:
     garden build            # build everything in the project
     garden build my-image   # only build my-image
     garden build --force    # force re-builds, even if builds had already been performed at current version
-    garden build --watch    # watch for changes to code
 
 #### Usage
 
@@ -64,7 +63,6 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` | `-f` | boolean | Force re-build.
-  | `--watch` | `-w` | boolean | Watch for changes and auto-build.
   | `--with-dependants` |  | boolean | Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every build in the project will be performed anyway).
 
 #### Outputs
@@ -461,7 +459,6 @@ Examples:
     garden deploy my-deploy            # only deploy my-deploy
     garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
     garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-    garden deploy --watch              # watch for changes to code
     garden deploy --dev=my-deploy      # deploys all deploys, with dev mode enabled for my-deploy
     garden deploy --dev                # deploys all compatible deploys with dev mode enabled
     garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
@@ -486,13 +483,12 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
-  | `--watch` | `-w` | boolean | Watch for changes and auto-deploy.
   | `--dev-mode` | `--dev` | array:string | The name(s) of the deploys to deploy with dev mode enabled. Use comma as a separator to specify multiple names. Use * to deploy all with dev mode enabled.
   | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple deploys. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over dev mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
   | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
-  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --watch/-w, --dev/--dev-mode or --local/--local-mode are set.
+  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --dev/--dev-mode or --local/--local-mode are set.
 
 #### Outputs
 
@@ -3204,7 +3200,6 @@ Examples:
   | `--force` |  | boolean | Run even if the action is disabled for the environment, and/or a successful result is found in cache.
   | `--force-build` |  | boolean | Force re-build of Build dependencies before running.
   | `--module` |  | array:string | The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
   | `--skip` |  | array:string | The name(s) of Runs you&#x27;d like to skip. Accepts glob patterns (e.g. init* would skip both &#x27;init&#x27; and &#x27;initialize&#x27;).
   | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
 This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
@@ -3290,9 +3285,6 @@ Examples:
 Runs all or specified tests defined in the project. Also run builds and other dependencies,
 including deploys if needed.
 
-Optionally stays running and automatically re-runs tests if their sources
-(or their dependencies' sources) change, with the --watch/-w flag.
-
 Examples:
 
     garden test                     # run all tests in the project
@@ -3301,8 +3293,6 @@ Examples:
     garden test *integ*             # run all Tests with a name containing 'integ'
     garden test *unit,*lint         # run all Tests ending with either 'unit' or 'lint' in the project
     garden test --force             # force Tests to be re-run, even if they've already run successfully
-    garden test --watch             # run all Tests and watch for changes to code
-    garden test my-test -w          # run the my-test Test action and re-run whenever its sources change
 
 #### Usage
 
@@ -3324,7 +3314,6 @@ Only run tests with the specfied name (e.g. unit or integ). Accepts glob pattern
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
   | `--interactive` | `-i` | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
   | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
-  | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
   | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
 

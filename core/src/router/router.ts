@@ -121,7 +121,6 @@ export class ActionRouter extends BaseRouter {
           devModeDeployNames: [],
           localModeDeployNames: [],
           forceActions: [],
-          fromWatch: false,
         })
     )
     const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true, statusOnly: true })
@@ -141,7 +140,7 @@ export class ActionRouter extends BaseRouter {
           action,
           force,
           forceActions: forceBuild ? graph.getBuilds() : [],
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -180,7 +179,6 @@ export class ActionRouter extends BaseRouter {
         forceActions: [],
         devModeDeployNames: [],
         localModeDeployNames: [],
-        fromWatch: false,
       })
     })
 
