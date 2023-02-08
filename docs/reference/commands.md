@@ -3398,7 +3398,7 @@ Examples:
 
 **[DEPRECATED] Starts the Garden dashboard for the current project and environment.**
 
-Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out a beta version of Garden Cloud at https://cloud.app.garden.
+Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out a beta version of Garden Cloud Dashboard at https://app.garden.
 
 -------------
 
