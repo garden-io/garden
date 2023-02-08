@@ -47,7 +47,7 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: true,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -91,7 +91,7 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -123,7 +123,7 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -158,7 +158,7 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -181,7 +181,7 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -205,7 +205,7 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -228,7 +228,7 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -256,7 +256,7 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })

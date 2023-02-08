@@ -219,31 +219,6 @@ describe("TestCommand", () => {
     )
   })
 
-  it("throws if --interactive option is set along with --watch", async () => {
-    await expectError(
-      () =>
-        command.action({
-          garden,
-          log,
-          headerLog: log,
-          footerLog: log,
-          args: { names: ["module-a-unit"] },
-          opts: withDefaultGlobalOpts({
-            "name": undefined,
-            "force": true,
-            "force-build": true,
-            "watch": true,
-            "skip": undefined,
-            "skip-dependencies": false,
-            "skip-dependants": false,
-            "interactive": true,
-            "module": undefined,
-          }),
-        }),
-      (err) => expect(err.message).to.equal("The --interactive/-i option cannot be used with the --watch/-w flag.")
-    )
-  })
-
   it("should be protected", async () => {
     expect(command.protected).to.be.true
   })

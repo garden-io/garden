@@ -121,10 +121,14 @@ describe("parseCliArgs", () => {
 
   it("correctly handles command boolean options", () => {
     const cmd = new BuildCommand()
-    const argv = parseCliArgs({ stringArgs: ["build", "my-module", "-f", "--watch"], command: cmd, cli: true })
+    const argv = parseCliArgs({
+      stringArgs: ["build", "my-module", "-f", "--with-dependants"],
+      command: cmd,
+      cli: true,
+    })
 
     expect(argv.force).to.be.true
-    expect(argv.watch).to.be.true
+    expect(argv["with-dependants"]).to.be.true
   })
 
   it("sets empty string value instead of boolean for string options", () => {
@@ -201,8 +205,8 @@ describe("processCliArgs", () => {
   it("populates the $all argument, omitting the command name", () => {
     const cmd = new BuildCommand()
     // Note: The command name is implicitly added in this helper
-    const { args } = parseAndProcess(["module-name", "--watch"], cmd)
-    expect(args.$all).to.eql(["module-name", "--watch"])
+    const { args } = parseAndProcess(["module-name", "--force"], cmd)
+    expect(args.$all).to.eql(["module-name", "--force"])
   })
 
   it("populates the -- argument", () => {
@@ -213,15 +217,15 @@ describe("processCliArgs", () => {
 
   it("correctly handles command option flags", () => {
     const cmd = new DeployCommand()
-    const { opts } = parseAndProcess(["--force-build=true", "--watch"], cmd)
+    const { opts } = parseAndProcess(["--force-build=true", "--forward"], cmd)
     expect(opts["force-build"]).to.be.true
-    expect(opts.watch).to.be.true
+    expect(opts.forward).to.be.true
   })
 
   it("correctly handles option aliases", () => {
     const cmd = new DeployCommand()
-    const { opts } = parseAndProcess(["-w", "--force-build=false"], cmd)
-    expect(opts.watch).to.be.true
+    const { opts } = parseAndProcess(["--dev", "--force-build=false"], cmd)
+    expect(opts["dev-mode"]).to.eql([])
     expect(opts["force-build"]).to.be.false
   })
 
@@ -237,9 +241,6 @@ describe("processCliArgs", () => {
     expect(opts.name).to.eql(["foo", "bar", "baz"])
   })
 
-  // Note: If an option alias appears before the option (e.g. -w before --watch),
-  // the option's value takes precedence over the alias' value (e.g. --watch=false
-  // takes precedence over -w).
   it("uses value of last option when non-array option is repeated", () => {
     const cmd = new DeployCommand()
     const { opts } = parseAndProcess(["--force-build=false", "--force-build=true"], cmd)
@@ -330,7 +331,6 @@ describe("processCliArgs", () => {
     const cmd = new BuildCommand()
     const { opts } = parseAndProcess([], cmd)
     expect(opts.force).to.be.false
-    expect(opts.watch).to.be.false
   })
 
   it("sets default values for global flags", () => {

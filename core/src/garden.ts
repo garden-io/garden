@@ -692,7 +692,6 @@ export class Garden {
           force: false,
           forceRefresh: this.forceRefresh,
           forceInit,
-          fromWatch: false,
           allPlugins: Object.values(plugins),
         })
       })

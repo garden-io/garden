@@ -117,7 +117,7 @@ describe("DeployTask", () => {
         graph,
         action,
         force: true,
-        fromWatch: false,
+
         log: garden.log,
         devModeDeployNames: [],
         localModeDeployNames: [],
@@ -139,7 +139,7 @@ describe("DeployTask", () => {
         graph,
         action,
         force: true,
-        fromWatch: false,
+
         log: garden.log,
         devModeDeployNames: [],
         localModeDeployNames: [],

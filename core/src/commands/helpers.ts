@@ -13,6 +13,9 @@ import { TestAction } from "../actions/test"
 
 import { ConfigGraph } from "../graph/config-graph"
 import { WorkflowConfig } from "../config/workflow"
+import { LogEntry } from "../logger/log-entry"
+import { BooleanParameter } from "../cli/params"
+import { Garden } from "../garden"
 
 export function getMatchingDeployNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
   const names = namesFromOpt || []
@@ -62,4 +65,20 @@ function prettyPrintTestOrTask(action: TestAction | RunAction): string {
 
 function printField(name: string, value: string | null) {
   return `${chalk.gray(name)}: ${value || ""}`
+}
+
+export const watchParameter = new BooleanParameter({
+  help: "[REMOVED] Watch for changes and update actions automatically.",
+  alias: "w",
+  cliOnly: true,
+  hidden: true,
+})
+
+export async function watchRemovedWarning(garden: Garden, log: LogEntry) {
+  return garden.emitWarning({
+    log,
+    key: "watch-flag-removed",
+    message:
+      "The -w/--watch flag has been removed. Please use other options instead, such as the --dev/--dev-mode option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community",
+  })
 }

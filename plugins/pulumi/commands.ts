@@ -215,7 +215,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       force: false,
       action,
       graph,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })

@@ -81,7 +81,6 @@ export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Prom
     garden,
     log,
     graph,
-    fromWatch: false,
     devModeDeployNames: [],
     localModeDeployNames: [],
     forceActions: [],

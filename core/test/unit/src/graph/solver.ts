@@ -134,7 +134,7 @@ describe("GraphSolver", () => {
     garden = await makeTestGarden(projectRoot)
   })
 
-  function makeTask(params: MakeOptional<TestTaskParams, "garden" | "log" | "version" | "force" | "fromWatch">) {
+  function makeTask(params: MakeOptional<TestTaskParams, "garden" | "log" | "version" | "force">) {
     const _garden = params.garden || garden
     return new TestTask({
       ...params,
@@ -142,7 +142,6 @@ describe("GraphSolver", () => {
       log: params.log || _garden.log,
       version: params.version || NEW_RESOURCE_VERSION,
       force: params.force || false,
-      fromWatch: params.fromWatch || false,
     })
   }
 

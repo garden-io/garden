@@ -65,7 +65,6 @@ describe("ResolveProviderTask", () => {
       forceInit: false,
       allPlugins: await garden.getAllPlugins(),
       force: false,
-      fromWatch: false,
     })
   })
 

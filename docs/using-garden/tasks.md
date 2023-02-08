@@ -27,8 +27,6 @@ Tasks that have _dependents_ (i.e. something that depends on them) are run autom
 
 Garden caches task results and re-runs the task if its dependencies, have changed. It is therefore recommended that you make sure your tasks are idempotent (i.e. can safely be run multiple times).
 
-Garden does **not re-run tasks** on changes when in watch mode. That is, when running Garden with the `--watch|-w` flag or when running `garden dev`.
-
 You can run a task manually with the `garden run <task-name>` command. This will run the task regardless of whether or not the result is cached.
 
 You can view task results from the dashboard or by running `garden get task-result <task-name>`.

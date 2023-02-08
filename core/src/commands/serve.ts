@@ -95,20 +95,12 @@ export class ServeCommand extends Command<ServeCommandArgs, ServeCommandOpts> {
     const graph = await garden.getConfigGraph({ log, emit: true })
     this.server!.setGarden(garden)
 
-    const allModules = graph.getModules()
-    const allActions = graph.getActions()
-
     await processActions({
       garden,
       graph,
       log,
-      footerLog,
-      watch: true,
       actions: [],
       initialTasks: [],
-      skipWatch: allActions,
-      skipWatchModules: allModules,
-      changeHandler: async () => [],
     })
 
     return {}

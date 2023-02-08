@@ -334,7 +334,7 @@ describe("kubernetes-module handlers", () => {
         action,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -379,7 +379,7 @@ describe("kubernetes-module handlers", () => {
         action,
         force: true,
         forceBuild: true,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -410,7 +410,7 @@ describe("kubernetes-module handlers", () => {
         log,
         action: graph.getDeploy("namespace-resource"),
         force: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })

@@ -133,7 +133,7 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -161,7 +161,7 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -201,7 +201,7 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -224,7 +224,7 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -249,7 +249,7 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -272,7 +272,7 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })
@@ -299,7 +299,7 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           devModeDeployNames: [],
           localModeDeployNames: [],
         })

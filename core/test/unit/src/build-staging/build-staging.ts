@@ -357,7 +357,6 @@ function commonSyncTests(legacyBuildSync: boolean) {
             forceBuild: false,
             devModeDeployNames: [],
             localModeDeployNames: [],
-            fromWatch: false,
           })
       )
 

@@ -37,7 +37,7 @@ describe("testHelmModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -63,7 +63,7 @@ describe("testHelmModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -90,7 +90,7 @@ describe("testHelmModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-      fromWatch: false,
+
       devModeDeployNames: [],
       localModeDeployNames: [],
     })
@@ -123,7 +123,7 @@ describe("testHelmModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -146,7 +146,7 @@ describe("testHelmModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
@@ -171,7 +171,7 @@ describe("testHelmModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         devModeDeployNames: [],
         localModeDeployNames: [],
       })

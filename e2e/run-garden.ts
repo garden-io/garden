@@ -172,7 +172,7 @@ export type WatchTestAction = (logEntries: JsonLogEntry[]) => Promise<void>
 /**
  * This class is intended for testing watch-mode commands.
  *
- * GardenWatch runs a watch-mode command (e.g. garden dev or garden deploy -w) as a child process, which it manages
+ * GardenWatch runs a watch-mode command (e.g. garden dev) as a child process, which it manages
  * internally.
  *
  * Each line of the child process' stdout is parsed into a JsonLogEntry as it arrives, and appended to the logEntries

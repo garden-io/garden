@@ -82,7 +82,7 @@ describe("dev mode deployments and sync behavior", () => {
     //   log,
     //   action,
     //   force: true,
-    //   fromWatch: false,
+    //
     //   devModeDeployNames: [action.name],
     //   localModeDeployNames: [],
     // })
@@ -147,7 +147,7 @@ describe("dev mode deployments and sync behavior", () => {
     //   log,
     //   action,
     //   force: true,
-    //   fromWatch: false,
+    //
     //   devModeDeployNames: [action.name],
     //   localModeDeployNames: [],
     // })

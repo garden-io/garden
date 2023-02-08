@@ -206,7 +206,6 @@ export const clientRequestHandlers = {
       force,
       devModeDeployNames: [],
       localModeDeployNames: [],
-      fromWatch: true,
     })
     return tasks
   },
@@ -220,7 +219,7 @@ export const clientRequestHandlers = {
       action: graph.getDeploy(serviceName),
       force,
       forceBuild,
-      fromWatch: true,
+
       skipRuntimeDependencies: params.request.skipDependencies,
       devModeDeployNames: [],
       localModeDeployNames: [],
@@ -241,7 +240,7 @@ export const clientRequestHandlers = {
         action: graph.getTest(testName),
         skipRuntimeDependencies: params.request.skipDependencies,
         devModeDeployNames: [],
-        fromWatch: true,
+
         localModeDeployNames: [],
       })
     })
@@ -257,7 +256,7 @@ export const clientRequestHandlers = {
       force,
       forceBuild,
       devModeDeployNames: [],
-      fromWatch: true,
+
       localModeDeployNames: [],
     })
   },

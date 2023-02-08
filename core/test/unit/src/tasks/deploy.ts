@@ -154,7 +154,7 @@ describe("DeployTask", () => {
         action,
         force: true,
         forceBuild: false,
-        fromWatch: false,
+
         log: garden.log,
         devModeDeployNames: [],
         localModeDeployNames: [],
@@ -169,28 +169,13 @@ describe("DeployTask", () => {
         action,
         force: false,
         forceBuild: false,
-        fromWatch: false,
+
         log: garden.log,
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
 
       expect(unforcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)
-        .to.be.false
-
-      const deployTaskFromWatch = new DeployTask({
-        garden,
-        graph,
-        action,
-        force: false,
-        forceBuild: false,
-        fromWatch: true,
-        log: garden.log,
-        devModeDeployNames: [],
-        localModeDeployNames: [],
-      })
-
-      expect(deployTaskFromWatch.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)
         .to.be.false
     })
 
@@ -208,7 +193,7 @@ describe("DeployTask", () => {
           action,
           force: true,
           forceBuild: false,
-          fromWatch: false,
+
           log: garden.log,
           skipRuntimeDependencies: true, // <-----
           devModeDeployNames: [],
@@ -230,7 +215,7 @@ describe("DeployTask", () => {
         graph,
         action,
         force: true,
-        fromWatch: false,
+
         log: garden.log,
         devModeDeployNames: [],
         localModeDeployNames: [],

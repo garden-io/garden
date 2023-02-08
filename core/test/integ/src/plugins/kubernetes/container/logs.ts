@@ -53,7 +53,7 @@ describe("kubernetes", () => {
       const deployTask = new DeployTask({
         force: true,
         forceBuild: true,
-        fromWatch: false,
+
         garden,
         graph,
         log: garden.log,
@@ -99,7 +99,7 @@ describe("kubernetes", () => {
         const deployTask = new DeployTask({
           force: true,
           forceBuild: true,
-          fromWatch: false,
+
           garden,
           graph,
           log: garden.log,
@@ -172,7 +172,7 @@ describe("kubernetes", () => {
         const deployTask = new DeployTask({
           force: true,
           forceBuild: true,
-          fromWatch: false,
+
           garden,
           graph,
           log: garden.log,
@@ -187,7 +187,7 @@ describe("kubernetes", () => {
           log: garden.log,
           devModeDeployNames: [],
           localModeDeployNames: [],
-          fromWatch: false,
+
           force: false,
         })
 

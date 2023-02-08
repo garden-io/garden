@@ -10,10 +10,8 @@ If you've not installed the CLI yet, please check out the [installation guide](.
 
 Most of the examples below assume that you've already defined a Garden project.
 
-The [garden dev](#garden-dev) command, as well as the [build](#building), [deploy](#services) and [test](#tests) commands (when run with the `--watch` flag) all connect a web dashboard that you can open in a browser. See [the dashboard section](#the-dashboard) for more on that.
-
 {% hint style="warning" %}
-It is currently not advisable to run multiple dev, build, deploy or test commands in parallel, especially with `--watch`  because they may interfere with each other. It is fine, however, to run one of those and then run other commands to the side, such as `garden logs`. We plan on improving this in the future.
+It is currently not advisable to run multiple dev, build, deploy or test commands in parallel because they may interfere with each other. It is fine, however, to run one of those and then run other commands to the side, such as `garden logs`. We plan on improving this in the future.
 {% endhint %}
 
 ### Common option flags
@@ -59,15 +57,9 @@ When arguments accept one or more services, modules etc. we comma-separate the n
 garden deploy service-a,service-b
 ```
 
-### Deploying a service and watching for changes
-
-```sh
-garden deploy my-service --watch  # or -w for short
-```
-
 ### Deploying a service in dev mode
 
-See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for more information on how to configure and use dev mode for rapid iteration on services. Setting the `--dev` flag implicitly sets `--watch=true`.
+See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for more information on how to configure and use dev mode for rapid iteration on services.
 
 ```sh
 garden deploy my-service --dev=*
@@ -129,20 +121,6 @@ garden delete service my-service
 garden test
 ```
 
-### Running all tests for a specific module, and watching for changes
-
-```sh
-garden test my-module --watch
-```
-
-### Running a specific test for a module, and watching for changes
-
-This runs the `integ` test, defined in `my-module`, and watches for changes (including changes in modules and services that the test depends on).
-
-```sh
-garden test my-module --name integ -w
-```
-
 ### Running a specific test and attaching
 
 This is handy for running a single test and streaming the log outputs (`garden test`, in comparison, is more meant to run multiple ones or watch for changes, and is less suitable for getting log output).
@@ -177,12 +155,6 @@ garden build --force  # or -f for short
 
 ```sh
 garden build my-module
-```
-
-### Building a specific module, and watching for changes
-
-```sh
-garden build my-module -w
 ```
 
 ## Workflows
@@ -235,7 +207,7 @@ garden dev --skip-tests
 
 ## The dashboard
 
-The [garden dev](#garden-dev) command, as well as the [build](#building), [deploy](#services) and [test](#tests) commands when run with the `--watch` flag all link a web dashboard that you can open in a browser.
+The [garden dev](#garden-dev) command runs a web dashboard that you can open in a browser.
 
 The CLI will print a URL which you can copy or click (or Cmd/Ctrl-click, depending on your terminal). The dashboard stays connected while the command is running.
 

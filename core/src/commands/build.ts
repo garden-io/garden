@@ -12,21 +12,19 @@ import {
   CommandResult,
   CommandParams,
   handleProcessResults,
-  PrepareParams,
   ProcessCommandResult,
   processCommandResultSchema,
 } from "./base"
 import dedent from "dedent"
 import { processActions } from "../process"
 import { printHeader } from "../logger/util"
-import { startServer } from "../server/server"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
 import { StringsParameter, BooleanParameter } from "../cli/params"
-import { Garden } from "../garden"
 import { uniqByName } from "../util/util"
 import { deline } from "../util/string"
 import { isBuildAction } from "../actions/build"
+import { watchParameter, watchRemovedWarning } from "./helpers"
 
 const buildArgs = {
   names: new StringsParameter({
@@ -36,11 +34,7 @@ const buildArgs = {
 
 const buildOpts = {
   "force": new BooleanParameter({ help: "Force re-build.", alias: "f" }),
-  "watch": new BooleanParameter({
-    help: "Watch for changes and auto-build.",
-    alias: "w",
-    cliOnly: true,
-  }),
+  "watch": watchParameter,
   "with-dependants": new BooleanParameter({
     help: deline`
       Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively).
@@ -69,29 +63,12 @@ export class BuildCommand extends Command<Args, Opts> {
         garden build            # build everything in the project
         garden build my-image   # only build my-image
         garden build --force    # force re-builds, even if builds had already been performed at current version
-        garden build --watch    # watch for changes to code
   `
 
   arguments = buildArgs
   options = buildOpts
 
-  private garden?: Garden
-
   outputsSchema = () => processCommandResultSchema()
-
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch
-  }
-
-  async prepare(params: PrepareParams<Args, Opts>) {
-    if (this.isPersistent(params)) {
-      this.server = await startServer({ log: params.footerLog })
-    }
-  }
-
-  terminate() {
-    this.garden?.events.emit("_exit", {})
-  }
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Build", "hammer")
@@ -104,10 +81,8 @@ export class BuildCommand extends Command<Args, Opts> {
     args,
     opts,
   }: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
-    this.garden = garden
-
-    if (this.server) {
-      this.server.setGarden(garden)
+    if (opts.watch) {
+      await watchRemovedWarning(garden, log)
     }
 
     await garden.clearBuilds()
@@ -126,7 +101,6 @@ export class BuildCommand extends Command<Args, Opts> {
         ),
       ])
     }
-    const buildNames = actions.map((m) => m.name)
 
     const initialTasks = flatten(
       await Bluebird.map(
@@ -141,7 +115,6 @@ export class BuildCommand extends Command<Args, Opts> {
             forceActions: [],
             devModeDeployNames: [],
             localModeDeployNames: [],
-            fromWatch: false,
           })
       )
     )
@@ -150,31 +123,8 @@ export class BuildCommand extends Command<Args, Opts> {
       garden,
       graph,
       log,
-      footerLog,
       actions,
-      watch: opts.watch,
       initialTasks,
-      changeHandler: async (newGraph, updatedAction) => {
-        const deps = newGraph.getDependants({ kind: "Build", name: updatedAction.name, recursive: true })
-        const tasks = deps
-          .filter(isBuildAction)
-          .filter((a) => buildNames.includes(a.name))
-          .map(
-            (action) =>
-              new BuildTask({
-                garden,
-                graph,
-                log,
-                action,
-                force: true,
-                forceActions: [],
-                devModeDeployNames: [],
-                localModeDeployNames: [],
-                fromWatch: true,
-              })
-          )
-        return flatten(await Promise.all(tasks))
-      },
     })
 
     return handleProcessResults(footerLog, "build", results)

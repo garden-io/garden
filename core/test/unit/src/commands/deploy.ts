@@ -113,7 +113,6 @@ describe("DeployCommand", () => {
   const projectRootA = getDataDir("test-project-a")
 
   // TODO: Verify that services don't get redeployed when same version is already deployed.
-  // TODO: Test with --watch flag
 
   const command = new DeployCommand()
 
@@ -481,60 +480,6 @@ describe("DeployCommand", () => {
     expect(command.protected).to.be.true
   })
 
-  it("throws if --watch and --dev are both set", async () => {
-    const garden = await makeDummyGarden(projectRootA, { commandInfo: { name: "deploy", args: {}, opts: {} } })
-    const log = garden.log
-
-    await expectError(
-      () =>
-        command.action({
-          garden,
-          log,
-          headerLog: log,
-          footerLog: log,
-          args: { names: undefined },
-          opts: withDefaultGlobalOpts({
-            "dev-mode": ["*"], // <-----
-            "local-mode": undefined,
-            "watch": true, // <-----
-            "force": false,
-            "force-build": true,
-            "skip": undefined,
-            "skip-dependencies": true,
-            "forward": false,
-          }),
-        }),
-      (err) => expect(err.type).to.equal("parameter")
-    )
-  })
-
-  it("throws if --watch and --local are both set", async () => {
-    const garden = await makeDummyGarden(projectRootA, { commandInfo: { name: "deploy", args: {}, opts: {} } })
-    const log = garden.log
-
-    await expectError(
-      () =>
-        command.action({
-          garden,
-          log,
-          headerLog: log,
-          footerLog: log,
-          args: { names: undefined },
-          opts: withDefaultGlobalOpts({
-            "dev-mode": undefined,
-            "local-mode": ["*"], // <-----
-            "watch": true, // <-----
-            "force": false,
-            "force-build": true,
-            "skip": undefined,
-            "skip-dependencies": true,
-            "forward": false,
-          }),
-        }),
-      (err) => expect(err.type).to.equal("parameter")
-    )
-  })
-
   it("should skip disabled services", async () => {
     const garden = await makeTestGarden(projectRootB, { plugins: [testProvider()] })
     const log = garden.log
@@ -644,32 +589,6 @@ describe("DeployCommand", () => {
   })
 
   describe("isPersistent", () => {
-    it("should return persistent=true if --watch is set", async () => {
-      const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
-      const persistent = cmd.isPersistent({
-        log,
-        headerLog: log,
-        footerLog: log,
-        args: {
-          names: undefined,
-        },
-        opts: withDefaultGlobalOpts({
-          "dev-mode": undefined,
-
-          "local-mode": undefined,
-          "watch": true,
-          "force": false,
-          "force-build": true,
-          "skip": ["service-b"],
-          "skip-dependencies": false,
-          "skip-watch": false,
-          "forward": false,
-        }),
-      })
-      expect(persistent).to.be.true
-    })
-
     it("should return persistent=true if --dev is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()

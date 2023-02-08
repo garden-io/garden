@@ -13,10 +13,8 @@ import { printHeader, renderDivider } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
-import { startServer } from "../server/server"
-import { Garden } from "../garden"
-import { isRunAction } from "../actions/run"
 import { processActions } from "../process"
+import { watchParameter, watchRemovedWarning } from "./helpers"
 
 // TODO-G2: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 
@@ -48,11 +46,7 @@ const runOpts = {
       The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
     `,
   }),
-  "watch": new BooleanParameter({
-    help: "Watch for changes in module(s) and auto-test.",
-    alias: "w",
-    cliOnly: true,
-  }),
+  "watch": watchParameter,
   "skip": new StringsParameter({
     help: deline`
       The name(s) of Runs you'd like to skip. Accepts glob patterns
@@ -93,8 +87,6 @@ export class RunCommand extends Command<Args, Opts> {
   arguments = runArgs
   options = runOpts
 
-  private garden?: Garden
-
   outputsSchema = () => processCommandResultSchema()
 
   printHeader({ headerLog }: PrepareParams<Args, Opts>) {
@@ -102,33 +94,10 @@ export class RunCommand extends Command<Args, Opts> {
     printHeader(headerLog, msg, "runner")
   }
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch
-  }
-
-  async prepare(params: PrepareParams<Args, Opts>) {
-    if (this.isPersistent(params)) {
-      this.server = await startServer({ log: params.footerLog })
-    }
-  }
-
-  terminate() {
-    this.garden?.events.emit("_exit", {})
-  }
-
   async action({ garden, log, footerLog, args, opts }: CommandParams<Args, Opts>) {
-    this.garden = garden
-
-    if (this.server) {
-      this.server.setGarden(garden)
+    if (opts.watch) {
+      await watchRemovedWarning(garden, log)
     }
-
-    // if (opts.interactive && opts.watch) {
-    //   throw new ParameterError(`The --interactive/-i option cannot be used with the --watch/-w flag.`, {
-    //     args,
-    //     opts,
-    //   })
-    // }
 
     const graph = await garden.getConfigGraph({ log, emit: true })
 
@@ -240,7 +209,6 @@ export class RunCommand extends Command<Args, Opts> {
           log,
           force,
           forceBuild: opts["force-build"],
-          fromWatch: false,
           action,
           devModeDeployNames: [],
           localModeDeployNames: [],
@@ -260,30 +228,8 @@ export class RunCommand extends Command<Args, Opts> {
       garden,
       graph,
       log,
-      footerLog,
       actions,
       initialTasks,
-      watch: opts.watch,
-      changeHandler: async (updatedGraph, action) => {
-        if (!isRunAction(action)) {
-          return []
-        }
-
-        return [
-          new RunTask({
-            garden,
-            graph: updatedGraph,
-            log,
-            force,
-            forceActions: [],
-            fromWatch: false,
-            action,
-            devModeDeployNames: [],
-            skipRuntimeDependencies,
-            localModeDeployNames: [],
-          }),
-        ]
-      },
     })
 
     return handleProcessResults(footerLog, "test", results)
