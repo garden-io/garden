@@ -11,6 +11,7 @@ import {
   CommandParams,
   CommandResult,
   handleProcessResults,
+  PrepareParams,
   ProcessCommandResult,
   processCommandResultSchema,
 } from "./base"
@@ -122,6 +123,10 @@ export class TestCommand extends Command<Args, Opts> {
 
   printHeader({ headerLog }) {
     printHeader(headerLog, `Running Tests`, "thermometer")
+  }
+
+  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+    return opts.interactive
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
