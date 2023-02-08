@@ -3525,8 +3525,9 @@ describe("Garden", () => {
 
       await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
         contains: [
-          "Failed resolving one or more modules:",
-          "foo-test-a: Error validating inputs for module foo-test-a (modules.garden.yml): value at ..value should be string",
+          "Failed resolving one or more modules",
+          "foo-test-a: Error validating inputs for module foo-test-a (modules.garden.yml)",
+          "value at ./value must be string",
         ],
       })
     })
