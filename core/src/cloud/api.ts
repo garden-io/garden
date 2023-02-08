@@ -139,17 +139,13 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomain(projectConfig?: ProjectResource): string | undefined {
-  if (!projectConfig) {
-    return undefined
-  }
-
+export function getGardenCloudDomain(configuredDomain?: string): string | undefined {
   let cloudDomain: string | undefined
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (projectConfig.domain) {
-    cloudDomain = new URL(projectConfig.domain).origin
+  } else if (configuredDomain) {
+    cloudDomain = new URL(configuredDomain).origin
   }
 
   return cloudDomain
@@ -286,7 +282,7 @@ export class CloudApi {
    * token and deletes all others.
    */
   static async getStoredAuthToken(log: LogEntry, globalConfigStore: GlobalConfigStore, domain: string) {
-    log.silly(`Retrieving client auth token config store`)
+    log.silly(`Retrieving client auth token from config store`)
     return globalConfigStore.get("clientAuthTokens", domain)
   }
 

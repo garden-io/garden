@@ -290,7 +290,7 @@ export class AnalyticsHandler {
       this.enterpriseProjectIdV2 = AnalyticsHandler.hashV2(enterpriseProjectId)
     }
 
-    const enterpriseDomain = this.garden.enterpriseDomain
+    const enterpriseDomain = this.garden.cloudDomain
     if (enterpriseDomain) {
       this.enterpriseDomain = AnalyticsHandler.hash(enterpriseDomain)
       this.enterpriseDomainV2 = AnalyticsHandler.hashV2(enterpriseDomain)

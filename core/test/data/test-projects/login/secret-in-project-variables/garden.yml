@@ -1,6 +1,6 @@
 kind: Project
 name: login
-domain: http://dummy-domain.com
+domain: http://example.invalid
 id: dummy-id
 environments:
   - name: test
