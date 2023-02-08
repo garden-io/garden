@@ -27,6 +27,7 @@ import {
   testGitUrl,
   expectFuzzyMatch,
   createProjectConfig,
+  makeModuleConfig,
 } from "../../helpers"
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store/local"
@@ -1567,19 +1568,10 @@ describe("Garden", () => {
     })
 
     it("should add plugin modules if returned by the provider", async () => {
-      const pluginModule: ModuleConfig = {
-        apiVersion: DEFAULT_API_VERSION,
-        allowPublish: false,
-        build: { dependencies: [] },
-        disabled: false,
+      const pluginModule: ModuleConfig = makeModuleConfig("/tmp", {
         name: "foo",
-        path: "/tmp",
-        serviceConfigs: [],
-        taskConfigs: [],
-        spec: {},
-        testConfigs: [],
         type: "exec",
-      }
+      })
 
       const test = createGardenPlugin({
         name: "test",
