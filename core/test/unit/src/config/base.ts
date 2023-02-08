@@ -281,7 +281,9 @@ describe("loadConfigResources", () => {
             type: "test",
             name: "${parent.name}-${inputs.name}-a",
             include: [],
-            extraFlags: ["${inputs.value}"],
+            build: {
+              command: ["${inputs.value}"],
+            },
             generateFiles: [
               {
                 targetPath: "module-a.log",
