@@ -581,12 +581,12 @@ export class Garden {
     const definitions = await this.getActionTypes()
 
     if (this.actionTypeBases[kind][type]) {
-      return this.actionTypeBases[kind][type]
+      return this.actionTypeBases[kind][type] || []
     }
 
     const bases = getActionTypeBases(definitions[kind][type], definitions[kind])
     this.actionTypeBases[kind][type] = bases.map((b) => ({ ...b, schema: allowUnknown(b.schema) }))
-    return this.actionTypeBases[kind][type]
+    return this.actionTypeBases[kind][type] || []
   }
 
   getRawProviderConfigs(names?: string[]) {

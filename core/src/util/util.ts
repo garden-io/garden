@@ -61,6 +61,7 @@ export type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>
 export type Diff<T, U> = T extends U ? never : T
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 export type Nullable<T> = { [P in keyof T]: T[P] | null }
+export type MaybeUndefined<T> = T | undefined
 // From: https://stackoverflow.com/a/49936686/5629940
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends Array<infer U>

@@ -49,6 +49,7 @@ import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 import chalk from "chalk"
+import { MaybeUndefined } from "../util/util"
 
 export async function actionConfigsToGraph({
   garden,
@@ -408,7 +409,7 @@ async function preprocessActionConfig({
 function dependenciesFromActionConfig(
   config: ActionConfig,
   configsByKey: ActionConfigsByKey,
-  definition: ActionTypeDefinition<any>
+  definition: MaybeUndefined<ActionTypeDefinition<any>>
 ) {
   const description = describeActionConfig(config)
 
@@ -462,7 +463,7 @@ function dependenciesFromActionConfig(
 
   // Action template references in spec/variables
   // -> We avoid depending on action execution when referencing static output keys
-  const staticKeys = definition.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
+  const staticKeys = definition?.staticOutputsSchema ? describeSchema(definition.staticOutputsSchema).keys : []
 
   for (const ref of getActionTemplateReferences(config)) {
     let needsExecuted = false
