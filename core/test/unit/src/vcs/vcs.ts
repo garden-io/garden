@@ -84,12 +84,13 @@ describe("VcsHandler", () => {
 
   beforeEach(async () => {
     gardenA = await makeTestGardenA()
-    handlerA = new TestVcsHandler(
-      gardenA.projectRoot,
-      join(gardenA.projectRoot, ".garden"),
-      defaultDotIgnoreFile,
-      gardenA.cache
-    )
+    handlerA = new TestVcsHandler({
+      garden: gardenA,
+      projectRoot: gardenA.projectRoot,
+      gardenDirPath: join(gardenA.projectRoot, ".garden"),
+      ignoreFile: defaultDotIgnoreFile,
+      cache: gardenA.cache,
+    })
   })
 
   describe("getTreeVersion", () => {
@@ -119,7 +120,13 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-a")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFile, garden.cache)
+      const handler = new GitHandler({
+        garden,
+        projectRoot: garden.projectRoot,
+        gardenDirPath: garden.gardenDirPath,
+        ignoreFile: garden.dotIgnoreFile,
+        cache: garden.cache,
+      })
 
       const version = await handler.getTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
 
@@ -133,7 +140,13 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-b")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFile, garden.cache)
+      const handler = new GitHandler({
+        garden,
+        projectRoot: garden.projectRoot,
+        gardenDirPath: garden.gardenDirPath,
+        ignoreFile: garden.dotIgnoreFile,
+        cache: garden.cache,
+      })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 
@@ -144,7 +157,14 @@ describe("VcsHandler", () => {
       const projectRoot = getDataDir("test-projects", "include-exclude")
       const garden = await makeTestGarden(projectRoot)
       const moduleConfig = await garden.resolveModule("module-c")
-      const handler = new GitHandler(garden.projectRoot, garden.gardenDirPath, garden.dotIgnoreFile, garden.cache)
+
+      const handler = new GitHandler({
+        garden,
+        projectRoot: garden.projectRoot,
+        gardenDirPath: garden.gardenDirPath,
+        ignoreFile: garden.dotIgnoreFile,
+        cache: garden.cache,
+      })
 
       const version = await handler.getTreeVersion(garden.log, garden.projectName, moduleConfig)
 

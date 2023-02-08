@@ -13,7 +13,6 @@ import { printHeader, renderDivider } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
-import { emitWarning } from "../warnings"
 import { startServer } from "../server/server"
 import { Garden } from "../garden"
 import { isRunAction } from "../actions/run"
@@ -180,7 +179,7 @@ export class RunCommand extends Command<Args, Opts> {
     const warningKey = `run-${firstArg}-removed`
 
     if (firstArg === "test") {
-      await emitWarning({
+      await garden.emitWarning({
         key: warningKey,
         log,
         message: chalk.yellowBright(
@@ -193,7 +192,7 @@ export class RunCommand extends Command<Args, Opts> {
         ),
       })
     } else if (firstArg === "task") {
-      await emitWarning({
+      await garden.emitWarning({
         key: warningKey,
         log,
         message: chalk.yellowBright(
@@ -206,7 +205,7 @@ export class RunCommand extends Command<Args, Opts> {
         ),
       })
     } else if (firstArg === "module" || firstArg === "service") {
-      await emitWarning({
+      await garden.emitWarning({
         key: warningKey,
         log,
         message: chalk.yellowBright(
@@ -219,7 +218,7 @@ export class RunCommand extends Command<Args, Opts> {
         ),
       })
     } else if (firstArg === "workflow") {
-      await emitWarning({
+      await garden.emitWarning({
         key: warningKey,
         log,
         message: chalk.yellowBright(

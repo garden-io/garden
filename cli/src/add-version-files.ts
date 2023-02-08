@@ -34,7 +34,13 @@ async function addVersionFiles() {
     const path = config.path
     const versionFilePath = resolve(path, GARDEN_VERSIONFILE_NAME)
 
-    const vcsHandler = new GitHandler(STATIC_DIR, garden.gardenDirPath, garden.dotIgnoreFile, new TreeCache())
+    const vcsHandler = new GitHandler({
+      garden,
+      projectRoot: STATIC_DIR,
+      gardenDirPath: garden.gardenDirPath,
+      ignoreFile: garden.dotIgnoreFile,
+      cache: new TreeCache(),
+    })
     const treeVersion = await vcsHandler.getTreeVersion(garden.log, garden.projectName, config)
 
     // eslint-disable-next-line no-console
