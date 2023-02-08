@@ -29,8 +29,6 @@ providers:
   - name: kubernetes
     # Use the kaniko build mode
     buildMode: kaniko
-    kaniko:
-      namespace: null  # <--- use the project namespace for builds
     # Recommended: Configure a remote registry
     deploymentRegistry:
       hostname: my-private-registry.com      # <--- the hostname of your registry
@@ -106,9 +104,11 @@ In this mode, builds are executed as follows:
 As of Garden v0.12.22, the `kaniko` build mode no longer requires shared system services or an NFS provisioner, nor running `cluster-init` ahead of usage.
 {% endhint %}
 
-Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configuration.
+{% hint style="info" %}
+As of Garden v0.13, the default namespace for the build Pods is the project namespace. Set `kaniko.namespace` in the provider configuration to override to a specific, separate namespace.
+{% endhint %}
 
-_As of Garden v0.12.22, we also recommend setting `kaniko.namespace: null` in the `kubernetes` provider configuration, so that builder pods are started in the project namespace instead of the `garden-system` namespace, which is the current default. This will become the default in Garden v0.13._
+Enable this by setting `buildMode: kaniko` in your `kubernetes` provider configuration.
 
 Note the difference in how resources for the builder are allocated between Kaniko and the other modes. For this mode, the resource configuration applies to _each Kaniko pod_. See the [builder resources](../../reference/providers/kubernetes.md#providersresourcesbuilder) reference for details.
 

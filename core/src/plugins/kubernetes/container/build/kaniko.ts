@@ -106,10 +106,8 @@ export const kanikoBuild: BuildHandler = async (params) => {
 
   log.setState(`Building image ${localId}...`)
 
-  // Use the project namespace if set to null in config
-  // TODO: change in 0.13 to default to project namespace
-  let kanikoNamespace =
-    provider.config.kaniko?.namespace === null ? projectNamespace : provider.config.kaniko?.namespace
+  // Use the project namespace by default
+  let kanikoNamespace = provider.config.kaniko?.namespace || projectNamespace
 
   if (!kanikoNamespace) {
     kanikoNamespace = await getSystemNamespace(ctx, provider, log)

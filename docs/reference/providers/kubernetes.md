@@ -219,11 +219,8 @@ providers:
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
       image: 'gcr.io/kaniko-project/executor:v1.8.1-debug'
 
-      # Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
-      #
-      # **IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace
-      # in an upcoming release!**
-      namespace: garden-system
+      # Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
+      namespace:
 
       # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
       # pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
@@ -975,13 +972,11 @@ Change the kaniko image (repository/image:tag) to use when building in kaniko mo
 
 [providers](#providers) > [kaniko](#providerskaniko) > namespace
 
-Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
+Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
 
-**IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace in an upcoming release!**
-
-| Type     | Default           | Required |
-| -------- | ----------------- | -------- |
-| `string` | `"garden-system"` | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `providers[].kaniko.nodeSelector`
 
