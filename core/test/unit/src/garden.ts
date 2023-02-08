@@ -2275,9 +2275,9 @@ describe("Garden", () => {
         serviceConfigs: [],
         spec: {
           build: {
+            command: ["${providers.test-plugin.outputs.testKey}"],
             dependencies: [],
           },
-          extraFlags: ["${providers.test-plugin.outputs.testKey}"],
         },
         testConfigs: [],
         type: "test",
@@ -3511,7 +3511,7 @@ describe("Garden", () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const moduleA = graph.getModule("foo-test-a")
 
-      expect(moduleA.spec.extraFlags).to.eql(["testValue"])
+      expect(moduleA.spec.build.command).to.eql(["testValue"])
     })
 
     it("throws if templated module inputs don't match the template inputs schema", async () => {
