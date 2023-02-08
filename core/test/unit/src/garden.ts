@@ -1600,7 +1600,7 @@ describe("Garden", () => {
       const garden = await makeTestGarden(projectRootA, { config: projectConfig, plugins: [test] })
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      expect(graph.getModule("test--foo")).to.exist
+      expect(graph.getModule("foo")).to.exist
     })
 
     it("should throw if plugins have declared circular dependencies", async () => {
