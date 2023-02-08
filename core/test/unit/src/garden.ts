@@ -1568,7 +1568,7 @@ describe("Garden", () => {
     })
 
     it("should add plugin modules if returned by the provider", async () => {
-      const pluginModule: ModuleConfig = makeModuleConfig("/tmp", {
+      const pluginModule: ModuleConfig = makeModuleConfig(`${projectRootA}/tmp`, {
         name: "foo",
         type: "exec",
       })
