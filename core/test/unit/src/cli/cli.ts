@@ -97,8 +97,8 @@ describe("cli", () => {
       expect(consoleOutput).to.equal(cmd.renderHelp())
     })
 
-    it("aborts with version text if -v is set", async () => {
-      const { code, consoleOutput } = await cli.run({ args: ["-v"], exitOnError: false })
+    it("aborts with version text if -V is set", async () => {
+      const { code, consoleOutput } = await cli.run({ args: ["-V"], exitOnError: false })
 
       expect(code).to.equal(0)
       expect(consoleOutput).to.equal(getPackageVersion())

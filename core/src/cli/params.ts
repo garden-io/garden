@@ -417,7 +417,7 @@ export const globalOptions = {
       'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
   }),
   "version": new BooleanParameter({
-    alias: "v",
+    alias: "V",
     help: "Show the current CLI version.",
   }),
   "help": new BooleanParameter({
