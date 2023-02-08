@@ -34,7 +34,7 @@ import {
 import { InternalError, ParameterError, PluginError } from "../exceptions"
 import { validateSchema } from "../config/validation"
 import { getActionTypeBases, getPluginBases, getPluginDependencies } from "../plugins"
-import { getNames } from "../util/util"
+import { getNames, MaybeUndefined } from "../util/util"
 import { defaultProvider } from "../config/provider"
 import type { ConfigGraph } from "../graph/config-graph"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
@@ -179,6 +179,7 @@ export function createActionRouter<K extends ActionKind>(
   handlers: Omit<ActionRouterHandlers<K>, CommonHandlers>
 ): ActionKindRouter<K> {
   class Router extends BaseActionRouter<K> {}
+
   const router = new Router(kind, baseParams)
 
   const wrapped = mapValues(handlers, (h, key) => {
@@ -197,7 +198,7 @@ export type ActionKindRouter<K extends ActionKind> = BaseActionRouter<K> & Wrapp
 export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter {
   protected readonly handlers: HandlerMap<K>
   protected readonly handlerDescriptions: { [N in keyof ActionTypeClasses<K>]: ResolvedActionHandlerDescription }
-  protected readonly definitions: { [name: string]: ActionTypeDefinition<any> }
+  protected readonly definitions: { [name: string]: MaybeUndefined<ActionTypeDefinition<any>> }
 
   constructor(protected readonly kind: K, params: BaseRouterParams) {
     super(params)
@@ -316,9 +317,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
   async validateActionOutputs<T extends BaseAction>(action: T, type: "static" | "runtime", outputs: any) {
     const actionTypes = await this.garden.getActionTypes()
-    const spec: ActionTypeDefinition<any> = actionTypes[action.kind][action.type]
+    const spec = actionTypes[action.kind][action.type]
 
-    const schema = type === "static" ? spec.staticOutputsSchema : spec.runtimeOutputsSchema
+    const schema = type === "static" ? spec?.staticOutputsSchema : spec?.runtimeOutputsSchema
     const context = `${type} action outputs from ${action.kind} '${action.name}'`
 
     if (schema) {
@@ -401,7 +402,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     )
     const spec = this.definitions[actionType]
 
-    if (handlers.length === 0 && spec.base && !pluginName) {
+    if (handlers.length === 0 && spec?.base && !pluginName) {
       // No handler found but module type has a base. Check if the base type has the handler we're looking for.
       this.garden.log.silly(
         `No ${String(handlerType)} handler found for ${actionType} ${this.kind} type. Trying ${spec.base} base.`

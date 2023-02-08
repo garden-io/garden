@@ -19,7 +19,7 @@ import {
 import type { GenericProviderConfig } from "./config/provider"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { uniq, mapValues, fromPairs, flatten, keyBy, some, isString, sortBy, Dictionary } from "lodash"
-import { findByName, pushToKey, getNames, isNotNull } from "./util/util"
+import { findByName, pushToKey, getNames, isNotNull, MaybeUndefined } from "./util/util"
 import { deline } from "./util/string"
 import { validateSchema } from "./config/validation"
 import type { LogEntry } from "./logger/log-entry"
@@ -415,10 +415,10 @@ export function getPluginBaseNames(name: string, loadedPlugins: PluginMap) {
  * Recursively resolves all the bases for the given action type, ordered from closest base to last.
  */
 export function getActionTypeBases(
-  type: ActionTypeDefinition<any>,
-  actionTypes: { [name: string]: ActionTypeDefinition<any> }
+  type: MaybeUndefined<ActionTypeDefinition<any>>,
+  actionTypes: { [name: string]: MaybeUndefined<ActionTypeDefinition<any>> }
 ): ActionTypeDefinition<any>[] {
-  if (!type.base) {
+  if (!type || !type.base) {
     return []
   }
 
@@ -457,7 +457,7 @@ export function getPluginDependencies(plugin: GardenPlugin, loadedPlugins: Plugi
 
 export type ActionTypeMap<T> = {
   [K in ActionKind]: {
-    [type: string]: T
+    [type: string]: MaybeUndefined<T>
   }
 }
 
@@ -717,6 +717,7 @@ function cloneHandler(org: any): any {
   function handler() {
     return org.apply(org, arguments)
   }
+
   for (const key in org) {
     if (org.hasOwnProperty(key)) {
       handler[key] = org[key]
