@@ -32,13 +32,13 @@ export class LogOutCommand extends Command {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
     const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
+    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
 
     if (!cloudDomain) {
       throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
     }
 
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
+    const distroName = getCloudDistributionName(garden.cloudDomain || "")
 
     try {
       const token = await garden.globalConfigStore.get("clientAuthTokens", cloudDomain)

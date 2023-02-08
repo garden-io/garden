@@ -289,7 +289,7 @@ ${renderCommands(commands)}
     let cloudApi: CloudApi | null = null
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
-      const cloudDomain: string | undefined = getGardenCloudDomain(config)
+      const cloudDomain: string | undefined = getGardenCloudDomain(config?.domain)
 
       if (cloudDomain) {
         cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })

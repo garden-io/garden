@@ -39,12 +39,12 @@ export class LoginCommand extends Command {
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
     const currentDirectory = garden.projectRoot
     const globalConfigStore = garden.globalConfigStore
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
+    const distroName = getCloudDistributionName(garden.cloudDomain || "")
 
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
     const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(currentDirectory)
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
+    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
 
     if (!cloudDomain) {
       throw new ConfigurationError(`Project config is missing a cloud domain.`, {})

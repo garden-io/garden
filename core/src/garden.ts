@@ -154,6 +154,7 @@ export interface GardenOpts {
   environmentName?: string
   forceRefresh?: boolean
   gardenDirPath?: string
+  globalConfigStore?: GlobalConfigStore
   legacyBuildSync?: boolean
   log?: LogEntry
   noEnterprise?: boolean
@@ -168,7 +169,7 @@ export interface GardenParams {
   artifactsPath: string
   vcsInfo: VcsInfo
   projectId?: string
-  enterpriseDomain?: string
+  cloudDomain?: string
   cache: TreeCache
   disablePortForwards?: boolean
   dotIgnoreFile: string
@@ -176,6 +177,7 @@ export interface GardenParams {
   environmentConfigs: EnvironmentConfig[]
   namespace: string
   gardenDirPath: string
+  globalConfigStore?: GlobalConfigStore
   log: LogEntry
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
@@ -211,7 +213,7 @@ export class Garden {
   private watcher: Watcher
   private asyncLock: any
   public readonly projectId?: string
-  public readonly enterpriseDomain?: string
+  public readonly cloudDomain?: string
   public sessionId: string
   public readonly configStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
@@ -260,7 +262,7 @@ export class Garden {
 
   constructor(params: GardenParams) {
     this.projectId = params.projectId
-    this.enterpriseDomain = params.enterpriseDomain
+    this.cloudDomain = params.cloudDomain
     this.sessionId = params.sessionId
     this.environmentName = params.environmentName
     this.environmentConfigs = params.environmentConfigs
@@ -330,7 +332,7 @@ export class Garden {
     this.configsScanned = false
     // TODO: Support other VCS options.
     this.configStore = new LocalConfigStore(this.gardenDirPath)
-    this.globalConfigStore = new GlobalConfigStore()
+    this.globalConfigStore = params.globalConfigStore || new GlobalConfigStore()
 
     this.actionConfigs = {
       Build: {},
@@ -1440,7 +1442,7 @@ export class Garden {
       projectName: this.projectName,
       projectRoot: this.projectRoot,
       projectId: this.projectId,
-      domain: this.enterpriseDomain,
+      domain: this.cloudDomain,
     }
   }
 }
@@ -1522,7 +1524,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const cloudApi = opts.cloudApi || null
   // fall back to get the domain from config if the cloudApi instance failed
   // to login or was not defined
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config?.domain)
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
@@ -1638,7 +1640,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     sessionId,
     disablePortForwards,
     projectId: cloudProjectId,
-    enterpriseDomain: cloudDomain,
+    cloudDomain,
     projectRoot,
     projectName,
     environmentName,
@@ -1650,6 +1652,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     projectSources,
     production,
     gardenDirPath,
+    globalConfigStore: opts.globalConfigStore,
     opts,
     outputs: config.outputs || [],
     plugins,

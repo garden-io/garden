@@ -75,7 +75,7 @@ describe("GetConfigCommand", () => {
     expect(pick(result, ["domain", "projectName", "projectId", "allEnvironmentNames"])).to.eql({
       projectName: "has-domain-and-id",
       projectId: "dummy-id",
-      domain: "http://dummy-domain.com",
+      domain: "http://example.invalid",
       allEnvironmentNames: ["local", "other"],
     })
   })

@@ -8,27 +8,44 @@
 
 import { expect } from "chai"
 import td from "testdouble"
-import { expectError, getDataDir, makeCommandParams, TestGardenCli } from "../../../helpers"
+import {
+  expectError,
+  getDataDir,
+  makeCommandParams,
+  makeTempDir,
+  makeTestGarden,
+  TempDirectory,
+  TestGardenCli,
+} from "../../../helpers"
 import { AuthRedirectServer } from "../../../../src/cloud/auth"
 
 import { LoginCommand } from "../../../../src/commands/login"
 import stripAnsi from "strip-ansi"
-import { makeDummyGarden } from "../../../../src/cli/cli"
 import { dedent, randomString } from "../../../../src/util/string"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 import { EnterpriseApiError } from "../../../../src/exceptions"
 import { getLogMessages } from "../../../../src/util/testing"
+import { GlobalConfigStore } from "../../../../src/config-store/global"
+import { makeDummyGarden } from "../../../../src/cli/cli"
 
 // In the tests below we stub out the auth redirect server but still emit the
 // token received event.
 describe("LoginCommand", () => {
-  const domain = "https://garden." + randomString()
+  let tmpDir: TempDirectory
+  let globalConfigStore: GlobalConfigStore
 
   beforeEach(async () => {
     td.replace(AuthRedirectServer.prototype, "start", async () => {})
     td.replace(AuthRedirectServer.prototype, "close", async () => {})
+
+    tmpDir = await makeTempDir()
+    globalConfigStore = new GlobalConfigStore(tmpDir.path)
+  })
+
+  afterEach(async () => {
+    await tmpDir.cleanup()
   })
 
   it("should log in if the project has a domain without an id", async () => {
@@ -40,9 +57,10 @@ describe("LoginCommand", () => {
     }
     const command = new LoginCommand()
     const cli = new TestGardenCli()
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"), {
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
     })
 
     setTimeout(() => {
@@ -51,7 +69,7 @@ describe("LoginCommand", () => {
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -66,9 +84,10 @@ describe("LoginCommand", () => {
     }
     const command = new LoginCommand()
     const cli = new TestGardenCli()
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
     })
 
     setTimeout(() => {
@@ -77,7 +96,7 @@ describe("LoginCommand", () => {
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -93,18 +112,19 @@ describe("LoginCommand", () => {
 
     const command = new LoginCommand()
     const cli = new TestGardenCli()
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, domain)
+    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
@@ -128,6 +148,7 @@ describe("LoginCommand", () => {
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "secret-in-project-variables"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
     })
 
     setTimeout(() => {
@@ -135,7 +156,7 @@ describe("LoginCommand", () => {
     }, 500)
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, "http://example.invalid")
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -143,7 +164,7 @@ describe("LoginCommand", () => {
 
   it("should throw if the project doesn't have a domain", async () => {
     const cli = new TestGardenCli()
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"), {
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "missing-domain"), {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
     const command = new LoginCommand()
@@ -164,18 +185,19 @@ describe("LoginCommand", () => {
 
     const command = new LoginCommand()
     const cli = new TestGardenCli()
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, domain)
+    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(CloudApi.prototype, "refreshToken", async () => {
       throw new Error("bummer")
     })
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -196,18 +218,19 @@ describe("LoginCommand", () => {
 
     const command = new LoginCommand()
     const cli = new TestGardenCli()
-    const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+    const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
       noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
     })
 
-    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, domain)
+    await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(CloudApi.prototype, "refreshToken", async () => {
       throw new EnterpriseApiError("bummer", { statusCode: 401 })
     })
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, domain)
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -234,9 +257,10 @@ describe("LoginCommand", () => {
     it("should be a no-op if the user has a valid auth token in the environment", async () => {
       const command = new LoginCommand()
       const cli = new TestGardenCli()
-      const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
         noEnterprise: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
+        globalConfigStore,
       })
 
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
@@ -251,9 +275,10 @@ describe("LoginCommand", () => {
     it("should throw if the user has an invalid auth token in the environment", async () => {
       const command = new LoginCommand()
       const cli = new TestGardenCli()
-      const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
+      const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
         noEnterprise: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
+        globalConfigStore,
       })
 
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
@@ -287,9 +312,10 @@ describe("LoginCommand", () => {
       }
       const command = new LoginCommand()
       const cli = new TestGardenCli()
-      const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"), {
+      const garden = await makeTestGarden(getDataDir("test-projects", "login", "missing-domain"), {
         noEnterprise: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
+        globalConfigStore,
       })
 
       setTimeout(() => {
@@ -317,9 +343,10 @@ describe("LoginCommand", () => {
       }
       const command = new LoginCommand()
       const cli = new TestGardenCli()
-      const garden = await makeDummyGarden(getDataDir("test-projects", "login", "has-domain"), {
+      const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain"), {
         noEnterprise: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
+        globalConfigStore,
       })
 
       setTimeout(() => {
