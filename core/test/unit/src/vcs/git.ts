@@ -70,7 +70,13 @@ describe("GitHandler", () => {
     log = garden.log
     tmpDir = await makeTempGitRepo()
     tmpPath = await realpath(tmpDir.path)
-    handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), defaultIgnoreFilename, garden.cache)
+    handler = new GitHandler({
+      garden,
+      projectRoot: tmpPath,
+      gardenDirPath: join(tmpPath, ".garden"),
+      ignoreFile: defaultIgnoreFilename,
+      cache: garden.cache,
+    })
     git = (<any>handler).gitCli(log, tmpPath)
   })
 
@@ -384,7 +390,13 @@ describe("GitHandler", () => {
 
       const hash = await getGitHash(path)
 
-      const _handler = new GitHandler(tmpPath, join(tmpPath, ".garden"), "", garden.cache)
+      const _handler = new GitHandler({
+        garden,
+        projectRoot: tmpPath,
+        gardenDirPath: join(tmpPath, ".garden"),
+        ignoreFile: "",
+        cache: garden.cache,
+      })
 
       expect(await _handler.getFiles({ path: tmpPath, log })).to.eql([{ path, hash }])
     })

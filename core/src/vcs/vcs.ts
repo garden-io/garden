@@ -26,10 +26,10 @@ import type { ServiceConfig } from "../config/service"
 import type { TaskConfig } from "../config/task"
 import type { TestConfig } from "../config/test"
 import type { GardenModule } from "../types/module"
-import { emitWarning } from "../warnings"
 import { validateInstall } from "../util/validateInstall"
 import { isActionConfig } from "../actions/base"
 import type { BaseActionConfig } from "../actions/types"
+import { Garden } from "../garden"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -110,13 +110,28 @@ export interface VcsFile {
   hash: string
 }
 
+export interface VcsHandlerParams {
+  garden?: Garden
+  projectRoot: string
+  gardenDirPath: string
+  ignoreFile: string
+  cache: TreeCache
+}
+
 export abstract class VcsHandler {
-  constructor(
-    protected projectRoot: string,
-    protected gardenDirPath: string,
-    protected ignoreFile: string,
-    private cache: TreeCache
-  ) {}
+  protected garden?: Garden
+  protected projectRoot: string
+  protected gardenDirPath: string
+  protected ignoreFile: string
+  private cache: TreeCache
+
+  constructor(params: VcsHandlerParams) {
+    this.garden = params.garden
+    this.projectRoot = params.projectRoot
+    this.gardenDirPath = params.gardenDirPath
+    this.ignoreFile = params.ignoreFile
+    this.cache = params.cache
+  }
 
   abstract name: string
   abstract getRepoRoot(log: LogEntry, path: string): Promise<string>
@@ -169,7 +184,7 @@ export abstract class VcsHandler {
 
         if (files.length > fileCountWarningThreshold) {
           // TODO-G2: This will be repeated for modules and actions resulting from module conversion
-          await emitWarning({
+          await this.garden?.emitWarning({
             key: `${projectName}-filecount-${config.name}`,
             log,
             message: dedent`

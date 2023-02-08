@@ -4262,12 +4262,13 @@ describe("Garden", () => {
 
       beforeEach(async () => {
         gardenA = await makeTestGardenA()
-        handlerA = new TestVcsHandler(
-          gardenA.projectRoot,
-          join(gardenA.projectRoot, ".garden"),
-          defaultDotIgnoreFile,
-          gardenA.cache
-        )
+        handlerA = new TestVcsHandler({
+          garden: gardenA,
+          projectRoot: gardenA.projectRoot,
+          gardenDirPath: join(gardenA.projectRoot, ".garden"),
+          ignoreFile: defaultDotIgnoreFile,
+          cache: gardenA.cache,
+        })
       })
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")

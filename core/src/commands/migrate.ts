@@ -73,7 +73,7 @@ export class MigrateCommand extends Command<Args, Opts> {
 
   printHeader() {}
 
-  async action({ log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
+  async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory
     const projectConfig = await findProjectConfig(opts.root, true)
 
@@ -91,7 +91,13 @@ export class MigrateCommand extends Command<Args, Opts> {
     if (args.configPaths && args.configPaths.length > 0) {
       configPaths = args.configPaths.map((path) => resolve(root, path))
     } else {
-      const vcs = new GitHandler(root, resolve(root, DEFAULT_GARDEN_DIR_NAME), defaultDotIgnoreFile, new TreeCache())
+      const vcs = new GitHandler({
+        garden,
+        projectRoot: root,
+        gardenDirPath: resolve(root, DEFAULT_GARDEN_DIR_NAME),
+        ignoreFile: defaultDotIgnoreFile,
+        cache: new TreeCache(),
+      })
       configPaths = await findConfigPathsInPath({
         dir: root,
         vcs,
