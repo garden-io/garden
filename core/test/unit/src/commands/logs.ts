@@ -13,8 +13,13 @@ import { colors, LogsCommand } from "../../../../src/commands/logs"
 import { ProjectConfig } from "../../../../src/config/project"
 import { GardenPlugin } from "../../../../src/plugin/plugin"
 import { TestGarden } from "../../../../src/util/testing"
-import { createProjectConfig, customizedTestPlugin, expectError, withDefaultGlobalOpts } from "../../../helpers"
-import execa from "execa"
+import {
+  createProjectConfig,
+  customizedTestPlugin,
+  expectError,
+  makeTempDir,
+  withDefaultGlobalOpts
+} from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
 import chalk from "chalk"
@@ -122,9 +127,7 @@ describe("LogsCommand", () => {
   }
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 
   after(async () => {

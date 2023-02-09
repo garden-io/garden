@@ -8,20 +8,17 @@
 
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { withDefaultGlobalOpts, TestGarden, createProjectConfig } from "../../../../helpers"
+import { withDefaultGlobalOpts, TestGarden, createProjectConfig, makeTempDir } from "../../../../helpers"
 import { GetOutputsCommand } from "../../../../../src/commands/get/get-outputs"
 import { ProjectConfig } from "../../../../../src/config/project"
 import { createGardenPlugin } from "../../../../../src/plugin/plugin"
-import { exec } from "../../../../../src/util/util"
 
 describe("GetOutputsCommand", () => {
   let tmpDir: tmp.DirectoryResult
   let projectConfig: ProjectConfig
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     projectConfig = createProjectConfig({
       path: tmpDir.path,

@@ -18,7 +18,6 @@ import {
   stubProviderAction,
   createProjectConfig,
 } from "../../../helpers"
-import execa from "execa"
 import { ResolveProviderTask } from "../../../../src/tasks/resolve-provider"
 import { pathExists, writeFile, remove } from "fs-extra"
 import { join } from "path"
@@ -32,10 +31,7 @@ describe("ResolveProviderTask", () => {
   let task: ResolveProviderTask
 
   before(async () => {
-    tmpDir = await makeTempDir()
-    const path = tmpDir.path
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 
   after(async () => {

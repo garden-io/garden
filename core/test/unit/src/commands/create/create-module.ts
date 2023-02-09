@@ -14,7 +14,7 @@ import { Garden } from "../../../../../src/garden"
 import { join } from "path"
 import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
-import { exec, safeDumpYaml } from "../../../../../src/util/util"
+import { safeDumpYaml } from "../../../../../src/util/util"
 import stripAnsi = require("strip-ansi")
 import { getModuleTypes } from "../../../../../src/plugins"
 import { getSupportedPlugins } from "../../../../../src/plugins/plugins"
@@ -28,8 +28,7 @@ describe("CreateModuleCommand", () => {
   let garden: Garden
 
   beforeEach(async () => {
-    tmp = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmp.path })
+    tmp = await makeTempDir({ git: true, initialCommit: false })
     garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create module", args: {}, opts: {} } })
   })
 

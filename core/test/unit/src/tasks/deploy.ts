@@ -14,7 +14,7 @@ import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { DeployTask } from "../../../../src/tasks/deploy"
 import { expect } from "chai"
-import { createProjectConfig, TestGarden } from "../../../helpers"
+import { createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
 import { joi } from "../../../../src/config/common"
 
 describe("DeployTask", () => {
@@ -25,9 +25,7 @@ describe("DeployTask", () => {
   let testPlugin: GardenPlugin
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     config = createProjectConfig({
       path: tmpDir.path,

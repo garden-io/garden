@@ -22,6 +22,7 @@ import {
   createProjectConfig,
   TestGarden,
   makeModuleConfig,
+  makeTempDir,
 } from "../../../../helpers"
 import { RunTask } from "../../../../../src/tasks/run"
 import { makeTestGarden } from "../../../../helpers"
@@ -44,7 +45,6 @@ import {
 } from "../../../../../src/resolve-module"
 import tmp from "tmp-promise"
 import { ProjectConfig } from "../../../../../src/config/project"
-import execa from "execa"
 import { BuildActionConfig } from "../../../../../src/actions/build"
 import { DeployActionConfig } from "../../../../../src/actions/deploy"
 import { RunActionConfig } from "../../../../../src/actions/run"
@@ -969,8 +969,7 @@ describe("exec plugin", () => {
       let garden: TestGarden
 
       before(async () => {
-        tmpDir = await tmp.dir({ unsafeCleanup: true })
-        await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+        tmpDir = await makeTempDir({ git: true, initialCommit: false })
         garden = await makeGarden(tmpDir)
       })
 

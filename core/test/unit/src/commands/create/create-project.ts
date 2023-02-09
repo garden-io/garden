@@ -14,7 +14,7 @@ import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
-import { exec, safeDumpYaml } from "../../../../../src/util/util"
+import { safeDumpYaml } from "../../../../../src/util/util"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()
@@ -22,8 +22,7 @@ describe("CreateProjectCommand", () => {
   let garden: Garden
 
   beforeEach(async () => {
-    tmp = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmp.path })
+    tmp = await makeTempDir({ git: true, initialCommit: false })
     garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create project", args: {}, opts: {} } })
   })
 
