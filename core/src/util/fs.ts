@@ -308,16 +308,21 @@ export type TempDirectory = tmp.DirectoryResult
 /**
  * Create a temp directory. Make sure to clean it up after use using the `cleanup()` method on the returned object.
  */
-export async function makeTempDir({ git = false }: { git?: boolean } = {}): Promise<TempDirectory> {
+export async function makeTempDir({
+  git = false,
+  initialCommit = true,
+}: { git?: boolean; initialCommit?: boolean } = {}): Promise<TempDirectory> {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   // Fully resolve path so that we don't get path mismatches in tests
   tmpDir.path = await realpath(tmpDir.path)
 
   if (git) {
     await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
-    await writeFile(join(tmpDir.path, "foo"), "bar")
-    await exec("git", ["add", "."], { cwd: tmpDir.path })
-    await exec("git", ["commit", "-m", "first commit"], { cwd: tmpDir.path })
+    if (initialCommit) {
+      await writeFile(join(tmpDir.path, "foo"), "bar")
+      await exec("git", ["add", "."], { cwd: tmpDir.path })
+      await exec("git", ["commit", "-m", "first commit"], { cwd: tmpDir.path })
+    }
   }
 
   return tmpDir
