@@ -143,15 +143,15 @@ describe("kubernetes container module handlers", () => {
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: true })
       const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "test")
 
-      const key = "test.simple.echo-test-with-sleep"
-      expect(result).to.have.property(key)
-      expect(result[key]!.result.log.trim()).to.equal("ok\nbear")
-      expect(result[key]!.result.namespaceStatus).to.exist
+      expect(result.error).to.be.null
+      const task = result.results.getResult(testTask)!
+      expect(task).to.exist
+      expect(task.outputs.log).to.equal("ok\nbear")
       expect(logEvent).to.exist
     })
 
     it("should fail if an error occurs, but store the result", async () => {
-      const testAction = graph.getTest("echo-test")!
+      const testAction = graph.getTest("simple-echo-test")!
       testAction.getConfig().spec.command = ["bork"] // this will fail
 
       const testTask = new TestTask({
