@@ -113,6 +113,7 @@ describe("ConfigStore", () => {
         linkedProjectSources: {
           "name-b": { name: "name-b", path: "path-b" },
         },
+        warnings: {},
       })
     })
 
@@ -129,6 +130,7 @@ describe("ConfigStore", () => {
         analytics: {},
         linkedModuleSources: {},
         linkedProjectSources: {},
+        warnings: {},
       })
     })
   })
@@ -157,12 +159,14 @@ describe("ConfigStore", () => {
       const config = await store.get()
 
       expect(config).to.eql({
+        activeProcesses: {},
         analytics: {
           anonymousUserId: "fasgdjhfgaskfjhsdgfkjas",
           cloudProfileEnabled: false,
           firstRunAt: new Date("Sun, 29 Jan 2023 00:59:37 GMT"),
           optedOut: false,
         },
+        clientAuthTokens: {},
         requirementsCheck: {
           lastRunDateUNIX: 1674954074151,
           lastRunGardenVersion: "0.12.48",
