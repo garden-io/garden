@@ -2789,7 +2789,9 @@ describe("Garden", () => {
             docs: "test",
             schema: joi.object().keys({ bla: joi.any() }),
             needsBuild: true,
-            handlers: {},
+            handlers: {
+              convert: convertExecModule,
+            },
           },
         ],
       })
