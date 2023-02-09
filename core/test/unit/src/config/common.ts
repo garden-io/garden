@@ -471,7 +471,7 @@ describe("joi.customObject", () => {
       () => validateSchema({ numberProperty: "oops", blarg: "blorg" }, joiSchema),
       (err) =>
         expect(stripAnsi(err.message)).to.equal(
-          "Validation error: value at . should not have additional properties, value at . should have required property 'stringProperty', value at ..numberProperty should be integer"
+          "Validation error: value at . must have required property 'stringProperty', value at . must NOT have additional properties, value at ./numberProperty must be integer"
         )
     )
   })
