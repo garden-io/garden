@@ -3610,7 +3610,9 @@ describe("Garden", () => {
             docs: "base",
             moduleOutputsSchema: joi.object().keys({ foo: joi.string() }),
             needsBuild: true,
-            handlers: {},
+            handlers: {
+              convert: convertExecModule,
+            },
           },
         ],
       })
@@ -3624,10 +3626,9 @@ describe("Garden", () => {
             docs: "foo",
             needsBuild: true,
             handlers: {
-              // TODO-G2
-              // getModuleOutputs: async () => ({
-              //   outputs: { foo: 123 },
-              // }),
+              getModuleOutputs: async () => ({
+                outputs: { foo: 123 },
+              }),
             },
           },
         ],
@@ -3772,7 +3773,9 @@ describe("Garden", () => {
               docs: "base-b",
               base: "base-a",
               needsBuild: true,
-              handlers: {},
+              handlers: {
+                convert: convertExecModule,
+              },
             },
           ],
         })
@@ -3786,10 +3789,9 @@ describe("Garden", () => {
               docs: "foo",
               needsBuild: true,
               handlers: {
-                // TODO-G2
-                // getModuleOutputs: async () => ({
-                //   outputs: { foo: 123 },
-                // }),
+                getModuleOutputs: async () => ({
+                  outputs: { foo: 123 },
+                }),
               },
             },
           ],
