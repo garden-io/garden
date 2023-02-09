@@ -4511,10 +4511,11 @@ describe("Garden", () => {
 
   describe("warnings", () => {
     let garden: TestGarden
-    const key = randomString()
+    let key: string
 
     beforeEach(async () => {
       garden = await makeTestGardenA()
+      key = randomString()
     })
 
     describe("hideWarning", () => {
