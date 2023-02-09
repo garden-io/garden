@@ -7,11 +7,10 @@
  */
 
 import tmp from "tmp-promise"
-import execa from "execa"
 
 import { ProjectConfig } from "../../../../src/config/project"
 import { expect } from "chai"
-import { createProjectConfig, TestGarden } from "../../../helpers"
+import { createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
 import { DeployTask } from "../../../../src/tasks/deploy"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { joi } from "../../../../src/config/common"
@@ -51,9 +50,7 @@ describe("DeployTask", () => {
   ]
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     config = createProjectConfig({
       path: tmpDir.path,

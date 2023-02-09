@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import execa from "execa"
-import tmp from "tmp-promise"
 import { expect } from "chai"
 import {
   TestGarden,
@@ -19,6 +17,7 @@ import {
   customizedTestPlugin,
   expectFuzzyMatch,
   createProjectConfig,
+  makeTempDir,
 } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../src/commands/run-workflow"
@@ -305,8 +304,7 @@ describe("RunWorkflowCommand", () => {
       },
     })
 
-    const tmpDir = await tmp.dir({ unsafeCleanup: true })
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    const tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     const projectConfig: ProjectConfig = createProjectConfig({
       path: tmpDir.path,

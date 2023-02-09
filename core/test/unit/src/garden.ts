@@ -48,7 +48,6 @@ import { joi } from "../../../src/config/common"
 import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
 import { dedent, randomString } from "../../../src/util/string"
-import execa from "execa"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
@@ -64,10 +63,8 @@ describe("Garden", () => {
   let projectConfigFoo: ProjectConfig
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    tmpDir = await makeTempDir({ git: true })
     pathFoo = tmpDir.path
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: pathFoo })
 
     projectConfigFoo = createProjectConfig({
       name: "test",

@@ -7,14 +7,13 @@
  */
 
 import tmp from "tmp-promise"
-import { createProjectConfig, TestGarden } from "../../helpers"
+import { createProjectConfig, makeTempDir, TestGarden } from "../../helpers"
 import { resolveProjectOutputs } from "../../../src/outputs"
 import { expect } from "chai"
 import { realpath } from "fs-extra"
 import { createGardenPlugin } from "../../../src/plugin/plugin"
 import { ProjectConfig } from "../../../src/config/project"
 import { DEFAULT_API_VERSION } from "../../../src/constants"
-import { exec } from "../../../src/util/util"
 import { joi } from "../../../src/config/common"
 
 describe("resolveProjectOutputs", () => {
@@ -23,9 +22,9 @@ describe("resolveProjectOutputs", () => {
   let projectConfig: ProjectConfig
 
   beforeEach(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
     tmpPath = await realpath(tmpDir.path)
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
+
     projectConfig = createProjectConfig({
       path: tmpPath,
       providers: [{ name: "test" }],

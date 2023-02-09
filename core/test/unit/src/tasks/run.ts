@@ -8,9 +8,8 @@
 
 import tmp from "tmp-promise"
 import { expect } from "chai"
-import { createProjectConfig, TestGarden } from "../../../helpers"
+import { createProjectConfig, makeTempDir, TestGarden } from "../../../helpers"
 import { ProjectConfig } from "../../../../src/config/project"
-import execa from "execa"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { RunTask } from "../../../../src/tasks/run"
 import { GetRunResult } from "../../../../src/plugin/handlers/Run/get-result"
@@ -21,9 +20,7 @@ describe("RunTask", () => {
   let config: ProjectConfig
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     config = createProjectConfig({
       path: tmpDir.path,

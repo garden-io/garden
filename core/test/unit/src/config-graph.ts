@@ -18,13 +18,13 @@ import {
   createProjectConfig,
   TestGarden,
   customizedTestPlugin,
+  makeTempDir,
 } from "../../helpers"
 import { getNames } from "../../../src/util/util"
 import { ConfigGraph, ConfigGraphNode } from "../../../src/graph/config-graph"
 import { Garden } from "../../../src/garden"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../../../src/constants"
 import tmp from "tmp-promise"
-import execa from "execa"
 import { GardenPlugin } from "../../../src/plugin/plugin"
 import { ProjectConfig } from "../../../src/config/project"
 import { ActionKind, BaseActionConfig } from "../../../src/actions/types"
@@ -170,8 +170,7 @@ describe("ConfigGraph (action-based configs)", () => {
   const makeDisabledTest = (name: string) => _makeTest(name, true)
 
   before(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     // init Garden and some actions of each kind
     garden = await makeGarden(tmpDir, testPlugin)

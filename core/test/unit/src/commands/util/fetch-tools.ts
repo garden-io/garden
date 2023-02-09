@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec, getPlatform, getArchitecture } from "../../../../../src/util/util"
+import { getPlatform, getArchitecture } from "../../../../../src/util/util"
 import { createProjectConfig, makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts } from "../../../../helpers"
 import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools"
 import { expect } from "chai"
@@ -56,8 +56,7 @@ describe("FetchToolsCommand", () => {
   const expectedPathB = join(GARDEN_GLOBAL_PATH, "tools", "tool-b", "a8601675b580d777", ".dockerignore")
 
   before(async () => {
-    tmpDir = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
   })
 
   it("should fetch tools for configured providers", async () => {

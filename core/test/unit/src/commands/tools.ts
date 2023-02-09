@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { exec, getPlatform, getArchitecture } from "../../../../src/util/util"
+import { getPlatform, getArchitecture } from "../../../../src/util/util"
 import {
   makeTempDir,
   TempDirectory,
@@ -89,8 +89,7 @@ describe("ToolsCommand", () => {
   const command = new ToolsCommand()
 
   before(async () => {
-    tmpDir = await makeTempDir()
-    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
+    tmpDir = await makeTempDir({ git: true, initialCommit: false })
 
     garden = await TestGarden.factory(tmpDir.path, {
       plugins: [pluginA, pluginB],
