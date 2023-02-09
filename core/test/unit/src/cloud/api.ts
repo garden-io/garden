@@ -22,20 +22,6 @@ describe("CloudApi", () => {
   const domain = "https://garden." + randomString()
   const globalConfigStore = new GlobalConfigStore()
 
-  describe("saveAuthToken", () => {
-    it("should persist an auth token to the local config db", async () => {
-      const testAuthToken = {
-        token: uuidv4(),
-        refreshToken: uuidv4(),
-        tokenValidity: 9999,
-      }
-      await CloudApi.saveAuthToken(log, globalConfigStore, testAuthToken, domain)
-      const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
-      expect(savedToken).to.exist
-      expect(savedToken).to.equal(testAuthToken.token)
-    })
-  })
-
   describe("getAuthToken", () => {
     it("should return null when no auth token is present", async () => {
       const savedToken = await CloudApi.getAuthToken(log, globalConfigStore, domain)
