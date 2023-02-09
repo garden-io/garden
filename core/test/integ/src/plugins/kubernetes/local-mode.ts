@@ -10,7 +10,6 @@ import { expect } from "chai"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-// import { DeployTask } from "../../../../../src/tasks/deploy"
 import { TestGarden } from "../../../../helpers"
 import { getContainerTestGarden } from "./container/container"
 import { join } from "path"
@@ -20,6 +19,8 @@ import { PROXY_CONTAINER_USER_NAME } from "../../../../../src/plugins/kubernetes
 import { RuntimeError } from "../../../../../src/exceptions"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../src/plugins/kubernetes/local-mode"
 import pRetry = require("p-retry")
+import { sleep } from "../../../../../src/util/util"
+import { DeployTask } from "../../../../../src/tasks/deploy"
 
 describe("local mode deployments and ssh tunneling behavior", () => {
   let garden: TestGarden
@@ -56,18 +57,41 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     const action = graph.getDeploy("local-mode")
     const log = garden.log
 
-    const resolvedAction = await garden.resolveAction({
-      action,
-      log: garden.log,
-      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
-    })
-    const status = await k8sGetContainerDeployStatus({
-      ctx,
-      action: resolvedAction,
+    const resolvedAction = await garden.resolveAction({ action, log: garden.log, graph })
+    const task = new DeployTask({
+      garden,
       log,
-      devMode: false,
-      localMode: true,
+      graph,
+      action,
+      force: false,
+      forceBuild: false,
+      fromWatch: false,
+      skipRuntimeDependencies: true,
+      localModeDeployNames: [action.name],
+      devModeDeployNames: [],
     })
+    const results = await garden.processTask(task, log, {})
+
+    const status = await pRetry(
+      async () => {
+        await sleep(3000)
+        const _status = await k8sGetContainerDeployStatus({
+          ctx,
+          action: resolvedAction,
+          log,
+          devMode: false,
+          localMode: true,
+        })
+        if (_status.state === "not-ready") {
+          throw "not-yet ready, wait a bit and try again"
+        }
+        return _status
+      },
+      {
+        retries: 3,
+      }
+    )
+    expect(status.state).to.eql("ready")
     expect(status.detail?.localMode).to.eql(true)
 
     const serviceSshKeysPath = ProxySshKeystore.getSshDirPath(ctx.gardenDirPath)
@@ -109,7 +133,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
           log.warn(`${err.message}. ${err.retriesLeft} attempts left.`)
         },
       }
-    ).catch((_err) => false)
+    )
     expect(isPortForwardingRunning).to.be.true
     // no need to delete the running k8s service.
     // It will cause failing retry process for port-forwarding and eventually will kill the testing job.
