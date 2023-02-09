@@ -14,9 +14,6 @@ import { uuidv4 } from "../../../../src/util/util"
 import { randomString } from "../../../../src/util/string"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 
-/**
- * Note: Running these tests locally will delete your saved auth token, if any.
- */
 describe("CloudApi", () => {
   const log = getLogger().placeholder()
   const domain = "https://garden." + randomString()
