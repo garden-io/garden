@@ -7,6 +7,7 @@
  */
 
 import { expect } from "chai"
+
 const stripAnsi = require("strip-ansi")
 import {
   identifierRegex,
@@ -467,13 +468,10 @@ describe("joi.customObject", () => {
 
   it("should give validation error if object doesn't match specified JSON Schema", async () => {
     const joiSchema = joi.object().jsonSchema(jsonSchema)
-    await expectError(
-      () => validateSchema({ numberProperty: "oops", blarg: "blorg" }, joiSchema),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Validation error: value at . must have required property 'stringProperty', value at . must NOT have additional properties, value at ./numberProperty must be integer"
-        )
-    )
+    await expectError(() => validateSchema({ numberProperty: "oops", blarg: "blorg" }, joiSchema), {
+      contains:
+        "Validation error: value at . must have required property 'stringProperty', value at . must NOT have additional properties, value at ./numberProperty must be integer",
+    })
   })
 
   it("should throw if schema with wrong type is passed to .jsonSchema()", async () => {
@@ -495,28 +493,25 @@ describe("validateSchema", () => {
   it("should format a basic object validation error", async () => {
     const schema = joi.object().keys({ foo: joi.string() })
     const value = { foo: 123 }
-    await expectError(
-      () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.contain("Validation error: key .foo must be a string")
-    )
+    await expectError(() => validateSchema(value, schema), {
+      contains: "Validation error: key .foo must be a string",
+    })
   })
 
   it("should format a nested object validation error", async () => {
     const schema = joi.object().keys({ foo: joi.object().keys({ bar: joi.string() }) })
     const value = { foo: { bar: 123 } }
-    await expectError(
-      () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.contain("Validation error: key .foo.bar must be a string")
-    )
+    await expectError(() => validateSchema(value, schema), {
+      contains: "Validation error: key .foo.bar must be a string",
+    })
   })
 
   it("should format a nested pattern object validation error", async () => {
     const schema = joi.object().keys({ foo: joi.object().pattern(/.+/, joi.string()) })
     const value = { foo: { bar: 123 } }
-    await expectError(
-      () => validateSchema(value, schema),
-      (err) => expect(stripAnsi(err.message)).to.contain("Validation error: key .foo[bar] must be a string")
-    )
+    await expectError(() => validateSchema(value, schema), {
+      contains: "Validation error: key .foo[bar] must be a string",
+    })
   })
 })
 

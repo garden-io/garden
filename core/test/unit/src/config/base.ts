@@ -18,7 +18,6 @@ import {
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import stripAnsi = require("strip-ansi")
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/util"
 
@@ -139,10 +138,8 @@ describe("loadConfigResources", () => {
     const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-type", "garden.yml")),
-      (err) => {
-        expect(stripAnsi(err.message)).to.contain(
-          "Error validating module (missing-type/garden.yml): key .type is required"
-        )
+      {
+        contains: "Error validating module (missing-type/garden.yml): key .type is required",
       }
     )
   })
@@ -151,10 +148,8 @@ describe("loadConfigResources", () => {
     const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-name", "garden.yml")),
-      (err) => {
-        expect(stripAnsi(err.message)).to.contain(
-          "Error validating module (missing-name/garden.yml): key .name is required"
-        )
+      {
+        contains: "Error validating module (missing-name/garden.yml): key .name is required",
       }
     )
   })

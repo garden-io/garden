@@ -7,7 +7,6 @@
  */
 
 import { expect } from "chai"
-import stripAnsi from "strip-ansi"
 import Stream from "ts-stream"
 import { ResolvedDeployAction } from "../../../../src/actions/deploy"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
@@ -90,10 +89,7 @@ describe("deploy actions", () => {
             devMode: false,
             localMode: false,
           }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.include(
-            "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string."
-          )
+        { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
       )
     })
   })
@@ -158,10 +154,7 @@ describe("deploy actions", () => {
             devMode: false,
             localMode: false,
           }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.include(
-            "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string."
-          )
+        { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
       )
     })
   })

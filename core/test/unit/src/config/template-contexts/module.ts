@@ -8,7 +8,6 @@
 
 import { expect } from "chai"
 import { join } from "path"
-import stripAnsi = require("strip-ansi")
 import { keyBy } from "lodash"
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
@@ -21,6 +20,7 @@ import { DeployAction } from "../../../../../src/actions/deploy"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
+
 interface TestValues {
   [key: string]: TestValue
 }
@@ -293,13 +293,10 @@ describe("WorkflowStepConfigContext", () => {
       resolvedSteps: {},
       stepName: "step-1",
     })
-    expectError(
-      () => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Step step-2 is referenced in a template for step step-1, but step step-2 is later in the execution order. Only previous steps in the workflow can be referenced."
-        )
-    )
+    expectError(() => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }), {
+      contains:
+        "Step step-2 is referenced in a template for step step-1, but step step-2 is later in the execution order. Only previous steps in the workflow can be referenced.",
+    })
   })
 
   it("should throw error when attempting to reference current step", () => {
@@ -309,12 +306,8 @@ describe("WorkflowStepConfigContext", () => {
       resolvedSteps: {},
       stepName: "step-1",
     })
-    expectError(
-      () => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced."
-        )
-    )
+    expectError(() => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }), {
+      contains: "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced.",
+    })
   })
 })
