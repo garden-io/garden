@@ -1505,10 +1505,9 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      expectError(
-        () => resolveTemplateStrings(obj, new TestContext({})),
-        (err) => expect(stripAnsi(err.message)).to.equal("Missing $return field next to $forEach field.")
-      )
+      expectError(() => resolveTemplateStrings(obj, new TestContext({})), {
+        contains: "Missing $return field next to $forEach field.",
+      })
     })
 
     it("throws if there are superfluous keys on the object", () => {

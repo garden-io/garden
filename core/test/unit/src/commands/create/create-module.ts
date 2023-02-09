@@ -180,7 +180,9 @@ describe("CreateModuleCommand", () => {
             filename: defaultConfigFilename,
           }),
         }),
-      (err) => expect(stripAnsi(err.message)).to.equal("A Garden module named test already exists in " + configPath)
+      {
+        contains: `A Garden module named test already exists in ${configPath}`,
+      }
     )
   })
 
@@ -223,7 +225,7 @@ describe("CreateModuleCommand", () => {
             filename: defaultConfigFilename,
           }),
         }),
-      (err) => expect(stripAnsi(err.message)).to.equal("Could not find module type foo")
+      { contains: "Could not find module type foo" }
     )
   })
 

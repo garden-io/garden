@@ -19,7 +19,6 @@ import {
   defaultWorkflowLimits,
 } from "../../../../src/config/workflow"
 import { EnvironmentConfig, defaultNamespace } from "../../../../src/config/project"
-import stripAnsi from "strip-ansi"
 
 describe("resolveWorkflowConfig", () => {
   let garden: TestGarden
@@ -168,13 +167,9 @@ describe("resolveWorkflowConfig", () => {
       ],
     }
 
-    expectError(
-      () => resolveWorkflowConfig(garden, configWithTemplateStringInName),
-      (err) =>
-        expect(stripAnsi(err.message)).to.include(
-          'key .name with value "workflow-${secrets.foo}" fails to match the required pattern'
-        )
-    )
+    expectError(() => resolveWorkflowConfig(garden, configWithTemplateStringInName), {
+      contains: 'key .name with value "workflow-${secrets.foo}" fails to match the required pattern',
+    })
 
     const configWithTemplateStringInTrigger: WorkflowConfig = {
       ...defaults,
@@ -288,13 +283,9 @@ describe("resolveWorkflowConfig", () => {
         },
       ]
 
-      expectError(
-        () => populateNamespaceForTriggers({ ...config, triggers: [trigger] }, environmentConfigs),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            `Invalid namespace in trigger for workflow workflow-a: Environment test has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.test).`
-          )
-      )
+      expectError(() => populateNamespaceForTriggers({ ...config, triggers: [trigger] }, environmentConfigs), {
+        contains: `Invalid namespace in trigger for workflow workflow-a: Environment test has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.test).`,
+      })
     })
 
     it("should populate the trigger with a default namespace if one is defined", () => {

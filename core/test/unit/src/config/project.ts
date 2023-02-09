@@ -24,7 +24,6 @@ import { createProjectConfig, expectError } from "../../../helpers"
 import { realpath, writeFile } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
 import { resolve, join } from "path"
-import stripAnsi from "strip-ansi"
 
 const enterpriseDomain = "https://garden.mydomain.com"
 const commandInfo = { name: "test", args: {}, opts: {} }
@@ -1067,10 +1066,7 @@ describe("pickEnvironment", () => {
           secrets: {},
           commandInfo,
         }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.contain(
-          "Error validating environment default: key .defaultNamespace must be a string"
-        )
+      { contains: "Error validating environment default: key .defaultNamespace must be a string" }
     )
   })
 
@@ -1263,10 +1259,10 @@ describe("pickEnvironment", () => {
           secrets: {},
           commandInfo,
         }),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default)."
-        )
+      {
+        contains:
+          "Environment default has defaultNamespace set to null, and no explicit namespace was specified. Please either set a defaultNamespace or explicitly set a namespace at runtime (e.g. --env=some-namespace.default).",
+      }
     )
   })
 })
