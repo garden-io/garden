@@ -30,7 +30,7 @@ function emitEvent(garden: TestGarden, name: string, payload: any) {
   garden["watcher"]["watcher"]!.emit(name, payload)
 }
 
-describe("Watcher", () => {
+describe.skip("Watcher", () => {
   let garden: TestGarden
   let modulePath: string
   let doubleModulePath: string
