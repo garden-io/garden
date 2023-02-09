@@ -235,7 +235,7 @@ export interface ExecModuleSpec extends ModuleSpec {
   local?: boolean
 }
 
-export type ExecModuleConfig = ModuleConfig<ExecModuleSpec, ExecBuildConfig, ExecTestSpec, ExecTaskSpec>
+export type ExecModuleConfig = ModuleConfig<ExecModuleSpec>
 
 export const execBuildSpecSchema = () =>
   baseBuildSpecSchema().keys({
