@@ -92,7 +92,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       namespace,
       key: getRunResultKey(ctx, action),
       labels: {
-        [gardenAnnotationKey("module")]: action.moduleName(),
+        [gardenAnnotationKey("module")]: action.moduleName() || "",
         [gardenAnnotationKey("actionName")]: action.name,
         [gardenAnnotationKey("actionType")]: action.name,
         [gardenAnnotationKey("version")]: action.versionString(),
