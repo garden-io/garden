@@ -391,7 +391,9 @@ export function expectFuzzyMatch(str: string, sample: string | string[]) {
 type ExpectErrorAssertion =
   | string
   | ((err: any) => void)
-  | { type?: string; contains?: string | string[]; message?: string }
+  | { type?: string; contains?: string | string[]; errorMessageGetter?: (err: any) => string }
+
+const defaultErrorMessageGetter = (err: any) => err.message
 
 export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) {
   const handleError = (err: GardenError) => {
@@ -406,7 +408,8 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
 
     const type = typeof assertion === "string" ? assertion : assertion.type
     const contains = typeof assertion === "object" && assertion.contains
-    const message = typeof assertion === "object" && assertion.message
+    const errorMessageGetter = typeof assertion === "object" && assertion.errorMessageGetter
+    const message = errorMessageGetter && errorMessageGetter(err)
 
     if (type) {
       if (!err.type) {
@@ -422,7 +425,8 @@ export function expectError(fn: Function, assertion: ExpectErrorAssertion = {}) 
     }
 
     if (contains) {
-      expectFuzzyMatch(err.message, contains)
+      const errorMessage = (errorMessageGetter || defaultErrorMessageGetter)(err)
+      expectFuzzyMatch(errorMessage, contains)
     }
 
     if (message) {
