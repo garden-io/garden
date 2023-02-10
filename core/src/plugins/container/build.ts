@@ -65,7 +65,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const cmdOpts = ["build", "-t", identifier, ...getDockerBuildFlags(action), "--file", dockerfilePath]
 
   const logEventContext = {
-    origin: "local-docker",
+    origin: "docker build",
     log: log.placeholder({ level: LogLevel.verbose }),
   }
 
