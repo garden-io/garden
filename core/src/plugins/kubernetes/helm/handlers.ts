@@ -7,7 +7,7 @@
  */
 
 import { ModuleActionHandlers } from "../../../plugin/plugin"
-import { HelmModule, configureHelmModule } from "./module-config"
+import { HelmModule, configureHelmModule, HelmService } from "./module-config"
 import { join } from "path"
 import { pathExists } from "fs-extra"
 import chalk = require("chalk")
@@ -16,7 +16,7 @@ import { ExecBuildConfig } from "../../exec/config"
 import { KubernetesActionConfig } from "../kubernetes-type/config"
 import { HelmActionConfig, HelmDeployConfig } from "./config"
 import { getServiceResourceSpec } from "../util"
-import { jsonMerge } from "../../../util/util"
+import { isTruthy, jsonMerge } from "../../../util/util"
 import { cloneDeep, omit } from "lodash"
 import { DeepPrimitiveMap } from "../../../config/common"
 import { convertServiceResource } from "../kubernetes-type/common"
@@ -29,7 +29,16 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,
 
   convert: async (params: ConvertModuleParams<HelmModule>) => {
-    const { module, services, tasks, tests, dummyBuild, convertBuildDependency, prepareRuntimeDependencies } = params
+    const {
+      module,
+      services,
+      baseFields,
+      tasks,
+      tests,
+      dummyBuild,
+      convertBuildDependency,
+      prepareRuntimeDependencies,
+    } = params
     const actions: (ExecBuildConfig | KubernetesActionConfig | HelmActionConfig)[] = []
 
     if (dummyBuild) {
@@ -40,59 +49,30 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       actions.push(makeDummyBuild({ module, copyFrom: undefined, dependencies: undefined }))
     }
 
-    const service = services[0] // There's always exactly one service on helm modules
+    // There's one service on helm modules expect when skipDeploy = true
+    const service: typeof services[0] | undefined = services[0]
 
     // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
     // for compatibility.
     // Note: A dummyBuild will be set if `base` is set on the Module, because the module configure handler then
     //       sets a `build.dependencies[].copy` directive.
-    const baseModule = getBaseModule(module)
-    const serviceResource = getServiceResourceSpec(module, baseModule)
 
-    const deployAction: HelmDeployConfig = {
-      kind: "Deploy",
-      type: "helm",
-      name: module.name,
-      ...params.baseFields,
+    let deployAction: HelmDeployConfig | null = null
+    let deployDep: string | null = null
 
-      disabled: module.spec.skipDeploy,
-      build: dummyBuild?.name,
-      dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-
-      spec: {
-        atomicInstall: module.spec.atomicInstall,
-        portForwards: module.spec.portForwards,
-        namespace: module.spec.namespace,
-        releaseName: module.spec.releaseName,
-        timeout: module.spec.timeout,
-        values: module.spec.values,
-        valueFiles: module.spec.valueFiles,
-
-        chart: {
-          name: module.spec.chart,
-          path: module.spec.chart ? undefined : module.spec.chartPath,
-          repo: module.spec.repo,
-          version: module.spec.version,
-        },
-
-        devMode: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
-      },
+    // If this Helm module has `skipDeploy = true`, there won't be a service config for us to convert here.
+    if (service) {
+      deployAction = prepareDeployAction({
+        module,
+        service,
+        baseFields,
+        dummyBuild,
+        convertBuildDependency,
+        prepareRuntimeDependencies,
+      })
+      deployDep = `deploy.${deployAction.name}`
+      actions.push(deployAction)
     }
-
-    if (baseModule) {
-      deployAction.spec.values = <DeepPrimitiveMap>(
-        jsonMerge(cloneDeep(baseModule.spec.values), deployAction.spec.values)
-      )
-      deployAction.spec.chart!.path = baseModule.spec.chartPath
-    }
-
-    if (serviceResource?.containerModule) {
-      const build = convertBuildDependency(serviceResource.containerModule)
-      // TODO-G2: make this implicit
-      deployAction.dependencies?.push(build)
-    }
-
-    actions.push(deployAction)
 
     // Runs and Tests generated from helm modules all have the kubernetes-pod type, and don't use the podSpec field.
     // Therefore, they include a runtime dependency on their parent module's Deploy. This means that the helm Deploy
@@ -100,7 +80,6 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     //
     // This behavior is different from 0.12, where the pod spec was read from the output of a dry-run deploy using the
     // Helm CLI (and did thus not require the deployment to take place first).
-    const deployDep = `deploy.${deployAction.name}`
 
     for (const task of tasks) {
       const resource = convertServiceResource(module, task.spec.resource)
@@ -118,7 +97,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         ...params.baseFields,
         disabled: task.disabled,
         build: dummyBuild?.name,
-        dependencies: [deployDep, ...prepareRuntimeDependencies(task.config.dependencies, dummyBuild)],
+        dependencies: [deployDep, ...prepareRuntimeDependencies(task.config.dependencies, dummyBuild)].filter(isTruthy),
         timeout: task.spec.timeout || undefined,
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
@@ -144,7 +123,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         disabled: test.disabled,
 
         build: dummyBuild?.name,
-        dependencies: [deployDep, ...prepareRuntimeDependencies(test.config.dependencies, dummyBuild)],
+        dependencies: [deployDep, ...prepareRuntimeDependencies(test.config.dependencies, dummyBuild)].filter(isTruthy),
         timeout: test.spec.timeout || undefined,
 
         spec: {
@@ -193,4 +172,65 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       return { suggestions: [] }
     }
   },
+}
+
+function prepareDeployAction({
+  module,
+  service,
+  baseFields,
+  dummyBuild,
+  convertBuildDependency,
+  prepareRuntimeDependencies,
+}: {
+  module: HelmModule
+  service: HelmService
+  baseFields: ConvertModuleParams<HelmModule>["baseFields"]
+  dummyBuild: ConvertModuleParams<HelmModule>["dummyBuild"]
+  convertBuildDependency: ConvertModuleParams<HelmModule>["convertBuildDependency"]
+  prepareRuntimeDependencies: ConvertModuleParams<HelmModule>["prepareRuntimeDependencies"]
+}) {
+  const baseModule = getBaseModule(module)
+  const serviceResource = getServiceResourceSpec(module, baseModule)
+  const deployAction: HelmDeployConfig = {
+    kind: "Deploy",
+    type: "helm",
+    name: module.name,
+    ...baseFields,
+
+    disabled: module.spec.skipDeploy,
+    build: dummyBuild?.name,
+    dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
+
+    spec: {
+      atomicInstall: module.spec.atomicInstall,
+      portForwards: module.spec.portForwards,
+      namespace: module.spec.namespace,
+      releaseName: module.spec.releaseName,
+      timeout: module.spec.timeout,
+      values: module.spec.values,
+      valueFiles: module.spec.valueFiles,
+
+      chart: {
+        name: module.spec.chart,
+        path: module.spec.chart ? undefined : module.spec.chartPath,
+        repo: module.spec.repo,
+        version: module.spec.version,
+      },
+
+      devMode: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
+    },
+  }
+
+  if (baseModule) {
+    deployAction.spec.values = <DeepPrimitiveMap>jsonMerge(cloneDeep(baseModule.spec.values), deployAction.spec.values)
+    deployAction.spec.chart!.path = baseModule.spec.chartPath
+  }
+
+  if (serviceResource?.containerModule) {
+    const build = convertBuildDependency(serviceResource.containerModule)
+    // TODO-G2: make this implicit
+    deployAction.dependencies?.push(build)
+  }
+
+  return deployAction
 }
