@@ -285,7 +285,7 @@ export interface ActionDescription {
   key: string
   kind: ActionKind
   longDescription: string
-  moduleName: string
+  moduleName: string | null
   name: string
   treeVersion: TreeVersion
   version: ModuleVersion
@@ -399,8 +399,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return this._config.internal.configFilePath
   }
 
-  moduleName(): string {
-    return this._moduleName || this.name
+  moduleName(): string | null {
+    return this._moduleName || null
   }
 
   moduleVersion(): ModuleVersion {

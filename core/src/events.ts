@@ -210,7 +210,7 @@ export interface Events extends LoggerEvents {
     timestamp: number | string
     actionUid: string
     entity: {
-      moduleName: string
+      moduleName: string | null
       type: string
       key: string
     }
@@ -239,7 +239,7 @@ export interface Events extends LoggerEvents {
     actionVersion: string
 
     // DEPRECATED: remove in 0.14
-    moduleName: string
+    moduleName: string | null
     moduleVersion: string
     /**
      * `actionUid` should only be defined if `state = "building" | "built" | "failed"` (and not if `state = "fetched",
@@ -258,7 +258,7 @@ export interface Events extends LoggerEvents {
 
     // DEPRECATED: remove in 0.14
     taskName: string
-    moduleName: string
+    moduleName: string | null
     moduleVersion: string
     taskVersion: string
     /**
@@ -275,7 +275,7 @@ export interface Events extends LoggerEvents {
 
     // DEPRECATED: remove in 0.14
     testName: string
-    moduleName: string
+    moduleName: string | null
     moduleVersion: string
     testVersion: string
     /**
@@ -292,7 +292,7 @@ export interface Events extends LoggerEvents {
 
     // DEPRECATED: remove in 0.14
     serviceName: string
-    moduleName: string
+    moduleName: string | null
     moduleVersion: string
     serviceVersion: string
     /**

@@ -599,12 +599,7 @@ export async function createWorkloadManifest({
               labelSelector: {
                 matchExpressions: [
                   {
-                    key: gardenAnnotationKey("module"),
-                    operator: "In",
-                    values: [action.moduleName()],
-                  },
-                  {
-                    key: gardenAnnotationKey("service"),
+                    key: gardenAnnotationKey("actionName"),
                     operator: "In",
                     values: [action.name],
                   },
@@ -666,13 +661,15 @@ export function getDeploymentName(deployName: string, blueGreen: boolean, versio
 export function getDeploymentLabels(action: ContainerDeployAction, blueGreen: boolean) {
   if (blueGreen) {
     return {
-      [gardenAnnotationKey("module")]: action.moduleName(),
+      [gardenAnnotationKey("module")]: action.moduleName() || "",
+      [gardenAnnotationKey("actionName")]: action.name,
       [gardenAnnotationKey("service")]: action.name,
       [gardenAnnotationKey("version")]: action.versionString(),
     }
   } else {
     return {
-      [gardenAnnotationKey("module")]: action.moduleName(),
+      [gardenAnnotationKey("module")]: action.moduleName() || "",
+      [gardenAnnotationKey("actionName")]: action.name,
       [gardenAnnotationKey("service")]: action.name,
     }
   }
