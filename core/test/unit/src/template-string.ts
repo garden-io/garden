@@ -16,7 +16,6 @@ import {
 } from "../../../src/template-string/template-string"
 import { ConfigContext } from "../../../src/config/template-contexts/base"
 import { expectError } from "../../helpers"
-import stripAnsi = require("strip-ansi")
 import { dedent } from "../../../src/util/string"
 
 /* eslint-disable no-invalid-template-strings */
@@ -130,14 +129,9 @@ describe("resolveTemplateString", async () => {
   })
 
   it("should throw when a key is not found", async () => {
-    try {
-      resolveTemplateString("${some}", new TestContext({}))
-    } catch (err) {
-      expect(stripAnsi(err.message)).to.equal("Invalid template string (${some}): Could not find key some.")
-      return
-    }
-
-    throw new Error("Expected error")
+    await expectError(() => resolveTemplateString("${some}", new TestContext({})), {
+      contains: "Invalid template string (${some}): Could not find key some.",
+    })
   })
 
   it("should trim long template string in error messages", async () => {
@@ -147,34 +141,20 @@ describe("resolveTemplateString", async () => {
           "${some} very very very very very long long long long long template string",
           new TestContext({})
         ),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${some} very very very very very l…): Could not find key some."
-        )
+      { contains: "Invalid template string (${some} very very very very very l…): Could not find key some." }
     )
   })
 
   it("should replace line breaks in template strings in error messages", async () => {
-    expectError(
-      () => resolveTemplateString("${some}\nmulti\nline\nstring", new TestContext({})),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${some}\\nmulti\\nline\\nstring): Could not find key some."
-        )
-    )
+    expectError(() => resolveTemplateString("${some}\nmulti\nline\nstring", new TestContext({})), {
+      contains: "Invalid template string (${some}\\nmulti\\nline\\nstring): Could not find key some.",
+    })
   })
 
   it("should throw when a nested key is not found", async () => {
-    try {
-      resolveTemplateString("${some.other}", new TestContext({ some: {} }))
-    } catch (err) {
-      expect(stripAnsi(err.message)).to.equal(
-        "Invalid template string (${some.other}): Could not find key other under some."
-      )
-      return
-    }
-
-    throw new Error("Expected error")
+    expectError(() => resolveTemplateString("${some.other}", new TestContext({ some: {} })), {
+      contains: "Invalid template string (${some.other}): Could not find key other under some.",
+    })
   })
 
   it("should throw with an incomplete template string", async () => {
@@ -317,10 +297,9 @@ describe("resolveTemplateString", async () => {
   })
 
   it("should throw if neither key in logical OR is valid", async () => {
-    return expectError(
-      () => resolveTemplateString("${a || b}", new TestContext({})),
-      (err) => expect(stripAnsi(err.message)).to.equal("Invalid template string (${a || b}): Could not find key b.")
-    )
+    return expectError(() => resolveTemplateString("${a || b}", new TestContext({})), {
+      contains: "Invalid template string (${a || b}): Could not find key b.",
+    })
   })
 
   it("should throw on invalid logical OR string", async () => {
@@ -517,13 +496,9 @@ describe("resolveTemplateString", async () => {
   })
 
   it("should throw when using comparison operators on missing keys", async () => {
-    return expectError(
-      () => resolveTemplateString("${a >= b}", new TestContext({ a: 123 })),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${a >= b}): Could not find key b. Available keys: a."
-        )
-    )
+    return expectError(() => resolveTemplateString("${a >= b}", new TestContext({ a: 123 })), {
+      contains: "Invalid template string (${a >= b}): Could not find key b. Available keys: a.",
+    })
   })
 
   it("should concatenate two arrays", async () => {
@@ -542,13 +517,10 @@ describe("resolveTemplateString", async () => {
   })
 
   it("should throw when using + on number and array", async () => {
-    return expectError(
-      () => resolveTemplateString("${a + b}", new TestContext({ a: 123, b: ["a"] })),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object)."
-        )
-    )
+    return expectError(() => resolveTemplateString("${a + b}", new TestContext({ a: 123, b: ["a"] })), {
+      contains:
+        "Invalid template string (${a + b}): Both terms need to be either arrays or strings or numbers for + operator (got number and object).",
+    })
   })
 
   it("should correctly evaluate clauses in parentheses", async () => {
@@ -704,45 +676,37 @@ describe("resolveTemplateString", async () => {
           "${nested.missing}",
           new TestContext({ nested: new TestContext({ foo: 123, bar: 456, baz: 789 }) })
         ),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar, baz and foo."
-        )
+      {
+        contains:
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar, baz and foo.",
+      }
     )
   })
 
   it("should correctly propagate errors from nested objects", async () => {
     await expectError(
       () => resolveTemplateString("${nested.missing}", new TestContext({ nested: { foo: 123, bar: 456 } })),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar and foo."
-        )
+      {
+        contains:
+          "Invalid template string (${nested.missing}): Could not find key missing under nested. Available keys: bar and foo.",
+      }
     )
   })
 
   it("should correctly propagate errors when resolving key on object in nested context", async () => {
     const c = new TestContext({ nested: new TestContext({ deeper: {} }) })
 
-    await expectError(
-      () => resolveTemplateString("${nested.deeper.missing}", c),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper."
-        )
-    )
+    await expectError(() => resolveTemplateString("${nested.deeper.missing}", c), {
+      contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
+    })
   })
 
   it("should correctly propagate errors from deeply nested contexts", async () => {
     const c = new TestContext({ nested: new TestContext({ deeper: new TestContext({}) }) })
 
-    await expectError(
-      () => resolveTemplateString("${nested.deeper.missing}", c),
-      (err) =>
-        expect(stripAnsi(err.message)).to.equal(
-          "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper."
-        )
-    )
+    await expectError(() => resolveTemplateString("${nested.deeper.missing}", c), {
+      contains: "Invalid template string (${nested.deeper.missing}): Could not find key missing under nested.deeper.",
+    })
   })
 
   context("allowPartial=true", () => {
@@ -834,25 +798,19 @@ describe("resolveTemplateString", async () => {
     it("should throw when right-hand side is not a primitive", () => {
       const c = new TestContext({ a: [1, 2], b: [3, 4] })
 
-      expectError(
-        () => resolveTemplateString("${a contains b}", c),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (${a contains b}): The right-hand side of a 'contains' operator must be a string, number, boolean or null (got object)."
-          )
-      )
+      expectError(() => resolveTemplateString("${a contains b}", c), {
+        contains:
+          "Invalid template string (${a contains b}): The right-hand side of a 'contains' operator must be a string, number, boolean or null (got object).",
+      })
     })
 
     it("should throw when left-hand side is not a string, array or object", () => {
       const c = new TestContext({ a: "foo", b: null })
 
-      expectError(
-        () => resolveTemplateString("${b contains a}", c),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (${b contains a}): The left-hand side of a 'contains' operator must be a string, array or object (got null)."
-          )
-      )
+      expectError(() => resolveTemplateString("${b contains a}", c), {
+        contains:
+          "Invalid template string (${b contains a}): The left-hand side of a 'contains' operator must be a string, array or object (got null).",
+      })
     })
 
     it("positive string literal contains string literal", () => {
@@ -1040,33 +998,23 @@ describe("resolveTemplateString", async () => {
     })
 
     it("throws if an if block has an optional suffix", () => {
-      expectError(
-        () => resolveTemplateString("prefix ${if a}?content ${endif}", new TestContext({ a: true })),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (prefix ${if a}?content ${endif}): Cannot specify optional suffix in if-block."
-          )
-      )
+      expectError(() => resolveTemplateString("prefix ${if a}?content ${endif}", new TestContext({ a: true })), {
+        contains:
+          "Invalid template string (prefix ${if a}?content ${endif}): Cannot specify optional suffix in if-block.",
+      })
     })
 
     it("throws if an if block doesn't have a matching endif", () => {
-      expectError(
-        () => resolveTemplateString("prefix ${if a}content", new TestContext({ a: true })),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (prefix ${if a}content): Missing ${endif} after ${if ...} block."
-          )
-      )
+      expectError(() => resolveTemplateString("prefix ${if a}content", new TestContext({ a: true })), {
+        contains: "Invalid template string (prefix ${if a}content): Missing ${endif} after ${if ...} block.",
+      })
     })
 
     it("throws if an endif block doesn't have a matching if", () => {
-      expectError(
-        () => resolveTemplateString("prefix content ${endif}", new TestContext({ a: true })),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (prefix content ${endif}): Found ${endif} block without a preceding ${if...} block."
-          )
-      )
+      expectError(() => resolveTemplateString("prefix content ${endif}", new TestContext({ a: true })), {
+        contains:
+          "Invalid template string (prefix content ${endif}): Found ${endif} block without a preceding ${if...} block.",
+      })
     })
   })
 
@@ -1097,45 +1045,31 @@ describe("resolveTemplateString", async () => {
     })
 
     it("throws if an argument is missing", () => {
-      expectError(
-        () => resolveTemplateString("${base64Decode()}", new TestContext({})),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (${base64Decode()}): Missing argument 'string' for base64Decode helper function."
-          )
-      )
+      expectError(() => resolveTemplateString("${base64Decode()}", new TestContext({})), {
+        contains:
+          "Invalid template string (${base64Decode()}): Missing argument 'string' for base64Decode helper function.",
+      })
     })
 
     it("throws if a wrong argument type is passed", () => {
-      expectError(
-        () => resolveTemplateString("${base64Decode(a)}", new TestContext({ a: 1234 })),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function: value must be a string"
-          )
-      )
+      expectError(() => resolveTemplateString("${base64Decode(a)}", new TestContext({ a: 1234 })), {
+        contains:
+          "Invalid template string (${base64Decode(a)}): Error validating argument 'string' for base64Decode helper function: value must be a string",
+      })
     })
 
     it("throws if the function can't be found", () => {
-      expectError(
-        () => resolveTemplateString("${floop('blop')}", new TestContext({})),
-        (err) =>
-          expect(
-            stripAnsi(err.message).startsWith(
-              "Invalid template string (${floop('blop')}): Could not find helper function 'floop'. Available helper functions: "
-            )
-          ).to.be.true
-      )
+      expectError(() => resolveTemplateString("${floop('blop')}", new TestContext({})), {
+        contains:
+          "Invalid template string (${floop('blop')}): Could not find helper function 'floop'. Available helper functions:",
+      })
     })
 
     it("throws if the function fails", () => {
-      expectError(
-        () => resolveTemplateString("${jsonDecode('{]}')}", new TestContext({})),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: Unexpected token ] in JSON at position 1"
-          )
-      )
+      expectError(() => resolveTemplateString("${jsonDecode('{]}')}", new TestContext({})), {
+        contains:
+          "Invalid template string (${jsonDecode('{]}')}): Error from helper function jsonDecode: Unexpected token ] in JSON at position 1",
+      })
     })
 
     context("concat", () => {
@@ -1154,11 +1088,9 @@ describe("resolveTemplateString", async () => {
           testContextVars?: object
           errorMessage: string
         }) {
-          return expectError(
-            () => resolveTemplateString(template, new TestContext(testContextVars)),
-            (err) =>
-              expect(stripAnsi(err.message)).to.equal(`Invalid template string (\${concat(a, b)}): ${errorMessage}`)
-          )
+          return expectError(() => resolveTemplateString(template, new TestContext(testContextVars)), {
+            contains: `Invalid template string (\${concat(a, b)}): ${errorMessage}`,
+          })
         }
 
         it("using on incompatible argument types (string and object)", async () => {
@@ -1199,23 +1131,15 @@ describe("resolveTemplateString", async () => {
       })
 
       it("throws on invalid string in the start index", () => {
-        return expectError(
-          () => resolveTemplateString("${slice(foo, 'a', 3)}", new TestContext({ foo: "abcdef" })),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: start index must be a number or a numeric string (got "a")`
-            )
-        )
+        return expectError(() => resolveTemplateString("${slice(foo, 'a', 3)}", new TestContext({ foo: "abcdef" })), {
+          contains: `Invalid template string (\${slice(foo, 'a', 3)}): Error from helper function slice: start index must be a number or a numeric string (got "a")`,
+        })
       })
 
       it("throws on invalid string in the end index", () => {
-        return expectError(
-          () => resolveTemplateString("${slice(foo, 0, 'b')}", new TestContext({ foo: "abcdef" })),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: end index must be a number or a numeric string (got "b")`
-            )
-        )
+        return expectError(() => resolveTemplateString("${slice(foo, 0, 'b')}", new TestContext({ foo: "abcdef" })), {
+          contains: `Invalid template string (\${slice(foo, 0, 'b')}): Error from helper function slice: end index must be a number or a numeric string (got "b")`,
+        })
       })
     })
   })
@@ -1407,11 +1331,9 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "b" }, "d"],
       }
 
-      expectError(
-        () => resolveTemplateStrings(obj, new TestContext({})),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal("Value of $concat key must be (or resolve to) an array (got string)")
-      )
+      expectError(() => resolveTemplateStrings(obj, new TestContext({})), {
+        contains: "Value of $concat key must be (or resolve to) an array (got string)",
+      })
     })
 
     it("throws if object with $concat key contains other keys as well", () => {
@@ -1419,13 +1341,9 @@ describe("resolveTemplateStrings", () => {
         foo: ["a", { $concat: "b", nope: "nay", oops: "derp" }, "d"],
       }
 
-      expectError(
-        () => resolveTemplateStrings(obj, new TestContext({})),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            'A list item with a $concat key cannot have any other keys (found "nope" and "oops")'
-          )
-      )
+      expectError(() => resolveTemplateStrings(obj, new TestContext({})), {
+        contains: 'A list item with a $concat key cannot have any other keys (found "nope" and "oops")',
+      })
     })
 
     it("ignores if $concat value is not an array and allowPartial=true", () => {
@@ -1478,13 +1396,9 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      expectError(
-        () => resolveTemplateStrings(obj, new TestContext({})),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Value of $forEach key must be (or resolve to) an array or mapping object (got string)"
-          )
-      )
+      expectError(() => resolveTemplateStrings(obj, new TestContext({})), {
+        contains: "Value of $forEach key must be (or resolve to) an array or mapping object (got string)",
+      })
     })
 
     it("ignores the loop if the input isn't a list or object and allowPartial=true", () => {
@@ -1520,13 +1434,9 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      expectError(
-        () => resolveTemplateStrings(obj, new TestContext({})),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            'Found one or more unexpected keys on $forEach object: "$concat" and "foo"'
-          )
-      )
+      expectError(() => resolveTemplateStrings(obj, new TestContext({})), {
+        contains: 'Found one or more unexpected keys on $forEach object: "$concat" and "foo"',
+      })
     })
 
     it("exposes item.value and item.key when resolving the $return clause", () => {
@@ -1578,13 +1488,9 @@ describe("resolveTemplateStrings", () => {
         },
       }
 
-      expectError(
-        () => resolveTemplateStrings(obj, new TestContext({})),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "$filter clause in $forEach loop must resolve to a boolean value (got object)"
-          )
-      )
+      expectError(() => resolveTemplateStrings(obj, new TestContext({})), {
+        contains: "$filter clause in $forEach loop must resolve to a boolean value (got object)",
+      })
     })
 
     it("handles $concat clauses in $return", () => {
