@@ -65,7 +65,6 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       action,
       force: false,
       forceBuild: false,
-      fromWatch: false,
       skipRuntimeDependencies: true,
       localModeDeployNames: [action.name],
       devModeDeployNames: [],
