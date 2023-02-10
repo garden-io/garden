@@ -13,11 +13,11 @@ import stripAnsi from "strip-ansi"
 
 import { LogLevel } from "../logger"
 import { LogEntry } from "../log-entry"
-import { Writer } from "./base"
+import { BaseWriterParams, Writer } from "./base"
 import { renderError, renderMsg } from "../renderers"
 import { InternalError } from "../../exceptions"
 
-export interface FileWriterConfig {
+export interface FileWriterConfig extends BaseWriterParams {
   level: LogLevel
   logFilePath: string
   fileTransportOptions?: {}
@@ -55,11 +55,10 @@ export class FileWriter extends Writer {
   protected logFilePath: string
   protected fileTransportOptions: FileTransportOptions
 
-  constructor(logFilePath: string, config: FileWriterConfig) {
+  constructor(config: FileWriterConfig) {
     super({ level: config.level })
 
-    const { fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS, level } = config
-    this.level = level
+    const { logFilePath, fileTransportOptions = DEFAULT_FILE_TRANSPORT_OPTIONS } = config
     this.fileTransportOptions = fileTransportOptions
     this.logFilePath = logFilePath
     this.fileLogger = null
@@ -68,7 +67,7 @@ export class FileWriter extends Writer {
   static async factory(config: FileWriterConfig) {
     const { logFilePath, truncatePrevious } = config
     if (!isAbsolute(logFilePath)) {
-      throw new InternalError(`FilewWriter expected absolute log file path, got ${logFilePath}`, { logFilePath })
+      throw new InternalError(`FileWriter expected absolute log file path, got ${logFilePath}`, { logFilePath })
     }
     await ensureDir(dirname(logFilePath))
     if (truncatePrevious) {
@@ -76,7 +75,7 @@ export class FileWriter extends Writer {
         await truncate(logFilePath)
       } catch (_) {}
     }
-    return new this(logFilePath, config) // We use `this` in order for this factory method to work for subclasses
+    return new this(config) // We use `this` in order for this factory method to work for subclasses
   }
 
   // Only init if needed to prevent unnecessary file writes
