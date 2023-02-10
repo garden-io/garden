@@ -8,7 +8,6 @@
 
 import { expect } from "chai"
 
-const stripAnsi = require("strip-ansi")
 import {
   identifierRegex,
   envVarRegex,
@@ -157,12 +156,10 @@ describe("validate", () => {
         .required(),
     })
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.contain("key .A is required, key .B.b is required")
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: "key .A is required, key .B.b is required",
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when keys are wrong in a pattern object", async () => {
@@ -184,12 +181,10 @@ describe("validate", () => {
         .required(),
     })
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.contain("key .A.B[c].C is required")
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: "key .A.B[c].C is required",
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when key is invalid", async () => {
@@ -199,24 +194,20 @@ describe("validate", () => {
       .pattern(/[a-z]+/, joi.string())
       .unknown(false)
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.contain('key "123" is not allowed at path .')
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: 'key "123" is not allowed at path .',
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when nested key is invalid", async () => {
     const obj = { a: { 123: "abc" } }
     const schema = joi.object().keys({ a: joi.object().pattern(/[a-z]+/, joi.string()) })
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.contain('key "123" is not allowed at path .a')
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: 'key "123" is not allowed at path .a',
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 
   it("should throw a nice error when xor rule fails", async () => {
@@ -229,12 +220,10 @@ describe("validate", () => {
       })
       .xor("a", "b")
 
-    await expectError(
-      () => validateSchema(obj, schema),
-      (err) => {
-        expect(stripAnsi(err.detail.errorDescription)).to.contain("object at . can only contain one of [a, b]")
-      }
-    )
+    await expectError(() => validateSchema(obj, schema), {
+      contains: "object at . can only contain one of [a, b]",
+      errorMessageGetter: (err) => err.detail.errorDescription,
+    })
   })
 })
 
