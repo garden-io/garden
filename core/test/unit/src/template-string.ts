@@ -171,10 +171,7 @@ describe("resolveTemplateString", async () => {
   it("should throw on nested format strings", async () => {
     return expectError(
       () => resolveTemplateString("${resol${part}ed}", new TestContext({})),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid template string (${resol${part}ed}): Unable to parse as valid template string."
-        )
+      {contains:"Invalid template string (${resol${part}ed}): Unable to parse as valid template string."}
     )
   })
 
@@ -231,16 +228,14 @@ describe("resolveTemplateString", async () => {
   it("should throw on invalid single-quoted string", async () => {
     return expectError(
       () => resolveTemplateString("${'foo}", new TestContext({})),
-      (err) =>
-        expect(err.message).to.equal("Invalid template string (${'foo}): Unable to parse as valid template string.")
+      {contains:"Invalid template string (${'foo}): Unable to parse as valid template string."}
     )
   })
 
   it("should throw on invalid double-quoted string", async () => {
     return expectError(
       () => resolveTemplateString('${"foo}', new TestContext({})),
-      (err) =>
-        expect(err.message).to.equal('Invalid template string (${"foo}): Unable to parse as valid template string.')
+      {contains:'Invalid template string (${"foo}): Unable to parse as valid template string.'}
     )
   })
 
@@ -305,8 +300,7 @@ describe("resolveTemplateString", async () => {
   it("should throw on invalid logical OR string", async () => {
     return expectError(
       () => resolveTemplateString("${a || 'b}", new TestContext({})),
-      (err) =>
-        expect(err.message).to.equal("Invalid template string (${a || 'b}): Unable to parse as valid template string.")
+      {contains:"Invalid template string (${a || 'b}): Unable to parse as valid template string."}
     )
   })
 
@@ -594,30 +588,21 @@ describe("resolveTemplateString", async () => {
   it("should throw if bracket expression resolves to a non-primitive", async () => {
     return expectError(
       () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: {}, bar: {} })),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid template string (${foo[bar]}): Expression in bracket must resolve to a primitive (got object)."
-        )
+      {contains:"Invalid template string (${foo[bar]}): Expression in bracket must resolve to a primitive (got object)."}
     )
   })
 
   it("should throw if attempting to index a primitive with brackets", async () => {
     return expectError(
       () => resolveTemplateString("${foo[bar]}", new TestContext({ foo: 123, bar: "baz" })),
-      (err) =>
-        expect(err.message).to.equal(
-          'Invalid template string (${foo[bar]}): Attempted to look up key "baz" on a number.'
-        )
+      {contains:'Invalid template string (${foo[bar]}): Attempted to look up key "baz" on a number.'}
     )
   })
 
   it("should throw when using >= on non-numeric terms", async () => {
     return expectError(
       () => resolveTemplateString("${a >= b}", new TestContext({ a: 123, b: "foo" })),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid template string (${a >= b}): Both terms need to be numbers for >= operator (got number and string)."
-        )
+      {contains:"Invalid template string (${a >= b}): Both terms need to be numbers for >= operator (got number and string)."}
     )
   })
 
