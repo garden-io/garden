@@ -40,7 +40,7 @@ The project code is composed of several components, most of which are written in
 
 ### Step 1: Install Docker and Kubernetes
 
-Please refer to our [installation docs](./docs/getting-started/1-installation.md) for instructions on how to install Docker and Kubernetes for different platforms.
+Please refer to our [installation docs](./docs/guides/installation.md) for instructions on how to install Docker and Kubernetes for different platforms.
 
 ### Step 2: Clone the repo
 
