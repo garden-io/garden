@@ -107,10 +107,7 @@ describe("loadConfigResources", () => {
     const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "invalid-syntax-module", "garden.yml")),
-      (err) => {
-        expect(err.message).to.match(/Could not parse/)
-        expect(err.message).to.match(/duplicated mapping key/) // include syntax erorrs in the output
-      }
+      { contains: ["Could not parse", "duplicated mapping key"] }
     )
   })
 
@@ -118,9 +115,7 @@ describe("loadConfigResources", () => {
     const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "missing-kind", "garden.yml")),
-      (err) => {
-        expect(err.message).to.contain("Missing `kind` field in config at missing-kind/garden.yml")
-      }
+      { contains: "Missing `kind` field in config at missing-kind/garden.yml" }
     )
   })
 
@@ -128,9 +123,7 @@ describe("loadConfigResources", () => {
     const projectPath = getDataDir("test-project-invalid-config")
     await expectError(
       async () => await loadConfigResources(projectPath, resolve(projectPath, "invalid-config-kind", "garden.yml")),
-      (err) => {
-        expect(err.message).to.contain("Unknown config kind banana in invalid-config-kind/garden.yml")
-      }
+      { contains: "Unknown config kind banana in invalid-config-kind/garden.yml" }
     )
   })
 
@@ -464,12 +457,9 @@ describe("loadConfigResources", () => {
   })
 
   it("should throw if config file is not found", async () => {
-    await expectError(
-      async () => await loadConfigResources("/thisdoesnotexist", "/thisdoesnotexist"),
-      (err) => {
-        expect(err.message).to.equal("Could not find configuration file at /thisdoesnotexist")
-      }
-    )
+    await expectError(async () => await loadConfigResources("/thisdoesnotexist", "/thisdoesnotexist"), {
+      contains: "Could not find configuration file at /thisdoesnotexist",
+    })
   })
 
   it("should ignore empty documents in multi-doc YAML", async () => {
@@ -529,11 +519,8 @@ describe("findProjectConfig", async () => {
   })
 
   it("should throw an error if multiple projects are found", async () => {
-    await expectError(
-      async () => await findProjectConfig(projectPathDuplicateProjects),
-      (err) => {
-        expect(err.message).to.match(/Multiple project declarations found/)
-      }
-    )
+    await expectError(async () => await findProjectConfig(projectPathDuplicateProjects), {
+      contains: "Multiple project declarations found",
+    })
   })
 })

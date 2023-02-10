@@ -232,12 +232,9 @@ describe("util", () => {
 
     it("should use given description in error message", async () => {
       const obj = { a: 1, b: 2, c: 3 }
-      await expectError(
-        () => pickKeys(obj, <any>["a", "foo", "bar"], "banana"),
-        (err) => {
-          expect(err.message).to.equal("Could not find banana(s): foo, bar")
-        }
-      )
+      await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), {
+        contains: "Could not find banana(s): foo, bar",
+      })
     })
   })
 

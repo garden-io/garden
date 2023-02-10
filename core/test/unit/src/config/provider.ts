@@ -40,14 +40,9 @@ describe("getProviderDependencies", () => {
       someKey: "${providers}",
     }
 
-    await expectError(
-      () => getAllProviderDependencyNames(plugin, config),
-      (err) => {
-        expect(err.message).to.equal(
-          "Invalid template key 'providers' in configuration for provider 'my-provider'. " +
-            "You must specify a provider name as well (e.g. \\${providers.my-provider})."
-        )
-      }
-    )
+    await expectError(() => getAllProviderDependencyNames(plugin, config), {
+      contains:
+        "Invalid template key 'providers' in configuration for provider 'my-provider'. You must specify a provider name as well (e.g. \\${providers.my-provider}).",
+    })
   })
 })

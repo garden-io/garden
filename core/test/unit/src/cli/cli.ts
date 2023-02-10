@@ -84,10 +84,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args }) {
           return { result: { args } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -193,7 +195,7 @@ describe("cli", () => {
               exitOnError: false,
               cwd: getDataDir("test-projects", "custom-commands-invalid"),
             }),
-          (err) => expect(err.message).to.include("Error validating custom Command 'invalid'")
+          { contains: "Error validating custom Command 'invalid'" }
         )
       })
 
@@ -233,10 +235,12 @@ describe("cli", () => {
           noProject = true
 
           printHeader() {}
+
           async action({}) {
             return { result: { something: "important" } }
           }
         }
+
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
@@ -253,10 +257,12 @@ describe("cli", () => {
           noProject = true
 
           printHeader() {}
+
           async action({}) {
             return { result: { something: "important" } }
           }
         }
+
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
@@ -276,10 +282,12 @@ describe("cli", () => {
           noProject = true
 
           printHeader() {}
+
           async action({}) {
             return { result: { something: "important" } }
           }
         }
+
         const cmd = new TestCommand()
         cli.addCommand(cmd)
 
@@ -337,10 +345,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({}) {
           return { result: { something: "important" } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -357,10 +367,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({}) {
           return { result: { something: "important" } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -379,6 +391,7 @@ describe("cli", () => {
         help = "halp!"
 
         printHeader() {}
+
         async action({ garden }: CommandParams) {
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.equal(garden.sessionId)
@@ -393,6 +406,7 @@ describe("cli", () => {
           return { result: {} }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -416,6 +430,7 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ garden }: CommandParams) {
           expect(record.command).to.equal(this.name)
           expect(record.sessionId).to.equal(garden.sessionId)
@@ -430,6 +445,7 @@ describe("cli", () => {
           return { result: {} }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -470,11 +486,13 @@ describe("cli", () => {
         streamLogEntries = true
 
         printHeader() {}
+
         async action({ garden }: CommandParams) {
           garden.events.emit("_test", "funky functional test")
           return { result: {} }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -503,11 +521,13 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ garden }: CommandParams) {
           garden.events.emit("_test", "nope")
           return { result: {} }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -529,16 +549,19 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({}) {
           return { result: { something: "important" } }
         }
       }
+
       class TestGroup extends CommandGroup {
         name = "test-group"
         help = ""
 
         subCommands = [TestCommand]
       }
+
       const group = new TestGroup()
 
       for (const cmd of group.getSubCommands()) {
@@ -559,10 +582,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -621,10 +646,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -653,10 +680,12 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -701,10 +730,12 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -760,6 +791,7 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
@@ -771,6 +803,7 @@ describe("cli", () => {
 
         subCommands = [TestCommand]
       }
+
       const group = new TestGroup()
 
       for (const cmd of group.getSubCommands()) {
@@ -835,10 +868,12 @@ describe("cli", () => {
         }
 
         printHeader() {}
+
         async action({ args, opts }) {
           return { result: { args, opts } }
         }
       }
+
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
@@ -858,6 +893,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args }) {
           return { result: { args } }
         }
@@ -877,6 +913,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ args }) {
           return { result: { args } }
         }
@@ -896,6 +933,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ garden }) {
           return { result: { variables: garden.variables } }
         }
@@ -918,6 +956,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action() {
           return { result: { some: "output" } }
         }
@@ -937,6 +976,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action() {
           return { result: { some: "output" } }
         }
@@ -976,6 +1016,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -996,6 +1037,7 @@ describe("cli", () => {
         noProject = true
 
         printHeader() {}
+
         async action({ garden }) {
           return { result: { environmentName: garden.environmentName } }
         }
@@ -1040,6 +1082,7 @@ describe("cli", () => {
           noProject = true
 
           printHeader() {}
+
           async action({ args }) {
             return { result: { args } }
           }
@@ -1162,10 +1205,9 @@ describe("cli", () => {
           throw new Error("broken")
         }
 
-        await expectError(
-          () => validateRuntimeRequirementsCached(log, config, requirementCheckFunction),
-          (err) => expect(err.message).to.include("broken")
-        )
+        await expectError(() => validateRuntimeRequirementsCached(log, config, requirementCheckFunction), {
+          contains: "broken",
+        })
       })
     })
   })

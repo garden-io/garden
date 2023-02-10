@@ -1097,7 +1097,7 @@ describe("pickEnvironment", () => {
           secrets: {},
           commandInfo,
         }),
-      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
+      { contains: "Could not find varfile at path 'foo.env'" }
     )
   })
 
@@ -1128,7 +1128,7 @@ describe("pickEnvironment", () => {
           secrets: {},
           commandInfo,
         }),
-      (err) => expect(err.message).to.equal("Could not find varfile at path 'foo.env'")
+      { contains: "Could not find varfile at path 'foo.env'" }
     )
   })
 
@@ -1232,10 +1232,7 @@ describe("pickEnvironment", () => {
           secrets: {},
           commandInfo,
         }),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>"
-        )
+      { contains: "Invalid environment specified ($.%): must be a valid environment name or <namespace>.<environment>" }
     )
   })
 
@@ -1279,20 +1276,14 @@ describe("parseEnvironment", () => {
   })
 
   it("should throw if string contains more than two segments", () => {
-    expectError(
-      () => parseEnvironment("a.b.c"),
-      (err) =>
-        expect(err.message).to.equal("Invalid environment specified (a.b.c): may only contain a single delimiter")
-    )
+    expectError(() => parseEnvironment("a.b.c"), {
+      contains: "Invalid environment specified (a.b.c): may only contain a single delimiter",
+    })
   })
 
   it("should throw if string is not a valid hostname", () => {
-    expectError(
-      () => parseEnvironment("&.$"),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid environment specified (&.$): must be a valid environment name or <namespace>.<environment>"
-        )
-    )
+    expectError(() => parseEnvironment("&.$"), {
+      contains: "Invalid environment specified (&.$): must be a valid environment name or <namespace>.<environment>",
+    })
   })
 })

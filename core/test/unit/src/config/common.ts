@@ -464,17 +464,15 @@ describe("joi.customObject", () => {
   })
 
   it("should throw if schema with wrong type is passed to .jsonSchema()", async () => {
-    await expectError(
-      () => joi.object().jsonSchema({ type: "number" }),
-      (err) => expect(err.message).to.equal("jsonSchema must be a valid JSON Schema with type=object or reference")
-    )
+    await expectError(() => joi.object().jsonSchema({ type: "number" }), {
+      contains: "jsonSchema must be a valid JSON Schema with type=object or reference",
+    })
   })
 
   it("should throw if invalid schema is passed to .jsonSchema()", async () => {
-    await expectError(
-      () => joi.object().jsonSchema({ type: "banana", blorg: "blarg" }),
-      (err) => expect(err.message).to.equal("jsonSchema must be a valid JSON Schema with type=object or reference")
-    )
+    await expectError(() => joi.object().jsonSchema({ type: "banana", blorg: "blarg" }), {
+      contains: "jsonSchema must be a valid JSON Schema with type=object or reference",
+    })
   })
 })
 
