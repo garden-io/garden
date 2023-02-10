@@ -521,7 +521,7 @@ ${renderDivider({ width, char, color })}
       } else if (name === "dev") {
         this.flashError(`Nice try :)`)
       } else if (name === "logs") {
-        this.flashError(`Logs cannot currently be followed in the dev console. Please use a separate sheterminalll.`)
+        this.flashError(`Logs cannot currently be followed in the dev console. Please use a separate terminal.`)
       } else {
         this.flashError(`This command cannot be run in the dev console. Please run it in a separate terminal.`)
       }
