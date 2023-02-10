@@ -1429,7 +1429,7 @@ describe("exec plugin", () => {
           const buildCommandA = ["echo", moduleNameA]
           const testNameA = "test-a"
           const convertedTestNameA = "module-a-test-a"
-          const commandA = ["echo", "deployed", testNameA]
+          const commandA = ["echo", "test", testNameA]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1455,12 +1455,12 @@ describe("exec plugin", () => {
           })
 
           garden.setModuleConfigs([moduleConfigA])
-          // this will produce modules with `serviceConfigs` fields initialized
+          // this will produce modules with `testConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
           const moduleA = tmpGraph.getModule(moduleNameA)
 
-          // this will use `serviceConfigs` defined in modules
+          // this will use `testConfigs` defined in modules
           const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
           expect(result.groups).to.exist
 
@@ -1478,12 +1478,62 @@ describe("exec plugin", () => {
         })
 
         it("correctly maps a testConfig to a Test with no build", async () => {
-          throw "TODO"
-
           // Dependencies
           // + build dependencies
           // timeout
           // test spec
+
+          const moduleNameA = "module-a"
+          const testNameA = "test-a"
+          const convertedTestNameA = "module-a-test-a"
+          const commandA = ["echo", "test", testNameA]
+          const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
+            name: moduleNameA,
+            type: "exec",
+            spec: {
+              // <--- build field
+              build: {
+                command: [], // <--- empty build command
+              },
+              services: [],
+              tasks: [],
+              tests: [
+                {
+                  name: testNameA,
+                  command: commandA,
+                  dependencies: [],
+                  disabled: false,
+                  env: {},
+                  timeout: 10,
+                },
+              ],
+              env: {},
+            },
+          })
+          delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
+
+          garden.setActionConfigs([moduleConfigA])
+          // this will produce modules with `testConfigs` fields initialized
+          const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+          const moduleA = tmpGraph.getModule(moduleNameA)
+
+          // this will use `testConfigs` defined in modules
+          const result = await convertModules(garden, garden.log, [moduleA], tmpGraph.moduleGraph)
+          expect(result.groups).to.exist
+
+          const groupA = findGroupConfig(result, moduleNameA)!
+          expect(groupA).to.exist
+
+          const buildA = findActionConfigInGroup(groupA, "Build", moduleNameA)! as BuildActionConfig
+          // build action must be missing
+          expect(buildA).to.not.exist
+
+          const testA = findActionConfigInGroup(groupA, "Test", convertedTestNameA)! as TestActionConfig
+          expect(testA).to.exist
+          // no build name expected here
+          expect(testA.build).to.not.exist
+          expect(testA.dependencies).to.eql([])
         })
       })
     })
