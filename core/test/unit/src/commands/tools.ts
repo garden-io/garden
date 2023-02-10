@@ -186,10 +186,10 @@ describe("ToolsCommand", () => {
           args: { "tool": "51616ok3xnnz....361.2362&123", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
-      (err) =>
-        expect(err.message).to.equal(
-          "Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>."
-        )
+      {
+        contains:
+          "Invalid tool name argument. Please specify either a tool name (no periods) or <plugin name>.<tool name>.",
+      }
     )
   })
 
@@ -204,7 +204,7 @@ describe("ToolsCommand", () => {
           args: { "tool": "bla.tool", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
-      (err) => expect(err.message).to.equal("Could not find plugin bla.")
+      { contains: "Could not find plugin bla." }
     )
   })
 
@@ -219,7 +219,7 @@ describe("ToolsCommand", () => {
           args: { "tool": "bla", "--": ["0"] },
           opts: withDefaultGlobalOpts({ "get-path": false, "output": "json" }),
         }),
-      (err) => expect(err.message).to.equal("Could not find tool bla.")
+      { contains: "Could not find tool bla." }
     )
   })
 

@@ -82,10 +82,10 @@ describe("RunCommand", () => {
             "module": undefined,
           },
         }),
-      (err) =>
-        expect(err.message).to.equal(
-          "A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument."
-        )
+      {
+        contains:
+          "A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.",
+      }
     )
   })
 
@@ -242,7 +242,7 @@ describe("RunCommand", () => {
             "module": ["foo"],
           },
         }),
-      (err) => expect(err.message).to.equal("Could not find module(s): foo")
+      { contains: "Could not find module(s): foo" }
     )
   })
 

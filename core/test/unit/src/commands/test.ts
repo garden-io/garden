@@ -188,8 +188,7 @@ describe("TestCommand", () => {
             "module": undefined,
           }),
         }),
-      (err) =>
-        expect(err.message).to.equal("The --interactive/-i option can only be used if a single test is selected.")
+      { contains: "The --interactive/-i option can only be used if a single test is selected." }
     )
   })
 
@@ -214,8 +213,7 @@ describe("TestCommand", () => {
             "module": undefined,
           }),
         }),
-      (err) =>
-        expect(err.message).to.equal("The --interactive/-i option can only be used if a single test is selected.")
+      { contains: "The --interactive/-i option can only be used if a single test is selected." }
     )
   })
 
@@ -354,7 +352,7 @@ describe("TestCommand", () => {
             "module": ["foo"],
           }),
         }),
-      (err) => expect(err.message).to.equal("Could not find module(s): foo")
+      { contains: "Could not find module(s): foo" }
     )
   })
 

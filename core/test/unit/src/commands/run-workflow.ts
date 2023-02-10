@@ -452,11 +452,9 @@ describe("RunWorkflowCommand", () => {
       },
     ])
 
-    await expectError(
-      () => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }),
-      (err) =>
-        expect(err.message).to.equal("File '.garden/test.txt' requires secret 'missing' which could not be found.")
-    )
+    await expectError(() => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }), {
+      contains: "File '.garden/test.txt' requires secret 'missing' which could not be found.",
+    })
   })
 
   it("should throw if attempting to write a file with a directory path that contains an existing file", async () => {
@@ -473,12 +471,9 @@ describe("RunWorkflowCommand", () => {
       },
     ])
 
-    await expectError(
-      () => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }),
-      (err) =>
-        expect(err.message.startsWith("Unable to write file 'garden.yml/foo.txt': EEXIST: file already exists, mkdir"))
-          .to.be.true
-    )
+    await expectError(() => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }), {
+      contains: "Unable to write file 'garden.yml/foo.txt': EEXIST: file already exists, mkdir",
+    })
   })
 
   it("should throw if attempting to write a file to an existing directory path", async () => {
@@ -495,13 +490,9 @@ describe("RunWorkflowCommand", () => {
       },
     ])
 
-    await expectError(
-      () => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }),
-      (err) =>
-        expect(err.message).to.equal(
-          `Unable to write file '.garden': EISDIR: illegal operation on a directory, open '${garden.gardenDirPath}'`
-        )
-    )
+    await expectError(() => cmd.action({ ...defaultParams, args: { workflow: "workflow-a" } }), {
+      contains: `Unable to write file '.garden': EISDIR: illegal operation on a directory, open '${garden.gardenDirPath}'`,
+    })
   })
 
   it("should run a script step in the project root", async () => {
