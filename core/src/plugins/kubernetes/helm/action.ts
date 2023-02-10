@@ -22,7 +22,7 @@ import { posix } from "path"
 export const helmDeployDocs = dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-  Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
+  Refer to the [Helm guide](${DOCS_BASE_URL}/kubernetes-plugins/module-types/helm) for usage instructions.
 `
 
 export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction> => ({

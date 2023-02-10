@@ -9,9 +9,9 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [guides section](https://docs.garden.io/guides). For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/guides/local-kubernetes) guide. The [Getting Started](https://docs.garden.io/getting-started/0-introduction) guide is also helpful as an introduction.
+For general Kubernetes usage information, please refer to the [Kubernetes plugin section](https://docs.garden.io/kubernetes-plugins/about) in the docs. For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/kubernetes-plugins/local-k8s) guide.
 
-If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide.
+If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/kubernetes-plugins/remote-k8s) guide.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -36,7 +36,7 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
@@ -526,7 +526,7 @@ providers:
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
 
 | Type     | Allowed Values                               | Default          | Required |
 | -------- | -------------------------------------------- | ---------------- | -------- |

@@ -48,7 +48,7 @@ type ConfigmapAction = DeployAction<ConfigmapActionConfig, {}>
 const docs = dedent`
   Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-  See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/guides/container-modules#mounting-kubernetes-configmaps) guide for more info and usage examples.
+  See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/other-plugins/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
 `
 
 export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAction> => ({

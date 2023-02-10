@@ -20,9 +20,9 @@ export const gardenPlugin = () =>
     docs: dedent`
     The \`local-kubernetes\` provider is a specialized version of the [\`kubernetes\` provider](${providerUrl}) that automates and simplifies working with local Kubernetes clusters.
 
-    For general Kubernetes usage information, please refer to the [guides section](${DOCS_BASE_URL}/guides). For local clusters a good place to start is the [Local Kubernetes guide](${DOCS_BASE_URL}/guides/local-kubernetes) guide. The [Getting Started](${DOCS_BASE_URL}/getting-started/0-introduction) guide is also helpful as an introduction.
+    For general Kubernetes usage information, please refer to the [Kubernetes plugin section](${DOCS_BASE_URL}/kubernetes-plugins/about) in the docs. For local clusters a good place to start is the [Local Kubernetes guide](${DOCS_BASE_URL}/kubernetes-plugins/local-k8s) guide.
 
-    If you're working with a remote Kubernetes cluster, please refer to the [\`kubernetes\` provider](${providerUrl}) docs, and the [Remote Kubernetes guide](${DOCS_BASE_URL}/guides/remote-kubernetes) guide.
+    If you're working with a remote Kubernetes cluster, please refer to the [\`kubernetes\` provider](${providerUrl}) docs, and the [Remote Kubernetes guide](${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s) guide.
   `,
     configSchema: configSchema(),
     handlers: {

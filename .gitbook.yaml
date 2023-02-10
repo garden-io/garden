@@ -13,9 +13,8 @@ redirects:
   examples/demo-project: ./example-projects/demo-project.md
   examples/tls-project: ./example-projects/tls-project.md
   examples/using-garden-in-ci: ./guides/using-garden-in-ci.md
-  guides/using-remote-sources: ./advanced/using-remote-sources.md
   guides/cert-manager-integration: ./advanced/cert-manager-integration.md
-  guides/terraform: ./advanced/terraform.md
+  guides/terraform: ./terraform-plugin/about.md
   providers/conftest-container: ./reference/providers/conftest-container.md
   providers/conftest-kubernetes: ./reference/providers/conftest-kubernetes.md
   providers/conftest: ./reference/providers/conftest.md
@@ -38,6 +37,14 @@ redirects:
   # Redirects after docs restructure (https://github.com/garden-io/garden/pull/3467)
   advanced/terraform: ./terraform-plugin/about.md
   advanced/pulumi: ./pulumi-plugin/about.md
-  getting-started/1-installation.md: ./guides/installation.md
+  advanced/rbac-config: ./k8s-plugins/advanced/rbac-config.md
+  getting-started: ./tutorials/your-first-project.md
+  getting-started/0-introduction: ./basics/quickstart
+  getting-started/1-installation: ./guides/installation.md
+  getting-started/2-connect-to-a-cluster: ./tutorials/your-first-project/2-connect-to-a-cluster.md
   basics/5-min-quickstart: ./basics/quickstart.md
+  other-plugins/container: ./other-plugins/container
   guides/remote-kubernetes: ./k8s-plugins/about.md
+  guides/in-cluster-building: ./k8s-plugins/advanced/in-cluster-building.md
+  guides/using-helm-charts: ./k8s-plugins/module-types/helm.md
+  guides/using-remote-sources: ./k8s-plugins/advanced/using-remote-sources.md
