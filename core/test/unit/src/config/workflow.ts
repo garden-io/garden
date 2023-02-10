@@ -189,10 +189,9 @@ describe("resolveWorkflowConfig", () => {
       ],
     }
 
-    expectError(
-      () => resolveWorkflowConfig(garden, configWithTemplateStringInTrigger),
-      (err) => expect(err.message).to.include("Invalid environment in trigger for workflow")
-    )
+    expectError(() => resolveWorkflowConfig(garden, configWithTemplateStringInTrigger), {
+      contains: "Invalid environment in trigger for workflow",
+    })
   })
 
   it("should populate default values in the schema", async () => {
@@ -237,10 +236,9 @@ describe("resolveWorkflowConfig", () => {
       ],
     }
 
-    await expectError(
-      () => resolveWorkflowConfig(garden, config),
-      (err) => expect(err.message).to.match(/Invalid environment in trigger for workflow workflow-a/)
-    )
+    await expectError(() => resolveWorkflowConfig(garden, config), {
+      contains: "Invalid environment in trigger for workflow workflow-a",
+    })
   })
 
   describe("populateNamespaceForTriggers", () => {

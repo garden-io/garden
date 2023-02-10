@@ -30,7 +30,7 @@ describe("validateInstall", () => {
           versionCommand: { cmd: "git", args: ["--version"] },
           versionRegex: gitVersionRegex,
         }),
-      (err) => expect(err.message).to.include("version is too old")
+      { contains: "version is too old" }
     )
   })
   it("should throw if binary is not installed", async () => {
@@ -42,7 +42,7 @@ describe("validateInstall", () => {
           versionCommand: { cmd: "this-binary-does-not-exist", args: ["--version"] }, // <--
           versionRegex: gitVersionRegex,
         }),
-      (err) => expect(err.message).to.include("is installed and on your PATH")
+      { contains: "is installed and on your PATH" }
     )
   })
   it("should include name in error message", async () => {
@@ -54,7 +54,7 @@ describe("validateInstall", () => {
           versionCommand: { cmd: "this-binary-does-not-exist", args: ["--version"] }, // <--
           versionRegex: gitVersionRegex,
         }),
-      (err) => expect(err.message).to.include("Could not find name-of-the-thing binary.")
+      { contains: "Could not find name-of-the-thing binary." }
     )
   })
 })

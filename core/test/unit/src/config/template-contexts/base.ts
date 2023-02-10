@@ -266,13 +266,10 @@ describe("ConfigContext", () => {
       })
       const nested: any = new TestContext({ key: "${'${nested.key}'}" }, c)
       c.addValues({ nested })
-      expectError(
-        () => resolveKey(c, ["nested", "key"]),
-        (err) =>
-          expect(err.message).to.equal(
-            "Invalid template string (${'${nested.key}'}): Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)"
-          )
-      )
+      expectError(() => resolveKey(c, ["nested", "key"]), {
+        contains:
+          "Invalid template string (${'${nested.key}'}): Invalid template string (${nested.key}): Circular reference detected when resolving key nested.key (nested -> nested.key)",
+      })
     })
   })
 

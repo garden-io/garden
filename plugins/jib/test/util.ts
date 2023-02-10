@@ -40,10 +40,9 @@ describe("util", () => {
           files: [],
         },
       }
-      void expectError(
-        () => detectProjectType(module),
-        (err) => expect(err.message).to.equal("Could not detect a gradle or maven project to build module foo")
-      )
+      void expectError(() => detectProjectType(module), {
+        contains: "Could not detect a gradle or maven project to build module foo",
+      })
     })
   })
 

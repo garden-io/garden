@@ -144,10 +144,9 @@ describe("build staging helpers", () => {
       const b = join(tmpPath, "b")
       await ensureDir(a)
 
-      await expectError(
-        () => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }),
-        (err) => expect(err.message).to.equal(`Attempted to copy non-file ${a}`)
-      )
+      await expectError(() => cloneFileAsync({ from: a, to: b, statsHelper, allowDelete: false }), {
+        contains: `Attempted to copy non-file ${a}`,
+      })
     })
   })
 
