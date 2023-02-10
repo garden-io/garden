@@ -107,10 +107,8 @@ describe("AnalyticsHandler", () => {
       expect(newConfig.anonymousUserId).to.be.a("string")
       expect(newConfig).to.eql({
         anonymousUserId: newConfig.anonymousUserId,
-        firstRunAt: now.toUTCString(),
-        latestRunAt: now.toUTCString(),
-        optedIn: true,
-        cloudVersion: 0,
+        firstRunAt: now,
+        latestRunAt: now,
         cloudProfileEnabled: false,
       })
     })
@@ -146,10 +144,9 @@ describe("AnalyticsHandler", () => {
       expect(config).to.eql({
         anonymousUserId: basicConfig.anonymousUserId,
         firstRunAt: basicConfig.firstRunAt,
-        latestRunAt: now.toUTCString(),
-        optedIn: true,
-        cloudVersion: 0,
+        latestRunAt: now,
         cloudProfileEnabled: false,
+        optedOut: false,
       })
     })
     it("should print an info message if first Garden run", async () => {
@@ -201,8 +198,9 @@ describe("AnalyticsHandler", () => {
             platformVersion: payload[0].traits.platformVersion,
             gardenVersion: payload[0].traits.gardenVersion,
             isCI: payload[0].traits.isCI,
-            firstRunAt: basicConfig.firstRunAt,
-            latestRunAt: now.toUTCString(),
+            // While the internal representation in objects is a Date object, API returns strings
+            firstRunAt: basicConfig.firstRunAt?.toISOString(),
+            latestRunAt: now.toISOString(),
             isRecurringUser: false,
           },
           type: "identify",
@@ -289,9 +287,8 @@ describe("AnalyticsHandler", () => {
       expect(newConfig).to.eql({
         anonymousUserId: "6d87dd61-0feb-4373-8c78-41cd010907e7",
         firstRunAt: basicConfig.firstRunAt,
-        latestRunAt: now.toUTCString(),
-        optedIn: true,
-        cloudVersion: 0,
+        latestRunAt: now,
+        optedOut: false,
         cloudProfileEnabled: true,
       })
     })
@@ -341,8 +338,9 @@ describe("AnalyticsHandler", () => {
             platformVersion: payload[0].traits.platformVersion,
             gardenVersion: payload[0].traits.gardenVersion,
             isCI: payload[0].traits.isCI,
-            firstRunAt: basicConfig.firstRunAt,
-            latestRunAt: now.toUTCString(),
+            // While the internal representation in objects is a Date object, API returns strings
+            firstRunAt: basicConfig.firstRunAt?.toISOString(),
+            latestRunAt: now.toISOString(),
             isRecurringUser: false,
           },
           type: "identify",
@@ -416,7 +414,7 @@ describe("AnalyticsHandler", () => {
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
-          latestRunAt: now.toUTCString(),
+          latestRunAt: now,
           isRecurringUser: false,
           projectMetadata: {
             modulesCount: 3,
@@ -455,7 +453,7 @@ describe("AnalyticsHandler", () => {
           ciName: "foo",
           sessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
-          latestRunAt: now.toUTCString(),
+          latestRunAt: now,
           isRecurringUser: false,
           projectMetadata: {
             modulesCount: 3,
@@ -511,7 +509,7 @@ describe("AnalyticsHandler", () => {
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
-          latestRunAt: now.toUTCString(),
+          latestRunAt: now,
           isRecurringUser: false,
           projectMetadata: {
             modulesCount: 1,
@@ -555,7 +553,7 @@ describe("AnalyticsHandler", () => {
           isCI: analytics["isCI"],
           sessionId: analytics["sessionId"],
           firstRunAt: basicConfig.firstRunAt,
-          latestRunAt: now.toUTCString(),
+          latestRunAt: now,
           isRecurringUser: false,
           projectMetadata: {
             modulesCount: 0,
