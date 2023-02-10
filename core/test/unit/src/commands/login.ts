@@ -169,10 +169,9 @@ describe("LoginCommand", () => {
     })
     const command = new LoginCommand()
 
-    await expectError(
-      () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
-      (err) => expect(stripAnsi(err.message)).to.match(/Project config is missing a cloud domain./)
-    )
+    await expectError(() => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })), {
+      contains: "Project config is missing a cloud domain.",
+    })
   })
 
   it("should throw if the user has an invalid auth token", async () => {
@@ -202,10 +201,9 @@ describe("LoginCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await expectError(
-      () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
-      (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
-    )
+    await expectError(() => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })), {
+      contains: "bummer",
+    })
   })
 
   it("should throw and print a helpful message on 401 errors", async () => {
@@ -235,10 +233,9 @@ describe("LoginCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await expectError(
-      () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
-      (err) => expect(stripAnsi(err.message)).to.match(/bummer/)
-    )
+    await expectError(() => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })), {
+      contains: "bummer",
+    })
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level <= LogLevel.info).join("\n")
 
@@ -283,13 +280,10 @@ describe("LoginCommand", () => {
 
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
 
-      await expectError(
-        () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
-        (err) =>
-          expect(stripAnsi(err.message)).to.match(
-            /The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI./
-          )
-      )
+      await expectError(() => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })), {
+        contains:
+          "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
+      })
     })
 
     after(() => {

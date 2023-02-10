@@ -219,7 +219,7 @@ describe("CreateProjectCommand", () => {
             filename: defaultProjectConfigFilename,
           }),
         }),
-      (err) => expect(err.message).to.equal("A Garden project already exists in " + configPath)
+      { contains: `A Garden project already exists in ${configPath}` }
     )
   })
 
@@ -240,7 +240,7 @@ describe("CreateProjectCommand", () => {
             filename: defaultProjectConfigFilename,
           }),
         }),
-      (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
+      { contains: `Path ${dir} does not exist` }
     )
   })
 })

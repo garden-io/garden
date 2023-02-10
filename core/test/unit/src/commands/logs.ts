@@ -18,7 +18,7 @@ import {
   customizedTestPlugin,
   expectError,
   makeTempDir,
-  withDefaultGlobalOpts
+  withDefaultGlobalOpts,
 } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { formatForTerminal } from "../../../../src/logger/renderers"
@@ -468,10 +468,9 @@ describe("LogsCommand", () => {
       garden.setActionConfigs([], actionConfigsForTags())
 
       const command = new LogsCommand()
-      await expectError(
-        () => command.action(makeCommandParams({ garden, opts: { tag: ["*-main"] } })),
-        (err) => expect(err.message).to.eql("Unable to parse the given --tag flags. Format should be key=value.")
-      )
+      await expectError(() => command.action(makeCommandParams({ garden, opts: { tag: ["*-main"] } })), {
+        contains: "Unable to parse the given --tag flags. Format should be key=value.",
+      })
     })
 
     it("should AND together tag filters in a given --tag option instance", async () => {

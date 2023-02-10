@@ -389,7 +389,7 @@ describe("CustomCommandWrapper", () => {
             command: ["sleep", "1"],
           },
         }),
-      (err) => expect(err.message).to.equal("Unexpected parameter type 'blorg'")
+      { contains: "Unexpected parameter type 'blorg'" }
     )
   })
 
@@ -411,7 +411,7 @@ describe("CustomCommandWrapper", () => {
             command: ["sleep", "1"],
           },
         }),
-      (err) => expect(err.message).to.equal("Unexpected parameter type 'blorg'")
+      { contains: "Unexpected parameter type 'blorg'" }
     )
   })
 })

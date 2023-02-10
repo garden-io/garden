@@ -204,7 +204,7 @@ describe("CreateModuleCommand", () => {
             filename: defaultConfigFilename,
           }),
         }),
-      (err) => expect(err.message).to.equal(`Path ${dir} does not exist`)
+      { contains: `Path ${dir} does not exist` }
     )
   })
 
