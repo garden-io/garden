@@ -231,6 +231,9 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
       if (this.cursorPosition < this.currentCommand.length) {
         this.moveCursor(this.cursorPosition + 1)
         this.renderCommandLine()
+      } else {
+        // Try to autocomplete if we're at the end of the input
+        this.handleTab()
       }
     })
 
@@ -254,28 +257,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     // Autocomplete
     this.setKeyHandler("tab", () => {
-      if (this.cursorPosition === 0) {
-        return
-      }
-      const suggestions = this.getSuggestions(
-        this.autocompletingFrom > -1 ? this.autocompletingFrom : this.cursorPosition
-      )
-      if (suggestions.length > 0) {
-        this.suggestionIndex++
-        if (this.suggestionIndex >= suggestions.length) {
-          this.suggestionIndex = 0
-        }
-        // Pick the suggestion but remember where we are completing from, so we can roll through more suggestions
-        this.currentCommand = suggestions[this.suggestionIndex].line
-        if (this.autocompletingFrom === -1) {
-          this.autocompletingFrom = this.cursorPosition
-        }
-        // Not using this.moveCursor() here so we don't reset the autocomplete state
-        this.cursorPosition = this.currentCommand.length
-        this.renderCommandLine()
-      } else {
-        this.suggestionIndex = -1
-      }
+      this.handleTab()
     })
 
     // Scroll through history
@@ -455,6 +437,31 @@ ${renderDivider({ width, char, color })}
     this.cursorPosition = position
     this.autocompletingFrom = -1
     this.suggestionIndex = -1
+  }
+
+  private handleTab() {
+    if (this.cursorPosition === 0) {
+      return
+    }
+    const suggestions = this.getSuggestions(
+      this.autocompletingFrom > -1 ? this.autocompletingFrom : this.cursorPosition
+    )
+    if (suggestions.length > 0) {
+      this.suggestionIndex++
+      if (this.suggestionIndex >= suggestions.length) {
+        this.suggestionIndex = 0
+      }
+      // Pick the suggestion but remember where we are completing from, so we can roll through more suggestions
+      this.currentCommand = suggestions[this.suggestionIndex].line
+      if (this.autocompletingFrom === -1) {
+        this.autocompletingFrom = this.cursorPosition
+      }
+      // Not using this.moveCursor() here so we don't reset the autocomplete state
+      this.cursorPosition = this.currentCommand.length
+      this.renderCommandLine()
+    } else {
+      this.suggestionIndex = -1
+    }
   }
 
   private handleReturn() {
