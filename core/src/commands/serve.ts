@@ -122,8 +122,8 @@ export class ServeCommand<
 
     try {
       const newGarden = await Garden.factory(garden.projectRoot, garden.opts)
-      const configDump = await garden.dumpConfig({ log })
-      const commands = await this.getCommands(garden)
+      const configDump = await newGarden.dumpConfig({ log })
+      const commands = await this.getCommands(newGarden)
 
       this.garden = newGarden
       await this.commandLine?.update(newGarden, configDump, commands)
