@@ -317,7 +317,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
   async validateActionOutputs<T extends BaseAction>(action: T, type: "static" | "runtime", outputs: any) {
     const actionTypes = await this.garden.getActionTypes()
-    const spec = actionTypes[action.kind][action.type]
+    const spec = actionTypes[action.kind][action.type].spec
 
     const schema = type === "static" ? spec?.staticOutputsSchema : spec?.runtimeOutputsSchema
     const context = `${type} action outputs from ${action.kind} '${action.name}'`
@@ -372,6 +372,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       { handlerType, pluginName, actionType }
     )
 
+    // Note: The `handler.base` attribute is expected to be set during plugin resolution
     wrapped.base = this.wrapBase(handler.base)
 
     if (!this.handlers[handlerType][actionType]) {

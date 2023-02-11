@@ -301,6 +301,12 @@ export function getActionTypeHandlerDescriptions<K extends ActionKind>(
   return _actionTypeHandlerDescriptions[kind]
 }
 
+export type ActionTypeExtensions = {
+  Build: BuildActionExtension
+  Deploy: DeployActionExtension
+  Run: RunActionExtension
+  Test: TestActionExtension
+}
 export type ManyActionTypeExtensions = {
   Build: BuildActionExtension[]
   Deploy: DeployActionExtension[]

@@ -13,7 +13,7 @@ import { ExecutedRunAction, isRunAction, ResolvedRunAction } from "./run"
 import { ExecutedTestAction, isTestAction, ResolvedTestAction } from "./test"
 import { Action, ExecuteActionParams, Executed, ResolveActionParams, ResolvedAction } from "./types"
 
-export function resolveAction<T extends Action>(action: T, params: ResolveActionParams<T["_config"]>) {
+export function actionToResolved<T extends Action>(action: T, params: ResolveActionParams<T["_config"]>) {
   if (isBuildAction(action)) {
     return new ResolvedBuildAction({ ...action["params"], ...params })
   } else if (isDeployAction(action)) {
@@ -28,7 +28,7 @@ export function resolveAction<T extends Action>(action: T, params: ResolveAction
   }
 }
 
-export function executeAction<T extends ResolvedAction>(
+export function resolvedActionToExecuted<T extends ResolvedAction>(
   action: T,
   params: ExecuteActionParams<T["_config"]>
 ): Executed<T> {

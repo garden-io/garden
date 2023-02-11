@@ -327,14 +327,7 @@ export const testPluginB = () => {
     name: "test-plugin-b",
     dependencies: [{ name: "test-plugin" }],
     createModuleTypes: [],
-    // This doesn't actually change any behavior, except to use this provider instead of test-plugin
-    // TODO-G2: change to extend action types
-    // extendModuleTypes: [
-    //   {
-    //     name: "test",
-    //     handlers: base.createModuleTypes![0].handlers,
-    //   },
-    // ],
+    createActionTypes: {},
   })
 }
 
@@ -354,6 +347,7 @@ export const testPluginC = () => {
         needsBuild: true,
       },
     ],
+    createActionTypes: {},
   })
 }
 

@@ -448,7 +448,6 @@ describe("Garden", () => {
       expect(convertHandler).to.exist
       expect(convertHandler.base).to.exist
       expect(convertHandler.base!.handlerType).to.equal("convert")
-      expect(convertHandler.base!.moduleType).to.equal("foo")
       expect(convertHandler.base!.pluginName).to.equal("base")
       expect(convertHandler.base!.base).to.not.exist
     })
@@ -565,7 +564,6 @@ describe("Garden", () => {
         expect(configureHandler).to.exist
         expect(configureHandler.base).to.exist
         expect(configureHandler.base!.handlerType).to.equal("configure")
-        expect(configureHandler.base!.moduleType).to.equal("foo-a")
         expect(configureHandler.base!.pluginName).to.equal("base-a")
         expect(configureHandler.base!.base).to.not.exist
 
@@ -573,7 +571,6 @@ describe("Garden", () => {
         expect(convertHandler).to.exist
         expect(convertHandler.base).to.exist
         expect(convertHandler.base!.handlerType).to.equal("convert")
-        expect(convertHandler.base!.moduleType).to.equal("foo-b")
         expect(convertHandler.base!.pluginName).to.equal("base-b")
         expect(convertHandler.base!.base).to.not.exist
 
@@ -1415,7 +1412,6 @@ describe("Garden", () => {
           expect(convertHandler).to.exist
           expect(convertHandler.base).to.exist
           expect(convertHandler.base!.handlerType).to.equal("convert")
-          expect(convertHandler.base!.moduleType).to.equal("foo")
           expect(convertHandler.base!.pluginName).to.equal("base-a")
         })
 

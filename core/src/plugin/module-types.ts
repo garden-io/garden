@@ -23,12 +23,10 @@ import { ResolvedActionHandlerDescriptions } from "./plugin"
 export type ModuleActionHandler<P extends ActionHandlerParamsBase, O> = ((params: P) => Promise<O>) & {
   handlerType?: string
   pluginName?: string
-  moduleType?: string
   base?: ModuleActionHandler<P, O>
 }
 
 export type WrappedModuleActionHandler<P extends ActionHandlerParamsBase, O> = WrappedActionHandler<P, O> & {
-  moduleType: string
   wrapped: ModuleActionHandler<P, O>
   base?: WrappedModuleActionHandler<P, O>
 }
