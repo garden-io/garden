@@ -172,6 +172,12 @@ export async function findConfigPathsInPath({
     include = ["**/" + configFilenamePattern]
   }
 
+  if (!exclude) {
+    exclude = []
+  }
+
+  exclude.push(".garden/**/*")
+
   const paths = await vcs.getFiles({
     path: dir,
     pathDescription: "project root",

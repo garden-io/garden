@@ -21,6 +21,7 @@ import {
 } from "../../../../src/util/fs"
 import { withDir } from "tmp-promise"
 import { ModuleConfig } from "../../../../src/config/module"
+import { mkdirp, writeFile } from "fs-extra"
 
 describe("detectModuleOverlap", () => {
   const projectRoot = join("/", "user", "code")
@@ -324,6 +325,24 @@ describe("getWorkingCopyId", () => {
 describe("findConfigPathsInPath", () => {
   it("should recursively find all garden configs in a directory", async () => {
     const garden = await makeTestGardenA()
+    const files = await findConfigPathsInPath({
+      vcs: garden.vcs,
+      dir: garden.projectRoot,
+      log: garden.log,
+    })
+    expect(files).to.eql([
+      join(garden.projectRoot, "commands.garden.yml"),
+      join(garden.projectRoot, "garden.yml"),
+      join(garden.projectRoot, "module-a", "garden.yml"),
+      join(garden.projectRoot, "module-b", "garden.yml"),
+      join(garden.projectRoot, "module-c", "garden.yml"),
+    ])
+  })
+
+  it("should ignore .garden directory", async () => {
+    const garden = await makeTestGardenA()
+    await mkdirp(join(garden.projectRoot, ".garden"))
+    await writeFile(join(garden.projectRoot, ".garden", "foo.garden.yml"), "---")
     const files = await findConfigPathsInPath({
       vcs: garden.vcs,
       dir: garden.projectRoot,
