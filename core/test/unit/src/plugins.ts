@@ -9,12 +9,35 @@
 import { expect } from "chai"
 import { joi } from "../../../src/config/common"
 import { getLogger } from "../../../src/logger/logger"
-import { createGardenPlugin } from "../../../src/plugin/plugin"
+import { BuildActionDefinition } from "../../../src/plugin/action-types"
+import { createGardenPlugin, PluginBuildActionParamsBase } from "../../../src/plugin/plugin"
 import { resolvePlugins } from "../../../src/plugins"
+import { findByName } from "../../../src/util/util"
 import { expectError } from "../../helpers"
 
 describe("resolvePlugins", () => {
   const log = getLogger().placeholder()
+
+  const testHandler = (params: PluginBuildActionParamsBase<any>) => {
+    return {
+      detail: {},
+      outputs: {
+        foo: "bar",
+        // Pass through to allow validation of inputs
+        params,
+      },
+      state: "ready" as "ready",
+    }
+  }
+
+  const testBuildDefinition: BuildActionDefinition = {
+    name: "test",
+    docs: "Test Build definition",
+    schema: joi.object(),
+    handlers: {
+      build: async (params) => testHandler(params),
+    },
+  }
 
   it("throws if action type staticOutputsSchema and runtimeOutputsSchema have overlapping keys", async () => {
     const plugin = createGardenPlugin({ name: "test" })
@@ -130,50 +153,361 @@ describe("resolvePlugins", () => {
   })
 
   it("inherits action type extension from base plugin", async () => {
-    const base = createGardenPlugin({ name: "base" })
-    base.createActionTypes.Build = [
-      {
-        name: "base",
-        docs: "asd",
-        schema: joi.object(),
-        handlers: {
-          build: async ({}) => ({
-            detail: {},
-            outputs: {
-              foo: "bar",
+    const base1 = createGardenPlugin({
+      name: "base1",
+      createActionTypes: {
+        Build: [testBuildDefinition],
+      },
+    })
+    const base2 = createGardenPlugin({
+      name: "base2",
+      dependencies: [{ name: "base1" }],
+      extendActionTypes: {
+        Build: [
+          {
+            name: "test",
+            handlers: {
+              build: async (params) => testHandler(params),
             },
-            state: "ready",
-          }),
-        },
+          },
+        ],
       },
-    ]
-    base.extendActionTypes.Build = [
-      {
-        name: "extension",
-        handlers: {
-          validate: async ({}) => ({}),
-        },
-      },
-    ]
-    const dependant = createGardenPlugin({ name: "dependant", base: "base" })
+    })
 
-    const result = resolvePlugins(log, { base, dependant }, [{ name: "test" }])
-    const inheritedExtendActionType = result.find((plugin) => plugin.name === "dependant")?.extendActionTypes.Build[0]
+    const dependant = createGardenPlugin({ name: "dependant", base: "base2" })
+
+    const plugins = resolvePlugins(log, { base1, base2, dependant }, [{ name: "dependant" }])
+    const resolved = findByName(plugins, "dependant")
+
+    expect(resolved).to.exist
+
+    const inheritedExtendActionType = resolved?.extendActionTypes.Build[0]
+
     expect(inheritedExtendActionType).to.exist
-    expect(inheritedExtendActionType?.name).to.eql("extension")
+    expect(inheritedExtendActionType?.name).to.eql("test")
+  })
+
+  context("extending action type", () => {
+    it("attaches corresponding create handler from base to extension handler", async () => {
+      const base = createGardenPlugin({
+        name: "base",
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const extension = createGardenPlugin({
+        name: "extension",
+        dependencies: [{ name: "base" }],
+        extendActionTypes: {
+          Build: [
+            {
+              name: "test",
+              handlers: {
+                build: async ({}) => ({
+                  detail: {},
+                  outputs: {
+                    foo: "overridden",
+                  },
+                  state: "ready",
+                }),
+              },
+            },
+          ],
+        },
+      })
+
+      const plugins = resolvePlugins(log, { base, extension }, [{ name: "base" }, { name: "extension" }])
+      const resolved = findByName(plugins, "extension")
+
+      expect(resolved).to.exist
+
+      const handler = resolved?.extendActionTypes.Build[0].handlers.build
+
+      expect(handler).to.exist
+      expect(handler?.base).to.exist
+    })
+
+    it("attaches corresponding create handler from base of base", async () => {
+      const base1 = createGardenPlugin({
+        name: "base1",
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const base2 = createGardenPlugin({
+        name: "base2",
+        base: "base1",
+      })
+      const extension = createGardenPlugin({
+        name: "extension",
+        dependencies: [{ name: "base2" }],
+        extendActionTypes: {
+          Build: [
+            {
+              name: "test",
+              handlers: {
+                build: async ({}) => ({
+                  detail: {},
+                  outputs: {
+                    foo: "overridden",
+                  },
+                  state: "ready",
+                }),
+              },
+            },
+          ],
+        },
+      })
+
+      const plugins = resolvePlugins(log, { base1, base2, extension }, [
+        { name: "base1" },
+        { name: "base2" },
+        { name: "extension" },
+      ])
+      const resolved = findByName(plugins, "extension")
+
+      expect(resolved).to.exist
+
+      const handler = resolved?.extendActionTypes.Build[0].handlers.build
+
+      expect(handler).to.exist
+      expect(handler?.base).to.exist
+    })
+  })
+
+  context("inheriting created action type", () => {
+    it("attaches corresponding create handler from base to overriding handler", async () => {
+      const base = createGardenPlugin({
+        name: "base",
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const inheriting = createGardenPlugin({
+        name: "inheriting",
+        dependencies: [{ name: "base" }],
+        createActionTypes: {
+          Build: [
+            {
+              name: "test2",
+              base: "test",
+              docs: "inherited type",
+              schema: joi.object(),
+              handlers: {
+                build: async ({}) => ({
+                  detail: {},
+                  outputs: {
+                    foo: "overridden",
+                  },
+                  state: "ready",
+                }),
+              },
+            },
+          ],
+        },
+      })
+
+      const plugins = resolvePlugins(log, { base, inheriting }, [{ name: "base" }, { name: "inheriting" }])
+      const resolved = findByName(plugins, "inheriting")
+
+      expect(resolved).to.exist
+
+      const handler = resolved?.createActionTypes.Build[0].handlers.build
+
+      expect(handler).to.exist
+      expect(handler?.base).to.exist
+    })
+
+    it("attaches corresponding create handler from base of base", async () => {
+      const base1 = createGardenPlugin({
+        name: "base1",
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const base2 = createGardenPlugin({
+        name: "base2",
+        dependencies: [{ name: "base1" }],
+        createActionTypes: {
+          Build: [
+            {
+              name: "test2",
+              base: "test",
+              docs: "test2",
+              schema: joi.object(),
+              handlers: {},
+            },
+          ],
+        },
+      })
+      const inheriting = createGardenPlugin({
+        name: "inheriting",
+        dependencies: [{ name: "base2" }],
+        createActionTypes: {
+          Build: [
+            {
+              name: "test3",
+              base: "test2",
+              docs: "test3",
+              schema: joi.object(),
+              handlers: {
+                build: async ({}) => ({
+                  detail: {},
+                  outputs: {
+                    foo: "overridden",
+                  },
+                  state: "ready",
+                }),
+              },
+            },
+          ],
+        },
+      })
+
+      const plugins = resolvePlugins(log, { base1, base2, inheriting }, [
+        { name: "base1" },
+        { name: "base2" },
+        { name: "inheriting" },
+      ])
+      const resolved = findByName(plugins, "inheriting")
+
+      expect(resolved).to.exist
+
+      const handler = resolved?.createActionTypes.Build[0].handlers.build
+
+      expect(handler).to.exist
+      expect(handler?.base).to.exist
+    })
   })
 
   context("base is not configured", () => {
     it("pulls created action type from base", async () => {
-      throw "TODO"
+      const base = createGardenPlugin({
+        name: "base",
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const extension = createGardenPlugin({
+        name: "extension",
+        base: "base",
+        dependencies: [{ name: "base" }],
+      })
+
+      const plugins = resolvePlugins(log, { base, extension }, [{ name: "extension" }])
+      const resolved = findByName(plugins, "extension")
+
+      expect(resolved).to.exist
+
+      const handler = resolved?.createActionTypes.Build[0].handlers.build
+
+      expect(handler).to.exist
     })
 
     it("pulls action type extension from base if not defined in plugin", async () => {
-      throw "TODO"
+      const base1 = createGardenPlugin({
+        name: "base1",
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const base2 = createGardenPlugin({
+        name: "base2",
+        base: "base1",
+        dependencies: [{ name: "base1" }],
+        extendActionTypes: {
+          Build: [
+            {
+              name: "test",
+              handlers: {
+                build: async ({}) => ({
+                  detail: {},
+                  outputs: {
+                    foo: "overridden",
+                  },
+                  state: "ready",
+                }),
+              },
+            },
+          ],
+        },
+      })
+      const extension = createGardenPlugin({
+        name: "extension",
+        base: "base2",
+        dependencies: [{ name: "base2" }],
+      })
+
+      const plugins = resolvePlugins(log, { base1, base2, extension }, [{ name: "extension" }])
+      const resolved = findByName(plugins, "extension")
+
+      expect(resolved).to.exist
+
+      const handler = resolved?.extendActionTypes.Build[0].handlers.build
+
+      expect(handler).to.exist
     })
 
     it("coalesces action type extension from base if both define one", async () => {
-      throw "TODO"
+      const base1 = createGardenPlugin({
+        name: "base1",
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const base2 = createGardenPlugin({
+        name: "base2",
+        base: "base1",
+        dependencies: [{ name: "base1" }],
+        extendActionTypes: {
+          Build: [
+            {
+              name: "test",
+              handlers: {
+                build: async ({}) => ({
+                  detail: {},
+                  outputs: {
+                    foo: "overridden",
+                  },
+                  state: "ready",
+                }),
+              },
+            },
+          ],
+        },
+      })
+      const extension = createGardenPlugin({
+        name: "extension",
+        base: "base2",
+        dependencies: [{ name: "base2" }],
+        extendActionTypes: {
+          Build: [
+            {
+              name: "test",
+              handlers: {
+                getStatus: async ({}) => ({
+                  detail: {},
+                  outputs: {
+                    foo: "overridden",
+                  },
+                  state: "ready",
+                }),
+              },
+            },
+          ],
+        },
+      })
+
+      const plugins = resolvePlugins(log, { base1, base2, extension }, [{ name: "extension" }])
+      const resolved = findByName(plugins, "extension")
+
+      expect(resolved).to.exist
+
+      const buildHandler = resolved?.extendActionTypes.Build[0].handlers.build
+      const statusHandler = resolved?.extendActionTypes.Build[0].handlers.getStatus
+
+      expect(buildHandler).to.exist
+      expect(statusHandler).to.exist
     })
   })
 })

@@ -140,11 +140,8 @@ export async function actionFromConfig({
   config = await preprocessActionConfig({ garden, config, router, log })
 
   const actionTypes = await garden.getActionTypes()
-  const compatibleTypes = [
-    config.type,
-    ...getActionTypeBases(actionTypes[config.kind][config.type], actionTypes[config.kind]).map((t) => t.name),
-  ]
-  const definition = actionTypes[config.kind][config.type]
+  const definition = actionTypes[config.kind][config.type]?.spec
+  const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
 
   const dependencies = dependenciesFromActionConfig(config, configsByKey, definition)
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)

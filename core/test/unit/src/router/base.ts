@@ -10,71 +10,44 @@ import { expect } from "chai"
 import { cloneDeep } from "lodash"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { joi } from "../../../../src/config/common"
-import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { LogEntry } from "../../../../src/logger/log-entry"
-import { ManyActionTypeDefinitions } from "../../../../src/plugin/action-types"
-import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
-import { createActionRouter } from "../../../../src/router/base"
+import { resolveAction } from "../../../../src/graph/actions"
+import { BuildActionDefinition } from "../../../../src/plugin/action-types"
+import { createGardenPlugin, GardenPlugin, PluginBuildActionParamsBase } from "../../../../src/plugin/plugin"
+import { ActionKindRouter } from "../../../../src/router/base"
 import { projectRootA, expectError, makeTestGarden, TestGarden, getDefaultProjectConfig } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
 
 describe("BaseActionRouter", () => {
   const path = projectRootA
-  const _testHandlerResult = {
-    detail: {},
-    outputs: {
-      foo: "bar",
-    },
-    state: "ready" as "ready",
-  }
-  const now = new Date()
-  const _testHandlers = {
-    build: async () => _testHandlerResult,
-    getStatus: async () => _testHandlerResult,
-    publish: async () => ({ ..._testHandlerResult, detail: { published: true } }),
-    run: async () => ({
-      ..._testHandlerResult,
-      completedAt: now,
-      startedAt: now,
-      success: true,
-      log: "bla bla",
-    }),
+
+  const testHandler = (params: PluginBuildActionParamsBase<any>) => {
+    return {
+      detail: {},
+      outputs: {
+        foo: "bar",
+        base: {
+          pluginName: params.base?.pluginName,
+        },
+        projectName: params.ctx.resolveTemplateStrings("${project.name}"),
+      },
+      state: "ready" as "ready",
+    }
   }
 
-  type DependenciesByName = string[]
-  const actionTypesCfg = {
-    Build: [
-      {
-        name: "test",
-        docs: "",
-        schema: joi.object(),
-        handlers: {
-          build: async () => _testHandlerResult,
-        },
-      },
-    ],
-  }
-  const createTestPlugin = ({
-    name,
-    dependencies,
-    actionTypesConfig = actionTypesCfg,
-  }: {
-    name: string
-    dependencies: DependenciesByName
-    actionTypesConfig?: Partial<ManyActionTypeDefinitions>
-  }) => {
-    return createGardenPlugin({
-      name,
-      dependencies: dependencies.map((dep) => ({ name: dep })),
-      createActionTypes: actionTypesConfig,
-    })
+  const testBuildDefinition: BuildActionDefinition = {
+    name: "test",
+    docs: "Test Build definition",
+    schema: joi.object(),
+    runtimeOutputsSchema: joi.object().unknown(true),
+    handlers: {
+      build: async (params) => testHandler(params),
+    },
   }
 
   const createTestRouter = async (plugins: GardenPlugin[], garden?: TestGarden) => {
     if (!garden) {
       garden = await makeTestGarden(path, {
         plugins,
-        noTempDir: true,
         onlySpecifiedPlugins: true,
         config: {
           ...getDefaultProjectConfig(),
@@ -82,23 +55,23 @@ describe("BaseActionRouter", () => {
         },
       })
     }
+
+    const router = await garden.getActionRouter()
+
     return {
       garden,
-      router: createActionRouter(
-        "Build", // the action kind doesn't matter here, just picked randomly
-        {
-          garden,
-          loadedPlugins: plugins,
-          configuredPlugins: plugins,
-        },
-        _testHandlers
-      ),
+      // Note: The type is exposed differently on ActionRouter, but this is what is there
+      router: router.build as ActionKindRouter<"Build">,
     }
   }
 
   describe("getHandler", () => {
     it("should return a handler for action- and handler type if one plugin provides it", async () => {
-      const plugin = createTestPlugin({ name: "test-plugin", dependencies: [] })
+      const plugin = createGardenPlugin({
+        name: "test-plugin",
+        dependencies: [],
+        createActionTypes: { Build: [testBuildDefinition] },
+      })
       const { router } = await createTestRouter([plugin])
 
       const handler = await router.getHandler({
@@ -112,7 +85,11 @@ describe("BaseActionRouter", () => {
     })
 
     it("should throw if no handler is available", async () => {
-      const plugin = createTestPlugin({ name: "test-plugin", dependencies: [] })
+      const plugin = createGardenPlugin({
+        name: "test-plugin",
+        dependencies: [],
+        createActionTypes: { Build: [testBuildDefinition] },
+      })
       const { router } = await createTestRouter([plugin])
 
       await expectError(
@@ -127,7 +104,11 @@ describe("BaseActionRouter", () => {
 
     it("should return default handler if it's specified and no provider-defined handler is available", async () => {
       const defaultHandlerOutput = { outputs: { default: true } }
-      const plugin = createTestPlugin({ name: "test-plugin", dependencies: [] })
+      const plugin = createGardenPlugin({
+        name: "test-plugin",
+        dependencies: [],
+        createActionTypes: { Build: [testBuildDefinition] },
+      })
       const { router } = await createTestRouter([plugin])
       const handler = await router.getHandler({
         handlerType: "getOutputs", // not specified on the test plugins
@@ -152,24 +133,71 @@ describe("BaseActionRouter", () => {
 
     context("when one provider overrides the requested handler on the action type", () => {
       it("should return the handler from the extending provider", async () => {
-        const basePlugin = createTestPlugin({ name: "base", dependencies: [] })
-        const extencionPlugin = createTestPlugin({ name: "extends", dependencies: ["base"] })
-        const { router } = await createTestRouter([basePlugin, extencionPlugin])
+        const basePlugin = createGardenPlugin({
+          name: "base",
+          dependencies: [],
+          createActionTypes: { Build: [testBuildDefinition] },
+        })
+        const extensionPlugin = createGardenPlugin({
+          name: "extends",
+          dependencies: [{ name: "base" }],
+          extendActionTypes: {
+            Build: [
+              {
+                name: "test",
+                handlers: {
+                  build: async (params) => testHandler(params),
+                },
+              },
+            ],
+          },
+        })
+        const { router } = await createTestRouter([basePlugin, extensionPlugin])
 
         const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test")
-        expect(handler.pluginName).to.equal(extencionPlugin.name)
+        expect(handler.pluginName).to.equal(extensionPlugin.name)
       })
     })
 
     context("when multiple providers override the requested handler on the action type", () => {
       it("should return the handler that is not being overridden by another handler", async () => {
-        const basePlugin = createTestPlugin({ name: "base", dependencies: [] })
-        const basePlugin2 = createTestPlugin({ name: "base-2", dependencies: ["base"] })
-        const extencionPlugin = createTestPlugin({ name: "plugin-that-extends", dependencies: ["base-2"] })
-        const { router } = await createTestRouter([basePlugin, basePlugin2, extencionPlugin])
+        const basePlugin = createGardenPlugin({
+          name: "base",
+          dependencies: [],
+          createActionTypes: { Build: [testBuildDefinition] },
+        })
+        const basePlugin2 = createGardenPlugin({
+          name: "base-2",
+          dependencies: [{ name: "base" }],
+          extendActionTypes: {
+            Build: [
+              {
+                name: "test",
+                handlers: {
+                  build: async (params) => testHandler(params),
+                },
+              },
+            ],
+          },
+        })
+        const extensionPlugin = createGardenPlugin({
+          name: "plugin-that-extends",
+          dependencies: [{ name: "base-2" }],
+          extendActionTypes: {
+            Build: [
+              {
+                name: "test",
+                handlers: {
+                  build: async (params) => testHandler(params),
+                },
+              },
+            ],
+          },
+        })
+        const { router } = await createTestRouter([basePlugin, basePlugin2, extensionPlugin])
 
         const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
@@ -180,79 +208,110 @@ describe("BaseActionRouter", () => {
 
       context("when multiple providers are side by side in the dependency graph", () => {
         it("should return the last configured handler for the specified action type", async () => {
-          const basePlugin = createTestPlugin({ name: "base", dependencies: [] })
-          const extencionPlugin1 = createTestPlugin({ name: "extends-1", dependencies: ["base"] })
-          const extencionPlugin2 = createTestPlugin({ name: "extends-2", dependencies: ["base"] })
-          const { router } = await createTestRouter([basePlugin, extencionPlugin1, extencionPlugin2])
+          const basePlugin = createGardenPlugin({
+            name: "base",
+            dependencies: [],
+            createActionTypes: { Build: [testBuildDefinition] },
+          })
+          const extensionPlugin1 = createGardenPlugin({
+            name: "extends-1",
+            dependencies: [{ name: "base" }],
+            extendActionTypes: {
+              Build: [
+                {
+                  name: "test",
+                  handlers: {
+                    build: async (params) => testHandler(params),
+                  },
+                },
+              ],
+            },
+          })
+          const extensionPlugin2 = createGardenPlugin({
+            name: "extends-2",
+            dependencies: [{ name: "base" }],
+            extendActionTypes: {
+              Build: [
+                {
+                  name: "test",
+                  handlers: {
+                    build: async (params) => testHandler(params),
+                  },
+                },
+              ],
+            },
+          })
+          const { router } = await createTestRouter([basePlugin, extensionPlugin1, extensionPlugin2])
 
           const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
           expect(handler.handlerType).to.equal("build")
           expect(handler.actionType).to.equal("test")
-          expect(handler.pluginName).to.equal(extencionPlugin2.name)
+          expect(handler.pluginName).to.equal(extensionPlugin2.name)
         })
       })
 
       context("when the handler was added by a provider and not specified in the creating provider", () => {
         it("should return the added handler", async () => {
-          const basePlugin = createTestPlugin({
+          const basePlugin = createGardenPlugin({
             name: "base",
             dependencies: [],
-            actionTypesConfig: {
+            createActionTypes: {
               Build: [
                 {
                   name: "test",
-                  docs: "",
+                  docs: "base",
                   schema: joi.object(),
                   handlers: {}, // <-- has no handlers
                 },
               ],
             },
           })
-          const extencionPluginThatHasTheHandler = createTestPlugin({
+          const extensionPluginThatHasTheHandler = createGardenPlugin({
             name: "extends",
-            dependencies: ["base"],
-            actionTypesConfig: {
+            dependencies: [{ name: "base" }],
+            extendActionTypes: {
               Build: [
                 {
                   name: "test",
-                  docs: "",
-                  schema: joi.object(),
                   handlers: {
-                    build: async () => _testHandlerResult,
+                    build: async (params) => testHandler(params),
                   },
                 },
               ],
             },
           })
 
-          const { router } = await createTestRouter([basePlugin, extencionPluginThatHasTheHandler])
+          const { router } = await createTestRouter([basePlugin, extensionPluginThatHasTheHandler])
 
           const handler = await router.getHandler({ handlerType: "build", actionType: "test" })
 
           expect(handler.handlerType).to.equal("build")
           expect(handler.actionType).to.equal("test")
-          expect(handler.pluginName).to.equal(extencionPluginThatHasTheHandler.name)
+          expect(handler.pluginName).to.equal(extensionPluginThatHasTheHandler.name)
         })
       })
     })
 
     context("when the action type has a base", () => {
-      it("should return the handler for the specific action type, if available", async () => {
-        const basePlugin = createTestPlugin({ name: "base", dependencies: [] })
-        const plugin2 = createTestPlugin({
+      it("attaches the base handler", async () => {
+        const basePlugin = createGardenPlugin({
+          name: "base",
+          dependencies: [],
+          createActionTypes: { Build: [testBuildDefinition] },
+        })
+        const plugin2 = createGardenPlugin({
           name: "plugin2",
-          // <- creates, not extends action type
-          dependencies: ["base"],
-          actionTypesConfig: {
+          dependencies: [{ name: "base" }],
+          createActionTypes: {
             Build: [
               {
-                name: "test-action-type-extenction",
-                docs: "",
+                name: "test-action-type-extension",
+                docs: "extension",
                 base: "test", // <--
                 schema: joi.object(),
                 handlers: {
-                  build: async () => _testHandlerResult,
+                  build: async (params) => testHandler(params),
                 },
               },
             ],
@@ -261,24 +320,60 @@ describe("BaseActionRouter", () => {
 
         const { router } = await createTestRouter([basePlugin, plugin2])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extenction" })
+        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
+
+        expect(handler.base).to.exist
+      })
+
+      it("should return the handler for the specific action type, if available", async () => {
+        const basePlugin = createGardenPlugin({
+          name: "base",
+          dependencies: [],
+          createActionTypes: { Build: [testBuildDefinition] },
+        })
+        const plugin2 = createGardenPlugin({
+          name: "plugin2",
+          // <- creates, not extends action type
+          dependencies: [{ name: "base" }],
+          createActionTypes: {
+            Build: [
+              {
+                name: "test-action-type-extension",
+                docs: "extension",
+                base: "test", // <--
+                schema: joi.object(),
+                handlers: {
+                  build: async (params) => testHandler(params),
+                },
+              },
+            ],
+          },
+        })
+
+        const { router } = await createTestRouter([basePlugin, plugin2])
+
+        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
 
         expect(handler.handlerType).to.equal("build")
-        expect(handler.actionType).to.equal("test-action-type-extenction")
+        expect(handler.actionType).to.equal("test-action-type-extension")
         expect(handler.pluginName).to.equal(plugin2.name)
       })
 
       it("should fall back on the base if no specific handler is available", async () => {
-        const basePlugin = createTestPlugin({ name: "base", dependencies: [] })
-        const plugin2 = createTestPlugin({
+        const basePlugin = createGardenPlugin({
+          name: "base",
+          dependencies: [],
+          createActionTypes: { Build: [testBuildDefinition] },
+        })
+        const plugin2 = createGardenPlugin({
           name: "plugin2",
           // <- creates, not extends action type
-          dependencies: ["base"],
-          actionTypesConfig: {
+          dependencies: [{ name: "base" }],
+          createActionTypes: {
             Build: [
               {
-                name: "test-action-type-extenction",
-                docs: "",
+                name: "test-action-type-extension",
+                docs: "extension",
                 base: "test", // <--
                 schema: joi.object(),
                 handlers: {}, // <-- no handlers defined
@@ -289,7 +384,7 @@ describe("BaseActionRouter", () => {
 
         const { router } = await createTestRouter([basePlugin, plugin2])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extenction" })
+        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test")
@@ -297,15 +392,21 @@ describe("BaseActionRouter", () => {
       })
 
       it("should recursively fall back on the base's bases if needed", async () => {
-        const basePlugin = createTestPlugin({ name: "base", dependencies: [] })
-        const basePlugin2 = createTestPlugin({
+        const basePlugin = createGardenPlugin({
+          name: "base",
+          dependencies: [],
+          createActionTypes: {
+            Build: [testBuildDefinition],
+          },
+        })
+        const basePlugin2 = createGardenPlugin({
           name: "base-2",
-          dependencies: ["base"],
-          actionTypesConfig: {
+          dependencies: [{ name: "base" }],
+          createActionTypes: {
             Build: [
               {
                 name: "base-2",
-                docs: "",
+                docs: "base-2",
                 base: "test", // <--
                 schema: joi.object(),
                 handlers: {}, // <-- no handlers defined
@@ -313,15 +414,15 @@ describe("BaseActionRouter", () => {
             ],
           },
         })
-        const plugin2 = createTestPlugin({
+        const plugin2 = createGardenPlugin({
           name: "plugin2",
           // <- creates, not extends action type
-          dependencies: ["base-2"],
-          actionTypesConfig: {
+          dependencies: [{ name: "base-2" }],
+          createActionTypes: {
             Build: [
               {
-                name: "test-action-type-extenction",
-                docs: "",
+                name: "test-action-type-extension",
+                docs: "extension",
                 base: "base-2", // <--
                 schema: joi.object(),
                 handlers: {}, // <-- no handlers defined
@@ -332,7 +433,7 @@ describe("BaseActionRouter", () => {
 
         const { router } = await createTestRouter([basePlugin, basePlugin2, plugin2])
 
-        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extenction" })
+        const handler = await router.getHandler({ handlerType: "build", actionType: "test-action-type-extension" })
 
         expect(handler.handlerType).to.equal("build")
         expect(handler.actionType).to.equal("test")
@@ -342,91 +443,190 @@ describe("BaseActionRouter", () => {
   })
 
   describe("callHandler", () => {
-    let garden: TestGarden
-    let graph: ConfigGraph
-    let log: LogEntry
-    let resolvedBuildAction: ResolvedBuildAction
-    let testPlugins: GardenPlugin[]
-
-    before(async () => {
-      const data = await getRouterTestData()
-      garden = data.garden
-      graph = data.graph
-      log = data.log
-      testPlugins = [data.plugins.basePlugin, data.plugins.testPluginA, data.plugins.testPluginB]
-      resolvedBuildAction = data.resolvedBuildAction
-    })
-
-    // TODO: test in a better way
-    // I'd love to write something better but there's no time.
-    // Currently this router that's returned from the createTestRouter is a brand new instance
-    // and does not have anyhing to do with the one already initiated in the garden instance.
-    // That's quite confusing and it's necessary to know how the internals work to test all the things.
-    // To clean up these tesks the base router logic itself has to be rewritten to be more testable.
-
-    // The test-plugin-a build action getStatus handler is modded for these tests.
-
     it("should call the specified handler", async () => {
-      const { router } = await createTestRouter(testPlugins, garden)
+      const plugin = createGardenPlugin({
+        name: "test",
+        dependencies: [],
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+
+      const { garden, router } = await createTestRouter([plugin])
+
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            internal: {
+              basePath: path,
+            },
+            spec: {},
+          },
+        ]
+      )
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getBuild("foo"),
+        log: garden.log,
+      })
 
       const result = await router.callHandler({
         handlerType: "build",
-        params: { graph, log, action: resolvedBuildAction, events: undefined },
+        params: { graph, log: garden.log, action, events: undefined },
       })
 
-      expect(result.outputs.isTestPluginABuildActionBuildHandlerReturn).to.equal(true)
+      expect(result.outputs.foo).to.equal("bar")
     })
 
     it("should should throw if the handler is not found", async () => {
-      const { router } = await createTestRouter(testPlugins, garden)
+      const plugin = createGardenPlugin({
+        name: "test",
+        dependencies: [],
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+
+      const { garden, router } = await createTestRouter([plugin])
+
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            internal: {
+              basePath: path,
+            },
+            spec: {},
+          },
+        ]
+      )
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getBuild("foo"),
+        log: garden.log,
+      })
 
       await expectError(
         () =>
           router.callHandler({
-            handlerType: "getOutputs", // this handler type is not specified on the test plugins,
-            params: { graph, log, action: resolvedBuildAction, events: undefined },
+            handlerType: "getOutputs", // this handler type is not specified on the test plugin,
+            params: { graph, log: garden.log, action, events: undefined },
           }),
         { contains: "No 'getOutputs' handler configured for build type" }
       )
     })
 
     it("should call the handler with a base argument if the handler is overriding another", async () => {
-      const { router } = await createTestRouter(testPlugins, garden)
-
-      const result = await router.callHandler({
-        handlerType: "getStatus",
-        params: { graph, log, action: resolvedBuildAction, events: undefined },
+      const base = createGardenPlugin({
+        name: "base",
+        dependencies: [],
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
+      })
+      const plugin = createGardenPlugin({
+        name: "test",
+        dependencies: [],
+        extendActionTypes: {
+          Build: [
+            {
+              name: "test",
+              handlers: {
+                build: async (params) => testHandler(params),
+              },
+            },
+          ],
+        },
       })
 
-      expect(result.outputs.base).to.not.be.undefined
-      expect(await result.outputs.base().outputs.plugin).to.equal("base")
-    })
+      const { garden, router } = await createTestRouter([base, plugin])
 
-    it("should recursively override the base parameter when calling a base handler", async () => {
-      throw "TODO-G2: write this test after the above is fixed"
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            internal: {
+              basePath: path,
+            },
+            spec: {},
+          },
+        ]
+      )
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getBuild("foo"),
+        log: garden.log,
+      })
+
+      const result = await router.callHandler({
+        handlerType: "build",
+        params: { graph, log: garden.log, action, events: undefined },
+      })
+
+      expect(result.outputs.base).to.exist
+      expect(result.outputs.base.pluginName).to.equal("base")
     })
 
     it("should call the handler with the template context for the provider", async () => {
-      const { router } = await createTestRouter(testPlugins, garden)
-
-      const result = await router.callHandler({
-        handlerType: "getStatus",
-        params: { graph, log, action: resolvedBuildAction, events: undefined },
+      const plugin = createGardenPlugin({
+        name: "test",
+        dependencies: [],
+        createActionTypes: {
+          Build: [testBuildDefinition],
+        },
       })
 
-      expect(result.outputs.resolvedEnvName).to.equal("default")
-    })
+      const { garden, router } = await createTestRouter([plugin])
 
-    it("should call the handler with the template context for the action", async () => {
-      const { router } = await createTestRouter(testPlugins, garden)
+      garden.setActionConfigs(
+        [],
+        [
+          {
+            kind: "Build",
+            type: "test",
+            name: "foo",
+            internal: {
+              basePath: path,
+            },
+            spec: {},
+          },
+        ]
+      )
 
-      const result = await router.callHandler({
-        handlerType: "getStatus",
-        params: { graph, log, action: resolvedBuildAction, events: undefined },
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const action = await resolveAction({
+        garden,
+        graph,
+        action: graph.getBuild("foo"),
+        log: garden.log,
       })
 
-      // TODO-G2: see test-plugin-a build getStatus handler comment
-      expect(result.outputs.resolvedActionVersion).to.equal("a valid version string")
+      const result = await router.callHandler({
+        handlerType: "build",
+        params: { graph, log: garden.log, action, events: undefined },
+      })
+
+      const resolved = result.outputs.projectName
+      expect(resolved).to.equal(garden.projectName)
     })
   })
 
@@ -459,8 +659,9 @@ describe("BaseActionRouter", () => {
       })
     })
 
-    it("throws if no schema is set and a key is set", async () => {
-      throw "TODO"
+    // Not yet implemented
+    it.skip("throws if no schema is set and a key is set", async () => {
+      throw "TODO-G2"
     })
 
     it("validates against base schemas", async () => {

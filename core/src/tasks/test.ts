@@ -13,7 +13,7 @@ import minimatch = require("minimatch")
 import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
-import { executeAction } from "../actions/helpers"
+import { resolvedActionToExecuted } from "../actions/helpers"
 import { TestAction } from "../actions/test"
 import { GetTestResult } from "../plugin/handlers/Test/get-result"
 import { TestConfig } from "../config/test"
@@ -70,7 +70,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         msg: chalk.green("Already passed"),
         append: true,
       })
-      return { ...status, executedAction: executeAction(action, { status }) }
+      return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
     }
 
     return null
@@ -115,7 +115,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       throw new TestError(status.detail?.log)
     }
 
-    return { ...status, executedAction: executeAction(action, { status }) }
+    return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
   }
 }
 

@@ -14,7 +14,7 @@ import { startPortProxies } from "../proxy"
 import { Profile } from "../util/profiling"
 import { DeployAction } from "../actions/deploy"
 import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
-import { executeAction } from "../actions/helpers"
+import { resolvedActionToExecuted } from "../actions/helpers"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {}
 
@@ -55,7 +55,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       }
     }
 
-    return { ...status, executedAction: executeAction(action, { status }) }
+    return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
@@ -108,7 +108,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       })
     }
 
-    const executedAction = executeAction(action, { status })
+    const executedAction = resolvedActionToExecuted(action, { status })
 
     for (const ingress of status.detail?.ingresses || []) {
       log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))

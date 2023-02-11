@@ -28,7 +28,13 @@ import { parse, resolve } from "path"
 import Bluebird from "bluebird"
 import { ModuleTypeMap, getModuleTypeBases } from "./types/module"
 import { ActionKind, actionKinds } from "./actions/types"
-import type { ActionTypeDefinition } from "./plugin/action-types"
+import type {
+  ActionTypeDefinition,
+  ActionTypeDefinitions,
+  ActionTypeExtensions,
+  ManyActionTypeDefinitions,
+  ManyActionTypeExtensions,
+} from "./plugin/action-types"
 import { ObjectSchema } from "@hapi/joi"
 
 export async function loadAndResolvePlugins(
@@ -46,7 +52,7 @@ export function resolvePlugins(
   log: LogEntry,
   loadedPlugins: Dictionary<GardenPlugin>,
   configs: GenericProviderConfig[]
-) {
+): GardenPlugin[] {
   const initializedPlugins: PluginMap = {}
   const validatePlugin = (name: string) => {
     if (initializedPlugins[name]) {
@@ -129,10 +135,16 @@ export function resolvePlugins(
   }
 
   // Resolve plugins against their base plugins
-  const resolvedPlugins = mapValues(initializedPlugins, (p) => resolvePlugin(p, initializedPlugins, configs))
+  let resolvedPlugins = mapValues(initializedPlugins, (p) => resolvePlugin(p, initializedPlugins, configs))
 
-  // Resolve module type definitions
-  return Object.values(resolveModuleDefinitions(resolvedPlugins, configs))
+  // Resolve module and action type definitions
+  resolvedPlugins = resolveModuleDefinitions(resolvedPlugins, configs)
+
+  for (const kind of actionKinds) {
+    resolvedPlugins = resolveActionTypeDefinitions({ resolvedPlugins, configs, kind })
+  }
+
+  return Object.values(resolvedPlugins)
 }
 
 function validateOutputSchemas(
@@ -316,6 +328,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
         { plugin, base }
       )
     } else if (!baseIsConfigured) {
+      // Base is not explicitly configured, so we pluck the module type definition
       resolved.createModuleTypes.push(spec)
     }
   }
@@ -342,6 +355,7 @@ function resolvePlugin(plugin: GardenPlugin, loadedPlugins: PluginMap, configs: 
           { plugin, base }
         )
       } else if (!baseIsConfigured) {
+        // Base is not explicitly configured, so we pluck the action type definition
         resolved.createActionTypes[kind].push(<any>spec)
       }
     }
@@ -416,13 +430,13 @@ export function getPluginBaseNames(name: string, loadedPlugins: PluginMap) {
  */
 export function getActionTypeBases(
   type: MaybeUndefined<ActionTypeDefinition<any>>,
-  actionTypes: { [name: string]: MaybeUndefined<ActionTypeDefinition<any>> }
+  actionTypes: ActionTypeDefinitionMap<any>
 ): ActionTypeDefinition<any>[] {
   if (!type || !type.base) {
     return []
   }
 
-  const base = actionTypes[type.base]
+  const base = actionTypes[type.base]?.spec
 
   if (!base) {
     throw new RuntimeError(`Unable to find base action type '${type.base}' for actionTypes type '${type.name}'`, {
@@ -461,7 +475,13 @@ export type ActionTypeMap<T> = {
   }
 }
 
-export type ActionDefinitionMap = ActionTypeMap<ActionTypeDefinition<any>>
+export type ActionTypeDefinitionMap<K extends ActionKind> = {
+  [type: string]: { spec: ActionTypeDefinitions[K]; plugin: GardenPlugin }
+}
+
+export type ActionDefinitionMap = {
+  [K in ActionKind]: ActionTypeDefinitionMap<K>
+}
 
 /**
  * Returns all the action types defined in the given list of plugins.
@@ -474,15 +494,243 @@ export function getActionTypes(plugins: GardenPlugin[]): ActionDefinitionMap {
     Test: {},
   }
 
-  for (const p of plugins) {
+  for (const plugin of plugins) {
     for (const k of actionKinds) {
-      for (const d of p.createActionTypes[k]) {
-        map[k][d.name] = d
+      for (const spec of plugin.createActionTypes[k]) {
+        map[k][spec.name] = { spec: <any>spec, plugin }
       }
     }
   }
 
   return map
+}
+
+function resolveActionTypeDefinitions<K extends ActionKind>({
+  resolvedPlugins,
+  configs,
+  kind,
+}: {
+  resolvedPlugins: PluginMap
+  configs: GenericProviderConfig[]
+  kind: K
+}): PluginMap {
+  // Collect module type declarations
+  const graph = new DependencyGraph()
+  const definitionMap: { [type: string]: { plugin: GardenPlugin; spec: ActionTypeDefinitions[K] }[] } = {}
+  const extensionMap: { [type: string]: { plugin: GardenPlugin; spec: ActionTypeExtensions[K] }[] } = {}
+
+  for (const plugin of Object.values(resolvedPlugins)) {
+    for (const spec of plugin.createActionTypes[kind]) {
+      pushToKey(definitionMap, spec.name, { plugin, spec })
+
+      graph.addNode(spec.name, `${spec.name} (from plugin ${plugin.name})`)
+
+      if (spec.base) {
+        graph.addNode(spec.base, `${spec.base} (from plugin ${plugin.name})`)
+        graph.addDependency(spec.name, spec.base)
+      }
+    }
+
+    for (const spec of plugin.extendActionTypes[kind]) {
+      pushToKey(extensionMap, spec.name, { plugin, spec })
+    }
+  }
+
+  // Make sure only one _configured_ plugin declares each module type
+  for (const [type, definitions] of Object.entries(definitionMap)) {
+    const configured = definitions.filter((d) => configs.map((c) => c.name).includes(d.plugin.name))
+
+    if (configured.length > 1) {
+      const plugins = definitions.map((d) => d.plugin.name)
+
+      throw new ConfigurationError(`${kind} type '${type}' is declared in multiple plugins: ${plugins.join(", ")}.`, {
+        type,
+        plugins,
+      })
+    }
+  }
+
+  // Make sure we don't have circular dependencies in type bases
+  const cycles = graph.detectCircularDependencies()
+
+  if (cycles.length > 0) {
+    const description = graph.cyclesToString(cycles)
+    const detail = { "circular-dependencies": description }
+    const msg = `Found circular dependency between ${kind} type bases:\n\n${description}`
+    throw new PluginError(msg, detail)
+  }
+
+  const ordered = graph.overallOrder().filter((name) => name in definitionMap)
+
+  const resolvedDefinitions: ActionTypeDefinitionMap<K> = {}
+
+  // Resolve the base for each declaration (in dependency order)
+  const typeDefinitions = fromPairs(
+    ordered.map((name) => {
+      const definitions = definitionMap[name]
+
+      const resolved = resolveActionDefinition({
+        plugin: definitions[0].plugin,
+        kind,
+        spec: definitions[0].spec,
+        definitions: resolvedDefinitions,
+        resolvedPlugins,
+      })
+
+      resolvedDefinitions[name] = resolved
+
+      return [name, resolved]
+    })
+  )
+
+  // Return the plugins with the resolved definitions
+  return mapValues(resolvedPlugins, (plugin) => {
+    // Validate extensions and add base handlers where appropriate
+    const extensions = plugin.extendActionTypes[kind].map((spec) => {
+      const moduleType = spec.name
+      const definition = typeDefinitions[moduleType]
+
+      if (!definition) {
+        // Ignore if the type to extend cannot be found.
+        return null
+      }
+
+      // Attach base handlers (which are the corresponding declaration handlers, if any)
+      const handlers = mapValues(spec.handlers, (handler, name) => {
+        const baseHandler = definition.spec.handlers[name]
+
+        if (!handler) {
+          return handler
+        }
+
+        handler = cloneHandler(handler)
+
+        if (handler && baseHandler) {
+          handler.base = cloneHandler(baseHandler)
+          handler.base!.handlerType = handler.base!.handlerType || name
+          handler.base!.moduleType = handler.base!.moduleType || moduleType
+          handler.base!.pluginName = handler.base!.pluginName || definition.plugin.name
+        }
+
+        return handler
+      })
+
+      // Need the cast here because for some reason mapValues screws up the typing
+      return <ActionTypeExtensions[K]>{
+        ...spec,
+        handlers,
+      }
+    })
+
+    const definitions = plugin.createActionTypes[kind]
+
+    const createActionTypes: ManyActionTypeDefinitions = {
+      ...plugin.createActionTypes,
+      [kind]: definitions.map((spec) => resolvedDefinitions[spec.name].spec),
+    }
+
+    const extendActionTypes: ManyActionTypeExtensions = {
+      ...plugin.extendActionTypes,
+      [kind]: extensions.filter(isNotNull),
+    }
+
+    return {
+      ...plugin,
+      createActionTypes,
+      extendActionTypes,
+    }
+  })
+}
+
+function resolveActionDefinition<K extends ActionKind>({
+  plugin,
+  kind,
+  spec,
+  definitions,
+  resolvedPlugins,
+}: {
+  plugin: GardenPlugin
+  kind: K
+  spec: ActionTypeDefinitions[K]
+  definitions: ActionTypeDefinitionMap<K>
+  resolvedPlugins: PluginMap
+}) {
+  if (!spec.base) {
+    // Just attach metadata to handlers and return
+    for (const [name, handler] of Object.entries(spec.handlers)) {
+      if (!handler) {
+        continue
+      }
+      handler.handlerType = name
+      handler.pluginName = plugin.name
+    }
+
+    return { spec, plugin }
+  }
+
+  const baseDefinition = definitions[spec.base]
+
+  if (!baseDefinition) {
+    throw new PluginError(
+      deline`
+      ${kind} type '${spec.name}', defined in plugin '${plugin.name}', specifies base type '${spec.base}'
+      which cannot be found. The plugin is likely missing a dependency declaration.
+      Please report an issue with the author.
+      `,
+      { type: spec.name, baseName: spec.base, pluginName: plugin.name }
+    )
+  }
+
+  const declaredBy = baseDefinition.plugin.name
+  const type = spec.name
+  const pluginBases = getPluginBaseNames(plugin.name, resolvedPlugins)
+
+  if (
+    declaredBy !== plugin.name &&
+    !pluginBases.includes(declaredBy) &&
+    !(plugin.dependencies && plugin.dependencies.find((d) => d.name === declaredBy))
+  ) {
+    throw new PluginError(
+      deline`
+      ${kind} type '${type}', defined in plugin '${plugin.name}', specifies base type '${spec.base}'
+      which is defined by '${declaredBy}' but '${plugin.name}' does not specify a dependency on that plugin.
+      Plugins must explicitly declare dependencies on plugins that define types they reference.
+      Please report an issue with the author.
+      `,
+      {
+        type,
+        pluginName: plugin.name,
+        declaredByName: declaredBy,
+        bases: pluginBases,
+      }
+    )
+  }
+
+  const resolved: ActionTypeDefinitions[K] = {
+    ...spec,
+  }
+
+  const bases = getActionTypeBases(spec, definitions)
+
+  // Find the nearest base for each configured handler and attach it
+  for (const [name, handler] of Object.entries(resolved.handlers)) {
+    if (!handler) {
+      continue
+    }
+
+    for (const base of bases) {
+      const baseHandler = base.handlers && base.handlers[name]
+
+      if (baseHandler) {
+        handler.base = cloneHandler(baseHandler)
+        handler.base!.handlerType = baseHandler!.handlerType || name
+        handler.base!.pluginName = baseHandler!.pluginName || definitions[base.name]?.plugin.name
+        break
+      }
+    }
+  }
+
+  return { spec: resolved, plugin }
 }
 
 /**
@@ -506,6 +754,7 @@ interface ModuleDefinitionMap {
   [moduleType: string]: { plugin: GardenPlugin; spec: ModuleTypeDefinition }
 }
 
+// TODO: deduplicate from action resolution above
 function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericProviderConfig[]): PluginMap {
   // Collect module type declarations
   const graph = new DependencyGraph()
@@ -598,7 +847,6 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
         if (handler && baseHandler) {
           handler.base = cloneHandler(baseHandler)
           handler.base!.handlerType = handler.base!.handlerType || name
-          handler.base!.moduleType = handler.base!.moduleType || moduleType
           handler.base!.pluginName = handler.base!.pluginName || definition.plugin.name
         }
 
@@ -620,6 +868,7 @@ function resolveModuleDefinitions(resolvedPlugins: PluginMap, configs: GenericPr
   })
 }
 
+// TODO: deduplicate from action resolution above
 function resolveModuleDefinition(
   plugin: GardenPlugin,
   spec: ModuleTypeDefinition,
@@ -701,7 +950,6 @@ function resolveModuleDefinition(
       if (baseHandler) {
         handler.base = cloneHandler(baseHandler)
         handler.base!.handlerType = baseHandler!.handlerType || name
-        handler.base!.moduleType = baseHandler!.moduleType || base.name
         handler.base!.pluginName = baseHandler!.pluginName || definitions[base.name].plugin.name
         break
       }

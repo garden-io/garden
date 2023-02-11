@@ -564,8 +564,9 @@ export class Garden {
   }
 
   /**
-   * Returns a mapping of all configured module types in the project and their definitions.
+   * Returns a mapping of all configured action types in the project and their definitions.
    */
+  @pMemoizeDecorator()
   async getActionTypes(): Promise<ActionDefinitionMap> {
     const configuredPlugins = await this.getConfiguredPlugins()
     return getActionTypes(configuredPlugins)
@@ -584,7 +585,7 @@ export class Garden {
       return this.actionTypeBases[kind][type] || []
     }
 
-    const bases = getActionTypeBases(definitions[kind][type], definitions[kind])
+    const bases = getActionTypeBases(definitions[kind][type].spec, definitions[kind])
     this.actionTypeBases[kind][type] = bases.map((b) => ({ ...b, schema: allowUnknown(b.schema) }))
     return this.actionTypeBases[kind][type] || []
   }
