@@ -137,15 +137,14 @@ export async function resolveVariables({
 
   const output: DeepPrimitiveMap = {}
 
+  if (variables) {
+    merge(output, variables)
+  }
+
   // Merge different varfiles, later files taking precedence over prior files in the list.
-  // TODO-G2: should we change precedence order here?
   // TODO-G2: should this be a JSON merge?
   for (const vars of varsByFile) {
     merge(output, vars)
-  }
-
-  if (variables) {
-    merge(output, variables)
   }
 
   return output
