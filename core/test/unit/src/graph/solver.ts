@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { BaseTask, BaseTaskParams, TaskProcessParams, ValidResultType } from "../../../../src/tasks/base"
-import { makeTestGarden, freezeTime, TestGarden, getDataDir } from "../../../helpers"
+import { makeTestGarden, freezeTime, TestGarden, getDataDir, expectError } from "../../../helpers"
 import { MakeOptional } from "../../../../src/util/util"
 import { SolveOpts } from "../../../../src/graph/solver"
 import { ActionState } from "../../../../src/actions/types"
@@ -25,6 +25,7 @@ interface TestTaskParams extends BaseTaskParams {
   dependencies?: BaseTask[]
   statusDependencies?: BaseTask[]
   throwError?: boolean
+  throwStatusError?: boolean
 }
 
 interface TestTaskResult extends ValidResultType {
@@ -45,17 +46,19 @@ export class TestTask extends BaseTask<TestTaskResult> {
   callback: TestTaskCallback | null
   statusCallback: TestTaskCallback | null
   throwError: boolean
+  throwStatusError: boolean
   dependencies: BaseTask[]
   statusDependencies: BaseTask[]
 
   constructor(params: TestTaskParams) {
     super(params)
-    this.name = params.name || "a"
+    this.name = params.name || "task-a"
     this.state = params.state || "not-ready"
     this.callback = params.callback || null
     this.dependencies = params.dependencies || []
     this.statusDependencies = params.statusDependencies || []
     this.throwError = !!params.throwError
+    this.throwStatusError = !!params.throwStatusError
   }
 
   resolveStatusDependencies() {
@@ -89,8 +92,8 @@ export class TestTask extends BaseTask<TestTaskResult> {
       callbackResult = await this.statusCallback({ task: this, params })
     }
 
-    if (this.throwError) {
-      throw new Error()
+    if (this.throwStatusError) {
+      throw new Error(`Throwing error in ${this.name} status method`)
     }
 
     return {
@@ -111,7 +114,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
     }
 
     if (this.throwError) {
-      throw new Error()
+      throw new Error(`Throwing error in ${this.name} process method`)
     }
 
     return {
@@ -155,7 +158,7 @@ describe("GraphSolver", () => {
 
     expect(result).to.exist
     expect(result!.type).to.equal("test")
-    expect(result!.name).to.equal("a")
+    expect(result!.name).to.equal("task-a")
     expect(result!.startedAt).to.eql(now)
     expect(result!.completedAt).to.eql(now)
     expect(result!.version).to.equal(task.version)
@@ -201,24 +204,52 @@ describe("GraphSolver", () => {
     expect(resultB?.outputs.callbackResult).to.equal(taskA.getId())
   })
 
-  it("processes a complex graph correctly", async () => {
-    throw "TODO"
+  it("returns an error when task processing fails", async () => {
+    const task = makeTask({ throwError: true })
+    const result = await processTask(task)
+
+    expect(result).to.exist
+    expect(result!.error).to.exist
+    expect(result!.error?.message).to.include("Throwing error in task-a process method")
   })
 
-  it("returns an error when task processing fails", async () => {
-    throw "TODO"
+  it("throws an error when task processing fails and throwOnError=true", async () => {
+    const task = makeTask({ throwError: true })
+
+    await expectError(
+      () => processTask(task, { throwOnError: true }),
+      (err) => expect(err.message).to.include("Throwing error in task-a process method")
+    )
   })
 
   it("returns an error when task status fails", async () => {
-    throw "TODO"
+    const task = makeTask({ throwStatusError: true })
+    const result = await processTask(task)
+
+    expect(result).to.exist
+    expect(result!.error).to.exist
+    expect(result!.error?.message).to.include("Throwing error in task-a status method")
   })
 
   it("cascades an error from dependency to dependant and fails the execution", async () => {
-    throw "TODO"
+    const taskA = makeTask({ name: "task-a", throwError: true })
+    const taskB = makeTask({ name: "task-b", dependencies: [taskA] })
+    const result = await processTask(taskB)
+
+    expect(result).to.exist
+    expect(result!.error).to.exist
+    expect(result!.error?.message).to.include("Throwing error in task-a process method")
   })
 
   it("cascades an error recursively from dependency and fails the execution", async () => {
-    throw "TODO"
+    const taskA = makeTask({ name: "task-a", throwError: true })
+    const taskB = makeTask({ name: "task-b", dependencies: [taskA] })
+    const taskC = makeTask({ name: "task-c", dependencies: [taskB] })
+    const result = await processTask(taskC)
+
+    expect(result).to.exist
+    expect(result!.error).to.exist
+    expect(result!.error?.message).to.include("Throwing error in task-a process method")
   })
 
   // it("should emit a taskPending event when adding a task", async () => {
