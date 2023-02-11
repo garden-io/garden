@@ -915,7 +915,7 @@ export class Garden {
     // Resolve configs to Actions
     const graph = await actionConfigsToGraph({
       garden: this,
-      configs: actionConfigs,
+      configs: Object.values(actionConfigs),
       groupConfigs: moduleGroups,
       log,
       moduleGraph,

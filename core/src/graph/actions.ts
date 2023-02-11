@@ -7,14 +7,15 @@
  */
 
 import Bluebird from "bluebird"
-import { isString, mapValues, memoize, omit, pick } from "lodash"
-import type {
+import { isString, mapValues, memoize, omit, pick, keyBy } from "lodash"
+import {
   Action,
   ActionConfig,
   ActionConfigsByKey,
   ActionDependency,
   ActionDependencyAttributes,
   ActionKind,
+  actionKinds,
   ActionWrapperParams,
   Executed,
   Resolved,
@@ -61,10 +62,26 @@ export async function actionConfigsToGraph({
   garden: Garden
   log: LogEntry
   groupConfigs: GroupConfig[]
-  configs: ActionConfigsByKey
+  configs: ActionConfig[]
   moduleGraph: ModuleGraph
 }): Promise<MutableConfigGraph> {
-  const configsByKey = { ...configs }
+  const configsByKey: ActionConfigsByKey = {}
+
+  function addConfig(config: ActionConfig) {
+    if (!actionKinds.includes(config.kind)) {
+      throw new ConfigurationError(`Unknown action kind: ${config.kind}`, { config })
+    }
+
+    const key = actionReferenceToString(config)
+    const existing = configsByKey[key]
+
+    if (existing) {
+      throw actionNameConflictError(existing, config, garden.projectRoot)
+    }
+    configsByKey[key] = config
+  }
+
+  configs.forEach(addConfig)
 
   for (const group of groupConfigs) {
     for (const config of group.actions) {
@@ -74,13 +91,7 @@ export async function actionConfigsToGraph({
         config.internal.configFilePath = group.internal.configFilePath
       }
 
-      const key = actionReferenceToString(config)
-      const existing = configsByKey[key]
-
-      if (existing) {
-        throw actionNameConflictError(existing, config, garden.projectRoot)
-      }
-      configsByKey[key] = config
+      addConfig(config)
     }
   }
 

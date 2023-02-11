@@ -12,7 +12,7 @@ import { cloneDeep, extend, get, intersection, mapValues, merge, omit, pick, uni
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
-import { createSchema, joiArray } from "../src/config/common"
+import { createSchema, joi, joiArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
@@ -225,6 +225,9 @@ export const testPlugin = () =>
           name: "test",
           docs: "Test Build action",
           schema: execBuildActionSchema(),
+          staticOutputsSchema: joi.object().keys({
+            foo: joi.string(),
+          }),
           handlers: {
             build: buildExecAction,
             getStatus: async ({ ctx, action }) => {
@@ -492,6 +495,15 @@ export const makeTestGardenBuildDependants = profileAsync(async function _makeTe
 ) {
   return makeTestGarden(projectRootBuildDependants, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
+
+/**
+ * Creates a new TestGarden instance from a temporary path, with a default project config.
+ */
+export async function makeTempGarden(opts?: TestGardenOpts) {
+  const tmpDir = await makeTempDir({ git: true })
+  const garden = await makeTestGarden(tmpDir.path, { config: getDefaultProjectConfig(), ...opts })
+  return { tmpDir, garden }
+}
 
 export async function stubProviderAction<T extends keyof ProviderHandlers>(
   garden: Garden,
