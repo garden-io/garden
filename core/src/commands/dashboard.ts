@@ -38,6 +38,7 @@ export class DashboardCommand extends Command<Args, Opts> {
 
   cliOnly = true
   streamEvents = true
+  streamLogs = true
   private garden?: Garden
 
   description = dedent`

@@ -63,6 +63,7 @@ export interface LogEntryParams extends UpdateLogEntryParams {
   error?: GardenError
   indent?: number
   childEntriesInheritLevel?: boolean
+  skipEmit?: boolean
   fromStdStream?: boolean
   id?: string
 }
@@ -104,6 +105,7 @@ export class LogEntry implements LogNode {
   public readonly errorData?: GardenError
   public readonly childEntriesInheritLevel?: boolean
   public readonly id?: string
+  public readonly skipEmit?: boolean
   public children: LogEntry[]
   public isPlaceholder: boolean
   public revision: number
@@ -124,6 +126,7 @@ export class LogEntry implements LogNode {
     this.id = params.id
     this.isPlaceholder = params.isPlaceholder || false
     this.revision = -1
+    this.skipEmit = params.skipEmit || false
 
     if (!params.isPlaceholder) {
       this.update({

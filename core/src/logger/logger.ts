@@ -236,7 +236,7 @@ export class Logger implements LogNode {
   }
 
   onGraphChange(entry: LogEntry) {
-    if (entry.level <= eventLogLevel && !entry.isPlaceholder) {
+    if (entry.level <= eventLogLevel && !entry.isPlaceholder && !entry.skipEmit) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
     for (const writer of this.writers) {

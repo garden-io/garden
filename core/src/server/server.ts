@@ -30,7 +30,7 @@ import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
-import { ApiEventBatch } from "../cloud/buffered-event-stream"
+import { ApiEventBatch, LogEntryEventPayload } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
 import { clientRequestNames, ClientRouter } from "./client-router"
 
@@ -342,10 +342,14 @@ export class GardenServer {
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
         const event = { type, ...(<object>payload) }
-        this.log.debug(`Send event: ${JSON.stringify(event)}`)
+        // Do not emit log entry event to prevent infinite loop.
+        this.log.debug({ msg: `Send event: ${JSON.stringify(event)}`, skipEmit: true })
+        const evt = event as any
+        const name = evt.name  || "no-name"
+        console.log("Send event:", type, name)
         websocket.send(JSON.stringify(event), (err) => {
           if (err) {
-            this.debugLog.debug({ error: toGardenError(err) })
+            this.debugLog.debug({ error: toGardenError(err), skipEmit: true })
           }
         })
       }
@@ -385,6 +389,9 @@ export class GardenServer {
       const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)
+      this.log.root.events.onAny((_name: string, payload: LogEntryEventPayload) => {
+        send("logEntry", payload)
+      })
 
       const cleanup = () => {
         this.log.debug(`Connection ${connId} terminated, cleaning up.`)
@@ -408,7 +415,7 @@ export class GardenServer {
       websocket.on("message", (msg) => {
         let request: any
 
-        this.log.debug("Got request: " + msg)
+        this.log.debug({ msg:"Got request: " + msg, skipEmit: true })
 
         try {
           request = JSON.parse(msg.toString())
@@ -555,6 +562,7 @@ interface ServerWebsocketMessages {
     name: EventName
     payload: ValueOf<Events>
   }
+  logEntry: LogEntryEventPayload
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
