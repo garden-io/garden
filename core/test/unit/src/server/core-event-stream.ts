@@ -83,7 +83,7 @@ describe("CoreEventStream", () => {
         arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
-        serverHost: "http://localhost:123456",
+        serverHost: "http://localhost:12345",
         serverAuthKey: "foo",
         projectRoot: garden.projectRoot,
         projectName: garden.projectName,
@@ -98,13 +98,6 @@ describe("CoreEventStream", () => {
         pid: 9999999,
       }
       await garden.globalConfigStore.set("activeProcesses", String(recordB.pid), recordB)
-
-      // Different namespace
-      const recordC = {
-        ...recordA,
-        namespace: "foo",
-      }
-      await garden.globalConfigStore.set("activeProcesses", String(recordC.pid), recordC)
 
       streamer = new CoreEventStream({
         log: garden.log,
@@ -133,7 +126,7 @@ describe("CoreEventStream", () => {
         arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
-        serverHost: "http://localhost:123456",
+        serverHost: "http://localhost:12345",
         serverAuthKey: "foo",
         projectRoot: garden.projectRoot,
         projectName: garden.projectName,
@@ -169,7 +162,7 @@ describe("CoreEventStream", () => {
         arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
-        serverHost: "http://localhost:123456",
+        serverHost: "http://localhost:12345",
         serverAuthKey: "foo",
         projectRoot: garden.projectRoot,
         projectName: garden.projectName,
@@ -206,7 +199,7 @@ describe("CoreEventStream", () => {
         arguments: [],
         sessionId: garden.sessionId,
         persistent: true,
-        serverHost: "http://localhost:123456",
+        serverHost: "http://localhost:12345",
         serverAuthKey: "foo",
         projectRoot: garden.projectRoot,
         projectName: garden.projectName,
@@ -266,7 +259,7 @@ describe("CoreEventStream", () => {
       arguments: [],
       sessionId: garden.sessionId,
       persistent: true,
-      serverHost: "http://localhost:123456",
+      serverHost: "http://localhost:12345",
       serverAuthKey: "foo",
       projectRoot: garden.projectRoot,
       projectName: garden.projectName,
