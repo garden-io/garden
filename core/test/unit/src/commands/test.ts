@@ -387,7 +387,7 @@ describe("TestCommand", () => {
         }),
       ]
 
-      garden.setActionConfigs(moduleConfigs)
+      garden.setModuleConfigs(moduleConfigs)
 
       const { result, errors } = await command.action({
         garden,

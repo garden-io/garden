@@ -104,7 +104,7 @@ describe("DeployTask", () => {
 
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
-      garden.setActionConfigs([], actionConfig)
+      garden.setActionConfigs(actionConfig)
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("test-deploy")
@@ -126,7 +126,7 @@ describe("DeployTask", () => {
     })
 
     it("should set status to unknown if runtime variables can't be resolved", async () => {
-      garden.setActionConfigs([], actionConfig)
+      garden.setActionConfigs(actionConfig)
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("test-deploy")

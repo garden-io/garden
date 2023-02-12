@@ -94,7 +94,7 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -158,24 +158,21 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setActionConfigs(
-      [],
-      [
-        {
-          name: "test",
-          type: "test",
-          internal: {
-            basePath: "asd",
-          },
-          kind: "Deploy",
-          spec: {
-            outputs: {
-              test: "test-value",
-            },
+    garden.setActionConfigs([
+      {
+        name: "test",
+        type: "test",
+        internal: {
+          basePath: "asd",
+        },
+        kind: "Deploy",
+        spec: {
+          outputs: {
+            test: "test-value",
           },
         },
-      ]
-    )
+      },
+    ])
 
     const outputs = await resolveProjectOutputs(garden, garden.log)
     expect(outputs).to.eql([{ name: "test", value: "test-value" }])
@@ -229,24 +226,21 @@ describe("resolveProjectOutputs", () => {
       config: projectConfig,
     })
 
-    garden.setActionConfigs(
-      [],
-      [
-        {
-          name: "test",
-          type: "test",
-          internal: {
-            basePath: "asd",
-          },
-          kind: "Run",
-          spec: {
-            outputs: {
-              test: "test-value",
-            },
+    garden.setActionConfigs([
+      {
+        name: "test",
+        type: "test",
+        internal: {
+          basePath: "asd",
+        },
+        kind: "Run",
+        spec: {
+          outputs: {
+            test: "test-value",
           },
         },
-      ]
-    )
+      },
+    ])
 
     const outputs = await resolveProjectOutputs(garden, garden.log)
     expect(outputs).to.eql([{ name: "test", value: "hello" }])

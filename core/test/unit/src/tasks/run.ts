@@ -83,25 +83,22 @@ describe("RunTask", () => {
     it("should cache results", async () => {
       const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-      garden.setActionConfigs(
-        [],
-        [
-          {
-            name: "test",
-            type: "test",
-            kind: "Run",
-            dependencies: [],
-            disabled: false,
-            timeout: 10,
-            internal: {
-              basePath: "./",
-            },
-            spec: {
-              command: ["echo", "this is a test lalala kumiko"],
-            },
+      garden.setActionConfigs([
+        {
+          name: "test",
+          type: "test",
+          kind: "Run",
+          dependencies: [],
+          disabled: false,
+          timeout: 10,
+          internal: {
+            basePath: "./",
           },
-        ]
-      )
+          spec: {
+            command: ["echo", "this is a test lalala kumiko"],
+          },
+        },
+      ])
 
       let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       let taskTask = new RunTask({

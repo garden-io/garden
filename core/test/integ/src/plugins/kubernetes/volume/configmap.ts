@@ -44,7 +44,7 @@ describe("configmap module", () => {
       foo: "bar",
     }
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         name: "test",

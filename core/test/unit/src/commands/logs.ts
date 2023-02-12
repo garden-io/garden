@@ -75,7 +75,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
   })
 
   const garden = await TestGarden.factory(tmpDir.path, { config, plugins: [plugin] })
-  garden.setActionConfigs([], [makeDeployAction(tmpDir.path, "test-service-a")])
+  garden.setActionConfigs([makeDeployAction(tmpDir.path, "test-service-a")])
   return garden
 }
 
@@ -333,15 +333,12 @@ describe("LogsCommand", () => {
         }
         const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
 
-        garden.setActionConfigs(
-          [],
-          [
-            makeDeployAction(tmpDir.path, "a-short"),
-            makeDeployAction(tmpDir.path, "b-not-short"),
-            makeDeployAction(tmpDir.path, "c-by-far-the-longest-of-the-bunch"),
-            makeDeployAction(tmpDir.path, "d-very-very-long"),
-          ]
-        )
+        garden.setActionConfigs([
+          makeDeployAction(tmpDir.path, "a-short"),
+          makeDeployAction(tmpDir.path, "b-not-short"),
+          makeDeployAction(tmpDir.path, "c-by-far-the-longest-of-the-bunch"),
+          makeDeployAction(tmpDir.path, "d-very-very-long"),
+        ])
 
         // Entries are color coded by their alphabetical order
         const colA = chalk[colors[0]]
@@ -382,10 +379,10 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs(
-        [],
-        [makeDeployAction(tmpDir.path, "test-service-a"), makeDeployAction(tmpDir.path, "test-service-b")]
-      )
+      garden.setActionConfigs([
+        makeDeployAction(tmpDir.path, "test-service-a"),
+        makeDeployAction(tmpDir.path, "test-service-b"),
+      ])
 
       const command = new LogsCommand()
       // Only get logs for test-service-b.
@@ -414,7 +411,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([], actionConfigsForTags())
+      garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
@@ -445,7 +442,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([], actionConfigsForTags())
+      garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api"] } }))
@@ -465,7 +462,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([], actionConfigsForTags())
+      garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       await expectError(() => command.action(makeCommandParams({ garden, opts: { tag: ["*-main"] } })), {
@@ -496,7 +493,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([], actionConfigsForTags())
+      garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=api,myTag=1"] } }))
@@ -536,7 +533,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([], actionConfigsForTags())
+      garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(
@@ -582,7 +579,7 @@ describe("LogsCommand", () => {
         return {}
       }
       const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([], actionConfigsForTags())
+      garden.setActionConfigs(actionConfigsForTags())
 
       const command = new LogsCommand()
       const res = await command.action(makeCommandParams({ garden, opts: { tag: ["container=*-main"] } }))

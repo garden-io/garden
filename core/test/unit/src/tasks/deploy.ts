@@ -88,52 +88,49 @@ describe("DeployTask", () => {
     })
     garden = await TestGarden.factory(tmpDir.path, { config, plugins: [testPlugin] })
 
-    garden.setActionConfigs(
-      [],
-      [
-        {
-          name: "test-deploy",
-          type: "test",
-          kind: "Deploy",
-          internal: {
-            basePath: "foo",
-          },
-          dependencies: ["deploy.dep-deploy", "run.test-run"],
-          disabled: false,
+    garden.setActionConfigs([
+      {
+        name: "test-deploy",
+        type: "test",
+        kind: "Deploy",
+        internal: {
+          basePath: "foo",
+        },
+        dependencies: ["deploy.dep-deploy", "run.test-run"],
+        disabled: false,
 
-          spec: {
-            log: "${runtime.tasks.test-run.outputs.log}",
-          },
+        spec: {
+          log: "${runtime.tasks.test-run.outputs.log}",
         },
-        {
-          name: "dep-deploy",
-          type: "test",
-          kind: "Deploy",
-          internal: {
-            basePath: "foo",
-          },
-          dependencies: [],
-          disabled: false,
-          spec: {
-            log: "apples and pears",
-          },
+      },
+      {
+        name: "dep-deploy",
+        type: "test",
+        kind: "Deploy",
+        internal: {
+          basePath: "foo",
         },
-        {
-          name: "test-run",
-          type: "test",
-          kind: "Run",
-          dependencies: [],
-          disabled: false,
-          timeout: 10,
-          internal: {
-            basePath: "./",
-          },
-          spec: {
-            log: "test output",
-          },
+        dependencies: [],
+        disabled: false,
+        spec: {
+          log: "apples and pears",
         },
-      ]
-    )
+      },
+      {
+        name: "test-run",
+        type: "test",
+        kind: "Run",
+        dependencies: [],
+        disabled: false,
+        timeout: 10,
+        internal: {
+          basePath: "./",
+        },
+        spec: {
+          log: "test output",
+        },
+      },
+    ])
 
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
