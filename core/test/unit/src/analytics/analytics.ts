@@ -15,13 +15,13 @@ import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarde
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics"
 import { DEFAULT_API_VERSION, gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { Logger, LogLevel } from "../../../../src/logger/logger"
 import { AnalyticsGlobalConfig, GlobalConfigStore } from "../../../../src/config-store/global"
 import { ProjectResource } from "../../../../src/config/project"
 
 class FakeCloudApi extends CloudApi {
-  static async factory(params: { log: LogEntry; projectConfig?: ProjectResource; skipLogging?: boolean }) {
+  static async factory(params: { log: Log; projectConfig?: ProjectResource; skipLogging?: boolean }) {
     return new FakeCloudApi(params.log, "https://garden.io", new GlobalConfigStore())
   }
   async getProfile() {
@@ -152,8 +152,8 @@ describe("AnalyticsHandler", () => {
     it("should print an info message if first Garden run", async () => {
       await garden.globalConfigStore.set("analytics", {})
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      const msgs = garden.log.root.getLogEntries().map((l) => l.getMessages())
-      const infoMsg = msgs.find((messageArr) => messageArr[0].msg?.includes("Thanks for installing Garden!"))
+      const msgs = garden.log.root.getLogEntries().map((l) => l.msg)
+      const infoMsg = msgs.find((msg) => msg?.includes("Thanks for installing Garden!"))
 
       expect(infoMsg).to.exist
     })
@@ -161,8 +161,8 @@ describe("AnalyticsHandler", () => {
       // The existens of base config suggests it's not the first run
       await garden.globalConfigStore.set("analytics", basicConfig)
       analytics = await AnalyticsHandler.factory({ garden, log: garden.log, ciInfo })
-      const msgs = garden.log.root.getLogEntries().map((l) => l.getMessages())
-      const infoMsg = msgs.find((messageArr) => messageArr[0].msg?.includes("Thanks for installing Garden!"))
+      const msgs = garden.log.root.getLogEntries().map((l) => l.msg)
+      const infoMsg = msgs.find((msg) => msg?.includes("Thanks for installing Garden!"))
 
       expect(infoMsg).not.to.exist
     })
@@ -266,7 +266,7 @@ describe("AnalyticsHandler", () => {
         writers: [],
         storeEntries: false,
       })
-      const cloudApi = await FakeCloudApi.factory({ log: logger.placeholder() })
+      const cloudApi = await FakeCloudApi.factory({ log: logger.makeNewLogContext() })
       garden = await makeTestGardenA(undefined, { cloudApi })
       garden.vcsInfo.originUrl = remoteOriginUrl
       await enableAnalytics(garden)

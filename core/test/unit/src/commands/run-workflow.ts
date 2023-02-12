@@ -27,7 +27,7 @@ import { ProjectConfig } from "../../../../src/config/project"
 import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log, LogEntry } from "../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
 
 describe("RunWorkflowCommand", () => {
@@ -101,23 +101,23 @@ describe("RunWorkflowCommand", () => {
     ])
 
     await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
-    const entries = _garden.log.getChildEntries()
+    const entries = _garden.log.getLogEntries()
     const stepHeaderEntries = filterLogEntries(entries, /Running step/)
     const stepBodyEntries = filterLogEntries(entries, /Starting processActions/)
     const stepFooterEntries = filterLogEntries(entries, /Step.*completed/)
     const workflowCompletedEntry = filterLogEntries(entries, /Workflow.*completed/)[0]
 
-    expect(stepHeaderEntries.map((e) => e.getMetadata())).to.eql([undefined, undefined], "stepHeaderEntries")
+    expect(stepHeaderEntries.map((e) => e.metadata)).to.eql([undefined, undefined], "stepHeaderEntries")
 
-    const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.getMetadata())
+    const stepBodyEntriesMetadata = stepBodyEntries.map((e) => e.metadata)
     expect(stepBodyEntriesMetadata).to.eql(
       [{ workflowStep: { index: 0 } }, { workflowStep: { index: 1 } }],
       "stepBodyEntries"
     )
 
-    expect(stepFooterEntries.map((e) => e.getMetadata())).to.eql([undefined, undefined], "stepFooterEntries")
+    expect(stepFooterEntries.map((e) => e.metadata)).to.eql([undefined, undefined], "stepFooterEntries")
     expect(workflowCompletedEntry).to.exist
-    expect(workflowCompletedEntry!.getMetadata()).to.eql(undefined, "workflowCompletedEntry")
+    expect(workflowCompletedEntry!.metadata).to.eql(undefined, "workflowCompletedEntry")
   })
 
   it("should emit workflow events", async () => {
@@ -165,7 +165,7 @@ describe("RunWorkflowCommand", () => {
   })
 
   function filterLogEntries(entries: LogEntry[], msgRegex: RegExp): LogEntry[] {
-    return entries.filter((e) => msgRegex.test(e.getLatestMessage().msg || ""))
+    return entries.filter((e) => msgRegex.test(e.msg || ""))
   }
 
   it("should collect log outputs from a command step", async () => {

@@ -59,7 +59,7 @@ import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
 import { Profile } from "../util/profiling"
 import { prepareDebugLogfiles } from "./debug-logs"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
@@ -158,7 +158,7 @@ ${renderCommands(commands)}
     commandFullName,
   }: {
     logger: Logger
-    log: LogEntry
+    log: Log
     gardenDirPath: string
     commandFullName: string
   }) {
@@ -266,7 +266,7 @@ ${renderCommands(commands)}
 
     const logger = Logger.initialize({
       level,
-      storeEntries: loggerType === "fancy",
+      storeEntries: false,
       type: loggerType,
       useEmoji: emoji,
       showTimestamps,
@@ -275,13 +275,14 @@ ${renderCommands(commands)}
     // Currently we initialise empty placeholder entries and pass those to the
     // framework as opposed to the logger itself. This is to give better control over where on
     // the screen the logs are printed.
-    const headerLog = logger.placeholder()
-    const log = logger.placeholder()
-    const footerLog = logger.placeholder()
+    // TODO: Remove header and footer logs. Not needed any more.
+    const headerLog = logger.makeNewLogContext()
+    const log = logger.makeNewLogContext()
+    const footerLog = logger.makeNewLogContext()
 
     const globalConfigStore = new GlobalConfigStore()
 
-    await validateRuntimeRequirementsCached(logger, globalConfigStore, checkRequirements)
+    await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
 
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
@@ -358,7 +359,7 @@ ${renderCommands(commands)}
     // Print header log before we know the namespace to prevent content from
     // jumping.
     // TODO: Link to Cloud namespace page here.
-    const nsLog = headerLog.placeholder()
+    const nsLog = headerLog.makeNewLogContext({})
 
     do {
       try {
@@ -367,7 +368,7 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
+          nsLog.info(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
 
           if (!cloudApi && garden.projectId) {
             log.warn({
@@ -434,7 +435,7 @@ ${renderCommands(commands)}
             )}
               ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
             `
-            footerLog.setState(msg)
+            footerLog.info(msg)
           }
         }
 
@@ -503,7 +504,7 @@ ${renderCommands(commands)}
           })
         } else {
           // The command is protected and the user decided to not continue with the exectution.
-          log.setState("\nCommand aborted.")
+          log.info("\nCommand aborted.")
           result = {}
         }
         await garden.close()
@@ -733,7 +734,7 @@ ${renderCommands(commands)}
 }
 
 export async function validateRuntimeRequirementsCached(
-  log: Logger,
+  log: Log,
   globalConfig: GlobalConfigStore,
   requirementCheckFunction: () => Promise<void>
 ) {

@@ -10,7 +10,7 @@ import { resolve } from "path"
 import { mapValues, startCase } from "lodash"
 
 import { ConfigurationError, PluginError, RuntimeError } from "@garden-io/sdk/exceptions"
-import { LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 import { dedent } from "@garden-io/sdk/util/string"
 import { terraform } from "./cli"
 import { TerraformProvider } from "."
@@ -33,7 +33,7 @@ export interface TerraformBaseSpec {
 
 interface TerraformParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   provider: TerraformProvider
   root: string
 }
@@ -132,7 +132,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
   await setWorkspace(params)
   await tfValidate(params)
 
-  const logEntry = log.verbose({ section: "terraform", msg: "Running plan...", status: "active" })
+  const statusLog = log.makeNewLogContext({ section: "terraform" }).info("Running plan...")
 
   const plan = await terraform(ctx, provider).exec({
     log,
@@ -152,19 +152,19 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 
   if (plan.exitCode === 0) {
     // Stack is up-to-date
-    logEntry.setSuccess({ msg: chalk.green("Stack up-to-date"), append: true })
+    statusLog.setSuccess(chalk.green("Stack up-to-date"))
     return "up-to-date"
   } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.
     // We ignore this here and carry on. Following commands will output the same error.
-    logEntry.setError()
+    statusLog.error(`Failed running plan`)
     return "error"
   } else if (plan.exitCode === 2) {
     // No error but stack is not up-to-date
-    logEntry.setWarn({ msg: "Not up-to-date" })
+    statusLog.warn({ msg: "Not up-to-date" })
     return "outdated"
   } else {
-    logEntry.setError()
+    statusLog.error(`Failed running plan`)
     throw new PluginError(`Unexpected exit code from \`terraform plan\`: ${plan.exitCode}`, {
       exitCode: plan.exitCode,
       stderr: plan.stderr,
@@ -181,7 +181,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
 
-  const statusLine = log.info("→ Applying Terraform stack...")
+  const statusLine = log.makeNewLogContext({}).info("→ Applying Terraform stack...")
   const logStream = split2()
 
   let stdout: string = ""
@@ -202,7 +202,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   }
 
   logStream.on("data", (line: Buffer) => {
-    statusLine.setState(chalk.gray("→ " + line.toString()))
+    statusLine.info(chalk.gray("→ " + line.toString()))
   })
 
   await new Promise<void>((_resolve, reject) => {

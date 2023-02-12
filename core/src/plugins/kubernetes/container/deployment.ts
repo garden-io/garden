@@ -18,7 +18,7 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
@@ -96,7 +96,7 @@ export async function startContainerDevSync({
 }: {
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
-  log: LogEntry
+  log: Log
   action: Resolved<ContainerDeployAction>
 }) {
   const devMode = action.getSpec("devMode")
@@ -149,7 +149,7 @@ export async function startLocalMode({
 }: {
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
-  log: LogEntry
+  log: Log
   action: Resolved<ContainerDeployAction>
 }) {
   const localModeSpec = action.getSpec("localMode")
@@ -338,7 +338,7 @@ export async function createContainerManifests({
 }: {
   ctx: PluginContext
   api: KubeApi
-  log: LogEntry
+  log: Log
   action: Resolved<ContainerDeployAction>
   imageId: string
   enableDevMode: boolean
@@ -397,7 +397,7 @@ interface CreateDeploymentParams {
   imageId: string
   enableDevMode: boolean
   enableLocalMode: boolean
-  log: LogEntry
+  log: Log
   production: boolean
   blueGreen: boolean
 }

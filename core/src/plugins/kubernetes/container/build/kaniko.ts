@@ -9,7 +9,7 @@
 import { V1PodSpec } from "@kubernetes/client-node"
 import { skopeoDaemonContainerName, dockerAuthSecretKey, k8sUtilImageName } from "../../constants"
 import { KubeApi } from "../../api"
-import { LogEntry } from "../../../../logger/log-entry"
+import { Log } from "../../../../logger/log-entry"
 import { KubernetesProvider, KubernetesPluginContext, DEFAULT_KANIKO_IMAGE } from "../../config"
 import { BuildError, ConfigurationError } from "../../../../exceptions"
 import { PodRunner } from "../../run"
@@ -104,7 +104,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     deploymentName: utilDeploymentName,
   })
 
-  log.setState(`Building image ${localId}...`)
+  log.info(`Building image ${localId}...`)
 
   // Use the project namespace by default
   let kanikoNamespace = provider.config.kaniko?.namespace || projectNamespace
@@ -117,7 +117,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     // Make sure the Kaniko Pod namespace has the auth secret ready
     const secretRes = await ensureBuilderSecret({
       provider,
-      log: log.placeholder(),
+      log: log.makeNewLogContext({}),
       api,
       namespace: kanikoNamespace,
     })
@@ -208,7 +208,7 @@ interface RunKanikoParams {
   kanikoNamespace: string
   utilNamespace: string
   authSecretName: string
-  log: LogEntry
+  log: Log
   action: ContainerBuildAction
   args: string[]
 }
@@ -374,7 +374,7 @@ async function runKaniko({
 
   const logEventContext = {
     origin: "kaniko",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    log: log.makeNewLogContext({ level: LogLevel.verbose }),
   }
 
   const runner = new PodRunner({

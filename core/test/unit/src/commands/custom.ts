@@ -11,13 +11,13 @@ import { GardenCli } from "../../../../src/cli/cli"
 import { BooleanParameter, IntegerParameter, StringParameter } from "../../../../src/cli/params"
 import { CustomCommandWrapper } from "../../../../src/commands/custom"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { expectError, TestGarden } from "../../../../src/util/testing"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 
 describe("CustomCommandWrapper", () => {
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   const cli = new GardenCli()
 
   before(async () => {

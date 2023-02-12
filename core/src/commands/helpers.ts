@@ -13,7 +13,7 @@ import { TestAction } from "../actions/test"
 
 import { ConfigGraph } from "../graph/config-graph"
 import { WorkflowConfig } from "../config/workflow"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
 
@@ -74,7 +74,7 @@ export const watchParameter = new BooleanParameter({
   hidden: true,
 })
 
-export async function watchRemovedWarning(garden: Garden, log: LogEntry) {
+export async function watchRemovedWarning(garden: Garden, log: Log) {
   return garden.emitWarning({
     log,
     key: "watch-flag-removed",

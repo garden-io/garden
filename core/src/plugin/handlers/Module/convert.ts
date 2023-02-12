@@ -11,7 +11,7 @@ import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../base"
 import { BuildDependencyConfig } from "../../../config/module"
 import { joi, joiArray } from "../../../config/common"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { GroupConfig, groupConfig } from "../../../config/group"
 import { GardenModule, moduleSchema } from "../../../types/module"
 import { baseActionConfigSchema } from "../../../actions/base"
@@ -24,7 +24,7 @@ import { ExecBuildConfig } from "../../../plugins/exec/config"
 
 export interface ConvertModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   module: T
   services: GardenService<T>[]
   tasks: GardenTask<T>[]

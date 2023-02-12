@@ -21,11 +21,11 @@ import {
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { UnlinkSourceCommand } from "../../../../src/commands/unlink/source"
 import { Garden } from "../../../../src/garden"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 
 describe("UnlinkCommand", () => {
   let garden: Garden
-  let log: LogEntry
+  let log: Log
 
   describe("UnlinkModuleCommand", () => {
     const linkCmd = new LinkModuleCommand()

@@ -16,7 +16,7 @@ import { getKubernetesTestGarden } from "./common"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
@@ -38,7 +38,7 @@ import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   let ctx: KubernetesPluginContext
   let api: KubeApi
   /**
@@ -62,7 +62,7 @@ describe("kubernetes-module handlers", () => {
     return cloned
   }
 
-  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logEntry: LogEntry) => {
+  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logEntry: Log) => {
     const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
       getDeployedResource(ctx, ctx.provider, resource, logEntry)
     )

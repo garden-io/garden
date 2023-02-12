@@ -11,7 +11,7 @@ import { join } from "path"
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { Garden } from "../../garden"
 import { KubernetesPluginContext, KubernetesConfig } from "./config"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { getSystemNamespace } from "./namespace"
 import { PluginError } from "../../exceptions"
 import { DeepPrimitiveMap } from "../../config/common"
@@ -37,7 +37,7 @@ export function getSystemMetadataNamespaceName(config: KubernetesConfig) {
 export async function getSystemGarden(
   ctx: KubernetesPluginContext,
   variables: DeepPrimitiveMap,
-  log: LogEntry
+  log: Log
 ): Promise<Garden> {
   const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
 
@@ -75,20 +75,20 @@ export async function getSystemGarden(
       variables,
     },
     commandInfo: ctx.command,
-    log: log.debug({
-      section: "garden system",
-      msg: "Initializing...",
-      status: "active",
-      indent: 1,
-      childEntriesInheritLevel: true,
-    }),
+    log: log
+      .makeNewLogContext({
+        section: "garden system",
+        level: LogLevel.debug,
+        fixLevel: true,
+      })
+      .info("Initializing..."),
   })
 }
 
 interface GetSystemServicesStatusParams {
   ctx: KubernetesPluginContext
   sysGarden: Garden
-  log: LogEntry
+  log: Log
   namespace: string
   names: string[]
 }
@@ -98,7 +98,7 @@ export async function getSystemServiceStatus({ sysGarden, log, names }: GetSyste
   const graph = await sysGarden.getConfigGraph({ log, emit: false })
 
   const serviceStatuses = await actions.getDeployStatuses({
-    log: log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true }),
+    log: log.makeNewLogContext({ level: LogLevel.verbose, fixLevel: true }),
     graph,
     names,
   })

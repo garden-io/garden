@@ -159,13 +159,14 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const secretsToCreate = Object.entries(secrets)
-    const cmdLog = log.info({ status: "active", section: "secrets-command", msg: "Creating secrets..." })
+    const cmdLog = log.makeNewLogContext({ section: "secrets-command" })
+    cmdLog.info("Creating secrets...")
 
     let count = 1
     const errors: ApiCommandError[] = []
     const results: SecretResult[] = []
     for (const [name, value] of secretsToCreate) {
-      cmdLog.setState({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
+      cmdLog.info({ msg: `Creating secrets... → ${count}/${secretsToCreate.length}` })
       count++
       try {
         const body = { environmentId, userId, projectId: project.id, name, value }

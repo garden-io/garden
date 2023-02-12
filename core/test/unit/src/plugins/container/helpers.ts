@@ -19,7 +19,7 @@ import { gardenPlugin } from "../../../../../src/plugins/container/container"
 import { expectError, getDataDir, getPropertyName, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { ModuleConfig } from "../../../../../src/config/module"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import {
   ContainerModuleSpec,
   ContainerModuleConfig,
@@ -75,7 +75,7 @@ describe("containerHelpers", () => {
 
   let garden: Garden
   let ctx: PluginContext
-  let log: LogEntry
+  let log: Log
   const moduleHasDockerfile = getPropertyName(helpers, (x) => x.moduleHasDockerfile)
 
   beforeEach(async () => {

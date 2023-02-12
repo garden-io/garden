@@ -8,7 +8,7 @@
 
 import tmp from "tmp-promise"
 import { RuntimeError } from "../../../exceptions"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { exec } from "../../../util/util"
 import { containerHelpers } from "../../container/helpers"
 import { ContainerBuildAction } from "../../container/moduleConfig"
@@ -18,7 +18,7 @@ import { ExecaReturnValue } from "execa"
 import { PluginContext } from "../../../plugin-context"
 import { parse as parsePath } from "path"
 
-export async function configureMicrok8sAddons(log: LogEntry, addons: string[]) {
+export async function configureMicrok8sAddons(log: Log, addons: string[]) {
   let statusCommandResult: ExecaReturnValue | undefined = undefined
   let status = ""
 
@@ -96,7 +96,7 @@ export async function loadImageToMicrok8s({
 }: {
   action: ContainerBuildAction
   imageId: string
-  log: LogEntry
+  log: Log
   ctx: PluginContext
 }): Promise<void> {
   try {

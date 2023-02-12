@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { TestGarden } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
@@ -15,7 +15,7 @@ import { getRouterTestData } from "./_helpers"
 describe("module actions", () => {
   let garden: TestGarden
   let actionRouter: ActionRouter
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     const data = await getRouterTestData()

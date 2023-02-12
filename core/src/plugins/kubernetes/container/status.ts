@@ -7,7 +7,7 @@
  */
 
 import { PluginContext } from "../../../plugin-context"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { ServiceStatus, ForwardablePort, serviceStateToActionState } from "../../../types/service"
 import { createContainerManifests, startContainerDevSync } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
@@ -117,7 +117,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
  */
 export async function waitForContainerService(
   ctx: PluginContext,
-  log: LogEntry,
+  log: Log,
   action: Resolved<ContainerDeployAction>,
   devMode: boolean,
   localMode: boolean,

@@ -13,7 +13,7 @@ import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
 import { Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
 import { ConfigDump, Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
 import { TypedEventEmitter } from "../util/events"
 import { uuidv4 } from "../util/util"
@@ -74,7 +74,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
   private autocompleter: Autocompleter
   private garden: Garden
-  private readonly log: LogEntry
+  private readonly log: Log
   private commands: Command[]
   private readonly globalOpts: Partial<ParameterValues<GlobalOptions>>
 
@@ -86,7 +86,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     globalOpts,
   }: {
     garden: Garden
-    log: LogEntry
+    log: Log
     commands: Command[]
     configDump?: ConfigDump
     globalOpts: Partial<ParameterValues<GlobalOptions>>

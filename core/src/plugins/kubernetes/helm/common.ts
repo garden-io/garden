@@ -13,7 +13,7 @@ import tempy from "tempy"
 import cryptoRandomString = require("crypto-random-string")
 
 import { PluginContext } from "../../../plugin-context"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { getActionNamespace } from "../namespace"
 import { KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
@@ -36,7 +36,7 @@ interface Chart {
   dependencies?: { name: string }[]
 }
 
-async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, namespace: string, chartPath: string) {
+async function dependencyUpdate(ctx: KubernetesPluginContext, log: Log, namespace: string, chartPath: string) {
   await helm({
     ctx,
     log,
@@ -49,7 +49,7 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: LogEntry, nam
 interface PrepareTemplatesParams {
   ctx: KubernetesPluginContext
   action: Resolved<HelmDeployAction>
-  log: LogEntry
+  log: Log
 }
 
 interface GetChartResourcesParams extends PrepareTemplatesParams {
@@ -327,7 +327,7 @@ export async function renderHelmTemplateString({
   reference,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   action: Resolved<HelmDeployAction>
   chartPath?: string
   value: string

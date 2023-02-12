@@ -38,7 +38,7 @@ import { ProjectConfigContext } from "../config/template-contexts/project"
 import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError, ValidationError } from "../exceptions"
 import type { Garden } from "../garden"
-import type { LogEntry } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry"
 import { ActionTypeDefinition } from "../plugin/action-types"
 import { getActionTypeBases } from "../plugins"
 import type { ActionRouter } from "../router/router"
@@ -60,7 +60,7 @@ export async function actionConfigsToGraph({
   moduleGraph,
 }: {
   garden: Garden
-  log: LogEntry
+  log: Log
   groupConfigs: GroupConfig[]
   configs: ActionConfig[]
   moduleGraph: ModuleGraph
@@ -131,7 +131,7 @@ export async function actionFromConfig({
   graph: ConfigGraph
   config: ActionConfig
   router: ActionRouter
-  log: LogEntry
+  log: Log
   configsByKey: ActionConfigsByKey
 }) {
   let action: Action
@@ -210,9 +210,9 @@ export async function resolveAction<T extends Action>({
   garden: Garden
   graph: ConfigGraph
   action: T
-  log: LogEntry
+  log: Log
 }): Promise<Resolved<T>> {
-  const status = log.info({ msg: `Resolving ${action.longDescription()}`, status: "active" })
+  log.info(`Resolving ${action.longDescription()}`)
 
   const task = new ResolveActionTask({
     garden,
@@ -226,7 +226,7 @@ export async function resolveAction<T extends Action>({
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
 
-  status.setState({ status: "done" })
+  log.info(`Done!`)
 
   return <Resolved<T>>(<unknown>results.results.getResult(task)!.result!.outputs.resolvedAction)
 }
@@ -249,7 +249,7 @@ export async function resolveActions<T extends Action>({
   garden: Garden
   graph: ConfigGraph
   actions: T[]
-  log: LogEntry
+  log: Log
 }): Promise<ResolvedActions<T>> {
   const tasks = actions.map(
     (action) =>
@@ -283,7 +283,7 @@ export async function executeAction<T extends Action>({
   garden: Garden
   graph: ConfigGraph
   action: T
-  log: LogEntry
+  log: Log
 }): Promise<Executed<T>> {
   const task = getExecuteTaskForAction(action, {
     garden,
@@ -333,7 +333,7 @@ async function preprocessActionConfig({
   garden: Garden
   config: ActionConfig
   router: ActionRouter
-  log: LogEntry
+  log: Log
 }) {
   const projectContextKeys = getActionConfigContextKeys()
   const builtinFieldContext = new ActionConfigContext(garden)

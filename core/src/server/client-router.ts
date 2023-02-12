@@ -7,7 +7,7 @@
  */
 
 import { Garden } from ".."
-import { EmojiName, LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import chalk from "chalk"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -19,9 +19,9 @@ import { moduleTestNameToActionName } from "../types/module"
 
 export class ClientRouter {
   private garden: Garden
-  private log: LogEntry
+  private log: Log
 
-  constructor(garden: Garden, log: LogEntry) {
+  constructor(garden: Garden, log: Log) {
     this.garden = garden
     this.log = log
   }
@@ -52,10 +52,7 @@ export class ClientRouter {
   async build(req: ClientRequests["build"]) {
     const { log, garden } = this
     log.info("")
-    log.info({
-      emoji: "hammer",
-      msg: chalk.white(`Build requested for ${chalk.italic(chalk.cyan(req.moduleName))}`),
-    })
+    log.info(chalk.white(`🔨 Build requested for ${chalk.italic(chalk.cyan(req.moduleName))}`))
 
     try {
       garden.clearCaches()
@@ -70,26 +67,26 @@ export class ClientRouter {
   async deploy(req: ClientRequests["deploy"]) {
     const { log, garden } = this
     let prefix: string
-    let emoji: EmojiName
+    let emoji: string
     if (req.hotReload) {
-      emoji = "fire"
+      emoji = "🔥 "
       prefix = `Hot reload-enabled deployment`
     } else {
       // local mode always takes precedence over dev mode
       if (req.localMode) {
-        emoji = "left_right_arrow"
+        emoji = "↔️ "
         prefix = `Local-mode deployment`
       } else if (req.devMode) {
-        emoji = "zap"
+        emoji = "⚡ "
         prefix = `Dev-mode deployment`
       } else {
-        emoji = "rocket"
+        emoji = "🚀 "
         prefix = "Deployment"
       }
     }
     const msg = `${prefix} requested for ${chalk.italic(chalk.cyan(req.serviceName))}`
     log.info("")
-    log.info({ emoji, msg: chalk.white(msg) })
+    log.info(emoji + chalk.white(msg))
 
     try {
       garden.clearCaches()
@@ -110,7 +107,7 @@ export class ClientRouter {
     }
     const msg = chalk.white(`Tests requested for ${chalk.italic(chalk.cyan(req.moduleName))}${suffix}`)
     log.info("")
-    log.info({ emoji: "thermometer", msg })
+    log.info("🌡️ " + msg)
 
     try {
       garden.clearCaches()
@@ -126,7 +123,7 @@ export class ClientRouter {
     const { log, garden } = this
     const msg = chalk.white(`Run requested for task ${chalk.italic(chalk.cyan(req.taskName))}`)
     log.info("")
-    log.info({ emoji: "runner", msg })
+    log.info("🏃 " + msg)
 
     try {
       garden.clearCaches()
@@ -187,7 +184,7 @@ export const clientRequestNames = [
 export interface ClientRequestHandlerCommonParams {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
 }
 
 /*

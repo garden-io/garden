@@ -28,7 +28,7 @@ import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
 import { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { PluginContext } from "../../plugin-context"
 import { HelmModule } from "./helm/module-config"
 import { KubernetesModule } from "./kubernetes-type/module-config"
@@ -251,7 +251,7 @@ export async function execInWorkload({
 }: {
   ctx: PluginContext
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   namespace: string
   workload: KubernetesWorkload | KubernetesPod
   command: string[]
@@ -521,7 +521,7 @@ export function getServiceResourceSpec(module: HelmModule | KubernetesModule, ba
 
 interface GetTargetResourceParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   provider: KubernetesProvider
   manifests?: KubernetesResource[]
   action: Resolved<SupportedRuntimeActions>

@@ -15,7 +15,7 @@ import getPort = require("get-port")
 import { ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
 import { gardenEnv } from "./constants"
 import { DeployAction } from "./actions/deploy"
@@ -56,7 +56,7 @@ export async function startPortProxies({
 }: {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
   action: Executed<DeployAction>
   status: ServiceStatus
 }) {
@@ -73,7 +73,7 @@ export async function startPortProxies({
 interface StartPortProxyParams {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
   action: Executed<DeployAction>
   spec: ForwardablePort
 }
@@ -288,7 +288,7 @@ async function createProxy({ garden, graph, log, action, spec }: StartPortProxyP
   }
 }
 
-function stopPortProxy(proxy: PortProxy, log?: LogEntry) {
+function stopPortProxy(proxy: PortProxy, log?: Log) {
   // TODO: call stopPortForward handler
   log && log.debug(`Stopping port forward to ${proxy.key}`)
   delete activeProxies[proxy.key]

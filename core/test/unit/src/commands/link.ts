@@ -20,12 +20,12 @@ import {
 } from "../../../helpers"
 import { LinkSourceCommand } from "../../../../src/commands/link/source"
 import { Garden } from "../../../../src/garden"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { copy } from "fs-extra"
 
 describe("LinkCommand", () => {
   let garden: Garden
-  let log: LogEntry
+  let log: Log
 
   describe("LinkModuleCommand", () => {
     const cmd = new LinkModuleCommand()

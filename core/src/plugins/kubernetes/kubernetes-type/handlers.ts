@@ -29,7 +29,7 @@ import type { ExecBuildConfig } from "../../exec/config"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
 import { getTargetResource } from "../util"
-import type { LogEntry } from "../../../logger/log-entry"
+import type { Log } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
@@ -462,7 +462,7 @@ async function configureSpecialModesForManifests({
   manifests,
 }: {
   ctx: KubernetesPluginContext
-  log: LogEntry
+  log: Log
   action: Resolved<KubernetesDeployAction>
   devMode: boolean
   localMode: boolean

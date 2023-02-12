@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { LogEntry } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
 import { createSchema, joi } from "../config/common"
@@ -38,7 +38,7 @@ export interface PluginActionContextParams extends ActionHandlerParamsBase {
 }
 
 export interface PluginActionParamsBase extends PluginActionContextParams {
-  log: LogEntry
+  log: Log
 }
 
 export interface ResolvedActionHandlerDescription<N = string> {

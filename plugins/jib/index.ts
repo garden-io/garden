@@ -180,13 +180,13 @@ export const gardenPlugin = () =>
                 openJdkPath = await openJdk.getPath(log)
               }
 
-              const statusLine = log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true })
+              const statusLine = log.placeholder({ level: LogLevel.verbose, fixLevel: true })
 
               let projectType = spec.projectType
 
               if (!projectType) {
                 projectType = detectProjectType(action)
-                statusLine.setState(renderOutputStream(`Detected project type ${projectType}`))
+                statusLine.info(renderOutputStream(`Detected project type ${projectType}`))
               }
 
               let buildLog = ""
@@ -203,7 +203,7 @@ export const gardenPlugin = () =>
                 buildLog += data.toString()
               })
 
-              statusLine.setState({ section: action.key(), msg: `Using JAVA_HOME=${openJdkPath}` })
+              statusLine.info({ section: action.key(), msg: `Using JAVA_HOME=${openJdkPath}` })
 
               const { args, tarPath } = getBuildFlags(action, projectType)
 

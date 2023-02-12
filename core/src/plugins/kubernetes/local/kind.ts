@@ -7,7 +7,7 @@
  */
 
 import { exec } from "../../../util/util"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { safeLoad } from "js-yaml"
 import { KubernetesConfig, KubernetesProvider } from "../config"
 import { RuntimeError } from "../../../exceptions"
@@ -19,7 +19,7 @@ import Bluebird from "bluebird"
 
 const nodeCache: { [context: string]: string[] } = {}
 
-export async function getKindImageStatus(config: KubernetesConfig, imageId: string, log: LogEntry): Promise<boolean> {
+export async function getKindImageStatus(config: KubernetesConfig, imageId: string, log: Log): Promise<boolean> {
   const parsedId = containerHelpers.parseImageId(imageId)
   const clusterId = containerHelpers.unparseImageId({
     ...parsedId,
@@ -64,7 +64,7 @@ export async function getKindImageStatus(config: KubernetesConfig, imageId: stri
   return ready
 }
 
-export async function loadImageToKind(imageId: string, config: KubernetesConfig, log: LogEntry): Promise<void> {
+export async function loadImageToKind(imageId: string, config: KubernetesConfig, log: Log): Promise<void> {
   log.debug(`Loading image ${imageId} into kind cluster`)
 
   try {
@@ -77,11 +77,11 @@ export async function loadImageToKind(imageId: string, config: KubernetesConfig,
   }
 }
 
-export async function isKindCluster(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
+export async function isKindCluster(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
   return (await isKindInstalled(log)) && (await isKindContext(ctx, provider, log))
 }
 
-async function isKindInstalled(log: LogEntry): Promise<boolean> {
+async function isKindInstalled(log: Log): Promise<boolean> {
   try {
     const kindVersion = (await exec("kind", ["version"])).stdout
     log.debug(`Found kind with the following version details ${kindVersion}`)
@@ -93,7 +93,7 @@ async function isKindInstalled(log: LogEntry): Promise<boolean> {
   return false
 }
 
-async function isKindContext(ctx: PluginContext, provider: KubernetesProvider, log: LogEntry): Promise<boolean> {
+async function isKindContext(ctx: PluginContext, provider: KubernetesProvider, log: Log): Promise<boolean> {
   const kubeApi = await KubeApi.factory(log, ctx, provider)
   const manifest: KubernetesResource = {
     apiVersion: "apps/v1",

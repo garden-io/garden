@@ -14,7 +14,7 @@ import { pathToCacheContext } from "../cache"
 import type { Garden } from "../garden"
 import { joiArray, joiIdentifier, joiIdentifierMap, joi, moduleVersionSchema, DeepPrimitiveMap } from "../config/common"
 import { moduleOutputsSchema } from "../plugin/handlers/Module/get-outputs"
-import type { LogEntry } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry"
 import type { ModuleTypeDefinition } from "../plugin/module-types"
 import type { GardenPlugin } from "../plugin/plugin"
 import { join } from "path"
@@ -110,7 +110,7 @@ export async function moduleFromConfig({
   forceVersion = false,
 }: {
   garden: Garden
-  log: LogEntry
+  log: Log
   config: ModuleConfig
   buildDependencies: GardenModule[]
   forceVersion?: boolean

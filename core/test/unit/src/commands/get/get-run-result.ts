@@ -17,7 +17,7 @@ import {
 } from "../../../../helpers"
 import { GetRunResultCommand } from "../../../../../src/commands/get/get-run-result"
 import { expect } from "chai"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { writeFile } from "fs-extra"
 import { GetRunResult } from "../../../../../src/plugin/handlers/Run/get-result"
@@ -26,7 +26,7 @@ const now = new Date()
 
 describe("GetRunResultCommand", () => {
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   const projectRootB = getDataDir("test-project-b")
   const command = new GetRunResultCommand()
 

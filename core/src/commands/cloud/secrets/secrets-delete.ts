@@ -56,13 +56,14 @@ export class SecretsDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "secrets"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "secrets-command", msg: "Deleting secrets..." })
+    const cmdLog = log.makeNewLogContext({ section: "secrets-command" })
+    cmdLog.info("Deleting secrets...")
 
     let count = 1
     const errors: ApiCommandError[] = []
     const results: DeleteResult[] = []
     for (const id of secretsToDelete) {
-      cmdLog.setState({ msg: `Deleting secrets... → ${count}/${secretsToDelete.length}` })
+      cmdLog.info({ msg: `Deleting secrets... → ${count}/${secretsToDelete.length}` })
       count++
       try {
         const res = await api.delete<BaseResponse>(`/secrets/${id}`)

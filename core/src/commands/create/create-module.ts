@@ -28,7 +28,7 @@ import { joi } from "../../config/common"
 import { LoggerType } from "../../logger/logger"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "../../types/module"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
@@ -276,7 +276,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 }
 
 export async function getModuleTypeSuggestions(
-  log: LogEntry,
+  log: Log,
   moduleTypes: ModuleTypeMap,
   path: string,
   defaultName: string

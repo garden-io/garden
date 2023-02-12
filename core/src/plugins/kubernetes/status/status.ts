@@ -18,7 +18,7 @@ import { KubernetesResource, KubernetesServerResource, BaseResource } from "../t
 import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import {
   V1ReplicationController,
   V1ReplicaSet,
@@ -47,7 +47,7 @@ export interface StatusHandlerParams<T = BaseResource> {
   api: KubeApi
   namespace: string
   resource: KubernetesServerResource<T>
-  log: LogEntry
+  log: Log
   resourceVersion?: number
 }
 
@@ -118,19 +118,14 @@ export async function checkResourceStatuses(
   api: KubeApi,
   namespace: string,
   manifests: KubernetesResource[],
-  log: LogEntry
+  log: Log
 ): Promise<ResourceStatus[]> {
   return Bluebird.map(manifests, async (manifest) => {
     return checkResourceStatus(api, namespace, manifest, log)
   })
 }
 
-export async function checkResourceStatus(
-  api: KubeApi,
-  namespace: string,
-  manifest: KubernetesResource,
-  log: LogEntry
-) {
+export async function checkResourceStatus(api: KubeApi, namespace: string, manifest: KubernetesResource, log: Log) {
   const handler = objHandlers[manifest.kind]
 
   if (manifest.metadata?.namespace) {
@@ -168,7 +163,7 @@ interface WaitParams {
   provider: KubernetesProvider
   actionName?: string
   resources: KubernetesResource[]
-  log: LogEntry
+  log: Log
   timeoutSec: number
 }
 
@@ -190,24 +185,24 @@ export async function waitForResources({
 
   const logEventContext = {
     origin: "kubernetes-plugin",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    log: log.makeNewLogContext({ level: LogLevel.verbose }),
   }
 
   const emitLog = (msg: string) =>
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
 
   const waitingMsg = `Waiting for resources to be ready...`
-  const statusLine = log.info({
-    symbol: "info",
-    section: actionName,
-    msg: waitingMsg,
-  })
+  const statusLine = log
+    .makeNewLogContext({
+      section: actionName,
+    })
+    .info(waitingMsg)
   emitLog(waitingMsg)
 
   if (resources.length === 0) {
     const noResourcesMsg = `No resources to wait`
     emitLog(noResourcesMsg)
-    statusLine.setState({ symbol: "info", section: actionName, msg: noResourcesMsg })
+    statusLine.info({ symbol: "info", section: actionName, msg: noResourcesMsg })
     return []
   }
 
@@ -244,12 +239,12 @@ export async function waitForResources({
 
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
-        const symbol = status.warning === true ? "warning" : "info"
         const statusUpdateLogMsg = `${getResourceKey(status.resource)}: ${status.lastMessage}`
-        statusLine.setState({
-          symbol,
-          msg: statusUpdateLogMsg,
-        })
+        if (status.warning) {
+          statusLine.warn(statusUpdateLogMsg)
+        } else {
+          statusLine.info(statusUpdateLogMsg)
+        }
         emitLog(statusUpdateLogMsg)
       }
     }
@@ -274,7 +269,7 @@ export async function waitForResources({
 
   const readyMsg = `Resources ready`
   emitLog(readyMsg)
-  statusLine.setState({ symbol: "info", section: actionName, msg: readyMsg })
+  statusLine.info({ symbol: "info", section: actionName, msg: readyMsg })
 
   return statuses
 }
@@ -294,7 +289,7 @@ export async function compareDeployedResources(
   api: KubeApi,
   namespace: string,
   manifests: KubernetesResource[],
-  log: LogEntry
+  log: Log
 ): Promise<ComparisonResult> {
   // Unroll any `List` resource types
   manifests = flatten(manifests.map((r: any) => (r.apiVersion === "v1" && r.kind === "List" ? r.items : [r])))
@@ -472,7 +467,7 @@ export async function getDeployedResource(
   ctx: PluginContext,
   provider: KubernetesProvider,
   resource: KubernetesResource,
-  log: LogEntry
+  log: Log
 ): Promise<KubernetesResource | null> {
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = resource.metadata?.namespace || (await getAppNamespace(ctx, log, provider))

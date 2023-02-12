@@ -10,7 +10,7 @@ import { join } from "path"
 import { pathExists, remove } from "fs-extra"
 import { gardenPlugin, TerraformProvider } from ".."
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
-import { LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 import { getWorkspaces, setWorkspace } from "../common"
 import { expect } from "chai"
 import { terraform } from "../cli"
@@ -24,7 +24,7 @@ describe("Terraform common", () => {
   let testFilePath: string
 
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   let ctx: PluginContext
   let provider: TerraformProvider
 

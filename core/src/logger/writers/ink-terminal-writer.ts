@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { basicRender } from "../renderers"
+import { render } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { BaseWriterParams, Writer } from "./base"
@@ -29,8 +29,8 @@ export class InkTerminalWriter extends Writer {
     this.writeCallback = cb
   }
 
-  onGraphChange(entry: LogEntry, logger: Logger) {
-    const out = basicRender(entry, logger)
+  write(entry: LogEntry, logger: Logger) {
+    const out = render(entry, logger)
     if (out) {
       this.writeCallback(out)
     }
