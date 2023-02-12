@@ -7,7 +7,7 @@
  */
 
 import { merge } from "lodash"
-import { Action, ExecutedAction } from "../../actions/types"
+import { Action, ExecutedAction, ResolvedAction } from "../../actions/types"
 import { Garden } from "../../garden"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"
@@ -106,7 +106,7 @@ class ActionReferencesContext extends ConfigContext {
   @schema(_actionResultContextSchema.description("Alias for `run`."))
   public tasks: Map<string, ActionResultContext>
 
-  constructor(root: ConfigContext, allowPartial: boolean, actions: ExecutedAction[]) {
+  constructor(root: ConfigContext, allowPartial: boolean, actions: (ResolvedAction | ExecutedAction)[]) {
     super(root)
 
     this.build = new Map()
@@ -118,7 +118,7 @@ class ActionReferencesContext extends ConfigContext {
     this.tasks = this.run
 
     for (const action of actions) {
-      this[action.kind].set(
+      this[action.kind.toLowerCase()].set(
         action.name,
         new ActionResultContext({
           root: this,
@@ -141,6 +141,7 @@ export interface ActionSpecContextParams {
   modules: GardenModule[]
   partialRuntimeResolution: boolean
   action: Action
+  resolvedDependencies: ResolvedAction[]
   executedDependencies: ExecutedAction[]
   variables: DeepPrimitiveMap
 }
@@ -160,7 +161,7 @@ export class ActionSpecContext extends ModuleConfigContext {
   public runtime: ActionReferencesContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, garden, partialRuntimeResolution, variables, executedDependencies } = params
+    const { action, garden, partialRuntimeResolution, variables, resolvedDependencies, executedDependencies } = params
 
     const { internal } = action.getConfig()
 
@@ -181,7 +182,10 @@ export class ActionSpecContext extends ModuleConfigContext {
     })
 
     // TODO-G2: include resolved dependencies here as well, once static outputs are implemented
-    this.action = new ActionReferencesContext(this, partialRuntimeResolution, executedDependencies)
+    this.action = new ActionReferencesContext(this, partialRuntimeResolution, [
+      ...resolvedDependencies,
+      ...executedDependencies,
+    ])
     this.runtime = this.action
   }
 }

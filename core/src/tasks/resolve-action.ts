@@ -87,11 +87,10 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         resolvedDependencies.push(r.outputs.resolvedAction)
       } else if (task.isExecuteTask()) {
         const r = dependencyResults.getResult(task)
-        if (!r) {
+        if (!r?.result) {
           continue
         }
-        r.result
-        executedDependencies.push(r.outputs.executedAction)
+        executedDependencies.push(r.result.executedAction)
       }
     }
 
@@ -110,6 +109,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
           action,
           modules: this.graph.getModules(),
           partialRuntimeResolution: false,
+          resolvedDependencies,
           executedDependencies,
           variables: {},
         })
@@ -130,6 +130,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         action,
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
+        resolvedDependencies,
         executedDependencies,
         variables: groupVariables,
       })
@@ -149,6 +150,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         action,
         modules: this.graph.getModules(),
         partialRuntimeResolution: false,
+        resolvedDependencies,
         executedDependencies,
         variables,
       })

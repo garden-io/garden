@@ -476,9 +476,9 @@ function dependenciesFromActionConfig(
   for (const ref of getActionTemplateReferences(config)) {
     let needsExecuted = false
 
-    const outputKey = ref.fullRef[3]
+    const outputKey = ref.fullRef[4]
 
-    if (ref.fullRef[2] === "outputs" && outputKey && !staticKeys?.includes(<string>outputKey)) {
+    if (ref.fullRef[3] === "outputs" && outputKey && !staticKeys?.includes(<string>outputKey)) {
       needsExecuted = true
     }
 

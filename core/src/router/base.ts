@@ -295,6 +295,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           action,
           partialRuntimeResolution: false,
           modules: graph.getModules(),
+          resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),
           variables: action.getVariables(),
         })

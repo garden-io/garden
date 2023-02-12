@@ -55,6 +55,7 @@ export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolea
     .flatMap((entry) => entry.getMessages()?.map((state) => stripAnsi(state.msg || "")) || [])
 }
 
+type PartialActionConfig = Partial<ActionConfig> & { kind: ActionKind; type: string; name: string }
 type PartialModuleConfig = Partial<ModuleConfig> & { name: string; path: string }
 
 const moduleConfigDefaults: ModuleConfig = {
@@ -251,7 +252,7 @@ export class TestGarden extends Garden {
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
   }
 
-  setActionConfigs(actionConfigs: ActionConfig[]) {
+  setActionConfigs(actionConfigs: PartialActionConfig[]) {
     this.actionConfigs = {
       Build: {},
       Deploy: {},
@@ -259,7 +260,13 @@ export class TestGarden extends Garden {
       Test: {},
     }
     actionConfigs.forEach((ac) => {
-      this.addActionConfig(ac)
+      this.addActionConfig({
+        internal: {
+          basePath: this.projectRoot,
+        },
+        spec: {},
+        ...ac,
+      })
     })
   }
 
