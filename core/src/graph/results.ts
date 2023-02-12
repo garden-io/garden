@@ -8,7 +8,7 @@
 
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
 import { InternalError } from "../exceptions"
-import { fromPairs } from "lodash"
+import { fromPairs, omit } from "lodash"
 import { toGraphResultEventPayload } from "../events"
 import CircularJSON from "circular-json"
 
@@ -22,7 +22,7 @@ export interface TaskEventBase {
 
 export interface GraphResult<R extends ValidResultType = ValidResultType> extends TaskEventBase {
   result: R | null
-  dependencyResults: GraphResultMap | null
+  dependencyResults: GraphResultExport | null
   startedAt: Date | null
   completedAt: Date | null
   error: Error | null
@@ -37,6 +37,10 @@ export type GraphResultFromTask<T extends Task> = GraphResult<T["_resultType"]>
 
 export interface GraphResultMap<T extends Task = Task> {
   [key: string]: GraphResultFromTask<T> | null
+}
+
+export interface GraphResultExport<T extends Task = Task> {
+  [key: string]: Omit<GraphResultFromTask<T>, "task"> | null
 }
 
 export class GraphResults<B extends Task = Task> {
@@ -85,6 +89,13 @@ export class GraphResults<B extends Task = Task> {
     return fromPairs(Array.from(this.results.entries()))
   }
 
+  /**
+   * Export the result object in a format that's suitable for JSON, command outputs etc.
+   */
+  export(): GraphResultExport {
+    return fromPairs(Array.from(this.results.entries()).map(([k, v]) => [k, resultToExport(v)]))
+  }
+
   private checkKey(key: string) {
     if (!this.tasks.has(key)) {
       const taskKeys = Array.from(this.tasks.keys())
@@ -105,4 +116,17 @@ export class GraphResults<B extends Task = Task> {
 export function resultToString(result: GraphResult) {
   // TODO-G2: improve
   return CircularJSON.stringify(toGraphResultEventPayload(result))
+}
+
+/**
+ * Prepares an individual GraphResult for export.
+ */
+export function resultToExport(result: GraphResult | null) {
+  if (!result) {
+    return result
+  }
+  return {
+    ...omit(result, "task"),
+    result: omit(result.result, ["resolvedAction", "executedAction"]),
+  }
 }

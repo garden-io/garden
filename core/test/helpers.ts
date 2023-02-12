@@ -55,7 +55,7 @@ import { GetRunResult } from "../src/plugin/handlers/Run/get-result"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
-import { GraphResultMap } from "../src/graph/results"
+import { GraphResultExport, GraphResultMap } from "../src/graph/results"
 import { localConfigFilename } from "../src/config-store/local"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
@@ -522,7 +522,7 @@ export async function stubProviderAction<T extends keyof ProviderHandlers>(
 /**
  * Returns an alphabetically sorted list of all processed actions including dependencies from a GraphResultMap.
  */
-export function getAllProcessedTaskNames(results: GraphResultMap) {
+export function getAllProcessedTaskNames(results: GraphResultExport) {
   const all = Object.keys(results)
 
   for (const r of Object.values(results)) {
@@ -537,7 +537,7 @@ export function getAllProcessedTaskNames(results: GraphResultMap) {
 /**
  * Returns a map of all task results including dependencies from a GraphResultMap.
  */
-export function getAllTaskResults(results: GraphResultMap) {
+export function getAllTaskResults(results: GraphResultExport) {
   const all = { ...results }
 
   for (const r of Object.values(results)) {

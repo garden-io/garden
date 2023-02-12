@@ -31,7 +31,7 @@ import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
-import { LogLevel } from "../logger/logger"
+import { LogLevel, sanitizeValue } from "../logger/logger"
 import { clientRequestNames, ClientRequestType, ClientRouter } from "./client-router"
 import { EventEmitter } from "eventemitter3"
 import { ServeCommand } from "../commands/serve"
@@ -269,8 +269,12 @@ export class GardenServer extends EventEmitter {
         opts,
       })
 
+      if (result.errors?.length) {
+        throw result.errors[0]
+      }
+
       ctx.status = 200
-      ctx.response.body = result
+      ctx.response.body = sanitizeValue(result)
     })
 
     // TODO-G2: remove this once it has another place
@@ -503,7 +507,7 @@ export class GardenServer extends EventEmitter {
                 send("commandOutput", {
                   requestId,
                   command: command.getFullName(),
-                  data,
+                  data: sanitizeValue(data),
                 })
               })
             }
@@ -519,11 +523,14 @@ export class GardenServer extends EventEmitter {
             })
           })
           .then((result) => {
-            send("commandResult", {
-              requestId,
-              result: result.result,
-              errors: result.errors,
-            })
+            send(
+              "commandResult",
+              sanitizeValue({
+                requestId,
+                result: result.result,
+                errors: result.errors,
+              })
+            )
             delete this.activePersistentRequests[requestId]
           })
           .catch((err) => {
