@@ -524,7 +524,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `deploy` | Yes | The Deploy to exec the command in.
+  | `deploy` | Yes | The service to exec the command in.
   | `command` | Yes | The command to run.
 
 #### Options
@@ -2128,6 +2128,15 @@ projectId:
 
 # The Garden Cloud domain (Garden Cloud only).
 domain:
+
+# All configured external project sources.
+sources:
+  - # The name of the source to import
+    name:
+
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
+    repositoryUrl:
 ```
 
 ### garden get linked-repos
