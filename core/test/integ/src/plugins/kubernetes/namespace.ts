@@ -12,13 +12,13 @@ import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { Provider } from "../../../../../src/config/provider"
 import { KubernetesConfig } from "../../../../../src/plugins/kubernetes/config"
 import { ensureNamespace } from "../../../../../src/plugins/kubernetes/namespace"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { expect } from "chai"
 import { getPackageVersion } from "../../../../../src/util/util"
 
 describe("ensureNamespace", () => {
   let api: KubeApi
-  let log: LogEntry
+  let log: Log
   let namespaceName: string
 
   before(async () => {

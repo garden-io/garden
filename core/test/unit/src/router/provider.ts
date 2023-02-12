@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { providerFromConfig } from "../../../../src/config/provider"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { DashboardPage } from "../../../../src/plugin/handlers/Provider/getDashboardPage"
 import { ActionRouter } from "../../../../src/router/router"
 import { TestGarden } from "../../../helpers"
@@ -18,7 +18,7 @@ import { getRouterTestData } from "./_helpers"
 describe("provider actions", async () => {
   let garden: TestGarden
   let actionRouter: ActionRouter
-  let log: LogEntry
+  let log: Log
   let graph: ConfigGraph
 
   before(async () => {

@@ -7,7 +7,7 @@
  */
 
 import { WorkflowConfig, makeRunConfig } from "../config/workflow"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { EnterpriseApiError } from "../exceptions"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
@@ -20,7 +20,7 @@ export interface RegisterWorkflowRunParams {
   garden: Garden
   environment: string
   namespace: string
-  log: LogEntry
+  log: Log
 }
 
 /**

@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { ConfigGraph, LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { ConfigGraph, Log, PluginContext } from "@garden-io/sdk/types"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import execa from "execa"
 import { pathExists } from "fs-extra"
@@ -42,7 +42,7 @@ const ensureNodeModules = async () => {
 describe.skip("pulumi plugin handlers", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
   let ctx: PluginContext
   let provider: PulumiProvider
 

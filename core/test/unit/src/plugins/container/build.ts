@@ -10,7 +10,7 @@ import { expect } from "chai"
 import td from "testdouble"
 import { ResolvedBuildAction, BuildActionConfig } from "../../../../../src/actions/build"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { buildContainer, getContainerBuildStatus } from "../../../../../src/plugins/container/build"
 import { ContainerProvider, gardenPlugin } from "../../../../../src/plugins/container/container"
@@ -22,7 +22,7 @@ context("build.ts", () => {
   const projectRoot = getDataDir("test-project-container")
   let garden: TestGarden
   let ctx: PluginContext
-  let log: LogEntry
+  let log: Log
   let containerProvider: ContainerProvider
   let graph: ConfigGraph
 

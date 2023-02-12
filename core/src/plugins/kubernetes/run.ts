@@ -9,7 +9,7 @@
 import tar from "tar"
 import tmp from "tmp-promise"
 import { cloneDeep, omit, pick } from "lodash"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import {
   PluginError,
   GardenBaseError,
@@ -128,7 +128,7 @@ export async function runAndCopy({
   dropCapabilities,
 }: BaseRunParams & {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   action: SupportedRuntimeActions
   image: string
   container?: V1Container
@@ -258,7 +258,7 @@ export async function prepareRunPodSpec({
 }: {
   podSpec?: V1PodSpec
   getArtifacts: boolean
-  log: LogEntry
+  log: Log
   action: SupportedRuntimeActions
   args: string[]
   command: string[] | undefined
@@ -395,7 +395,7 @@ async function runWithoutArtifacts({
   version,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   api: KubeApi
   provider: KubernetesProvider
   action: SupportedRuntimeActions
@@ -500,7 +500,7 @@ async function runWithArtifacts({
   run,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   action: SupportedRuntimeActions
   mainContainerName: string
   api: KubeApi
@@ -704,7 +704,7 @@ class PodRunnerParams {
 }
 
 interface StartParams {
-  log: LogEntry
+  log: Log
   timeoutSec?: number
 }
 
@@ -1085,7 +1085,7 @@ export class PodRunner extends PodRunnerParams {
    * Sets TTY settings for Pod and creates it.
    * @throws {KubernetesError}
    */
-  private async createPod({ log, tty }: { log: LogEntry; tty: boolean }) {
+  private async createPod({ log, tty }: { log: Log; tty: boolean }) {
     const command = this.getFullCommand()
     log.verbose(`Starting Pod ${this.podName} with command '${command.join(" ")}'`)
 

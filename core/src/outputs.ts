@@ -9,7 +9,7 @@
 import { Garden } from "./garden"
 import { collectTemplateReferences, resolveTemplateStrings } from "./template-string/template-string"
 import { OutputConfigContext } from "./config/template-contexts/module"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 import { OutputSpec } from "./config/project"
 import { ActionReference } from "./config/common"
 import { ActionKind } from "./plugin/action-types"
@@ -20,7 +20,7 @@ import { GraphResults } from "./graph/results"
  * Resolves all declared project outputs. If necessary, this will resolve providers and modules, and ensure services
  * and tasks have been deployed and run, so that relevant template strings can be fully resolved.
  */
-export async function resolveProjectOutputs(garden: Garden, log: LogEntry): Promise<OutputSpec[]> {
+export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<OutputSpec[]> {
   if (garden.rawOutputs.length === 0) {
     return []
   }

@@ -7,7 +7,7 @@
  */
 
 import { ChildProcess, execFile, spawn } from "child_process"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { sleep } from "./util"
 import { ConfigurationError, RuntimeError } from "../exceptions"
 
@@ -94,7 +94,7 @@ export interface RecoverableProcessConfig {
   readonly retryConfig: RetryConfig
   readonly stderrListener?: IOStreamListener
   readonly stdoutListener?: IOStreamListener
-  readonly log: LogEntry
+  readonly log: Log
 }
 
 export interface RetryConfig {
@@ -218,7 +218,7 @@ export class RecoverableProcess {
   private readonly stderrListener?: IOStreamListener
   private readonly stdoutListener?: IOStreamListener
 
-  private readonly log: LogEntry
+  private readonly log: Log
 
   constructor(config: RecoverableProcessConfig) {
     this.command = config.osCommand

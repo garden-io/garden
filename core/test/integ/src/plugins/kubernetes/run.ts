@@ -36,7 +36,7 @@ import {
   KubernetesWorkload,
 } from "../../../../../src/plugins/kubernetes/types"
 import { PluginContext } from "../../../../../src/plugin-context"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { sleep } from "../../../../../src/util/util"
 import { buildHelmModules, getHelmTestGarden } from "./helm/common"
 import { getBaseModule, getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
@@ -56,7 +56,7 @@ describe("kubernetes Pod runner functions", () => {
   let provider: KubernetesProvider
   let namespace: string
   let api: KubeApi
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     garden = await getContainerTestGarden()
@@ -543,7 +543,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmProvider: KubernetesProvider
     let helmCtx: KubernetesPluginContext
     let helmApi: KubeApi
-    let helmLog: LogEntry
+    let helmLog: Log
     let helmGraph: ConfigGraph
     let helmModule: GardenModule
     let helmManifests: any[]

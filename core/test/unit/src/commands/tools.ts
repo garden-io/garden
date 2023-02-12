@@ -21,14 +21,14 @@ import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { LogLevel } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { getLogMessages } from "../../../../src/util/testing"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
   const pluginA = createGardenPlugin({
     name: "test-a",

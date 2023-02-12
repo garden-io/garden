@@ -11,7 +11,7 @@ import { isAbsolute, join, resolve, relative, parse, basename } from "path"
 import { emptyDir, ensureDir, mkdirp, pathExists, remove } from "fs-extra"
 import { ConfigurationError, InternalError } from "../exceptions"
 import { normalizeRelativePath, joinWithPosix } from "../util/fs"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import async from "async"
 import chalk from "chalk"
@@ -30,7 +30,7 @@ export interface SyncParams {
   sourceRelPath?: string
   targetRelPath?: string
   withDelete: boolean
-  log: LogEntry
+  log: Log
   files?: string[]
 }
 
@@ -51,7 +51,7 @@ export class BuildStaging {
     this.createdPaths = new Set()
   }
 
-  async syncFromSrc(action: BuildAction, log: LogEntry) {
+  async syncFromSrc(action: BuildAction, log: Log) {
     // We don't sync local exec modules to the build dir
     if (action.getConfig("buildAtSource")) {
       log.silly(`Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
@@ -72,7 +72,7 @@ export class BuildStaging {
     })
   }
 
-  async syncDependencyProducts(action: BuildAction, log: LogEntry) {
+  async syncDependencyProducts(action: BuildAction, log: Log) {
     const buildPath = action.getBuildPath()
 
     await Bluebird.map(action.getConfig("copyFrom") || [], async (copy) => {

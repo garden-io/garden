@@ -62,14 +62,8 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     const testResult = status?.detail
 
     if (testResult && testResult.success) {
-      const passedEntry = this.log.info({
-        section: action.key(),
-        msg: chalk.green("Already passed"),
-      })
-      passedEntry.setSuccess({
-        msg: chalk.green("Already passed"),
-        append: true,
-      })
+      const passedEntry = this.log.makeNewLogContext({ section: action.key() }).info(chalk.green("Already passed"))
+      passedEntry.setSuccess(chalk.green("Already passed"))
       return {
         ...status,
         version: action.versionString(),
@@ -83,39 +77,33 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const log = this.log.info({
-      section: action.key(),
-      msg: `Running...`,
-      status: "active",
-    })
+    const taskLog = this.log
+      .makeNewLogContext({
+        section: action.key(),
+      })
+      .info(`Running...`)
 
     const router = await this.garden.getActionRouter()
 
     let status: GetTestResult<TestAction>
     try {
       status = await router.test.run({
-        log,
+        log: taskLog,
         action,
         graph: this.graph,
         silent: this.silent,
         interactive: this.interactive,
       })
     } catch (err) {
-      log.setError()
+      taskLog.error(`Failed running test`)
       throw err
     }
     if (status.detail?.success) {
-      log.setSuccess({
-        msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
+      taskLog.setSuccess(chalk.green(`Success (took ${taskLog.getDuration(1)} sec)`))
     } else {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
-      log.setError({
-        msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
-        append: true,
-      })
+      taskLog.error(`${failedMsg} (took ${taskLog.getDuration(1)} sec)`)
       throw new TestError(status.detail?.log)
     }
 

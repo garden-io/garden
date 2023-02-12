@@ -17,7 +17,7 @@ import chalk from "chalk"
 import { renderTable, dedent, deline } from "../../util/string"
 import { relative, sep } from "path"
 import { Garden } from "../.."
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { deepMap, highlightYaml, safeDumpYaml } from "../../util/util"
 import { withoutInternalFields } from "../../logger/logger"
 
@@ -95,7 +95,7 @@ export class GetModulesCommand extends Command {
   }
 }
 
-function logFull(garden: Garden, modules: GardenModule[], log: LogEntry) {
+function logFull(garden: Garden, modules: GardenModule[], log: Log) {
   const divider = chalk.gray(renderDivider())
   log.info("")
   for (const module of modules) {
@@ -132,7 +132,7 @@ function logFull(garden: Garden, modules: GardenModule[], log: LogEntry) {
   }
 }
 
-function logAsTable(garden: Garden, modules: GardenModule[], log: LogEntry) {
+function logAsTable(garden: Garden, modules: GardenModule[], log: Log) {
   const heading = ["Name", "Version", "Type", "Path"].map((s) => chalk.bold(s))
   const rows: string[][] = modules.map((m) => [
     chalk.cyan.bold(m.name),

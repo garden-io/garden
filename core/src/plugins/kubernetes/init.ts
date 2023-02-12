@@ -39,7 +39,7 @@ import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
 import { mapValues, omit } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
@@ -188,7 +188,7 @@ export async function getEnvironmentStatus({
 export async function getIngressMisconfigurationWarnings(
   customIngressClassName: string | undefined,
   ingressApiVersion: string | undefined,
-  log: LogEntry,
+  log: Log,
   api: KubeApi
 ): Promise<String[]> {
   if (!customIngressClassName) {
@@ -367,11 +367,11 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
     nsDescription = `namespaces ${namespacesToDelete[0]} and ${namespacesToDelete[1]}`
   }
 
-  const entry = log.info({
-    section: "kubernetes",
-    msg: `Deleting ${nsDescription} (this may take a while)`,
-    status: "active",
-  })
+  const entry = log
+    .makeNewLogContext({
+      section: "kubernetes",
+    })
+    .info(`Deleting ${nsDescription} (this may take a while)`)
 
   await deleteNamespaces(<string[]>namespacesToDelete, api, entry)
 

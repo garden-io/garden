@@ -9,7 +9,7 @@
 import { expectError, withDefaultGlobalOpts, makeTestGardenA, cleanProject, TestGarden } from "../../../../helpers"
 import { GetTestResultCommand } from "../../../../../src/commands/get/get-test-result"
 import { expect } from "chai"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { getArtifactKey } from "../../../../../src/util/artifacts"
 import { join } from "path"
 import { writeFile } from "fs-extra"
@@ -19,7 +19,7 @@ const now = new Date()
 
 describe("GetTestResultCommand", () => {
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   const command = new GetTestResultCommand()
   const moduleName = "module-a"
 

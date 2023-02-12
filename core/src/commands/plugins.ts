@@ -11,7 +11,7 @@ import { max, fromPairs, zip } from "lodash"
 import { findByName, getNames } from "../util/util"
 import { dedent, renderTable, tablePresets } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams } from "./base"
 import Bluebird from "bluebird"
@@ -126,7 +126,7 @@ export class PluginsCommand extends Command<Args> {
   }
 }
 
-async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[]) {
+async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 

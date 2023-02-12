@@ -21,7 +21,7 @@ import { ConfigurationError, RuntimeError } from "../../exceptions"
 import { getResourceContainer, getResourceKey, prepareEnvVars } from "./util"
 import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { rmSync } from "fs"
 import { execSync } from "child_process"
@@ -74,7 +74,7 @@ interface BaseLocalModeParams {
   spec: ContainerLocalModeSpec
   targetResource: SyncableResource
   action: ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
-  log: LogEntry
+  log: Log
 }
 
 interface ConfigureLocalModeParams extends BaseLocalModeParams {
@@ -136,7 +136,7 @@ export class ProxySshKeystore {
 
   private static instance?: ProxySshKeystore = undefined
 
-  public static getInstance(log: LogEntry): ProxySshKeystore {
+  public static getInstance(log: Log): ProxySshKeystore {
     if (!ProxySshKeystore.instance) {
       const newInstance = new ProxySshKeystore()
       registerCleanupFunction("shutdown-proxy-ssh-keystore", () => newInstance.shutdown(log))
@@ -145,7 +145,7 @@ export class ProxySshKeystore {
     return ProxySshKeystore.instance
   }
 
-  private static deleteFileFailSafe(filePath: string, log: LogEntry): void {
+  private static deleteFileFailSafe(filePath: string, log: Log): void {
     try {
       rmSync(filePath, { force: true })
     } catch (err) {
@@ -166,7 +166,7 @@ export class ProxySshKeystore {
     return join(gardenDirPath, ProxySshKeystore.PROXY_CONTAINER_SSH_DIR)
   }
 
-  private removePortFromKnownHosts(localPort: number, log: LogEntry): void {
+  private removePortFromKnownHosts(localPort: number, log: Log): void {
     for (const knownHostsFilePath of this.knownHostsFilePaths) {
       const localhostEscaped = localhost.split(".").join("\\.")
       const command = `sed -i -r '/^\\[${localhostEscaped}\\]:${localPort}/d' ${knownHostsFilePath}`
@@ -211,13 +211,13 @@ export class ProxySshKeystore {
     return knownHostsFilePath
   }
 
-  public registerLocalPort(port: number, log: LogEntry): void {
+  public registerLocalPort(port: number, log: Log): void {
     // ensure the temporary known hosts is not "dirty"
     this.removePortFromKnownHosts(port, log)
     this.localSshPorts.add(port)
   }
 
-  public shutdown(log: LogEntry): void {
+  public shutdown(log: Log): void {
     this.serviceKeyPairs.forEach((value) => {
       ProxySshKeystore.deleteFileFailSafe(value.privateKeyPath, log)
       ProxySshKeystore.deleteFileFailSafe(value.publicKeyPath, log)
@@ -525,13 +525,11 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
       onError: (msg: ProcessMessage) => {
         if (msg.code || msg.signal) {
           log.error({
-            status: "error",
             section,
             msg: chalk.gray(composeErrorMessage("Local app stopped", msg)),
           })
         } else {
           log.error({
-            status: "error",
             section,
             msg: chalk.gray(
               composeErrorMessage(
@@ -543,7 +541,6 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
         }
         localAppFailureCounter.addFailure(() => {
           log.error({
-            status: "warn",
             symbol: "warning",
             section,
             msg: chalk.yellow(
@@ -622,13 +619,11 @@ async function getKubectlPortForwardProcess(
       hasErrors: (_chunk: any) => true,
       onError: (msg: ProcessMessage) => {
         log.error({
-          status: "error",
           section,
           msg: chalk.gray(composeErrorMessage(`${msg.processDescription} failed`, msg)),
         })
         kubectlPortForwardFailureCounter.addFailure(() => {
           log.error({
-            status: "warn",
             symbol: "warning",
             section,
             msg: chalk.yellow(
@@ -654,7 +649,6 @@ async function getKubectlPortForwardProcess(
 
         if (msg.message.includes("Handling connection for")) {
           log.info({
-            status: "success",
             section,
             msg: chalk.white(consoleMessage),
           })
@@ -720,7 +714,6 @@ async function getReversePortForwardProcesses(
             const lowercaseOutput = output.toLowerCase()
             if (lowercaseOutput.includes('unsupported option "accept-new"')) {
               log.error({
-                status: "error",
                 section,
                 msg: chalk.red(
                   "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
@@ -738,7 +731,6 @@ async function getReversePortForwardProcesses(
             })
             if (hasCriticalErrors) {
               log.error({
-                status: "error",
                 section,
                 msg: chalk.red(output),
               })
@@ -755,13 +747,11 @@ async function getReversePortForwardProcesses(
           },
           onError: (msg: ProcessMessage) => {
             log.error({
-              status: "error",
               section,
               msg: chalk.gray(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
             })
             reversePortForwardFailureCounter.addFailure(() => {
               log.error({
-                status: "warn",
                 symbol: "warning",
                 section,
                 msg: chalk.yellow(
@@ -774,8 +764,7 @@ async function getReversePortForwardProcesses(
             })
           },
           onMessage: (msg: ProcessMessage) => {
-            log.info({
-              status: "success",
+            log.setSuccess({
               section,
               msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
             })
@@ -786,8 +775,7 @@ async function getReversePortForwardProcesses(
           hasErrors: (_chunk: any) => false,
           onError: (_msg: ProcessMessage) => {},
           onMessage: (msg: ProcessMessage) => {
-            log.info({
-              status: "success",
+            log.setSuccess({
               section,
               msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
             })
@@ -800,7 +788,7 @@ async function getReversePortForwardProcesses(
 function composeSshTunnelProcessTree(
   sshTunnel: RecoverableProcess,
   reversePortForwards: RecoverableProcess[],
-  log: LogEntry
+  log: Log
 ): RecoverableProcess {
   const root = sshTunnel
   root.addDescendants(...reversePortForwards)
@@ -831,14 +819,12 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const section = action.key()
 
   log.info({
-    status: "active",
     section,
     msg: chalk.gray("Starting in local mode..."),
   })
 
   registerCleanupFunction(`redeploy-alert-for-local-mode-${action.key()}`, () => {
     log.warn({
-      status: "warn",
       symbol: "warning",
       section,
       msg: chalk.yellow(
@@ -857,14 +843,12 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const localApp = getLocalAppProcess(configParams)
   if (!!localApp) {
     log.info({
-      status: "active",
       section,
       msg: chalk.white("Starting local app, this can take a while"),
     })
     const localAppStatus = localModeProcessRegistry.submit(localApp)
     if (!localAppStatus) {
       log.warn({
-        status: "warn",
         symbol: "warning",
         section,
         msg: chalk.yellow("Unable to start local app. Reason: rejected by the registry"),
@@ -884,13 +868,11 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
 
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForwards, log)
   log.info({
-    status: "active",
     section,
     msg: chalk.white("Starting local mode ssh tunnels, some failures and retries are possible"),
   })
   const sshTunnelCmdRenderer = (command: OsCommand) => `${command.command} ${command.args?.join(" ")}`
   log.verbose({
-    status: "active",
     section,
     msg: chalk.gray(
       `Starting the process tree for the local mode ssh tunnels:\n` +
@@ -900,7 +882,6 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
   const localTunnelsStatus = localModeProcessRegistry.submit(compositeSshTunnel)
   if (!localTunnelsStatus) {
     log.warn({
-      status: "warn",
       symbol: "warning",
       section,
       msg: chalk.yellow("Unable to local mode ssh tunnels. Reason: rejected by the registry"),

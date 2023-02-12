@@ -9,7 +9,7 @@
 import { fromPairs, keyBy, mapValues, pickBy } from "lodash"
 
 import type { Garden } from "../garden"
-import type { LogEntry } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry"
 import type {
   PluginActionContextParams,
   PluginActionParamsBase,
@@ -80,7 +80,7 @@ export abstract class BaseRouter {
 
   protected async commonParams(
     handler: WrappedActionHandler<any, any> | WrappedActionTypeHandler<any, any>,
-    log: LogEntry,
+    log: Log,
     templateContext: ConfigContext | undefined,
     events: PluginEventBroker | undefined
   ): Promise<PluginActionParamsBase> {
@@ -230,7 +230,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     }
   }
 
-  async configure({ config, log }: { config: BaseActionConfig; log: LogEntry }) {
+  async configure({ config, log }: { config: BaseActionConfig; log: Log }) {
     if (config.kind !== this.kind) {
       throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
     }
@@ -265,7 +265,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     params: {
       action: ActionClassMap[K] | Resolved<ActionClassMap[K]>
       pluginName?: string
-      log: LogEntry
+      log: Log
       graph: ConfigGraph
       events: PluginEventBroker | undefined
     } & Omit<GetActionTypeParams<ActionTypeClasses<K>[T]>, keyof PluginActionParamsBase>

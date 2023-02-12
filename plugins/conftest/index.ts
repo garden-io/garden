@@ -11,7 +11,7 @@ import chalk from "chalk"
 import slash from "slash"
 import { ExecaReturnValue } from "execa"
 import { createGardenPlugin } from "@garden-io/sdk"
-import { PluginContext, LogEntry } from "@garden-io/sdk/types"
+import { PluginContext, Log } from "@garden-io/sdk/types"
 import { dedent, naturalList } from "@garden-io/sdk/util/string"
 import { matchGlobs, listDirectory } from "@garden-io/sdk/util/fs"
 
@@ -466,7 +466,7 @@ function prepareArgs(ctx: PluginContext, provider: ConftestProvider, path: strin
   return args
 }
 
-function parseConftestResult(provider: ConftestProvider, log: LogEntry, result: ExecaReturnValue) {
+function parseConftestResult(provider: ConftestProvider, log: Log, result: ExecaReturnValue) {
   let success = true
   let parsed: any = []
 

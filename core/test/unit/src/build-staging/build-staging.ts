@@ -14,7 +14,7 @@ import { expect } from "chai"
 import { makeTestGarden, TestGarden, expectError, getDataDir } from "../../../helpers"
 import { defaultConfigFilename, TempDirectory, makeTempDir, joinWithPosix } from "../../../../src/util/fs"
 import { BuildStaging, SyncParams } from "../../../../src/build-staging/build-staging"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import Bluebird from "bluebird"
 import { TestGardenOpts } from "../../../../src/util/testing"
 import { BuildStagingRsync, minRsyncVersion } from "../../../../src/build-staging/rsync"
@@ -68,7 +68,7 @@ async function assertIdentical(sourceRoot: string, targetRoot: string, posixPath
 
 describe("BuildStaging", () => {
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   let buildStaging: BuildStaging
 
   before(async () => {
@@ -317,7 +317,7 @@ describe("BuildStagingRsync", () => {
 
 function commonSyncTests(legacyBuildSync: boolean) {
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   let buildStaging: BuildStaging
   let tmpDir: TempDirectory
   let tmpPath: string

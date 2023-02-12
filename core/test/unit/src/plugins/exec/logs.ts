@@ -12,7 +12,7 @@ import { join } from "path"
 import moment from "moment"
 import { Garden } from "../../../../../src/garden"
 import { gardenPlugin } from "../../../../../src/plugins/exec/exec"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { getDataDir, makeTestGarden } from "../../../../helpers"
 import { appendFile, ensureFile, remove, writeFile } from "fs-extra"
 import { randomString } from "../../../../../src/util/string"
@@ -48,7 +48,7 @@ describe("ExecLogsFollower", () => {
   const projectRoot = getDataDir("test-project-exec")
 
   let garden: Garden
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })

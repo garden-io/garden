@@ -20,7 +20,7 @@ import { kubectl } from "./kubectl"
 import { KubernetesResource, SupportedRuntimeActions } from "./types"
 import { ForwardablePort } from "../../types/service"
 import { isBuiltIn, matchSelector } from "./util"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { RuntimeError } from "../../exceptions"
 import execa = require("execa")
 import { KubernetesDeployAction } from "./kubernetes-type/config"
@@ -47,7 +47,7 @@ registerCleanupFunction("kill-port-forward-procs", () => {
   }
 })
 
-export function killPortForward(targetResource: string, targetPort: number, log?: LogEntry) {
+export function killPortForward(targetResource: string, targetPort: number, log?: Log) {
   const key = getPortForwardKey(targetResource, targetPort)
   const fwd = registeredPortForwards[key]
   if (fwd) {
@@ -57,7 +57,7 @@ export function killPortForward(targetResource: string, targetPort: number, log?
   }
 }
 
-export function killPortForwards(action: SupportedRuntimeActions, forwardablePorts: ForwardablePort[], log: LogEntry) {
+export function killPortForwards(action: SupportedRuntimeActions, forwardablePorts: ForwardablePort[], log: Log) {
   for (const port of forwardablePorts) {
     const targetResource = getTargetResourceName(action, port.targetName)
     killPortForward(targetResource, port.targetPort, log)
@@ -82,7 +82,7 @@ export async function getPortForward({
   port,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   namespace: string
   targetResource: string
   port: number
@@ -185,7 +185,7 @@ export async function getPortForward({
 
 export async function getPortForwardHandler(params: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   action: DeployAction
   namespace: string | undefined
   targetName?: string

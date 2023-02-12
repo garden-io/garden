@@ -30,11 +30,11 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<RunAction>) {
-    const log = this.log.info({
-      section: this.action.name,
-      msg: "Checking result...",
-      status: "active",
-    })
+    const taskLog = this.log
+      .makeNewLogContext({
+        section: this.action.name,
+      })
+      .info("Checking result...")
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
@@ -43,9 +43,9 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       const status = await router.run.getResult({
         graph: this.graph,
         action,
-        log,
+        log: taskLog,
       })
-      log.setSuccess({ msg: chalk.green(`Done`), append: true })
+      taskLog.setSuccess(chalk.green(`Done`))
 
       // Should return a null value here if there is no result
       if (status.detail === null) {
@@ -58,7 +58,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         executedAction: resolvedActionToExecuted(action, { status }),
       }
     } catch (err) {
-      log.setError()
+      taskLog.error(`Failed getting status`)
       throw err
     }
   }
@@ -66,11 +66,11 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const log = this.log.info({
-      section: action.key(),
-      msg: "Running...",
-      status: "active",
-    })
+    const taskLog = this.log
+      .makeNewLogContext({
+        section: action.key(),
+      })
+      .info("Running...")
 
     const actions = await this.garden.getActionRouter()
 
@@ -80,20 +80,17 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       status = await actions.run.run({
         graph: this.graph,
         action,
-        log,
+        log: taskLog,
         interactive: false,
       })
     } catch (err) {
-      log.setError()
+      taskLog.error(`Failed running ${action.name}`)
       throw err
     }
     if (status.state === "ready") {
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
+      taskLog.setSuccess(chalk.green(`Done (took ${taskLog.getDuration(1)} sec)`))
     } else {
-      log.setError(`Failed!`)
+      taskLog.error(`Failed!`)
       throw new RunTaskError(status.detail?.log)
     }
 

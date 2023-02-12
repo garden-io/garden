@@ -13,11 +13,10 @@ import { isArray, repeat } from "lodash"
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
-import { LogEntry, LogEntryMessage } from "./log-entry"
+import { LogEntryMessage, LogEntry, LogSymbol } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml, PickFromUnion, safeDumpYaml } from "../util/util"
-import { printEmoji, getAllSections, findSection } from "./util"
-import { LoggerType, Logger, logLevelMap, LogLevel, formatGardenErrorWithDetail } from "./logger"
+import { highlightYaml, safeDumpYaml } from "../util/util"
+import { Logger, logLevelMap, LogLevel, formatGardenErrorWithDetail } from "./logger"
 
 type RenderFn = (entry: LogEntry) => string
 
@@ -42,75 +41,27 @@ export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
   return renderers.map((renderer) => renderer(entry)).join("")
 }
 
-/**
- * Returns a log entries' left margin/offset. Used for determining the spinner's x coordinate.
- */
-export function getLeftOffset(entry: LogEntry) {
-  return leftPad(entry).length
-}
-
-/**
- * Returns longest chain of messages with `append: true` (starting from the most recent message).
- */
-export function chainMessages(messages: LogEntryMessage[], chain: string[] = []): string[] {
-  const latestState = messages[messages.length - 1]
-  if (!latestState) {
-    return chain.reverse()
-  }
-
-  chain = latestState.msg !== undefined ? [...chain, latestState.msg] : chain
-
-  if (latestState.append) {
-    return chainMessages(messages.slice(0, -1), chain)
-  }
-  return chain.reverse()
-}
-
-/*** RENDERERS ***/
-export function leftPad(entry: LogEntry): string {
-  return "".padStart((entry.indent || 0) * 3)
-}
-
-export function renderEmoji(entry: LogEntry): string {
-  const { emoji } = entry.getLatestMessage()
-  if (emoji) {
-    return printEmoji(emoji, entry) + " "
-  }
-  return ""
-}
-
-export function renderError(entry: LogEntry) {
+export function renderError(entry: LogEntry): string {
   const { errorData: error } = entry
   if (error) {
     return formatGardenErrorWithDetail(error)
   }
 
-  const msg = chainMessages(entry.getMessages() || [])
-  return isArray(msg) ? msg.join(" ") : msg || ""
+  return entry.msg || ""
 }
 
-export function renderSymbolBasic(entry: LogEntry): string {
-  let { symbol } = entry.getLatestMessage()
-  const section = findSection(entry)
+export function renderSymbol(entry: LogEntry): string {
+  let symbol = entry.symbol
 
   if (symbol === "empty") {
     return "  "
   }
 
   // Always show symbol with sections
-  if (!symbol && section) {
+  if (!symbol && entry.section) {
     symbol = "info"
   }
 
-  return symbol ? `${logSymbols[symbol]} ` : ""
-}
-
-export function renderSymbol(entry: LogEntry): string {
-  const { symbol } = entry.getLatestMessage()
-
-  if (symbol === "empty") {
-    return "  "
-  }
   return symbol ? `${logSymbols[symbol]} ` : ""
 }
 
@@ -122,33 +73,23 @@ export function renderTimestamp(entry: LogEntry): string {
 }
 
 export function getTimestamp(entry: LogEntry): string {
-  const { timestamp } = entry.getLatestMessage()
-  let formatted = ""
-  try {
-    formatted = timestamp.toISOString()
-  } catch (_err) {}
-
-  return formatted
+  return entry.timestamp
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { fromStdStream } = entry
-  const { status } = entry.getLatestMessage()
-  const msg = chainMessages(entry.getMessages() || [])
+  const { level, msg } = entry
 
-  if (fromStdStream) {
-    return msg.join(" ")
+  if (!msg) {
+    return ""
   }
 
-  const styleFn = status === "error" ? errorStyle : msgStyle
+  const styleFn = level === LogLevel.error ? errorStyle : msgStyle
 
-  // We apply the style function to each item (as opposed to the entire string) in case some
-  // part of the message already has a style
-  return msg.map((str) => styleFn(str)).join(styleFn(" → "))
+  return styleFn(msg)
 }
 
 export function renderData(entry: LogEntry): string {
-  const { data, dataFormat } = entry.getLatestMessage()
+  const { data, dataFormat } = entry
   if (!data) {
     return ""
   }
@@ -159,10 +100,10 @@ export function renderData(entry: LogEntry): string {
   return JSON.stringify(data, null, 2)
 }
 
-export function renderSectionBasic(entry: LogEntry): string {
+export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
-  const { msg: msg } = entry.getLatestMessage()
-  let section = findSection(entry)
+  const { msg } = entry
+  let { section } = entry
 
   // For log levels higher than "info" we print the log level name.
   // This should technically happen when we render the symbol but it's harder
@@ -192,41 +133,25 @@ export function renderSectionBasic(entry: LogEntry): string {
   return ""
 }
 
-export function renderSection(entry: LogEntry): string {
-  const style = chalk.cyan.italic
-  const { msg: msg, section } = entry.getLatestMessage()
-  if (section && msg) {
-    return `${style(padSection(section))} → `
-  } else if (section) {
-    return style(padSection(section))
-  }
-  return ""
-}
-
 /**
- * Formats entries for both fancy writer and basic terminal writer.
+ * Formats entries for the terminal writer.
  */
-export function formatForTerminal(entry: LogEntry, type: PickFromUnion<LoggerType, "fancy" | "basic">): string {
-  const { msg: msg, emoji, section, symbol, data } = entry.getLatestMessage()
-  const empty = [msg, section, emoji, symbol, data].every((val) => val === undefined)
+export function formatForTerminal(entry: LogEntry): string {
+  const { msg: msg, section, symbol, data } = entry
+  const empty = [msg, section, symbol, data].every((val) => val === undefined)
 
-  if (entry.isPlaceholder || empty) {
+  if (empty) {
     return ""
   }
 
-  if (type === "basic") {
-    return combineRenders(entry, [
-      renderTimestamp,
-      renderSymbolBasic,
-      renderSectionBasic,
-      renderEmoji,
-      renderMsg,
-      renderData,
-      () => "\n",
-    ])
-  }
-
-  return combineRenders(entry, [leftPad, renderSymbol, renderSection, renderEmoji, renderMsg, renderData, () => "\n"])
+  return combineRenders(entry, [
+    renderTimestamp,
+    renderSymbol,
+    renderSection,
+    renderMsg,
+    renderData,
+    () => "\n",
+  ])
 }
 
 export function cleanForJSON(input?: string | string[]): string {
@@ -242,27 +167,27 @@ export function cleanWhitespace(str: string) {
   return str.replace(/\s+/g, " ")
 }
 
-export function basicRender(entry: LogEntry, logger: Logger): string | null {
+export function render(entry: LogEntry, logger: Logger): string | null {
   if (logger.level >= entry.level) {
-    return formatForTerminal(entry, "basic")
+    return formatForTerminal(entry)
   }
   return null
 }
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const msg = entry.getLatestMessage()
-  const metadata = entry.getMetadata()
-  const messages = chainMessages(entry.getMessages() || [])
+  const { msg, metadata, section } = entry
   const errorDetail = entry.errorData && entry ? formatGardenErrorWithDetail(entry.errorData) : undefined
   const jsonLogEntry: JsonLogEntry = {
-    msg: cleanForJSON(messages),
-    data: msg.data,
+    msg: cleanForJSON(msg),
+    data: entry.data,
     metadata,
-    section: cleanForJSON(msg.section),
+    section: cleanForJSON(section),
     timestamp: getTimestamp(entry),
-    level: entry.getStringLevel(),
-    allSections: getAllSections(entry, msg).map(cleanForJSON),
+    level: logLevelMap[entry.level],
+    // TODO: @eysi
+    // allSections: getAllSections(entry, msg).map(cleanForJSON),
+    allSections: section ? [section].map(cleanForJSON) : [],
   }
   if (errorDetail) {
     jsonLogEntry.errorDetail = errorDetail

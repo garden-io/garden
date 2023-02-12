@@ -31,7 +31,7 @@ import {
   labelSelectorToString,
 } from "./util"
 import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import {
   ensureMutagenSync,
@@ -292,7 +292,7 @@ export async function configureDevMode({
   spec,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   provider: KubernetesProvider
   action: Resolved<SupportedRuntimeActions>
   defaultTarget: KubernetesTargetResourceSpec | undefined
@@ -450,7 +450,7 @@ export async function configureDevMode({
 
 interface StartDevModeSyncParams {
   ctx: KubernetesPluginContext
-  log: LogEntry
+  log: Log
   action: Resolved<SupportedRuntimeActions>
   defaultNamespace: string
   manifests: KubernetesResource[]

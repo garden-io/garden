@@ -56,13 +56,14 @@ export class UsersDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "user"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "users-command", msg: "Deleting users..." })
+    const cmdLog = log.makeNewLogContext({ section: "users-command" })
+    cmdLog.info("Deleting users...")
 
     let count = 1
     const errors: ApiCommandError[] = []
     const results: DeleteResult[] = []
     for (const id of usersToDelete) {
-      cmdLog.setState({ msg: `Deleting users... → ${count}/${usersToDelete.length}` })
+      cmdLog.info({ msg: `Deleting users... → ${count}/${usersToDelete.length}` })
       count++
       try {
         const res = await api.delete<BaseResponse>(`/users/${id}`)

@@ -15,7 +15,7 @@ import { pickBy, size } from "lodash"
 import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
@@ -52,13 +52,13 @@ export interface CommandParamsBase<T extends Parameters = {}, U extends Paramete
 
 export interface PrintHeaderParams<T extends Parameters = {}, U extends Parameters = {}>
   extends CommandParamsBase<T, U> {
-  headerLog: LogEntry
+  headerLog: Log
 }
 
 export interface PrepareParams<T extends Parameters = {}, U extends Parameters = {}> extends CommandParamsBase<T, U> {
-  headerLog: LogEntry
-  footerLog: LogEntry
-  log: LogEntry
+  headerLog: Log
+  footerLog: Log
+  log: Log
   commandLine?: CommandLine
 }
 
@@ -184,7 +184,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   getLoggerType(_: CommandParamsBase<A, O>): LoggerType {
-    return "fancy"
+    return "basic"
   }
 
   describe() {
@@ -232,7 +232,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   /**
    * Emit data to all subscribers
    */
-  emit(log: LogEntry, data: string) {
+  emit(log: Log, data: string) {
     for (const subscriber of this.subscribers) {
       // Ignore any errors here
       try {
@@ -257,12 +257,12 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
    * it asks for confirmation to proceed.
    *
    * @param {Garden} garden
-   * @param {LogEntry} log
+   * @param {Log} log
    * @param {GlobalOptions} opts
    * @returns {Promise<Boolean>}
    * @memberof Command
    */
-  async isAllowedToRun(garden: Garden, log: LogEntry, opts: ParameterValues<GlobalOptions>): Promise<Boolean> {
+  async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<Boolean> {
     log.root.stop()
     if (!opts.yes && this.protected && garden.production) {
       const defaultMessage = chalk.yellow(dedent`
@@ -375,7 +375,7 @@ export function printResult({
   success,
   description,
 }: {
-  log: LogEntry
+  log: Log
   result: string
   success: boolean
   description: string
@@ -428,7 +428,7 @@ export const processCommandResultSchema = createSchema({
  * This applies to commands that can run in watch mode.
  */
 export function handleProcessResults(
-  log: LogEntry,
+  log: Log,
   taskType: string,
   results: ProcessResults
 ): CommandResult<ProcessCommandResult> {

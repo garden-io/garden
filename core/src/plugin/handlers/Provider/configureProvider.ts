@@ -13,7 +13,7 @@ import { joiArray, joi, joiIdentifier, joiIdentifierMap } from "../../../config/
 import { moduleConfigSchema, ModuleConfig } from "../../../config/module"
 import { deline, dedent } from "../../../util/string"
 import { ActionHandler } from "../../plugin"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { configStoreSchema, LocalConfigStore } from "../../../config-store/local"
 
 // Note: These are the only plugin handler params that don't inherit from PluginActionParamsBase
@@ -22,7 +22,7 @@ export interface ConfigureProviderParams<T extends GenericProviderConfig = any> 
   configStore: LocalConfigStore
   dependencies: ProviderMap
   environmentName: string
-  log: LogEntry
+  log: Log
   namespace: string
   projectName: string
   projectRoot: string

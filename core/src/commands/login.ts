@@ -10,7 +10,7 @@ import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { ConfigurationError, InternalError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events"
@@ -78,7 +78,7 @@ export class LoginCommand extends Command {
   }
 }
 
-export async function login(log: LogEntry, enterpriseDomain: string, events: EventBus) {
+export async function login(log: Log, enterpriseDomain: string, events: EventBus) {
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
   const server = new AuthRedirectServer(enterpriseDomain, events, log)
   const distroName = getCloudDistributionName(enterpriseDomain)

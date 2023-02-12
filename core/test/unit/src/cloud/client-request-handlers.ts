@@ -8,14 +8,14 @@
 
 import { expect } from "chai"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { ClientRequestHandlerCommonParams, clientRequestHandlers } from "../../../../src/server/client-router"
 import { makeTestGardenA, TestGarden } from "../../../helpers"
 
 describe("clientRequestHandlers", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
   let params: ClientRequestHandlerCommonParams
 
   before(async () => {

@@ -10,7 +10,7 @@ import { IncomingHttpHeaders } from "http"
 
 import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
 import { EnterpriseApiError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { gardenEnv } from "../constants"
 import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
@@ -26,6 +26,7 @@ import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
+import { LogLevel } from "../logger/logger"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -169,7 +170,7 @@ export class CloudApi {
   public namespaceId?: number
   public sessionRegistered = false
 
-  constructor(private log: LogEntry, public domain: string, private globalConfigStore: GlobalConfigStore) {}
+  constructor(private log: Log, public domain: string, private globalConfigStore: GlobalConfigStore) {}
 
   /**
    * Initialize the Cloud API.
@@ -186,7 +187,7 @@ export class CloudApi {
     globalConfigStore,
     skipLogging = false,
   }: {
-    log: LogEntry
+    log: Log
     cloudDomain: string
     globalConfigStore: GlobalConfigStore
     skipLogging?: boolean
@@ -205,7 +206,7 @@ export class CloudApi {
     const distroName = getCloudDistributionName(api.domain)
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
 
-    const enterpriseLog = skipLogging ? null : log.info({ section, msg: "Authorizing...", status: "active" })
+    const enterpriseLog = skipLogging ? null : log.makeNewLogContext({ section }).info("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
@@ -225,7 +226,7 @@ export class CloudApi {
           // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
           await api.refreshToken(token!)
         } catch (err) {
-          enterpriseLog?.setError({ msg: `Invalid session`, append: true })
+          enterpriseLog?.error(`Invalid session`)
           enterpriseLog?.warn(deline`
           Your session is invalid and could not be refreshed. If you were previously logged
           in to another instance of ${distroName}, please log out first and then
@@ -240,13 +241,13 @@ export class CloudApi {
       api.startInterval()
     }
 
-    enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
+    enterpriseLog?.setSuccess(chalk.green("Done"))
 
     return api
   }
 
   static async saveAuthToken(
-    log: LogEntry,
+    log: Log,
     globalConfigStore: GlobalConfigStore,
     tokenResponse: AuthTokenResponse,
     domain: string
@@ -280,7 +281,7 @@ export class CloudApi {
    * In the inconsistent/erroneous case of more than one auth token existing in the local store, picks the first auth
    * token and deletes all others.
    */
-  static async getStoredAuthToken(log: LogEntry, globalConfigStore: GlobalConfigStore, domain: string) {
+  static async getStoredAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
     log.silly(`Retrieving client auth token from config store`)
     return globalConfigStore.get("clientAuthTokens", domain)
   }
@@ -293,7 +294,7 @@ export class CloudApi {
    * present.
    */
   static async getAuthToken(
-    log: LogEntry,
+    log: Log,
     globalConfigStore: GlobalConfigStore,
     domain: string
   ): Promise<string | undefined> {
@@ -308,7 +309,7 @@ export class CloudApi {
   /**
    * If a persisted client auth token exists, deletes it.
    */
-  static async clearAuthToken(log: LogEntry, globalConfigStore: GlobalConfigStore, domain: string) {
+  static async clearAuthToken(log: Log, globalConfigStore: GlobalConfigStore, domain: string) {
     await globalConfigStore.delete("clientAuthTokens", domain)
     log.debug("Cleared persisted auth token (if any)")
   }
@@ -493,7 +494,7 @@ export class CloudApi {
     }
 
     if (retry) {
-      let retryLog: LogEntry | undefined = undefined
+      let retryLog: Log | undefined = undefined
       const retryLimit = params.maxRetries || 3
       requestOptions.retry = {
         methods: ["GET", "POST", "PUT", "DELETE"], // We explicitly include the POST method if `retry = true`.
@@ -520,9 +521,9 @@ export class CloudApi {
               // Intentionally skipping search params in case they contain tokens or sensitive data.
               const href = options.url.origin + options.url.pathname
               const description = retryDescription || `Request`
-              retryLog = retryLog || this.log.debug("")
+              retryLog = retryLog || this.log.makeNewLogContext({ level: LogLevel.debug })
               const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
-              retryLog.setState(deline`
+              retryLog.info(deline`
                 ${description} failed with error ${error.message}${statusCodeDescription},
                 retrying (${retryCount}/${retryLimit}) (url=${href})
               `)

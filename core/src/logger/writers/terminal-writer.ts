@@ -6,19 +6,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { basicRender } from "../renderers"
+import { render } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { Writer } from "./base"
 
-export class BasicTerminalWriter extends Writer {
+export class TerminalWriter extends Writer {
   type = "basic"
 
   render(entry: LogEntry, logger: Logger): string | null {
-    return basicRender(entry, logger)
+    return render(entry, logger)
   }
 
-  onGraphChange(entry: LogEntry, logger: Logger) {
+  write(entry: LogEntry, logger: Logger) {
     const out = this.render(entry, logger)
     if (out) {
       this.output.write(out)

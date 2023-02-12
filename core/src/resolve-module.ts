@@ -36,7 +36,7 @@ import chalk from "chalk"
 import { DependencyGraph } from "./graph/common"
 import Bluebird from "bluebird"
 import { readFile, mkdirp, writeFile } from "fs-extra"
-import type { LogEntry } from "./logger/log-entry"
+import type { Log } from "./logger/log-entry"
 import { ModuleConfigContext, ModuleConfigContextParams } from "./config/template-contexts/module"
 import { pathToCacheContext } from "./cache"
 import { loadVarfile } from "./config/base"
@@ -66,7 +66,7 @@ export const moduleResolutionConcurrencyLimit = 50
 @Profile()
 export class ModuleResolver {
   private garden: Garden
-  private log: LogEntry
+  private log: Log
   private rawConfigsByKey: ModuleConfigMap
   private resolvedProviders: ProviderMap
   private graphResults?: GraphResults
@@ -80,7 +80,7 @@ export class ModuleResolver {
     graphResults,
   }: {
     garden: Garden
-    log: LogEntry
+    log: Log
     rawConfigs: ModuleConfig[]
     resolvedProviders: ProviderMap
     graphResults?: GraphResults
@@ -643,7 +643,7 @@ export function findActionConfigInGroup(group: GroupConfig, kind: ActionKind, na
 
 export const convertModules = profileAsync(async function convertModules(
   garden: Garden,
-  log: LogEntry,
+  log: Log,
   modules: GardenModule[],
   graph: ModuleGraph
 ): Promise<ConvertModulesResult> {

@@ -12,7 +12,7 @@ import { KubeApi } from "./api"
 import { getAppNamespace } from "./namespace"
 import { deserializeValues } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
 import hasha from "hasha"
 import { upsertConfigMap } from "./util"
@@ -68,7 +68,7 @@ export function getRunResultKey(ctx: PluginContext, action: Action) {
 
 interface StoreTaskResultParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   action: ContainerRunAction | KubernetesRunAction
   result: RunResult
 }
@@ -115,7 +115,7 @@ export async function clearTaskResult({
   action,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   action: Action
 }): Promise<void> {
   const provider = <KubernetesProvider>ctx.provider

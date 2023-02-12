@@ -25,7 +25,7 @@ export abstract class Writer {
     this.output = output
   }
 
-  abstract onGraphChange(entry: LogEntry, logger: Logger): void
+  abstract write(entry: LogEntry, logger: Logger): void
   abstract stop(): void
   cleanup(): void {}
 }

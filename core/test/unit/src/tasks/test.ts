@@ -9,13 +9,13 @@
 import { expect } from "chai"
 import { TestTask } from "../../../../src/tasks/test"
 import { getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 
 describe("TestTask", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
     garden = await makeTestGarden(getDataDir("test-project-test-deps"))

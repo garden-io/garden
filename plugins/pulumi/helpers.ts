@@ -19,7 +19,7 @@ import { dumpYaml } from "@garden-io/core/build/src/util/util"
 import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
 import { loadAndValidateYaml } from "@garden-io/core/build/src/config/base"
 import { getPluginOutputsPath } from "@garden-io/sdk"
-import { LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy, PulumiProvider } from "./config"
 import { deline } from "@garden-io/sdk/util/string"
@@ -27,7 +27,7 @@ import { Resolved } from "@garden-io/core/build/src/actions/types"
 
 export interface PulumiParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   provider: PulumiProvider
   action: Resolved<PulumiDeploy>
 }
@@ -473,7 +473,7 @@ async function loadPulumiVarfile({
 }: {
   action: PulumiDeploy
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   varfilePath: string
 }): Promise<DeepPrimitiveMap> {
   const resolvedPath = resolve(action.basePath(), varfilePath)
