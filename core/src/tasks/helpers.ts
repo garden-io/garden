@@ -6,11 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapKeys, mapValues, pickBy, uniqBy } from "lodash"
-import type { Garden } from "../garden"
-import type { ConfigGraph } from "../graph/config-graph"
-import type { LogEntry } from "../logger/log-entry"
-import type { BaseActionTaskParams, BaseTask, ExecuteTask } from "./base"
+import { mapKeys, mapValues, pickBy } from "lodash"
+import type { BaseActionTaskParams, ExecuteTask } from "./base"
 import type { Action } from "../actions/types"
 import { isDeployAction } from "../actions/deploy"
 import { isTestAction } from "../actions/test"

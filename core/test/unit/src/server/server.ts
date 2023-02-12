@@ -15,7 +15,7 @@ import { deepOmitUndefined, uuidv4, sleep } from "../../../../src/util/util"
 import request = require("supertest")
 import getPort = require("get-port")
 import WebSocket = require("ws")
-import stripAnsi = require("strip-ansi")
+import stripAnsi from "strip-ansi"
 import { authTokenHeader } from "../../../../src/cloud/api"
 import { ServeCommand } from "../../../../src/commands/serve"
 

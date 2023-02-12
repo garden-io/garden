@@ -164,15 +164,19 @@ const runTest: RunActionHandler<"run", ExecRun> = async ({ action, log }): Promi
 
   log.info("Run command: " + command.join(" "))
 
+  const outputs = {
+    log: command.join(" "),
+  }
+
   return {
     state: "ready",
     detail: {
+      ...outputs,
       completedAt: testNow,
-      log: command.join(" "),
       startedAt: testNow,
       success: true,
     },
-    outputs: {},
+    outputs,
   }
 }
 
@@ -233,6 +237,9 @@ export const testPlugin = () =>
             getStatus: async ({ ctx, action }) => {
               const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
               return result || { state: "not-ready", detail: null, outputs: {} }
+            },
+            getOutputs: async (_) => {
+              return { outputs: { foo: "bar" } }
             },
           },
         },

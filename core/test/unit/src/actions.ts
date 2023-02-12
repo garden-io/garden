@@ -283,7 +283,7 @@ describe("actionConfigsToGraph", () => {
             basePath: tmpDir.path,
           },
           spec: {
-            command: ["echo", "${action.build.foo.outputs.foo}"],
+            command: ["echo", "${action.build.foo.version}"],
           },
         },
       ],
@@ -298,7 +298,7 @@ describe("actionConfigsToGraph", () => {
         explicit: false,
         kind: "Build",
         name: "foo",
-        fullRef: ["action", "build", "foo", "outputs", "foo"],
+        fullRef: ["action", "build", "foo", "version"],
         needsExecutedOutputs: false,
         needsStaticOutputs: true,
       },
@@ -328,7 +328,7 @@ describe("actionConfigsToGraph", () => {
             basePath: tmpDir.path,
           },
           spec: {
-            command: ["echo", "${actions.build.foo.outputs.bar}"],
+            command: ["echo", "${action.build.foo.outputs.bar}"],
           },
         },
       ],
@@ -338,7 +338,16 @@ describe("actionConfigsToGraph", () => {
     const action = graph.getBuild("bar")
     const deps = action.getDependencyReferences()
 
-    expect(deps).to.eql([])
+    expect(deps).to.eql([
+      {
+        explicit: false,
+        kind: "Build",
+        name: "foo",
+        fullRef: ["action", "build", "foo", "outputs", "bar"],
+        needsExecutedOutputs: true,
+        needsStaticOutputs: false,
+      },
+    ])
   })
 
   it("correctly sets compatibleTypes for an action type with no base", async () => {
