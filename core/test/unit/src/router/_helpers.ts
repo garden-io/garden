@@ -388,7 +388,6 @@ function getRouterUnitTestPlugins() {
                 detail: {},
                 outputs: {
                   foo: "bar",
-                  base: _params.base,
                   plugin: "test-plugin-a",
                   resolvedEnvName: _params.ctx.resolveTemplateStrings("${environment.name}"),
                   resolvedActionVersion: "TODO-G2 (see one line below)",
