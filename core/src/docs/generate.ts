@@ -117,7 +117,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
 
       console.log("->", path)
       if (!!definition) {
-        await writeFile(path, renderActionTypeReference(kind as ActionKind, type, definition))
+        await writeFile(path, renderActionTypeReference(kind as ActionKind, type, definition.spec))
       }
 
       actionsReadme.push(`  * [\`${type}\`](./${kind}/${type}.md)`)
