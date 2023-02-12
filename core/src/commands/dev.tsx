@@ -163,6 +163,7 @@ class HelpCommand extends InteractiveCommand {
 class QuitCommand extends InteractiveCommand {
   name = "quit"
   help = "Exit the dev console."
+  aliases = ["exit"]
 
   constructor(private quit: () => void) {
     super()
