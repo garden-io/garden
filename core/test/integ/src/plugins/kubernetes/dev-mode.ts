@@ -211,7 +211,7 @@ describe("dev mode deployments and sync behavior", () => {
       // Since the dev mode specs for both `kubernetes` and `helm` modules have the type
       // `KubernetesModuleDevModeSpec`, we don't need separate test cases for each of those two module types here.
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         <KubernetesModuleConfig>{
           kind: "Module",
           type: "kubernetes",
@@ -257,7 +257,7 @@ describe("dev mode deployments and sync behavior", () => {
     })
 
     it("should return a dev mode spec using several options converted from a kubernetes or helm module", async () => {
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         <HelmModuleConfig>{
           kind: "Module",
           type: "helm",
@@ -329,30 +329,27 @@ describe("dev mode deployments and sync behavior", () => {
 
   describe("convertContainerDevModeSpec", () => {
     it("converts a dev mode spec from a container Deploy action", async () => {
-      garden.setActionConfigs(
-        [],
-        [
-          <ContainerDeployActionConfig>{
-            kind: "Deploy",
-            type: "container",
-            name: "foo",
-            internal: {
-              basePath: garden.projectRoot,
-            },
-            spec: {
-              devMode: {
-                sync: [
-                  {
-                    target: "/app/src",
-                    source: "src",
-                    mode: "two-way",
-                  },
-                ],
-              },
+      garden.setActionConfigs([
+        <ContainerDeployActionConfig>{
+          kind: "Deploy",
+          type: "container",
+          name: "foo",
+          internal: {
+            basePath: garden.projectRoot,
+          },
+          spec: {
+            devMode: {
+              sync: [
+                {
+                  target: "/app/src",
+                  source: "src",
+                  mode: "two-way",
+                },
+              ],
             },
           },
-        ]
-      )
+        },
+      ])
 
       graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
       const action = await resolveAction({

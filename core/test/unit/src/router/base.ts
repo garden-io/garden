@@ -454,20 +454,17 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([plugin])
 
-      garden.setActionConfigs(
-        [],
-        [
-          {
-            kind: "Build",
-            type: "test",
-            name: "foo",
-            internal: {
-              basePath: path,
-            },
-            spec: {},
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          internal: {
+            basePath: path,
           },
-        ]
-      )
+          spec: {},
+        },
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = await resolveAction({
@@ -496,20 +493,17 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([plugin])
 
-      garden.setActionConfigs(
-        [],
-        [
-          {
-            kind: "Build",
-            type: "test",
-            name: "foo",
-            internal: {
-              basePath: path,
-            },
-            spec: {},
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          internal: {
+            basePath: path,
           },
-        ]
-      )
+          spec: {},
+        },
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = await resolveAction({
@@ -554,20 +548,17 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([base, plugin])
 
-      garden.setActionConfigs(
-        [],
-        [
-          {
-            kind: "Build",
-            type: "test",
-            name: "foo",
-            internal: {
-              basePath: path,
-            },
-            spec: {},
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          internal: {
+            basePath: path,
           },
-        ]
-      )
+          spec: {},
+        },
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = await resolveAction({
@@ -597,20 +588,17 @@ describe("BaseActionRouter", () => {
 
       const { garden, router } = await createTestRouter([plugin])
 
-      garden.setActionConfigs(
-        [],
-        [
-          {
-            kind: "Build",
-            type: "test",
-            name: "foo",
-            internal: {
-              basePath: path,
-            },
-            spec: {},
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "test",
+          name: "foo",
+          internal: {
+            basePath: path,
           },
-        ]
-      )
+          spec: {},
+        },
+      ])
 
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = await resolveAction({

@@ -49,7 +49,7 @@ describe("persistentvolumeclaim", () => {
       },
     }
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         name: "test",

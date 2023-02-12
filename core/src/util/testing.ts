@@ -246,20 +246,21 @@ export class TestGarden extends Garden {
     this.addActionConfig(config)
   }
 
-  setActionConfigs(moduleConfigs: PartialModuleConfig[], actionConfigs?: ActionConfig[]) {
+  setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
     this.configsScanned = true
     this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
+  }
+
+  setActionConfigs(actionConfigs: ActionConfig[]) {
     this.actionConfigs = {
       Build: {},
       Deploy: {},
       Run: {},
       Test: {},
     }
-    if (actionConfigs) {
-      actionConfigs.forEach((ac) => {
-        this.addActionConfig(ac)
-      })
-    }
+    actionConfigs.forEach((ac) => {
+      this.addActionConfig(ac)
+    })
   }
 
   setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {

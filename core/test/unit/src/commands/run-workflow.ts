@@ -313,37 +313,34 @@ describe("RunWorkflowCommand", () => {
 
     const _garden = await TestGarden.factory(tmpDir.path, { config: projectConfig, plugins: [testPlugin] })
     const log = garden.log
-    _garden.setActionConfigs(
-      [],
-      [
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Run",
-          name: "some-task",
-          type: "test",
-          disabled: false,
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {
-            command: ["exit", "1"],
-          },
+    _garden.setActionConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Run",
+        name: "some-task",
+        type: "test",
+        disabled: false,
+        internal: {
+          basePath: tmpDir.path,
         },
-        {
-          apiVersion: DEFAULT_API_VERSION,
-          kind: "Test",
-          name: "test-unit",
-          type: "test",
-          disabled: false,
-          internal: {
-            basePath: tmpDir.path,
-          },
-          spec: {
-            command: ["echo", "ok"],
-          },
+        spec: {
+          command: ["exit", "1"],
         },
-      ]
-    )
+      },
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Test",
+        name: "test-unit",
+        type: "test",
+        disabled: false,
+        internal: {
+          basePath: tmpDir.path,
+        },
+        spec: {
+          command: ["echo", "ok"],
+        },
+      },
+    ])
     _garden.setWorkflowConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,

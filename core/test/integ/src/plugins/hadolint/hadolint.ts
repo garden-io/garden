@@ -59,7 +59,7 @@ describe("hadolint provider", () => {
       config: projectConfigFoo,
     })
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       // With Dockerfile
       {
         apiVersion: DEFAULT_API_VERSION,
@@ -124,7 +124,7 @@ describe("hadolint provider", () => {
       },
     })
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         name: "foo",
@@ -157,7 +157,7 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
@@ -230,7 +230,7 @@ describe("hadolint provider", () => {
 
       const modulePath = getDataDir("hadolint", "ignore-dl3007")
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
@@ -298,7 +298,7 @@ describe("hadolint provider", () => {
         `
       )
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
@@ -360,7 +360,7 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
@@ -412,7 +412,7 @@ describe("hadolint provider", () => {
         config: projectConfigFoo,
       })
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",
@@ -467,7 +467,7 @@ describe("hadolint provider", () => {
         },
       })
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           name: "foo",

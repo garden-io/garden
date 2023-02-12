@@ -16,7 +16,7 @@ describe("ModuleResolver", () => {
   it("handles a project template reference in a build dependency name", async () => {
     const garden = await makeTestGardenA()
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         name: "test-project-a",
         type: "test",
@@ -42,7 +42,7 @@ describe("ModuleResolver", () => {
   it("handles a module template reference in a build dependency name", async () => {
     const garden = await makeTestGardenA()
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         name: "module-a",
         type: "test",

@@ -117,7 +117,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -186,7 +186,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -246,7 +246,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -304,7 +304,7 @@ describe("GetConfigCommand", () => {
     const garden = await makeTestGardenA()
     const log = garden.log
 
-    garden.setActionConfigs([
+    garden.setModuleConfigs([
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
@@ -371,7 +371,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -438,7 +438,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -513,7 +513,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -590,7 +590,7 @@ describe("GetConfigCommand", () => {
       const garden = await makeTestGardenA()
       const log = garden.log
 
-      garden.setActionConfigs([
+      garden.setModuleConfigs([
         {
           apiVersion: DEFAULT_API_VERSION,
           allowPublish: false,
@@ -704,7 +704,7 @@ describe("GetConfigCommand", () => {
         },
       ]
 
-      garden.setActionConfigs(rawConfigs)
+      garden.setModuleConfigs(rawConfigs)
 
       const res = await command.action({
         garden,

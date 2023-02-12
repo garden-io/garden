@@ -118,7 +118,7 @@ describe("DeleteEnvironmentCommand", () => {
     deletedServices = []
     deleteOrder = []
     garden = await makeTestGarden(projectRootB, { plugins })
-    garden.setActionConfigs(moduleConfigs)
+    garden.setModuleConfigs(moduleConfigs)
     log = garden.log
   })
 
@@ -224,7 +224,7 @@ describe("DeleteDeployCommand", () => {
   beforeEach(async () => {
     deleteOrder = []
     garden = await makeTestGarden(projectRootB, { plugins })
-    garden.setActionConfigs(moduleConfigs)
+    garden.setModuleConfigs(moduleConfigs)
     log = garden.log
   })
 
