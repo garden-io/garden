@@ -187,9 +187,9 @@ describe("PublishCommand", () => {
     })
 
     const publishActionResult = taskResultOutputs(result!)
-    const actions = (await garden.getConfigGraph({ log, emit: false })).getBuilds()
-    const verA = actions.find((a) => a.name === "module-a")!.versionString()
-    const verB = actions.find((a) => a.name === "module-b")!.versionString()
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
+    const verA = graph.getBuild("module-a").versionString()
+    const verB = graph.getBuild("module-b").versionString()
 
     expect(publishActionResult["publish.module-a"].detail.published).to.be.true
     expect(publishActionResult["publish.module-a"].detail.identifier).to.equal(`v1.0-module-a-${verA}`)

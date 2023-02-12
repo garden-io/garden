@@ -63,23 +63,22 @@ describe("BuildCommand", () => {
       },
     })
 
-    // eslint-disable-next-line no-shadowed-variable
-    function getBuildModuleResultVersion(result: ProcessCommandResult, moduleName: string): string {
-      const buildActionResults = result!.graphResults
+    function getBuildResultVersion(r: ProcessCommandResult, moduleName: string): string {
+      const buildActionResults = r!.graphResults
       const moduleKey = nodeKey("build", moduleName)
       const buildModuleResult = buildActionResults[moduleKey]
-      return buildModuleResult?.result?.executedAction?.moduleVersion().versionString
+      return buildModuleResult!.version
     }
 
-    const buildModuleAVersion = getBuildModuleResultVersion(result!, "module-a")
-    const buildModuleBVersion = getBuildModuleResultVersion(result!, "module-b")
-    const buildModuleCVersion = getBuildModuleResultVersion(result!, "module-c")
+    const buildModuleAVersion = getBuildResultVersion(result!, "module-a")
+    const buildModuleBVersion = getBuildResultVersion(result!, "module-b")
+    const buildModuleCVersion = getBuildResultVersion(result!, "module-c")
 
-    const graph = await garden.getConfigGraph({ log, emit: false })
+    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
 
-    expect(buildModuleAVersion).to.eql(graph.getBuild("module-a").moduleVersion().versionString)
-    expect(buildModuleBVersion).to.eql(graph.getBuild("module-b").moduleVersion().versionString)
-    expect(buildModuleCVersion).to.eql(graph.getBuild("module-c").moduleVersion().versionString)
+    expect(buildModuleAVersion).to.eql(graph.getBuild("module-a").versionString())
+    expect(buildModuleBVersion).to.eql(graph.getBuild("module-b").versionString())
+    expect(buildModuleCVersion).to.eql(graph.getBuild("module-c").versionString())
   })
 
   it("should optionally run single build and its dependencies", async () => {
