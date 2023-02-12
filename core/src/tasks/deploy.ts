@@ -36,24 +36,13 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const router = await this.garden.getActionRouter()
 
-    let status: DeployStatus = { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
-
-    try {
-      status = await router.deploy.getStatus({
-        graph: this.graph,
-        action,
-        log,
-        devMode,
-        localMode,
-      })
-    } catch (err) {
-      // This can come up if runtime outputs are not resolvable
-      if (err.type === "template-string") {
-        log.debug(`Unable to resolve status for action ${action.longDescription()}: ${err.message}`)
-      } else {
-        throw err
-      }
-    }
+    const status = await router.deploy.getStatus({
+      graph: this.graph,
+      action,
+      log,
+      devMode,
+      localMode,
+    })
 
     return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
   }
