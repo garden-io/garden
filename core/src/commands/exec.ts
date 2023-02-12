@@ -17,7 +17,7 @@ import { executeAction } from "../graph/actions"
 
 const execArgs = {
   deploy: new StringParameter({
-    help: "The Deploy to exec the command in.",
+    help: "The service to exec the command in.",
     required: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
