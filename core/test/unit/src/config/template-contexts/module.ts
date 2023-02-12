@@ -136,60 +136,6 @@ describe("ModuleConfigContext", () => {
       })
     })
   })
-
-  context("graphResults is set", () => {
-    let withRuntime: ModuleConfigContext
-    let deployA: DeployAction
-
-    before(async () => {
-      const modules = graph.getModules()
-      deployA = graph.getDeploy("service-a")
-      // eslint-disable-next-line no-unused
-      const deployB = graph.getDeploy("service-b")
-      // const testB = graph.getTest("test-b")
-      module = graph.getModule("module-b")
-
-      withRuntime = new ModuleConfigContext({
-        garden,
-        resolvedProviders: keyBy(await garden.resolveProviders(garden.log), "name"),
-        variables: garden.variables,
-        modules,
-        buildPath: deployA.getBuildPath(),
-        partialRuntimeResolution: false,
-        name: module.name,
-        inputs: module.inputs,
-        parentName: module.parentName,
-        path: module.path,
-        templateName: module.templateName,
-      })
-    })
-
-    it("should resolve service outputs", async () => {
-      const result = withRuntime.resolve({
-        key: ["runtime", "services", "service-b", "outputs", "foo"],
-        nodePath: [],
-        opts: {},
-      })
-      expect(result).to.eql({ resolved: "bar" })
-    })
-
-    it("should resolve task outputs", async () => {
-      const result = withRuntime.resolve({
-        key: ["runtime", "tasks", "task-b", "outputs", "moo"],
-        nodePath: [],
-        opts: {},
-      })
-      expect(result).to.eql({ resolved: "boo" })
-    })
-
-    it("should allow using a runtime key as a test in a ternary (positive)", async () => {
-      const result = resolveTemplateString(
-        "${runtime.tasks.task-b ? runtime.tasks.task-b.outputs.moo : 'default'}",
-        withRuntime
-      )
-      expect(result).to.equal("boo")
-    })
-  })
 })
 
 describe("WorkflowConfigContext", () => {
