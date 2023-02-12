@@ -14,6 +14,7 @@ import {
 import { Profile } from "../util/profiling"
 import { isEqual } from "lodash"
 import { GlobalConfigStore } from "../config-store/global"
+import { getActiveProcesses } from "../process"
 
 const targetUpdateIntervalMsec = 1000
 
@@ -46,7 +47,7 @@ export class CoreEventStream extends BufferedEventStream {
       return []
     }
 
-    const running = Object.values(await this.globalConfigStore.get("activeProcesses"))
+    const running = await getActiveProcesses(this.globalConfigStore)
     const servers = running.filter(
       (p) =>
         !!p.persistent &&

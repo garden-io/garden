@@ -90,6 +90,24 @@ export async function processActions({
 }
 
 /**
+ * Retrieve all active processes from the global config store,
+ * and clean up any inactive processes from the store along the way.
+ */
+export async function getActiveProcesses(globalConfigStore: GlobalConfigStore) {
+  const processes = await globalConfigStore.get("activeProcesses")
+
+  // TODO: avoid multiple writes here
+  await Bluebird.map(Object.entries(processes), async ([key, p]) => {
+    if (!isRunning(p.pid)) {
+      await globalConfigStore.delete("activeProcesses", key)
+      delete processes[key]
+    }
+  })
+
+  return Object.values(processes)
+}
+
+/**
  * Register the currently running process in the global config store,
  * and clean up any inactive processes from the store along the way.
  */
@@ -98,14 +116,7 @@ export async function registerProcess(
   command: string,
   args: string[]
 ): Promise<GardenProcess> {
-  const processes = Object.values(await globalConfigStore.get("activeProcesses"))
-
-  // TODO: avoid multiple writes here
-  await Bluebird.map(processes, async (p) => {
-    if (!isRunning(p.pid)) {
-      await globalConfigStore.delete("activeProcesses", String(p.pid))
-    }
-  })
+  await getActiveProcesses(globalConfigStore)
 
   const pid = process.pid
 

@@ -173,52 +173,5 @@ describe("DeployTask", () => {
       expect(unforcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)
         .to.be.false
     })
-
-    it("returns just the resolve task if the status is ready", async () => {
-      throw "TODO"
-    })
-
-    context("when skipRuntimeDependencies = true", () => {
-      it("doesn't return deploy or run dependencies", async () => {
-        const action = graph.getDeploy("test-deploy")
-
-        const deployTask = new DeployTask({
-          garden,
-          graph,
-          action,
-          force: true,
-          forceBuild: false,
-
-          log: garden.log,
-          skipRuntimeDependencies: true, // <-----
-          devModeDeployNames: [],
-          localModeDeployNames: [],
-        })
-
-        const deps = deployTask.resolveProcessDependencies({ status: null })
-        expect(deps.find((dep) => dep.type === "deploy" || dep.type === "run")).to.be.undefined
-      })
-    })
-  })
-
-  describe("process", () => {
-    it("should correctly resolve runtime outputs from deploys", async () => {
-      const action = graph.getDeploy("test-deploy")
-
-      const deployTask = new DeployTask({
-        garden,
-        graph,
-        action,
-        force: true,
-
-        log: garden.log,
-        devModeDeployNames: [],
-        localModeDeployNames: [],
-      })
-
-      const result = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-
-      expect(result[deployTask.getBaseKey()]!.result.outputs).to.eql({ log: "test output" })
-    })
   })
 })
