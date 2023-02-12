@@ -18,20 +18,28 @@ import WebSocket = require("ws")
 import stripAnsi from "strip-ansi"
 import { authTokenHeader } from "../../../../src/cloud/api"
 import { ServeCommand } from "../../../../src/commands/serve"
+import websockify from "koa-websocket"
+import { gardenEnv } from "../../../../src/constants"
 
 describe("GardenServer", () => {
   let garden: Garden
   let gardenServer: GardenServer
   let server: Server
   let port: number
+  let app: websockify.App
+
+  const hostname = "127.0.0.1"
 
   const command = new ServeCommand()
 
   before(async () => {
     port = await getPort()
     garden = await makeTestGardenA()
+    gardenEnv.GARDEN_SERVER_HOSTNAME = hostname
     gardenServer = await startServer({ log: garden.log, command, port })
-    server = (<any>gardenServer).server
+    await gardenServer.start()
+    server = gardenServer["server"]
+    app = gardenServer["app"]
   })
 
   after(async () => {
@@ -61,12 +69,12 @@ describe("GardenServer", () => {
   it("should update server URL with new one if another is started", async () => {
     gardenServer.showUrl("http://foo")
     garden.events.emit("serversUpdated", {
-      servers: [{ host: "http://localhost:9800", command: "serve", serverAuthKey: "foo" }],
+      servers: [{ host: `http://${hostname}:9800`, command: "serve", serverAuthKey: "foo" }],
     })
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
     const status = stripAnsi(line.getLatestMessage().msg || "")
-    expect(status).to.equal(`Garden server running at http://localhost:9800?key=foo`)
+    expect(status).to.equal(`Garden server running at http://${hostname}:9800?key=foo`)
   })
 
   describe("POST /api", () => {
@@ -132,7 +140,7 @@ describe("GardenServer", () => {
         .send({
           command: "build",
           parameters: {
-            modules: ["module-a"],
+            names: ["module-a"],
             force: true,
           },
         })
@@ -140,8 +148,12 @@ describe("GardenServer", () => {
 
       expect(taskResultOutputs(res.body.result)).to.eql({
         "build.module-a": {
-          buildLog: "A",
-          fresh: true,
+          outputs: {},
+          state: "ready",
+          detail: {
+            buildLog: "A",
+            fresh: true,
+          },
         },
       })
     })
@@ -166,7 +178,7 @@ describe("GardenServer", () => {
         .set({ [authTokenHeader]: gardenServer.authKey })
         .expect(302)
 
-      expect(res.header.location).to.equal("http://localhost:12345/test")
+      expect(res.header.location).to.equal(`http://localhost:12345/test`)
     })
   })
 
@@ -206,18 +218,18 @@ describe("GardenServer", () => {
     let ws: WebSocket
 
     beforeEach((done) => {
-      ws = new WebSocket(`ws://localhost:${port}/ws?sessionId=${garden.sessionId}`)
+      ws = new WebSocket(`ws://${hostname}:${port}/ws?sessionId=${garden.sessionId}`)
+      ws.on("error", done)
       ws.on("open", () => {
         done()
       })
-      ws.on("error", done)
     })
 
     afterEach(() => {
       ws.close()
     })
 
-    const onFirstMsgAfterReadyMsg = (cb: (req: object) => void) => {
+    const onMessageAfterReady = (cb: (req: object) => void) => {
       ws.on("message", (msg) => {
         const parsed = JSON.parse(msg.toString())
         // This message is always sent at the beginning and we skip it here
@@ -229,37 +241,41 @@ describe("GardenServer", () => {
     }
 
     it("terminates the connection if auth query params are missing", (done) => {
-      const badWs = new WebSocket(`ws://localhost:${port}/ws`)
+      const badWs = new WebSocket(`ws://${hostname}:${port}/ws`)
+      badWs.on("error", done)
       badWs.on("close", (code, reason) => {
         expect(code).to.eql(4401)
-        expect(reason).to.eql("Unauthorized")
+        expect(reason.toString()).to.eql("Unauthorized")
         done()
       })
     })
 
     it("terminates the connection if key doesn't match and sessionId is missing", (done) => {
-      const badWs = new WebSocket(`ws://localhost:${port}/ws?key=foo`)
+      const badWs = new WebSocket(`ws://${hostname}:${port}/ws?key=foo`)
+      badWs.on("error", done)
       badWs.on("close", (code, reason) => {
         expect(code).to.eql(4401)
-        expect(reason).to.eql("Unauthorized")
+        expect(reason.toString()).to.eql("Unauthorized")
         done()
       })
     })
 
     it("terminates the connection if sessionId doesn't match and key is missing", (done) => {
-      const badWs = new WebSocket(`ws://localhost:${port}/ws?sessionId=foo`)
+      const badWs = new WebSocket(`ws://${hostname}:${port}/ws?sessionId=foo`)
+      badWs.on("error", done)
       badWs.on("close", (code, reason) => {
         expect(code).to.eql(4401)
-        expect(reason).to.eql("Unauthorized")
+        expect(reason.toString()).to.eql("Unauthorized")
         done()
       })
     })
 
     it("terminates the connection if both sessionId and key are bad", (done) => {
-      const badWs = new WebSocket(`ws://localhost:${port}/ws?sessionId=foo&key=bar`)
+      const badWs = new WebSocket(`ws://${hostname}:${port}/ws?sessionId=foo&key=bar`)
+      badWs.on("error", done)
       badWs.on("close", (code, reason) => {
         expect(code).to.eql(4401)
-        expect(reason).to.eql("Unauthorized")
+        expect(reason.toString()).to.eql("Unauthorized")
         done()
       })
     })
@@ -281,7 +297,7 @@ describe("GardenServer", () => {
     })
 
     it("should emit events from the Garden event bus", (done) => {
-      onFirstMsgAfterReadyMsg((req) => {
+      onMessageAfterReady((req) => {
         expect(req).to.eql({ type: "event", name: "_test", payload: "foo" })
         done()
       })
@@ -289,7 +305,7 @@ describe("GardenServer", () => {
     })
 
     it("should send error when a request is not valid JSON", (done) => {
-      onFirstMsgAfterReadyMsg((req) => {
+      onMessageAfterReady((req) => {
         expect(req).to.eql({
           type: "error",
           message: "Could not parse message as JSON",
@@ -302,7 +318,7 @@ describe("GardenServer", () => {
     it("should send error when Garden instance is not set", (done) => {
       const id = uuidv4()
 
-      onFirstMsgAfterReadyMsg((req) => {
+      onMessageAfterReady((req) => {
         expect(req).to.eql({
           type: "error",
           message: "Waiting for Garden instance to initialize",
@@ -323,7 +339,7 @@ describe("GardenServer", () => {
     })
 
     it("should error when a request is missing an ID", (done) => {
-      onFirstMsgAfterReadyMsg((req) => {
+      onMessageAfterReady((req) => {
         expect(req).to.eql({
           type: "error",
           message: "Message should contain an `id` field with a UUID value",
@@ -334,7 +350,7 @@ describe("GardenServer", () => {
     })
 
     it("should error when a request has an invalid ID", (done) => {
-      onFirstMsgAfterReadyMsg((req) => {
+      onMessageAfterReady((req) => {
         expect(req).to.eql({
           type: "error",
           requestId: "ksdhgalsdkjghalsjkg",
@@ -347,7 +363,7 @@ describe("GardenServer", () => {
 
     it("should error when a request has an invalid type", (done) => {
       const id = uuidv4()
-      onFirstMsgAfterReadyMsg((req) => {
+      onMessageAfterReady((req) => {
         expect(req).to.eql({
           type: "error",
           requestId: id,
@@ -364,7 +380,7 @@ describe("GardenServer", () => {
       garden
         .dumpConfig({ log: garden.log })
         .then((config) => {
-          onFirstMsgAfterReadyMsg((req: any) => {
+          onMessageAfterReady((req: any) => {
             if (req.type !== "commandResult") {
               return
             }
@@ -389,7 +405,7 @@ describe("GardenServer", () => {
 
     it("should correctly map arguments and options to commands", (done) => {
       const id = uuidv4()
-      onFirstMsgAfterReadyMsg((req) => {
+      onMessageAfterReady((req) => {
         // Ignore other events such as taskPending and taskProcessing and wait for the command result
         if ((<any>req).type !== "commandResult") {
           return
@@ -404,8 +420,9 @@ describe("GardenServer", () => {
           requestId: id,
           result: {
             "build.module-a": {
-              buildLog: "A",
-              fresh: true,
+              state: "ready",
+              outputs: {},
+              detail: { fresh: true, buildLog: "A" },
             },
           },
         })
@@ -417,7 +434,7 @@ describe("GardenServer", () => {
           id,
           command: "build",
           parameters: {
-            modules: ["module-a"],
+            names: ["module-a"],
             force: true,
           },
         })

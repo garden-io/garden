@@ -10,7 +10,7 @@ import Joi = require("@hapi/joi")
 import chalk from "chalk"
 import dedent = require("dedent")
 import stripAnsi from "strip-ansi"
-import { pickBy, size } from "lodash"
+import { mapValues, omit, pickBy, size } from "lodash"
 
 import { joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
@@ -19,7 +19,7 @@ import { LogEntry } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
-import { GraphResultMap } from "../graph/results"
+import { GraphResultExport, GraphResultMap } from "../graph/results"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
 import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
@@ -392,7 +392,7 @@ export interface ProcessCommandResult {
   // durationMsec?: number | null
   success: boolean
   error?: string
-  graphResults: GraphResultMap
+  graphResults: GraphResultExport
 }
 
 export const processCommandResultKeys = () => ({
@@ -431,7 +431,7 @@ export function handleProcessResults(
   taskType: string,
   results: ProcessResults
 ): CommandResult<ProcessCommandResult> {
-  const graphResults = results.graphResults.getMap()
+  const graphResults = results.graphResults.export()
 
   const failed = pickBy(graphResults, (r) => r && r.error)
   const failedCount = size(failed)

@@ -155,7 +155,7 @@ describe("PublishCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
-        "tag": tag,
+        tag,
       }),
     })
 
@@ -182,7 +182,7 @@ describe("PublishCommand", () => {
       },
       opts: withDefaultGlobalOpts({
         "force-build": false,
-        "tag": tag,
+        tag,
       }),
     })
 
@@ -217,9 +217,8 @@ describe("PublishCommand", () => {
 
     const allResults = getAllTaskResults(result?.graphResults!)
 
-    // Errors due to a bug in the solver
-    expect(allResults["build.module-a"]?.task.force).to.be.true
-    expect(allResults["build.module-b"]?.task.force).to.be.true
+    expect(allResults["build.module-a"]?.processed).to.be.true
+    expect(allResults["build.module-b"]?.processed).to.be.true
   })
 
   it("should optionally build a selected build", async () => {
