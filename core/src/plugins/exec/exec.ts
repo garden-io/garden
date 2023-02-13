@@ -71,9 +71,9 @@ export function getLogFilePath({ projectRoot, deployName }: { projectRoot: strin
 function getDefaultEnvVars(action: ResolvedExecAction) {
   return {
     ...process.env,
-    GARDEN_MODULE_VERSION: action.versionString(),
     // Workaround for https://github.com/vercel/pkg/issues/897
     PKG_EXECPATH: "",
+    ...action.getEnvVars(),
     ...action.getSpec().env,
   }
 }
@@ -165,13 +165,17 @@ async function run({
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
   })
 
+  log.debug(`Running command: ${command?.join(" ")}`)
+
+  const envVars = {
+    ...getDefaultEnvVars(action),
+    ...(env ? mapValues(env, (v) => v + "") : {}),
+  }
+
   return exec(command.join(" "), [], {
     ...opts,
     cwd: action.getBuildPath(),
-    env: {
-      ...getDefaultEnvVars(action),
-      ...(env ? mapValues(env, (v) => v + "") : {}),
-    },
+    env: envVars,
     // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
     shell: true,
     stdout: outputStream,
@@ -191,10 +195,12 @@ export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ 
     }
 
     output.detail.fresh = true
-    output.detail.buildLog = result.stdout + result.stderr
+    output.detail.buildLog = result.all || result.stdout + result.stderr
   }
 
   if (output.detail?.buildLog) {
+    output.outputs.log = output.detail?.buildLog
+
     const prefix = `Finished building ${chalk.white(action.name)}. Here is the full output:`
     log.verbose(renderMessageWithDivider(prefix, output.detail?.buildLog, false, chalk.gray))
   }
@@ -211,9 +217,9 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   const artifacts = action.getSpec("artifacts")
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
 
-  const outputLog = (result.stdout + result.stderr).trim()
+  const outputLog = result.all?.trim() || ""
   if (outputLog) {
-    const prefix = `Finished running test ${chalk.white(test.name)}. Here is the full output:`
+    const prefix = `Finished executing ${chalk.white(action.key())}. Here is the full output:`
     log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
   }
 
@@ -226,13 +232,14 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
     startedAt,
     completedAt: new Date(),
     log: outputLog,
-    outputs: {},
   }
 
   return {
     state: runResultToActionState(detail),
     detail,
-    outputs: {},
+    outputs: {
+      log: outputLog,
+    },
   }
 }
 
@@ -248,7 +255,7 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
     const commandResult = await run({ command, action, ctx, log, env, opts: { reject: false } })
 
     completedAt = new Date()
-    outputLog = (commandResult.stdout + commandResult.stderr).trim()
+    outputLog = commandResult.all?.trim() || ""
     success = commandResult.exitCode === 0
   } else {
     completedAt = startedAt
@@ -279,7 +286,9 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
   return {
     state: runResultToActionState(detail),
     detail,
-    outputs: {},
+    outputs: {
+      log: outputLog,
+    },
   }
 }
 
@@ -306,7 +315,9 @@ const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async 
         version: action.versionString(),
         detail: { statusCommandOutput: result.all },
       },
-      outputs: {},
+      outputs: {
+        log: result.all || "",
+      },
     }
   } else {
     const state = "unknown"
@@ -314,7 +325,9 @@ const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async 
     return {
       state,
       detail: { state, version: action.versionString(), detail: {} },
-      outputs: {},
+      outputs: {
+        log: "",
+      },
     }
   }
 }

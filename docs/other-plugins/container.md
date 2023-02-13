@@ -42,7 +42,7 @@ buildArgs:
   baseImageVersion: ${modules.base-image.version}
 ```
 
-Garden will also automatically set `GARDEN_MODULE_VERSION` as a build argument, so that you can reference the version of module being built.
+Garden will also automatically set `GARDEN_ACTION_VERSION` as a build argument, so that you can reference the version of the action being built.
 
 ## Using remote images
 

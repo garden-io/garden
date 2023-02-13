@@ -198,7 +198,7 @@ spec:
 
   # Specify build arguments to use when building the container image.
   #
-  # Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the
+  # Note: Garden will always set a `GARDEN_ACTION_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the
   # module/build version at build time.
   buildArgs: {}
 
@@ -530,7 +530,7 @@ For multi-stage Dockerfiles, specify which image/stage to build (see https://doc
 
 Specify build arguments to use when building the container image.
 
-Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build version at build time.
+Note: Garden will always set a `GARDEN_ACTION_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build version at build time.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

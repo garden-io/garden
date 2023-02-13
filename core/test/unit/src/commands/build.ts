@@ -48,12 +48,16 @@ describe("BuildCommand", () => {
     expect(taskOutputResults).to.eql({
       "build.module-a": {
         state: "ready",
-        outputs: {},
+        outputs: {
+          log: "A",
+        },
         detail: { fresh: true, buildLog: "A" },
       },
       "build.module-b": {
         state: "ready",
-        outputs: {},
+        outputs: {
+          log: "B",
+        },
         detail: { fresh: true, buildLog: "B" },
       },
       "build.module-c": {
@@ -100,7 +104,7 @@ describe("BuildCommand", () => {
     expect(taskOutputResults).to.eql({
       "build.module-b": {
         state: "ready",
-        outputs: {},
+        outputs: { log: "B" },
         detail: { fresh: true, buildLog: "B" },
       },
     })
@@ -130,8 +134,8 @@ describe("BuildCommand", () => {
     })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "A" } },
-      "build.module-b": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "B" } },
+      "build.module-a": { state: "ready", outputs: { log: "A" }, detail: { fresh: true, buildLog: "A" } },
+      "build.module-b": { state: "ready", outputs: { log: "B" }, detail: { fresh: true, buildLog: "B" } },
     })
   })
 
@@ -155,7 +159,7 @@ describe("BuildCommand", () => {
     })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "A" } },
+      "build.module-a": { state: "ready", outputs: { log: "A" }, detail: { fresh: true, buildLog: "A" } },
       "build.module-c": { state: "ready", outputs: {}, detail: {} },
     })
 
@@ -223,10 +227,10 @@ describe("BuildCommand", () => {
     })
 
     expect(taskResultOutputs(result!)).to.eql({
-      "build.module-a": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "A" } },
-      "build.module-b": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "B" } },
-      "build.module-c": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "C" } },
-      "build.module-d": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "D" } },
+      "build.module-a": { state: "ready", outputs: { log: "A" }, detail: { fresh: true, buildLog: "A" } },
+      "build.module-b": { state: "ready", outputs: { log: "B" }, detail: { fresh: true, buildLog: "B" } },
+      "build.module-c": { state: "ready", outputs: { log: "C" }, detail: { fresh: true, buildLog: "C" } },
+      "build.module-d": { state: "ready", outputs: { log: "D" }, detail: { fresh: true, buildLog: "D" } },
     })
   })
 
@@ -272,8 +276,10 @@ describe("BuildCommand", () => {
         opts: withDefaultGlobalOpts({ "watch": false, "force": false, "with-dependants": false }),
       })
 
+      const buildLog = "build aaa module"
+
       expect(taskResultOutputs(result!)).to.eql({
-        "build.aaa-service": { state: "ready", outputs: {}, detail: { fresh: true, buildLog: "build aaa module" } },
+        "build.aaa-service": { state: "ready", outputs: { log: buildLog }, detail: { fresh: true, buildLog } },
       })
     })
 

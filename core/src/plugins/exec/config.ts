@@ -20,6 +20,10 @@ const execPathDoc = dedent`
 `
 const localProcDefaultTimeoutSec = 10
 
+interface ExecOutputs {
+  log: string
+}
+
 // BUILD //
 
 export interface ExecBuildActionSpec {
@@ -28,7 +32,7 @@ export interface ExecBuildActionSpec {
   env: StringMap
 }
 export type ExecBuildConfig = BuildActionConfig<"exec", ExecBuildActionSpec>
-export type ExecBuild = BuildAction<ExecBuildConfig, {}>
+export type ExecBuild = BuildAction<ExecBuildConfig, ExecOutputs>
 
 export const execBuildActionSchema = () =>
   joi.object().keys({
@@ -66,7 +70,7 @@ export interface ExecDeployActionSpec {
 }
 
 export type ExecDeployConfig = DeployActionConfig<"exec", ExecDeployActionSpec>
-export type ExecDeploy = DeployAction<ExecDeployConfig, {}>
+export type ExecDeploy = DeployAction<ExecDeployConfig, ExecOutputs>
 
 export const execDeployCommandSchema = () =>
   joi
@@ -154,7 +158,7 @@ export interface ExecRunActionSpec {
 }
 
 export type ExecRunConfig = RunActionConfig<"exec", ExecRunActionSpec>
-export type ExecRun = RunAction<ExecRunConfig>
+export type ExecRun = RunAction<ExecRunConfig, ExecOutputs>
 
 export const execRunActionSchema = () =>
   joi
@@ -180,7 +184,7 @@ export const execRunActionSchema = () =>
 
 export interface ExecTestActionSpec extends ExecRunActionSpec {}
 export type ExecTestConfig = TestActionConfig<"exec", ExecTestActionSpec>
-export type ExecTest = TestAction<ExecTestConfig, {}>
+export type ExecTest = TestAction<ExecTestConfig, ExecOutputs>
 
 export const execTestActionSchema = () =>
   joi

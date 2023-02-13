@@ -258,7 +258,7 @@ describe("plugins.container", () => {
       expect(args.slice(-2)).to.eql(["--cache-from", "some-image:latest"])
     })
 
-    it("should set GARDEN_MODULE_VERSION", async () => {
+    it("should set GARDEN_ACTION_VERSION", async () => {
       td.replace(helpers, "hasDockerfile", () => true)
 
       const buildAction = await getTestBuild({
@@ -293,7 +293,7 @@ describe("plugins.container", () => {
 
       const args = getDockerBuildFlags(resolvedBuild)
 
-      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_MODULE_VERSION=${buildAction.versionString()}`])
+      expect(args.slice(0, 2)).to.eql(["--build-arg", `GARDEN_ACTION_VERSION=${buildAction.versionString()}`])
     })
   })
 })

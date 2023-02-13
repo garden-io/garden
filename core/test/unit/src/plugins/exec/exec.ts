@@ -319,14 +319,14 @@ describe("exec plugin", () => {
         devModeDeployNames: [],
         localModeDeployNames: [],
       })
-      const results = await _garden.processTasks({ tasks: [taskTask], throwOnError: false })
+      const result = await _garden.processTask(taskTask, _garden.log, { throwOnError: true })
 
       // Task A echoes "task-a-output" and Task B echoes the output from Task A
-      expect(results["task.task-b"]).to.exist
-      expect(results["task.task-b"]).to.have.property("output")
-      expect(results["task.task-b"]!.result.log).to.equal("task-a-output")
-      expect(results["task.task-b"]!.result).to.have.property("outputs")
-      expect(results["task.task-b"]!.result.outputs.log).to.equal("task-a-output")
+      expect(result).to.exist
+      expect(result!.result!).to.have.property("outputs")
+      expect(result!.result!.detail?.log).to.equal("task-a-output")
+      expect(result!.result!).to.have.property("outputs")
+      expect(result!.result!.outputs.log).to.equal("task-a-output")
     })
 
     it("should copy artifacts after task runs", async () => {
@@ -410,6 +410,17 @@ describe("exec plugin", () => {
         expect(res.detail).to.eql({ buildLog: expectedBuildLog, fresh: true })
       })
 
+      it("should receive action version as an env var", async () => {
+        const action = graph.getBuild("module-local")
+        const actions = await garden.getActionRouter()
+
+        action._config.spec.command = ["echo", "$GARDEN_ACTION_VERSION"]
+        const resolvedAction = await garden.resolveAction({ log, graph, action })
+        const res = await actions.build.build({ log, action: resolvedAction, graph })
+
+        expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
+      })
+
       it("should receive module version as an env var", async () => {
         const action = graph.getBuild("module-local")
         const actions = await garden.getActionRouter()
@@ -425,13 +436,15 @@ describe("exec plugin", () => {
     describe("testExecModule", () => {
       it("should run the test command in the module dir if local true", async () => {
         const router = await garden.getActionRouter()
+
+        const basePath = join(garden.projectRoot, "module-local")
         const rawAction = (await actionFromConfig({
           garden,
           graph,
           router,
           log,
           config: {
-            type: "test",
+            type: "exec",
             kind: "Test",
             name: "test",
             dependencies: [],
@@ -441,23 +454,25 @@ describe("exec plugin", () => {
               command: ["pwd"],
             },
             internal: {
-              basePath: "TODO-G2",
+              basePath,
             },
           } as TestActionConfig,
           configsByKey: {},
         })) as TestAction
+
         const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
         const res = await router.test.run({
           log,
-          interactive: true,
+          interactive: false,
           graph,
           silent: false,
           action,
         })
-        expect(res.outputs).to.eql(join(garden.projectRoot, "module-local"))
+
+        expect(res.outputs.log).to.eql(basePath)
       })
 
-      it("should receive module version as an env var", async () => {
+      it("should receive version as an env var", async () => {
         const router = await garden.getActionRouter()
         const rawAction = (await actionFromConfig({
           garden,
@@ -465,14 +480,14 @@ describe("exec plugin", () => {
           router,
           log,
           config: {
-            type: "test",
+            type: "exec",
             kind: "Test",
             name: "test",
             dependencies: [],
             disabled: false,
             timeout: 1234,
             spec: {
-              command: ["echo", "$GARDEN_MODULE_VERSION"],
+              command: ["echo", "$GARDEN_ACTION_VERSION"],
             },
             internal: {
               basePath: "TODO-G2",
@@ -488,7 +503,7 @@ describe("exec plugin", () => {
           graph,
           silent: false,
         })
-        expect(res.outputs).to.equal(rawAction.versionString())
+        expect(res.outputs.log).to.equal(action.versionString())
       })
     })
 
@@ -511,12 +526,12 @@ describe("exec plugin", () => {
         expect(res.detail?.log).to.eql(expectedLogPath)
       })
 
-      it("should receive module version as an env var", async () => {
+      it("should receive action version as an env var", async () => {
         const actions = await garden.getActionRouter()
         const task = graph.getRun("pwd")
         const action = await garden.resolveAction({ action: task, graph, log })
 
-        action._config.spec.command = ["echo", "$GARDEN_MODULE_VERSION"]
+        action._config.spec.command = ["echo", "$GARDEN_ACTION_VERSION"]
 
         const res = await actions.run.run({
           log,
@@ -1126,12 +1141,12 @@ describe("exec plugin", () => {
         /**
          * See TODO-G2 comments in {@link preprocessActionConfig}.
          */
-        it("converts the repositoryUrl field", async () => {
-          throw "TODO"
+        it.skip("converts the repositoryUrl field", async () => {
+          throw "TODO-G2"
         })
 
-        it("sets Build dependencies correctly", async () => {
-          throw "TODO"
+        it.skip("sets Build dependencies correctly", async () => {
+          throw "TODO-G2"
         })
 
         describe("sets buildAtSource on Build", () => {
@@ -1280,7 +1295,7 @@ describe("exec plugin", () => {
           })
           delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
 
-          garden.setActionConfigs([moduleConfigA])
+          garden.setModuleConfigs([moduleConfigA])
           // this will produce modules with `serviceConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -1395,7 +1410,7 @@ describe("exec plugin", () => {
           })
           delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
 
-          garden.setActionConfigs([moduleConfigA])
+          garden.setModuleConfigs([moduleConfigA])
           // this will produce modules with `taskConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 
@@ -1512,7 +1527,7 @@ describe("exec plugin", () => {
           })
           delete moduleConfigA.spec.build // <--- delete build from the spec to ensure there is no build action
 
-          garden.setActionConfigs([moduleConfigA])
+          garden.setModuleConfigs([moduleConfigA])
           // this will produce modules with `testConfigs` fields initialized
           const tmpGraph = await garden.getConfigGraph({ log: garden.log, emit: false })
 

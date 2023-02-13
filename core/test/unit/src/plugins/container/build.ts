@@ -75,7 +75,7 @@ context("build.ts", () => {
         "--build-arg",
         `GARDEN_MODULE_VERSION=${action.versionString()}`,
         "--build-arg",
-        `GARDEN_BUILD_VERSION=${action.versionString()}`,
+        `GARDEN_ACTION_VERSION=${action.versionString()}`,
         "--file",
         joinWithPosix(action.getBuildPath(), action.getSpec().dockerfile),
         buildPath,

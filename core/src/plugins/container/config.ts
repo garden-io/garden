@@ -970,7 +970,7 @@ export const containerCommonBuildSpecKeys = () => ({
     .default(() => ({})).description(dedent`
       Specify build arguments to use when building the container image.
 
-      Note: Garden will always set a \`GARDEN_BUILD_VERSION\` (alias \`GARDEN_MODULE_VERSION\`) argument with the module/build version at build time.
+      Note: Garden will always set a \`GARDEN_ACTION_VERSION\` (alias \`GARDEN_MODULE_VERSION\`) argument with the module/build version at build time.
     `),
   extraFlags: joi.sparseArray().items(joi.string()).description(deline`
     Specify extra flags to use when building the container image.

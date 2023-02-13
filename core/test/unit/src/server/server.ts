@@ -148,7 +148,9 @@ describe("GardenServer", () => {
 
       expect(taskResultOutputs(res.body.result)).to.eql({
         "build.module-a": {
-          outputs: {},
+          outputs: {
+            log: "A",
+          },
           state: "ready",
           detail: {
             buildLog: "A",
@@ -421,7 +423,7 @@ describe("GardenServer", () => {
           result: {
             "build.module-a": {
               state: "ready",
-              outputs: {},
+              outputs: { log: "A" },
               detail: { fresh: true, buildLog: "A" },
             },
           },
