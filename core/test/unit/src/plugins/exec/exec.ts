@@ -414,7 +414,9 @@ describe("exec plugin", () => {
         const action = graph.getBuild("module-local")
         const actions = await garden.getActionRouter()
 
-        action._config.spec.command = ["echo", "$GARDEN_ACTION_VERSION"]
+        action._config.spec.command = ["sh", "-c", "echo $GARDEN_ACTION_VERSION"]
+        action._config.spec.shell = false
+
         const resolvedAction = await garden.resolveAction({ log, graph, action })
         const res = await actions.build.build({ log, action: resolvedAction, graph })
 
@@ -425,7 +427,9 @@ describe("exec plugin", () => {
         const action = graph.getBuild("module-local")
         const actions = await garden.getActionRouter()
 
-        action._config.spec.command = ["echo", "$GARDEN_MODULE_VERSION"]
+        action._config.spec.command = ["sh", "-c", "echo $GARDEN_MODULE_VERSION"]
+        action._config.spec.shell = false
+
         const resolvedAction = await garden.resolveAction({ log, graph, action })
         const res = await actions.build.build({ log, action: resolvedAction, graph })
 
@@ -487,10 +491,11 @@ describe("exec plugin", () => {
             disabled: false,
             timeout: 1234,
             spec: {
-              command: ["echo", "$GARDEN_ACTION_VERSION"],
+              shell: true,
+              command: ["echo $GARDEN_ACTION_VERSION"],
             },
             internal: {
-              basePath: "TODO-G2",
+              basePath: garden.projectRoot,
             },
           } as TestActionConfig,
           configsByKey: {},
@@ -520,9 +525,6 @@ describe("exec plugin", () => {
         })
 
         const expectedLogPath = join(garden.projectRoot, "module-local")
-        // TODO-G2: there is also `res.detail.outputs` field existing in runtime here,
-        //  which does not exist in the `RunResult` type declaration.
-        //  Is it a bug? Reference `res.detail?.outputs` causes a TS compilation error.
         expect(res.detail?.log).to.eql(expectedLogPath)
       })
 
@@ -531,6 +533,7 @@ describe("exec plugin", () => {
         const task = graph.getRun("pwd")
         const action = await garden.resolveAction({ action: task, graph, log })
 
+        action._config.spec.shell = true
         action._config.spec.command = ["echo", "$GARDEN_ACTION_VERSION"]
 
         const res = await actions.run.run({
@@ -540,7 +543,6 @@ describe("exec plugin", () => {
           graph,
         })
 
-        // TODO-G2: see the comment is the previous spec
         expect(res.detail?.log).to.equal(action.versionString())
       })
     })

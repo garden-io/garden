@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { mapValues } from "lodash"
+import { isArray, isString, mapValues } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
 import { joi, PrimitiveMap, StringMap } from "../../config/common"
@@ -87,6 +87,14 @@ async function resetLogFile(logFilePath: string) {
   await ensureFile(logFilePath)
 }
 
+function convertCommandSpec(command: string[], shell: boolean) {
+  if (shell) {
+    return { cmd: command.join(" "), args: [] }
+  } else {
+    return { cmd: command[0], args: command.slice(1) }
+  }
+}
+
 function runPersistent({
   command,
   action,
@@ -122,14 +130,16 @@ function runPersistent({
       },
     })
 
-  const proc = execa(command.join(" "), [], {
+  const shell = !!action.getSpec().shell
+  const { cmd, args } = convertCommandSpec(command, shell)
+
+  const proc = execa(cmd, args, {
     cwd: action.getBuildPath(),
     env: {
       ...getDefaultEnvVars(action),
       ...(env ? mapValues(env, (v) => v + "") : {}),
     },
-    // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
-    shell: true,
+    shell,
     cleanup: true,
     ...opts,
   })
@@ -165,19 +175,21 @@ async function run({
     ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
   })
 
-  log.debug(`Running command: ${command?.join(" ")}`)
-
   const envVars = {
     ...getDefaultEnvVars(action),
     ...(env ? mapValues(env, (v) => v + "") : {}),
   }
 
-  return exec(command.join(" "), [], {
+  const shell = !!action.getSpec().shell
+  const { cmd, args } = convertCommandSpec(command, shell)
+
+  log.debug(`Running command: ${cmd}`)
+
+  return exec(cmd, args, {
     ...opts,
+    shell,
     cwd: action.getBuildPath(),
     env: envVars,
-    // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
-    shell: true,
     stdout: outputStream,
     stderr: outputStream,
   })
@@ -551,6 +563,7 @@ export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>):
       dependencies: module.build.dependencies.map(convertBuildDependency),
 
       spec: {
+        shell: true, // This keeps the old pre-0.13 behavior
         command: module.spec.build?.command,
         env: module.spec.env,
       },
@@ -595,6 +608,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       dependencies: prepRuntimeDeps(service.spec.dependencies),
 
       spec: {
+        shell: true, // This keeps the old pre-0.13 behavior
         cleanupCommand: service.spec.cleanupCommand,
         deployCommand: service.spec.deployCommand,
         statusCommand: service.spec.statusCommand,
@@ -618,6 +632,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: task.spec.timeout ? task.spec.timeout : undefined,
 
       spec: {
+        shell: true, // This keeps the old pre-0.13 behavior
         command: task.spec.command,
         artifacts: task.spec.artifacts,
         env: prepareEnv(task.spec.env),
@@ -638,6 +653,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       timeout: test.spec.timeout ? test.spec.timeout : undefined,
 
       spec: {
+        shell: true, // This keeps the old pre-0.13 behavior
         command: test.spec.command,
         artifacts: test.spec.artifacts,
         env: prepareEnv(test.spec.env),

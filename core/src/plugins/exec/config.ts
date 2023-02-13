@@ -24,10 +24,29 @@ interface ExecOutputs {
   log: string
 }
 
+interface CommonKeys {
+  shell?: boolean
+}
+
+const commonKeys = () => ({
+  // Description adapted from https://github.com/sindresorhus/execa
+  shell: joi.boolean().description(dedent`
+    If \`true\`, runs file inside of a shell. Uses \`/bin/sh\` on UNIX and \`cmd.exe\` on Windows. A different shell can be specified as a string. The shell should understand the \`-c\` switch on UNIX or \`/d /s /c\` on Windows.
+
+    Note that if this is not set, no shell interpreter (Bash, \`cmd.exe\`, etc.) is used, so shell features such as variables substitution (\`echo $PATH\`) are not allowed.
+
+    We recommend against using this option since it is:
+
+    - not cross-platform, encouraging shell-specific syntax.
+    - slower, because of the additional shell interpretation.
+    - unsafe, potentially allowing command injection.
+  `),
+})
+
 // BUILD //
 
-export interface ExecBuildActionSpec {
-  command?: string[]
+export interface ExecBuildActionSpec extends CommonKeys {
+  command?: string[] // This needs to be optional to support "dummy" builds
   timeout?: number
   env: StringMap
 }
@@ -36,6 +55,7 @@ export type ExecBuild = BuildAction<ExecBuildConfig, ExecOutputs>
 
 export const execBuildActionSchema = () =>
   joi.object().keys({
+    ...commonKeys(),
     command: joi
       .array()
       .items(joi.string())
@@ -60,7 +80,7 @@ export interface ExecDevModeSpec {
   statusCommand?: string[]
 }
 
-export interface ExecDeployActionSpec {
+export interface ExecDeployActionSpec extends CommonKeys {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
@@ -88,6 +108,7 @@ export const execDeployActionSchema = () =>
   joi
     .object()
     .keys({
+      ...commonKeys(),
       deployCommand: execDeployCommandSchema().required(),
       statusCommand: joi
         .sparseArray()
@@ -151,7 +172,7 @@ export const execDeployActionSchema = () =>
 
 // RUN //
 
-export interface ExecRunActionSpec {
+export interface ExecRunActionSpec extends CommonKeys {
   artifacts?: ArtifactSpec[]
   command: string[]
   env: StringMap
@@ -164,6 +185,7 @@ export const execRunActionSchema = () =>
   joi
     .object()
     .keys({
+      ...commonKeys(),
       artifacts: artifactsSchema().description("A list of artifacts to copy after the run."),
       command: joi
         .sparseArray()
@@ -190,6 +212,7 @@ export const execTestActionSchema = () =>
   joi
     .object()
     .keys({
+      ...commonKeys(),
       command: joi
         .sparseArray()
         .items(joi.string().allow(""))
