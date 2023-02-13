@@ -213,7 +213,7 @@ describe("GraphSolver", () => {
 
     await expectError(
       () => processTask(task, { throwOnError: true }),
-      (err) => expect(err.message).to.include("Throwing error in rocess method")
+      (err) => expect(err.message).to.include("Throwing error in process method")
     )
   })
 
@@ -243,7 +243,7 @@ describe("GraphSolver", () => {
 
     expect(result).to.exist
     expect(result!.error).to.exist
-    expect(result!.error?.message).to.include("Throwing error in task-a process method")
+    expect(result!.error?.message).to.include("Throwing error in process method")
   })
 
   it("cascades an error recursively from dependency and fails the execution", async () => {
@@ -259,7 +259,7 @@ describe("GraphSolver", () => {
 
     expect(result).to.exist
     expect(result!.error).to.exist
-    expect(result!.error?.message).to.include("Throwing error in task-a process method")
+    expect(result!.error?.message).to.include("Throwing error in process method")
   })
 
   // TODO-G2: update these once we're decided on the event formats
