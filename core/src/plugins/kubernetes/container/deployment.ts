@@ -379,7 +379,7 @@ export async function createContainerManifests({
   const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
-    set(obj, ["metadata", "labels", gardenAnnotationKey("module")], action.moduleName())
+    set(obj, ["metadata", "labels", gardenAnnotationKey("module")], action.moduleName() || "")
     set(obj, ["metadata", "labels", gardenAnnotationKey("service")], action.name)
     set(obj, ["metadata", "annotations", gardenAnnotationKey("generated")], "true")
     set(obj, ["metadata", "annotations", gardenAnnotationKey("version")], action.versionString())
