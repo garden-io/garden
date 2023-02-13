@@ -2100,7 +2100,7 @@ describe("Garden", () => {
         }),
       })
 
-      expectError(() => garden.getProjectSources(), {
+      await expectError(() => garden.getProjectSources(), {
         contains: "Error validating remote source: key [0][name] must be a string",
       })
 
@@ -3820,370 +3820,315 @@ describe("Garden", () => {
         })
       })
     })
+  })
 
-    context("when a provider has an augmentGraph handler", () => {
-      it("should correctly add and resolve modules from the handler", async () => {
-        const foo = createGardenPlugin({
-          name: "foo",
-          createModuleTypes: [
+  context("augmentGraph handler", () => {
+    it("should correctly add and resolve actions from the handler", async () => {
+      const foo = createGardenPlugin({
+        name: "foo",
+        createActionTypes: {
+          Build: [
             {
               name: "foo",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
-              needsBuild: true,
-              handlers: {
-                configure: async ({ moduleConfig }) => {
-                  return { moduleConfig }
-                },
-              },
+              schema: joi.object(),
+              handlers: {},
             },
           ],
-          handlers: {
-            // TODO-G2 check if this still makes sense
-            // augmentGraph: async () => {
-            //   return {
-            //     addModules: [
-            //       {
-            //         kind: "Module",
-            //         type: "foo",
-            //         name: "foo",
-            //         foo: "bar",
-            //         path: "/tmp",
-            //       },
-            //     ],
-            //   }
-            // },
+        },
+        handlers: {
+          augmentGraph: async (_) => {
+            return {
+              addActions: [
+                {
+                  kind: "Build",
+                  type: "foo",
+                  name: "foo",
+                  internal: {
+                    basePath: pathFoo,
+                  },
+                  spec: {},
+                },
+              ],
+            }
           },
-        })
-
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo],
-          config: projectConfigFoo,
-        })
-
-        const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
-
-        expect(module.type).to.equal("foo")
-        expect(module.spec.foo).to.eql("bar")
-        expect(module.path).to.eql("/tmp")
+        },
       })
 
-      it("should add modules before applying dependencies", async () => {
-        const foo = createGardenPlugin({
-          name: "foo",
-          createModuleTypes: [
-            {
-              name: "foo",
-              docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
-              needsBuild: true,
-              handlers: {
-                configure: async ({ moduleConfig }) => {
-                  moduleConfig.include = []
-                  moduleConfig.serviceConfigs = [
-                    {
-                      name: moduleConfig.name,
-                      dependencies: [],
-                      disabled: false,
-
-                      spec: {},
-                    },
-                  ]
-                  return { moduleConfig }
-                },
-              },
-            },
-          ],
-          handlers: {
-            // TODO-G2 check if this still makes sense
-            // augmentGraph: async () => {
-            //   return {
-            //     addModules: [
-            //       {
-            //         kind: "Module",
-            //         type: "foo",
-            //         name: "foo",
-            //         foo: "bar",
-            //         path: "/tmp",
-            //       },
-            //       {
-            //         kind: "Module",
-            //         type: "foo",
-            //         name: "bar",
-            //         foo: "bar",
-            //         path: "/tmp",
-            //       },
-            //     ],
-            //     // This shouldn't work unless build deps are set in right order
-            //     addRuntimeDependencies: [{ by: "foo", on: "bar" }],
-            //   }
-            // },
-          },
-        })
-
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo],
-          config: projectConfigFoo,
-        })
-
-        const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
-
-        expect(module).to.exist
-        expect(module.serviceConfigs).to.eql([
-          {
-            name: "foo",
-            dependencies: ["bar"],
-            disabled: false,
-
-            spec: {},
-          },
-        ])
-        expect(module.spec).to.eql({ foo: "bar", build: { dependencies: [], timeout: defaultBuildTimeout } })
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [foo],
+        config: projectConfigFoo,
       })
 
-      it("should apply returned runtime dependency relationships", async () => {
-        const foo = createGardenPlugin({
-          name: "foo",
-          createModuleTypes: [
-            {
-              name: "foo",
-              docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
-              needsBuild: true,
-              handlers: {
-                configure: async ({ moduleConfig }) => {
-                  moduleConfig.include = []
-                  moduleConfig.serviceConfigs = [
-                    {
-                      name: moduleConfig.name,
-                      dependencies: [],
-                      disabled: false,
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const actions = graph.getActions()
 
-                      spec: {},
-                    },
-                  ]
-                  return { moduleConfig }
-                },
-              },
+      expect(actions.length).to.equal(1)
+      expect(actions[0].name).to.eql("foo")
+    })
+
+    it("should add actions before applying dependencies", async () => {
+      const foo = createGardenPlugin({
+        name: "foo",
+        createActionTypes: {
+          Build: [
+            {
+              name: "test",
+              docs: "foo",
+              schema: joi.object(),
+              handlers: {},
             },
           ],
-          handlers: {
-            // TODO-G2 check if this still makes sense
-            // augmentGraph: async () => {
-            //   return {
-            //     addRuntimeDependencies: [{ by: "foo", on: "bar" }],
-            //   }
-            // },
+        },
+        handlers: {
+          augmentGraph: async () => {
+            return {
+              addActions: [
+                {
+                  kind: "Build",
+                  type: "foo",
+                  name: "foo",
+                  internal: {
+                    basePath: pathFoo,
+                  },
+                  spec: {},
+                },
+                {
+                  kind: "Build",
+                  type: "foo",
+                  name: "bar",
+                  internal: {
+                    basePath: pathFoo,
+                  },
+                  spec: {},
+                },
+              ],
+              // This shouldn't work unless build deps are set in right order
+              addDependencies: [{ by: { kind: "Build", name: "bar" }, on: { kind: "Build", name: "foo" } }],
+            }
           },
-        })
-
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo],
-          config: projectConfigFoo,
-        })
-
-        garden.setModuleConfigs([
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "foo",
-            type: "foo",
-            allowPublish: false,
-            build: { dependencies: [] },
-            disabled: false,
-            path: "/tmp",
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "bar",
-            type: "foo",
-            allowPublish: false,
-            build: { dependencies: [] },
-            disabled: false,
-            path: "/tmp",
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-        ])
-
-        const module = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
-
-        expect(module).to.exist
-        expect(module.serviceConfigs).to.eql([
-          {
-            name: "foo",
-            dependencies: ["bar"],
-            disabled: false,
-
-            spec: {},
-          },
-        ])
+        },
       })
 
-      it("should throw if a runtime dependency's `by` reference can't be resolved", async () => {
-        const foo = createGardenPlugin({
-          name: "foo",
-          createModuleTypes: [
-            {
-              name: "foo",
-              docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
-              needsBuild: true,
-              handlers: {
-                configure: async ({ moduleConfig }) => {
-                  moduleConfig.serviceConfigs = [
-                    {
-                      name: moduleConfig.name,
-                      dependencies: [],
-                      disabled: false,
-
-                      spec: {},
-                    },
-                  ]
-                  return { moduleConfig }
-                },
-              },
-            },
-          ],
-          handlers: {
-            // TODO-G2 check if this still makes sense
-            // augmentGraph: async () => {
-            //   return {
-            //     addRuntimeDependencies: [{ by: "bar", on: "foo" }],
-            //   }
-            // },
-          },
-        })
-
-        const garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo],
-          config: projectConfigFoo,
-        })
-
-        garden.setModuleConfigs([
-          {
-            apiVersion: DEFAULT_API_VERSION,
-            name: "foo",
-            type: "foo",
-            allowPublish: false,
-            build: { dependencies: [] },
-            disabled: false,
-            path: "/tmp",
-            serviceConfigs: [],
-            taskConfigs: [],
-            testConfigs: [],
-            spec: {},
-          },
-        ])
-
-        await expectError(() => garden.resolveModules({ log: garden.log }), {
-          contains: [
-            "Provider 'foo' added a runtime dependency by 'bar' on 'foo'",
-            "but service or task 'bar' could not be found.",
-          ],
-        })
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [foo],
+        config: projectConfigFoo,
       })
 
-      it("should process augmentGraph handlers in dependency order", async () => {
-        // Ensure modules added by the dependency are in place before adding dependencies in dependant.
-        const foo = createGardenPlugin({
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const bar = graph.getBuild("bar")
+
+      expect(bar.getDependencyReferences()).to.eql([
+        {
+          explicit: true,
+          kind: "Build",
           name: "foo",
-          dependencies: <PluginDependency[]>[],
-          createModuleTypes: [
+          needsExecutedOutputs: false,
+          needsStaticOutputs: false,
+        },
+      ])
+    })
+
+    it("should apply returned runtime dependency relationships", async () => {
+      const foo = createGardenPlugin({
+        name: "foo",
+        createActionTypes: {
+          Build: [
             {
-              name: "foo",
+              name: "test",
               docs: "foo",
-              schema: joi.object().keys({ foo: joi.string(), build: baseBuildSpecSchema() }),
-              needsBuild: true,
-              handlers: {
-                configure: async ({ moduleConfig }) => {
-                  moduleConfig.serviceConfigs = [
-                    {
-                      name: moduleConfig.name,
-                      disabled: false,
-                      dependencies: [],
-
-                      spec: {},
-                    },
-                  ]
-
-                  return { moduleConfig }
-                },
-              },
+              schema: joi.object(),
+              handlers: {},
             },
           ],
-          handlers: {
-            // TODO-G2 check if this still makes sense
-            // augmentGraph: async () => {
-            //   return {
-            //     addModules: [
-            //       {
-            //         kind: "Module",
-            //         type: "foo",
-            //         name: "foo",
-            //         foo: "bar",
-            //         path: "/tmp",
-            //       },
-            //       {
-            //         kind: "Module",
-            //         type: "foo",
-            //         name: "bar",
-            //         path: "/tmp",
-            //       },
-            //     ],
-            //   }
-            // },
+        },
+        handlers: {
+          augmentGraph: async () => {
+            return {
+              addDependencies: [{ by: { kind: "Build", name: "bar" }, on: { kind: "Build", name: "foo" } }],
+            }
           },
-        })
+        },
+      })
 
-        const bar = createGardenPlugin({
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [foo],
+        config: projectConfigFoo,
+      })
+
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "foo",
+          name: "foo",
+          internal: {
+            basePath: pathFoo,
+          },
+          spec: {},
+        },
+        {
+          kind: "Build",
+          type: "foo",
           name: "bar",
-          dependencies: [{ name: "foo" }],
-          handlers: {
-            // TODO-G2 check if this still makes sense
-            // augmentGraph: async () => {
-            //   return {
-            //     // This doesn't work unless providers are processed in right order
-            //     addRuntimeDependencies: [{ by: "foo", on: "bar" }],
-            //   }
-            // },
+          internal: {
+            basePath: pathFoo,
           },
-        })
+          spec: {},
+        },
+      ])
 
-        const config = {
-          ...projectConfigFoo,
-          providers: [...projectConfigFoo.providers, { name: "bar" }],
-        }
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const bar = graph.getBuild("bar")
 
-        // First test correct order
-        let garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo, bar],
-          config,
-        })
+      expect(bar.getDependencyReferences()).to.eql([
+        {
+          explicit: true,
+          kind: "Build",
+          name: "foo",
+          needsExecutedOutputs: false,
+          needsStaticOutputs: false,
+        },
+      ])
+    })
 
-        const fooModule = findByName(await garden.resolveModules({ log: garden.log }), "foo")!
+    it("should throw if a dependency's `by` reference can't be resolved", async () => {
+      const foo = createGardenPlugin({
+        name: "foo",
+        createActionTypes: {
+          Build: [
+            {
+              name: "test",
+              docs: "foo",
+              schema: joi.object(),
+              handlers: {},
+            },
+          ],
+        },
+        handlers: {
+          augmentGraph: async () => {
+            return {
+              addDependencies: [{ by: { kind: "Build", name: "bar" }, on: { kind: "Build", name: "foo" } }],
+            }
+          },
+        },
+      })
 
-        expect(fooModule).to.exist
-        expect(fooModule.serviceConfigs[0].dependencies).to.eql(["bar"])
+      const garden = await TestGarden.factory(pathFoo, {
+        plugins: [foo],
+        config: projectConfigFoo,
+      })
 
-        // Then test wrong order and make sure it throws
-        foo.dependencies = [{ name: "bar" }]
-        bar.dependencies = []
+      garden.setActionConfigs([
+        {
+          kind: "Build",
+          type: "foo",
+          name: "bar",
+          internal: {
+            basePath: pathFoo,
+          },
+          spec: {},
+        },
+      ])
 
-        garden = await TestGarden.factory(pathFoo, {
-          plugins: [foo, bar],
-          config,
-        })
+      await expectError(() => garden.resolveModules({ log: garden.log }), {
+        contains: [
+          "Provider 'foo' added a dependency by action 'build.bar' on 'build.foo'",
+          "but action 'build.foo' could not be found.",
+        ],
+      })
+    })
 
-        await expectError(() => garden.resolveModules({ log: garden.log }), {
-          contains:
-            "Provider 'bar' added a runtime dependency by 'foo' on 'bar' but service or task 'foo' could not be found.",
-        })
+    it("should process augmentGraph handlers in dependency order", async () => {
+      // Ensure modules added by the dependency are in place before adding dependencies in dependant.
+      const foo = createGardenPlugin({
+        name: "foo",
+        createActionTypes: {
+          Build: [
+            {
+              name: "test",
+              docs: "foo",
+              schema: joi.object(),
+              handlers: {},
+            },
+          ],
+        },
+        handlers: {
+          augmentGraph: async () => {
+            return {
+              addActions: [
+                {
+                  kind: "Build",
+                  type: "foo",
+                  name: "foo",
+                  internal: {
+                    basePath: pathFoo,
+                  },
+                  spec: {},
+                },
+                {
+                  kind: "Build",
+                  type: "foo",
+                  name: "bar",
+                  internal: {
+                    basePath: pathFoo,
+                  },
+                  spec: {},
+                },
+              ],
+            }
+          },
+        },
+      })
+
+      const bar = createGardenPlugin({
+        name: "bar",
+        dependencies: [{ name: "foo" }],
+        handlers: {
+          augmentGraph: async () => {
+            return {
+              // This doesn't work unless providers are processed in right order
+              addDependencies: [{ by: { kind: "Build", name: "bar" }, on: { kind: "Build", name: "foo" } }],
+            }
+          },
+        },
+      })
+
+      const config = {
+        ...projectConfigFoo,
+        providers: [...projectConfigFoo.providers, { name: "bar" }],
+      }
+
+      // First test correct order
+      let garden = await TestGarden.factory(pathFoo, {
+        plugins: [foo, bar],
+        config,
+      })
+
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+      const build = graph.getBuild("bar")
+
+      expect(build.getDependencyReferences()).to.eql([
+        {
+          explicit: true,
+          kind: "Build",
+          name: "foo",
+          needsExecutedOutputs: false,
+          needsStaticOutputs: false,
+        },
+      ])
+
+      // Then test wrong order and make sure it throws
+      foo.dependencies = [{ name: "bar" }]
+      bar.dependencies = []
+
+      garden = await TestGarden.factory(pathFoo, {
+        plugins: [foo, bar],
+        config,
+      })
+
+      await expectError(() => garden.getConfigGraph({ log: garden.log, emit: false }), {
+        contains:
+          "Provider 'bar' added a dependency by action 'build.bar' on 'build.foo' but action 'build.bar' could not be found.",
       })
     })
   })

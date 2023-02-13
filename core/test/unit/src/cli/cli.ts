@@ -805,8 +805,6 @@ describe("cli", () => {
 
       const stripped = stripAnsi(consoleOutput!).trim()
 
-      console.log(stripped)
-
       expect(code).to.equal(1)
       expect(
         stripped.startsWith('Invalid value for option --logger-type: "bla" is not a valid argument (should be any of ')

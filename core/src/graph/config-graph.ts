@@ -521,7 +521,7 @@ export class MutableConfigGraph extends ConfigGraph {
     const dependant = this.getActionByRef(by)
     const dependency = this.getActionByRef(on)
 
-    dependant.addDependency({ ...dependency, ...attributes })
+    dependant.addDependency({ kind: dependency.kind, name: dependency.name, ...attributes })
 
     this.addRelation({
       dependant: this.getNode(dependant.kind, dependant.name, dependant.isDisabled()),
