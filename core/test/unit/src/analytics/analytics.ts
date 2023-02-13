@@ -13,7 +13,7 @@ import { validate as validateUuid } from "uuid"
 
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics"
-import { DEFAULT_API_VERSION, gardenEnv } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
 import { Log } from "../../../../src/logger/log-entry"
 import { Logger, LogLevel } from "../../../../src/logger/logger"
@@ -405,8 +405,8 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: undefined,
-          enterpriseDomainV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
           isLoggedIn: false,
           customer: undefined,
           ciName: analytics["ciName"],
@@ -444,8 +444,8 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: undefined,
-          enterpriseDomainV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
           isLoggedIn: false,
           customer: undefined,
           system: analytics["systemConfig"],
@@ -500,8 +500,8 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: undefined,
-          enterpriseDomainV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
           isLoggedIn: false,
           customer: undefined,
           ciName: analytics["ciName"],

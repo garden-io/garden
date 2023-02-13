@@ -38,6 +38,7 @@ import {
   findByNames,
   duplicatesByKey,
   getCloudDistributionName,
+  getCloudLogSectionName,
 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
@@ -1229,7 +1230,7 @@ export class Garden {
 
       for (const kind of actionKinds) {
         for (const config of groupedResources[kind] || []) {
-          this.addActionConfig((config as unknown) as BaseActionConfig)
+          this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }
@@ -1551,8 +1552,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
   // fall back to get the domain from config if the cloudApi instance failed
-  // to login or was not defined
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config?.domain)
+  // to login or was not defined.
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
@@ -1560,7 +1561,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
-    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
+    const section = getCloudLogSectionName(distroName)
     const cloudLog = log.makeNewLogContext({ section })
     cloudLog.info("Initializing...")
 
@@ -1613,8 +1614,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudLog.info(
         chalk.yellow(
           wordWrap(
-            deline`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project.
-            Continuing without ${distroName} features ...`,
+            deline`Logged in to ${cloudDomain}, but could not find the project '${projectName}'.
+            Command results for this command run will not be available in ${distroName}.`,
             120
           )
         )
