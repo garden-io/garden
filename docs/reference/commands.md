@@ -3396,7 +3396,11 @@ Examples:
 
 ### garden dashboard
 
-**Starts the Garden dashboard for the current project and environment.**
+**[DEPRECATED] Starts the Garden dashboard for the current project and environment.**
+
+Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out a beta version of Garden Cloud Dashboard at https://app.garden.
+
+-------------
 
 Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
 

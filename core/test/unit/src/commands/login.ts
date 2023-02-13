@@ -115,7 +115,7 @@ describe("LoginCommand", () => {
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-    expect(logOutput).to.include("You're already logged in to Garden Enterprise.")
+    expect(logOutput).to.include("You're already logged in to http://dummy-domain.com.")
   })
 
   it("should log in if the project config uses secrets in project variables", async () => {
@@ -147,17 +147,35 @@ describe("LoginCommand", () => {
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
   })
 
-  it("should throw if the project doesn't have a domain", async () => {
+  it("should fall back to the default garden cloud domain when none is defined", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+    const command = new LoginCommand()
     const cli = new TestGardenCli()
     const garden = await makeDummyGarden(getDataDir("test-projects", "login", "missing-domain"), {
+      noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
-    const command = new LoginCommand()
 
-    await expectError(
-      () => command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })),
-      (err) => expect(stripAnsi(err.message)).to.match(/Project config is missing a cloud domain./)
-    )
+    // Make sure to clean up the state of this garden project
+    // NOTE: Can we make this clean-up more generic?
+    await garden.configStore.clear()
+
+    setTimeout(() => {
+      garden.events.emit("receivedToken", testToken)
+    }, 500)
+
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
+
+    // If the token exist, we have used the fallback domain
+    const savedToken = await ClientAuthToken.findOne()
+    expect(savedToken).to.exist
+    expect(savedToken!.token).to.eql(testToken.token)
+    expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
   })
 
   it("should throw if the user has an invalid auth token", async () => {
@@ -251,7 +269,7 @@ describe("LoginCommand", () => {
 
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-      expect(logOutput).to.include("You're already logged in to Garden Enterprise.")
+      expect(logOutput).to.include("You're already logged in to http://dummy-domain.com.")
     })
 
     it("should throw if the user has an invalid auth token in the environment", async () => {

@@ -15,6 +15,7 @@ import { printHeader } from "../logger/util"
 import chalk = require("chalk")
 import { Garden } from "../garden"
 import { processModules } from "../process"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN } from "../constants"
 
 export const defaultDashboardPort = 9700
 
@@ -33,13 +34,17 @@ type Opts = typeof dashboardOpts
 export class DashboardCommand extends Command<Args, Opts> {
   name = "dashboard"
   alias = "serve"
-  help = "Starts the Garden dashboard for the current project and environment."
+  help = "[DEPRECATED] Starts the Garden dashboard for the current project and environment."
 
   cliOnly = true
   streamEvents = true
   private garden?: Garden
 
   description = dedent`
+    Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out a beta version of Garden Cloud Dashboard at ${DEFAULT_GARDEN_CLOUD_DOMAIN}.
+
+    -------------
+
     Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
 
     The dashboard will receive and display updates from other Garden processes that you run with the same Garden project, environment and namespace.
@@ -51,7 +56,7 @@ export class DashboardCommand extends Command<Args, Opts> {
   options = dashboardOpts
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Dashboard", "bar_chart")
+    printHeader(headerLog, `[DEPRECATED] Dashboard`, "bar_chart")
   }
 
   terminate() {

@@ -32,22 +32,30 @@ export class LogOutCommand extends Command {
     // Note: lazy-loading for startup performance
     const { ClientAuthToken } = require("../db/entities/client-auth-token")
 
-    const token = await ClientAuthToken.findOne()
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
 
-    if (!token) {
-      log.info({ msg: `You're already logged out from ${distroName}.` })
-      return {}
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
+      throw new ConfigurationError(
+        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        {
+          root: garden.projectRoot,
+        }
+      )
     }
+
+    const cloudDomain: string = getGardenCloudDomain(projectConfig)
+    const distroName = getCloudDistributionName(cloudDomain)
 
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
-      const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
-      const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
 
-      if (!cloudDomain) {
-        throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+      const token = await ClientAuthToken.findOne()
+
+      if (!token) {
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
+        return {}
       }
 
       const cloudApi = await CloudApi.factory({
@@ -71,8 +79,10 @@ export class LogOutCommand extends Command {
         msg,
       })
     } finally {
-      log.info({ msg: `Succesfully logged out from ${distroName}.` })
+      // always clear the auth token
       await CloudApi.clearAuthToken(log)
+
+      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
     }
     return {}
   }

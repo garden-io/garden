@@ -11,7 +11,7 @@ import { IncomingHttpHeaders } from "http"
 import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
 import { EnterpriseApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
-import { gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import type { ClientAuthToken as ClientAuthTokenType } from "../db/entities/client-auth-token"
 import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
@@ -23,7 +23,7 @@ import {
   CreateProjectsForRepoResponse,
   ListProjectsResponse,
 } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getPackageVersion } from "../util/util"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
 import { ProjectResource } from "../config/project"
 
@@ -138,20 +138,16 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomain(projectConfig?: ProjectResource): string | undefined {
-  if (!projectConfig) {
-    return undefined
-  }
-
+export function getGardenCloudDomain(projectConfig?: ProjectResource): string {
   let cloudDomain: string | undefined
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (projectConfig.domain) {
+  } else if (projectConfig?.domain) {
     cloudDomain = new URL(projectConfig.domain).origin
   }
 
-  return cloudDomain
+  return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
 /**
@@ -202,16 +198,19 @@ export class CloudApi {
     log.debug("Initializing Garden Cloud API client.")
 
     const token = await CloudApi.getClientAuthTokenFromDb(log)
+    const distroName = getCloudDistributionName(cloudDomain)
+
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.debug("User is not logged in. Aborting.")
+      log.debug(
+        `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
+      )
       return null
     }
 
     const api = new CloudApi(log, cloudDomain)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const distroName = getCloudDistributionName(api.domain)
-    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
+    const section = getCloudLogSectionName(distroName)
 
     const enterpriseLog = skipLogging ? null : log.info({ section, msg: "Authorizing...", status: "active" })
 

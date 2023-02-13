@@ -37,24 +37,40 @@ export class LoginCommand extends Command {
   }
 
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
-    const currentDirectory = garden.projectRoot
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
-
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(currentDirectory)
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
 
-    if (!cloudDomain) {
-      throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
+      throw new ConfigurationError(
+        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        {
+          root: garden.projectRoot,
+        }
+      )
     }
 
-    try {
-      const enterpriseApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true })
+    // Garden works by default without Garden Cloud. In order to use cloud, a domain
+    // must be known to cloud for any command needing a logged in user.
+    //
+    // The cloud domain is resolved in the following order:
+    // - 1. GARDEN_CLOUD_DOMAIN config variable
+    // - 2. `domain`-field from the project config
+    // - 3. fallback to the default garden cloud domain
+    //
+    // If the fallback was used, we rely on the token to decide if the Cloud API instance
+    // should use the default domain or not. The token lifecycle ends on logout.
+    let cloudDomain: string = getGardenCloudDomain(projectConfig)
 
-      if (enterpriseApi) {
-        log.info({ msg: `You're already logged in to ${distroName}.` })
-        enterpriseApi.close()
+    const distroName = getCloudDistributionName(cloudDomain)
+
+    try {
+      const cloudApi = await CloudApi.factory({ log, cloudDomain, skipLogging: true })
+
+      if (cloudApi) {
+        log.info({ msg: `You're already logged in to ${cloudDomain}.` })
+        cloudApi.close()
         return {}
       }
     } catch (err) {
@@ -72,15 +88,16 @@ export class LoginCommand extends Command {
     log.info({ msg: `Logging in to ${cloudDomain}...` })
     const tokenResponse = await login(log, cloudDomain, garden.events)
     await CloudApi.saveAuthToken(log, tokenResponse)
-    log.info({ msg: `Successfully logged in to ${distroName}.` })
+    log.info({ msg: `Successfully logged in to ${cloudDomain}.` })
+
     return {}
   }
 }
 
-export async function login(log: LogEntry, enterpriseDomain: string, events: EventBus) {
+export async function login(log: LogEntry, cloudDomain: string, events: EventBus) {
   // Start auth redirect server and wait for its redirect handler to receive the redirect and finish running.
-  const server = new AuthRedirectServer(enterpriseDomain, events, log)
-  const distroName = getCloudDistributionName(enterpriseDomain)
+  const server = new AuthRedirectServer(cloudDomain, events, log)
+  const distroName = getCloudDistributionName(cloudDomain)
   log.debug(`Redirecting to ${distroName} login page...`)
   const response: AuthTokenResponse = await new Promise(async (resolve, _reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
