@@ -40,7 +40,7 @@ import { Log } from "../logger/log-entry"
 import { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
-import { gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import execa = require("execa")
@@ -108,17 +108,33 @@ export function getPackageVersion(): string {
   return version
 }
 
+type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
+
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
  * otherwise "Garden Enterprise".
  *
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
-export function getCloudDistributionName(domain: string) {
+export function getCloudDistributionName(domain: string): CloudDistroName {
+  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
+    return "Cloud Dashboard"
+  }
+
   if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
     return "Garden Enterprise"
   }
   return "Garden Cloud"
+}
+
+export function getCloudLogSectionName(distroName: CloudDistroName): string {
+  if (distroName === "Cloud Dashboard") {
+    return "cloud-dashboard"
+  } else if (distroName === "Garden Cloud") {
+    return "garden-cloud"
+  } else {
+    return "garden-enterprise"
+  }
 }
 
 export async function sleep(msec: number) {

@@ -298,13 +298,8 @@ ${renderCommands(commands)}
     let cloudApi: CloudApi | null = null
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
-      const cloudDomain: string | undefined = getGardenCloudDomain(config?.domain)
-
-      if (cloudDomain) {
-        cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })
-      } else {
-        log.debug("Cloud/Enterprise domain not configured. Aborting.")
-      }
+      let cloudDomain: string = getGardenCloudDomain(config)
+      cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })
     }
 
     // Init event & log streaming.
