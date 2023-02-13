@@ -215,21 +215,28 @@ describe("cli", () => {
 
     context("test logger initialization", () => {
       const envLoggerType = process.env.GARDEN_LOGGER_TYPE
+      const envLogLevel = process.env.GARDEN_LOG_LEVEL
 
       // Logger is a singleton and we need to reset it between these tests as we're testing
       // that it's initialised correctly in this block.
       beforeEach(() => {
         delete process.env.GARDEN_LOGGER_TYPE
+        delete process.env.GARDEN_LOG_LEVEL
+        gardenEnv.GARDEN_LOGGER_TYPE = ""
+        gardenEnv.GARDEN_LOG_LEVEL = ""
         Logger.clearInstance()
       })
       // Re-initialise the test logger
       after(() => {
         process.env.GARDEN_LOGGER_TYPE = envLoggerType
+        process.env.GARDEN_LOG_LEVEL = envLogLevel
+        gardenEnv.GARDEN_LOGGER_TYPE = envLoggerType || ""
+        gardenEnv.GARDEN_LOG_LEVEL = envLogLevel || ""
         Logger.clearInstance()
         initTestLogger()
       })
 
-      it("uses the basic logger by default", async () => {
+      it("uses the fancy logger by default", async () => {
         class TestCommand extends Command {
           name = "test-command"
           help = "halp!"
@@ -248,7 +255,8 @@ describe("cli", () => {
         await cli.run({ args: ["test-command"], exitOnError: false })
 
         const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(BasicTerminalWriter)
+        const writers = logger.getWriters()
+        expect(writers.map((w) => w.type)).to.include("fancy")
       })
 
       it("uses the basic logger if log level > info", async () => {
