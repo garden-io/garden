@@ -187,7 +187,7 @@ export class TestCommand extends Command<Args, Opts> {
       log,
       actions,
       initialTasks,
-      persistent: this.isPersistent(params),
+      persistent: false,
     })
 
     return handleProcessResults(footerLog, "test", results)

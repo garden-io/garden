@@ -302,6 +302,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       })
 
       if (limitedByGroup.length === 0) {
+        this.emit("loop", {})
         return
       }
 
@@ -311,6 +312,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         .filter((node) => !this.inProgress[node.getKey()])
 
       if (nodesToProcess.length === 0) {
+        this.emit("loop", {})
         return
       }
 
