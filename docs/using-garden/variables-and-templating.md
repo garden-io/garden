@@ -577,8 +577,8 @@ Multiple variables are separated with a comma, and each part is parsed using [do
 The order of precedence is as follows (from highest to lowest):
 
 1. Individual variables set with `--var` CLI flags.
-2. The module-level varfile (if configured).
-3. Module variables set in `module.variables`.
+2. The module/action-level varfile (if configured).
+3. Module/action variables set in `module.variables`.
 4. The environment-specific varfile (defaults to `garden.<env-name>.env`).
 5. The environment-specific variables set in `environment[].variables`.
 6. Configured project-wide varfile (defaults to `garden.env`).
