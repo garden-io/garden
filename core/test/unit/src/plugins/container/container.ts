@@ -130,6 +130,7 @@ describe("plugins.container", () => {
         kind: "Build",
         name: "dummyBuild",
         spec: {
+          command: ["echo"],
           env: {},
         },
         type: "exec",

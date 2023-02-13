@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { cloneDeep, extend, get, intersection, mapValues, merge, omit, pick, uniq } from "lodash"
+import { cloneDeep, extend, get, intersection, isString, mapValues, merge, omit, pick, uniq } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
@@ -162,10 +162,12 @@ export async function configureTestModule({ moduleConfig }: ConfigureModuleParam
 const runTest: RunActionHandler<"run", ExecRun> = async ({ action, log }): Promise<GetRunResult> => {
   const { command } = action.getSpec()
 
-  log.info("Run command: " + command.join(" "))
+  const commandStr = isString(command) ? command : command.join(" ")
+
+  log.info("Run command: " + commandStr)
 
   const outputs = {
-    log: command.join(" "),
+    log: commandStr,
   }
 
   return {
