@@ -311,7 +311,9 @@ async function tarball(targetName: string, version: string): Promise<void> {
   })
 }
 
-buildBinaries(process.argv.slice(2)).catch((err) => {
-  console.error(chalk.red(err.message))
-  process.exit(1)
-})
+if (require.main === module) {
+  buildBinaries(process.argv.slice(2)).catch((err) => {
+    console.error(chalk.red(err.message))
+    process.exit(1)
+  })
+}
