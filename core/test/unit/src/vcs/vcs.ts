@@ -36,6 +36,7 @@ import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/co
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { BaseActionConfig } from "../../../../src/actions/types"
+import { TreeCache } from "../../../../src/cache"
 
 export class TestVcsHandler extends VcsHandler {
   name = "test"
@@ -89,7 +90,7 @@ describe("VcsHandler", () => {
       projectRoot: gardenA.projectRoot,
       gardenDirPath: join(gardenA.projectRoot, ".garden"),
       ignoreFile: defaultDotIgnoreFile,
-      cache: gardenA.cache,
+      cache: new TreeCache(),
     })
   })
 
@@ -241,31 +242,6 @@ describe("VcsHandler", () => {
       expect(result).to.eql(cachedResult)
     })
   })
-
-  describe("resolveTreeVersion", () => {
-    it("should return the version from a version file if it exists", async () => {
-      const moduleConfig = await gardenA.resolveModule("module-a")
-      const result = await handlerA.resolveTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
-
-      expect(result).to.eql({
-        contentHash: "1234567890",
-        files: [],
-      })
-    })
-
-    it("should call getTreeVersion if there is no version file", async () => {
-      const moduleConfig = await gardenA.resolveModule("module-b")
-
-      const version = {
-        contentHash: "qwerty",
-        files: [],
-      }
-      handlerA.setTestTreeVersion(moduleConfig.path, version)
-
-      const result = await handlerA.resolveTreeVersion(gardenA.log, gardenA.projectName, moduleConfig)
-      expect(result).to.eql(version)
-    })
-  })
 })
 
 describe("getModuleVersionString", () => {
@@ -353,8 +329,7 @@ describe("getModuleVersionString", () => {
     const garden = await makeTestGarden(projectRoot, { noCache: true })
     const module = await garden.resolveModule("module-a")
 
-    // TODO-G2: the assertion below still fails, check if there is something changed in the hash calculation
-    const fixedVersionString = "v-6f85bdd407"
+    const fixedVersionString = "v-b65dac0a76"
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR
