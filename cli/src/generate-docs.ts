@@ -28,14 +28,16 @@ try {
 
 const plugins = [...getBundledPlugins(), ...getSupportedPlugins()]
 
-generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), plugins)
-  .then(() => {
-    // eslint-disable-next-line no-console
-    console.log("Done!")
-    process.exit(0)
-  })
-  .catch((err) => {
-    // eslint-disable-next-line no-console
-    console.error(err)
-    process.exit(1)
-  })
+if (require.main === module) {
+  generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), plugins)
+    .then(() => {
+      // eslint-disable-next-line no-console
+      console.log("Done!")
+      process.exit(0)
+    })
+    .catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error(err)
+      process.exit(1)
+    })
+}

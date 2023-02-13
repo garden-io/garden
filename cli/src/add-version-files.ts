@@ -50,8 +50,10 @@ async function addVersionFiles() {
   })
 }
 
-addVersionFiles().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error(err)
-  process.exit(1)
-})
+if (require.main === module) {
+  addVersionFiles().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error(err)
+    process.exit(1)
+  })
+}
