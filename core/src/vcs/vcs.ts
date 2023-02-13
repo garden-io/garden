@@ -208,13 +208,6 @@ export abstract class VcsHandler {
     return result
   }
 
-  async resolveTreeVersion(log: LogEntry, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
-    // the version file is used internally to specify versions outside of source control
-    const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
-    const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
-  }
-
   getRemoteSourcesDirname(type: ExternalSourceType) {
     return getRemoteSourcesDirname(type)
   }

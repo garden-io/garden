@@ -55,6 +55,7 @@ import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
 import { convertExecModule } from "../../../src/plugins/exec/exec"
 import { getLogMessages } from "../../../src/util/testing"
+import { TreeCache } from "../../../src/cache"
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -4212,7 +4213,7 @@ describe("Garden", () => {
       garden.cache.delete(garden.log, ["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
-      garden.vcs.resolveTreeVersion = async () => ({
+      garden.vcs.getTreeVersion = async () => ({
         contentHash: "banana",
         files: [],
       })
@@ -4257,7 +4258,7 @@ describe("Garden", () => {
           projectRoot: gardenA.projectRoot,
           gardenDirPath: join(gardenA.projectRoot, ".garden"),
           ignoreFile: defaultDotIgnoreFile,
-          cache: gardenA.cache,
+          cache: new TreeCache(),
         })
       })
       it("should return module version if there are no dependencies", async () => {

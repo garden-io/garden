@@ -1085,7 +1085,7 @@ export class Garden {
 
     const cacheContexts = [...moduleDependencies, moduleConfig].map((c: ModuleConfig) => getModuleCacheContext(c))
 
-    const treeVersion = await this.vcs.resolveTreeVersion(this.log, this.projectName, moduleConfig)
+    const treeVersion = await this.vcs.getTreeVersion(this.log, this.projectName, moduleConfig)
 
     validateSchema(treeVersion, treeVersionSchema(), {
       context: `${this.vcs.name} tree version for module at ${moduleConfig.path}`,
