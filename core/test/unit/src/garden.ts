@@ -4261,13 +4261,16 @@ describe("Garden", () => {
           cache: new TreeCache(),
         })
       })
+
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")
         gardenA.vcs = handlerA
         const result = await gardenA.resolveModuleVersion(gardenA.log, module, [])
 
+        const treeVersion = await handlerA.getTreeVersion(gardenA.log, gardenA.projectName, module)
+
         expect(result).to.eql({
-          versionString: getModuleVersionString(module, { ...treeVersionA, name: "module-a" }, []),
+          versionString: getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []),
           dependencyVersions: {},
           files: [],
         })
@@ -4356,9 +4359,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-6f85bdd407"
-      const moduleBVersionString = "v-6e138410f5"
-      const moduleCVersionString = "v-ea24adfffc"
+      const moduleAVersionString = "v-b65dac0a76"
+      const moduleBVersionString = "v-9d85f3c666"
+      const moduleCVersionString = "v-0704844c44"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")

@@ -8,7 +8,7 @@
 
 import Joi from "@hapi/joi"
 import normalize = require("normalize-path")
-import { sortBy, omit } from "lodash"
+import { sortBy, omit, pick } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
@@ -294,7 +294,7 @@ export function hashModuleVersion(
   // build output.
   const configToHash =
     moduleConfig.buildConfig ||
-    omit(moduleConfig, ["configPath", "path", "outputs", "serviceConfigs", "taskConfigs", "testConfigs"])
+    pick(moduleConfig, ["apiVersion", "name", "spec", "type", "variables", "varfile", "inputs"])
 
   const configString = serializeConfig(configToHash)
 
