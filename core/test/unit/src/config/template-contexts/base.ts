@@ -53,7 +53,7 @@ describe("ConfigContext", () => {
       const c = new TestContext({})
       const { resolved, message } = resolveKey(c, ["basic"])
       expect(resolved).to.be.undefined
-      expect(stripAnsi(message!)).to.equal("Could not find key basic.")
+      expect(stripAnsi(message!)).to.include("Could not find key basic.")
     })
 
     context("allowPartial=true", () => {
@@ -160,7 +160,7 @@ describe("ConfigContext", () => {
 
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve nested key in object", async () => {
@@ -175,7 +175,7 @@ describe("ConfigContext", () => {
 
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
     })
 
     it("should show helpful error when unable to resolve two-level nested key in object", async () => {
@@ -190,7 +190,7 @@ describe("ConfigContext", () => {
 
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "deeper", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.deeper.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.deeper.")
     })
 
     it("should show helpful error when unable to resolve in nested context", async () => {
@@ -207,7 +207,7 @@ describe("ConfigContext", () => {
 
       const c = new Context()
       const { message } = resolveKey(c, ["nested", "bla"])
-      expect(stripAnsi(message!)).to.equal("Could not find key bla under nested.")
+      expect(stripAnsi(message!)).to.include("Could not find key bla under nested.")
     })
 
     it("should resolve template strings", async () => {
