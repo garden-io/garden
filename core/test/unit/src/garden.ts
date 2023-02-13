@@ -53,6 +53,7 @@ import execa from "execa"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
+import { TreeCache } from "../../../src/cache"
 
 describe("Garden", () => {
   let tmpDir: tmp.DirectoryResult
@@ -4533,16 +4534,21 @@ describe("Garden", () => {
           gardenA.projectRoot,
           join(gardenA.projectRoot, ".garden"),
           defaultDotIgnoreFiles,
-          gardenA.cache
+          new TreeCache()
         )
       })
+
       it("should return module version if there are no dependencies", async () => {
         const module = await gardenA.resolveModule("module-a")
         gardenA.vcs = handlerA
         const result = await gardenA.resolveModuleVersion(gardenA.log, module, [])
 
+        // We use resolveTreeVersion here (against getTreeVersion in 0.13),
+        // because in 0.12 we do support and use version files. In 0.13 version files are no longer used.
+        const treeVersion = await handlerA.resolveTreeVersion(gardenA.log, gardenA.projectName, module)
+
         expect(result).to.eql({
-          versionString: getModuleVersionString(module, { ...treeVersionA, name: "module-a" }, []),
+          versionString: getModuleVersionString(module, { ...treeVersion, name: "module-a" }, []),
           dependencyVersions: {},
           files: [],
         })
@@ -4631,9 +4637,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-48acad3a28"
-      const moduleBVersionString = "v-68d89c8275"
-      const moduleCVersionString = "v-68421fafcc"
+      const moduleAVersionString = "v-65a5457ccb"
+      const moduleBVersionString = "v-d12dbfae8b"
+      const moduleCVersionString = "v-c1fd644d0e"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
