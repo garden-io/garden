@@ -208,6 +208,7 @@ describe("ResolveActionTask", () => {
         },
       ])
 
+      garden.variables.a = 1
       garden.variables.b = 200
       garden.cliVariables.b = 2000 // <-- should win
 

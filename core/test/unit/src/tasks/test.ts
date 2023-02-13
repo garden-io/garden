@@ -23,12 +23,6 @@ describe("TestTask", () => {
     log = garden.log
   })
 
-  // describe("getStatus", () => {
-  //   it("TODO", async () => {
-  //     throw "TODO"
-  //   })
-  // })
-
   describe("process", () => {
     it("should correctly resolve runtime outputs from tasks", async () => {
       const action = graph.getTest("module-a-integ")
