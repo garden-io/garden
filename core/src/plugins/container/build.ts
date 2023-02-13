@@ -138,7 +138,7 @@ export function getDockerBuildFlags(action: Resolved<ContainerBuildAction>) {
 export function getDockerBuildArgs(version: string, specBuildArgs: PrimitiveMap) {
   const buildArgs: PrimitiveMap = {
     GARDEN_MODULE_VERSION: version,
-    GARDEN_BUILD_VERSION: version,
+    GARDEN_ACTION_VERSION: version,
     ...specBuildArgs,
   }
 

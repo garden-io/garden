@@ -39,7 +39,7 @@ describe("getBuildkitModuleFlags", () => {
       "--opt",
       "build-arg:GARDEN_MODULE_VERSION=" + build.versionString(),
       "--opt",
-      "build-arg:GARDEN_BUILD_VERSION=" + build.versionString(),
+      "build-arg:GARDEN_ACTION_VERSION=" + build.versionString(),
       "--opt",
       "target=foo",
     ])
@@ -226,7 +226,7 @@ describe("buildkit build", () => {
         "--opt",
         "build-arg:GARDEN_MODULE_VERSION=" + module.getFullVersion().versionString,
         "--opt",
-        "build-arg:GARDEN_BUILD_VERSION=" + module.getFullVersion().versionString,
+        "build-arg:GARDEN_ACTION_VERSION=" + module.getFullVersion().versionString,
         "--opt",
         "target=foo",
       ])

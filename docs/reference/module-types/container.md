@@ -170,8 +170,8 @@ varfile:
 
 # Specify build arguments to use when building the container image.
 #
-# Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build
-# version at build time.
+# Note: Garden will always set a `GARDEN_ACTION_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the
+# module/build version at build time.
 buildArgs: {}
 
 # Specify extra flags to use when building the container image. Note that arguments may not be portable across
@@ -1026,7 +1026,7 @@ varfile: "my-module.env"
 
 Specify build arguments to use when building the container image.
 
-Note: Garden will always set a `GARDEN_BUILD_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build version at build time.
+Note: Garden will always set a `GARDEN_ACTION_VERSION` (alias `GARDEN_MODULE_VERSION`) argument with the module/build version at build time.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |

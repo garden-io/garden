@@ -187,8 +187,9 @@ export abstract class ConfigContext {
         }
         message += chalk.red(".")
 
-        if (available && available.length) {
-          message += chalk.red(" Available keys: " + naturalList(available.sort().map((k) => chalk.white(k))) + ".")
+        if (available) {
+          const availableStr = available.length ? naturalList(available.sort().map((k) => chalk.white(k))) : "(none)"
+          message += chalk.red(" Available keys: " + availableStr + ".")
         }
         const messageFooter = this.getMissingKeyErrorFooter(nextKey, nestedNodePath.slice(0, -1))
         if (messageFooter) {

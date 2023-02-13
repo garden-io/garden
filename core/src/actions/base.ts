@@ -485,9 +485,13 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
    * Returns a map of commonly used environment variables for the action.
    */
   getEnvVars() {
+    const GARDEN_ACTION_VERSION = this.versionString()
+
     return {
-      GARDEN_VERSION: this.versionString(),
-      GARDEN_MODULE_VERSION: this.moduleVersion().versionString,
+      GARDEN_ACTION_VERSION,
+      // Note: Users will generally want the action version, not the module version here, but we
+      // leave the old env var name in for backwards compatibility
+      GARDEN_MODULE_VERSION: GARDEN_ACTION_VERSION,
     }
   }
 
