@@ -413,9 +413,11 @@ function patchSyncableManifest(
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
   const { ctx, spec, targetResource, action, log, containerName } = configParams
 
+  const section = action.key()
+
   // Logging this on the debug level because it can be displayed multiple times due to getServiceStatus checks
   log.debug({
-    section: action.key(),
+    section,
     msg: chalk.gray(
       `Configuring in local mode, proxy container ${chalk.underline(k8sReverseProxyImageName)} will be deployed.`
     ),
@@ -425,7 +427,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
 
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, action.key())
   log.debug({
-    section: action.key(),
+    section,
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
@@ -611,6 +613,8 @@ async function getKubectlPortForwardProcess(
 
   let lastSeenSuccessMessage = ""
 
+  const section = action.key()
+
   return new RecoverableProcess({
     osCommand: kubectlPortForwardCmd,
     retryConfig: {
@@ -624,14 +628,14 @@ async function getKubectlPortForwardProcess(
       onError: (msg: ProcessMessage) => {
         log.error({
           status: "error",
-          section: action.key(),
+          section,
           msg: chalk.gray(composeErrorMessage(`${msg.processDescription} failed`, msg)),
         })
         kubectlPortForwardFailureCounter.addFailure(() => {
           log.error({
             status: "warn",
             symbol: "warning",
-            section: action.key(),
+            section,
             msg: chalk.yellow(
               `${
                 msg.processDescription
@@ -656,7 +660,7 @@ async function getKubectlPortForwardProcess(
         if (msg.message.includes("Handling connection for")) {
           log.info({
             status: "success",
-            section: action.key(),
+            section,
             msg: chalk.white(consoleMessage),
           })
           lastSeenSuccessMessage = consoleMessage
@@ -841,7 +845,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     log.warn({
       status: "warn",
       symbol: "warning",
-      section: action.key(),
+      section,
       msg: chalk.yellow(
         `Local mode has been stopped for the service "${action.key()}". ` +
           "Please, re-deploy the original service to restore the original k8s cluster state: " +
