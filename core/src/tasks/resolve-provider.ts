@@ -188,7 +188,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
     // Validating the output config against the base plugins. This is important to make sure base handlers are
     // compatible with the config.
-    const plugins = await this.garden.getAllPlugins()
+    const plugins = this.allPlugins
     const pluginsByName = keyBy(plugins, "name")
     const plugin = pluginsByName[providerName]
 

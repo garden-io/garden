@@ -379,7 +379,7 @@ export class GitHandler extends VcsHandler {
 
     await new Promise<void>((_resolve, _reject) => {
       const proc = lsFiles(this.ignoreFile)
-      proc.on("error", (err: execa.ExecaError) => {
+      void proc.on("error", (err: execa.ExecaError) => {
         if (err.exitCode !== 128) {
           _reject(err)
         }
