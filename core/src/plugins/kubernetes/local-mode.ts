@@ -18,7 +18,7 @@ import {
   PROXY_CONTAINER_USER_NAME,
 } from "./constants"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { getResourceContainer, prepareEnvVars } from "./util"
+import { getResourceContainer, getResourceKey, prepareEnvVars } from "./util"
 import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
 import { LogEntry } from "../../logger/log-entry"
@@ -820,7 +820,7 @@ function composeSshTunnelProcessTree(
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
   const { targetResource, action, namespace, log, containerName } = configParams
-  const targetResourceId = `${targetResource.kind}/${targetResource.metadata.name}`
+  const targetResourceId = getResourceKey(targetResource)
 
   // Validate the target
   if (!isConfiguredForLocalMode(targetResource)) {
