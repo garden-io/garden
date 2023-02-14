@@ -220,7 +220,7 @@ describe("CustomCommandWrapper", () => {
       variables: {
         foo: "test",
       },
-      gardenCommand: ["get", "doddi"],
+      gardenCommand: ["validate"],
     })
 
     const { result } = await cmd.action({
@@ -233,8 +233,7 @@ describe("CustomCommandWrapper", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result?.gardenCommand?.command).to.eql(["get", "doddi"])
-    expect(result?.gardenCommand?.result.image).to.exist
+    expect(result?.gardenCommand?.command).to.eql(["validate"])
   })
 
   it("runs exec command before Garden command if both are specified", async () => {
@@ -252,7 +251,7 @@ describe("CustomCommandWrapper", () => {
       exec: {
         command: ["sleep", "1"],
       },
-      gardenCommand: ["get", "eysi"],
+      gardenCommand: ["validate"],
     })
 
     const { result } = await cmd.action({
