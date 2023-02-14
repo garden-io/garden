@@ -313,10 +313,6 @@ localMode:
     # Max number of the local application restarts. Unlimited by default.
     max: .inf
 
-  # When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the
-  # default container name to proxy traffic from.
-  containerName:
-
   # The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`.
   target:
     # The kind of Kubernetes resource to find.
@@ -1265,16 +1261,6 @@ Max number of the local application restarts. Unlimited by default.
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `number` | `null`  | No       |
-
-### `localMode.containerName`
-
-[localMode](#localmode) > containerName
-
-When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the default container name to proxy traffic from.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `localMode.target`
 
