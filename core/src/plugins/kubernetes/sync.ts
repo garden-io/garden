@@ -434,7 +434,7 @@ export async function configureSyncMode({
     if (!podSpec.initContainers) {
       podSpec.initContainers = []
     }
-    if (!podSpec.initContainers.find((c) => c.name === k8sSyncUtilImageName)) {
+    if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
       const initContainer = {
         name: "garden-dev-init",
         image: k8sSyncUtilImageName,
