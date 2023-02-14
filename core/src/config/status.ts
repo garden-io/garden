@@ -7,27 +7,27 @@
  */
 
 import { namespaceStatusesSchema } from "../types/namespace"
-import { joi, joiVariables } from "./common"
+import { createSchema, joi, joiVariables } from "./common"
 
-export const environmentStatusSchema = () =>
-  joi
-    .object()
-    .keys({
-      ready: joi.boolean().required().description("Set to true if the environment is fully configured for a provider."),
-      detail: joi
-        .object()
-        .optional()
-        .meta({ extendable: true })
-        .description("Use this to include additional information that is specific to the provider."),
-      namespaceStatuses: namespaceStatusesSchema().optional(),
-      outputs: joiVariables()
-        .meta({ extendable: true })
-        .description("Output variables that modules and other variables can reference."),
-      disableCache: joi.boolean().optional().description("Set to true to disable caching of the status."),
-      cached: joi
-        .boolean()
-        .optional()
-        .meta({ internal: true })
-        .description("Indicates if the status was retrieved from cache by the framework."),
-    })
-    .description("Description of an environment's status for a provider.")
+export const environmentStatusSchema = createSchema({
+  name: "environment-status",
+  description: "Description of an environment's status for a provider.",
+  keys: () => ({
+    ready: joi.boolean().required().description("Set to true if the environment is fully configured for a provider."),
+    detail: joi
+      .object()
+      .optional()
+      .meta({ extendable: true })
+      .description("Use this to include additional information that is specific to the provider."),
+    namespaceStatuses: namespaceStatusesSchema().optional(),
+    outputs: joiVariables()
+      .meta({ extendable: true })
+      .description("Output variables that modules and other variables can reference."),
+    disableCache: joi.boolean().optional().description("Set to true to disable caching of the status."),
+    cached: joi
+      .boolean()
+      .optional()
+      .meta({ internal: true })
+      .description("Indicates if the status was retrieved from cache by the framework."),
+  }),
+})

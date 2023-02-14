@@ -12,7 +12,7 @@ import dedent = require("dedent")
 import stripAnsi from "strip-ansi"
 import { mapValues, omit, pickBy, size } from "lodash"
 
-import { joi } from "../config/common"
+import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
 import { Garden } from "../garden"
 import { LogEntry } from "../logger/log-entry"
@@ -415,12 +415,14 @@ export const graphResultsSchema = () =>
     .meta({ keyPlaceholder: "<key>" })
 
 // TODO-G2: update
-export const processCommandResultSchema = () =>
-  joi.object().keys({
+export const processCommandResultSchema = createSchema({
+  name: "process-command-result",
+  keys: () => ({
     aborted: joi.boolean().description("Set to true if the command execution was aborted."),
     success: joi.boolean().description("Set to false if the command execution was unsuccessful."),
     graphResults: graphResultsSchema(),
-  })
+  }),
+})
 
 /**
  * Handles the command result and logging for commands the return results of type ProcessResults.

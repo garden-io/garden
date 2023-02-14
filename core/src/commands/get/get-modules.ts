@@ -11,7 +11,7 @@ import { Command, CommandParams } from "../base"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 import { moduleSchema, GardenModule } from "../../types/module"
 import { keyBy, omit, sortBy } from "lodash"
-import { joiIdentifierMap, joi, StringMap } from "../../config/common"
+import { joiIdentifierMap, joi, StringMap, createSchema } from "../../config/common"
 import { printHeader, renderDivider } from "../../logger/util"
 import chalk from "chalk"
 import { renderTable, dedent, deline } from "../../util/string"
@@ -47,6 +47,11 @@ type Opts = typeof getModulesOptions
 
 type OutputModule = Omit<GardenModule, "_config" | "buildDependencies">
 
+const outputsSchema = createSchema({
+  name: "GetModulesCommand:outputs",
+  keys: { modules: joiIdentifierMap(moduleSchema()) },
+})
+
 export class GetModulesCommand extends Command {
   name = "modules"
   aliases = ["module"]
@@ -65,7 +70,7 @@ export class GetModulesCommand extends Command {
   arguments = getModulesArgs
   options = getModulesOptions
 
-  outputsSchema = () => joi.object().keys({ modules: joiIdentifierMap(moduleSchema()) })
+  outputsSchema = outputsSchema
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Get Modules", "open_book")

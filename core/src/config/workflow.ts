@@ -15,6 +15,7 @@ import {
   joiEnvVars,
   PrimitiveMap,
   joiSparseArray,
+  createSchema,
 } from "./common"
 import { DEFAULT_API_VERSION } from "../constants"
 import { deline, dedent } from "../util/string"
@@ -105,58 +106,58 @@ const workflowResourceLimitsSchema = () =>
       .description("The maximum amount of RAM the workflow pod can use, in megabytes (i.e. 1024 = 1 GB)."),
   })
 
-export const workflowConfigSchema = () =>
-  joi
-    .object()
-    .keys({
-      apiVersion: joi
-        .string()
-        .default(DEFAULT_API_VERSION)
-        .valid(DEFAULT_API_VERSION)
-        .description("The schema version of this workflow's config (currently not used)."),
-      kind: joi.string().default("Workflow").valid("Workflow"),
-      name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
-      description: joi.string().description("A description of the workflow."),
-      envVars: joiEnvVars().description(
-        "A map of environment variables to use for the workflow. These will be available to all steps in the workflow."
-      ),
-      files: joiSparseArray(workflowFileSchema()).description(dedent`
-          A list of files to write before starting the workflow.
+export const workflowConfigSchema = createSchema({
+  name: "workflow-config",
+  description: "Configure a workflow for this project.",
+  keys: () => ({
+    apiVersion: joi
+      .string()
+      .default(DEFAULT_API_VERSION)
+      .valid(DEFAULT_API_VERSION)
+      .description("The schema version of this workflow's config (currently not used)."),
+    kind: joi.string().default("Workflow").valid("Workflow"),
+    name: joiUserIdentifier().required().description("The name of this workflow.").example("my-workflow"),
+    description: joi.string().description("A description of the workflow."),
+    envVars: joiEnvVars().description(
+      "A map of environment variables to use for the workflow. These will be available to all steps in the workflow."
+    ),
+    files: joiSparseArray(workflowFileSchema()).description(dedent`
+        A list of files to write before starting the workflow.
 
-          This is useful to e.g. create files required for provider authentication, and can be created from data stored in secrets or templated strings.
+        This is useful to e.g. create files required for provider authentication, and can be created from data stored in secrets or templated strings.
 
-          Note that you cannot reference provider configuration in template strings within this field, since they are resolved after these files are generated. This means you can reference the files specified here in your provider configurations.
-          `),
-      keepAliveHours: joi
-        .number()
-        .default(48)
-        .description("The number of hours to keep the workflow pod running after completion."),
-      resources: joi
-        .object()
-        .keys({
-          requests: workflowResourceRequestsSchema().default(defaultWorkflowRequests),
-          limits: workflowResourceLimitsSchema().default(defaultWorkflowLimits),
-        })
-        // .default(() => ({}))
-        .meta({ enterprise: true }),
-      limits: workflowResourceLimitsSchema().meta({
-        enterprise: true,
-        deprecated: "Please use the `resources.limits` field instead.",
-      }),
-      steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
-          The steps the workflow should run. At least one step is required. Steps are run sequentially.
-          If a step fails, subsequent steps are skipped.
+        Note that you cannot reference provider configuration in template strings within this field, since they are resolved after these files are generated. This means you can reference the files specified here in your provider configurations.
         `),
-      triggers: joi
-        .array()
-        .items(triggerSchema())
-        .description(
-          `A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only).`
-        )
-        .meta({ enterprise: true }),
-    })
-    .unknown(true)
-    .description("Configure a workflow for this project.")
+    keepAliveHours: joi
+      .number()
+      .default(48)
+      .description("The number of hours to keep the workflow pod running after completion."),
+    resources: joi
+      .object()
+      .keys({
+        requests: workflowResourceRequestsSchema().default(defaultWorkflowRequests),
+        limits: workflowResourceLimitsSchema().default(defaultWorkflowLimits),
+      })
+      // .default(() => ({}))
+      .meta({ enterprise: true }),
+    limits: workflowResourceLimitsSchema().meta({
+      enterprise: true,
+      deprecated: "Please use the `resources.limits` field instead.",
+    }),
+    steps: joiSparseArray(workflowStepSchema()).required().min(1).description(deline`
+        The steps the workflow should run. At least one step is required. Steps are run sequentially.
+        If a step fails, subsequent steps are skipped.
+      `),
+    triggers: joi
+      .array()
+      .items(triggerSchema())
+      .description(
+        `A list of triggers that determine when the workflow should be run, and which environment should be used (Garden Cloud only).`
+      )
+      .meta({ enterprise: true }),
+  }),
+  allowUnknown: true,
+})
 
 export interface WorkflowFileSpec {
   path: string
@@ -164,32 +165,31 @@ export interface WorkflowFileSpec {
   secretName?: string
 }
 
-export const workflowFileSchema = () =>
-  joi
-    .object()
-    .keys({
-      path: joi
-        .posixPath()
-        .relativeOnly()
-        .subPathOnly()
-        .description(
-          dedent`
-          POSIX-style path to write the file to, relative to the project root (or absolute). If the path contains one
-          or more directories, they are created automatically if necessary.
-          If any of those directories conflict with existing file paths, or if the file path conflicts with an existing directory path, an error will be thrown.
-          **Any existing file with the same path will be overwritten, so be careful not to accidentally overwrite files unrelated to your workflow.**
-          `
-        )
-        .example(".auth/kubeconfig.yaml"),
-      data: joi.string().description("The file data as a string."),
-      secretName: joiVariableName()
-        .description("The name of a Garden secret to copy the file data from (Garden Cloud only).")
-        .meta({ enterprise: true }),
-    })
-    .xor("data", "secretName")
-    .description(
-      "A file to create ahead of running the workflow, within the project root. Must specify one of `data` or `secretName` (but not both)."
-    )
+export const workflowFileSchema = createSchema({
+  name: "workflow-file",
+  description:
+    "A file to create ahead of running the workflow, within the project root. Must specify one of `data` or `secretName` (but not both).",
+  keys: () => ({
+    path: joi
+      .posixPath()
+      .relativeOnly()
+      .subPathOnly()
+      .description(
+        dedent`
+        POSIX-style path to write the file to, relative to the project root (or absolute). If the path contains one
+        or more directories, they are created automatically if necessary.
+        If any of those directories conflict with existing file paths, or if the file path conflicts with an existing directory path, an error will be thrown.
+        **Any existing file with the same path will be overwritten, so be careful not to accidentally overwrite files unrelated to your workflow.**
+        `
+      )
+      .example(".auth/kubeconfig.yaml"),
+    data: joi.string().description("The file data as a string."),
+    secretName: joiVariableName()
+      .description("The name of a Garden secret to copy the file data from (Garden Cloud only).")
+      .meta({ enterprise: true }),
+  }),
+  xor: ["data", "secretName"],
+})
 
 export interface WorkflowStepSpec {
   name?: string
@@ -201,73 +201,72 @@ export interface WorkflowStepSpec {
   when?: workflowStepModifier
 }
 
-export const workflowStepSchema = () => {
-  return joi
-    .object()
-    .keys({
-      name: joiIdentifier().description(dedent`
-        An identifier to assign to this step. If none is specified, this defaults to "step-<number of step>", where
-        <number of step> is the sequential number of the step (first step being number 1).
+export const workflowStepSchema = createSchema({
+  name: "workflow-step",
+  description: "A workflow step. Must specify either `command` or `script` (but not both).",
+  keys: () => ({
+    name: joiIdentifier().description(dedent`
+      An identifier to assign to this step. If none is specified, this defaults to "step-<number of step>", where
+      <number of step> is the sequential number of the step (first step being number 1).
 
-        This identifier is useful when referencing command outputs in following steps. For example, if you set this
-        to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the \`script\` or \`command\`
-        fields.
-      `),
-      command: joi
-        .sparseArray()
-        .items(joi.string())
-        .description(
-          dedent`
-          A Garden command this step should run, followed by any required or optional arguments and flags.
-
-          Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs command with following enabled etc.—are not supported. In general, workflow steps should run to completion.
-
-          Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are handled before the individual steps are run.
-          `
-        )
-        .example(["run", "my-task"]),
-      description: joi.string().description("A description of the workflow step."),
-      envVars: joiEnvVars().description(dedent`
-        A map of environment variables to use when running script steps. Ignored for \`command\` steps.
-
-        Note: Environment variables provided here take precedence over any environment variables configured at the
-        workflow level.
-      `),
-      script: joi.string().description(
+      This identifier is useful when referencing command outputs in following steps. For example, if you set this
+      to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the \`script\` or \`command\`
+      fields.
+    `),
+    command: joi
+      .sparseArray()
+      .items(joi.string())
+      .description(
         dedent`
-        A bash script to run. Note that the host running the workflow must have bash installed and on path.
-        It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error,
-        and the remainder of the workflow is aborted.
+        A Garden command this step should run, followed by any required or optional arguments and flags.
 
-        The script may include template strings, including references to previous steps.
+        Note that commands that are _persistent_—e.g. the dev command, commands with a watch flag set, the logs command with following enabled etc.—are not supported. In general, workflow steps should run to completion.
+
+        Global options like --env, --log-level etc. are currently not supported for built-in commands, since they are handled before the individual steps are run.
         `
-      ),
-      skip: joi
-        .boolean()
-        .default(false)
-        .description(
-          `Set to true to skip this step. Use this with template conditionals to skip steps for certain environments or scenarios.`
-        )
-        .example("${environment.name != 'prod'}"),
-      when: joi.string().allow("onSuccess", "onError", "always", "never").default("onSuccess").description(dedent`
-        If used, this step will be run under the following conditions (may use template strings):
+      )
+      .example(["run", "my-task"]),
+    description: joi.string().description("A description of the workflow step."),
+    envVars: joiEnvVars().description(dedent`
+      A map of environment variables to use when running script steps. Ignored for \`command\` steps.
 
-        \`onSuccess\` (default): This step will be run if all preceding steps succeeded or were skipped.
+      Note: Environment variables provided here take precedence over any environment variables configured at the
+      workflow level.
+    `),
+    script: joi.string().description(
+      dedent`
+      A bash script to run. Note that the host running the workflow must have bash installed and on path.
+      It is considered to have run successfully if it returns an exit code of 0. Any other exit code signals an error,
+      and the remainder of the workflow is aborted.
 
-        \`onError\`: This step will be run if a preceding step failed, or if its preceding step has \`when: onError\`.
-        If the next step has \`when: onError\`, it will also be run. Otherwise, all subsequent steps are ignored.
+      The script may include template strings, including references to previous steps.
+      `
+    ),
+    skip: joi
+      .boolean()
+      .default(false)
+      .description(
+        `Set to true to skip this step. Use this with template conditionals to skip steps for certain environments or scenarios.`
+      )
+      .example("${environment.name != 'prod'}"),
+    when: joi.string().allow("onSuccess", "onError", "always", "never").default("onSuccess").description(dedent`
+      If used, this step will be run under the following conditions (may use template strings):
 
-        \`always\`: This step will always be run, regardless of whether any preceding steps have failed.
+      \`onSuccess\` (default): This step will be run if all preceding steps succeeded or were skipped.
 
-        \`never\`: This step will always be ignored.
+      \`onError\`: This step will be run if a preceding step failed, or if its preceding step has \`when: onError\`.
+      If the next step has \`when: onError\`, it will also be run. Otherwise, all subsequent steps are ignored.
 
-        See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
-        and examples.
-        `),
-    })
-    .xor("command", "script")
-    .description("A workflow step. Must specify either `command` or `script` (but not both).")
-}
+      \`always\`: This step will always be run, regardless of whether any preceding steps have failed.
+
+      \`never\`: This step will always be ignored.
+
+      See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for details
+      and examples.
+      `),
+  }),
+  xor: ["command", "script"],
+})
 
 export type workflowStepModifier = "onSuccess" | "onError" | "always" | "never"
 

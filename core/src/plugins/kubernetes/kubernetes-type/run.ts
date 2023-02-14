@@ -20,7 +20,7 @@ import { STATIC_DIR } from "../../../constants"
 import type { RunActionDefinition } from "../../../plugin/action-types"
 import { dedent } from "../../../util/string"
 import type { RunAction, RunActionConfig } from "../../../actions/run"
-import { joi } from "../../../config/common"
+import { joi, createSchema } from "../../../config/common"
 import { containerRunOutputSchema } from "../../container/config"
 import type { V1PodSpec } from "@kubernetes/client-node"
 import { readFileSync } from "fs"
@@ -45,35 +45,35 @@ export type KubernetesRunAction = RunAction<KubernetesRunActionConfig, Kubernete
 // kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.18.1-standalone).
 const jsonSchema = () => JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "podspec-v1.json")).toString())
 
-export const kubernetesRunSchema = () =>
-  joi
-    .object()
-    .keys({
-      ...kubernetesCommonRunSchemaKeys(),
-      resource: targetResourceSpecSchema().description(
-        dedent`
-          Specify a Kubernetes resource to derive the Pod spec from for the run.
+export const kubernetesRunSchema = createSchema({
+  name: "Run:kubernetes-pod",
+  keys: () => ({
+    ...kubernetesCommonRunSchemaKeys(),
+    resource: targetResourceSpecSchema().description(
+      dedent`
+        Specify a Kubernetes resource to derive the Pod spec from for the run.
 
-          This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously (say, by configuring a dependency on a \`helm\` or \`kubernetes\` Deploy).
+        This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously (say, by configuring a dependency on a \`helm\` or \`kubernetes\` Deploy).
 
-          The following fields from the Pod will be used (if present) when executing the task:
-          ${runPodSpecWhitelistDescription()}
-          `
-      ),
-      // TODO: allow reading the pod spec from a file
-      podSpec: joi
-        .object()
-        .jsonSchema({ ...jsonSchema(), type: "object" })
-        .description(
-          dedent`
-          Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the run, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
-
-          The following Pod spec fields from the will be used (if present) when executing the task:
-          ${runPodSpecWhitelistDescription()}
+        The following fields from the Pod will be used (if present) when executing the task:
+        ${runPodSpecWhitelistDescription()}
         `
-        ),
-    })
-    .xor("resource", "podSpec")
+    ),
+    // TODO: allow reading the pod spec from a file
+    podSpec: joi
+      .object()
+      .jsonSchema({ ...jsonSchema(), type: "object" })
+      .description(
+        dedent`
+        Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the run, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
+
+        The following Pod spec fields from the will be used (if present) when executing the task:
+        ${runPodSpecWhitelistDescription()}
+      `
+      ),
+  }),
+  xor: ["resource", "podSpec"],
+})
 
 export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunAction> => ({
   name: "kubernetes-pod",

@@ -10,6 +10,7 @@ import { apply, merge } from "json-merge-patch"
 import { dedent, deline } from "../util/string"
 import {
   apiVersionSchema,
+  createSchema,
   DeepPrimitiveMap,
   includeGuideLink,
   joi,
@@ -28,7 +29,7 @@ import { resolveTemplateStrings } from "../template-string/template-string"
 import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
-import { cloneDeep } from "lodash"
+import { cloneDeep, memoize } from "lodash"
 import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFile } from "../util/fs"
@@ -61,11 +62,13 @@ export interface EnvironmentConfig {
   production?: boolean
 }
 
-export const environmentNameSchema = () =>
+export const environmentNameSchema = memoize(() =>
   joiUserIdentifier().required().description("The name of the environment.").example("dev")
+)
 
-export const environmentSchema = () =>
-  joi.object().keys({
+export const environmentSchema = createSchema({
+  name: "project-environment",
+  keys: () => ({
     name: environmentNameSchema(),
     defaultNamespace: joiIdentifier()
       .allow(null)
@@ -114,42 +117,53 @@ export const environmentSchema = () =>
           over variables defined in the top-level \`variables\` field, but may also reference the top-level variables in
           template strings.
         `),
-  })
+  }),
+})
 
-export const environmentsSchema = () =>
+export const environmentsSchema = memoize(() =>
   joiSparseArray(environmentSchema()).unique("name").description("A list of environments to configure for the project.")
+)
 
 export interface SourceConfig {
   name: string
   repositoryUrl: string
 }
 
-export const moduleSourceSchema = () =>
-  joi.object().keys({
+export const moduleSourceSchema = createSchema({
+  name: "module-source",
+  keys: () => ({
     name: joiUserIdentifier().required().description("The name of the module.").example("my-external-module"),
     repositoryUrl: joiRepositoryUrl().required(),
-  })
+  }),
+})
 
-export const projectSourceSchema = () =>
-  joi.object().keys({
+export const projectSourceSchema = createSchema({
+  name: "project-source",
+  keys: () => ({
     name: joiUserIdentifier().required().description("The name of the source to import").example("my-external-repo"),
     repositoryUrl: joiRepositoryUrl().required(),
-  })
+  }),
+})
 
-export const projectSourcesSchema = () =>
+export const projectSourcesSchema = memoize(() =>
   joiSparseArray(projectSourceSchema()).unique("name").description("A list of remote sources to import into project.")
+)
 
-export const linkedSourceSchema = () =>
-  joi.object().keys({
+export const linkedSourceSchema = createSchema({
+  name: "linked-source",
+  keys: () => ({
     name: joiUserIdentifier().description("The name of the linked source."),
     path: joi.string().description("The local directory path of the linked repo clone."),
-  })
+  }),
+})
 
-export const linkedModuleSchema = () =>
-  joi.object().keys({
+export const linkedModuleSchema = createSchema({
+  name: "linked-module",
+  keys: () => ({
     name: joiUserIdentifier().description("The name of the linked module."),
     path: joi.string().description("The local directory path of the linked repo clone."),
-  })
+  }),
+})
 
 export interface OutputSpec {
   name: string
@@ -188,8 +202,9 @@ export const projectNameSchema = () =>
 
 export const projectRootSchema = () => joi.string().description("The path to the project root.")
 
-const projectModulesSchema = () =>
-  joi.object().keys({
+const projectModulesSchema = createSchema({
+  name: "project-modules",
+  keys: () => ({
     include: joi
       .array()
       .items(joi.posixPath().allowGlobs().subPathOnly())
@@ -223,10 +238,12 @@ const projectModulesSchema = () =>
       `
       )
       .example(["public/**/*", "tmp/**/*"]),
-  })
+  }),
+})
 
-const projectOutputSchema = () =>
-  joi.object().keys({
+const projectOutputSchema = createSchema({
+  name: "project-output",
+  keys: () => ({
     name: joi.string().max(255).required().description("The name of the output value.").example("my-output-key"),
     value: joiPrimitive()
       .required()
@@ -236,120 +253,120 @@ const projectOutputSchema = () =>
         string.`
       )
       .example("${modules.my-module.outputs.some-output}"),
-  })
+  }),
+})
 
-export const projectSchema = () =>
-  joi
-    .object()
-    .keys({
-      apiVersion: apiVersionSchema(),
-      kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
-      path: projectRootSchema().meta({ internal: true }),
-      configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
-      name: projectNameSchema(),
-      // TODO: Refer to enterprise documentation for more details.
-      id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
-      // TODO: Refer to enterprise documentation for more details.
-      domain: joi
-        .string()
-        .uri()
-        .meta({ internal: true })
-        .description("The domain to use for cloud features. Should be the full API/backend URL."),
-      // Note: We provide a different schema below for actual validation, but need to define it this way for docs
-      // because joi.alternatives() isn't handled well in the doc generation.
-      environments: joi
-        .array()
-        .min(1)
-        .required()
-        .items(environmentSchema())
-        .description((<any>environmentsSchema().describe().flags).description),
-      providers: joiSparseArray(providerConfigBaseSchema()).description(
-        "A list of providers that should be used for this project, and their configuration. " +
-          "Please refer to individual plugins/providers for details on how to configure them."
-      ),
-      defaultEnvironment: joi
-        .string()
-        .hostname()
-        .allow("")
-        .default("")
-        .description(
-          deline`
-            The default environment to use when calling commands without the \`--env\` parameter.
-            May include a namespace name, in the format \`<namespace>.<environment>\`.
-            Defaults to the first configured environment, with no namespace set.
-          `
-        )
-        .example("dev"),
-      dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
-        .default([])
-        .description(
-          deline`
-        Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
-
-        Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
-        Otherwise, an error will be thrown.
-      `
-        )
-        .meta({
-          deprecated: "Please use `dotIgnoreFile` instead.",
-        })
-        .example([".gitignore"]),
-      dotIgnoreFile: joi
-        .posixPath()
-        .filenameOnly()
-        .default(defaultDotIgnoreFile)
-        .description(
-          deline`
-        Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
-
-        Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
-
-        Note that this take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
-
-        See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
-      `
-        )
-        .example(".gitignore"),
-      modules: projectModulesSchema().description("Control where to scan for modules in the project."),
-      outputs: joiSparseArray(projectOutputSchema())
-        .unique("name")
-        .description(
-          dedent`
-        A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
-
-        You may use any template strings to specify the values, including references to provider outputs, module
-        outputs and runtime outputs. For a full reference, see the [Output configuration context](./template-strings/project-outputs.md) section in the Template String Reference.
-
-        Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
+export const projectSchema = createSchema({
+  name: "Project",
+  description:
+    "Configuration for a Garden project. This should be specified in the garden.yml file in your project root.",
+  required: true,
+  keys: () => ({
+    apiVersion: apiVersionSchema(),
+    kind: joi.string().default("Project").valid("Project").description("Indicate what kind of config this is."),
+    path: projectRootSchema().meta({ internal: true }),
+    configPath: joi.string().meta({ internal: true }).description("The path to the project config file."),
+    name: projectNameSchema(),
+    // TODO: Refer to enterprise documentation for more details.
+    id: joi.string().meta({ internal: true }).description("The project's ID in Garden Cloud."),
+    // TODO: Refer to enterprise documentation for more details.
+    domain: joi
+      .string()
+      .uri()
+      .meta({ internal: true })
+      .description("The domain to use for cloud features. Should be the full API/backend URL."),
+    // Note: We provide a different schema below for actual validation, but need to define it this way for docs
+    // because joi.alternatives() isn't handled well in the doc generation.
+    environments: joi
+      .array()
+      .min(1)
+      .required()
+      .items(environmentSchema())
+      .description((<any>environmentsSchema().describe().flags).description),
+    providers: joiSparseArray(providerConfigBaseSchema()).description(
+      "A list of providers that should be used for this project, and their configuration. " +
+        "Please refer to individual plugins/providers for details on how to configure them."
+    ),
+    defaultEnvironment: joi
+      .string()
+      .hostname()
+      .allow("")
+      .default("")
+      .description(
+        deline`
+          The default environment to use when calling commands without the \`--env\` parameter.
+          May include a namespace name, in the format \`<namespace>.<environment>\`.
+          Defaults to the first configured environment, with no namespace set.
         `
-        ),
-      sources: projectSourcesSchema(),
-      varfile: joi
-        .posixPath()
-        .default(defaultVarfilePath)
-        .description(
-          dedent`
-        Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
-        project-wide \`variables\` field.
+      )
+      .example("dev"),
+    dotIgnoreFiles: joiSparseArray(joi.posixPath().filenameOnly())
+      .default([])
+      .description(
+        deline`
+      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
 
-        ${varfileDescription}
+      Note: This field has been deprecated in 0.13 in favor of the \`dotIgnoreFile\` field, and as of 0.13 only one filename is allowed here. If a single filename is specified, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
+      Otherwise, an error will be thrown.
+    `
+      )
+      .meta({
+        deprecated: "Please use `dotIgnoreFile` instead.",
+      })
+      .example([".gitignore"]),
+    dotIgnoreFile: joi
+      .posixPath()
+      .filenameOnly()
+      .default(defaultDotIgnoreFile)
+      .description(
+        deline`
+      Specify a filename that should be used as ".ignore" file across the project, using the same syntax and semantics as \`.gitignore\` files. By default, patterns matched in \`.gardenignore\` files, found anywhere in the project, are ignored when scanning for modules and module sources.
 
-        If you don't set the field and the \`garden.env\` file does not exist, we simply ignore it.
-        If you do override the default value and the file doesn't exist, an error will be thrown.
+      Note: prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the \`dotIgnoreFiles\` field in the project configuration.
 
-        _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
-        multiple ones. See the \`environments[].varfile\` field for this option._
+      Note that this take precedence over the project \`module.include\` field, and module \`include\` fields, so any paths matched by the .ignore file will be ignored even if they are explicitly specified in those fields.
+
+      See the [Configuration Files guide](${DOCS_BASE_URL}/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+    `
+      )
+      .example(".gitignore"),
+    modules: projectModulesSchema().description("Control where to scan for modules in the project."),
+    outputs: joiSparseArray(projectOutputSchema())
+      .unique("name")
+      .description(
+        dedent`
+      A list of output values that the project should export. These are exported by the \`garden get outputs\` command, as well as when referencing a project as a sub-project within another project.
+
+      You may use any template strings to specify the values, including references to provider outputs, module
+      outputs and runtime outputs. For a full reference, see the [Output configuration context](./template-strings/project-outputs.md) section in the Template String Reference.
+
+      Note that if any runtime outputs are referenced, the referenced services and tasks will be deployed and run if necessary when resolving the outputs.
       `
-        )
-        .example("custom.env"),
-      variables: joiVariables().description(
-        "Key/value map of variables to configure for all environments. " + joiVariablesDescription
       ),
-    })
-    .required()
-    .description(
-      "Configuration for a Garden project. This should be specified in the garden.yml file in your project root."
-    )
+    sources: projectSourcesSchema(),
+    varfile: joi
+      .posixPath()
+      .default(defaultVarfilePath)
+      .description(
+        dedent`
+      Specify a path (relative to the project root) to a file containing variables, that we apply on top of the
+      project-wide \`variables\` field.
+
+      ${varfileDescription}
+
+      If you don't set the field and the \`garden.env\` file does not exist, we simply ignore it.
+      If you do override the default value and the file doesn't exist, an error will be thrown.
+
+      _Note that in many cases it is advisable to only use environment-specific var files, instead of combining
+      multiple ones. See the \`environments[].varfile\` field for this option._
+    `
+      )
+      .example("custom.env"),
+    variables: joiVariables().description(
+      "Key/value map of variables to configure for all environments. " + joiVariablesDescription
+    ),
+  }),
+})
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
   const environments = config.environments

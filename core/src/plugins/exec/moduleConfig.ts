@@ -11,7 +11,7 @@
  * CHANGES ARE REFLECTED IN THE CORRESPONDING ACTION SPECS + CONVERSION HANDLER.
  */
 
-import { joiArray, joiEnvVars, joi, joiSparseArray } from "../../config/common"
+import { joiArray, joiEnvVars, joi, joiSparseArray, createSchema } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { GardenModule } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
@@ -203,24 +203,26 @@ export interface ExecTaskSpec extends BaseTaskSpec {
   env: { [key: string]: string }
 }
 
-export const execTaskSpecSchema = () =>
-  baseTaskSpecSchema()
-    .keys({
-      artifacts: artifactsSchema().description("A list of artifacts to copy after the task run."),
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          The command to run.
+export const execTaskSpecSchema = createSchema({
+  name: "exec:Task",
+  description: "A task that can be run in this module.",
+  extend: baseTaskSpecSchema,
+  keys: () => ({
+    artifacts: artifactsSchema().description("A list of artifacts to copy after the task run."),
+    command: joi
+      .sparseArray()
+      .items(joi.string().allow(""))
+      .description(
+        dedent`
+        The command to run.
 
-          ${execPathDoc}
-          `
-        )
-        .required(),
-      env: joiEnvVars().description("Environment variables to set when running the command."),
-    })
-    .description("A task that can be run in this module.")
+        ${execPathDoc}
+        `
+      )
+      .required(),
+    env: joiEnvVars().description("Environment variables to set when running the command."),
+  }),
+})
 
 interface ExecModuleBuildSpec {
   command: string[]
@@ -237,8 +239,10 @@ export interface ExecModuleSpec extends ModuleSpec {
 
 export type ExecModuleConfig = ModuleConfig<ExecModuleSpec>
 
-export const execBuildSpecSchema = () =>
-  baseBuildSpecSchema().keys({
+export const execBuildSpecSchema = createSchema({
+  name: "exec:Module:build-spec",
+  extend: baseBuildSpecSchema,
+  keys: () => ({
     command: joiArray(joi.string())
       .description(
         dedent`
@@ -248,31 +252,32 @@ export const execBuildSpecSchema = () =>
       `
       )
       .example(["npm", "run", "build"]),
-  })
+  }),
+})
 
-export const execModuleSpecSchema = () =>
-  joi
-    .object()
-    .keys({
-      local: joi
-        .boolean()
-        .description(
-          dedent`
-          If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
-          instead of in the Garden build directory (under .garden/build/<module-name>).
+export const execModuleSpecSchema = createSchema({
+  name: "exec:Module",
+  description: "The module specification for an exec module.",
+  keys: () => ({
+    local: joi
+      .boolean()
+      .description(
+        dedent`
+        If set to true, Garden will run the build command, services, tests, and tasks in the module source directory,
+        instead of in the Garden build directory (under .garden/build/<module-name>).
 
-          Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
-          and ignore files are not applied to local exec modules.
-          `
-        )
-        .default(false),
-      build: execBuildSpecSchema(),
-      env: joiEnvVars(),
-      services: joiSparseArray(execServiceSchema()).description("A list of services to deploy from this module."),
-      tasks: joiSparseArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),
-      tests: joiSparseArray(execTestSchema()).description("A list of tests to run in the module."),
-    })
-    .unknown(false)
-    .description("The module specification for an exec module.")
+        Garden will therefore not stage the build for local exec modules. This means that include/exclude filters
+        and ignore files are not applied to local exec modules.
+        `
+      )
+      .default(false),
+    build: execBuildSpecSchema(),
+    env: joiEnvVars(),
+    services: joiSparseArray(execServiceSchema()).description("A list of services to deploy from this module."),
+    tasks: joiSparseArray(execTaskSpecSchema()).description("A list of tasks that can be run in this module."),
+    tests: joiSparseArray(execTestSchema()).description("A list of tests to run in the module."),
+  }),
+  allowUnknown: false,
+})
 
 export interface ExecModule extends GardenModule<ExecModuleSpec, ExecServiceSpec, ExecTestSpec, ExecTaskSpec> {}

@@ -16,6 +16,7 @@ import type { DeployAction } from "../actions/deploy"
 import type { RunAction } from "../actions/run"
 import type { TestAction } from "../actions/test"
 import { NamespaceStatus, namespaceStatusSchema } from "../types/namespace"
+import Joi from "@hapi/joi"
 
 export interface ActionHandlerParamsBase<O = any> {
   base?: ActionHandler<any, O>
@@ -45,8 +46,8 @@ export interface ResolvedActionHandlerDescription<N = string> {
   description: string
   required?: boolean
   // TODO: specify the schemas using primitives and not Joi objects
-  paramsSchema: CustomObjectSchema
-  resultSchema: CustomObjectSchema
+  paramsSchema: Joi.ObjectSchema
+  resultSchema: Joi.ObjectSchema
 }
 
 export interface ResolvedActionHandlerDescriptions {

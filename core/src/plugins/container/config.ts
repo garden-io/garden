@@ -854,7 +854,10 @@ export const containerTestSpecKeys = () => ({
   image: containerImageSchema(),
 })
 
-export const containerTestActionSchema = () => joi.object().keys(containerTestSpecKeys())
+export const containerTestActionSchema = createSchema({
+  name: "container:Test",
+  keys: containerTestSpecKeys,
+})
 
 // RUN //
 
@@ -871,7 +874,10 @@ export const containerRunSpecKeys = () => ({
   ...containerTestSpecKeys(),
   cacheResult: cacheResultSchema(),
 })
-export const containerRunActionSchema = () => joi.object().keys(containerRunSpecKeys())
+export const containerRunActionSchema = createSchema({
+  name: "container:Run",
+  keys: containerRunSpecKeys,
+})
 
 // BUILD //
 
@@ -924,7 +930,10 @@ export const containerBuildOutputSchemaKeys = () => ({
     .description("Alias for deploymentImageId, for backward compatibility."),
 })
 
-export const containerBuildOutputsSchema = () => joi.object().keys(containerBuildOutputSchemaKeys())
+export const containerBuildOutputsSchema = createSchema({
+  name: "container:Build:outputs",
+  keys: containerBuildOutputSchemaKeys,
+})
 
 export interface ContainerBuildActionSpec {
   buildArgs: PrimitiveMap
@@ -978,8 +987,8 @@ export const containerCommonBuildSpecKeys = () => ({
 })
 
 export const containerBuildSpecSchema = createSchema({
-  name: "container.Build",
-  keys: {
+  name: "container:Build",
+  keys: () => ({
     ...containerBuildSpecKeys(),
     ...containerCommonBuildSpecKeys(),
     dockerfile: joi
@@ -994,7 +1003,7 @@ export const containerBuildSpecSchema = createSchema({
     `),
     // TODO: remove in 0.14, keeping around to avoid config failures
     hotReload: joi.any().meta({ internal: true }),
-  },
+  }),
 })
 
 export type ContainerActionConfig =

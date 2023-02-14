@@ -17,6 +17,7 @@ import {
   joiVariables,
   versionStringSchema,
   joiStringMap,
+  createSchema,
 } from "../config/common"
 import type { GardenModule } from "./module"
 import { ServiceConfig, serviceConfigSchema } from "../config/service"
@@ -189,7 +190,10 @@ export const forwardablePortKeys = () => ({
     .description("The protocol to use for URLs pointing at the port. This can be any valid URI protocol."),
 })
 
-const forwardablePortSchema = () => joi.object().keys(forwardablePortKeys())
+const forwardablePortSchema = createSchema({
+  name: "forwardable-port",
+  keys: forwardablePortKeys,
+})
 
 export interface ServiceStatus<D = any, O = PrimitiveMap> {
   createdAt?: string

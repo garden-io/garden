@@ -7,7 +7,14 @@
  */
 
 import { join } from "path"
-import { ActionReference, includeGuideLink, joi, joiSparseArray, joiUserIdentifier } from "../config/common"
+import {
+  ActionReference,
+  createSchema,
+  includeGuideLink,
+  joi,
+  joiSparseArray,
+  joiUserIdentifier,
+} from "../config/common"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import type { GraphResult, GraphResults } from "../graph/results"
 import { dedent } from "../util/string"
@@ -44,8 +51,9 @@ export interface BuildActionConfig<T extends string = string, S extends object =
   timeout?: number
 }
 
-export const copyFromSchema = () =>
-  joi.object().keys({
+export const copyFromSchema = createSchema({
+  name: "Build.copyFrom",
+  keys: () => ({
     build: joiUserIdentifier().required().description("The name of the Build action to copy from."),
     sourcePath: joi
       .posixPath()
@@ -59,7 +67,8 @@ export const copyFromSchema = () =>
       POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
       Defaults to to same as source path.
     `),
-  })
+  }),
+})
 
 export const buildActionConfigSchema = () =>
   baseActionConfigSchema().keys({

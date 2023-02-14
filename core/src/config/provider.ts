@@ -15,11 +15,12 @@ import {
   joiIdentifierMap,
   joiSparseArray,
   PrimitiveMap,
+  createSchema,
 } from "./common"
 import { collectTemplateReferences } from "../template-string/template-string"
 import { ConfigurationError } from "../exceptions"
 import { ModuleConfig, moduleConfigSchema } from "./module"
-import { uniq } from "lodash"
+import { memoize, uniq } from "lodash"
 import { GardenPlugin } from "../plugin/plugin"
 import { EnvironmentStatus } from "../plugin/handlers/Provider/getEnvironmentStatus"
 import { environmentStatusSchema } from "./status"
@@ -37,7 +38,7 @@ export interface GenericProviderConfig extends BaseProviderConfig {
   [key: string]: any
 }
 
-const providerFixedFieldsSchema = () =>
+const providerFixedFieldsSchema = memoize(() =>
   joi.object().keys({
     name: joiIdentifier().required().description("The name of the provider plugin to use.").example("local-kubernetes"),
     dependencies: joiSparseArray(joiIdentifier())
@@ -55,9 +56,11 @@ const providerFixedFieldsSchema = () =>
       )
       .example(["dev", "stage"]),
   })
+)
 
-export const providerConfigBaseSchema = () =>
+export const providerConfigBaseSchema = memoize(() =>
   providerFixedFieldsSchema().unknown(true).meta({ extendable: true }).id("providerConfig")
+)
 
 export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> extends ValidResultType {
   name: string
@@ -71,8 +74,10 @@ export interface Provider<T extends BaseProviderConfig = BaseProviderConfig> ext
   outputs: PrimitiveMap
 }
 
-export const providerSchema = () =>
-  providerFixedFieldsSchema().keys({
+export const providerSchema = createSchema({
+  name: "Provider",
+  extend: providerFixedFieldsSchema,
+  keys: () => ({
     dependencies: joiIdentifierMap(joi.link("..."))
       .description("Map of all the providers that this provider depends on.")
       .required(),
@@ -82,7 +87,8 @@ export const providerSchema = () =>
     state: joi.string(),
     outputs: joi.any(),
     dashboardPages: dashboardPagesSchema(),
-  })
+  }),
+})
 
 export interface ProviderMap {
   [name: string]: Provider<GenericProviderConfig>
