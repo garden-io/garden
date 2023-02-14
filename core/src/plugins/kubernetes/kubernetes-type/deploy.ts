@@ -40,7 +40,9 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
   // outputsSchema: kubernetesDeployOutputsSchema(),
   handlers: {
     configure: async ({ ctx, config }) => {
-      let files = config.spec.files
+      // The `spec` field hasn't been validated here yet,
+      // so the value of `files` might be `undefined` instead of a default empty array
+      let files = config.spec.files || []
 
       if (files.length > 0 && !config.spec.kustomize) {
         if (!config.include) {
