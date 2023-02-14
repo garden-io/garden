@@ -5,7 +5,7 @@ Example of using the Rust programming language with Garden.
 Local development with hot reload:
 
 ```bash
-garden dev
+garden deploy --dev
 ```
 
 Local deployment with a release mode build:
