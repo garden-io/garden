@@ -1,40 +1,66 @@
-kind: Module
+kind: Deploy
 description: Postgres container for storing voting results
 type: container
-name: postgres
-image: postgres:11.7-alpine
-services:
-  - name: db
-    volumes:
-      - name: data
-        containerPath: /db-data
-    ports:
-      - name: db
-        containerPort: 5432
-    env:
-      POSTGRES_DATABASE: ${var.postgres-database}
-      POSTGRES_USERNAME: ${var.postgres-username}
-      POSTGRES_PASSWORD: ${var.postgres-password}
-    healthCheck:
-      command: [psql, -w, -U, "${var.postgres-username}", -d, "${var.postgres-database}", -c, "SELECT 1"]
-tasks:
-  - name: db-init
-    command: [/bin/sh, -c]
-    # The postgres health check appears to go through before the server accepts remote connections, so we need to
-    # sleep for a while.
-    # https://github.com/CrunchyData/crunchy-containers/issues/653
-    args:
+name: db
+spec:
+  image: postgres:11.7-alpine
+  volumes:
+    - name: data
+      containerPath: /db-data
+  ports:
+    - name: db
+      containerPort: 5432
+  env:
+    POSTGRES_DATABASE: ${var.postgres-database}
+    POSTGRES_USERNAME: ${var.postgres-username}
+    POSTGRES_PASSWORD: ${var.postgres-password}
+  healthCheck:
+    command:
       [
-        "sleep 15 && psql -w --host=db --port=5432 -d $PGDATABASE -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
+        psql,
+        -w,
+        -U,
+        "${var.postgres-username}",
+        -d,
+        "${var.postgres-database}",
+        -c,
+        "SELECT 1",
       ]
-    dependencies: [db]
-    env: &env
-      PGDATABASE: ${var.postgres-database}
-      PGUSER: ${var.postgres-username}
-      PGPASSWORD: ${var.postgres-password}
-  - name: db-clear
-    command: [/bin/sh, -c]
-    args: ["psql -w --host=db --port=5432 -d $PGDATABASE -c 'TRUNCATE votes'"]
-    dependencies: [db]
-    env:
-      <<: *env
+---
+kind: Run
+name: db-init
+type: container
+dependencies: [deploy.db]
+spec:
+  image: postgres:11.7-alpine
+  # The postgres health check appears to go through before the server accepts remote connections, so we need to
+  # sleep for a while.
+  # https://github.com/CrunchyData/crunchy-containers/issues/653
+  command:
+    [
+      "/bin/sh",
+      "-c",
+      "sleep 15 && psql -w --host=db --port=5432 -d $PGDATABASE -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
+    ]
+  env:
+    PGDATABASE: ${var.postgres-database}
+    PGUSER: ${var.postgres-username}
+    PGPASSWORD: ${var.postgres-password}
+
+---
+kind: Run
+name: db-clear
+type: container
+dependencies: [deploy.db]
+spec:
+  image: postgres:11.7-alpine
+  command:
+    [
+      "/bin/sh",
+      "-c",
+      "psql -w --host=db --port=5432 -d $PGDATABASE -c 'TRUNCATE votes'",
+    ]
+  env:
+    PGDATABASE: ${var.postgres-database}
+    PGUSER: ${var.postgres-username}
+    PGPASSWORD: ${var.postgres-password}
