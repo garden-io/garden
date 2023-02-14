@@ -92,9 +92,8 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       namespace,
       key: getRunResultKey(ctx, action),
       labels: {
-        [gardenAnnotationKey("module")]: action.moduleName() || "",
-        [gardenAnnotationKey("actionName")]: action.name,
-        [gardenAnnotationKey("actionType")]: action.name,
+        [gardenAnnotationKey("action")]: "deploy.service-a",
+        [gardenAnnotationKey("actionType")]: action.type,
         [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,

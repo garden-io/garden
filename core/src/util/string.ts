@@ -27,7 +27,7 @@ const gardenAnnotationPrefix = "garden.io/"
 
 export type GardenAnnotationKey =
   | "actionType"
-  | "actionName"
+  | "action"
   | "sync-mode"
   | "generated"
   | "helm-migrated"
@@ -41,11 +41,6 @@ export type GardenAnnotationKey =
   | "version"
 
 export function gardenAnnotationKey(key: GardenAnnotationKey) {
-  // FIXME: We need to work out a transition for existing deployments, but we had previously set these two keys
-  // without the prefix and K8s doesn't allow modifying label selectors on existing workloads. (yay.)
-  if (key === "module" || key === "service") {
-    return key
-  }
   return gardenAnnotationPrefix + key
 }
 

@@ -47,8 +47,7 @@ describe("createServiceResources", () => {
             },
           ],
           selector: {
-            [gardenAnnotationKey("actionName")]: "service-a",
-            [gardenAnnotationKey("service")]: "service-a",
+            [gardenAnnotationKey("action")]: "deploy.service-a",
           },
           type: "ClusterIP",
         },
@@ -86,8 +85,7 @@ describe("createServiceResources", () => {
             },
           ],
           selector: {
-            [gardenAnnotationKey("actionName")]: "service-a",
-            [gardenAnnotationKey("service")]: "service-a",
+            [gardenAnnotationKey("action")]: "deploy.service-a",
           },
           type: "ClusterIP",
         },
@@ -124,8 +122,7 @@ describe("createServiceResources", () => {
             },
           ],
           selector: {
-            [gardenAnnotationKey("actionName")]: "service-a",
-            [gardenAnnotationKey("service")]: "service-a",
+            [gardenAnnotationKey("action")]: "deploy.service-a",
           },
           type: "NodePort",
         },
@@ -161,8 +158,7 @@ describe("createServiceResources", () => {
             },
           ],
           selector: {
-            [gardenAnnotationKey("actionName")]: "service-a",
-            [gardenAnnotationKey("service")]: "service-a",
+            [gardenAnnotationKey("action")]: "deploy.service-a",
           },
           type: "NodePort",
         },

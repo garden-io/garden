@@ -476,9 +476,9 @@ export async function createWorkloadManifest({
               labelSelector: {
                 matchExpressions: [
                   {
-                    key: gardenAnnotationKey("actionName"),
+                    key: gardenAnnotationKey("action"),
                     operator: "In",
-                    values: [action.name],
+                    values: [action.key()],
                   },
                 ],
               },
@@ -534,8 +534,7 @@ export async function createWorkloadManifest({
 export function getDeploymentLabels(action: ContainerDeployAction) {
   return {
     [gardenAnnotationKey("module")]: action.moduleName() || "",
-    [gardenAnnotationKey("actionName")]: action.name,
-    [gardenAnnotationKey("service")]: action.name,
+    [gardenAnnotationKey("action")]: action.key(),
   }
 }
 
