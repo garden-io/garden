@@ -1,0 +1,28 @@
+kind: Project
+name: vote-helm-argocd
+variables:
+  userId: ${local.username}
+environments:
+  - name: local
+    variables:
+      baseHostname: vote.local.app.garden
+  - name: gke-gitops-dev
+    defaultNamespace: ${var.userId}
+    variables:
+      baseHostname: ${project.name}-${var.userId}.dev-1.sys.garden
+providers:
+  - name: local-kubernetes
+    environments: [local]
+    context: docker-desktop
+  - name: kubernetes
+    environments: [gke-gitops-dev]
+    context: gke_garden-demo-324810_us-central1-a_gitops-dev
+    namespace: ${project.name}-${var.userId}
+    defaultHostname: ${var.baseHostname}
+    buildMode: cluster-buildkit
+    deploymentRegistry:
+      hostname: index.docker.io
+      namespace: srihasg
+    imagePullSecrets:
+      - name: regcred
+        namespace: default
