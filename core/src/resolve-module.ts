@@ -28,7 +28,7 @@ import {
   getModuleTypeBases,
 } from "./types/module"
 import { BuildDependencyConfig, ModuleConfig, moduleConfigSchema } from "./config/module"
-import { Profile } from "./util/profiling"
+import { Profile, profileAsync } from "./util/profiling"
 import { getLinkedSources } from "./util/ext-source-util"
 import { allowUnknown, DeepPrimitiveMap } from "./config/common"
 import type { ProviderMap } from "./config/provider"
@@ -641,7 +641,7 @@ export function findActionConfigInGroup(group: GroupConfig, kind: ActionKind, na
   return group.actions.find((a) => a.kind === kind && a.name === name)
 }
 
-export async function convertModules(
+export const convertModules = profileAsync(async function convertModules(
   garden: Garden,
   log: LogEntry,
   modules: GardenModule[],
@@ -762,7 +762,7 @@ export async function convertModules(
   })
 
   return { groups, actions }
-}
+})
 
 export function makeDummyBuild({
   module,

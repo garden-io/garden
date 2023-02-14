@@ -9,9 +9,9 @@
 import Joi, { SchemaLike } from "@hapi/joi"
 import Ajv from "ajv"
 import addFormats from "ajv-formats"
-import { splitLast } from "../util/util"
+import { serializeObject, splitLast } from "../util/util"
 import { deline, dedent, naturalList, titleize } from "../util/string"
-import { cloneDeep, isArray, isPlainObject, isString, mapValues } from "lodash"
+import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
@@ -327,6 +327,16 @@ joi = joi.extend({
 })
 
 /**
+ * Compiles a JSON schema and caches the result.
+ */
+const compileJsonSchema = memoize(
+  (schema: any) => {
+    return ajv.compile(schema)
+  },
+  (s) => JSON.stringify(s)
+)
+
+/**
  * Extend the joi.object() type with additional methods and minor customizations, including one for validating with a
  * JSON Schema.
  *
@@ -376,7 +386,7 @@ joi = joi.extend({
             }
 
             try {
-              return ajv.compile(value)
+              return compileJsonSchema(value)
             } catch (err) {
               return false
             }
@@ -459,6 +469,108 @@ const actionRefParseError = (reference: any) => {
     `Could not parse ${refStr} as a valid action reference. An action reference should be a "<kind>.<name>" string, where <kind> is one of ${validActionKinds} and <name> is a valid name of an action. You may also specify an object with separate kind and name fields.`,
     { reference }
   )
+}
+
+interface SchemaKeys {
+  [key: string]: SchemaLike | SchemaLike[] | SchemaCallback
+}
+type SchemaCallback = () => Joi.Schema
+
+export interface CreateSchemaParams {
+  name: string
+  description?: string
+  keys: SchemaKeys | (() => SchemaKeys)
+  extend?: () => Joi.ObjectSchema
+  default?: any
+  meta?: MetadataKeys
+  allowUnknown?: boolean
+  required?: boolean
+  xor?: string[]
+}
+
+export interface CreateSchemaOutput {
+  (): Joi.ObjectSchema
+}
+
+interface SchemaRegistry {
+  [name: string]: {
+    spec: CreateSchemaParams
+    schema?: Joi.ObjectSchema
+  }
+}
+
+const schemaRegistry: SchemaRegistry = {}
+
+export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
+  let { name, keys } = spec
+
+  if (schemaRegistry[name]) {
+    throw new InternalError(`Object schema ${name} defined multiple times`, { name, keys })
+  }
+
+  schemaRegistry[name] = { spec }
+
+  return () => {
+    let schema = schemaRegistry[name].schema
+    if (!schema) {
+      const meta: MetadataKeys = { ...spec.meta }
+      meta.name = name
+
+      if (typeof keys === "function") {
+        keys = keys()
+      }
+
+      keys = mapValues(keys, (v) => {
+        return typeof v === "function" ? v() : v
+      })
+
+      if (spec.extend) {
+        const base = spec.extend()
+
+        if (Object.keys(keys).length > 0) {
+          schema = base.keys(keys)
+        } else {
+          schema = base
+        }
+
+        const description = base.describe()
+        const baseMeta = metadataFromDescription(description)
+        if (baseMeta.name) {
+          meta.extends = baseMeta.name
+        }
+      } else {
+        schema = joi.object().keys(keys)
+      }
+
+      schema = schema.meta(meta)
+
+      if (spec.allowUnknown) {
+        schema = schema.unknown(true)
+      }
+      if (spec.default) {
+        schema = schema.default(spec.default)
+      }
+      if (spec.description) {
+        schema = schema.description(spec.description)
+      }
+      if (spec.required) {
+        schema = schema.required()
+      }
+      if (spec.xor) {
+        schema = schema.xor(...spec.xor)
+      }
+
+      schemaRegistry[name].schema = schema
+    }
+    return schema
+  }
+}
+
+// Just used for tests
+export function removeSchema(name: string) {
+  if (schemaRegistry[name]) {
+    delete schemaRegistry[name]
+  }
 }
 
 /**
@@ -717,14 +829,17 @@ export const versionStringSchema = () =>
 
 const fileNamesSchema = () => joiArray(joi.string()).description("List of file paths included in the version.")
 
-export const treeVersionSchema = () =>
-  joi.object().keys({
+export const treeVersionSchema = createSchema({
+  name: "tree-version",
+  keys: () => ({
     contentHash: joi.string().required().description("The hash of all files belonging to the Garden module."),
     files: fileNamesSchema(),
-  })
+  }),
+})
 
-export const moduleVersionSchema = () =>
-  joi.object().keys({
+export const moduleVersionSchema = createSchema({
+  name: "module-version",
+  keys: () => ({
     versionString: versionStringSchema(),
     dependencyVersions: joi
       .object()
@@ -732,7 +847,8 @@ export const moduleVersionSchema = () =>
       .default(() => ({}))
       .description("The version of each of the dependencies of the module."),
     files: fileNamesSchema(),
-  })
+  }),
+})
 
 export const apiVersionSchema = () =>
   joi
@@ -771,87 +887,6 @@ export function allowUnknown<T extends Joi.Schema>(schema: T) {
 export const artifactsTargetDescription = dedent`
   A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at \`.garden/artifacts\`.
 `
-
-type SchemaCallback = () => Joi.Schema
-
-export interface CreateSchemaParams {
-  name: string
-  keys: {
-    [key: string]: SchemaLike | SchemaLike[] | SchemaCallback
-  }
-  extend?: () => Joi.ObjectSchema
-  meta?: MetadataKeys
-  allowUnknown?: boolean
-}
-
-export interface CreateSchemaOutput {
-  (): Joi.ObjectSchema
-}
-
-interface SchemaRegistry {
-  [name: string]: {
-    spec: CreateSchemaParams
-    schema?: Joi.ObjectSchema
-  }
-}
-
-const schemaRegistry: SchemaRegistry = {}
-
-export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
-  let { name, keys } = spec
-
-  if (schemaRegistry[name]) {
-    throw new InternalError(`Object schema ${name} defined multiple times`, { name, keys })
-  }
-
-  schemaRegistry[name] = { spec }
-
-  return () => {
-    let schema = schemaRegistry[name].schema
-    if (!schema) {
-      const meta: MetadataKeys = { ...spec.meta }
-      meta.name = name
-
-      keys = mapValues(keys, (v) => {
-        return typeof v === "function" ? v() : v
-      })
-
-      if (spec.extend) {
-        const base = spec.extend()
-
-        if (Object.keys(keys).length > 0) {
-          schema = base.keys(keys)
-        } else {
-          schema = base
-        }
-
-        const description = base.describe()
-        const baseMeta = metadataFromDescription(description)
-        if (baseMeta.name) {
-          meta.extends = baseMeta.name
-        }
-      } else {
-        schema = joi.object().keys(keys)
-      }
-
-      schema = schema.meta(meta)
-
-      if (spec.allowUnknown) {
-        schema = schema.unknown(true)
-      }
-
-      schemaRegistry[name].schema = schema
-    }
-    return schema
-  }
-}
-
-// Just used for tests
-export function removeSchema(name: string) {
-  if (schemaRegistry[name]) {
-    delete schemaRegistry[name]
-  }
-}
 
 export function metadataFromDescription(desc: Joi.Description) {
   let meta: MetadataKeys = {}

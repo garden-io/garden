@@ -6,12 +6,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { memoize } from "lodash"
 import { BuildAction, BuildActionConfig } from "../../actions/build"
 import { DeployAction, DeployActionConfig } from "../../actions/deploy"
 import { RunAction, RunActionConfig } from "../../actions/run"
 import { TestAction, TestActionConfig } from "../../actions/test"
 import { Resolved } from "../../actions/types"
-import { artifactsTargetDescription, joi, joiEnvVars, joiSparseArray, StringMap } from "../../config/common"
+import {
+  artifactsTargetDescription,
+  createSchema,
+  joi,
+  joiEnvVars,
+  joiSparseArray,
+  StringMap,
+} from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { dedent } from "../../util/string"
 
@@ -28,9 +36,11 @@ interface CommonKeys {
   shell?: boolean
 }
 
-const commonKeys = () => ({
-  // Description adapted from https://github.com/sindresorhus/execa
-  shell: joi.boolean().description(dedent`
+const execCommonSchema = createSchema({
+  name: "exec:common",
+  keys: () => ({
+    // Description adapted from https://github.com/sindresorhus/execa
+    shell: joi.boolean().description(dedent`
     If \`true\`, runs file inside of a shell. Uses \`/bin/sh\` on UNIX and \`cmd.exe\` on Windows. A different shell can be specified as a string. The shell should understand the \`-c\` switch on UNIX or \`/d /s /c\` on Windows.
 
     Note that if this is not set, no shell interpreter (Bash, \`cmd.exe\`, etc.) is used, so shell features such as variables substitution (\`echo $PATH\`) are not allowed.
@@ -41,8 +51,8 @@ const commonKeys = () => ({
     - slower, because of the additional shell interpretation.
     - unsafe, potentially allowing command injection.
   `),
+  }),
 })
-
 // BUILD //
 
 export interface ExecBuildActionSpec extends CommonKeys {
@@ -53,9 +63,10 @@ export interface ExecBuildActionSpec extends CommonKeys {
 export type ExecBuildConfig = BuildActionConfig<"exec", ExecBuildActionSpec>
 export type ExecBuild = BuildAction<ExecBuildConfig, ExecOutputs>
 
-export const execBuildActionSchema = () =>
-  joi.object().keys({
-    ...commonKeys(),
+export const execBuildActionSchema = createSchema({
+  name: "exec:Build",
+  extend: execCommonSchema,
+  keys: () => ({
     command: joi
       .array()
       .items(joi.string())
@@ -70,7 +81,8 @@ export const execBuildActionSchema = () =>
       )
       .example(["npm", "run", "build"]),
     env: joiEnvVars(),
-  })
+  }),
+})
 
 // DEPLOY //
 
@@ -92,7 +104,7 @@ export interface ExecDeployActionSpec extends CommonKeys {
 export type ExecDeployConfig = DeployActionConfig<"exec", ExecDeployActionSpec>
 export type ExecDeploy = DeployAction<ExecDeployConfig, ExecOutputs>
 
-export const execDeployCommandSchema = () =>
+export const execDeployCommandSchema = memoize(() =>
   joi
     .sparseArray()
     .items(joi.string().allow(""))
@@ -103,72 +115,71 @@ export const execDeployCommandSchema = () =>
       ${execPathDoc}
       `
     )
+)
 
-export const execDeployActionSchema = () =>
-  joi
-    .object()
-    .keys({
-      ...commonKeys(),
-      deployCommand: execDeployCommandSchema().required(),
+export const execDeployActionSchema = createSchema({
+  name: "exec:Deploy",
+  extend: execCommonSchema,
+  keys: () => ({
+    deployCommand: execDeployCommandSchema().required(),
+    statusCommand: joi
+      .sparseArray()
+      .items(joi.string().allow(""))
+      .description(
+        dedent`
+        Optionally set a command to check the status of the deployment. If this is specified, it is run before the \`deployCommand\`. If the command runs successfully and returns exit code of 0, the deployment is considered already deployed and the \`deployCommand\` is not run.
+
+        If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify this command if possible.
+
+        ${execPathDoc}
+        `
+      ),
+    cleanupCommand: joi
+      .sparseArray()
+      .items(joi.string().allow(""))
+      .description(
+        dedent`
+        Optionally set a command to clean the deployment up, e.g. when running \`garden delete env\`.
+
+        ${execPathDoc}
+        `
+      ),
+    // TODO: Set a default in v0.13.
+    timeout: joi.number().description(dedent`
+      The maximum duration (in seconds) to wait for a local script to exit.
+    `),
+    env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
+    devMode: joi.object().keys({
+      command: joi
+        .sparseArray()
+        .items(joi.string().allow(""))
+        .description(
+          dedent`
+            The command to run to deploy in dev mode. When in dev mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the \`garden logs\` command as usual.
+
+            If a \`statusCommand\` is set, Garden will wait until it returns a zero exit code before considering the deployment ready. Otherwise it considers it immediately ready.
+
+            ${execPathDoc}
+          `
+        ),
       statusCommand: joi
         .sparseArray()
         .items(joi.string().allow(""))
         .description(
           dedent`
-          Optionally set a command to check the status of the deployment. If this is specified, it is run before the \`deployCommand\`. If the command runs successfully and returns exit code of 0, the deployment is considered already deployed and the \`deployCommand\` is not run.
+            Optionally set a command to check the status of the deployment in dev mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
 
-          If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify this command if possible.
+            If no \`statusCommand\` is set, Garden will consider the deploy ready as soon as it has started the process.
 
-          ${execPathDoc}
-          `
-        ),
-      cleanupCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          Optionally set a command to clean the deployment up, e.g. when running \`garden delete env\`.
-
-          ${execPathDoc}
-          `
-        ),
-      // TODO: Set a default in v0.13.
-      timeout: joi.number().description(dedent`
-        The maximum duration (in seconds) to wait for a local script to exit.
-      `),
-      env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
-      devMode: joi.object().keys({
-        command: joi
-          .sparseArray()
-          .items(joi.string().allow(""))
-          .description(
-            dedent`
-              The command to run to deploy in dev mode. When in dev mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the \`garden logs\` command as usual.
-
-              If a \`statusCommand\` is set, Garden will wait until it returns a zero exit code before considering the deployment ready. Otherwise it considers it immediately ready.
-
-              ${execPathDoc}
+            ${execPathDoc}
             `
-          ),
-        statusCommand: joi
-          .sparseArray()
-          .items(joi.string().allow(""))
-          .description(
-            dedent`
-              Optionally set a command to check the status of the deployment in dev mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
-
-              If no \`statusCommand\` is set, Garden will consider the deploy ready as soon as it has started the process.
-
-              ${execPathDoc}
-              `
-          ),
-        timeout: joi.number().default(localProcDefaultTimeoutSec).description(dedent`
-          The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero exit code. Ignored if no \`statusCommand\` is set.
-        `),
-      }),
-    })
-    .description("Deploy using shell commands.")
-    .meta({ name: "exec.Deploy" })
+        ),
+      timeout: joi.number().default(localProcDefaultTimeoutSec).description(dedent`
+        The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero exit code. Ignored if no \`statusCommand\` is set.
+      `),
+    }),
+  }),
+})
 
 // RUN //
 
@@ -181,26 +192,25 @@ export interface ExecRunActionSpec extends CommonKeys {
 export type ExecRunConfig = RunActionConfig<"exec", ExecRunActionSpec>
 export type ExecRun = RunAction<ExecRunConfig, ExecOutputs>
 
-export const execRunActionSchema = () =>
-  joi
-    .object()
-    .keys({
-      ...commonKeys(),
-      artifacts: artifactsSchema().description("A list of artifacts to copy after the run."),
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          The command to run.
+export const execRunActionSchema = createSchema({
+  name: "exec:Run",
+  extend: execCommonSchema,
+  keys: () => ({
+    artifacts: artifactsSchema().description("A list of artifacts to copy after the run."),
+    command: joi
+      .sparseArray()
+      .items(joi.string().allow(""))
+      .description(
+        dedent`
+        The command to run.
 
-          ${execPathDoc}
-          `
-        )
-        .required(),
-      env: joiEnvVars().description("Environment variables to set when running the command."),
-    })
-    .description("A shell command Run.")
+        ${execPathDoc}
+        `
+      )
+      .required(),
+    env: joiEnvVars().description("Environment variables to set when running the command."),
+  }),
+})
 
 // TEST //
 
@@ -208,26 +218,25 @@ export interface ExecTestActionSpec extends ExecRunActionSpec {}
 export type ExecTestConfig = TestActionConfig<"exec", ExecTestActionSpec>
 export type ExecTest = TestAction<ExecTestConfig, ExecOutputs>
 
-export const execTestActionSchema = () =>
-  joi
-    .object()
-    .keys({
-      ...commonKeys(),
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-          The command to run to perform the test.
+export const execTestActionSchema = createSchema({
+  name: "exec:Test",
+  extend: execCommonSchema,
+  keys: () => ({
+    command: joi
+      .sparseArray()
+      .items(joi.string().allow(""))
+      .description(
+        dedent`
+        The command to run to perform the test.
 
-          ${execPathDoc}
-          `
-        )
-        .required(),
-      env: joiEnvVars().description("Environment variables to set when running the command."),
-      artifacts: artifactsSchema().description("A list of artifacts to copy after the test run."),
-    })
-    .description("A shell command Test.")
+        ${execPathDoc}
+        `
+      )
+      .required(),
+    env: joiEnvVars().description("Environment variables to set when running the command."),
+    artifacts: artifactsSchema().description("A list of artifacts to copy after the test run."),
+  }),
+})
 
 // MISC //
 
@@ -247,4 +256,4 @@ const artifactSchema = () =>
     target: joi.posixPath().relativeOnly().subPathOnly().default(".").description(artifactsTargetDescription),
   })
 
-export const artifactsSchema = () => joiSparseArray(artifactSchema())
+export const artifactsSchema = memoize(() => joiSparseArray(artifactSchema()))

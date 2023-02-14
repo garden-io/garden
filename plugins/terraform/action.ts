@@ -7,7 +7,7 @@
  */
 
 import { join } from "path"
-import { joi, joiVariables } from "@garden-io/core/build/src/config/common"
+import { createSchema, joi, joiVariables } from "@garden-io/core/build/src/config/common"
 import { dedent, deline } from "@garden-io/core/build/src/util/string"
 import { supportedVersions, terraform } from "./cli"
 import {
@@ -61,7 +61,10 @@ export const terraformDeploySchemaKeys = () => ({
   workspace: joi.string().allow(null).description("Use the specified Terraform workspace."),
 })
 
-export const terraformDeploySchema = () => joi.object().keys(terraformDeploySchemaKeys())
+export const terraformDeploySchema = createSchema({
+  name: "terraform:Deploy",
+  keys: terraformDeploySchemaKeys,
+})
 
 export const terraformDeployOutputsSchema = () =>
   joiVariables().description("A map of all the outputs defined in the Terraform stack.")

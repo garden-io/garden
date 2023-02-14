@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import Joi from "@hapi/joi"
 import { ensureFile } from "fs-extra"
 import { omit } from "lodash"
 import { join } from "path"
@@ -80,7 +81,7 @@ function getRouterUnitTestPlugins() {
     return { base: "ok", foo: params.action._config[returnWrongOutputsCfgKey] ? 123 : "ok" }
   }
 
-  function validateParams(params: any, schema: CustomObjectSchema) {
+  function validateParams(params: any, schema: Joi.ObjectSchema) {
     validateSchema(
       params,
       schema.keys({

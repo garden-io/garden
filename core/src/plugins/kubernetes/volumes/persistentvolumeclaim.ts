@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joiIdentifier, joi, joiSparseArray } from "../../../config/common"
+import { joiIdentifier, joi, joiSparseArray, createSchema } from "../../../config/common"
 import { dedent } from "../../../util/string"
 import { BaseVolumeSpec, baseVolumeSpecKeys, VolumeAccessMode } from "../../base-volume"
 import { V1PersistentVolumeClaimSpec, V1PersistentVolumeClaim } from "@kubernetes/client-node"
@@ -99,6 +99,17 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
   },
 })
 
+const pvcModuleSchema = createSchema({
+  name: "kubernetes:persistentvolumeclaim:Module",
+  keys: {
+    build: baseBuildSpecSchema(),
+    dependencies: joiSparseArray(joiIdentifier()).description(
+      "List of services and tasks to deploy/run before deploying this PVC."
+    ),
+    ...commonSpecKeys(),
+  },
+})
+
 export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
   name: "persistentvolumeclaim",
   docs: dedent`
@@ -107,13 +118,7 @@ export const pvcModuleDefinition = (): ModuleTypeDefinition => ({
     See the [PersistentVolumeClaim](../../k8s-plugins/module-types/persistentvolumeclaim.md) guide for more info and usage examples.
   `,
 
-  schema: joi.object().keys({
-    build: baseBuildSpecSchema(),
-    dependencies: joiSparseArray(joiIdentifier()).description(
-      "List of services and tasks to deploy/run before deploying this PVC."
-    ),
-    ...commonSpecKeys(),
-  }),
+  schema: pvcModuleSchema(),
   needsBuild: false,
 
   handlers: {

@@ -103,13 +103,15 @@ export async function profileBlock(description: string, block: () => Promise<any
 export const projectRootA = getDataDir("test-project-a")
 export const projectRootBuildDependants = getDataDir("test-build-dependants")
 
-export const testModuleSpecSchema = () =>
-  execModuleSpecSchema().keys({
+export const testModuleSpecSchema = createSchema({
+  name: "test:Module:spec",
+  keys: () => ({
     build: execBuildSpecSchema(),
     services: joiArray(baseServiceSpecSchema()),
     tests: joiArray(execTestSchema()),
     tasks: joiArray(execTaskSpecSchema()),
-  })
+  }),
+})
 
 export const testDeploySchema = createSchema({
   name: "test.Deploy",
@@ -182,6 +184,13 @@ const runTest: RunActionHandler<"run", ExecRun> = async ({ action, log }): Promi
   }
 }
 
+const testBuildStaticOutputsSchema = createSchema({
+  name: "test:Build:static-outputs",
+  keys: () => ({
+    foo: joi.string(),
+  }),
+})
+
 const testPluginSecrets: { [key: string]: string } = {}
 
 export const testPlugin = () =>
@@ -231,9 +240,7 @@ export const testPlugin = () =>
           name: "test",
           docs: "Test Build action",
           schema: execBuildActionSchema(),
-          staticOutputsSchema: joi.object().keys({
-            foo: joi.string(),
-          }),
+          staticOutputsSchema: testBuildStaticOutputsSchema(),
           handlers: {
             build: buildExecAction,
             getStatus: async ({ ctx, action }) => {

@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema } from "./common"
+import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema, createSchema } from "./common"
 import { baseModuleSpecSchema, BaseModuleSpec, ModuleConfig } from "./module"
 import { dedent, deline } from "../util/string"
 import { GardenResource, moduleTemplateKind, prepareModuleResource } from "./base"
@@ -219,8 +219,9 @@ export async function resolveTemplatedModule(
   return { resolvedSpec, modules }
 }
 
-export const moduleTemplateSchema = () =>
-  joi.object().keys({
+export const moduleTemplateSchema = createSchema({
+  name: "ModuleTemplate",
+  keys: () => ({
     apiVersion: apiVersionSchema(),
     kind: joi.string().allow(moduleTemplateKind).only().default(moduleTemplateKind),
     name: joiUserIdentifier().description("The name of the template."),
@@ -244,7 +245,8 @@ export const moduleTemplateSchema = () =>
         **Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputTemplatePattern}, ${parentNameTemplate} and ${moduleTemplateNameTemplate} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](${moduleTemplateReferenceUrl})).**
         `
       ),
-  })
+  }),
+})
 
 const moduleSchema = () =>
   baseModuleSpecSchema().keys({
