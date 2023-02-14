@@ -239,10 +239,11 @@ describe("util", () => {
     })
   })
 
-  describe("getServiceResource", () => {
+  describe("getTargetResource", () => {
     it("should return the resource specified by serviceResource", async () => {
       const rawAction = helmGraph.getDeploy("api")
       const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
+      const asd = await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -257,8 +258,8 @@ describe("util", () => {
         action,
         manifests,
         query: {
-          // getServiceResourceSpec() <- Use this once it's sgv2 ready
-          /* TODO-G2 */
+          name: action.name,
+          kind: "Deployment",
         },
       })
       const expected = find(manifests, (r) => r.kind === "Deployment")

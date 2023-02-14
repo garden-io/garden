@@ -271,12 +271,14 @@ describe("kubernetes container deployment handlers", () => {
       const action = await resolveDeployAction("simple-service")
       const namespace = provider.config.namespace!.name!
 
+      const imageId = getDeployedImageId(action, provider)
+
       const resource = await createWorkloadManifest({
         ctx,
         api,
         provider,
         action,
-        imageId: getDeployedImageId(action, provider),
+        imageId,
         namespace,
         enableDevMode: false,
         enableLocalMode: false,
@@ -284,8 +286,6 @@ describe("kubernetes container deployment handlers", () => {
         production: false,
         blueGreen: false,
       })
-
-      const buildVersion = action.versionString()
 
       const spec = action.getSpec()
 
@@ -309,9 +309,11 @@ describe("kubernetes container deployment handlers", () => {
               containers: [
                 {
                   name: "simple-service",
-                  image: "simple-service:" + buildVersion,
+                  image: imageId,
                   command: ["sh", "-c", "echo Server running... && nc -l -p 8080"],
                   env: [
+                    { name: "GARDEN_VERSION", value: action.getFullVersion().versionString },
+                    { name: "GARDEN_MODULE_VERSION", value: "v-acd6a1dac7" },
                     { name: "POD_HOST_IP", valueFrom: { fieldRef: { fieldPath: "status.hostIP" } } },
                     { name: "POD_IP", valueFrom: { fieldRef: { fieldPath: "status.podIP" } } },
                     { name: "POD_NAME", valueFrom: { fieldRef: { fieldPath: "metadata.name" } } },
