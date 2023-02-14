@@ -1,7 +1,7 @@
-# Local mode for `container` modules
+# Local mode for `container` build type
 
 A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `container`
-module type.
+build type.
 
 This project is based on the [demo-project](../demo-project). The only difference is that this one has 2 backend
 services. Each backend service (or both) can be started in the _local mode_.
@@ -33,19 +33,6 @@ garden deploy --local=backend-2
 garden deploy --local=backend-1,backend-2
 garden deploy --local
 garden deploy --local=*
-```
-
-Alternatively, you can also run the local mode using the `garden dev` command:
-
-```shell
-# To start a specific service in local mode
-garden dev --local=backend-1
-garden dev --local=backend-2
-
-# To start both services in local mode
-garden dev --local=backend-1,backend-2
-garden dev --local
-garden dev --local=*
 ```
 
 To verify the result, call the corresponding ingress URLs of the `frontend` and `backend` applications. The local
