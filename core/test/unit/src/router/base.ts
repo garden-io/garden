@@ -14,11 +14,11 @@ import { resolveAction } from "../../../../src/graph/actions"
 import { BuildActionDefinition } from "../../../../src/plugin/action-types"
 import { createGardenPlugin, GardenPlugin, PluginBuildActionParamsBase } from "../../../../src/plugin/plugin"
 import { ActionKindRouter } from "../../../../src/router/base"
-import { projectRootA, expectError, makeTestGarden, TestGarden, getDefaultProjectConfig } from "../../../helpers"
+import { expectError, TestGarden, getDefaultProjectConfig, makeTempGarden, TempDirectory } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
 
 describe("BaseActionRouter", () => {
-  const path = projectRootA
+  let tmpDir: TempDirectory
 
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {
@@ -46,7 +46,7 @@ describe("BaseActionRouter", () => {
 
   const createTestRouter = async (plugins: GardenPlugin[], garden?: TestGarden) => {
     if (!garden) {
-      garden = await makeTestGarden(path, {
+      const res = await makeTempGarden({
         plugins,
         onlySpecifiedPlugins: true,
         config: {
@@ -54,6 +54,8 @@ describe("BaseActionRouter", () => {
           providers: plugins.map((p) => ({ name: p.name, dependencies: p.dependencies.map((d) => d.name) })),
         },
       })
+      garden = res.garden
+      tmpDir = res.tmpDir
     }
 
     const router = await garden.getActionRouter()
@@ -460,7 +462,7 @@ describe("BaseActionRouter", () => {
           type: "test",
           name: "foo",
           internal: {
-            basePath: path,
+            basePath: garden.projectRoot,
           },
           spec: {},
         },
@@ -499,7 +501,7 @@ describe("BaseActionRouter", () => {
           type: "test",
           name: "foo",
           internal: {
-            basePath: path,
+            basePath: garden.projectRoot,
           },
           spec: {},
         },
@@ -554,7 +556,7 @@ describe("BaseActionRouter", () => {
           type: "test",
           name: "foo",
           internal: {
-            basePath: path,
+            basePath: garden.projectRoot,
           },
           spec: {},
         },
@@ -594,7 +596,7 @@ describe("BaseActionRouter", () => {
           type: "test",
           name: "foo",
           internal: {
-            basePath: path,
+            basePath: garden.projectRoot,
           },
           spec: {},
         },

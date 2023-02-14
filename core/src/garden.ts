@@ -973,6 +973,10 @@ export class Garden {
         // There is no actual config file for plugin modules (which the prepare function assumes)
         delete config.internal?.configFilePath
 
+        if (!config.internal.basePath) {
+          config.internal.basePath = this.projectRoot
+        }
+
         const action = await actionFromConfig({
           garden: this,
           graph,

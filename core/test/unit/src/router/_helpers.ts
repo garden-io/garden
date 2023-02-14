@@ -180,7 +180,7 @@ function getRouterUnitTestPlugins() {
               name: actionName,
               type: "test",
               internal: {
-                basePath: ".",
+                basePath: params.ctx.projectRoot,
               },
               spec: {},
             },
@@ -189,7 +189,7 @@ function getRouterUnitTestPlugins() {
               name: actionName,
               type: "test",
               internal: {
-                basePath: ".",
+                basePath: params.ctx.projectRoot,
               },
               spec: {},
             },
