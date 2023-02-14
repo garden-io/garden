@@ -175,7 +175,6 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       action,
       namespace,
       log,
-      containerName: spec.localMode.containerName,
     })
   } else if (devMode && spec.devMode?.syncs?.length) {
     await startDevModeSyncs({

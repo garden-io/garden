@@ -76,18 +76,20 @@ export const kubernetesLocalModeSchema = () =>
     See the [Local Mode guide](${localModeGuideLink}) for more information.
   `)
 
-interface ConfigureLocalModeParams {
+interface BaseLocalModeParams {
   ctx: PluginContext
   spec: ContainerLocalModeSpec
   targetResource: SyncableResource
   action: ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
   log: LogEntry
+}
+
+interface ConfigureLocalModeParams extends BaseLocalModeParams {
   containerName?: string
 }
 
-interface StartLocalModeParams extends ConfigureLocalModeParams {
+interface StartLocalModeParams extends BaseLocalModeParams {
   namespace: string
-  containerName?: string
 }
 
 export class KeyPair {
