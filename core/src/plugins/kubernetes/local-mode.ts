@@ -47,18 +47,11 @@ const sshKeystoreAsyncLock = new AsyncLock()
 const portForwardRetryTimeoutMs = 5000
 
 export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
-  containerName?: string
   target?: KubernetesTargetResourceSpec
 }
 
 export const kubernetesLocalModeSchema = () =>
   containerLocalModeSchema().keys({
-    containerName: joi
-      .string()
-      .optional()
-      .description(
-        "When using the `defaultTarget` and not specifying `localMode.target`, this field can be used to override the default container name to proxy traffic from."
-      ),
     target: targetResourceSpecSchema().description(
       "The remote Kubernetes resource to proxy traffic from. If specified, this is used instead of `defaultTarget`."
     ),

@@ -132,7 +132,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       targetResource: localModeTarget,
       action,
       log,
-      containerName: spec.localMode.containerName,
+      containerName: spec.localMode.target?.containerName,
     })
     await apply({ log, ctx, api, provider, manifests: [localModeTarget], namespace })
   } else if (devMode && spec.devMode && !isEmpty(spec.devMode)) {
