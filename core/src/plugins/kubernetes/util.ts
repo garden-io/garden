@@ -41,8 +41,6 @@ import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
 import { Resolved } from "../../actions/types"
 
-export const skopeoImage = "gardendev/skopeo:1.41.0-3"
-
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
 
@@ -453,42 +451,6 @@ export function prepareEnvVars(env: ContainerEnvVars): V1EnvVar[] {
 }
 
 /**
- * Makes sure a Kubernetes manifest has an up-to-date API version.
- * See https://kubernetes.io/blog/2019/07/18/api-deprecations-in-1-16/
- *
- * @param manifest any Kubernetes manifest
- */
-export function convertDeprecatedManifestVersion(manifest: KubernetesWorkload): KubernetesWorkload {
-  const { apiVersion, kind } = manifest
-
-  if (workloadTypes.includes(kind)) {
-    manifest.apiVersion = "apps/v1"
-  } else if (apiVersion === "extensions/v1beta1") {
-    switch (kind) {
-      case "NetworkPolicy":
-        manifest.apiVersion = "networking.k8s.io/v1"
-        break
-
-      case "PodSecurityPolicy":
-        manifest.apiVersion = "policy/v1beta1"
-        break
-    }
-  }
-
-  // apps/v1/Deployment requires spec.selector to be set
-  if (kind === "Deployment") {
-    if (manifest.spec && !manifest.spec.selector) {
-      manifest.spec.selector = {
-        // This resolves to an empty object if both of these are (for whatever reason) undefined
-        ...{ matchLabels: manifest.spec.template?.metadata?.labels || manifest.metadata.labels },
-      }
-    }
-  }
-
-  return manifest
-}
-
-/**
  * Given a deployment name, return a running Pod from it, or throw if none is found.
  */
 export async function getRunningDeploymentPod({
@@ -750,26 +712,6 @@ export function makePodName(type: string, ...parts: string[]) {
   const id = `${type.toLowerCase()}-${parts.join("-")}`
   const hash = hasha(`${id}-${Math.round(new Date().getTime())}`, { algorithm: "sha1" })
   return id.slice(0, maxPodNamePrefixLength) + "-" + hash.slice(0, podNameHashLength)
-}
-
-/**
- * Creates a skopeo container configuration to be execued by a PodRunner.
- *
- * @param command the skopeo command to execute
- */
-export function getSkopeoContainer(command: string) {
-  return {
-    name: "skopeo",
-    image: skopeoImage,
-    command: ["sh", "-c", command],
-    volumeMounts: [
-      {
-        name: systemDockerAuthSecretName,
-        mountPath: "/root/.docker",
-        readOnly: true,
-      },
-    ],
-  }
 }
 
 /**
