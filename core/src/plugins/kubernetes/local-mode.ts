@@ -667,12 +667,10 @@ async function getKubectlPortForwardProcess(
 }
 
 async function getReversePortForwardCommands(
-  { ctx, spec: localModeSpec, log }: StartLocalModeParams,
-  localSshPort: number,
-  targetContainer: V1Container
+  { action, ctx, spec: localModeSpec, log }: StartLocalModeParams,
+  localSshPort: number
 ): Promise<OsCommand[]> {
-  const effectiveContainerName = targetContainer.name
-  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, effectiveContainerName)
+  const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, action.key())
   const knownHostsFilePath = await ProxySshKeystore.getInstance(log).getKnownHostsFile(ctx.gardenDirPath)
 
   const localModePortsSpecs = localModeSpec.ports
@@ -701,10 +699,9 @@ const reversePortForwardFailureCounter = new FailureCounter(10)
 
 async function getReversePortForwardProcesses(
   configParams: StartLocalModeParams,
-  localSshPort: number,
-  targetContainer: V1Container
+  localSshPort: number
 ): Promise<RecoverableProcess[]> {
-  const reversePortForwardingCmds = await getReversePortForwardCommands(configParams, localSshPort, targetContainer)
+  const reversePortForwardingCmds = await getReversePortForwardCommands(configParams, localSshPort)
   const { ctx, action, log } = configParams
 
   const section = action.key()
@@ -884,8 +881,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     targetResourceId
   )
 
-  const targetContainer = getResourceContainer(targetResource, containerName)
-  const reversePortForwards = await getReversePortForwardProcesses(configParams, localSshPort, targetContainer)
+  const reversePortForwards = await getReversePortForwardProcesses(configParams, localSshPort)
 
   const compositeSshTunnel = composeSshTunnelProcessTree(kubectlPortForward, reversePortForwards, log)
   log.info({
