@@ -28,7 +28,7 @@ import {
   V1Container,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
-import { getPods, hashManifest } from "../util"
+import { getPods, getResourceKey, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
@@ -245,7 +245,7 @@ export async function waitForResources({
       if (status.lastMessage && (!lastMessage || status.lastMessage !== lastMessage)) {
         lastMessage = status.lastMessage
         const symbol = status.warning === true ? "warning" : "info"
-        const statusUpdateLogMsg = `${status.resource.kind}/${status.resource.metadata.name}: ${status.lastMessage}`
+        const statusUpdateLogMsg = `${getResourceKey(status.resource)}: ${status.lastMessage}`
         statusLine.setState({
           symbol,
           msg: statusUpdateLogMsg,
@@ -312,7 +312,7 @@ export async function compareDeployedResources(
     deployedWithLocalMode: false,
   }
 
-  const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`
+  const logDescription = (resource: KubernetesResource) => getResourceKey(resource)
 
   const missingObjectNames = zip(manifests, maybeDeployedObjects)
     .filter(([_, deployed]) => !deployed)

@@ -13,7 +13,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
-import { hashManifest } from "./util"
+import { getResourceKey, hashManifest } from "./util"
 import { PluginToolSpec } from "../../plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
@@ -147,12 +147,7 @@ export async function deleteResources({
   resources: KubernetesResource[]
   includeUninitialized?: boolean
 }) {
-  const args = [
-    "delete",
-    "--wait=true",
-    "--ignore-not-found=true",
-    ...resources.map((r) => `${r.kind}/${r.metadata.name}`),
-  ]
+  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...resources.map(getResourceKey)]
 
   includeUninitialized && args.push("--include-uninitialized")
 

@@ -23,7 +23,13 @@ import {
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { cloneDeep, omit, set } from "lodash"
-import { getResourceContainer, getResourcePodSpec, getTargetResource, labelSelectorToString } from "./util"
+import {
+  getResourceContainer,
+  getResourceKey,
+  getResourcePodSpec,
+  getTargetResource,
+  labelSelectorToString,
+} from "./util"
 import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
 import { LogEntry } from "../../logger/log-entry"
 import chalk from "chalk"
@@ -496,7 +502,7 @@ export async function startDevModeSyncs({
         query: resourceSpec,
       })
 
-      const resourceName = `${target.kind}/${target.metadata.name}`
+      const resourceName = getResourceKey(target)
 
       // Validate the target
       if (!isConfiguredForDevMode(target)) {
@@ -522,7 +528,7 @@ export async function startDevModeSyncs({
         log,
         namespace,
         containerName,
-        resourceName: `${target.kind}/${target.metadata.name}`,
+        resourceName,
         targetPath: s.containerPath,
       })
 

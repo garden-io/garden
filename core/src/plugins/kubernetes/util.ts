@@ -48,8 +48,8 @@ export function getAnnotation(obj: KubernetesResource, key: string): string | nu
   return get(obj, ["metadata", "annotations", key])
 }
 
-export function getResourceKey(manifest: KubernetesResource) {
-  return `${manifest.kind}/${manifest.metadata.name}`
+export function getResourceKey(resource: KubernetesResource) {
+  return `${resource.kind}/${resource.metadata.name}`
 }
 
 /**
@@ -264,7 +264,7 @@ export async function execInWorkload({
 
   if (!pod) {
     // This should not happen because of the prior status check, but checking to be sure
-    throw new DeploymentError(`Could not find running pod for ${workload.kind}/${workload.metadata.name}`, {
+    throw new DeploymentError(`Could not find running pod for ${getResourceKey(workload)}`, {
       workload,
     })
   }
@@ -534,7 +534,7 @@ interface GetTargetResourceParams {
  *
  * If a `podSelector` is set on the query, we look for a running Pod matching the selector.
  * If `manifests` are provided and the query doesn't set a `podSelector`, the resource is looked for in the given list.
- * Otherwise the project namespace is queried for resource matching the kind and name in the query.
+ * Otherwise, the project namespace is queried for resource matching the kind and name in the query.
  *
  * Throws an error if an invalid query is given, or the resource spec doesn't match any of the given resources.
  */
@@ -581,7 +581,7 @@ export async function getTargetResource({
   }
 
   if (manifests) {
-    const chartResourceNames = manifests.map((o) => `${o.kind}/${o.metadata.name}`)
+    const chartResourceNames = manifests.map((o) => getResourceKey(o))
 
     const applicableChartResources = manifests.filter((o) => o.kind === targetKind)
 
