@@ -823,7 +823,7 @@ function composeSshTunnelProcessTree(
  *   3. Starts reverse port forwarding from the proxy's containerPort to the local app port.
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
-  const { targetResource, action, namespace, log, containerName } = configParams
+  const { targetResource, action, namespace, log } = configParams
   const targetResourceId = getResourceKey(targetResource)
 
   // Validate the target
