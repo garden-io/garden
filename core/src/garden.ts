@@ -219,7 +219,6 @@ export class Garden {
   public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
-  private actionRouter: ActionRouter
   public readonly events: EventBus
   private tools: { [key: string]: PluginTool }
   public moduleTemplates: { [name: string]: ModuleTemplateConfig }
@@ -499,6 +498,7 @@ export class Garden {
     return Bluebird.map(this.registeredPlugins, (p) => loadPlugin(this.log, this.projectRoot, p))
   }
 
+  @pMemoizeDecorator()
   async getPlugin(pluginName: string): Promise<GardenPlugin> {
     const plugins = await this.getAllPlugins()
     const plugin = findByName(plugins, pluginName)
@@ -521,6 +521,7 @@ export class Garden {
   /**
    * Returns all registered plugins, loading them if necessary.
    */
+  @pMemoizeDecorator()
   async getAllPlugins() {
     // The duplicated check is a small optimization to avoid the async lock when possible,
     // since this is called quite frequently.
@@ -548,6 +549,7 @@ export class Garden {
   /**
    * Returns plugins that are currently configured in provider configs.
    */
+  @pMemoizeDecorator()
   async getConfiguredPlugins() {
     const plugins = await this.getAllPlugins()
     const configNames = keyBy(this.getRawProviderConfigs(), "name")
@@ -749,6 +751,7 @@ export class Garden {
     return keyBy(providers, "name")
   }
 
+  @pMemoizeDecorator()
   async getTools() {
     if (!this.tools) {
       const plugins = await this.getAllPlugins()
@@ -795,19 +798,16 @@ export class Garden {
     return mapValues(providers, (p) => p.status)
   }
 
+  @pMemoizeDecorator()
   async getActionRouter() {
-    if (!this.actionRouter) {
-      const loadedPlugins = await this.getAllPlugins()
-      const moduleTypes = await this.getModuleTypes()
-      const plugins = keyBy(loadedPlugins, "name")
+    const loadedPlugins = await this.getAllPlugins()
+    const moduleTypes = await this.getModuleTypes()
+    const plugins = keyBy(loadedPlugins, "name")
 
-      // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
-      const configuredPlugins = this.getRawProviderConfigs().map((c) => plugins[c.name])
+    // We only pass configured plugins to the router (others won't have the required configuration to call handlers)
+    const configuredPlugins = this.getRawProviderConfigs().map((c) => plugins[c.name])
 
-      this.actionRouter = new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
-    }
-
-    return this.actionRouter
+    return new ActionRouter(this, configuredPlugins, loadedPlugins, moduleTypes)
   }
 
   /**
@@ -820,6 +820,18 @@ export class Garden {
     }
 
     return Object.values(keys ? pickKeys(this.moduleConfigs, keys, "module config") : this.moduleConfigs)
+  }
+
+  /**
+   * Returns action configs that are registered in this context, before template resolution and validation.
+   * Scans for configs in the project root and remote/linked sources if it hasn't already been done.
+   */
+  async getRawActionConfigs() {
+    if (!this.configsScanned) {
+      await this.scanAndAddConfigs()
+    }
+
+    return this.actionConfigs
   }
 
   async getOutputConfigContext(log: LogEntry, modules: GardenModule[], graphResults: GraphResults) {
