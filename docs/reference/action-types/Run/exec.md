@@ -156,6 +156,19 @@ timeout:
 
 # A shell command Run.
 spec:
+  # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
+  # specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
+  #
+  # Note that if this is not set, no shell interpreter (Bash, `cmd.exe`, etc.) is used, so shell features such as
+  # variables substitution (`echo $PATH`) are not allowed.
+  #
+  # We recommend against using this option since it is:
+  #
+  # - not cross-platform, encouraging shell-specific syntax.
+  # - slower, because of the additional shell interpretation.
+  # - unsafe, potentially allowing command injection.
+  shell:
+
   # A list of artifacts to copy after the run.
   artifacts:
     - # A POSIX-style path or glob to copy, relative to the build root.
@@ -412,6 +425,24 @@ A shell command Run.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+### `spec.shell`
+
+[spec](#spec) > shell
+
+If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
+
+Note that if this is not set, no shell interpreter (Bash, `cmd.exe`, etc.) is used, so shell features such as variables substitution (`echo $PATH`) are not allowed.
+
+We recommend against using this option since it is:
+
+- not cross-platform, encouraging shell-specific syntax.
+- slower, because of the additional shell interpretation.
+- unsafe, potentially allowing command injection.
+
+| Type      | Required |
+| --------- | -------- |
+| `boolean` | No       |
 
 ### `spec.artifacts[]`
 
