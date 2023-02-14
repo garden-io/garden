@@ -1,0 +1,8 @@
+helm:
+  parameters:
+  - name: image.repository
+    value: srihasg/web-image
+    forcestring: true
+  - name: image.tag
+    value: v-260c4e3d8d
+    forcestring: true
