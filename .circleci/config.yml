@@ -844,7 +844,7 @@ jobs:
       - configure_remote_cluster
       - run:
           name: Deploy demo-project
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-macos dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote
+          command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=testing-$CIRCLE_BUILD_NUM-macos
       - cleanup_remote_cluster
 
   test-windows:
