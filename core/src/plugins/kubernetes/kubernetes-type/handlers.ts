@@ -318,7 +318,6 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         action,
         namespace,
         log,
-        containerName: spec.localMode.containerName,
       })
     } else if (devMode && spec.devMode?.syncs?.length) {
       await startDevModeSyncs({
