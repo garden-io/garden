@@ -312,8 +312,8 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       paths:
-        - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
-          # relative path. Defaults to the config's directory if no value is provided.
+        - # POSIX-style path of the directory to sync to the target. Defaults to the config's directory if no value is
+          # provided.
           source: .
 
           # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -1408,7 +1408,7 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > source
 
-POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
+POSIX-style path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |

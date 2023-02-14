@@ -234,14 +234,12 @@ const containerSyncSchema = () =>
   joi.object().keys({
     source: joi
       .posixPath()
-      .relativeOnly()
-      .subPathOnly()
       .allowGlobs()
       .default(".")
       .description(
         deline`
-        POSIX-style path of the directory to sync to the target, relative to the config's directory.
-        Must be a relative path. Defaults to the config's directory if no value is provided.`
+        POSIX-style path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+        `
       )
       .example("src"),
     target: syncTargetPathSchema(),
@@ -614,7 +612,6 @@ const volumeSchema = () =>
     })
     .oxor("hostPath", "action")
 
-
 export function getContainerVolumesSchema(schema: CustomObjectSchema) {
   return joiSparseArray(schema).unique("name").description(dedent`
     List of volumes that should be mounted when starting the container.
@@ -674,6 +671,7 @@ export interface ContainerDeploySpec extends ContainerCommonDeploySpec {
   volumes: ContainerVolumeSpec[]
   image?: string
 }
+
 export type ContainerDeployActionConfig = DeployActionConfig<"container", ContainerDeploySpec>
 
 export interface ContainerDeployOutputs {
@@ -837,6 +835,7 @@ const artifactsSchema = () =>
 export interface ContainerTestOutputs {
   log: string
 }
+
 export const containerTestOutputSchema = () =>
   joi.object().keys({
     log: joi
@@ -853,6 +852,7 @@ export interface ContainerTestActionSpec extends ContainerCommonRuntimeSpec {
   image?: string
   volumes: ContainerVolumeSpec[]
 }
+
 export type ContainerTestActionConfig = TestActionConfig<"container", ContainerTestActionSpec>
 export type ContainerTestAction = TestAction<ContainerTestActionConfig, ContainerTestOutputs>
 
@@ -870,11 +870,13 @@ export const containerTestActionSchema = createSchema({
 // RUN //
 
 export interface ContainerRunOutputs extends ContainerTestOutputs {}
+
 export const containerRunOutputSchema = () => containerTestOutputSchema()
 
 export interface ContainerRunActionSpec extends ContainerTestActionSpec {
   cacheResult: boolean
 }
+
 export type ContainerRunActionConfig = RunActionConfig<"container", ContainerRunActionSpec>
 export type ContainerRunAction = RunAction<ContainerRunActionConfig, ContainerRunOutputs>
 
@@ -951,6 +953,7 @@ export interface ContainerBuildActionSpec {
   publishId?: string
   targetStage?: string
 }
+
 export type ContainerBuildActionConfig = BuildActionConfig<"container", ContainerBuildActionSpec>
 export type ContainerBuildAction = BuildAction<ContainerBuildActionConfig, ContainerBuildOutputs>
 
