@@ -34,13 +34,19 @@ spec:
 
 ---
 kind: Test
-name: vote-test
+name: vote-unit
 type: container
+build: vote
 spec:
-  - name: unit
-    args: [npm, run, test:unit]
-  - name: integ
-    args: [npm, run, test:integ]
-    timeout: 60
-    dependencies:
-      - vote
+  args: [npm, run, test:unit]
+
+---
+kind: Test
+name: vote-integ
+type: container
+build: vote
+dependencies:
+  - deploy.vote
+timeout: 60
+spec:
+  args: [npm, run, test:integ]

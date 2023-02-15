@@ -29,7 +29,7 @@ spec:
 kind: Test
 name: results-integ
 type: container
+build: result
+dependencies: [run.db-init]
 spec:
-  - name: integ
-    args: [echo, ok]
-    dependencies: [run.db-init]
+  args: [echo, ok]

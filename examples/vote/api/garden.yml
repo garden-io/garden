@@ -27,13 +27,11 @@ spec:
 
 ---
 kind: Test
-name: api-test
+name: api-integ
 type: container
+build: api
+dependencies:
+  - deploy.api
+timeout: 200
 spec:
-  - name: unit
-    args: [echo, ok]
-  - name: integ
-    args: [python, /app/test.py]
-    timeout: 200
-    dependencies:
-      - api
+  args: [python, /app/test.py]
