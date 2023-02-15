@@ -276,9 +276,6 @@ describe("BuildCommand", () => {
     it("should rebuild module if a deep dependency has been modified", async () => {
       let garden = await getFreshTestGarden()
       let graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      console.log(graph.getBuild("aaa-service").getFullVersion())
-      console.log(graph.getBuild("bbb-service").getFullVersion())
-      console.log(graph.getBuild("ccc-service").getFullVersion())
 
       const { result: result1 } = await buildCommand.action({
         garden,
@@ -293,9 +290,6 @@ describe("BuildCommand", () => {
 
       garden = await getFreshTestGarden()
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      console.log(graph.getBuild("aaa-service").getFullVersion())
-      console.log(graph.getBuild("bbb-service").getFullVersion())
-      console.log(graph.getBuild("ccc-service").getFullVersion())
 
       const { result: result2 } = await buildCommand.action({
         garden: await getFreshTestGarden(),

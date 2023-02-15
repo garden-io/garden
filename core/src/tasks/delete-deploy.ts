@@ -10,6 +10,7 @@ import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from ".
 import { GraphResults } from "../graph/results"
 import { DeployAction, isDeployAction } from "../actions/deploy"
 import { DeployStatus, GetDeployStatus } from "../plugin/handlers/Deploy/get-status"
+import { omit } from "lodash"
 
 export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {
   /**
@@ -90,13 +91,13 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
   }
 }
 
-export function deletedDeployStatuses(results: GraphResults): { [serviceName: string]: GetDeployStatus } {
+export function deletedDeployStatuses(results: GraphResults): { [serviceName: string]: DeployStatus } {
   const deleted = results.getAll().filter((r) => r && r.type === "delete-deploy")
   const statuses = {}
 
   for (const res of deleted) {
     if (res) {
-      statuses[res.name] = res.result
+      statuses[res.name] = omit(res.result, "version")
     }
   }
 

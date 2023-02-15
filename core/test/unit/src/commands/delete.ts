@@ -139,6 +139,8 @@ describe("DeleteEnvironmentCommand", () => {
 
     expect(result!.providerStatuses["test-plugin"]["ready"]).to.be.false
 
+    expect(result!.deployStatuses["service-a"]?.state).to.equal("not-ready")
+
     expect(result!.deployStatuses).to.eql({
       "service-a": missingDeployStatus,
       "service-b": missingDeployStatus,

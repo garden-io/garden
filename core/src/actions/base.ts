@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
-import type { ConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
   apiVersionSchema,
@@ -33,7 +33,7 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { fromPairs, isString, omit } from "lodash"
+import { flatten, fromPairs, isString, omit, sortBy } from "lodash"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
@@ -453,13 +453,16 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
         depPairs.push([action.key(), action.versionString()])
       }
     })
+    const sortedDeps = sortBy(depPairs, (pair) => pair[0])
     const dependencyVersions = fromPairs(depPairs)
 
     const configVersion = this.configVersion()
-    const versionString = versionStringPrefix + hashStrings([configVersion, this._treeVersion.contentHash])
+    const versionString =
+      versionStringPrefix + hashStrings([configVersion, this._treeVersion.contentHash, ...flatten(sortedDeps)])
 
     return {
       configVersion,
+      sourceVersion: this._treeVersion.contentHash,
       versionString,
       dependencyVersions,
       files: this._treeVersion.files,
@@ -590,6 +593,7 @@ export abstract class ResolvedRuntimeAction<
   >
   extends RuntimeAction<Config, Outputs>
   implements ResolvedActionExtension<Config, Outputs> {
+  protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<Config>
   protected readonly resolved: true
   private readonly dependencyResults: GraphResults
@@ -600,7 +604,7 @@ export abstract class ResolvedRuntimeAction<
     super(params)
 
     this.resolved = true
-
+    this.graph = params.resolvedGraph
     this.dependencyResults = params.dependencyResults
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies

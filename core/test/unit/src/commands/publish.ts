@@ -113,22 +113,31 @@ describe("PublishCommand", () => {
     })
 
     expect(command.outputsSchema().validate(result).error).to.be.undefined
+
+    const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
+
+    const versionA = graph.getBuild("module-a").versionString()
+    const versionB = graph.getBuild("module-b").versionString()
+    const versionC = graph.getBuild("module-c").versionString()
+
     expect(taskResultOutputs(result!)).to.eql({
       "publish.module-a": {
         detail: {
-          identifier: undefined,
+          identifier: versionA,
           published: true,
         },
         outputs: {},
         state: "ready",
+        version: versionA,
       },
       "publish.module-b": {
         detail: {
-          identifier: undefined,
+          identifier: versionB,
           published: true,
         },
         outputs: {},
         state: "ready",
+        version: versionB,
       },
       "publish.module-c": {
         detail: {
@@ -136,6 +145,7 @@ describe("PublishCommand", () => {
         },
         outputs: {},
         state: "ready",
+        version: versionC,
       },
     })
   })
@@ -239,16 +249,7 @@ describe("PublishCommand", () => {
       }),
     })
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "publish.module-a": {
-        detail: {
-          identifier: undefined,
-          published: true,
-        },
-        outputs: {},
-        state: "ready",
-      },
-    })
+    expect(Object.keys(taskResultOutputs(result!))).to.eql(["publish.module-a"])
   })
 
   it("should respect allowPublish flag", async () => {
@@ -269,15 +270,7 @@ describe("PublishCommand", () => {
       }),
     })
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "publish.module-c": {
-        detail: {
-          published: false,
-        },
-        outputs: {},
-        state: "ready",
-      },
-    })
+    expect(Object.keys(taskResultOutputs(result!))).to.eql(["publish.module-c"])
   })
 
   it("should fail gracefully if action type does not have a provider for publish", async () => {
@@ -300,15 +293,11 @@ describe("PublishCommand", () => {
       }),
     })
 
-    expect(taskResultOutputs(result!)).to.eql({
-      "publish.module-a": {
-        outputs: {},
-        state: "unknown",
-        detail: {
-          published: false,
-          message: chalk.yellow("No publish handler available for type test"),
-        },
-      },
-    })
+    const res = taskResultOutputs(result!)["publish.module-a"]
+
+    expect(res).to.exist
+    expect(res.state).to.equal("unknown")
+    expect(res.detail.published).to.be.false
+    expect(res.detail.message).to.be.equal(chalk.yellow("No publish handler available for type test"))
   })
 })

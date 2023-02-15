@@ -97,6 +97,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
         processed: false,
         callbackResult,
       },
+      version: this.getInputVersion(),
     }
   }
 
@@ -114,6 +115,7 @@ export class TestTask extends BaseTask<TestTaskResult> {
         processed: true,
         callbackResult,
       },
+      version: this.getInputVersion(),
     }
   }
 }

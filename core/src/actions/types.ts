@@ -7,7 +7,7 @@
  */
 
 import type { ValuesType } from "utility-types"
-import type { ConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph"
 import type { ActionReference, DeepPrimitiveMap } from "../config/common"
 import type { ModuleVersion, TreeVersion } from "../vcs/vcs"
 import type { BuildAction, BuildActionConfig, ExecutedBuildAction, ResolvedBuildAction } from "./build"
@@ -138,6 +138,7 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
 }
 
 export interface ResolveActionParams<C extends BaseActionConfig, Outputs extends {} = any> {
+  resolvedGraph: ResolvedConfigGraph
   dependencyResults: GraphResults
   executedDependencies: ExecutedAction[]
   resolvedDependencies: ResolvedAction[]

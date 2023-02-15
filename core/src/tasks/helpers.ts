@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { mapKeys, mapValues, pickBy } from "lodash"
+import { mapKeys, mapValues, pickBy, omit } from "lodash"
 import type { BaseActionTaskParams, ExecuteTask } from "./base"
 import type { Action } from "../actions/types"
 import { isDeployAction } from "../actions/deploy"
@@ -56,7 +56,7 @@ export function getExecuteTaskForAction<T extends Action>(
 
 export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
   const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")
-  const statuses = mapValues(deployResults, (r) => r!.result as DeployStatus)
+  const statuses = mapValues(deployResults, (r) => omit(r!.result, "version") as DeployStatus)
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])
 }
 

@@ -18,7 +18,12 @@ import { deline } from "../util/string"
 import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
 import { omit, mapValues } from "lodash"
-import { GetDeployStatus, getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status"
+import {
+  DeployStatus,
+  DeployStatusMap,
+  GetDeployStatus,
+  getDeployStatusSchema,
+} from "../plugin/handlers/Deploy/get-status"
 
 // TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
@@ -46,7 +51,7 @@ type DeleteEnvironmentOpts = typeof dependantsFirstOpt
 interface DeleteEnvironmentResult {
   providerStatuses: EnvironmentStatusMap
   deployStatuses: {
-    [name: string]: GetDeployStatus
+    [name: string]: DeployStatus
   }
 }
 
@@ -99,7 +104,10 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     const providerStatuses = await actions.provider.cleanupAll(log)
 
     return {
-      result: { deployStatuses: mapValues(deployStatuses, (s) => omit(s, "executedAction")), providerStatuses },
+      result: {
+        deployStatuses: <DeployStatusMap>mapValues(deployStatuses, (s) => omit(s, ["version", "executedAction"])),
+        providerStatuses,
+      },
     }
   }
 }
@@ -151,7 +159,11 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
   `
 
   outputsSchema = () =>
-    joiIdentifierMap(getDeployStatusSchema()).description("A map of statuses for all the deleted deploys.")
+    joiIdentifierMap(
+      getDeployStatusSchema().keys({
+        version: joi.string(),
+      })
+    ).description("A map of statuses for all the deleted deploys.")
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Cleaning up deployment(s)", "recycle")
