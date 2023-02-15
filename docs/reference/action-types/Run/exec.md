@@ -154,7 +154,6 @@ build:
 # Set a timeout for the run to complete, in seconds.
 timeout:
 
-# A shell command Run.
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
   # specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
@@ -419,8 +418,6 @@ Set a timeout for the run to complete, in seconds.
 | `number` | No       |
 
 ### `spec`
-
-A shell command Run.
 
 | Type     | Required |
 | -------- | -------- |

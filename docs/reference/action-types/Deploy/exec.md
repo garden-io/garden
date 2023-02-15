@@ -151,7 +151,6 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
-# Deploy using shell commands.
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
   # specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
@@ -450,8 +449,6 @@ This would mean that instead of looking for manifest files relative to this acti
 | `string` | No       |
 
 ### `spec`
-
-Deploy using shell commands.
 
 | Type     | Required |
 | -------- | -------- |
