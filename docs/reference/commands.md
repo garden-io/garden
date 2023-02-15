@@ -441,6 +441,8 @@ When this flag is not used, all services in the project are cleaned up simultane
 
     # The Garden module version of the deployed service.
     version:
+
+  version:
 ```
 
 ### garden deploy
