@@ -2,7 +2,7 @@ const express = require('express');
 const request = require('request-promise')
 const app = express();
 
-const backendServiceEndpoint = `http://backend/hello-backend`
+const backendServiceEndpoint = `http://backend:8080/hello-backend`
 
 app.get('/hello-frontend', (req, res) => res.send('Hello from the frontend!'));
 
