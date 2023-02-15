@@ -1,10 +1,10 @@
-# Local mode for `kubernetes` modules
+# Local mode for `kubernetes` action type
 
 A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `kubernetes`
-module type.
+action type.
 
 This project is based on the [demo-project](../demo-project). The only difference is that this one has the `backend`
-service defined as a `kubernetes` module with the `backend-image` container module used as a source Docker image.
+service defined as an action of type `kubernetes` with the `backend-image` container build action used as a source Docker image.
 The backend service can be started in the _local mode_.
 
 The local backend service implementation can be found in [backend-local](./backend-local).
@@ -29,17 +29,6 @@ garden deploy --local=backend
 # To start both services in local mode
 garden deploy --local
 garden deploy --local=*
-```
-
-Alternatively, you can also run the local mode using the `garden dev` command:
-
-```shell
-# To start a specific service in local mode
-garden dev --local=backend
-
-# To start both services in local mode
-garden dev --local
-garden dev --local=*
 ```
 
 To verify the result, call the corresponding ingress URLs of the `frontend` and `backend` applications. The local
