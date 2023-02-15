@@ -18,7 +18,7 @@ interface PublishActionParams<T extends BuildAction = BuildAction> extends Plugi
   tag?: string
 }
 
-interface PublishActionDetail {
+export interface PublishActionDetail {
   published: boolean
   message?: string
   identifier?: string

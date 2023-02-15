@@ -694,7 +694,6 @@ export class Garden {
           log,
           plugin,
           config,
-          version: this.version,
           force: false,
           forceRefresh: this.forceRefresh,
           forceInit,

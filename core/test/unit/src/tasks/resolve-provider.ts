@@ -56,7 +56,6 @@ describe("ResolveProviderTask", () => {
       log: garden.log,
       plugin,
       config,
-      version: garden.version,
       forceRefresh: false,
       forceInit: false,
       allPlugins: await garden.getAllPlugins(),

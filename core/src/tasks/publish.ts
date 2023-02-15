@@ -56,16 +56,17 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
+    const action = this.getExecutedAction(this.action, dependencyResults)
+    const version = action.versionString()
+
     if (this.action.getConfig("allowPublish") === false) {
       this.log.info({
         section: this.action.key(),
         msg: "Publishing disabled (allowPublish=false set on build)",
         status: "active",
       })
-      return { state: <ActionState>"ready", detail: { published: false }, outputs: {} }
+      return { state: <ActionState>"ready", detail: { published: false }, outputs: {}, version }
     }
-
-    const action = this.getExecutedAction(this.action, dependencyResults)
 
     let tag: string | undefined = undefined
 
@@ -114,7 +115,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       log.setWarn({ msg: result.detail.message, append: true })
     }
 
-    return result
+    return { ...result, version }
   }
 }
 

@@ -79,6 +79,10 @@ export class TestTask extends BaseTask<TestTaskResult> {
     return this.getId()
   }
 
+  getInputVersion() {
+    return "v-" + this.uid.slice(0, 6)
+  }
+
   async getStatus(params: TaskProcessParams) {
     let callbackResult: any = undefined
 
@@ -123,13 +127,12 @@ describe("GraphSolver", () => {
     garden = await makeTestGarden(projectRoot)
   })
 
-  function makeTask(params: MakeOptional<TestTaskParams, "garden" | "log" | "version" | "force">) {
+  function makeTask(params: MakeOptional<TestTaskParams, "garden" | "log" | "force">) {
     const _garden = params.garden || garden
     return new TestTask({
       ...params,
       garden: _garden,
       log: params.log || _garden.log,
-      version: params.version || NEW_RESOURCE_VERSION,
       force: params.force || false,
     })
   }
@@ -147,7 +150,7 @@ describe("GraphSolver", () => {
     expect(result!.name).to.equal("task-a")
     expect(result!.startedAt).to.eql(now)
     expect(result!.completedAt).to.eql(now)
-    expect(result!.version).to.equal(task.version)
+    expect(result!.version).to.equal(task.getInputVersion())
     expect(result!.result?.state).to.equal("ready")
     expect(result!.outputs["processed"]).to.equal(true)
   })

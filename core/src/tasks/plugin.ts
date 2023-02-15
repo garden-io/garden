@@ -18,8 +18,7 @@ export abstract class PluginTask extends BaseTask {
 @Profile()
 export abstract class PluginActionTask<
   T extends Action,
-  O extends ValidResultType = ValidResultType,
-  S extends ValidResultType = O
-> extends BaseActionTask<T, O, S> {
+  O extends ValidResultType = ValidResultType
+> extends BaseActionTask<T, O> {
   type = "plugin"
 }

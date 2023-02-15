@@ -40,9 +40,7 @@ interface CommonTaskParams {
   skipDependencies?: boolean
 }
 
-export interface BaseTaskParams extends CommonTaskParams {
-  version: string
-}
+export interface BaseTaskParams extends CommonTaskParams {}
 
 export interface BaseActionTaskParams<T extends Action = Action> extends CommonTaskParams {
   action: T
@@ -68,7 +66,7 @@ export type Task =
   | DeleteDeployTask
   | DeployTask
   | PluginTask
-  | PluginActionTask<any, any, any>
+  | PluginActionTask<any, any>
   | PublishTask
   | ResolveActionTask<any>
   | ResolveProviderTask
@@ -81,8 +79,12 @@ export interface ResolveProcessDependenciesParams<S extends ValidResultType> {
   status: S | null
 }
 
+export interface BaseTaskOutputs {
+  version: string
+}
+
 @Profile()
-export abstract class BaseTask<O extends ValidResultType = ValidResultType, S extends ValidResultType = O> {
+export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   abstract type: string
 
   // How many tasks of this exact type are allowed to run concurrently
@@ -92,20 +94,17 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   public readonly log: LogEntry
   public readonly uid: string
   public readonly force: boolean
-  public readonly version: string
   public readonly skipDependencies: boolean
   protected readonly executeTask: boolean = false
   interactive = false
 
-  _resultType: O
-  _statusType: S
+  _resultType: O & BaseTaskOutputs
   _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: BaseTaskParams) {
     this.garden = initArgs.garden
     this.uid = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
-    this.version = initArgs.version
     this.log = initArgs.log
     this.skipDependencies = !!initArgs.skipDependencies
   }
@@ -115,11 +114,13 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
   // Which dependencies must be resolved to call this task's getStatus method
   abstract resolveStatusDependencies(): BaseTask[]
   // Which dependencies must be resolved to call this task's process method, in addition to the above
-  abstract resolveProcessDependencies(params: ResolveProcessDependenciesParams<S>): BaseTask[]
+  abstract resolveProcessDependencies(params: ResolveProcessDependenciesParams<O>): BaseTask[]
 
   abstract getDescription(): string
-  abstract getStatus(params: TaskProcessParams): Promise<S | null>
+  abstract getStatus(params: TaskProcessParams): Promise<O | null>
   abstract process(params: TaskProcessParams): Promise<O>
+
+  abstract getInputVersion(): string
 
   /**
    * Wrapper around resolveStatusDependencies() that memoizes the results.
@@ -133,7 +134,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType, S ex
    * Wrapper around resolveProcessDependencies() that memoizes the results and applies filters.
    */
   @Memoize()
-  getProcessDependencies(params: ResolveProcessDependenciesParams<S>): BaseTask[] {
+  getProcessDependencies(params: ResolveProcessDependenciesParams<O>): BaseTask[] {
     if (this.skipDependencies) {
       return []
     }
@@ -180,11 +181,11 @@ export interface ActionTaskProcessParams<T extends Action, S extends ValidResult
   status: S
 }
 
-export abstract class BaseActionTask<
-  T extends Action,
-  O extends ValidResultType,
-  S extends ValidResultType = O
-> extends BaseTask<O, S> {
+export interface BaseActionTaskOutputs extends BaseTaskOutputs {}
+
+export abstract class BaseActionTask<T extends Action, O extends ValidResultType> extends BaseTask<O> {
+  _resultType: O & BaseActionTaskOutputs
+
   action: T
   graph: ConfigGraph
   devModeDeployNames: string[]
@@ -194,7 +195,7 @@ export abstract class BaseActionTask<
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
-    super({ ...params, version: action.versionString() })
+    super({ ...params })
     this.action = action
     this.graph = params.graph
     this.devModeDeployNames = params.devModeDeployNames
@@ -207,11 +208,15 @@ export abstract class BaseActionTask<
     }
   }
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<S | null>
-  abstract process(params: ActionTaskProcessParams<T, S>): Promise<O>
+  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<O | null>
+  abstract process(params: ActionTaskProcessParams<T, O>): Promise<O>
 
   getName() {
     return this.action.name
+  }
+
+  getInputVersion(): string {
+    return this.action.versionString()
   }
 
   // Most tasks can just use these default methods.
@@ -332,18 +337,17 @@ export abstract class BaseActionTask<
   }
 }
 
-interface ExecuteActionOutputs<T extends Action> {
+export interface ExecuteActionOutputs<T extends Action> extends BaseActionTaskOutputs {
   executedAction: Executed<T>
 }
 
 export abstract class ExecuteActionTask<
   T extends Action,
-  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any },
-  S extends ValidResultType = O
-> extends BaseActionTask<T, O, S> {
-  _resultType: O & { executedAction: Executed<T> }
+  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any }
+> extends BaseActionTask<T, O> {
+  _resultType: O & ExecuteActionOutputs<T>
   executeTask = true
 
-  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(S & ExecuteActionOutputs<T>) | null>
-  abstract process(params: ActionTaskProcessParams<T, S>): Promise<O & ExecuteActionOutputs<T>>
+  abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(O & ExecuteActionOutputs<T>) | null>
+  abstract process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
 }

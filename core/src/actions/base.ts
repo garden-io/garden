@@ -25,7 +25,7 @@ import {
 } from "../config/common"
 import { DOCS_BASE_URL } from "../constants"
 import { dedent, naturalList, stableStringify } from "../util/string"
-import { hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
+import { ActionVersion, hashStrings, ModuleVersion, TreeVersion, versionStringPrefix } from "../vcs/vcs"
 import type { BuildAction, ResolvedBuildAction } from "./build"
 import type { ActionKind } from "../plugin/action-types"
 import pathIsInside from "path-is-inside"
@@ -33,7 +33,7 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { fromPairs, isString } from "lodash"
+import { fromPairs, isString, omit } from "lodash"
 import { ActionConfigContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
@@ -445,7 +445,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   // Note: Making this name verbose so that people don't accidentally use this instead of versionString()
   @Memoize()
-  getFullVersion(): ModuleVersion {
+  getFullVersion(): ActionVersion {
     const depPairs: string[][] = []
     this.dependencies.forEach((d) => {
       const action = this.graph.getActionByRef(d, { includeDisabled: true })
@@ -455,9 +455,11 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     })
     const dependencyVersions = fromPairs(depPairs)
 
-    const versionString = versionStringPrefix + hashStrings([this.configVersion(), this._treeVersion.contentHash])
+    const configVersion = this.configVersion()
+    const versionString = versionStringPrefix + hashStrings([configVersion, this._treeVersion.contentHash])
 
     return {
+      configVersion,
       versionString,
       dependencyVersions,
       files: this._treeVersion.files,
@@ -470,7 +472,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   @Memoize()
   private stringifyConfig() {
-    return stableStringify(this._config)
+    return stableStringify(omit(this._config, "internal"))
   }
 
   /**

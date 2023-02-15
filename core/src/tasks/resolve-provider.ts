@@ -85,6 +85,10 @@ export class ResolveProviderTask extends BaseTask<Provider> {
     return `resolve provider ${this.getName()}`
   }
 
+  getInputVersion() {
+    return this.garden.version
+  }
+
   resolveStatusDependencies() {
     return []
   }
@@ -133,7 +137,6 @@ export class ResolveProviderTask extends BaseTask<Provider> {
             allPlugins: this.allPlugins,
             config,
             log: this.log,
-            version: this.version,
             force: this.force,
             forceRefresh: this.forceRefresh,
             forceInit: this.forceInit,

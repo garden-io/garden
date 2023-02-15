@@ -52,7 +52,11 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
         return null
       }
 
-      return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
+      return {
+        ...status,
+        version: action.versionString(),
+        executedAction: resolvedActionToExecuted(action, { status }),
+      }
     } catch (err) {
       log.setError()
       throw err
@@ -93,6 +97,6 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       throw new RunTaskError(status.detail?.log)
     }
 
-    return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
+    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 }
