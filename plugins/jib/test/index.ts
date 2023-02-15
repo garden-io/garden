@@ -15,6 +15,8 @@ import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"
 import { gardenPlugin } from ".."
 import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { JibBuildAction } from "../util"
+import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 
 describe("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
@@ -35,22 +37,20 @@ describe("jib-container", function () {
   }
 
   let garden: TestGarden
-  let graph: ConfigGraph
-  let router: TestGarden["actionRouter"]
+  let graph: ResolvedConfigGraph
   let module: GardenModule
-  let action: JibBuildAction
+  let action: Resolved<JibBuildAction>
 
   before(async () => {
     garden = await makeTestGarden(projectRoot, {
       plugins: [gardenPlugin()],
       config: projectConfig,
     })
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    router = await garden.getActionRouter()
+    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
   })
 
   beforeEach(async () => {
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
     module = graph.getModule("module")
     action = graph.getBuild("module")
   })
@@ -83,13 +83,15 @@ describe("jib-container", function () {
         action["spec"].projectType = "maven"
         action["spec"].tarOnly = true
 
+        const router = await garden.getActionRouter()
+
         const res = await router.build.build({
           action,
           log: garden.log,
           graph,
         })
 
-        const { tarPath } = res.details
+        const { tarPath } = <any>res.detail
 
         expect(tarPath).to.equal(join(module.path, "target", `jib-image-module-${module.version.versionString}.tar`))
       })
@@ -98,13 +100,15 @@ describe("jib-container", function () {
         action["spec"].projectType = "gradle"
         action["spec"].tarOnly = true
 
+        const router = await garden.getActionRouter()
+
         const res = await router.build.build({
           action,
           log: garden.log,
           graph,
         })
 
-        const { tarPath } = res.details
+        const { tarPath } = <any>res.detail
 
         expect(tarPath).to.equal(join(module.path, "build", `jib-image-module-${module.version.versionString}.tar`))
       })
@@ -117,6 +121,8 @@ describe("jib-container", function () {
         action["spec"].projectType = "maven"
         action["spec"].tarOnly = false
 
+        const router = await garden.getActionRouter()
+
         await router.build.build({
           action,
           log: garden.log,
@@ -127,6 +133,8 @@ describe("jib-container", function () {
       it.skip("builds a gradle project and pushes to a registry", async () => {
         action["spec"].projectType = "gradle"
         action["spec"].tarOnly = false
+
+        const router = await garden.getActionRouter()
 
         await router.build.build({
           action,
@@ -142,6 +150,8 @@ describe("jib-container", function () {
         action["spec"].tarOnly = false
         action["spec"].dockerBuild = true
 
+        const router = await garden.getActionRouter()
+
         await router.build.build({
           action,
           log: garden.log,
@@ -153,6 +163,8 @@ describe("jib-container", function () {
         action["spec"].projectType = "gradle"
         action["spec"].tarOnly = false
         action["spec"].dockerBuild = true
+
+        const router = await garden.getActionRouter()
 
         await router.build.build({
           action,
