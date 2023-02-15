@@ -78,7 +78,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, `Cleanup namespace`, "skull_and_crossbones")
+    printHeader(headerLog, `Cleanup namespace`, "recycle")
   }
 
   async action({
@@ -154,7 +154,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     joiIdentifierMap(getDeployStatusSchema()).description("A map of statuses for all the deleted deploys.")
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Cleaning up deployment(s)", "skull_and_crossbones")
+    printHeader(headerLog, "Cleaning up deployment(s)", "recycle")
   }
 
   async action({ garden, log, args, opts }: CommandParams<DeleteDeployArgs, DeleteDeployOpts>): Promise<CommandResult> {
