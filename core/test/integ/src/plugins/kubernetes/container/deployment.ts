@@ -721,8 +721,9 @@ describe("kubernetes container deployment handlers", () => {
         const statuses = getServiceStatuses(results.results)
         const status = statuses[action.name]
         const resources = keyBy(status.detail?.detail["remoteResources"], "kind")
+        expect(resources.Deployment.metadata.annotations["garden.io/version"]).to.equal(`${action.versionString()}`)
         expect(resources.Deployment.spec.template.spec.containers[0].image).to.equal(
-          `${action.name}:${action.versionString()}`
+          `${action.name}:${action.getBuildAction()?.versionString()}`
         )
         expect(status.detail?.namespaceStatuses).to.eql([
           {

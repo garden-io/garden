@@ -242,8 +242,8 @@ describe("util", () => {
   describe("getTargetResource", () => {
     it("should return the resource specified by serviceResource", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
-      const asd = await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -258,7 +258,7 @@ describe("util", () => {
         action,
         manifests,
         query: {
-          name: action.name,
+          name: action.getSpec().releaseName,
           kind: "Deployment",
         },
       })
