@@ -7,7 +7,7 @@
  */
 
 import chalk from "chalk"
-import { BaseTask, BaseTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
+import { BaseTask, CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
   Provider,
@@ -34,7 +34,7 @@ import { hashString, isNotNull } from "../util/util"
 import { gardenEnv } from "../constants"
 import { stableStringify } from "../util/string"
 
-interface Params extends BaseTaskParams {
+interface Params extends CommonTaskParams {
   plugin: GardenPlugin
   allPlugins: GardenPlugin[]
   config: GenericProviderConfig

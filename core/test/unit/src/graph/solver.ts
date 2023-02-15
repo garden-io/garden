@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { BaseTask, BaseTaskParams, TaskProcessParams, ValidResultType } from "../../../../src/tasks/base"
+import { BaseTask, CommonTaskParams, TaskProcessParams, ValidResultType } from "../../../../src/tasks/base"
 import { makeTestGarden, freezeTime, TestGarden, getDataDir, expectError } from "../../../helpers"
 import { MakeOptional } from "../../../../src/util/util"
 import { SolveOpts } from "../../../../src/graph/solver"
@@ -18,7 +18,7 @@ const projectRoot = getDataDir("test-project-empty")
 
 export type TestTaskCallback = (params: { task: BaseTask; params: TaskProcessParams }) => Promise<any>
 
-interface TestTaskParams extends BaseTaskParams {
+interface TestTaskParams extends CommonTaskParams {
   name?: string
   state?: ActionState
   callback?: TestTaskCallback
