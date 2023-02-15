@@ -41,13 +41,27 @@ end
 
 ## Config Graph Resolution
 
-TODO:
+`getConfigGraph()`
 
 ```mermaid
 flowchart TD
 scanAndAddConfigs-->resolveProviders
+subgraph resolveProviders
+  direction TB
+  configs["Garden.getRawProviderConfigs()"]
+  configs-->validateGraph
+  configs--->|"map new ResolveProviderTask()"|tasks
+  tasks-->|"map Garden.processTasks() \n see the diagram for Graph Solver"|taskResults
+  taskResults-->|"taskResults.results.getMap()"|providerResults
+  providerResults-->|"map Garden.addModuleConfig()"|resolvedProviders
+end
 resolveProviders-->getRawModuleConfigs
-getRawModuleConfigs-->ModuleResolver.resolveAll
+getRawModuleConfigs-->|ModuleResolver.resolveAll|resolvedModules
+resolvedModules-->|"new ModuleGraph()"|moduleGraph
+moduleGraph-->|"convertModules() \n converts modules to actions"|actions
+actions-->|"actionConfigsToGraph()"|actionGraph[graph]
+actionGraph-->|"get plugins \n augment graph with plugins \n validate graph"|validGraph
+validGraph["return graph.toConfigGraph()"]
 ```
 
 ## Graph Solver
