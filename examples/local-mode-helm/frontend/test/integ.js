@@ -7,7 +7,7 @@ describe('GET /call-backend', () => {
   it('should respond with a message from the backend service', (done) => {
     agent
       .get("/call-backend")
-      .expect(200, { message: "Backend says: 'Hello from 1st Go!'" })
+      .expect(200, { message: "Backend says: 'Hello from Helm Chart Go!'" })
       .end((err) => {
         if (err) return done(err)
         done()
