@@ -35,6 +35,7 @@ import {
   ResolvedActionExtension,
   ExecutedActionExtension,
 } from "./base"
+import { ResolvedConfigGraph } from "../graph/config-graph"
 
 export interface BuildCopyFrom {
   build: string
@@ -161,6 +162,7 @@ export class ResolvedBuildAction<
   >
   extends BuildAction<C, Outputs>
   implements ResolvedActionExtension<C, Outputs> {
+  protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<C>
   protected readonly resolved: true
   private readonly dependencyResults: GraphResults
@@ -169,6 +171,7 @@ export class ResolvedBuildAction<
 
   constructor(params: ResolvedActionWrapperParams<C>) {
     super(params)
+    this.graph = params.resolvedGraph
     this.dependencyResults = params.dependencyResults
     this.executedDependencies = params.executedDependencies
     this.resolvedDependencies = params.resolvedDependencies

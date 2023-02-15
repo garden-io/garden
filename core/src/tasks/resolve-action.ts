@@ -17,6 +17,7 @@ import { DeepPrimitiveMap } from "../config/common"
 import { merge } from "lodash"
 import { resolveVariables } from "../graph/common"
 import { actionToResolved } from "../actions/helpers"
+import { ResolvedConfigGraph } from "../graph/config-graph"
 
 export interface ResolveActionResults<T extends Action> extends ValidResultType {
   state: ActionState
@@ -160,7 +161,14 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     spec = await this.validateSpec(spec)
 
     // Resolve action without outputs
+    const resolvedGraph = new ResolvedConfigGraph({
+      actions: [...resolvedDependencies, ...executedDependencies],
+      moduleGraph: this.graph.moduleGraph,
+      groups: this.graph.getGroups(),
+    })
+
     const resolvedAction = actionToResolved(action, {
+      resolvedGraph,
       dependencyResults,
       executedDependencies,
       resolvedDependencies,

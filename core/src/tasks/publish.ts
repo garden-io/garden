@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams, BaseTask, ValidResultType } from "../tasks/base"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
@@ -33,9 +33,13 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     this.tagTemplate = params.tagTemplate
   }
 
+  resolveStatusDependencies() {
+    return []
+  }
+
   resolveProcessDependencies() {
     if (this.action.getConfig("allowPublish") === false) {
-      return []
+      return [this.getResolveTask(this.action)]
     }
     return [
       new BuildTask({
@@ -56,19 +60,24 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
-    const action = this.getExecutedAction(this.action, dependencyResults)
-    const version = action.versionString()
-
     if (this.action.getConfig("allowPublish") === false) {
       this.log.info({
         section: this.action.key(),
         msg: "Publishing disabled (allowPublish=false set on build)",
         status: "active",
       })
-      return { state: <ActionState>"ready", detail: { published: false }, outputs: {}, version }
+      return {
+        state: <ActionState>"ready",
+        detail: { published: false },
+        outputs: {},
+        version: this.getResolvedAction(this.action, dependencyResults).versionString(),
+      }
     }
 
-    let tag: string | undefined = undefined
+    const action = this.getExecutedAction(this.action, dependencyResults)
+    const version = action.versionString()
+
+    let tag = version
 
     if (this.tagTemplate) {
       const resolvedProviders = await this.garden.resolveProviders(this.log)
