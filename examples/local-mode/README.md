@@ -1,4 +1,4 @@
-# Local mode for `container` build type
+# Local mode for `container` action type
 
 A very basic demo project for Garden [local mode](../../docs/guides/running-service-in-local-mode.md) for `container`
 build type.
