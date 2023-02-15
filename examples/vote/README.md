@@ -32,8 +32,7 @@ In a separate tab, open http://result.vote.local.app.garden. The results there w
 To start up the synchronization:
 
 ```sh
-garden dev
-# OR garden deploy --dev=vote
+garden deploy --dev=vote
 ```
 
 Then try making a change to one of the source files in the `vote` service, to see it synchronize into the
