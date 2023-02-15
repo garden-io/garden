@@ -1036,12 +1036,12 @@ workflows:
       #     name: e2e-templated-k8s-container-modules
       #     project: templated-k8s-container-modules
       #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-vote
-      #     project: vote
-      #     environment: remote
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-vote
+          project: vote
+          environment: remote
+          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-vote-modules
