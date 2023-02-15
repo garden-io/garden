@@ -33,14 +33,12 @@ export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
 }
 
-interface CommonTaskParams {
+export interface CommonTaskParams {
   garden: Garden
   log: LogEntry
   force: boolean
   skipDependencies?: boolean
 }
-
-export interface BaseTaskParams extends CommonTaskParams {}
 
 export interface BaseActionTaskParams<T extends Action = Action> extends CommonTaskParams {
   action: T
@@ -101,7 +99,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   _resultType: O & BaseTaskOutputs
   _resolvedDependencies?: BaseTask[]
 
-  constructor(initArgs: BaseTaskParams) {
+  constructor(initArgs: CommonTaskParams) {
     this.garden = initArgs.garden
     this.uid = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
@@ -120,6 +118,13 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   abstract getStatus(params: TaskProcessParams): Promise<O | null>
   abstract process(params: TaskProcessParams): Promise<O>
 
+  /**
+   * The "input version" of a task generally refers to the version of the task's inputs, before
+   * any resolution or execution happens. For action tasks, this will generally be the unresolved
+   * version.
+   *
+   * The corresponding "output version" is what's returned by the `getStatus` and `process` handlers.
+   */
   abstract getInputVersion(): string
 
   /**
