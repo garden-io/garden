@@ -13,7 +13,7 @@ default to three when deploying remotely.
 
 ## Using variables with templating
 
-Also in the [backend action configuration](./backend/garden.yml#L12) two variables are used to store ports configuration for the service and a variable
+Also in the [backend deploy action configuration](./backend/garden.yml#L12) two variables are used to store ports configuration for the service and a variable
 is additionally used to detect dev-mode being used. Later in the [service ports configuration](./backend/garden.yml#L24) the variables are dynamically used to enable the development port if dev mode is being used.
 
 You can read more about Garden string templating functionalities [here](../../docs/reference/template-strings/).
