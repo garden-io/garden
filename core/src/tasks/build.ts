@@ -31,7 +31,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
     const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
-    return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
+    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, BuildStatus>) {
@@ -46,7 +46,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
 
     let log = this.log.info({
       section: this.getName(),
-      msg: `Building version ${this.version}...`,
+      msg: `Building version ${action.versionString()}...`,
       status: "active",
     })
 
@@ -82,7 +82,11 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         append: true,
       })
 
-      return { ...result, executedAction: resolvedActionToExecuted(action, { status: result }) }
+      return {
+        ...result,
+        version: action.versionString(),
+        executedAction: resolvedActionToExecuted(action, { status: result }),
+      }
     } catch (err) {
       log.setError()
       throw err

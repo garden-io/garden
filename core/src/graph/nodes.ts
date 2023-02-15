@@ -114,12 +114,14 @@ export abstract class TaskNode<T extends Task = Task> {
     }
 
     const task = this.task
+    const dependencyResults = this.getDependencyResults()
+    const version = result?.version
 
     task.log.silly({
       msg: `Completing node ${chalk.underline(this.getKey())}. aborted=${aborted}, error=${
         error ? error.message : null
       }`,
-      metadata: metadataForLog(task, error ? "error" : "success"),
+      metadata: metadataForLog(task, error ? "error" : "success", version),
     })
 
     this.result = {
@@ -128,12 +130,12 @@ export abstract class TaskNode<T extends Task = Task> {
       key: task.getKey(),
       name: task.getName(),
       result,
-      dependencyResults: this.getDependencyResults().export(),
+      dependencyResults: dependencyResults.export(),
       aborted,
       startedAt,
       completedAt: new Date(),
       error,
-      version: this.task.version,
+      version,
       outputs: result?.outputs,
       task,
       processed: this.executionType === "process",
@@ -161,6 +163,10 @@ export abstract class TaskNode<T extends Task = Task> {
    */
   getResult() {
     return this.result
+  }
+
+  getInputVersion() {
+    return this.task.getInputVersion()
   }
 
   protected getNode<NT extends keyof InternalNodeTypes>(type: NT, task: Task): InternalNodeTypes[NT] {

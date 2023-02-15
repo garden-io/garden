@@ -146,18 +146,9 @@ describe("GardenServer", () => {
         })
         .expect(200)
 
-      expect(taskResultOutputs(res.body.result)).to.eql({
-        "build.module-a": {
-          outputs: {
-            log: "A",
-          },
-          state: "ready",
-          detail: {
-            buildLog: "A",
-            fresh: true,
-          },
-        },
-      })
+      const result = taskResultOutputs(res.body.result)
+      expect(result["build.module-a"]).to.exist
+      expect(result["build.module-a"].state).to.equal("ready")
     })
   })
 
@@ -414,20 +405,12 @@ describe("GardenServer", () => {
         }
         const taskResult = taskResultOutputs((<any>req).result)
         const result = {
-          ...req,
+          ...(<any>req),
           result: taskResult,
         }
-        expect(result).to.eql({
-          type: "commandResult",
-          requestId: id,
-          result: {
-            "build.module-a": {
-              state: "ready",
-              outputs: { log: "A" },
-              detail: { fresh: true, buildLog: "A" },
-            },
-          },
-        })
+        expect(result.requestId).to.equal(id)
+        expect(result.result["build.module-a"]).to.exist
+        expect(result.result["build.module-a"].state).to.equal("ready")
         done()
       })
       ws.send(

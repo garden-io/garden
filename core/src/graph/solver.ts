@@ -364,7 +364,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         type,
         key,
         startedAt: new Date(),
-        versionString: task.version,
+        inputVersion: node.getInputVersion(),
       })
 
       const processResult = await node.execute()

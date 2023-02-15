@@ -27,7 +27,7 @@ describe("GetConfigCommand", () => {
       opts: { "exclude-disabled": false, "resolve": "full" },
     })
 
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
     const actions = graph.getActions()
 
     for (const action of actions) {

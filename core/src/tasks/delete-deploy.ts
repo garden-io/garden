@@ -86,7 +86,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
       throw err
     }
 
-    return status
+    return { ...status, version: action.versionString() }
   }
 }
 

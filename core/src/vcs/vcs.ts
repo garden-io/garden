@@ -69,6 +69,11 @@ export interface ModuleVersion {
   files: string[]
 }
 
+export interface ActionVersion extends ModuleVersion {
+  configVersion: string
+  sourceVersion: string
+}
+
 export interface NamedModuleVersion extends ModuleVersion {
   name: string
 }

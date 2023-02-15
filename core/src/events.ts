@@ -174,7 +174,7 @@ export interface Events extends LoggerEvents {
     key: string
     type: string
     name: string
-    versionString: string
+    inputVersion: string
   }
   taskComplete: GraphResultEventPayload
   taskError: GraphResultEventPayload

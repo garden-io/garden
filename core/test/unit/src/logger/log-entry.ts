@@ -173,7 +173,7 @@ describe("LogEntry", () => {
         key: "a",
         status: "active",
         uid: "1",
-        versionString: "123",
+        inputVersion: "123",
       }
       const entry = logger.placeholder()
       entry.setState({
@@ -290,7 +290,7 @@ describe("LogEntry", () => {
         key: "a",
         status: "active",
         uid: "1",
-        versionString: "123",
+        inputVersion: "123",
       }
       const taskMetadataB: TaskMetadata = {
         ...taskMetadataA,

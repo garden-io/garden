@@ -267,7 +267,7 @@ describe("renderers", () => {
         key: "a",
         status: "active",
         uid: "1",
-        versionString: "123",
+        inputVersion: "123",
       }
       const entry = logger.info({
         msg: "hello",

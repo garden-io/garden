@@ -44,12 +44,12 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       localMode,
     })
 
-    return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
+    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
-    const version = this.version
     const action = this.getResolvedAction(this.action, dependencyResults)
+    const version = action.versionString()
 
     const devMode = includes(this.devModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
@@ -126,6 +126,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       }
     }
 
-    return { ...status, executedAction }
+    return { ...status, version, executedAction }
   }
 }

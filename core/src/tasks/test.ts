@@ -70,7 +70,11 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
         msg: chalk.green("Already passed"),
         append: true,
       })
-      return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
+      return {
+        ...status,
+        version: action.versionString(),
+        executedAction: resolvedActionToExecuted(action, { status }),
+      }
     }
 
     return null
@@ -115,7 +119,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       throw new TestError(status.detail?.log)
     }
 
-    return { ...status, executedAction: resolvedActionToExecuted(action, { status }) }
+    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 }
 
