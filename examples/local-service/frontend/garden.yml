@@ -40,12 +40,13 @@ name: frontend-unit
 description: Frontend service unit tests
 type: container
 
+build: frontend
 dependencies:
   - deploy.frontend
 
 spec:
   args: [ npm, test ]
-  env: ${var.env}
+  env: ${action.deploy.frontend.var.env}
 
 ---
 kind: Test
@@ -53,12 +54,13 @@ name: frontend-integ
 description: Frontend service integration tests
 type: container
 
+build: frontend
 dependencies:
   - deploy.frontend
 
 spec:
   args: [ npm, run, integ ]
-  env: ${var.env}
+  env: ${action.deploy.frontend.var.env}
 
 ---
 kind: Build
