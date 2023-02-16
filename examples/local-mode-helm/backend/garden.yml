@@ -14,7 +14,7 @@ spec:
     command: [ "../backend-local/main" ]
     target:
       kind: Deployment
-      name: backend-deployment # containerModule: backend-image
+      name: backend
       containerName: backend
 
   values:
