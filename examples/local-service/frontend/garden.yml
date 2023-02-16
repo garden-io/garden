@@ -1,48 +1,82 @@
-kind: Module
+kind: Build
+name: frontend
+description: Frontend service container image
+type: container
+include: [ "." ]
+
+---
+kind: Deploy
 name: frontend
 description: Frontend service container
 type: container
-include: ["."]
+
+build: frontend
+
+dependencies:
+  - deploy.backend
+
 variables:
   env:
     PORT: 8080
-services:
-  - name: frontend
-    ports:
-      - name: http
-        containerPort: 8080
-    healthCheck:
-      httpGet:
-        path: /hello-frontend
-        port: http
-    ingresses:
-      - path: /hello-frontend
-        port: http
-      - path: /call-backend
-        port: http
-    dependencies:
-      - backend
-    env: ${var.env}
-tests:
-  - name: unit
-    args: [npm, test]
-  - name: integ
-    args: [npm, run, integ]
-    dependencies:
-      - frontend
-    env: ${var.env}
+
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
+  ingresses:
+    - path: /hello-frontend
+      port: http
+    - path: /call-backend
+      port: http
+  env: ${var.env}
 
 ---
+kind: Test
+name: frontend-unit
+description: Frontend service unit tests
+type: container
 
-kind: Module
+dependencies:
+  - deploy.frontend
+
+spec:
+  args: [ npm, test ]
+  env: ${var.env}
+
+---
+kind: Test
+name: frontend-integ
+description: Frontend service integration tests
+type: container
+
+dependencies:
+  - deploy.frontend
+
+spec:
+  args: [ npm, run, integ ]
+  env: ${var.env}
+
+---
+kind: Build
 name: frontend-local
 type: exec
-local: true
-include: []
-services:
-  - name: frontend-local
-    devMode:
-      command: ["yarn", "run", "dev"]
-      statusCommand: [./check-local-status.sh]
-    deployCommand: []
-    env: ${modules.frontend.var.env}
+buildAtSource: true
+include: [ ]
+
+---
+kind: Deploy
+name: frontend-local
+type: exec
+
+build: frontend-local
+
+spec:
+  devMode:
+    command: [ "yarn", "run", "dev" ]
+    statusCommand: [ ./check-local-status.sh ]
+  deployCommand: [ ]
+  env: ${action.deploy.frontend.var.env}
