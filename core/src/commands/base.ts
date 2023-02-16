@@ -10,7 +10,7 @@ import Joi = require("@hapi/joi")
 import chalk from "chalk"
 import dedent = require("dedent")
 import stripAnsi from "strip-ansi"
-import { mapValues, omit, pickBy, size } from "lodash"
+import { pickBy, size } from "lodash"
 
 import { createSchema, joi } from "../config/common"
 import { InternalError, RuntimeError, GardenBaseError } from "../exceptions"
@@ -24,7 +24,6 @@ import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
 import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
-import { GardenServer } from "../server/server"
 import { GardenCli } from "../cli/cli"
 import { CommandLine } from "../cli/command-line"
 

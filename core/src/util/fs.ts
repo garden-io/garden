@@ -10,7 +10,6 @@ import unixify = require("unixify")
 import klaw = require("klaw")
 import glob from "glob"
 import tmp from "tmp-promise"
-import _spawn from "cross-spawn"
 import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
 import { join, basename, win32, posix } from "path"
 import { platform } from "os"

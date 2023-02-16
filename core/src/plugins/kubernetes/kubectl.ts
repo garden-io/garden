@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import _spawn from "cross-spawn"
 import { encodeYamlMulti } from "../../util/util"
 import { ExecParams, PluginTool } from "../../util/ext-tools"
 import { LogEntry } from "../../logger/log-entry"

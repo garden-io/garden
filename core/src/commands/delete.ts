@@ -18,12 +18,7 @@ import { deline } from "../util/string"
 import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
 import { omit, mapValues } from "lodash"
-import {
-  DeployStatus,
-  DeployStatusMap,
-  GetDeployStatus,
-  getDeployStatusSchema,
-} from "../plugin/handlers/Deploy/get-status"
+import { DeployStatus, DeployStatusMap, getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status"
 
 // TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {

@@ -9,7 +9,7 @@
 import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "./base"
 import { GraphResults } from "../graph/results"
 import { DeployAction, isDeployAction } from "../actions/deploy"
-import { DeployStatus, GetDeployStatus } from "../plugin/handlers/Deploy/get-status"
+import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { omit } from "lodash"
 
 export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {

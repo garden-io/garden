@@ -128,7 +128,7 @@ export async function getPortForward({
 
       const portForward = { targetResource, port, proc, localPort }
 
-      proc.on("close", (code) => {
+      void proc.on("close", (code) => {
         if (registeredPortForwards[key]) {
           delete registeredPortForwards[key]
         }
@@ -142,7 +142,7 @@ export async function getPortForward({
         }
       })
 
-      proc.on("error", (error) => {
+      void proc.on("error", (error) => {
         !proc.killed && proc.kill()
         throw error
       })

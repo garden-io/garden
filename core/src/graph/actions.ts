@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { isString, mapValues, memoize, omit, pick, keyBy } from "lodash"
+import { isString, mapValues, memoize, omit, pick } from "lodash"
 import {
   Action,
   ActionConfig,

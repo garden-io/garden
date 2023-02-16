@@ -8,7 +8,7 @@
 
 import Joi from "@hapi/joi"
 import normalize = require("normalize-path")
-import { sortBy, omit, pick } from "lodash"
+import { sortBy, pick } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
