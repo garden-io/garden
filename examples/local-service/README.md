@@ -5,8 +5,8 @@ remotely but frontend services locally.
 
 ## Project Structure
 
-This project is based on the [demo-project](https://github.com/garden-io/garden/tree/main/examples/demo-project) and contains a `backend` module, a
-`frontend` module and a `frontend-local` module.
+This project is based on the [demo-project](../demo-project) and contains a `backend` module, a `frontend` module,
+and a `frontend-local` module.
 
 Here's an excerpt from the `frontend` config:
 
