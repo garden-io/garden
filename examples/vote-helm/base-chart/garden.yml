@@ -1,7 +1,6 @@
-kind: Module
+kind: Deploy
 description: Base Helm chart for services
 type: helm
 name: base-chart
-serviceResource:
-  kind: Deployment
-skipDeploy: true
+disabled: true
+spec: {}
