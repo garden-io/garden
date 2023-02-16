@@ -37,7 +37,7 @@ interface JibModuleSpec extends ContainerModuleSpec {
   build: JibModuleBuildSpec
 }
 
-type JibBuildActionSpec = ContainerBuildActionSpec & JibBuildSpec
+export type JibBuildActionSpec = ContainerBuildActionSpec & JibBuildSpec
 export type JibBuildConfig = BuildActionConfig<"jib-container", JibBuildActionSpec>
 export type JibBuildAction = BuildAction<JibBuildConfig, ContainerBuildOutputs>
 
