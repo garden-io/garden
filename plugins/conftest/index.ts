@@ -210,7 +210,7 @@ export const gardenPlugin = () =>
             configure: async ({ ctx, config }) => {
               let files = config.spec.files
 
-              if (files.length > 0) {
+              if (files && files.length > 0) {
                 if (!config.include) {
                   config.include = []
                 }
