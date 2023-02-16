@@ -314,12 +314,12 @@ export const gardenPlugin = () =>
                 targetStage: module.spec.build.targetImage,
 
                 // jib fields
+                ...defaults,
                 jdkVersion: module.spec.build.jdkVersion,
                 projectType: module.spec.build.projectType,
                 tarFormat: module.spec.build.tarFormat,
                 tarOnly: module.spec.build.tarOnly,
                 dockerfile: "_jib", // See configure handler above
-                ...defaults,
                 mavenPhases: module.spec.build.mavenPhases,
               },
             }
