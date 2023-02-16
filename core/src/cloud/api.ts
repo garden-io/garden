@@ -24,7 +24,6 @@ import {
 } from "@garden-io/platform-api-types"
 import { getCloudDistributionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
-import { ProjectResource } from "../config/project"
 import { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
 

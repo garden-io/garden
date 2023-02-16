@@ -10,7 +10,7 @@ import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { remove, set } from "lodash"
 import { SyncableResource } from "./types"
-import { joi, PrimitiveMap } from "../../config/common"
+import { PrimitiveMap } from "../../config/common"
 import {
   k8sReverseProxyImageName,
   PROXY_CONTAINER_SSH_TUNNEL_PORT,

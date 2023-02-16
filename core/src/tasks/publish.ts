@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams, BaseTask, ValidResultType } from "../tasks/base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"

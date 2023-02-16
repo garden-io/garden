@@ -34,7 +34,6 @@ import { ContainerBuildAction, defaultDockerfileName } from "./config"
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
 import pMemoize from "../../lib/p-memoize"
-import { GARDEN_GLOBAL_PATH } from "../../constants"
 
 interface DockerVersion {
   client?: string

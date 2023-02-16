@@ -66,11 +66,11 @@ export const gardenPlugin = () =>
               }
             })
 
-            octantProc.on("error", (err) => {
+            void octantProc.on("error", (err) => {
               !resolved && reject(err)
             })
 
-            octantProc.on("close", (err) => {
+            void octantProc.on("close", (err) => {
               // TODO: restart process
               !resolved && reject(err)
             })

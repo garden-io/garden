@@ -21,7 +21,6 @@ import { LogEntry } from "../logger/log-entry"
 import parseGitConfig from "parse-git-config"
 import { getDefaultProfiler, Profile, Profiler } from "../util/profiling"
 import { mapLimit } from "async"
-import { TreeCache } from "../cache"
 import { STATIC_DIR } from "../constants"
 import split2 = require("split2")
 import execa = require("execa")

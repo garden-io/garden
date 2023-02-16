@@ -11,15 +11,7 @@ import chalk from "chalk"
 import { expect } from "chai"
 import { resolve } from "path"
 import { replaceInFile } from "replace-in-file"
-import {
-  changeFileStep,
-  commandReloadedStep,
-  GardenWatch,
-  runGarden,
-  taskCompletedStep,
-  waitingForChangesStep,
-  sleepStep,
-} from "../run-garden"
+import { changeFileStep, GardenWatch, runGarden, waitingForChangesStep, sleepStep } from "../run-garden"
 import {
   projectsDir,
   deleteExampleNamespaces,

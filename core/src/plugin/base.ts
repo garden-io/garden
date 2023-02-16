@@ -9,7 +9,7 @@
 import type { LogEntry } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
-import { createSchema, CustomObjectSchema, joi } from "../config/common"
+import { createSchema, joi } from "../config/common"
 import { dedent, deline } from "../util/string"
 import type { BuildAction } from "../actions/build"
 import type { DeployAction } from "../actions/deploy"

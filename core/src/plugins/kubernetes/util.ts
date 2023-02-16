@@ -24,7 +24,7 @@ import {
 import { splitLast, serializeValues, findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
 import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
-import { MAX_CONFIGMAP_DATA_SIZE, systemDockerAuthSecretName } from "./constants"
+import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
 import { KubernetesProvider, KubernetesPluginContext, KubernetesTargetResourceSpec } from "./config"
