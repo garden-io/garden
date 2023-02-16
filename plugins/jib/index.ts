@@ -29,7 +29,7 @@ import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import { cloneDeep, pick } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
-import { detectProjectType, getBuildFlags, JibBuildConfig, JibContainerModule } from "./util"
+import { detectProjectType, getBuildFlags, JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util"
 import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
 
@@ -295,6 +295,7 @@ export const gardenPlugin = () =>
             const actions = output.group!.actions
             const buildActionIndex = actions.findIndex((a) => a.kind === "Build")
 
+            const defaults = pick(module.spec.build, Object.keys(jibBuildSchemaKeys())) as Partial<JibBuildActionSpec>
             const buildAction: JibBuildConfig = {
               kind: "Build",
               type: "jib-container",
@@ -311,7 +312,6 @@ export const gardenPlugin = () =>
                 extraFlags: module.spec.extraFlags,
                 publishId: module.spec.image,
                 targetStage: module.spec.build.targetImage,
-                timeout: module.spec.build.timeout,
 
                 // jib fields
                 jdkVersion: module.spec.build.jdkVersion,
@@ -319,7 +319,7 @@ export const gardenPlugin = () =>
                 tarFormat: module.spec.build.tarFormat,
                 tarOnly: module.spec.build.tarOnly,
                 dockerfile: "_jib", // See configure handler above
-                ...pick(module.spec.build, Object.keys(jibBuildSchemaKeys())),
+                ...defaults,
                 mavenPhases: module.spec.build.mavenPhases,
               },
             }
