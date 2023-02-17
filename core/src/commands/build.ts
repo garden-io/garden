@@ -74,7 +74,7 @@ export class BuildCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Build", "hammer")
+    printHeader(headerLog, "Build", "🔨")
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {

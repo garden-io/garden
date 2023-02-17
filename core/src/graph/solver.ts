@@ -18,7 +18,7 @@ import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./resu
 import { gardenEnv } from "../constants"
 import type { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
-import { formatError, renderDivider, renderMessageWithDivider } from "../logger/util"
+import { formatGardenErrorWithDetail, renderDivider, renderMessageWithDivider } from "../logger/util"
 import chalk from "chalk"
 import {
   CompleteTaskParams,
@@ -492,9 +492,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     // TODO-G2: pass along log entry here instead of using Garden logger
     log.error({ msg, error })
     const divider = renderDivider()
-    log.silly({
-      msg: chalk.gray(`Full error with stack trace:\n${divider}\n${formatError({ msg, error })}\n${divider}`),
-    })
+    log.silly(chalk.gray(`Full error with stack trace:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`))
   }
 
   // // Overriding to ease debugging

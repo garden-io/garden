@@ -13,10 +13,11 @@ import { isArray, repeat } from "lodash"
 import stringWidth = require("string-width")
 import hasAnsi = require("has-ansi")
 
-import { LogEntryMessage, LogEntry, LogSymbol } from "./log-entry"
+import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, safeDumpYaml } from "../util/util"
-import { Logger, logLevelMap, LogLevel, formatGardenErrorWithDetail } from "./logger"
+import { Logger, logLevelMap, LogLevel } from "./logger"
+import { formatGardenErrorWithDetail } from "./util"
 
 type RenderFn = (entry: LogEntry) => string
 
@@ -185,9 +186,6 @@ export function formatForJson(entry: LogEntry): JsonLogEntry {
     section: cleanForJSON(section),
     timestamp: getTimestamp(entry),
     level: logLevelMap[entry.level],
-    // TODO: @eysi
-    // allSections: getAllSections(entry, msg).map(cleanForJSON),
-    allSections: section ? [section].map(cleanForJSON) : [],
   }
   if (errorDetail) {
     jsonLogEntry.errorDetail = errorDetail

@@ -49,7 +49,7 @@ export class UpdateRemoteAllCommand extends Command<{}, Opts> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote sources and modules", "hammer_and_wrench")
+    printHeader(headerLog, "Update remote sources and modules", "🛠️")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<UpdateRemoteAllResult>> {

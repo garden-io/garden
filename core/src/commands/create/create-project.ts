@@ -92,7 +92,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
   }
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new project", "pencil2")
+    printHeader(headerLog, "Create new project", "✏️")
   }
 
   // Defining it like this because it'll stall on waiting for user input.

@@ -75,7 +75,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   options = secretsCreateOpts
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Create users", "lock")
+    printHeader(headerLog, "Create users", "🔒")
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {

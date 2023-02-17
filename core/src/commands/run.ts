@@ -100,7 +100,7 @@ export class RunCommand extends Command<Args, Opts> {
 
   printHeader({ headerLog }: PrepareParams<Args, Opts>) {
     const msg = `Run`
-    printHeader(headerLog, msg, "runner")
+    printHeader(headerLog, msg, "🏃‍♂️")
   }
 
   async action(params: CommandParams<Args, Opts>) {

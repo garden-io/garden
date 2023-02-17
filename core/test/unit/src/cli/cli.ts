@@ -235,75 +235,27 @@ describe("cli", () => {
         initTestLogger()
       })
 
-      // TODO @eysi: Update
-      // it("uses the fancy logger by default", async () => {
-      //   class TestCommand extends Command {
-      //     name = "test-command"
-      //     help = "halp!"
-      //     noProject = true
+      it("uses the 'TerminalWriter' by default", async () => {
+        class TestCommand extends Command {
+          name = "test-command"
+          help = "halp!"
+          noProject = true
 
-      //     printHeader() {}
+          printHeader() {}
 
-      //     async action({}) {
-      //       return { result: { something: "important" } }
-      //     }
-      //   }
+          async action({}) {
+            return { result: { something: "important" } }
+          }
+        }
 
-      //   const cmd = new TestCommand()
-      //   cli.addCommand(cmd)
+        const cmd = new TestCommand()
+        cli.addCommand(cmd)
 
-      //   await cli.run({ args: ["test-command"], exitOnError: false })
+        await cli.run({ args: ["test-command"], exitOnError: false })
 
         const logger = getLogger()
         const writers = logger.getWriters()
         expect(writers.map((w) => w.type)).to.include("basic")
-      })
-
-      it("uses the basic logger if log level > info", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "halp!"
-          noProject = true
-
-          printHeader() {}
-
-          async action({}) {
-            return { result: { something: "important" } }
-          }
-        }
-
-        const cmd = new TestCommand()
-        cli.addCommand(cmd)
-
-        await cli.run({
-          args: ["--logger-type=fancy", "--log-level=3", "test-command"],
-          exitOnError: false,
-        })
-
-        const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(TerminalWriter)
-      })
-
-      it("uses the basic logger if --show-timestamps flag is set to true", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "halp!"
-          noProject = true
-
-          printHeader() {}
-
-          async action({}) {
-            return { result: { something: "important" } }
-          }
-        }
-
-        const cmd = new TestCommand()
-        cli.addCommand(cmd)
-
-        await cli.run({ args: ["--logger-type=fancy", "--show-timestamps", "test-command"], exitOnError: false })
-
-        const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(TerminalWriter)
       })
     })
 

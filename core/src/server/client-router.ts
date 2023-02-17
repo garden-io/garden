@@ -16,6 +16,7 @@ import { naturalList } from "../util/string"
 import { ConfigGraph } from "../graph/config-graph"
 import { RunTask } from "../tasks/run"
 import { moduleTestNameToActionName } from "../types/module"
+import { printEmoji } from "../logger/util"
 
 export class ClientRouter {
   private garden: Garden
@@ -69,18 +70,18 @@ export class ClientRouter {
     let prefix: string
     let emoji: string
     if (req.hotReload) {
-      emoji = "🔥 "
+      emoji = printEmoji("🔥", log)
       prefix = `Hot reload-enabled deployment`
     } else {
       // local mode always takes precedence over dev mode
       if (req.localMode) {
-        emoji = "↔️ "
+        emoji = printEmoji("↔️", log)
         prefix = `Local-mode deployment`
       } else if (req.devMode) {
-        emoji = "⚡ "
+        emoji = printEmoji("⚡", log)
         prefix = `Dev-mode deployment`
       } else {
-        emoji = "🚀 "
+        emoji = printEmoji("🚀", log)
         prefix = "Deployment"
       }
     }

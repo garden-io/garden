@@ -33,7 +33,7 @@ export class LoginCommand extends Command {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Login", "cloud")
+    printHeader(headerLog, "Login", "☁️")
   }
 
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {

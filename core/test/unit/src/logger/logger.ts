@@ -8,12 +8,13 @@
 
 import { expect } from "chai"
 
-import { getLogger, Logger, LogLevel, sanitizeValue } from "../../../../src/logger/logger"
+import { getLogger, Logger, LogLevel } from "../../../../src/logger/logger"
 import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime, projectRootA } from "../../../helpers"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { joi } from "../../../../src/config/common"
 import { Log } from "../../../../src/logger/log-entry"
+import { sanitizeValue } from "../../../../src/logger/util"
 
 const logger: Logger = getLogger()
 

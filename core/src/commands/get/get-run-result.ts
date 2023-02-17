@@ -51,7 +51,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
 
   printHeader({ headerLog, args }) {
     const taskName = args.name
-    printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "rocket")
+    printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "🚀")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {

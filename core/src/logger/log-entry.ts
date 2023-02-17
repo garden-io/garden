@@ -7,7 +7,6 @@
  */
 
 import logSymbols from "log-symbols"
-import nodeEmoji from "node-emoji"
 import { cloneDeep, round } from "lodash"
 
 import { LogLevel, logLevelMap } from "./logger"
@@ -17,7 +16,6 @@ import { GardenError } from "../exceptions"
 import { CreateLogEntryParams, Logger, PlaceholderOpts } from "./logger"
 import uniqid from "uniqid"
 
-export type EmojiName = keyof typeof nodeEmoji.emoji
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
 
@@ -78,9 +76,8 @@ function resolveCreateParams(level: LogLevel, params: string | LogEntryParams): 
 
 interface LogEntryBase {
   type: "logEntry" | "actionLogEntry" | "pluginLogEntry"
-  // TODO @eysi: Rename to text?
   msg?: string
-  // TODO @eysi: Skip and only allow section on Log?
+  // TODO: Only allow section on Log class?
   section?: string
   symbol?: LogSymbol
   data?: any
@@ -89,7 +86,6 @@ interface LogEntryBase {
   metadata?: LogEntryMetadata
   key: string
   level: LogLevel
-  // TODO @eysi: Skip?
   errorData?: GardenError
   id?: string
   root: Logger
@@ -145,12 +141,10 @@ export class Log {
       type: "logEntry",
       section,
       ...params,
-      // TODO @eysi: Why is it called errorData? And is it used at all?
       errorData: params.error,
       level,
       timestamp: new Date().toISOString(),
       metadata,
-      // TODO @eysi: Do we need this?
       key: uniqid(),
       root: this.root,
       parent: this,
@@ -170,8 +164,6 @@ export class Log {
 
   /**
    * Create a new logger with same context, optionally overwriting some fields.
-   *
-   * TODO @eysi: Overwrite with params
    */
   makeNewLogContext(params: Partial<LogConstructor>) {
     return new Log({

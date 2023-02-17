@@ -33,7 +33,7 @@ export class GetTestsCommand extends Command<Args, {}, ActionDescriptionMap> {
   arguments = getTestsArgs
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Tests", "open_book")
+    printHeader(headerLog, "Tests", "📖")
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult<ActionDescriptionMap>> {

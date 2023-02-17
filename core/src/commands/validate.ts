@@ -24,7 +24,7 @@ export class ValidateCommand extends Command {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Validate", "heavy_check_mark")
+    printHeader(headerLog, "Validate", "✔️")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
@@ -43,7 +43,7 @@ export class ValidateCommand extends Command {
     }
 
     log.info("")
-    log.info(chalk.green("OK") + " " + printEmoji("heavy_check_mark", log))
+    log.info(chalk.green("OK") + " " + printEmoji("✔️", log))
 
     return {}
   }
