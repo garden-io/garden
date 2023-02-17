@@ -129,7 +129,6 @@ export const helmDeploySchema = () =>
         name: helmChartNameSchema(),
         path: joi
           .posixPath()
-          .subPathOnly()
           .description(
             "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
           ),

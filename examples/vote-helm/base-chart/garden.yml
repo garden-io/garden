@@ -1,6 +1,0 @@
-kind: Deploy
-description: Base Helm chart for services
-type: helm
-name: base-chart
-disabled: true
-spec: {}

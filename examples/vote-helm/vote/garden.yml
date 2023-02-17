@@ -6,14 +6,14 @@ dependencies:
   - deploy.api
 spec:
   devMode:
-    sync:
-      - target: /app/src
-        source: src
+    syncs:
+      - containerPath: /app/src
+        sourcePath: src
         mode: two-way
   values:
     image:
-      repository: ${modules.vote-image.outputs.deployment-image-name}
-      tag: ${modules.vote-image.version}
+      repository: ${action.build.vote-image.outputs.deployment-image-name}
+      tag: ${action.build.vote-image.version}
     ingress:
       enabled: true
       paths: [/]
@@ -26,6 +26,7 @@ spec:
 kind: Test
 name: vote-integ
 type: container
+build: vote-image
 dependencies:
   - deploy.vote
 timeout: 60

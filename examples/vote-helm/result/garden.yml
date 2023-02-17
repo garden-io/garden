@@ -5,12 +5,13 @@ name: result
 dependencies:
   - run.db-init
 spec:
-  base: base-chart
+  chart:
+    path: ../base-chart/
   values:
     name: result
     image:
-      repository: ${modules.result-image.outputs.deployment-image-name}
-      tag: ${modules.result-image.version}
+      repository: ${action.build.result-image.outputs.deployment-image-name}
+      tag: ${action.build.result-image.version}
     ingress:
       enabled: true
       paths: [/]
