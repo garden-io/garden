@@ -43,7 +43,7 @@ export interface CommonTaskParams {
 export interface BaseActionTaskParams<T extends Action = Action> extends CommonTaskParams {
   action: T
   graph: ConfigGraph
-  devModeDeployNames: string[]
+  syncModeDeployNames: string[]
   localModeDeployNames: string[]
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
@@ -154,7 +154,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   }
 
   /**
-   * A key that factors in different parameters, e.g. dev mode for deploys, force flags, versioning etc.
+   * A key that factors in different parameters, e.g. sync mode for deploys, force flags, versioning etc.
    * Used to handle overlapping graph solve requests.
    */
   getKey(): string {
@@ -193,7 +193,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
   action: T
   graph: ConfigGraph
-  devModeDeployNames: string[]
+  syncModeDeployNames: string[]
   localModeDeployNames: string[]
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
@@ -203,7 +203,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     super({ ...params })
     this.action = action
     this.graph = params.graph
-    this.devModeDeployNames = params.devModeDeployNames
+    this.syncModeDeployNames = params.syncModeDeployNames
     this.localModeDeployNames = params.localModeDeployNames
     this.forceActions = params.forceActions || []
     this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
@@ -279,7 +279,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       garden: this.garden,
       log: this.log,
       graph: this.graph,
-      devModeDeployNames: this.devModeDeployNames,
+      syncModeDeployNames: this.syncModeDeployNames,
       localModeDeployNames: this.localModeDeployNames,
       forceActions: this.forceActions,
       skipDependencies: this.skipDependencies,

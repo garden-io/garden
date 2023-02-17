@@ -10,7 +10,7 @@ type: container
 build: backend
 
 variables:
-  dev-mode: ${command.params contains 'dev-mode' && (command.params.dev-mode contains '<module-name>' || isEmpty(command.params.dev-mode))}
+  sync-mode: ${command.params contains 'sync' && (command.params.sync contains '<module-name>' || isEmpty(command.params.sync))}
   httpPort:
     name: http
     containerPort: 8080
@@ -21,7 +21,7 @@ variables:
 
 spec:
   replicas: ${var.service-replicas} # <- Refers to the variable set in the project config
-  ports: "${var.dev-mode == true ? [var.httpPort, var.debugPort] : [var.httpPort] }"
+  ports: "${var.sync-mode == true ? [var.httpPort, var.debugPort] : [var.httpPort] }"
   ingresses:
     - path: /hello-backend
       port: http

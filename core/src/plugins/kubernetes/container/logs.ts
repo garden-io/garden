@@ -32,7 +32,7 @@ export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", Container
       action,
       imageId,
       namespace,
-      enableDevMode: false,
+      enableSyncMode: false,
       enableLocalMode: false,
       production: ctx.production,
       log,

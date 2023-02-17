@@ -21,7 +21,7 @@ import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getTargetResource, isWorkload } from "../util"
-import { startDevModeSyncs } from "../dev-mode"
+import { startDevModeSyncs } from "../sync"
 import { isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
@@ -48,7 +48,7 @@ interface HelmStatusDetail {
 export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
 
 export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
-  const { ctx, action, log, devMode, localMode } = params
+  const { ctx, action, log, syncMode, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
@@ -65,13 +65,13 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
     provider,
   })
 
-  let deployedWithDevMode: boolean | undefined
+  let deployedWithSyncMode: boolean | undefined
   let deployedWithLocalMode: boolean | undefined
 
   try {
-    helmStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, devMode, localMode })
+    helmStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, syncMode, localMode })
     state = helmStatus.state
-    deployedWithDevMode = helmStatus.devMode
+    deployedWithSyncMode = helmStatus.syncMode
     deployedWithLocalMode = helmStatus.localMode
   } catch (err) {
     state = "missing"
@@ -89,7 +89,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
     ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {
-      // Local mode always takes precedence over dev mode
+      // Local mode always takes precedence over sync mode
       if (localMode && spec.localMode) {
         const query = spec.localMode.target || spec.defaultTarget
 
@@ -108,8 +108,8 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
             state = "outdated"
           }
         }
-      } else if (devMode && spec.devMode?.syncs) {
-        // Need to start the dev-mode sync here, since the deployment handler won't be called.
+      } else if (syncMode && spec.sync?.paths) {
+        // Need to start the sync here, since the deployment handler won't be called.
 
         // First make sure we don't fail if resources arent't actually properly configured (we don't want to throw in
         // the status handler, generally)
@@ -125,12 +125,12 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
           ctx: k8sCtx,
           log,
           action,
-          actionDefaults: spec.devMode.defaults || {},
+          actionDefaults: spec.sync.defaults || {},
           defaultTarget: spec.defaultTarget,
           basePath: action.basePath(),
           defaultNamespace,
           manifests: deployedResources,
-          syncs: spec.devMode.syncs,
+          syncs: spec.sync.paths,
         })
       }
     }
@@ -143,7 +143,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
       state,
       version: state === "ready" ? action.versionString() : undefined,
       detail,
-      devMode: deployedWithDevMode,
+      syncMode: deployedWithSyncMode,
       localMode: deployedWithLocalMode,
       namespaceStatuses: [namespaceStatus],
       ingresses,
@@ -187,14 +187,14 @@ export async function getReleaseStatus({
   action,
   releaseName,
   log,
-  devMode,
+  syncMode,
   localMode,
 }: {
   ctx: KubernetesPluginContext
   action: Resolved<HelmDeployAction>
   releaseName: string
   log: LogEntry
-  devMode: boolean
+  syncMode: boolean
   localMode: boolean
 }): Promise<ServiceStatus> {
   try {
@@ -220,7 +220,7 @@ export async function getReleaseStatus({
     let state = helmStatusMap[res.info.status] || "unknown"
     let values = {}
 
-    let devModeEnabled = false
+    let syncModeEnabled = false
     let localModeEnabled = false
 
     if (state === "ready") {
@@ -237,11 +237,11 @@ export async function getReleaseStatus({
       )
 
       const deployedVersion = values[".garden"] && values[".garden"].version
-      devModeEnabled = values[".garden"] && values[".garden"].devMode === true
+      syncModeEnabled = values[".garden"] && values[".garden"].syncMode === true
       localModeEnabled = values[".garden"] && values[".garden"].localMode === true
 
       if (
-        (devMode && !devModeEnabled) ||
+        (syncMode && !syncModeEnabled) ||
         (localMode && !localModeEnabled) ||
         (!localMode && localModeEnabled) || // this is still a valid case for local-mode
         !deployedVersion ||
@@ -261,7 +261,7 @@ export async function getReleaseStatus({
     return {
       state,
       detail: { ...res, values },
-      devMode: devModeEnabled,
+      syncMode: syncModeEnabled,
       localMode: localModeEnabled,
     }
   } catch (err) {

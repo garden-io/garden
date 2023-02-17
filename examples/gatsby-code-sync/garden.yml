@@ -1,5 +1,5 @@
 kind: Project
-name: gatsby-dev-mode
+name: gatsby-sync
 environments:
   - name: local
 providers:
@@ -13,19 +13,14 @@ name: website
 type: container
 services:
   - name: website
-    devMode:
-      sync:
+    sync:
+      paths:
         - source: src
           target: /app/src
           # Make sure to specify any paths that should not be synced!
           exclude: [node_modules]
           mode: one-way
     args: [npm, run, dev]
-    devMode:
-      sync:
-        - target: /app/src
-          source: src
-          exclude: [node_modules]
     env:
       GATSBY_WEBPACK_PUBLICPATH: /
     ports:

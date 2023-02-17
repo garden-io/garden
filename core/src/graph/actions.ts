@@ -220,7 +220,7 @@ export async function resolveAction<T extends Action>({
     graph,
     log,
     force: true,
-    devModeDeployNames: [],
+    syncModeDeployNames: [],
     localModeDeployNames: [],
   })
 
@@ -259,7 +259,7 @@ export async function resolveActions<T extends Action>({
         graph,
         log,
         force: true,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
   )
@@ -290,7 +290,7 @@ export async function executeAction<T extends Action>({
     graph,
     log,
     force: true,
-    devModeDeployNames: [],
+    syncModeDeployNames: [],
     localModeDeployNames: [],
   })
 

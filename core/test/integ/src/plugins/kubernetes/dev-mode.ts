@@ -20,16 +20,16 @@ import { dedent } from "../../../../../src/util/string"
 import { sleep } from "../../../../../src/util/util"
 import { getContainerTestGarden } from "./container/container"
 import {
-  convertContainerDevModeSpec,
+  convertContainerSyncSpec,
   convertKubernetesModuleDevModeSpec,
-} from "../../../../../src/plugins/kubernetes/dev-mode"
+} from "../../../../../src/plugins/kubernetes/sync"
 import { HelmModuleConfig } from "../../../../../src/plugins/kubernetes/helm/module-config"
 import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/kubernetes-type/module-config"
 import { TestGarden } from "../../../../helpers"
 import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
 import { resolveAction } from "../../../../../src/graph/actions"
 
-describe("dev mode deployments and sync behavior", () => {
+describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
@@ -72,9 +72,9 @@ describe("dev mode deployments and sync behavior", () => {
     )
   }
 
-  it("should deploy a service in dev mode and successfully set a two-way sync", async () => {
+  it("should deploy a service in sync mode and successfully set a two-way sync", async () => {
     await init("local")
-    const action = graph.getDeploy("dev-mode")
+    const action = graph.getDeploy("sync-mode")
     const log = garden.log
     // const deployTask = new DeployTask({
     //   garden,
@@ -97,10 +97,10 @@ describe("dev mode deployments and sync behavior", () => {
       ctx,
       action: resolvedAction,
       log,
-      devMode: true,
+      syncMode: true,
       localMode: false,
     })
-    expect(status.detail?.devMode).to.eql(true)
+    expect(status.detail?.syncMode).to.eql(true)
 
     const workload = status.detail?.detail.workload!
 
@@ -129,17 +129,17 @@ describe("dev mode deployments and sync behavior", () => {
     }
   })
 
-  it("should apply ignore rules from the sync spec and the provider-level dev mode defaults", async () => {
+  it("should apply ignore rules from the sync spec and the provider-level sync defaults", async () => {
     await init("local")
-    const action = graph.getDeploy("dev-mode")
+    const action = graph.getDeploy("sync-mode")
 
     // We want to ignore the following directories (all at module root)
     // somedir
     // prefix-a         <--- matched by provider-level default excludes
     // nested/prefix-b  <--- matched by provider-level default excludes
 
-    action.getConfig().spec.devMode!.sync[0].mode = "one-way-replica"
-    action.getConfig().spec.devMode!.sync[0].exclude = ["somedir"]
+    action.getConfig().spec.sync!.paths[0].mode = "one-way-replica"
+    action.getConfig().spec.sync!.paths[0].exclude = ["somedir"]
     const log = garden.log
     // const deployTask = new DeployTask({
     //   garden,
@@ -162,7 +162,7 @@ describe("dev mode deployments and sync behavior", () => {
       ctx,
       action: resolvedAction,
       log,
-      devMode: true,
+      syncMode: true,
       localMode: false,
     })
 
@@ -207,8 +207,8 @@ describe("dev mode deployments and sync behavior", () => {
   })
 
   describe("convertKubernetesModuleDevModeSpec", () => {
-    it("should return a simple dev mode spec converted from a kubernetes or helm module", async () => {
-      // Since the dev mode specs for both `kubernetes` and `helm` modules have the type
+    it("should return a simple sync spec converted from a kubernetes or helm module", async () => {
+      // Since the sync specs for both `kubernetes` and `helm` modules have the type
       // `KubernetesModuleDevModeSpec`, we don't need separate test cases for each of those two module types here.
 
       garden.setModuleConfigs([
@@ -218,8 +218,8 @@ describe("dev mode deployments and sync behavior", () => {
           name: "foo",
           path: garden.projectRoot,
           spec: {
-            devMode: {
-              sync: [
+            sync: {
+              paths: [
                 {
                   target: "/app/src",
                   source: "src",
@@ -256,7 +256,7 @@ describe("dev mode deployments and sync behavior", () => {
       })
     })
 
-    it("should return a dev mode spec using several options converted from a kubernetes or helm module", async () => {
+    it("should return a sync spec using several options converted from a kubernetes or helm module", async () => {
       garden.setModuleConfigs([
         <HelmModuleConfig>{
           kind: "Module",
@@ -264,8 +264,8 @@ describe("dev mode deployments and sync behavior", () => {
           name: "foo",
           path: garden.projectRoot,
           spec: {
-            devMode: {
-              sync: [
+            sync: {
+              paths: [
                 {
                   target: "/app/src",
                   source: "src",
@@ -328,7 +328,7 @@ describe("dev mode deployments and sync behavior", () => {
   })
 
   describe("convertContainerDevModeSpec", () => {
-    it("converts a dev mode spec from a container Deploy action", async () => {
+    it("converts a sync spec from a container Deploy action", async () => {
       garden.setActionConfigs([
         <ContainerDeployActionConfig>{
           kind: "Deploy",
@@ -338,8 +338,8 @@ describe("dev mode deployments and sync behavior", () => {
             basePath: garden.projectRoot,
           },
           spec: {
-            devMode: {
-              sync: [
+            sync: {
+              paths: [
                 {
                   target: "/app/src",
                   source: "src",
@@ -359,7 +359,7 @@ describe("dev mode deployments and sync behavior", () => {
         log: garden.log,
       })
 
-      const converted = convertContainerDevModeSpec(ctx, action)
+      const converted = convertContainerSyncSpec(ctx, action)
 
       expect(converted).to.eql({
         syncs: [

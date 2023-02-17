@@ -19,7 +19,7 @@ import {
   containerCommonBuildSpecKeys,
   ContainerCommonDeploySpec,
   containerDeploySchemaKeys,
-  containerDevModeSchema,
+  containerSyncPathSchema,
   ContainerRunActionSpec,
   containerRunSpecKeys,
   ContainerTestActionSpec,
@@ -94,25 +94,27 @@ const containerBuildSpecSchema = () =>
   })
 
 const containerServiceSchema = () =>
-  baseServiceSpecSchema().keys({
-    ...containerDeploySchemaKeys(),
-    devMode: containerDevModeSchema(),
-    volumes: getContainerVolumesSchema(
-      volumeSchemaBase()
-        .keys({
-          module: joiIdentifier().description(
-            dedent`
+  baseServiceSpecSchema()
+    .keys({
+      ...containerDeploySchemaKeys(),
+      sync: containerSyncPathSchema(),
+      volumes: getContainerVolumesSchema(
+        volumeSchemaBase()
+          .keys({
+            module: joiIdentifier().description(
+              dedent`
             The name of a _volume module_ that should be mounted at \`containerPath\`. The supported module types will depend on which provider you are using. The \`kubernetes\` provider supports the [persistentvolumeclaim module](./persistentvolumeclaim.md), for example.
 
             When a \`module\` is specified, the referenced module/volume will be automatically configured as a runtime dependency of this service, as well as a build dependency of this module.
 
             Note: Make sure to pay attention to the supported \`accessModes\` of the referenced volume. Unless it supports the ReadWriteMany access mode, you'll need to make sure it is not configured to be mounted by multiple services at the same time. Refer to the documentation of the module type in question to learn more.
             `
-          ),
-        })
-        .oxor("hostPath", "module")
-    ),
-  })
+            ),
+          })
+          .oxor("hostPath", "module")
+      ),
+    })
+    .rename("devMode", "sync")
 
 // TODO-G2: peel out build action keys
 export const containerModuleSpecSchema = () =>

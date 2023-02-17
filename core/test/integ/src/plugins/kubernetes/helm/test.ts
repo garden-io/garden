@@ -38,7 +38,7 @@ describe("testHelmModule", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -64,7 +64,7 @@ describe("testHelmModule", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -91,7 +91,7 @@ describe("testHelmModule", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -124,7 +124,7 @@ describe("testHelmModule", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -147,7 +147,7 @@ describe("testHelmModule", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -172,7 +172,7 @@ describe("testHelmModule", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

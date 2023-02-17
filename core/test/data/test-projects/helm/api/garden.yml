@@ -4,8 +4,8 @@ description: The API backend for the voting UI
 type: helm
 spec:
   releaseName: api-release
-  devMode:
-    syncs:
+  sync:
+    paths:
       - containerPath: "/app"
   defaultTarget:
     kind: Deployment

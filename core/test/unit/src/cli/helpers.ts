@@ -133,9 +133,9 @@ describe("parseCliArgs", () => {
 
   it("sets empty string value instead of boolean for string options", () => {
     const cmd = new DeployCommand()
-    const argv = parseCliArgs({ stringArgs: ["deploy", "--dev"], command: cmd, cli: true })
+    const argv = parseCliArgs({ stringArgs: ["deploy", "--sync"], command: cmd, cli: true })
 
-    expect(argv["dev-mode"]).to.equal("")
+    expect(argv["sync"]).to.equal("")
   })
 
   it("sets default global option values", () => {
@@ -224,8 +224,8 @@ describe("processCliArgs", () => {
 
   it("correctly handles option aliases", () => {
     const cmd = new DeployCommand()
-    const { opts } = parseAndProcess(["--dev", "--force-build=false"], cmd)
-    expect(opts["dev-mode"]).to.eql([])
+    const { opts } = parseAndProcess(["--sync", "--force-build=false"], cmd)
+    expect(opts["sync"]).to.eql([])
     expect(opts["force-build"]).to.be.false
   })
 
@@ -443,9 +443,9 @@ describe("optionsWithAliasValues", () => {
   it("populates alias keys when option values are provided", async () => {
     const cmd = new DeployCommand()
 
-    const { opts } = parseAndProcess(["service-a,service-b", "--dev=service-a,service-b"], cmd)
+    const { opts } = parseAndProcess(["service-a,service-b", "--sync=service-a,service-b"], cmd)
     const withAliasValues = optionsWithAliasValues(cmd, <DeepPrimitiveMap>opts)
-    expect(withAliasValues["dev-mode"]).to.eql(["service-a", "service-b"])
+    expect(withAliasValues["sync"]).to.eql(["service-a", "service-b"])
     expect(withAliasValues["dev"]).to.eql(["service-a", "service-b"]) // We expect the alias to be populated too
   })
 })

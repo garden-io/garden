@@ -70,7 +70,7 @@ export async function processActions({
   }
 
   // Garden process is persistent but not in watch mode. E.g. used to
-  // keep port forwards alive without enabling watch or dev mode.
+  // keep port forwards alive without enabling watch or sync mode.
   await new Promise((resolve) => {
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })

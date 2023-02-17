@@ -55,8 +55,8 @@ describe("configureHelmModule", () => {
         timeout: defaultBuildTimeout,
       },
       chartPath: ".",
-      devMode: {
-        sync: [
+      sync: {
+        paths: [
           {
             mode: "two-way",
             source: ".",

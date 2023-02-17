@@ -62,7 +62,7 @@ export const kubernetesLocalModeSchema = () =>
     Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
     Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
-    Local mode always takes the precedence over dev mode if there are any conflicting service names.
+    Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
     Health checks are disabled for services running in local mode.
 

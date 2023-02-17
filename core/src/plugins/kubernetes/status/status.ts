@@ -282,7 +282,7 @@ export async function waitForResources({
 interface ComparisonResult {
   state: ServiceState
   remoteResources: KubernetesResource[]
-  deployedWithDevMode: boolean
+  deployedWithSyncMode: boolean
   deployedWithLocalMode: boolean
 }
 
@@ -308,7 +308,7 @@ export async function compareDeployedResources(
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
-    deployedWithDevMode: false,
+    deployedWithSyncMode: false,
     deployedWithLocalMode: false,
   }
 
@@ -371,7 +371,7 @@ export async function compareDeployedResources(
 
     if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
       if (isConfiguredForDevMode(<SyncableResource>manifest)) {
-        result.deployedWithDevMode = true
+        result.deployedWithSyncMode = true
       }
       if (isConfiguredForLocalMode(<SyncableResource>manifest)) {
         result.deployedWithLocalMode = true
@@ -461,7 +461,7 @@ export async function compareDeployedResources(
 }
 
 export function isConfiguredForDevMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true"
+  return resource.metadata.annotations?.[gardenAnnotationKey("sync-mode")] === "true"
 }
 
 export function isConfiguredForLocalMode(resource: SyncableResource): boolean {

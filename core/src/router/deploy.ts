@@ -93,7 +93,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         status: "active",
       })
 
-      const status = await handlers.getStatus({ ...params, devMode: false, localMode: false })
+      const status = await handlers.getStatus({ ...params, syncMode: false, localMode: false })
 
       if (status.detail?.state === "missing") {
         log.setSuccess({

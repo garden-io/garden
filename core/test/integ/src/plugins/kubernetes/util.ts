@@ -97,7 +97,7 @@ describe("util", () => {
         log,
         action,
         force: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
 
         localModeDeployNames: [],
       })
@@ -134,7 +134,7 @@ describe("util", () => {
           graph,
           log: garden.log,
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -145,7 +145,7 @@ describe("util", () => {
           ctx,
           imageId: action.getSpec().image,
           namespace: provider.config.namespace!.name!,
-          enableDevMode: false,
+          enableSyncMode: false,
 
           enableLocalMode: false,
           log: garden.log,
@@ -182,7 +182,7 @@ describe("util", () => {
           log: garden.log,
           action,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -247,7 +247,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -272,7 +272,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -294,7 +294,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as dev mode, local mode, tasks and tests.`
+          such as sync, local mode, tasks and tests.`
           )
       )
     })
@@ -305,7 +305,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -333,7 +333,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -361,7 +361,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -394,7 +394,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -425,7 +425,7 @@ describe("util", () => {
           graph: helmGraph,
           log: helmGarden.log,
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -539,7 +539,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })

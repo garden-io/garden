@@ -4,8 +4,12 @@ import Layout from '../components/layout'
 
 const IndexPage = () => (
   <Layout>
-    <h1 style={{color: '#000000'}}>Hot reload demo</h1>
-    <p>We're using <a href="https://docs.garden.io/guides/code-synchronization">Garden's dev mode</a> functionality in combination with <a href="https://github.com/gatsbyjs/gatsby">Gatsby</a> (running inside a container) to live-update this page.</p>
+    <h1 style={{ color: "#000000" }}>Hot reload demo</h1>
+    <p>
+      We're using <a href="https://docs.garden.io/guides/code-synchronization-dev-mode">Garden's sync</a> functionality
+      in combination with <a href="https://github.com/gatsbyjs/gatsby">Gatsby</a> (running inside a container) to
+      live-update this page.
+    </p>
   </Layout>
 )
 

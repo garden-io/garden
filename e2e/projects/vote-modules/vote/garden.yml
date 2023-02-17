@@ -6,8 +6,8 @@ type: container
 services:
   - name: vote
     args: [npm, run, serve]
-    devMode:
-      sync:
+    sync:
+      paths:
         - target: /app/src
           source: src
           mode: two-way

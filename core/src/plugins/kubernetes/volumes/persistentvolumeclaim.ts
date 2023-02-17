@@ -81,7 +81,7 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
       const result = await kubernetesDeploy({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        devMode: false,
+        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -91,7 +91,7 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
       const result = await getKubernetesDeployStatus({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        devMode: false,
+        syncMode: false,
       })
 
       return { ...result, outputs: {} }

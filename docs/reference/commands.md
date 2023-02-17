@@ -20,19 +20,19 @@ The following option flags can be used with any of the CLI commands:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--root` | `-r` | path | Override project root directory (defaults to working directory). Can be absolute or relative to current directory.
-  | `--silent` | `-s` | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
-  | `--env` | `-e` | string | The environment (and optionally namespace) to work against.
+  | `--root` |  | path | Override project root directory (defaults to working directory). Can be absolute or relative to current directory.
+  | `--silent` |  | boolean | Suppress log output. Same as setting --logger-type&#x3D;quiet.
+  | `--env` |  | string | The environment (and optionally namespace) to work against.
   | `--logger-type` |  | `quiet` `basic` `fancy` `json` `ink`  | Set logger type. fancy updates log lines in-place when their status changes (e.g. when tasks complete), basic appends a new log line when a log line&#x27;s status changes, json same as basic, but renders log lines as JSON, quiet suppresses all log output, same as --silent.
-  | `--log-level` | `-l` | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
-  | `--output` | `-o` | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
+  | `--log-level` |  | `error` `warn` `info` `verbose` `debug` `silly` `0` `1` `2` `3` `4` `5`  | Set logger level. Values can be either string or numeric and are prioritized from 0 to 5 (highest to lowest) as follows: error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5.
+  | `--output` |  | `json` `yaml`  | Output command result in specified format (note: disables progress logging and interactive functionality).
   | `--emoji` |  | boolean | Enable emoji in output (defaults to true if the environment supports it).
   | `--show-timestamps` |  | boolean | Show timestamps with log output. When enabled, Garden will use the basic logger. I.e., log status changes are rendered as new lines instead of being updated in-place.
-  | `--yes` | `-y` | boolean | Automatically approve any yes/no prompts during execution.
+  | `--yes` |  | boolean | Automatically approve any yes/no prompts during execution.
   | `--force-refresh` |  | boolean | Force refresh of any caches, e.g. cached provider statuses.
   | `--var` |  | array:string | Set a specific variable value, using the format &lt;key&gt;&#x3D;&lt;value&gt;, e.g. &#x60;--var some-key&#x3D;custom-value&#x60;. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. &#x60;--var key-a&#x3D;foo,key-b&#x3D;&quot;value with quotes&quot;&#x60;.
-  | `--version` | `-V` | boolean | Show the current CLI version.
-  | `--help` | `-h` | boolean | Show help
+  | `--version` |  | boolean | Show the current CLI version.
+  | `--help` |  | boolean | Show help
   | `--disable-port-forwards` |  | boolean | Disable automatic port forwarding when in watch mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS&#x3D;true in your environment.
 
 ### garden build
@@ -62,7 +62,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--force` | `-f` | boolean | Force re-build.
+  | `--force` |  | boolean | Force re-build.
   | `--with-dependants` |  | boolean | Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every build in the project will be performed anyway).
 
 #### Outputs
@@ -133,7 +133,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--dir` |  | path | Directory to place the project in (defaults to current directory).
   | `--filename` |  | string | Filename to place the project config in (defaults to project.garden.yml).
-  | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
+  | `--interactive` |  | boolean | Set to false to disable interactive prompts.
   | `--name` |  | string | Name of the project (defaults to current directory name).
 
 
@@ -161,7 +161,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--dir` |  | path | Directory to place the module in (defaults to current directory).
   | `--filename` |  | string | Filename to place the module config in (defaults to garden.yml).
-  | `--interactive` | `-i` | boolean | Set to false to disable interactive prompts.
+  | `--interactive` |  | boolean | Set to false to disable interactive prompts.
   | `--name` |  | string | Name of the module (defaults to current directory name).
   | `--type` |  | string | The module type to create. Required if --interactive&#x3D;false.
 
@@ -234,8 +234,8 @@ deployStatuses:
       # Additional detail, specific to the provider.
       detail:
 
-      # Whether the service was deployed with dev mode enabled.
-      devMode:
+      # Whether the service was deployed with sync enabled.
+      syncMode:
 
       # Whether the service was deployed with local mode enabled.
       localMode:
@@ -364,8 +364,8 @@ When this flag is not used, all services in the project are cleaned up simultane
     # Additional detail, specific to the provider.
     detail:
 
-    # Whether the service was deployed with dev mode enabled.
-    devMode:
+    # Whether the service was deployed with sync enabled.
+    syncMode:
 
     # Whether the service was deployed with local mode enabled.
     localMode:
@@ -461,8 +461,8 @@ Examples:
     garden deploy my-deploy            # only deploy my-deploy
     garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
     garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-    garden deploy --dev=my-deploy      # deploys all deploys, with dev mode enabled for my-deploy
-    garden deploy --dev                # deploys all compatible deploys with dev mode enabled
+    garden deploy --sync=my-deploy     # deploys all deploys, with sync enabled for my-deploy
+    garden deploy --sync               # deploys all compatible deploys with sync enabled
     garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
     garden deploy --local              # deploys all compatible deploys with local mode enabled
     garden deploy --env stage          # deploy your deploys to an environment called stage
@@ -485,12 +485,12 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
-  | `--dev-mode` | `--dev` | array:string | The name(s) of the deploys to deploy with dev mode enabled. Use comma as a separator to specify multiple names. Use * to deploy all with dev mode enabled.
-  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple deploys. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
-This always takes the precedence over dev mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
+  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled. Use comma as a separator to specify multiple names. Use * to deploy all supported deployments with sync enabled.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple deploys. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
+This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
-  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
-  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --dev/--dev-mode or --local/--local-mode are set.
+  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --sync or --local/--local-mode are set.
 
 #### Outputs
 
@@ -2572,8 +2572,8 @@ actions:
         # Additional detail, specific to the provider.
         detail:
 
-        # Whether the service was deployed with dev mode enabled.
-        devMode:
+        # Whether the service was deployed with sync enabled.
+        syncMode:
 
         # Whether the service was deployed with local mode enabled.
         localMode:
@@ -3013,12 +3013,12 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
-  | `--follow` | `-f` | boolean | Continuously stream new logs.
-  | `--tail` | `-t` | number | Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
+  | `--follow` |  | boolean | Continuously stream new logs.
+  | `--tail` |  | number | Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.
   | `--since` |  | moment | Only show logs newer than a relative duration like 5s, 2m, or 3h. Defaults to &#x60;&quot;1m&quot;&#x60; when &#x60;--follow&#x60; is true unless &#x60;--tail&#x60; is set. Note that we don&#x27;t recommend using a large value here when in follow mode.
-  | `--hide-name` | `--hide-service` | boolean | Hide the action name and render the logs directly.
+  | `--hide-name` |  | boolean | Hide the action name and render the logs directly.
 
 
 ### garden migrate
@@ -3212,7 +3212,7 @@ Examples:
   | `--force-build` |  | boolean | Force re-build of Build dependencies before running.
   | `--module` |  | array:string | The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
   | `--skip` |  | array:string | The name(s) of Runs you&#x27;d like to skip. Accepts glob patterns (e.g. init* would skip both &#x27;init&#x27; and &#x27;initialize&#x27;).
-  | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
+  | `--skip-dependencies` |  | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
 This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
 dependencies without redeploying any service dependencies that may have changed since you last deployed.
 
@@ -3319,14 +3319,14 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--name` | `-n` | array:string | DEPRECATED: This now does the exact same as the positional arguments.
+  | `--name` |  | array:string | DEPRECATED: This now does the exact same as the positional arguments.
 Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
-  | `--force` | `-f` | boolean | Force re-run of Test, even if a successful result is found in cache.
+  | `--force` |  | boolean | Force re-run of Test, even if a successful result is found in cache.
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
-  | `--interactive` | `-i` | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
+  | `--interactive` |  | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
   | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-  | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
+  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
 
 #### Outputs
 
@@ -3410,7 +3410,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--all` | `-a` | boolean | Unlink all sources.
+  | `--all` |  | boolean | Unlink all sources.
 
 
 ### garden unlink module
@@ -3439,7 +3439,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--all` | `-a` | boolean | Unlink all modules.
+  | `--all` |  | boolean | Unlink all modules.
 
 
 ### garden update-remote sources

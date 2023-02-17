@@ -24,7 +24,7 @@ import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
 import { cacheResultSchema } from "../../config/task"
 import { dedent, deline } from "../../util/string"
-import { devModeGuideLink } from "../kubernetes/dev-mode"
+import { syncGuideLink } from "../kubernetes/sync"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
 import { localModeGuideLink } from "../kubernetes/local-mode"
 import { BuildAction, BuildActionConfig } from "../../actions/build"
@@ -229,7 +229,7 @@ export const syncTargetPathSchema = () =>
     )
     .example("/app/src")
 
-const devModeSyncSchema = () =>
+const containerSyncSchema = () =>
   joi.object().keys({
     source: joi
       .posixPath()
@@ -252,33 +252,38 @@ const devModeSyncSchema = () =>
     defaultGroup: syncDefaultGroupSchema(),
   })
 
-export interface ContainerDevModeSpec {
+export interface ContainerSyncSpec {
   args?: string[]
   command?: string[]
-  sync: DevModeSyncSpec[]
+  paths: DevModeSyncSpec[]
 }
 
-export const containerDevModeSchema = () =>
-  joi.object().keys({
-    args: joi
-      .sparseArray()
-      .items(joi.string())
-      .description("Override the default container arguments when in dev mode."),
-    command: joi
-      .sparseArray()
-      .items(joi.string())
-      .description("Override the default container command (i.e. entrypoint) when in dev mode."),
-    sync: joi
-      .array()
-      .items(devModeSyncSchema())
-      .description("Specify one or more source files or directories to automatically sync with the running container."),
-  }).description(dedent`
-    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+export const containerSyncPathSchema = () =>
+  joi
+    .object()
+    .keys({
+      args: joi
+        .sparseArray()
+        .items(joi.string())
+        .description("Override the default container arguments when in sync mode."),
+      command: joi
+        .sparseArray()
+        .items(joi.string())
+        .description("Override the default container command (i.e. entrypoint) when in sync mode."),
+      paths: joi
+        .array()
+        .items(containerSyncSchema())
+        .description(
+          "Specify one or more source files or directories to automatically sync with the running container."
+        ),
+    })
+    .rename("sync", "paths").description(dedent`
+      Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
 
-    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+      Sync is enabled e.g. by setting the \`--sync\` flag on the \`garden deploy\` command.
 
-    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
-  `)
+      See the [Code Synchronization guide](${syncGuideLink}) for more information.
+    `)
 
 const defaultLocalModeRestartDelayMsec = 1000
 const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
@@ -367,7 +372,7 @@ export const containerLocalModeSchema = () =>
     Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
 
     Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
-    Local mode always takes the precedence over dev mode if there are any conflicting service names.
+    Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
     Health checks are disabled for services running in local mode.
 
@@ -652,7 +657,7 @@ interface ContainerCommonRuntimeSpec {
 export interface ContainerCommonDeploySpec extends ContainerCommonRuntimeSpec {
   annotations: Annotations
   daemon: boolean
-  devMode?: ContainerDevModeSpec
+  sync?: ContainerSyncSpec
   localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   healthCheck?: ServiceHealthCheckSpec
@@ -729,7 +734,7 @@ export const containerDeploySchemaKeys = () => ({
       Whether to run the service as a daemon (to ensure exactly one instance runs per node).
       May not be supported by all providers.
     `),
-  devMode: containerDevModeSchema(),
+  sync: containerSyncPathSchema(),
   localMode: containerLocalModeSchema(),
   image: containerImageSchema(),
   ingresses: joiSparseArray(ingressSchema())
@@ -757,6 +762,7 @@ export const containerDeploySchema = () =>
     .keys({
       ...containerDeploySchemaKeys(),
     })
+    .rename("devMode", "sync")
     .meta({ name: "container-deploy" })
 
 export interface ContainerRegistryConfig {

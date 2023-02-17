@@ -1,7 +1,7 @@
 # Voting example project
 
 An example application, that showcases a variety of Garden features, such as service dependencies, tasks, running
-databases, dev mode, and ingress configuration.
+databases, sync, and ingress configuration.
 
 The app is a simple voting application, where you can vote for either cats or dogs.
 You can vote as many times as you would like, and observe the results live in the `result` service.
@@ -32,7 +32,7 @@ In a separate tab, open http://result.vote.local.app.garden. The results there w
 To start up the synchronization:
 
 ```sh
-garden deploy --dev=vote
+garden deploy --sync=vote
 ```
 
 Then try making a change to one of the source files in the `vote` service, to see it synchronize into the

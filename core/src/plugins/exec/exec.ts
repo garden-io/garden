@@ -367,12 +367,12 @@ const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (param
   const { action, log, ctx } = params
   const spec = action.getSpec()
 
-  const devMode = params.devMode
+  const syncMode = params.syncMode
   const env = spec.env
-  const devModeSpec = spec.devMode
+  const syncModeSpec = spec.syncMode
 
-  if (devMode && devModeSpec && devModeSpec.command.length > 0) {
-    return deployPersistentExecService({ action, log, ctx, env, devModeSpec, serviceName: action.name })
+  if (syncMode && syncModeSpec && syncModeSpec.command.length > 0) {
+    return deployPersistentExecService({ action, log, ctx, env, syncModeSpec, serviceName: action.name })
   } else if (spec.deployCommand.length === 0) {
     log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
     return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
@@ -404,14 +404,14 @@ async function deployPersistentExecService({
   ctx,
   serviceName,
   log,
-  devModeSpec,
+  syncModeSpec,
   action,
   env,
 }: {
   ctx: PluginContext
   serviceName: string
   log: LogEntry
-  devModeSpec: ExecDevModeSpec
+  syncModeSpec: ExecDevModeSpec
   action: Resolved<ExecDeploy>
   env: { [key: string]: string }
 }): Promise<DeployStatus> {
@@ -431,7 +431,7 @@ async function deployPersistentExecService({
 
   const key = serviceName
   const proc = runPersistent({
-    command: devModeSpec.command,
+    command: syncModeSpec.command,
     action,
     log,
     serviceName,
@@ -446,7 +446,7 @@ async function deployPersistentExecService({
 
   const startedAt = new Date()
 
-  if (devModeSpec.statusCommand) {
+  if (syncModeSpec.statusCommand) {
     let ready = false
     let lastStatusResult: execa.ExecaReturnBase<string> | undefined
 
@@ -456,7 +456,7 @@ async function deployPersistentExecService({
       const now = new Date()
       const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
 
-      if (timeElapsedSec > devModeSpec.timeout) {
+      if (timeElapsedSec > syncModeSpec.timeout) {
         let lastResultDescription = ""
         if (lastStatusResult) {
           lastResultDescription = dedent`\n\nThe last exit code was ${lastStatusResult.exitCode}.\n\n`
@@ -471,8 +471,8 @@ async function deployPersistentExecService({
         throw new TimeoutError(
           dedent`Timed out waiting for local service ${serviceName} to be ready.
 
-          Garden timed out waiting for the command ${chalk.gray(devModeSpec.statusCommand)}
-          to return status code 0 (success) after waiting for ${devModeSpec.timeout} seconds.
+          Garden timed out waiting for the command ${chalk.gray(syncModeSpec.statusCommand)}
+          to return status code 0 (success) after waiting for ${syncModeSpec.timeout} seconds.
           ${lastResultDescription}
           Possible next steps:
 
@@ -483,15 +483,15 @@ async function deployPersistentExecService({
           `,
           {
             serviceName,
-            statusCommand: devModeSpec.statusCommand,
+            statusCommand: syncModeSpec.statusCommand,
             pid: proc.pid,
-            timeout: devModeSpec.timeout,
+            timeout: syncModeSpec.timeout,
           }
         )
       }
 
       const result = await run({
-        command: devModeSpec.statusCommand,
+        command: syncModeSpec.statusCommand,
         action,
         ctx,
         log,
@@ -612,7 +612,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
         cleanupCommand: service.spec.cleanupCommand,
         deployCommand: service.spec.deployCommand,
         statusCommand: service.spec.statusCommand,
-        devMode: service.spec.devMode,
+        syncMode: service.spec.syncMode,
         timeout: service.spec.timeout,
         env: prepareEnv(service.spec.env),
       },

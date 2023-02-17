@@ -237,22 +237,21 @@ spec:
   daemon: false
 
   # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
-  # in dev mode, and overrides for the container command and/or arguments.
+  # in sync mode, and overrides for the container command and/or arguments.
   #
-  # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
-  # command.
+  # Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
   #
   # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
   # information.
-  devMode:
-    # Override the default container arguments when in dev mode.
+  sync:
+    # Override the default container arguments when in sync mode.
     args:
 
-    # Override the default container command (i.e. entrypoint) when in dev mode.
+    # Override the default container command (i.e. entrypoint) when in sync mode.
     command:
 
     # Specify one or more source files or directories to automatically sync with the running container.
-    sync:
+    paths:
       - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
         # relative path. Defaults to the config's directory if no value is provided.
         source: .
@@ -296,7 +295,7 @@ spec:
   # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
   #
   # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
-  # Local mode always takes the precedence over dev mode if there are any conflicting service names.
+  # Local mode always takes the precedence over sync mode if there are any conflicting service names.
   #
   # Health checks are disabled for services running in local mode.
   #
@@ -918,13 +917,13 @@ Whether to run the service as a daemon (to ensure exactly one instance runs per 
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-### `spec.devMode`
+### `spec.sync`
 
-[spec](#spec) > devMode
+[spec](#spec) > sync
 
-Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
 
-Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+Sync is enabled e.g. by setting the `--sync` flag on the `garden deploy` command.
 
 See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
 
@@ -932,29 +931,29 @@ See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchron
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.devMode.args[]`
+### `spec.sync.args[]`
 
-[spec](#spec) > [devMode](#specdevmode) > args
+[spec](#spec) > [sync](#specsync) > args
 
-Override the default container arguments when in dev mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.devMode.command[]`
-
-[spec](#spec) > [devMode](#specdevmode) > command
-
-Override the default container command (i.e. entrypoint) when in dev mode.
+Override the default container arguments when in sync mode.
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `spec.devMode.sync[]`
+### `spec.sync.command[]`
 
-[spec](#spec) > [devMode](#specdevmode) > sync
+[spec](#spec) > [sync](#specsync) > command
+
+Override the default container command (i.e. entrypoint) when in sync mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `spec.sync.paths[]`
+
+[spec](#spec) > [sync](#specsync) > paths
 
 Specify one or more source files or directories to automatically sync with the running container.
 
@@ -962,9 +961,9 @@ Specify one or more source files or directories to automatically sync with the r
 | --------------- | -------- |
 | `array[object]` | No       |
 
-### `spec.devMode.sync[].source`
+### `spec.sync.paths[].source`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > source
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > source
 
 POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
 
@@ -977,15 +976,15 @@ Example:
 ```yaml
 spec:
   ...
-  devMode:
+  sync:
     ...
-    sync:
+    paths:
       - source: "src"
 ```
 
-### `spec.devMode.sync[].target`
+### `spec.sync.paths[].target`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > target
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > target
 
 POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
 
@@ -998,15 +997,15 @@ Example:
 ```yaml
 spec:
   ...
-  devMode:
+  sync:
     ...
-    sync:
+    paths:
       - target: "/app/src"
 ```
 
-### `spec.devMode.sync[].exclude[]`
+### `spec.sync.paths[].exclude[]`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > exclude
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
 
@@ -1021,17 +1020,17 @@ Example:
 ```yaml
 spec:
   ...
-  devMode:
+  sync:
     ...
-    sync:
+    paths:
       - exclude:
           - dist/**/*
           - '*.log'
 ```
 
-### `spec.devMode.sync[].mode`
+### `spec.sync.paths[].mode`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > mode
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > mode
 
 The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
 
@@ -1039,9 +1038,9 @@ The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
 | `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
 
-### `spec.devMode.sync[].defaultFileMode`
+### `spec.sync.paths[].defaultFileMode`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultFileMode
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > defaultFileMode
 
 The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1049,9 +1048,9 @@ The default permission bits, specified as an octal, to set on files at the sync 
 | -------- | -------- |
 | `number` | No       |
 
-### `spec.devMode.sync[].defaultDirectoryMode`
+### `spec.sync.paths[].defaultDirectoryMode`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultDirectoryMode
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > defaultDirectoryMode
 
 The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1059,9 +1058,9 @@ The default permission bits, specified as an octal, to set on directories at the
 | -------- | -------- |
 | `number` | No       |
 
-### `spec.devMode.sync[].defaultOwner`
+### `spec.sync.paths[].defaultOwner`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultOwner
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > defaultOwner
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
@@ -1069,9 +1068,9 @@ Set the default owner of files and directories at the target. Specify either an 
 | ------------------ | -------- |
 | `number \| string` | No       |
 
-### `spec.devMode.sync[].defaultGroup`
+### `spec.sync.paths[].defaultGroup`
 
-[spec](#spec) > [devMode](#specdevmode) > [sync](#specdevmodesync) > defaultGroup
+[spec](#spec) > [sync](#specsync) > [paths](#specsyncpaths) > defaultGroup
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
@@ -1089,7 +1088,7 @@ The target service will be replaced by a proxy container which runs an SSH serve
 Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
 
 Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
-Local mode always takes the precedence over dev mode if there are any conflicting service names.
+Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
 

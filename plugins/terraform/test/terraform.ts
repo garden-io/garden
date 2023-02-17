@@ -328,7 +328,7 @@ describe("Terraform module type", () => {
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -356,7 +356,7 @@ describe("Terraform module type", () => {
       log: garden.log,
       force: false,
       forceBuild: false,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -547,8 +547,7 @@ describe("Terraform module type", () => {
       const actions = await garden.getActionRouter()
       const status = await actions.deploy.getStatus({
         action: resolvedAction,
-        devMode: false,
-
+        syncMode: false,
         localMode: false,
         log: garden.log,
         graph,
@@ -592,7 +591,7 @@ describe("Terraform module type", () => {
       const actions = await _garden.getActionRouter()
       const status = await actions.deploy.getStatus({
         action: resolvedAction,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log: _garden.log,
         graph,
@@ -643,7 +642,7 @@ describe("Terraform module type", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

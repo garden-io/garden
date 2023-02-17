@@ -39,7 +39,7 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -82,7 +82,7 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -115,7 +115,7 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -142,7 +142,7 @@ describe("runHelmTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -175,7 +175,7 @@ describe("runHelmTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -198,7 +198,7 @@ describe("runHelmTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
       await emptyDir(garden.artifactsPath)
@@ -222,7 +222,7 @@ describe("runHelmTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

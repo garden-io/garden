@@ -67,7 +67,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       forceBuild: false,
       skipRuntimeDependencies: true,
       localModeDeployNames: [action.name],
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
     })
     const results = await garden.processTask(task, log, {})
 
@@ -78,7 +78,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
           ctx,
           action: resolvedAction,
           log,
-          devMode: false,
+          syncMode: false,
           localMode: true,
         })
         if (_status.state === "not-ready") {

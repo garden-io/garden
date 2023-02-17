@@ -75,11 +75,11 @@ export class ClientRouter {
       emoji = "fire"
       prefix = `Hot reload-enabled deployment`
     } else {
-      // local mode always takes precedence over dev mode
+      // local mode always takes precedence over sync mode
       if (req.localMode) {
         emoji = "left_right_arrow"
         prefix = `Local-mode deployment`
-      } else if (req.devMode) {
+      } else if (req.syncMode) {
         emoji = "zap"
         prefix = `Dev-mode deployment`
       } else {
@@ -147,7 +147,7 @@ export interface ClientRequests {
   }
   deploy: {
     serviceName: string
-    devMode: boolean
+    syncMode: boolean
     hotReload: boolean
     localMode: boolean
     force: boolean
@@ -190,10 +190,6 @@ export interface ClientRequestHandlerCommonParams {
   log: LogEntry
 }
 
-/*
- * TODO: initialize devModeServiceNames/hotReloadServiceNames/localModeServiceNames
- *       depending on the corresponding deployment flags. See class DeployCommand for details.
- */
 export const clientRequestHandlers = {
   build: async (params: ClientRequestHandlerCommonParams & { request: ClientRequests["build"] }) => {
     const { garden, graph, log } = params
@@ -204,7 +200,7 @@ export const clientRequestHandlers = {
       graph,
       action: graph.getBuild(moduleName),
       force,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
     return tasks
@@ -221,7 +217,7 @@ export const clientRequestHandlers = {
       forceBuild,
 
       skipRuntimeDependencies: params.request.skipDependencies,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
   },
@@ -239,7 +235,7 @@ export const clientRequestHandlers = {
         forceBuild,
         action: graph.getTest(testName),
         skipRuntimeDependencies: params.request.skipDependencies,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
 
         localModeDeployNames: [],
       })
@@ -255,7 +251,7 @@ export const clientRequestHandlers = {
       action: graph.getRun(taskName),
       force,
       forceBuild,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
 
       localModeDeployNames: [],
     })

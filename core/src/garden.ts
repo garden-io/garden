@@ -470,7 +470,7 @@ export class Garden {
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
 
-    // For skipped modules/actions (e.g. those with services in dev mode), we skip watching all files and folders in the
+    // For skipped modules/actions (e.g. those with services in sync mode), we skip watching all files and folders in the
     // module/action root except for the config path. This way, we can still react to changes in config files.
     const skipDirectories = uniq([...skipModules.map((m) => m.path), ...skipActions.map((a) => a.basePath())])
     const configPaths = new Set(

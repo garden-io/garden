@@ -45,14 +45,14 @@ const logsOpts = {
   }),
   "follow": new BooleanParameter({
     help: "Continuously stream new logs.",
-    alias: "f",
+    aliases: ["f"],
   }),
   "tail": new IntegerParameter({
     help: deline`
       Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over
       the \`--since\` flag if both are set. Note that we don't recommend using a large value here when in follow mode.
     `,
-    alias: "t",
+    aliases: ["t"],
   }),
   "show-tags": new BooleanParameter({
     help: "Show any tags attached to each log line. May not apply to all providers",
@@ -69,7 +69,7 @@ const logsOpts = {
   }),
   "hide-name": new BooleanParameter({
     help: "Hide the action name and render the logs directly.",
-    alias: "hide-service",
+    aliases: ["hide-service"],
     defaultValue: false,
   }),
 }

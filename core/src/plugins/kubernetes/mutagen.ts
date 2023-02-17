@@ -20,7 +20,7 @@ import { GardenBaseError } from "../../exceptions"
 import { prepareConnectionOpts } from "./kubectl"
 import { KubernetesPluginContext } from "./config"
 import pRetry from "p-retry"
-import { devModeGuideLink } from "./dev-mode"
+import { syncGuideLink } from "./sync"
 import dedent from "dedent"
 import { PluginContext } from "../../plugin-context"
 import Bluebird from "bluebird"
@@ -706,7 +706,7 @@ function formatSyncConflict(sourceDescription: string, targetDescription: string
       "one-way-replica"
     )} or ${chalk.white("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${chalk.white(devModeGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${chalk.white(syncGuideLink + "#sync-modes")}`
 }
 
 /**

@@ -74,7 +74,7 @@ Or say a developer wants to run an end-to-end test from their laptop as they cod
 garden test --name e2e
 ```
 
-Garden also has a special mode called “dev mode” which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
+Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
 
 ```yaml
 garden dev

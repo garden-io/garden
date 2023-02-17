@@ -31,7 +31,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const log = this.log.placeholder()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const devMode = includes(this.devModeDeployNames, action.name)
+    const syncMode = includes(this.syncModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
 
     const router = await this.garden.getActionRouter()
@@ -40,7 +40,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       graph: this.graph,
       action,
       log,
-      devMode,
+      syncMode,
       localMode,
     })
 
@@ -51,13 +51,13 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()
 
-    const devMode = includes(this.devModeDeployNames, action.name)
+    const syncMode = includes(this.syncModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
 
     const router = await this.garden.getActionRouter()
 
     // TODO-G2: move status check entirely to getStatus()
-    const devModeSkipRedeploy = status.detail?.devMode && devMode
+    const syncModeSkipRedeploy = status.detail?.syncMode && syncMode
     const localModeSkipRedeploy = status.detail?.localMode && localMode
 
     const log = this.log.info({
@@ -69,7 +69,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     if (
       !this.force &&
       status.state === "ready" &&
-      (version === status.detail?.version || devModeSkipRedeploy || localModeSkipRedeploy)
+      (version === status.detail?.version || syncModeSkipRedeploy || localModeSkipRedeploy)
     ) {
       // already deployed and ready
       log.setSuccess({
@@ -83,7 +83,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
           action,
           log,
           force: this.force,
-          devMode,
+          syncMode,
           localMode,
         })
       } catch (err) {

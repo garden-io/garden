@@ -165,10 +165,10 @@ export function prepareMinimistOpts({
       defaultValues[name] = spec.getDefaultValue(cli)
     }
 
-    if (spec.alias) {
-      aliases[name] = spec.alias
+    for (const alias of spec.aliases || []) {
+      aliases[name] = alias
       if (!_skipDefault) {
-        defaultValues[spec.alias] = defaultValues[name]
+        defaultValues[alias] = defaultValues[name]
       }
     }
   }
@@ -299,8 +299,8 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
 
   for (const [name, spec] of Object.entries(optSpec)) {
     optsWithAliases[name] = spec
-    if (spec.alias) {
-      optsWithAliases[spec.alias] = spec
+    for (const alias of spec.aliases || []) {
+      optsWithAliases[alias] = spec
     }
   }
 
@@ -353,8 +353,8 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
   // To ensure that `command.params` behaves intuitively in template strings, we don't want to add option keys with
   // null/undefined values.
   //
-  // For example, we don't want `${command.params contains 'dev-mode'}` to be `true` when running `garden deploy`
-  // unless the `--dev` flag was actually passed (since the user would expect the option value to be an array if
+  // For example, we don't want `${command.params contains 'sync'}` to be `true` when running `garden deploy`
+  // unless the `--sync` flag was actually passed (since the user would expect the option value to be an array if
   // present).
   let opts = <ParameterValues<GlobalOptions> & ParameterValues<O>>(
     pickBy(processedOpts, (value) => !(value === undefined || value === null))
@@ -391,8 +391,10 @@ export function optionsWithAliasValues<A extends Parameters, O extends Parameter
 ): DeepPrimitiveMap {
   const withAliases = { ...parsedOpts } // Create a new object instead of mutating.
   for (const [name, spec] of Object.entries(command.options || {})) {
-    if (spec.alias && parsedOpts[name]) {
-      withAliases[spec.alias] = parsedOpts[name]
+    if (parsedOpts[name]) {
+      for (const alias of spec.aliases || []) {
+        withAliases[alias] = parsedOpts[name]
+      }
     }
   }
   return withAliases
@@ -431,9 +433,11 @@ export function renderOptions(params: Parameters) {
         return ""
       }
       const prefix = alias.length === 1 ? "-" : "--"
-      return `${prefix}${alias}, `
+      return `${prefix}${alias}`
     }
-    const renderedAlias = renderAlias(param.alias)
+    // Note: If there is more than one alias we don't actually want to print them all in help texts,
+    // since generally they're there for backwards compatibility more than normal usage.
+    const renderedAlias = renderAlias(param.aliases?.[0])
     return chalk.green(` ${renderedAlias}--${name} `)
   })
 }

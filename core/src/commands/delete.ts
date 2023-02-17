@@ -196,7 +196,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
         dependantsFirst,
         force: false,
         forceActions: [],
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
     })

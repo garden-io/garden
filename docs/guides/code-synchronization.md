@@ -1,30 +1,24 @@
 ---
-title: Code Synchronization (Dev Mode)
+title: Code Synchronization
 order: 3
 ---
-# Code Synchronization (Dev Mode)
+# Code Synchronization
 
-You can synchronize your code (and other files) to and from running containers using _dev mode_.
+Garden allows you to rapidly synchronize your code (and other files) to and from running containers.
 
-Dev mode works similarly to the older hot reloading functionality, but is much faster and more reliable. It also supports bidirectional syncing, which enables you to sync new/changed files from your containers to your local machine.
+{% hint style="info" %}
+This feature used to be called _dev mode_ but as of version 0.13 we've opted for more straightforward terminology. The functionality is exactly the same as before.
+{% endhint %}
 
-This new sync mode uses [Mutagen](https://mutagen.io/) under the hood. Garden automatically takes care of fetching Mutagen, so you don't need to install any dependencies yourself to make use of dev mode.
-
-Dev mode sync is not affected by the usual includes/excludes (e.g. rules defined in `.gardenignore` files), which makes it more flexible than hot reloading.
-
-Instead, exclusion rules for dev mode are configured explicitly on the provider level and for each individual sync you configure—more on that below.
-
-For example, you can use it to sync your `build`/`dist` directory into your container while running local, incremental builds (without having to remove those directories from your ignorefiles).
+## Configuration
 
 {% hint style="warning" %}
 Please make sure to specify any paths that should not be synced by setting the provider-level default excludes and/or the `exclude` field on each configured sync! Otherwise you may end up syncing large directories and even run into application errors.
 {% endhint %}
 
-## Configuration
+To configure a service for sync, add `sync` to your module/service configuration to specify your sync targets:
 
-To configure a service for dev mode, add `devMode` to your module/service configuration to specify your sync targets:
-
-### Configuring dev mode for `container` modules
+### Configuring sync for `container` modules
 
 ```yaml
 kind: Module
@@ -33,10 +27,9 @@ type: container
 services:
   - name: node-service
     args: [npm, start]
-    devMode:
-      command: [npm, run, dev] # Overrides the container's default when the service is deployed in dev mode
-      sync:
-        # Source/target configuration for dev mode is the same as for hot reloading.
+    sync:
+      command: [npm, run, dev] # Overrides the container's default when the service is deployed in sync mode
+      paths:
         - source: src
           target: /app/src
           # Make sure to specify any paths that should not be synced!
@@ -45,16 +38,16 @@ services:
   ...
 ```
 
-### Configuring dev mode for `kubernetes` and `helm` modules
+### Configuring sync for `kubernetes` and `helm` modules
 
 ```yaml
 kind: Module
 type: kubernetes # this example looks the same for helm modules (i.e. with `type: helm`)
 name: node-service
-# For `kubernetes` and `helm` modules, the `devMode` field is located at the top level.
-devMode:
+# For `kubernetes` and `helm` modules, the `sync` field is located at the top level.
+sync:
   command: [npm, run, dev]
-  sync:
+  paths:
     - target: /app
     - source: /tmp/somedir
       target: /somedir
@@ -66,28 +59,26 @@ serviceResource:
 ...
 ```
 
-## Deploying with dev mode
+## Deploying with sync enabled
 
-To deploy your services with dev mode enabled, you can use the `deploy` or `dev` commands:
+To deploy your services with sync enabled, you can use the `deploy` command:
 
 ```sh
-# Deploy specific services in dev mode:
-garden deploy --dev myservice
-garden deploy --dev myservice,my-other-service
+# Deploy specific services in sync mode:
+garden deploy --sync myservice
+garden deploy --sync myservice,my-other-service
 
-# Deploy all applicable services in dev mode:
-garden deploy --dev=*
-
-# The dev command deploys services in dev mode by default:
-garden dev myservice
+# Deploy all applicable services with sync enabled:
+garden deploy --sync=*
 ```
+
 Once your services have been deployed, any changes you make that fall under one of the sync specs you've defined will be automatically synced between your local machine and the running service.
 
 Once you quit/terminate the Garden command, all syncs established by the command will be stopped (but the services will still be left running).
 
 ## Sync modes
 
-Garden's dev mode supports several sync modes, each of which maps onto a Mutagen sync mode.
+Garden supports several sync modes, each of which maps onto a Mutagen sync mode.
 
 In brief: It's generally easiest to get started with the `one-way` or `two-way` sync modes, and then graduate to a more fine-grained setup based on `one-way-replica` and/or `one-way-replica-reverse` once you're ready to specify exactly which paths to sync and which files/directories to ignore from the sync.
 
@@ -98,36 +89,39 @@ In brief: It's generally easiest to get started with the `one-way` or `two-way` 
 * Simple to use, especially when there are files/directories inside the remote `target` that you don't want to override with the contents of the local `source`.
 * On the other hand, if your setup / usage pattern is such that conflicts do sometimes arise for the `source`/`target` pair in question, you may want to use `one-way-replica` instead.
 
-
 ### `one-way-replica`
-  * Syncs a local `source` path to a remote `target` path, such that `target` is always an exact mirror of `source` (with the exception of excluded paths).
-  * When using this mode, there can be no conflicts—the contents of `source` always override the contents of `target`.
-  * Since conflicts are impossible here, this mode tends to be a better / more reliable choice long-term than `one-way`/`one-way-safe`. However, you may need to configure more fine-grained/specific `source`/`target` pairs and their excludes such that you don't have problems with paths in the remote `target` being overwritten/deleted when they change in the local `source`.
+
+* Syncs a local `source` path to a remote `target` path, such that `target` is always an exact mirror of `source` (with the exception of excluded paths).
+* When using this mode, there can be no conflicts—the contents of `source` always override the contents of `target`.
+* Since conflicts are impossible here, this mode tends to be a better / more reliable choice long-term than `one-way`/`one-way-safe`. However, you may need to configure more fine-grained/specific `source`/`target` pairs and their excludes such that you don't have problems with paths in the remote `target` being overwritten/deleted when they change in the local `source`.
 
 ### `one-way-reverse`
-  * Same as `one-way`, except the direction of the sync is reversed.
-  * Syncs a remote `target` path to a local `source` path.
-  * Has the same benefits and drawbacks as `one-way`: Simple to configure, but conflicts are possible.
+
+* Same as `one-way`, except the direction of the sync is reversed.
+* Syncs a remote `target` path to a local `source` path.
+* Has the same benefits and drawbacks as `one-way`: Simple to configure, but conflicts are possible.
 
 ### `one-way-replica-reverse`
-  * Same as `one-way-replica`, except the direction of the sync is reversed.
-  * Syncs a remote `target` path to a local `source` path, such that `source` is always an exact mirror of `target` (with the exception of excluded paths).
-  * When using this mode, there can be no conflicts—the contents of `target` always override the contents of `source`.
+
+* Same as `one-way-replica`, except the direction of the sync is reversed.
+* Syncs a remote `target` path to a local `source` path, such that `source` is always an exact mirror of `target` (with the exception of excluded paths).
+* When using this mode, there can be no conflicts—the contents of `target` always override the contents of `source`.
 
 ### `two-way-safe` (or alias `two-way`)
-  * Bidirectionally syncs a local `source` to a remote `target` path.
-  * Changes made in the local `source` will be synced to the remote `target`.
-  * Changes made in the remote `target` will be synced to the local `source`.
-  * When there are conflicts on either side, does not replace/delete the corresponding conflicting paths on the other side.
-  * Similarly to `one-way`, this mode is simple to configure when there are files in either `source` or `target` that you don't want overridden on the other side when files change or are added/deleted.
-  * Setting up several `one-way-replica` and `one-way-replica-reverse` syncs instead of `one-way` and `two-way` is generally the best approach long-term, but may require more fine-grained configuration (more sync specs for specific subpaths and more specific exclusion rules, to make sure things don't get overwritten/deleted in unwanted ways).
+
+* Bidirectionally syncs a local `source` to a remote `target` path.
+* Changes made in the local `source` will be synced to the remote `target`.
+* Changes made in the remote `target` will be synced to the local `source`.
+* When there are conflicts on either side, does not replace/delete the corresponding conflicting paths on the other side.
+* Similarly to `one-way`, this mode is simple to configure when there are files in either `source` or `target` that you don't want overridden on the other side when files change or are added/deleted.
+* Setting up several `one-way-replica` and `one-way-replica-reverse` syncs instead of `one-way` and `two-way` is generally the best approach long-term, but may require more fine-grained configuration (more sync specs for specific subpaths and more specific exclusion rules, to make sure things don't get overwritten/deleted in unwanted ways).
 
 ### `two-way-resolved`
 
 Same as `two-way-safe` except:
 
-  * Changes made in the local `source` will always win any conflict. This includes cases where alpha’s deletions would overwrite beta’s modifications or creations
-  * No conflicts can occur in this synchronization mode.
+* Changes made in the local `source` will always win any conflict. This includes cases where alpha’s deletions would overwrite beta’s modifications or creations
+* No conflicts can occur in this synchronization mode.
 
 In addition to the above, please check out the [Mutagen docs on synchronization](https://mutagen.io/documentation/synchronization) for more info.
 
@@ -139,11 +133,11 @@ For the reverse sync modes (`one-way-reverse` and `one-way-replica-reverse`), al
 
 ## Excluding files and directories from syncs
 
-By design, Garden's dev mode does not apply exclusion rules from ignorefiles (such as `.gardenignore` files) to dev mode syncs.
+By design, exclusion rules from ignorefiles (such as `.gardenignore` files) are not applied to syncs.
 
-This is done to grant you more control over precisely which files and directories you'd like to sync while in dev mode.
+This is done to grant you more control over precisely which files and directories you'd like to sync.
 
-For example, you might want to ignore `dist` or `build` directories (not version control them, not include them in builds or module versions), but still be able to sync them from your local machine to the running container (or from the running container to your local machine). This is easy to achieve with dev mode.
+For example, you might want to ignore `dist` or `build` directories (not version control them, not include them in builds or module versions), but still be able to sync them from your local machine to the running container (or from the running container to your local machine). This is easy to achieve with the right configuration.
 
 Exclusion rules can be specified on individual sync configs:
 
@@ -154,9 +148,9 @@ type: container
 services:
   - name: node-service
     args: [npm, start]
-    devMode:
+    sync:
       command: [npm, run, dev]
-      sync:
+      paths:
         - source: src
           target: /app/src
           exclude: [node_modules, tmp, "**/*.log"] # <------ paths matching these patterns won't be synced
@@ -174,7 +168,7 @@ providers:
     ...
     # Configure project-wide exclusion rules and default permission/ownership settings
     # for synced files/directories.
-    devMode:
+    sync:
       defaults:
         exclude:
           - "/**/node_modules" # <--- with this, we don't have to specify `node_modules` on individual sync specs
@@ -182,7 +176,7 @@ providers:
 
 This is great to reduce repetition in your excludes.
 
-See the reference documentation for the [`kubernetes` provider](../reference/providers/kubernetes.md#providersdevmode)) for a full list of provider-level options for dev mode when using the `kubernetes` provider. The same dev-mode options are also available when using `local-kubernetes`.
+See the reference documentation for the [`kubernetes` provider](../reference/providers/kubernetes.md#providerssync)) for a full list of provider-level options for sync when using the `kubernetes` provider. The same sync options are also available when using `local-kubernetes`.
 
 ## Permissions and ownership
 
@@ -198,9 +192,9 @@ type: container
 services:
   - name: node-service
     args: [npm, start]
-    devMode:
+    sync:
       command: [npm, run, dev]
-      sync:
+      paths:
         - target: /app
           exclude: [node_modules]
           defaultOwner: 1000  # <- set an integer user ID or a string name
@@ -214,7 +208,7 @@ These options are passed directly to Mutagen. For more information, please see t
 
 ### An advanced example
 
-This example demonstrates several of the more advanced options that dev mode offers. For more details on the options available, see the sections above.
+This example demonstrates several of the more advanced options. For more details on the options available, see the sections above.
 
 ```yaml
 kind: Project
@@ -224,7 +218,7 @@ providers:
     ...
     # Configure project-wide exclusion rules and default permission/ownership settings
     # for synced files/directories.
-    devMode:
+    sync:
       defaults:
         exclude:
           - "/**/node_modules"
@@ -244,9 +238,9 @@ type: container
 services:
   - name: node-service
     args: [npm, start]
-    devMode:
-      command: [npm, run, dev] # Overrides the container's default when the service is deployed in dev mode.
-      sync:
+    sync:
+      command: [npm, run, dev] # Overrides the container's default when the service is deployed in sync mode.
+      paths:
         # You can use several sync specs for the same service. It's generally a good idea to be specific about
         # what you want to sync, and to use `one-way-replica` or `one-way-replica-reverse` when possible to keep
         # things simple and avoid sync conflicts.

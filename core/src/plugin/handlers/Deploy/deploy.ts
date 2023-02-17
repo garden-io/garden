@@ -15,7 +15,7 @@ import { DeployStatus, getDeployStatusSchema } from "./get-status"
 import { Resolved } from "../../../actions/types"
 
 interface DeployParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
-  devMode: boolean
+  syncMode: boolean
   force: boolean
   localMode: boolean
 }
@@ -34,7 +34,7 @@ export class DoDeployAction<T extends DeployAction = DeployAction> extends Actio
 
   paramsSchema = () =>
     actionParamsSchema().keys({
-      devMode: joi.boolean().default(false).description("Whether the service should be configured in dev mode."),
+      syncMode: joi.boolean().default(false).description("Whether the service should be configured in sync mode."),
       force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
       localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
     })

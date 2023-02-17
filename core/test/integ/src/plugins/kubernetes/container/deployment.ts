@@ -130,7 +130,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: false,
+          enableSyncMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -147,7 +147,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: false,
+          enableSyncMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -164,7 +164,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: false,
+          enableSyncMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -181,7 +181,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: false,
+          enableSyncMode: false,
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -190,7 +190,7 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    context("localMode always takes precedence over devMode", () => {
+    context("localMode always takes precedence over syncMode", () => {
       it("Workflow should have ssh container port when in local mode", async () => {
         const action = await resolveDeployAction("local-mode")
 
@@ -200,7 +200,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: true, // <----
+          enableSyncMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -217,7 +217,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: true, // <----
+          enableSyncMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -235,7 +235,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: true, // <----
+          enableSyncMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -252,7 +252,7 @@ describe("kubernetes container deployment handlers", () => {
           action,
           log: garden.log,
           imageId: getDeployedImageId(action, provider),
-          enableDevMode: true, // <----
+          enableSyncMode: true, // <----
           enableLocalMode: true, // <----
           blueGreen: false,
         })
@@ -280,7 +280,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId,
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -353,7 +353,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -381,7 +381,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -408,7 +408,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -425,8 +425,8 @@ describe("kubernetes container deployment handlers", () => {
       })
     })
 
-    it("should configure the service for sync with dev mode enabled", async () => {
-      const action = await resolveDeployAction("dev-mode")
+    it("should configure the service for sync with sync mode enabled", async () => {
+      const action = await resolveDeployAction("sync-mode")
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
@@ -436,7 +436,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: true, // <----
+        enableSyncMode: true, // <----
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -466,13 +466,13 @@ describe("kubernetes container deployment handlers", () => {
         },
       ])
 
-      const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "dev-mode")
+      const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "sync-mode")
       expect(appContainerSpec!.volumeMounts).to.exist
       expect(appContainerSpec!.volumeMounts![0]!.name).to.eq("garden")
     })
 
-    it("should increase liveness probes when in dev mode", async () => {
-      const action = await resolveDeployAction("dev-mode")
+    it("should increase liveness probes when in sync mode", async () => {
+      const action = await resolveDeployAction("sync-mode")
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
@@ -482,14 +482,14 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: true, // <----
+        enableSyncMode: true, // <----
         enableLocalMode: false,
         log: garden.log,
         production: false,
         blueGreen: false,
       })
 
-      const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "dev-mode")
+      const appContainerSpec = resource.spec.template?.spec?.containers.find((c) => c.name === "sync-mode")
       expect(appContainerSpec!.livenessProbe).to.eql({
         initialDelaySeconds: 90,
         periodSeconds: 10,
@@ -513,7 +513,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -560,7 +560,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -601,7 +601,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -624,7 +624,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -648,7 +648,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        enableDevMode: false,
+        enableSyncMode: false,
         enableLocalMode: false,
         log: garden.log,
         production: false,
@@ -681,7 +681,7 @@ describe("kubernetes container deployment handlers", () => {
             action,
             imageId: getDeployedImageId(action, provider),
             namespace,
-            enableDevMode: false,
+            enableSyncMode: false,
             enableLocalMode: false,
             log: garden.log,
             production: false,
@@ -712,7 +712,7 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
 
           localModeDeployNames: [],
         })
@@ -782,7 +782,7 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -820,7 +820,7 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -841,7 +841,7 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -876,7 +876,7 @@ describe("kubernetes container deployment handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 

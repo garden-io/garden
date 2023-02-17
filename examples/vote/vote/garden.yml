@@ -13,8 +13,8 @@ dependencies:
   - deploy.api
 spec:
   args: [npm, run, serve]
-  devMode:
-    sync:
+  sync:
+    paths:
       - target: /app/src
         source: src
         mode: two-way

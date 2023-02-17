@@ -55,26 +55,26 @@ describe("clientRequestHandlers", () => {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          devMode: false,
+          syncMode: false,
           hotReload: false,
 
           localMode: false,
           skipDependencies: true,
         },
       })
-      expect(deployTask.devModeDeployNames).to.eql([])
+      expect(deployTask.syncModeDeployNames).to.eql([])
       expect(deployTask.localModeDeployNames).to.eql([])
       expect(deployTask.action.name).to.eql("service-a")
     })
 
-    it("should return a dev-mode deploy task for the requested service", async () => {
+    it("should return a sync-mode deploy task for the requested service", async () => {
       const deployTask = await clientRequestHandlers.deploy({
         ...params,
         request: {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          devMode: true,
+          syncMode: true,
           hotReload: false,
           localMode: false,
           skipDependencies: true,
@@ -92,7 +92,7 @@ describe("clientRequestHandlers", () => {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          devMode: false,
+          syncMode: false,
           localMode: true,
           hotReload: false,
           skipDependencies: true,
