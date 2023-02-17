@@ -8,7 +8,7 @@
 
 import { joiIdentifier, joi, joiSparseArray, joiStringMap } from "../../../config/common"
 import { dedent } from "../../../util/string"
-import { BaseVolumeSpec } from "../../base-volume"
+import { BaseVolumeSpec, baseVolumeSpecKeys } from "../../base-volume"
 import { V1ConfigMap } from "@kubernetes/client-node"
 import { ModuleTypeDefinition } from "../../../plugin/plugin"
 import { DOCS_BASE_URL } from "../../../constants"
@@ -31,6 +31,7 @@ export interface ConfigmapDeploySpec extends BaseVolumeSpec {
 }
 
 const commonSpecKeys = () => ({
+  ...baseVolumeSpecKeys(),
   namespace: joiIdentifier().description(
     "The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same namespace, so in most cases you should leave this unset."
   ),
@@ -101,9 +102,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
     async configure({ moduleConfig }: ConfigureModuleParams) {
       // No need to scan for files
       moduleConfig.include = []
-
       moduleConfig.spec.accessModes = ["ReadOnlyMany"]
-
       moduleConfig.serviceConfigs = [
         {
           dependencies: moduleConfig.spec.dependencies,
