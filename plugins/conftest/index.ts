@@ -208,9 +208,9 @@ export const gardenPlugin = () =>
           }),
           handlers: <TestActionHandlers<TestAction<ConftestHelmTestConfig>>>{
             configure: async ({ ctx, config }) => {
-              let files = config.spec.files
+              let files = config.spec.files || []
 
-              if (files && files.length > 0) {
+              if (files.length > 0) {
                 if (!config.include) {
                   config.include = []
                 }
