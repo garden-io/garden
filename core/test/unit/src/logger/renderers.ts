@@ -167,7 +167,6 @@ describe("renderers", () => {
           level: "info",
           timestamp: now.toISOString(),
           section: "c",
-          allSections: ["c"],
           data: { foo: "bar" },
           metadata: { task: taskMetadata },
         })
@@ -179,7 +178,6 @@ describe("renderers", () => {
           msg: "",
           level: "info",
           section: "",
-          allSections: [],
           data: undefined,
           metadata: undefined,
           timestamp: now.toISOString(),

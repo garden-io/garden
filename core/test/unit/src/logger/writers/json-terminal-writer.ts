@@ -26,7 +26,7 @@ describe.only("JsonTerminalWriter", () => {
       const entry = logger.makeNewLogContext().info("hello logger").getLatestEntry()
       const out = writer.render(entry, logger)
       expect(out).to.eql(
-        `{"msg":"hello logger","section":"","timestamp":"${now.toISOString()}","level":"info","allSections":[]}`
+        `{"msg":"hello logger","section":"","timestamp":"${now.toISOString()}","level":"info"}`
       )
     })
 
@@ -53,7 +53,7 @@ describe.only("JsonTerminalWriter", () => {
         .getLatestEntry()
       const out = writer.render(entry, logger)
       expect(out).to.eql(
-        `{"msg":"{\\"message\\":\\"foo\\"}","section":"","timestamp":"${now.toISOString()}","level":"info","allSections":[]}`
+        `{"msg":"{\\"message\\":\\"foo\\"}","section":"","timestamp":"${now.toISOString()}","level":"info"}`
       )
     })
   })

@@ -50,7 +50,7 @@ export class UnlinkModuleCommand extends Command<Args, Opts> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Unlink module", "chains")
+    printHeader(headerLog, "Unlink module", "⛓️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {

@@ -6,13 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import nodeEmoji from "node-emoji"
 import chalk, { Chalk } from "chalk"
 // import { formatGardenErrorWithDetail } from "./logger"
-import { Log, EmojiName, LogEntryMessage } from "./log-entry"
+import { Log, LogEntryMessage } from "./log-entry"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
 import stringWidth from "string-width"
+import { GardenError } from "../exceptions"
+import { deepFilter, safeDumpYaml } from "../util/util"
+import { isArray, isEmpty, isPlainObject, mapValues } from "lodash"
+import { Logger } from "./logger"
+import { isPrimitive } from "../config/common"
 
 // Add platforms/terminals?
 export function envSupportsEmoji() {
@@ -86,36 +90,112 @@ export function getTerminalWidth(stream: NodeJS.WriteStream = process.stdout) {
 /**
  * Prints emoji if supported and adds padding to the right (otherwise subsequent text flows over the emoji).
  */
-export function printEmoji(emoji: EmojiName, log: Log) {
-  if (log.root.useEmoji && nodeEmoji.hasEmoji(emoji)) {
-    return `${nodeEmoji.get(emoji)} `
+export function printEmoji(emoji: string, log: Log) {
+  if (log.root.useEmoji) {
+    return `${emoji} `
   }
   return ""
 }
 
-export function printHeader(log: Log, command: string, emoji: EmojiName): void {
+export function printHeader(log: Log, command: string, emoji: string): void {
   log.info(chalk.bold.magenta(command) + " " + printEmoji(emoji, log))
   log.info("") // Print new line after header
 }
 
 export function printFooter(log: Log) {
   log.info("") // Print new line before footer
-  return log.info(chalk.bold.magenta("Done!") + " " + printEmoji("heavy_check_mark", log))
+  return log.info(chalk.bold.magenta("Done!") + " " + printEmoji("✔️", log))
 }
 
 export function printWarningMessage(log: Log, text: string) {
   return log.warn(chalk.bold.yellow(text))
 }
 
-// TODO @eysi: This function doesn't really make sense as is.
-// TODO @eysi: Set error: GardenError. Removing for now due circular dep.
-// TODO @eysi: Re-enable after fixing circ-dep.
-export function formatError({ msg, error }: { msg: string; error?: any }) {
-  if (error) {
-    // return formatGardenErrorWithDetail(error)
+/**
+ * Strips undefined values, internal objects and circular references from an object.
+ */
+export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
+  if (!_parents) {
+    _parents = new WeakSet()
+  } else if (_parents.has(value)) {
+    return "[Circular]"
   }
 
-  return msg
+  if (value === null || value === undefined) {
+    return value
+  } else if (Buffer.isBuffer(value)) {
+    return "<Buffer>"
+  } else if (value instanceof Logger) {
+    return "<Logger>"
+  } else if (value instanceof Log) {
+    return "<Log>"
+    // This is hacky but fairly reliably identifies a Joi schema object
+  } else if (value.$_root) {
+    // TODO: Identify the schema
+    return "<JoiSchema>"
+  } else if (value.isGarden) {
+    return "<Garden>"
+  } else if (isArray(value)) {
+    _parents.add(value)
+    const out = value.map((v) => sanitizeValue(v, _parents))
+    _parents.delete(value)
+    return out
+  } else if (isPlainObject(value)) {
+    _parents.add(value)
+    const out = mapValues(value, (v) => sanitizeValue(v, _parents))
+    _parents.delete(value)
+    return out
+  } else if (!isPrimitive(value) && value.constructor) {
+    // Looks to be a class instance
+    if (value.toSanitizedValue) {
+      // Special allowance for internal objects
+      return value.toSanitizedValue()
+    } else {
+      // Any other class. Convert to plain object and sanitize attributes.
+      _parents.add(value)
+      const out = mapValues({ ...value }, (v) => sanitizeValue(v, _parents))
+      _parents.delete(value)
+      return out
+    }
+  } else {
+    return value
+  }
+}
+
+// Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
+export function withoutInternalFields(object: any): any {
+  return deepFilter(object, (_val, key: string | number) => {
+    if (typeof key === "string") {
+      return (
+        !key.startsWith("_") &&
+        // FIXME: this a little hacky and should be removable in 0.14 at the latest.
+        // The buildDependencies map on Module objects explodes outputs, as well as the dependencyVersions field on
+        // version objects.
+        key !== "dependencyVersions" &&
+        key !== "dependencyResults" &&
+        key !== "buildDependencies"
+      )
+    }
+    return true
+  })
+}
+
+export function formatGardenErrorWithDetail(error: GardenError) {
+  const { detail, message, stack } = error
+  let out = stack || message || ""
+
+  // We sanitize and recursively filter out internal fields (i.e. having names starting with _).
+  const filteredDetail = withoutInternalFields(sanitizeValue(detail))
+
+  if (!isEmpty(filteredDetail)) {
+    try {
+      const yamlDetail = safeDumpYaml(filteredDetail, { skipInvalid: true, noRefs: true })
+      out += `\n\nError Details:\n\n${yamlDetail}`
+    } catch (err) {
+      out += `\n\nUnable to render error details:\n${err.message}`
+    }
+  }
+  return out
 }
 
 interface DividerOpts {

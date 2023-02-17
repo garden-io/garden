@@ -63,7 +63,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote sources", "hammer_and_wrench")
+    printHeader(headerLog, "Update remote sources", "🛠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {

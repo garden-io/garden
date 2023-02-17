@@ -65,7 +65,7 @@ export class UpdateRemoteModulesCommand extends Command<Args, Opts> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote modules", "hammer_and_wrench")
+    printHeader(headerLog, "Update remote modules", "🛠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {

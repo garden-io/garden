@@ -127,7 +127,7 @@ export class DeployCommand extends Command<Args, Opts> {
   }
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Deploy", "rocket")
+    printHeader(headerLog, "Deploy", "🚀")
   }
 
   terminate() {

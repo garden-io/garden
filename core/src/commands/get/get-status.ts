@@ -17,13 +17,12 @@ import { deline } from "../../util/string"
 import { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus"
 import { joi, joiIdentifierMap, joiStringMap } from "../../config/common"
 import { environmentStatusSchema } from "../../config/status"
-import { printHeader } from "../../logger/util"
+import { printHeader, sanitizeValue } from "../../logger/util"
 import { BuildStatusMap, getBuildStatusSchema } from "../../plugin/handlers/Build/get-status"
 import { getTestResultSchema, TestStatusMap } from "../../plugin/handlers/Test/get-result"
 import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/Run/get-result"
 import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status"
 import { ActionRouter } from "../../router/router"
-import { sanitizeValue } from "../../logger/logger"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {

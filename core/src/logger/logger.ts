@@ -8,15 +8,14 @@
 
 import { Log, LogEntryMetadata, LogEntry, LogEntryParams } from "./log-entry"
 import { Writer } from "./writers/base"
-import { CommandError, GardenError, InternalError, ParameterError } from "../exceptions"
+import { CommandError, InternalError, ParameterError } from "../exceptions"
 import { TerminalWriter } from "./writers/terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { EventBus } from "../events"
 import { formatLogEntryForEventStream } from "../cloud/buffered-event-stream"
 import { gardenEnv } from "../constants"
-import { deepFilter, getEnumKeys, safeDumpYaml } from "../util/util"
-import { isArray, isEmpty, isPlainObject, mapValues, range } from "lodash"
-import { isPrimitive } from "../config/common"
+import { getEnumKeys } from "../util/util"
+import { range } from "lodash"
 import { InkTerminalWriter } from "./writers/ink-terminal-writer"
 
 export type LoggerType = "quiet" | "basic" | "json" | "ink"
@@ -52,94 +51,6 @@ export function parseLogLevel(level: string): LogLevel {
     )
   }
   return lvl
-}
-
-// Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
-export function withoutInternalFields(object: any): any {
-  return deepFilter(object, (_val, key: string | number) => {
-    if (typeof key === "string") {
-      return (
-        !key.startsWith("_") &&
-        // FIXME: this a little hacky and should be removable in 0.14 at the latest.
-        // The buildDependencies map on Module objects explodes outputs, as well as the dependencyVersions field on
-        // version objects.
-        key !== "dependencyVersions" &&
-        key !== "dependencyResults" &&
-        key !== "buildDependencies"
-      )
-    }
-    return true
-  })
-}
-
-export function formatGardenErrorWithDetail(error: GardenError) {
-  const { detail, message, stack } = error
-  let out = stack || message || ""
-
-  // We sanitize and recursively filter out internal fields (i.e. having names starting with _).
-  const filteredDetail = withoutInternalFields(sanitizeValue(detail))
-
-  if (!isEmpty(filteredDetail)) {
-    try {
-      const yamlDetail = safeDumpYaml(filteredDetail, { skipInvalid: true, noRefs: true })
-      out += `\n\nError Details:\n\n${yamlDetail}`
-    } catch (err) {
-      out += `\n\nUnable to render error details:\n${err.message}`
-    }
-  }
-  return out
-}
-
-/**
- * Strips undefined values, internal objects and circular references from an object.
- */
-export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
-  if (!_parents) {
-    _parents = new WeakSet()
-  } else if (_parents.has(value)) {
-    // console.log("CIRCULAR")
-    return "[Circular]"
-  }
-
-  if (value === null || value === undefined) {
-    return value
-  } else if (Buffer.isBuffer(value)) {
-    return "<Buffer>"
-  } else if (value instanceof Logger) {
-    return "<Logger>"
-  } else if (value instanceof Log) {
-    return "<Log>"
-    // This is hacky but fairly reliably identifies a Joi schema object
-  } else if (value.$_root) {
-    // TODO: Identify the schema
-    return "<JoiSchema>"
-  } else if (value.isGarden) {
-    return "<Garden>"
-  } else if (isArray(value)) {
-    _parents.add(value)
-    const out = value.map((v) => sanitizeValue(v, _parents))
-    _parents.delete(value)
-    return out
-  } else if (isPlainObject(value)) {
-    _parents.add(value)
-    const out = mapValues(value, (v) => sanitizeValue(v, _parents))
-    _parents.delete(value)
-    return out
-  } else if (!isPrimitive(value) && value.constructor) {
-    // Looks to be a class instance
-    if (value.toSanitizedValue) {
-      // Special allowance for internal objects
-      return value.toSanitizedValue()
-    } else {
-      // Any other class. Convert to plain object and sanitize attributes.
-      _parents.add(value)
-      const out = mapValues({ ...value }, (v) => sanitizeValue(v, _parents))
-      _parents.delete(value)
-      return out
-    }
-  } else {
-    return value
-  }
 }
 
 export const logLevelMap = {
@@ -193,7 +104,6 @@ export interface PlaceholderOpts {
   metadata?: LogEntryMetadata
 }
 
-// TODO @eysi: Rename.
 export class Logger {
   public events: EventBus
   public useEmoji: boolean
@@ -253,7 +163,6 @@ export class Logger {
 
     instance = new Logger({ ...config, storeEntries: config.storeEntries, writers: writer ? [writer] : [] })
 
-    // TODO: @eysi
     const log = instance.makeNewLogContext()
 
     if (gardenEnv.GARDEN_LOG_LEVEL) {

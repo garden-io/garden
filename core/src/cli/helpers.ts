@@ -22,7 +22,7 @@ import { GardenBaseError, InternalError, ParameterError, toGardenError } from ".
 import { getPackageVersion, removeSlice } from "../util/util"
 import { Log } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
-import { formatError, printWarningMessage } from "../logger/util"
+import { formatGardenErrorWithDetail, printWarningMessage } from "../logger/util"
 import { GlobalConfigStore } from "../config-store/global"
 import { got } from "../util/http"
 import minimist = require("minimist")
@@ -477,9 +477,7 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
       error,
     })
     // Output error details to console when log level is silly
-    errorLog.silly({
-      msg: formatError({ msg: error.message, error }),
-    })
+    errorLog.silly(formatGardenErrorWithDetail(error))
   }
 
   if (logger.getWriters().find((w) => w instanceof FileWriter)) {

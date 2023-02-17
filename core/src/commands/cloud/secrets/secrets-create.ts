@@ -69,7 +69,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
   options = secretsCreateOpts
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Create secrets", "lock")
+    printHeader(headerLog, "Create secrets", "🔒")
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<SecretResult[]>> {

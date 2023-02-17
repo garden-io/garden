@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { cloneDeep, flatten, last, repeat, size } from "lodash"
-import { printHeader, getTerminalWidth, renderMessageWithDivider } from "../logger/util"
+import { printHeader, getTerminalWidth, renderMessageWithDivider, formatGardenErrorWithDetail } from "../logger/util"
 import { Command, CommandParams, CommandResult } from "./base"
 import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
@@ -28,7 +28,7 @@ import Bluebird from "bluebird"
 import { getDurationMsec, toEnvVars } from "../util/util"
 import { runScript } from "../util/util"
 import { ExecaError } from "execa"
-import { formatGardenErrorWithDetail, LogLevel } from "../logger/logger"
+import { LogLevel } from "../logger/logger"
 import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
@@ -70,7 +70,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
   arguments = runWorkflowArgs
 
   printHeader({ headerLog, args }) {
-    printHeader(headerLog, `Running workflow ${chalk.white(args.workflow)}`, "runner")
+    printHeader(headerLog, `Running workflow ${chalk.white(args.workflow)}`, "🏃‍♂️")
   }
 
   async action({ cli, garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {

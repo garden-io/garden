@@ -62,8 +62,7 @@ import { prepareDebugLogfiles } from "./debug-logs"
 import { Log } from "../logger/log-entry"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
-import { renderDivider } from "../logger/util"
-import { emoji as nodeEmoji } from "node-emoji"
+import { printEmoji, renderDivider } from "../logger/util"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess } from "../process"
 import { ServeCommand } from "../commands/serve"
@@ -89,9 +88,9 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
-function renderHeader({ environmentName, namespaceName }: { environmentName: string; namespaceName: string }) {
+function renderHeader({ environmentName, namespaceName, log }: { environmentName: string; namespaceName: string, log: Log }) {
   const divider = chalk.gray(renderDivider())
-  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
+  let msg = `${printEmoji("🌍", log)}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
     environmentName
   )}`
 
@@ -368,7 +367,7 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.info(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
+          nsLog.info(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName, log }))
 
           if (!cloudApi && garden.projectId) {
             log.warn({
@@ -430,10 +429,10 @@ ${renderCommands(commands)}
           if (namespaceUrl) {
             const distroName = getCloudDistributionName(cloudApi?.domain || "")
             const msg = dedent`
-              \n${nodeEmoji.lightning}   ${chalk.cyan(
+              \n${printEmoji("🌩️", log)}   ${chalk.cyan(
               `Connected to ${distroName}! Click the link below to view logs and more.`
             )}
-              ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
+              ${printEmoji("🔗", log)}  ${chalk.blueBright.underline(namespaceUrl)}
             `
             footerLog.info(msg)
           }

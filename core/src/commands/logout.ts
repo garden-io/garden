@@ -25,7 +25,7 @@ export class LogOutCommand extends Command {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Log out", "cloud")
+    printHeader(headerLog, "Log out", "☁️")
   }
 
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {

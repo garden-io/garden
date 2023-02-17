@@ -6,20 +6,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { emoji as nodeEmoji } from "node-emoji"
 import { Command, CommandParams } from "../base"
 import { StringsParameter, BooleanParameter } from "../../cli/params"
 import { moduleSchema, GardenModule } from "../../types/module"
 import { keyBy, omit, sortBy } from "lodash"
 import { joiIdentifierMap, StringMap, createSchema } from "../../config/common"
-import { printHeader, renderDivider } from "../../logger/util"
+import { printEmoji, printHeader, renderDivider, withoutInternalFields } from "../../logger/util"
 import chalk from "chalk"
 import { renderTable, dedent, deline } from "../../util/string"
 import { relative, sep } from "path"
 import { Garden } from "../.."
 import { Log } from "../../logger/log-entry"
 import { deepMap, highlightYaml, safeDumpYaml } from "../../util/util"
-import { withoutInternalFields } from "../../logger/logger"
 
 const getModulesArgs = {
   modules: new StringsParameter({
@@ -73,7 +71,7 @@ export class GetModulesCommand extends Command {
   outputsSchema = outputsSchema
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Get Modules", "open_book")
+    printHeader(headerLog, "Get Modules", "📖")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>) {
@@ -125,7 +123,7 @@ function logFull(garden: Garden, modules: GardenModule[], log: Log) {
     const yaml = safeDumpYaml(rendered, { noRefs: true, sortKeys: true })
     log.info(dedent`
       ${divider}
-      ${nodeEmoji.seedling}  Module: ${chalk.green(module.name)}
+      ${printEmoji("🌱", log)}  Module: ${chalk.green(module.name)}
       ${divider}\n
     `)
     log.info(highlightYaml(yaml))
