@@ -1,6 +1,6 @@
-# Example project demonstrating several modules/Dockerfiles in one directory
+# Example project demonstrating several actions in one directory
 
-This project shows how you can configure several modules in a single directory.
+This project shows how you can configure several actions in a single directory.
 
 This is useful, for example, when you want to use more than one Dockerfile for the same code.
 
@@ -14,3 +14,4 @@ Deploy 🚀
 ✔ a                       → Deploying version v-602ae70cb8... → Done (took 3.9 sec)
 
 Done! ✔️
+```

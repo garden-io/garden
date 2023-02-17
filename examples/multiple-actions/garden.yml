@@ -1,5 +1,5 @@
 kind: Project
-name: multiple-modules
+name: multiple-actions
 environments:
   - name: local
 providers:
