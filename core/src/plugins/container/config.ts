@@ -18,6 +18,7 @@ import {
   PrimitiveMap,
   CustomObjectSchema,
   createSchema,
+  ActionReference,
 } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { ingressHostnameSchema, linkUrlSchema } from "../../types/service"
@@ -78,7 +79,7 @@ export interface ContainerVolumeSpecBase {
 }
 
 export interface ContainerVolumeSpec extends ContainerVolumeSpecBase {
-  action?: string
+  action?: ActionReference<"Deploy">
 }
 
 export interface ServiceHealthCheckSpec {
@@ -612,6 +613,7 @@ const volumeSchema = () =>
         ),
     })
     .oxor("hostPath", "action")
+
 
 export function getContainerVolumesSchema(schema: CustomObjectSchema) {
   return joiSparseArray(schema).unique("name").description(dedent`

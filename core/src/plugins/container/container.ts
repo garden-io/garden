@@ -214,7 +214,7 @@ function convertContainerModuleRuntimeActions(
   const actions: ContainerActionConfig[] = []
 
   for (const service of services) {
-    actions.push({
+    const action: ContainerActionConfig = {
       kind: "Deploy",
       type: "container",
       name: service.name,
@@ -227,8 +227,14 @@ function convertContainerModuleRuntimeActions(
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
         image: module.spec.image,
+        volumes: [], // added later
       },
-    })
+    }
+    action.spec.volumes = service.config.spec.volumes.map((v) => ({
+      ...omit(v, "module"),
+      action: v.module ? { kind: "Deploy", name: v.module } : undefined,
+    }))
+    actions.push(action)
   }
 
   for (const task of tasks) {
