@@ -21,7 +21,7 @@ import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getTargetResource, isWorkload } from "../util"
-import { startDevModeSyncs } from "../sync"
+import { startSyncs } from "../sync"
 import { isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
@@ -121,7 +121,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
           provider: k8sCtx.provider,
         })
 
-        await startDevModeSyncs({
+        await startSyncs({
           ctx: k8sCtx,
           log,
           action,

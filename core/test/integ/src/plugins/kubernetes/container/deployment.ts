@@ -24,7 +24,7 @@ import { getServiceStatuses } from "../../../../../../src/tasks/helpers"
 import { expectError, grouped } from "../../../../../helpers"
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
-import { isConfiguredForDevMode } from "../../../../../../src/plugins/kubernetes/status/status"
+import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status"
 import { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig"
 import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
@@ -443,7 +443,7 @@ describe("kubernetes container deployment handlers", () => {
         blueGreen: false,
       })
 
-      expect(isConfiguredForDevMode(resource)).to.eq(true)
+      expect(isConfiguredForSyncMode(resource)).to.eq(true)
 
       const initContainer = resource.spec.template?.spec?.initContainers![0]
       expect(initContainer).to.exist

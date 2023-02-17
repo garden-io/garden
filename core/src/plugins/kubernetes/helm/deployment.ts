@@ -15,7 +15,7 @@ import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
-import { configureSyncMode, startDevModeSyncs } from "../sync"
+import { configureSyncMode, startSyncs } from "../sync"
 import { KubeApi } from "../api"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler } from "../../../plugin/action-types"
@@ -177,7 +177,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       log,
     })
   } else if (syncMode && spec.sync?.paths?.length) {
-    await startDevModeSyncs({
+    await startSyncs({
       ctx: k8sCtx,
       log,
       action,

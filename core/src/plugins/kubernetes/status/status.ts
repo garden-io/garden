@@ -370,7 +370,7 @@ export async function compareDeployedResources(
     }
 
     if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
-      if (isConfiguredForDevMode(<SyncableResource>manifest)) {
+      if (isConfiguredForSyncMode(<SyncableResource>manifest)) {
         result.deployedWithSyncMode = true
       }
       if (isConfiguredForLocalMode(<SyncableResource>manifest)) {
@@ -460,7 +460,7 @@ export async function compareDeployedResources(
   return result
 }
 
-export function isConfiguredForDevMode(resource: SyncableResource): boolean {
+export function isConfiguredForSyncMode(resource: SyncableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("sync-mode")] === "true"
 }
 

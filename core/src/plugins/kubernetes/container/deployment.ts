@@ -24,7 +24,7 @@ import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
-import { configureSyncMode, convertContainerSyncSpec, startDevModeSyncs } from "../sync"
+import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
@@ -128,7 +128,7 @@ export async function startContainerDevSync({
     target,
   }))
 
-  await startDevModeSyncs({
+  await startSyncs({
     ctx,
     log,
     action,

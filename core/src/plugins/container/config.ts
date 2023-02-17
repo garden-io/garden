@@ -132,7 +132,7 @@ export type SyncMode =
   | "two-way-safe"
   | "two-way-resolved"
 
-export const defaultDevModeSyncMode: SyncMode = "one-way-safe"
+export const defaultSyncMode: SyncMode = "one-way-safe"
 
 export interface DevModeSyncOptions {
   mode?: SyncMode
@@ -181,7 +181,7 @@ export const syncModeSchema = () =>
       "two-way-resolved"
     )
     .only()
-    .default(defaultDevModeSyncMode)
+    .default(defaultSyncMode)
     .description(
       "The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details."
     )

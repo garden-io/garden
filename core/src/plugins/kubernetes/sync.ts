@@ -10,7 +10,7 @@ import {
   ContainerDeployAction,
   containerSyncPathSchema,
   ContainerSyncSpec,
-  defaultDevModeSyncMode,
+  defaultSyncMode,
   DevModeSyncOptions,
   DevModeSyncSpec,
   syncDefaultDirectoryModeSchema,
@@ -49,7 +49,7 @@ import {
   targetContainerNameSchema,
   targetResourceSpecSchema,
 } from "./config"
-import { isConfiguredForDevMode } from "./status/status"
+import { isConfiguredForSyncMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
@@ -449,7 +449,7 @@ export async function configureSyncMode({
   return { updated: Object.values(updatedTargets), manifests }
 }
 
-interface StartDevModeSyncParams {
+interface StartSyncModeParams {
   ctx: KubernetesPluginContext
   log: LogEntry
   action: Resolved<SupportedRuntimeActions>
@@ -466,7 +466,7 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
   return localPath.replace(/ /g, "\\ ") // Escape spaces in path
 }
 
-export async function startDevModeSyncs({
+export async function startSyncs({
   ctx,
   log,
   basePath,
@@ -476,7 +476,7 @@ export async function startDevModeSyncs({
   actionDefaults,
   defaultTarget,
   syncs,
-}: StartDevModeSyncParams) {
+}: StartSyncModeParams) {
   if (syncs.length === 0) {
     return
   }
@@ -506,7 +506,7 @@ export async function startDevModeSyncs({
       const resourceName = getResourceKey(target)
 
       // Validate the target
-      if (!isConfiguredForDevMode(target)) {
+      if (!isConfiguredForSyncMode(target)) {
         log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
         continue
       }
@@ -539,7 +539,7 @@ export async function startDevModeSyncs({
       let sourceDescription: string
       let targetDescription: string
 
-      const mode = s.mode || defaultDevModeSyncMode
+      const mode = s.mode || defaultSyncMode
 
       if (isReverseMode(mode)) {
         sourceDescription = remoteDestinationDescription
@@ -580,7 +580,7 @@ export function makeSyncConfig({
   actionDefaults: SyncDefaults
   opts: DevModeSyncOptions
 }): SyncConfig {
-  const mode = opts.mode || defaultDevModeSyncMode
+  const mode = opts.mode || defaultSyncMode
   const reverse = isReverseMode(mode)
 
   const ignore = [
