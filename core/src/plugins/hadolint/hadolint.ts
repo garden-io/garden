@@ -23,6 +23,7 @@ import { TestAction, TestActionConfig } from "../../actions/test"
 import { TestActionDefinition } from "../../plugin/action-types"
 import { mayContainTemplateString } from "../../template-string/template-string"
 import { BaseAction } from "../../actions/base"
+import { BuildAction } from "../../actions/build"
 
 const defaultConfigPath = join(STATIC_DIR, "hadolint", "default.hadolint.yaml")
 const configFilename = ".hadolint.yaml"
@@ -65,6 +66,9 @@ interface HadolintTestSpec {
 type HadolintTestConfig = TestActionConfig<"hadolint", HadolintTestSpec>
 type HadolintTest = TestAction<HadolintTestConfig, {}>
 
+const isHadolintTest = (action: BaseAction): action is HadolintTest =>
+  action.kind === "Test" && action.isCompatible("hadolint")
+
 const gitHubUrl = getGitHubUrl("examples/hadolint")
 
 export const gardenPlugin = () =>
@@ -90,26 +94,28 @@ export const gardenPlugin = () =>
         const allTestNames = new Set(actions.filter((a) => a.kind === "Test").map((m) => m.name))
 
         const existingHadolintDockerfiles = actions
+          .filter(isHadolintTest)
           // Can't really reason about templated dockerfile spec field
-          .filter((a) => a.isCompatible("hadolint") && !mayContainTemplateString(a.getConfig("spec").dockerfilePath))
+          .filter((a) => !mayContainTemplateString(a.getConfig("spec").dockerfilePath))
           .map((a) => resolve(a.basePath(), a.getConfig("spec").dockerfilePath))
 
-        const pickCompatibleAction = (action: BaseAction): boolean => {
+        const pickCompatibleAction = (action: BaseAction): action is BuildAction | HadolintTest => {
           // Make sure we don't step on an existing custom hadolint module
-          const dockerfile = action.getConfig("spec").dockerfilePath
-
-          if (
-            !mayContainTemplateString(dockerfile) &&
-            existingHadolintDockerfiles.includes(resolve(action.basePath(), dockerfile))
-          ) {
-            return false
+          if (isHadolintTest(action)) {
+            const dockerfilePath = action.getConfig("spec").dockerfilePath
+            if (
+              !mayContainTemplateString(dockerfilePath) &&
+              existingHadolintDockerfiles.includes(resolve(action.basePath(), dockerfilePath))
+            ) {
+              return false
+            }
           }
 
           // Pick all container or container-based modules
           return action.kind === "Build" && action.isCompatible("container")
         }
 
-        const makeHadolintTestAction = (action: BaseAction): HadolintTestConfig => {
+        const makeHadolintTestAction = (action: BuildAction | HadolintTest): HadolintTestConfig => {
           const baseName = "hadolint-" + action.name
 
           let name = baseName
@@ -121,7 +127,9 @@ export const gardenPlugin = () =>
 
           allTestNames.add(name)
 
-          const dockerfilePath = action.getConfig("spec").dockerfilePath || defaultDockerfileName
+          const dockerfilePath =
+            (isHadolintTest(action) ? action.getConfig("spec").dockerfilePath : action.getConfig("spec").dockerfile) ||
+            defaultDockerfileName
 
           const include = mayContainTemplateString(dockerfilePath) ? undefined : [dockerfilePath]
 
