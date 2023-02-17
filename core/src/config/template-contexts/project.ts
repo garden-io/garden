@@ -193,7 +193,7 @@ class VcsContext extends ConfigContext {
   }
 }
 
-const commandDevModeExample = "${command.params contains 'sync' && command.params.sync contains 'my-service'}"
+const commandSyncModeExample = "${command.params contains 'sync' && command.params.sync contains 'my-service'}"
 
 class CommandContext extends ConfigContext {
   @schema(
@@ -216,7 +216,7 @@ class CommandContext extends ConfigContext {
         dedent`
         A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-        For example, to see if a service is in sync mode, you might do something like \`${commandDevModeExample}\`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
+        For example, to see if a service is in sync mode, you might do something like \`${commandSyncModeExample}\`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
 
         Option values can be referenced by the option's default name (e.g. \`local-mode\`) or its alias (e.g. \`local\`) if one is defined for that option.
         `
