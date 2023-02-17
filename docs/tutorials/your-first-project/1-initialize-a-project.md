@@ -11,7 +11,7 @@ Start by cloning our repo and finding the example project:
 
 ```sh
 git clone https://github.com/garden-io/garden.git
-cd garden/examples/demo-project-start
+cd garden/examples/demo-project
 ```
 
 This directory contains two directories, with one container service each, `backend` and `frontend`. We'll first define a boilerplate Garden project, and then a Garden module for each of the services.
