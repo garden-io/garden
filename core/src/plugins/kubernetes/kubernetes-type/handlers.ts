@@ -14,7 +14,7 @@ import { serviceStateToActionState, ServiceStatus } from "../../../types/service
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
-import { configureSyncMode, convertKubernetesModuleDevModeSpec, startDevModeSyncs } from "../sync"
+import { configureSyncMode, convertKubernetesModuleDevModeSpec, startSyncs } from "../sync"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
@@ -202,7 +202,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       }
     } else if (syncMode && spec.sync?.paths) {
       // Need to start the sync here, since the deployment handler won't be called with state=ready.
-      await startDevModeSyncs({
+      await startSyncs({
         ctx: k8sCtx,
         log,
         action,
@@ -319,7 +319,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         log,
       })
     } else if (syncMode && spec.sync?.paths?.length) {
-      await startDevModeSyncs({
+      await startSyncs({
         ctx: k8sCtx,
         log,
         action,
