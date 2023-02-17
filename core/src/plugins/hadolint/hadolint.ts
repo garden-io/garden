@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
 import { join, resolve } from "path"
 import { pathExists, readFile } from "fs-extra"
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "../../config/provider"
@@ -95,7 +94,7 @@ export const gardenPlugin = () =>
           .filter((a) => a.isCompatible("hadolint") && !mayContainTemplateString(a.getConfig("spec").dockerfilePath))
           .map((a) => resolve(a.basePath(), a.getConfig("spec").dockerfilePath))
 
-        const pickCompatibleAction = async (action: BaseAction): Promise<boolean> => {
+        const pickCompatibleAction = (action: BaseAction): boolean => {
           // Make sure we don't step on an existing custom hadolint module
           const dockerfile = action.getConfig("spec").dockerfilePath
 
@@ -142,7 +141,7 @@ export const gardenPlugin = () =>
         }
 
         return {
-          addActions: await Bluebird.filter(actions, pickCompatibleAction).map(makeHadolintTestAction),
+          addActions: actions.filter(pickCompatibleAction).map(makeHadolintTestAction),
         }
       },
     },
