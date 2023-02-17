@@ -14,9 +14,9 @@ services:
         - local: 8090
           remote: 8080
       command: []
-    # this is here to test that local mode always take precedence over dev mode
-    devMode:
-      sync:
+    # this is here to test that local mode always take precedence over sync mode
+    sync:
+      paths:
         - target: /test
           mode: one-way
     healthCheck:

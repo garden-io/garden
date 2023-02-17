@@ -81,7 +81,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     garden,
     log,
     graph,
-    devModeDeployNames: [],
+    syncModeDeployNames: [],
     localModeDeployNames: [],
     forceActions: [],
     force: false,

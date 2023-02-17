@@ -43,7 +43,7 @@ const createModuleOpts = {
     defaultValue: defaultConfigFilename,
   }),
   interactive: new BooleanParameter({
-    alias: "i",
+    aliases: ["i"],
     help: "Set to false to disable interactive prompts.",
     defaultValue: true,
   }),

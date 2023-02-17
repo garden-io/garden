@@ -79,7 +79,7 @@ interface PulumiServiceSpec extends PulumiDeploySpec {
 }
 
 export type PulumiDeployConfig = DeployActionConfig<"pulumi", PulumiDeploySpec>
-export type PulumiDeploy = DeployAction<PulumiDeployConfig, {}>
+export type PulumiDeploy = DeployAction<PulumiDeployConfig, any>
 
 export interface PulumiModule extends GardenModule<PulumiServiceSpec> {}
 

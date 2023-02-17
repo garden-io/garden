@@ -14,7 +14,7 @@ import {
   k8sDeploymentTimeoutSchema,
   namespaceNameSchema,
 } from "../config"
-import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
+import { kubernetesDeploySyncSchema, KubernetesDeploySyncSpec } from "../sync"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import type { KubernetesResource } from "../types"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
@@ -34,7 +34,7 @@ export interface KubernetesTypeCommonDeploySpec {
 
 export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {
   defaultTarget?: KubernetesTargetResourceSpec
-  devMode?: KubernetesDeployDevModeSpec
+  sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
 }
 
@@ -71,12 +71,15 @@ export const kubernetesCommonDeploySpecKeys = () => ({
 })
 
 export const kubernetesDeploySchema = () =>
-  joi.object().keys({
-    ...kubernetesCommonDeploySpecKeys(),
-    defaultTarget: defaultTargetSchema(),
-    devMode: kubernetesDeployDevModeSchema(),
-    localMode: kubernetesLocalModeSchema(),
-  })
+  joi
+    .object()
+    .keys({
+      ...kubernetesCommonDeploySpecKeys(),
+      defaultTarget: defaultTargetSchema(),
+      sync: kubernetesDeploySyncSchema(),
+      localMode: kubernetesLocalModeSchema(),
+    })
+    .rename("devMode", "sync")
 
 export type KubernetesActionConfig =
   | KubernetesDeployActionConfig

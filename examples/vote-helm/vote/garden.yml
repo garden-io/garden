@@ -5,10 +5,10 @@ name: vote
 dependencies:
   - deploy.api
 spec:
-  devMode:
-    syncs:
-      - containerPath: /app/src
-        sourcePath: src
+  sync:
+    paths:
+      - target: /app/src
+        source: src
         mode: two-way
   values:
     image:

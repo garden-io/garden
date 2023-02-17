@@ -1,7 +1,7 @@
 # Build Dependencies
 
 This example project demonstrates how to use build dependencies to include files and directories from outside a module's root with its build context.
-The frontend module is also [configured for dev-mode](frontend/garden.yml#L13-L23) to show how to synchronize the dependancy with the rest of the code.
+The frontend module is also [configured for sync](frontend/garden.yml#L13-L23) to show how to synchronize the dependency with the rest of the code.
 
 Benefits of this feature can be utilized by .NET or Java projects that are split up into multiple modules need a shared configuration file at build time for each module.
 

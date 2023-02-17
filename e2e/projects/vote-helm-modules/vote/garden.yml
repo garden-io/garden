@@ -2,8 +2,8 @@ kind: Module
 description: Helm chart for the voting UI
 type: helm
 name: vote
-devMode:
-  sync:
+sync:
+  paths:
     - target: /app/src
       source: src
       mode: two-way

@@ -37,7 +37,7 @@ First, you need to prepare the release binaries and run some manual tests:
    - Wait for the CI build job to get the binaries from the [GitHub Releases page](https://github.com/garden-io/garden/releases).
 3. Manual testing (using the pre-release/release binary)
    - On **macOS** or **Linux**, run the `./scripts/test-release.sh <version>` script, where `<version>` should have the format `<major>.<minor>.<patch>-<preReleaseCounter>`, e.g. `0.12.38-0`. The script runs some simple tests to sanity check the release.
-   - On a **Windows** machine, run `garden deploy --dev vote --env remote` in the `vote` example project.
+   - On a **Windows** machine, run `garden deploy --sync vote --env remote` in the `vote` example project.
    - If there are any issues with syncing, consider changing the `services[].devMode.sync[].mode` value(s) to `one-way-replica` and restarting Garden.
    - Change a file in the `vote` service and verify that the code synchronization was successful.
 4. You might need to include some additional commits here. For example, if any other fix(es) should be included from `main`, or if there are any test failures. In that case ypou need a new pre-release:

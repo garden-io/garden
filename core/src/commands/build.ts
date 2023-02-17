@@ -36,7 +36,7 @@ const buildArgs = {
 }
 
 const buildOpts = {
-  "force": new BooleanParameter({ help: "Force re-build.", alias: "f" }),
+  "force": new BooleanParameter({ help: "Force re-build.", aliases: ["f"] }),
   "watch": watchParameter,
   "with-dependants": new BooleanParameter({
     help: deline`
@@ -112,7 +112,7 @@ export class BuildCommand extends Command<Args, Opts> {
             action,
             force: opts.force,
             forceActions: [],
-            devModeDeployNames: [],
+            syncModeDeployNames: [],
             localModeDeployNames: [],
           })
       )

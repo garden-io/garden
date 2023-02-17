@@ -24,7 +24,7 @@ import {
   ServiceResourceSpec,
 } from "../config"
 import { ContainerModule } from "../../container/moduleConfig"
-import { kubernetesModuleDevModeSchema, KubernetesModuleDevModeSpec } from "../dev-mode"
+import { kubernetesModuleSyncSchema, KubernetesModuleDevModeSpec } from "../sync"
 import { KubernetesTypeCommonDeploySpec, kubernetesCommonDeploySpecKeys } from "./config"
 import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
 
@@ -38,7 +38,7 @@ export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec extends KubernetesTypeCommonDeploySpec {
   dependencies: string[]
-  devMode?: KubernetesModuleDevModeSpec
+  sync?: KubernetesModuleDevModeSpec
   localMode?: KubernetesLocalModeSpec
   serviceResource?: ServiceResourceSpec
   tasks: KubernetesTaskSpec[]
@@ -48,34 +48,37 @@ export interface KubernetesServiceSpec extends KubernetesTypeCommonDeploySpec {
 export type KubernetesService = GardenService<KubernetesModule, ContainerModule>
 
 export const kubernetesModuleSpecSchema = () =>
-  joi.object().keys({
-    ...kubernetesCommonDeploySpecKeys(),
-    build: baseBuildSpecSchema(),
-    dependencies: dependenciesSchema(),
-    devMode: kubernetesModuleDevModeSchema(),
-    localMode: kubernetesLocalModeSchema(),
-    include: joiModuleIncludeDirective(dedent`
+  joi
+    .object()
+    .keys({
+      ...kubernetesCommonDeploySpecKeys(),
+      build: baseBuildSpecSchema(),
+      dependencies: dependenciesSchema(),
+      sync: kubernetesModuleSyncSchema(),
+      localMode: kubernetesLocalModeSchema(),
+      include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, Garden automatically sets \`include\` to equal the
       \`files\` directive so that only the Kubernetes manifests get included.
     `),
-    serviceResource: serviceResourceSchema()
-      .description(
-        dedent`
+      serviceResource: serviceResourceSchema()
+        .description(
+          dedent`
         The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
 
         ${serviceResourceDescription}
 
         Because a \`kubernetes\` module can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
         `
-      )
-      .keys({
-        containerModule: containerModuleSchema(),
-        // TODO: remove in 0.14 (not used, kept for compatibility)
-        hotReloadArgs: joi.any().meta({ internal: true }),
-      }),
-    tasks: joiSparseArray(kubernetesTaskSchema()),
-    tests: joiSparseArray(kubernetesTestSchema()),
-  })
+        )
+        .keys({
+          containerModule: containerModuleSchema(),
+          // TODO: remove in 0.14 (not used, kept for compatibility)
+          hotReloadArgs: joi.any().meta({ internal: true }),
+        }),
+      tasks: joiSparseArray(kubernetesTaskSchema()),
+      tests: joiSparseArray(kubernetesTestSchema()),
+    })
+    .rename("devMode", "sync")
 
 export async function configureKubernetesModule({
   moduleConfig,

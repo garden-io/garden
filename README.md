@@ -84,10 +84,10 @@ Or, say a developer wants to run an end-to-end test from their laptop as they co
 garden test --name <name-of-your-e2e-test-suite>
 ```
 
-Garden also has a special mode called “dev mode” which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
+Garden also has a special mode called "sync mode" which live reloads changes to your running services—ensuring **blazing fast feedback while developing**. To enable it, simply run:
 
 ```console
-garden dev
+garden deploy --sync
 ```
 
 The Stack Graph is pluggable so how these actions are actually executed depends on the plugins used. Our Kubernetes plugin is currently the most popular, and chances are that’s what you’re here for. To learn more about how Garden works with Kubernetes, check out:

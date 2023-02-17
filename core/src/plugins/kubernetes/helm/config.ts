@@ -14,7 +14,7 @@ import {
   portForwardsSchema,
   targetResourceSpecSchema,
 } from "../config"
-import { kubernetesDeployDevModeSchema, KubernetesDeployDevModeSpec } from "../dev-mode"
+import { kubernetesDeploySyncSchema, KubernetesDeploySyncSpec } from "../sync"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
 import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
@@ -34,7 +34,7 @@ interface HelmDeployActionSpec {
     version?: string // Formerly `version`
   }
   defaultTarget?: KubernetesTargetResourceSpec
-  devMode?: KubernetesDeployDevModeSpec
+  sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
@@ -110,7 +110,7 @@ export const helmChartVersionSchema = () => joi.string().description("The chart 
 export const defaultTargetSchema = () =>
   targetResourceSpecSchema().description(
     dedent`
-    Specify a default resource in the deployment to use for dev mode syncs, and for the \`garden exec\` command.
+    Specify a default resource in the deployment to use for syncs, and for the \`garden exec\` command.
 
     Specify either \`kind\` and \`name\`, or a \`podSelector\`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
 
@@ -121,28 +121,30 @@ export const defaultTargetSchema = () =>
   )
 
 export const helmDeploySchema = () =>
-  joi.object().keys({
-    ...helmCommonSchemaKeys(),
-    chart: joi
-      .object()
-      .keys({
-        name: helmChartNameSchema(),
-        path: joi
-          .posixPath()
-          .subPathOnly()
-          .description(
-            "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
-          ),
-        repo: helmChartRepoSchema(),
-        url: joi.string().uri().description("An absolute URL to a packaged URL."),
-        version: helmChartVersionSchema(),
-      })
-      .with("name", ["version"])
-      .without("path", ["name", "repo", "version", "url"])
-      .without("url", ["name", "repo", "version", "path"])
-      .xor("name", "path", "url")
-      .description(
-        dedent`
+  joi
+    .object()
+    .keys({
+      ...helmCommonSchemaKeys(),
+      chart: joi
+        .object()
+        .keys({
+          name: helmChartNameSchema(),
+          path: joi
+            .posixPath()
+            .subPathOnly()
+            .description(
+              "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
+            ),
+          repo: helmChartRepoSchema(),
+          url: joi.string().uri().description("An absolute URL to a packaged URL."),
+          version: helmChartVersionSchema(),
+        })
+        .with("name", ["version"])
+        .without("path", ["name", "repo", "version", "url"])
+        .without("url", ["name", "repo", "version", "path"])
+        .xor("name", "path", "url")
+        .description(
+          dedent`
         Specify the Helm chart to deploy.
 
         If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
@@ -153,11 +155,12 @@ export const helmDeploySchema = () =>
 
         One of \`chart.name\`, \`chart.path\` or \`chart.url\` must be specified.
         `
-      ),
-    defaultTarget: defaultTargetSchema(),
-    devMode: kubernetesDeployDevModeSchema(),
-    localMode: kubernetesLocalModeSchema(),
-  })
+        ),
+      defaultTarget: defaultTargetSchema(),
+      sync: kubernetesDeploySyncSchema(),
+      localMode: kubernetesLocalModeSchema(),
+    })
+    .rename("devMode", "sync")
 
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>
 export type HelmDeployAction = DeployAction<HelmDeployConfig, {}>

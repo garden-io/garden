@@ -51,7 +51,7 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -88,7 +88,7 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -116,7 +116,7 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -147,7 +147,7 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

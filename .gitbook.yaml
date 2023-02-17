@@ -13,6 +13,7 @@ redirects:
   examples/demo-project: ./example-projects/demo-project.md
   examples/tls-project: ./example-projects/tls-project.md
   examples/using-garden-in-ci: ./guides/using-garden-in-ci.md
+  guides/code-synchronization-dev-mode: ./guides/code-synchronization.md
   guides/cert-manager-integration: ./advanced/cert-manager-integration.md
   guides/terraform: ./terraform-plugin/about.md
   providers/conftest-container: ./reference/providers/conftest-container.md

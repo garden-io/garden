@@ -26,7 +26,8 @@ const unlinkSourceArguments = {
 const unlinkSourceOptions = {
   all: new BooleanParameter({
     help: "Unlink all sources.",
-    alias: "a",
+    // TODO: remove this alias in 0.13
+    aliases: ["a"],
   }),
 }
 

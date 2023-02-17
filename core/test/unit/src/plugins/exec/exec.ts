@@ -316,7 +316,7 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
       const result = await _garden.processTask(taskTask, _garden.log, { throwOnError: true })
@@ -342,7 +342,7 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -366,7 +366,7 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -561,7 +561,7 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ log, graph, action: rawAction })
           const res = await router.deploy.deploy({
-            devMode: false,
+            syncMode: false,
             force: false,
 
             localMode: false,
@@ -579,7 +579,7 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           const res = await router.deploy.deploy({
-            devMode: false,
+            syncMode: false,
             force: false,
 
             localMode: false,
@@ -597,7 +597,7 @@ describe("exec plugin", () => {
           await expectError(
             async () =>
               await router.deploy.deploy({
-                devMode: false,
+                syncMode: false,
                 force: false,
 
                 localMode: false,
@@ -615,7 +615,7 @@ describe("exec plugin", () => {
             `)
           )
         })
-        context("devMode", () => {
+        context("syncMode", () => {
           // We set the pid in the "it" statements.
           let pid = -1
 
@@ -638,12 +638,12 @@ describe("exec plugin", () => {
             }
           })
 
-          it("should run a persistent local service in dev mode", async () => {
-            const rawAction = graph.getDeploy("dev-mode")
+          it("should run a persistent local service in sync mode", async () => {
+            const rawAction = graph.getDeploy("sync-mode")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
             const res = await router.deploy.deploy({
-              devMode: true,
+              syncMode: true,
               force: false,
 
               localMode: false,
@@ -658,11 +658,11 @@ describe("exec plugin", () => {
           })
           it("should write logs to a local file with the proper format", async () => {
             // This services just echos a string N times before exiting.
-            const rawAction = graph.getDeploy("dev-mode-with-logs")
+            const rawAction = graph.getDeploy("sync-mode-with-logs")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
             const res = await router.deploy.deploy({
-              devMode: true,
+              syncMode: true,
               force: false,
 
               localMode: false,
@@ -695,27 +695,27 @@ describe("exec plugin", () => {
 
             expect(logEntriesWithoutTimestamps).to.eql([
               {
-                serviceName: "dev-mode-with-logs",
+                serviceName: "sync-mode-with-logs",
                 msg: "Hello 1",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-logs",
+                serviceName: "sync-mode-with-logs",
                 msg: "Hello 2",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-logs",
+                serviceName: "sync-mode-with-logs",
                 msg: "Hello 3",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-logs",
+                serviceName: "sync-mode-with-logs",
                 msg: "Hello 4",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-logs",
+                serviceName: "sync-mode-with-logs",
                 msg: "Hello 5",
                 level: 2,
               },
@@ -723,11 +723,11 @@ describe("exec plugin", () => {
           })
           it("should handle empty log lines", async () => {
             // This services just echos a string N times before exiting.
-            const rawAction = graph.getDeploy("dev-mode-with-empty-log-lines")
+            const rawAction = graph.getDeploy("sync-mode-with-empty-log-lines")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
             const res = await router.deploy.deploy({
-              devMode: true,
+              syncMode: true,
               force: false,
 
               localMode: false,
@@ -758,45 +758,45 @@ describe("exec plugin", () => {
 
             expect(logEntriesWithoutTimestamps).to.eql([
               {
-                serviceName: "dev-mode-with-empty-log-lines",
+                serviceName: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-empty-log-lines",
+                serviceName: "sync-mode-with-empty-log-lines",
                 msg: "1",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-empty-log-lines",
+                serviceName: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-empty-log-lines",
+                serviceName: "sync-mode-with-empty-log-lines",
                 msg: "2",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-empty-log-lines",
+                serviceName: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "dev-mode-with-empty-log-lines",
+                serviceName: "sync-mode-with-empty-log-lines",
                 msg: "3",
                 level: 2,
               },
             ])
           })
           it("should eventually timeout if status command is set and it returns a non-zero exit code ", async () => {
-            const rawAction = graph.getDeploy("dev-mode-timeout")
+            const rawAction = graph.getDeploy("sync-mode-timeout")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
             let error: any
             try {
               await router.deploy.deploy({
-                devMode: true,
+                syncMode: true,
                 force: false,
 
                 localMode: false,
@@ -811,10 +811,10 @@ describe("exec plugin", () => {
             pid = error.detail.pid
             expect(pid).to.be.a("number")
             expect(pid).to.be.greaterThan(0)
-            expect(error.detail.serviceName).to.eql("dev-mode-timeout")
+            expect(error.detail.serviceName).to.eql("sync-mode-timeout")
             expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
             expect(error.detail.timeout).to.eql(3)
-            expect(error.message).to.include(`Timed out waiting for local service dev-mode-timeout to be ready.`)
+            expect(error.message).to.include(`Timed out waiting for local service sync-mode-timeout to be ready.`)
             expect(error.message).to.include(`The last exit code was 1.`)
             expect(error.message).to.include(`Command output:\nStatus command output`)
           })
@@ -847,7 +847,7 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           await router.deploy.deploy({
-            devMode: false,
+            syncMode: false,
 
             localMode: false,
             force: false,
@@ -895,7 +895,7 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           await router.deploy.deploy({
-            devMode: false,
+            syncMode: false,
 
             localMode: false,
             force: false,

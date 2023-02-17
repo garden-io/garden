@@ -190,18 +190,18 @@ Here the `worker` module specifies the image as a build dependency, and addition
 
 Notice that this can also work if you have multiple containers in a single chart. You just add them all as build dependencies, and the appropriate reference under `values`.
 
-## Code Synchronization (Dev Mode)
+## Code Synchronization
 
-When your project contains the `container` module referenced by a `helm` module, you can even use Garden's [live code synchronization (dev mode)](../../guides/code-synchronization-dev-mode.md) feature for a Helm chart. Going back to the `vote` module example:
+When your project contains the `container` module referenced by a `helm` module, you can even use Garden's [live code synchronization](../../guides/code-synchronization.md) feature for a Helm chart. Going back to the `vote` module example:
 
 ```yaml
 kind: Module
 description: Helm chart for the voting UI
 type: helm
 name: vote
-devMode:
+sync:
   command: [npm, run, dev]
-  sync:
+  paths:
     - target: /app
     - source: /tmp/somedir
       target: /somedir
@@ -212,9 +212,7 @@ serviceResource:
   containerName: vote
 ```
 
-For dev mode to work you must specify `serviceResource.containerModule`, so that Garden knows which module contains the sources to use for code syncing. You can also use the `devMode.command` directive to, for example, start the container with automatic reloading or in development mode.
-
-For the above example, you could then run `garden deploy -w --hot-reload=vote` or `garden dev --hot-reload=vote` to start the `vote` service in hot-reloading mode. When you then change the sources in the _vote-image_ module, Garden syncs the changes to the running container from the Helm chart.
+For sync to work you must specify `serviceResource.containerModule`, so that Garden knows which module contains the sources to use for code syncing. You can also use the `sync.command` directive to, for example, start the container with automatic reloading or in development mode.
 
 ## Re-using charts
 

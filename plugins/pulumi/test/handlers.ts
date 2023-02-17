@@ -7,17 +7,18 @@
  */
 
 import Bluebird from "bluebird"
-import { ConfigGraph, Log, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import execa from "execa"
 import { pathExists } from "fs-extra"
 import { join, resolve } from "path"
-import { deployPulumiService, getPulumiServiceStatus } from "../handlers"
+import { deployPulumi, getPulumiDeployStatus } from "../handlers"
 import { PulumiProvider } from "../config"
 import { gardenPlugin as pulumiPlugin } from ".."
 import { expect } from "chai"
 import { getStackVersionTag } from "../helpers"
 import { getPulumiCommands } from "../commands"
+import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
 
 const projectRoot = resolve(__dirname, "test-project-k8s")
 
@@ -41,7 +42,7 @@ const ensureNodeModules = async () => {
 // `test-project-k8s/project.garden.yml` with your own org's name and make sure you've logged in via `pulumi login`.
 describe.skip("pulumi plugin handlers", () => {
   let garden: TestGarden
-  let graph: ConfigGraph
+  let graph: ResolvedConfigGraph
   let log: Log
   let ctx: PluginContext
   let provider: PulumiProvider
@@ -52,50 +53,46 @@ describe.skip("pulumi plugin handlers", () => {
     garden = await makeTestGarden(projectRoot, { plugins: [plugin] })
     log = garden.log
     provider = (await garden.resolveProvider(log, "pulumi")) as PulumiProvider
-    ctx = await garden.getPluginContext(provider, undefined, undefined)
-    graph = await garden.getConfigGraph({ log, emit: false })
+    ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+    graph = await garden.getResolvedConfigGraph({ log, emit: false })
   })
 
   after(async () => {
     const destroyCmd = getPulumiCommands().find((cmd) => cmd.name === "destroy")!
     // // We don't want to wait for the stacks to be deleted (since it takes a while)
-    destroyCmd.handler({ garden, ctx, args: [], modules: [], log })
+    destroyCmd.handler({ garden, ctx, args: [], graph, log })
   })
 
   describe("deployPulumiService", () => {
     it("deploys a pulumi stack and tags it with the service version", async () => {
-      const module = graph.getModule("k8s-namespace")
-      const service = graph.getService("k8s-namespace")
-      const status = await deployPulumiService({
+      const action = graph.getDeploy("k8s-namespace")
+      const status = await deployPulumi!({
         ctx,
         log,
-        module,
-        service,
+        action,
         force: false,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       })
-      const versionTag = await getStackVersionTag({ log, ctx, provider, module })
+      const versionTag = await getStackVersionTag({ log, ctx, provider, action })
       expect(status.state).to.eql("ready")
 
       // The service outputs should include all pulumi stack outputs for the deployed stack.
       expect(status.outputs?.namespace).to.eql("pulumi-test")
 
       // The deployed stack should have been tagged with the service version
-      expect(versionTag).to.eql(service.version)
+      expect(versionTag).to.eql(action.versionString())
     })
   })
 
   describe("getPulumiServiceStatus", () => {
     it("should return an 'outdated' state when the stack hasn't been deployed before", async () => {
-      const module = graph.getModule("k8s-deployment")
-      const service = graph.getService("k8s-deployment")
-      const status = await getPulumiServiceStatus({
+      const action = graph.getDeploy("k8s-deployment")
+      const status = await getPulumiDeployStatus!({
         ctx,
         log,
-        module,
-        service,
-        devMode: false,
+        action,
+        syncMode: false,
         localMode: false,
       })
       expect(status.state).to.eql("outdated")
@@ -103,14 +100,12 @@ describe.skip("pulumi plugin handlers", () => {
 
     it("should return a 'ready' state when the stack has already been deployed", async () => {
       // We've previously deployed this service in the tests for deployPulumiService above.
-      const module = graph.getModule("k8s-namespace")
-      const service = graph.getService("k8s-namespace")
-      const status = await getPulumiServiceStatus({
+      const action = graph.getDeploy("k8s-namespace")
+      const status = await getPulumiDeployStatus!({
         ctx,
         log,
-        module,
-        service,
-        devMode: false,
+        action,
+        syncMode: false,
         localMode: false,
       })
       expect(status.state).to.eql("ready")

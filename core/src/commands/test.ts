@@ -37,6 +37,7 @@ export const testArgs = {
 }
 
 export const testOpts = {
+  // TODO: remove in 0.13?
   "name": new StringsParameter({
     help: deline`
       DEPRECATED: This now does the exact same as the positional arguments.
@@ -44,20 +45,20 @@ export const testOpts = {
       Only run tests with the specfied name (e.g. unit or integ).
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
-    alias: "n",
+    aliases: ["n"],
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Test)
     },
   }),
   "force": new BooleanParameter({
     help: "Force re-run of Test, even if a successful result is found in cache.",
-    alias: "f",
+    aliases: ["f"],
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of any Build dependencies encountered." }),
   "interactive": new BooleanParameter({
     help:
       "Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
-    alias: "i",
+    aliases: ["i"],
     cliOnly: true,
   }),
   "module": new StringsParameter({
@@ -84,7 +85,7 @@ export const testOpts = {
     dependencies without redeploying any service dependencies that may have changed since you last deployed.
     Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
     your test suites are up to date when this option is used.`,
-    alias: "nodeps",
+    aliases: ["nodeps"],
   }),
   "skip-dependants": new BooleanParameter({
     help: "DEPRECATED: This is a no-op, dependants are not processed by default anymore.",
@@ -167,7 +168,7 @@ export class TestCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
           skipRuntimeDependencies,
           interactive: opts.interactive,

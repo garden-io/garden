@@ -50,8 +50,8 @@ description: The backend server.
 type: container
 services:
   - name: backend
-    devMode:
-      sync:
+    sync:
+      paths:
         - source: ./
           target: /usr/src/app
           mode: "one-way-replica"
@@ -70,7 +70,7 @@ services:
       - mongo
 ```
 
-This one is a `Module` instead of a `Project`. Under `devMode`, we set up syncing from the root folder to our built `app` folder so we can see code changes live when in developer mode. Under `ports`, we specify the same port as in our Docker Compose file (3000). We set up a health check for the the `/api` route, as that is what this module serves, and an ingress on a subdomain. In our case, this will let us access our backend service on `compose2garden.local.app.garden`. Finally, we specify the dependency on the `mongo` module, which we will define in a bit.
+This one is a `Module` instead of a `Project`. Under `sync`, we set up syncing from the root folder to our built `app` folder so we can see code changes live when in developer mode. Under `ports`, we specify the same port as in our Docker Compose file (3000). We set up a health check for the the `/api` route, as that is what this module serves, and an ingress on a subdomain. In our case, this will let us access our backend service on `compose2garden.local.app.garden`. Finally, we specify the dependency on the `mongo` module, which we will define in a bit.
 
 ### The `frontend/frontend.garden.yml` file
 
@@ -87,8 +87,8 @@ services:
   - name: frontend
     env:
       DANGEROUSLY_DISABLE_HOST_CHECK: true
-    devMode:
-      sync:
+    sync:
+      paths:
         - source: ./src
           target: /usr/src/app/src
           mode: "one-way-replica"

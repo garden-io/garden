@@ -42,7 +42,7 @@ describe("ResolveActionTask", () => {
       log,
       graph,
       action,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
       force: false,
     })

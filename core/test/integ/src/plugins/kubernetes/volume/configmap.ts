@@ -72,7 +72,7 @@ describe("configmap module", () => {
       action,
       force: true,
       forceBuild: false,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 

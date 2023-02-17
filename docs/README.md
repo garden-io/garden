@@ -78,7 +78,7 @@
 
 * [Installing Garden](./guides/installation.md)
 * [Adopting Garden](./guides/adopting-garden.md)
-* [Code Synchronization (Dev Mode)](./guides/code-synchronization-dev-mode.md)
+* [Code Synchronization](./guides/code-synchronization.md)
 * [Connecting a local service to a K8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
 * [Hot Reload](./guides/hot-reload.md)
@@ -140,7 +140,6 @@
   * [`helm`](./reference/module-types/helm.md)
   * [`jib-container`](./reference/module-types/jib-container.md)
   * [`kubernetes`](./reference/module-types/kubernetes.md)
-  * [`maven-container`](./reference/module-types/maven-container.md)
   * [`persistentvolumeclaim`](./reference/module-types/persistentvolumeclaim.md)
   * [`pulumi`](./reference/module-types/pulumi.md)
   * [`templated`](./reference/module-types/templated.md)
