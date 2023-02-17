@@ -42,6 +42,7 @@ import {
   ProxySshKeystore,
 } from "../../../../../../src/plugins/kubernetes/local-mode"
 import stripAnsi = require("strip-ansi")
+import { executeAction } from "../../../../../../src/graph/actions"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -415,6 +416,7 @@ describe("kubernetes container deployment handlers", () => {
 
     it("should configure the service for sync with sync mode enabled", async () => {
       const action = await resolveDeployAction("sync-mode")
+      await executeAction({ garden, graph, log: garden.log, action })
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
@@ -458,8 +460,9 @@ describe("kubernetes container deployment handlers", () => {
       expect(appContainerSpec!.volumeMounts![0]!.name).to.eq("garden")
     })
 
-    it("should increase liveness probes when in sync mode", async () => {
+    it("should configure the service for sync with sync mode enabled", async () => {
       const action = await resolveDeployAction("sync-mode")
+      await executeAction({ garden, graph, log: garden.log, action })
       const namespace = provider.config.namespace!.name!
 
       const resource = await createWorkloadManifest({
