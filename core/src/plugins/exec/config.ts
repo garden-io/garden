@@ -96,7 +96,7 @@ export interface ExecDeployActionSpec extends CommonKeys {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  devMode?: ExecDevModeSpec
+  syncMode?: ExecDevModeSpec
   timeout?: number
   env: StringMap
 }
@@ -149,13 +149,14 @@ export const execDeployActionSchema = createSchema({
       The maximum duration (in seconds) to wait for a local script to exit.
     `),
     env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
-    devMode: joi.object().keys({
+    // TODO-G2: We should just use a `persistent: true` flag here, since there is no actual sync semantic here
+    syncMode: joi.object().keys({
       command: joi
         .sparseArray()
         .items(joi.string().allow(""))
         .description(
           dedent`
-            The command to run to deploy in dev mode. When in dev mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the \`garden logs\` command as usual.
+            The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the \`garden logs\` command as usual.
 
             If a \`statusCommand\` is set, Garden will wait until it returns a zero exit code before considering the deployment ready. Otherwise it considers it immediately ready.
 
@@ -167,7 +168,7 @@ export const execDeployActionSchema = createSchema({
         .items(joi.string().allow(""))
         .description(
           dedent`
-            Optionally set a command to check the status of the deployment in dev mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
+            Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
 
             If no \`statusCommand\` is set, Garden will consider the deploy ready as soon as it has started the process.
 

@@ -41,14 +41,14 @@ name: frontend-local
 type: exec
 build: frontend-local
 spec:
-  devMode:
-    command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in dev mode
+  syncMode:
+    command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in sync mode
     statusCommand: [./check-local-status.sh] # <--- Optionally set a status command that checks whether the local service is ready
-  deployCommand: [] # <--- A no op since we only want to deploy it when we're in dev mode
+  deployCommand: [] # <--- A no op since we only want to deploy it when we're in sync mode
   env: ${action.deploy.frontend.env} # <--- Reference the env variable defined above
 ```
 
-In the config above the `local-frontend` deploy action is always enabled when in dev mode, but you can choose to conditionally enable it as well.
+In the config above the `local-frontend` deploy action is always enabled when in sync mode, but you can choose to conditionally enable it as well.
 
 You could e.g. use [command line variables](https://docs.garden.io/using-garden/variables-and-templating#variable-files-varfiles) to control whether the `local-frontend` deploy action should be enabled or create a custom command.
 
@@ -65,7 +65,7 @@ cd ..
 Assuming you've [set _your_ K8s context](https://docs.garden.io/tutorials/your-first-project/2-connect-to-a-cluster), you can start the project with:
 
 ```console
-garden deploy --dev
+garden deploy --sync
 ```
 
 This will deploy the remote services and start the local service as well.

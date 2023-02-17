@@ -20,17 +20,17 @@ describe("getMatchingServiceNames", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  it("should return all services if --dev-mode=* is set", async () => {
+  it("should return all services if --sync=* is set", async () => {
     const result = getMatchingDeployNames(["*"], graph)
     expect(result).to.eql(graph.getDeploys().map((s) => s.name))
   })
 
-  it("should return all services if --dev-mode is set with no value", async () => {
+  it("should return all services if --sync is set with no value", async () => {
     const result = getMatchingDeployNames([], graph)
     expect(result).to.eql(graph.getDeploys().map((s) => s.name))
   })
 
-  it("should return specific service if --dev-mode is set with a service name", async () => {
+  it("should return specific service if --sync is set with a service name", async () => {
     const result = getMatchingDeployNames(["service-a"], graph)
     expect(result).to.eql(["service-a"])
   })

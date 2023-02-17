@@ -66,7 +66,7 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
       const result = await kubernetesDeploy({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        devMode: false,
+        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -76,7 +76,7 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
       const result = await getKubernetesDeployStatus({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        devMode: false,
+        syncMode: false,
       })
 
       return { ...result, outputs: {} }

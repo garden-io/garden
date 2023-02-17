@@ -20,7 +20,7 @@ exec:
     - git submodule update --recursive --remote  # Because we keep forgetting to update these, amirite?
 gardenCommand:
   - deploy
-  - --dev
+  - --sync
   - api,worker
   - --log-level
   - debug

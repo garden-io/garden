@@ -36,7 +36,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
     ctx,
     log,
     action,
-    devMode: false,
+    syncMode: false,
     localMode: false,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)

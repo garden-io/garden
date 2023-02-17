@@ -10,9 +10,9 @@ build:
           target: "config/"
 services:
   - name: frontend
-    devMode:
+    sync:
       command: [npm, run, dev]
-      sync:
+      paths:
         - source: .
           target: /app
           exclude: [node_modules]

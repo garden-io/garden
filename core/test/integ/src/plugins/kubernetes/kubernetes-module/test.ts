@@ -39,7 +39,7 @@ describe("testKubernetesModule", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -65,7 +65,7 @@ describe("testKubernetesModule", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -92,7 +92,7 @@ describe("testKubernetesModule", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -125,7 +125,7 @@ describe("testKubernetesModule", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -148,7 +148,7 @@ describe("testKubernetesModule", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -173,7 +173,7 @@ describe("testKubernetesModule", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

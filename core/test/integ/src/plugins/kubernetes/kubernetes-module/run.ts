@@ -40,7 +40,7 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -83,7 +83,7 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -116,7 +116,7 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -143,7 +143,7 @@ describe("runKubernetesTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -176,7 +176,7 @@ describe("runKubernetesTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -199,7 +199,7 @@ describe("runKubernetesTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
       await emptyDir(garden.artifactsPath)
@@ -223,7 +223,7 @@ describe("runKubernetesTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

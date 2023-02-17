@@ -3,8 +3,8 @@ type: kubernetes
 name: with-source-module
 description: Simple Kubernetes module with minimum config that has a container source module
 
-devMode:
-  sync:
+sync:
+  paths:
     - source: "*"
       target: /app
 

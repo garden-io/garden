@@ -48,7 +48,7 @@ describe("deploy actions", () => {
         log,
         action: resolvedDeployAction,
         graph,
-        devMode: false,
+        syncMode: false,
 
         localMode: false,
       })
@@ -65,7 +65,7 @@ describe("deploy actions", () => {
         log,
         action: resolvedDeployAction,
         graph,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       })
       const event = garden.events.eventLog[0]
@@ -86,7 +86,7 @@ describe("deploy actions", () => {
             log,
             action: resolvedDeployAction,
             graph,
-            devMode: false,
+            syncMode: false,
             localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
@@ -101,7 +101,7 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       })
       expect(result).to.eql({
@@ -118,7 +118,7 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       })
       const moduleVersion = resolvedDeployAction.moduleVersion().versionString
@@ -151,7 +151,7 @@ describe("deploy actions", () => {
             action: resolvedDeployAction,
             graph,
             force: true,
-            devMode: false,
+            syncMode: false,
             localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }

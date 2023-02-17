@@ -34,7 +34,7 @@ describe("TestTask", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

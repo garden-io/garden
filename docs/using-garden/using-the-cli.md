@@ -56,12 +56,12 @@ When arguments accept one or more services, modules etc. we comma-separate the n
 garden deploy service-a,service-b
 ```
 
-### Deploying a service in dev mode
+### Deploying a service with sync enabled
 
-See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for more information on how to configure and use dev mode for rapid iteration on services.
+See the [Code synchronization guide](../guides/code-synchronization.md) for more information on how to configure and use syncing for rapid iteration on services.
 
 ```sh
-garden deploy my-service --dev=*
+garden deploy my-service --sync=*
 ```
 
 ### Running a single ad-hoc service and attaching
@@ -221,7 +221,7 @@ The dashboard gives you:
 ## Dev mode
 
 For rapid iteration on a running service, you can use a feature called _dev mode_.
-See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for details on how to configure and use that feature.
+See the [Code synchronization guide](../guides/code-synchronization.md) for details on how to configure and use that feature.
 
 ## Project outputs
 

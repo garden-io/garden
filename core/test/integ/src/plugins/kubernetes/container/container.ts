@@ -134,7 +134,7 @@ describe("kubernetes container module handlers", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -162,7 +162,7 @@ describe("kubernetes container module handlers", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -202,7 +202,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -225,7 +225,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -250,7 +250,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -273,7 +273,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -294,7 +294,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 

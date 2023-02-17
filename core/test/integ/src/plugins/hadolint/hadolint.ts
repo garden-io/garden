@@ -192,7 +192,7 @@ describe("hadolint provider", () => {
         graph,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
         action,
       })
@@ -266,7 +266,7 @@ describe("hadolint provider", () => {
 
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -334,7 +334,7 @@ describe("hadolint provider", () => {
 
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -396,7 +396,7 @@ describe("hadolint provider", () => {
 
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -448,7 +448,7 @@ describe("hadolint provider", () => {
 
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -503,7 +503,7 @@ describe("hadolint provider", () => {
 
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

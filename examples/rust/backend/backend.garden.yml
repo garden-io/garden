@@ -14,8 +14,8 @@ type: container
 build: backend
 
 spec:
-  devMode:
-    sync:
+  sync:
+    paths:
       - source: ./
         target: /app
         mode: "one-way-replica"

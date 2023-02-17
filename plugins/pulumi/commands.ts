@@ -216,7 +216,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       action,
       graph,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
     this.commandName = commandName
@@ -307,7 +307,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
     "skip-dependencies": new BooleanParameter({
       help: deline`Run ${pulumiCommand} for the specified services, but not for any pulumi services that they depend on
       (unless they're specified too).`,
-      alias: "nodeps",
+      aliases: ["nodeps"],
     }),
   }
 

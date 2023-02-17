@@ -302,13 +302,10 @@ describe("ProjectConfigContext", () => {
       loggedIn: true,
       enterpriseDomain,
       secrets: {},
-      commandInfo: { name: "deploy", args: {}, opts: { "dev-mode": ["my-service"] } },
+      commandInfo: { name: "deploy", args: {}, opts: { sync: ["my-service"] } },
     })
 
-    let result = resolveTemplateString(
-      "${command.name == 'deploy' && (command.params.dev-mode contains 'my-service')}",
-      c
-    )
+    let result = resolveTemplateString("${command.name == 'deploy' && (command.params.sync contains 'my-service')}", c)
     expect(result).to.be.true
   })
 
@@ -326,7 +323,7 @@ describe("ProjectConfigContext", () => {
     })
 
     let result = resolveTemplateString(
-      "${command.params contains 'dev-mode' && command.params.dev-mode contains 'my-service'}",
+      "${command.params contains 'sync' && command.params.sync contains 'my-service'}",
       c
     )
     expect(result).to.be.false

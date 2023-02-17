@@ -1,5 +1,5 @@
 ---
-title: Kubernetes 
+title: Kubernetes
 order: 2
 ---
 
@@ -35,11 +35,11 @@ If your project structure looks something like this:
 ├── api
 │   ├── garden.yml
 │   ├── manifests
-│   │   ├── prod 
+│   │   ├── prod
 │   │   ├── Deployment.yaml
 │   │   ├── Ingress.yaml
 │   │   └── Service.yaml
-│   │   ├── dev 
+│   │   ├── dev
 │   │   ├── Deployment.yaml
 │   │   ├── Ingress.yaml
 │   │   └── Service.yaml
@@ -53,7 +53,7 @@ You can reference the manifests like so:
 kind: module
 type: kubernetes
 name: api
-files: 
+files:
   - ./manifests/Deployment.yaml
   - ./manifests/Ingress.yaml
   - ./manifests/Service.yaml
@@ -90,7 +90,7 @@ You can reference the manifests like so:
 kind: module
 type: kubernetes
 name: api
-files: 
+files:
   - ./manifests/${environment.name}/Deployment.yaml
   - ./manifests/${environment.name}/Ingress.yaml
   - ./manifests/${environment.name}/Service.yaml
@@ -231,30 +231,30 @@ name: api-image
 
 Here the `api` module specifies the image as a build dependency, and additionally injects the `api-image` version into the Kubernetes manifest.
 
-## Code Synchronization (Dev Mode)
+## Code Synchronization
 
-When your project contains the `container` module referenced by a `kubernetes` module, you can even use Garden's [live code synchronization (dev mode)](../../guides/code-synchronization-dev-mode.md) feature for a Kubernetes manifest. For example:
+When your project contains the `container` module referenced by a `kubernetes` module, you can even use Garden's [live code synchronization](../../guides/code-synchronization.md) feature for a Kubernetes manifest. For example:
 
 ```yaml
 kind: Module
 type: kubernetes
 name: api
-devMode:
+sync:
   command: [npm, run, dev]
-  sync:
+  paths:
     - target: /app
     - source: /tmp/somedir
       target: /somedir
 serviceResource:
   kind: Deployment
-  name: api 
+  name: api
   containerModule: api-image # <--- The name of container module
-  containerName: api 
+  containerName: api
 ```
 
-For dev mode to work you must specify `serviceResource.containerModule`, so that Garden knows which module contains the sources to use for code syncing. You can also use the `devMode.command` directive to, for example, start the container with automatic reloading or in development mode.
+For sync to work you must specify `serviceResource.containerModule`, so that Garden knows which module contains the sources to use for code syncing. You can also use the `sync.command` directive to, for example, start the container with automatic reloading or in development mode.
 
-For the above example, you could then run `garden deploy -w --dev=api` to start the `api` service in hot-reloading mode. When you then change the sources in the _api-image_ module, Garden syncs the changes to the running container from the Helm chart.
+For the above example, you could then run `garden deploy -w --sync=api` to start the `api` service in code sync mode. When you then change the sources in the _api-image_ module, Garden syncs the changes to the running container from the Helm chart.
 
 ## Production environments
 

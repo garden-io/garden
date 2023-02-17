@@ -5,9 +5,9 @@ type: container
 services:
   - name: node-service
     args: [npm, start]
-    devMode:
-      command: [npm, run, dev] # Overrides the container's default when the service is deployed in dev mode
-      sync:
+    sync:
+      command: [npm, run, dev] # Overrides the container's default when the service is deployed in sync mode
+      paths:
         - source: src
           target: /app/src
           # Make sure to specify any paths that should not be synced!

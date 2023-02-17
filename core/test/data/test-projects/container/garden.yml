@@ -11,7 +11,7 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
-    devMode:
+    sync:
       defaults:
         exclude:
           - "**/prefix-*"

@@ -53,7 +53,7 @@ interface PrepareTemplatesParams {
 }
 
 interface GetChartResourcesParams extends PrepareTemplatesParams {
-  devMode: boolean
+  syncMode: boolean
   localMode: boolean
 }
 
@@ -68,7 +68,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, action, devMode, localMode, log } = params
+  const { ctx, action, syncMode, localMode, log } = params
   const prepareResult = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
@@ -76,7 +76,7 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
   return await prepareManifests({
     ctx,
     action,
-    devMode,
+    syncMode,
     localMode,
     log,
     ...prepareResult,
@@ -160,7 +160,7 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
 type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, action, devMode, localMode, log, namespace, releaseName, valuesPath, reference } = params
+  const { ctx, action, syncMode, localMode, log, namespace, releaseName, valuesPath, reference } = params
   const timeout = action.getSpec("timeout")
 
   const res = await helm({
@@ -179,7 +179,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "json",
       "--timeout",
       timeout.toString(10) + "s",
-      ...(await getValueArgs({ action, devMode, localMode, valuesPath })),
+      ...(await getValueArgs({ action, syncMode, localMode, valuesPath })),
     ],
     // do not send JSON output to Garden Cloud or CLI verbose log
     emitLogEvents: false,
@@ -278,12 +278,12 @@ export async function getChartPath(action: Resolved<HelmDeployAction>) {
  */
 export async function getValueArgs({
   action,
-  devMode,
+  syncMode,
   localMode,
   valuesPath,
 }: {
   action: Resolved<HelmDeployAction>
-  devMode: boolean
+  syncMode: boolean
   localMode: boolean
   valuesPath: string
 }) {
@@ -296,11 +296,11 @@ export async function getValueArgs({
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
-  // Local mode always takes precedence over dev mode
+  // Local mode always takes precedence over sync mode
   if (localMode) {
     args.push("--set", "\\.garden.localMode=true")
-  } else if (devMode) {
-    args.push("--set", "\\.garden.devMode=true")
+  } else if (syncMode) {
+    args.push("--set", "\\.garden.syncMode=true")
   }
 
   return args
@@ -369,7 +369,7 @@ export async function renderHelmTemplateString({
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs({ action, devMode: false, localMode: false, valuesPath })),
+          ...(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath })),
           "--show-only",
           relPath,
           ...reference,

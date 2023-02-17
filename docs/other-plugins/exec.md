@@ -11,15 +11,15 @@ It's built-in which means you don't need to specify it in the project level conf
 
 It's great for running auth scripts as well as executing various scaffolding scripts that need to run "locally".
 
-It can also be used to start services locally (e.g. by executing commands like `yarn dev`). 
+It can also be used to start services locally (e.g. by executing commands like `yarn dev`).
 
-This can be very useful for hybrid environments where you have, say, your backend running in a remote production-like environment but your frontend running locally. 
+This can be very useful for hybrid environments where you have, say, your backend running in a remote production-like environment but your frontend running locally.
 
 ## Plugin Configuration
 
-Usually you don't need to configure the exec plugin because it's built-in and you can use exec modules directly. 
+Usually you don't need to configure the exec plugin because it's built-in and you can use exec modules directly.
 
-However, it can be used to run init scripts ahead of other Garden execution. This is e.g. useful if you need to authenticate against a remote environment before Garden initializes other plugins. 
+However, it can be used to run init scripts ahead of other Garden execution. This is e.g. useful if you need to authenticate against a remote environment before Garden initializes other plugins.
 
 Here's an example where we run a script to authenticate against a Kubernetes cluster before initializing the Kubernetes plugin:
 
@@ -87,15 +87,15 @@ The exec module can also be used to start long running services like so:
 ```yaml
 kind: Module
 name: web-local
-type: exec 
+type: exec
 local: true
 include: []
 services:
   - name: web-local
-    devMode:
-      command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in dev mode
+    syncMode:
+      command: ["yarn", "run", "dev"] # <--- This is the command Garden runs to start the process in sync mode
       statusCommand: [./check-local-status.sh] # <--- Optionally set a status command that checks whether the local service is ready
-    deployCommand: [] # <--- A no op since we only want to deploy it when we're in dev mode
+    deployCommand: [] # <--- A no op since we only want to deploy it when we're in sync mode
     env: ${modules.frontend.env} # <--- Reference the env variable defined above
 ```
 

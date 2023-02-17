@@ -197,10 +197,10 @@ spec:
   # Environment variables to set when running the deploy and status commands.
   env: {}
 
-  devMode:
-    # The command to run to deploy in dev mode. When in dev mode, Garden assumes that the command starts a persistent
-    # process and does not wait for it return. The logs from the process can be retrieved via the `garden logs`
-    # command as usual.
+  syncMode:
+    # The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a
+    # persistent process and does not wait for it return. The logs from the process can be retrieved via the `garden
+    # logs` command as usual.
     #
     # If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering the
     # deployment ready. Otherwise it considers it immediately ready.
@@ -211,7 +211,7 @@ spec:
     # this action.
     command:
 
-    # Optionally set a command to check the status of the deployment in dev mode. Garden will run the status command
+    # Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command
     # at an interval until it returns a zero exit code or times out.
     #
     # If no `statusCommand` is set, Garden will consider the deploy ready as soon as it has started the process.
@@ -530,19 +530,19 @@ Environment variables to set when running the deploy and status commands.
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-### `spec.devMode`
+### `spec.syncMode`
 
-[spec](#spec) > devMode
+[spec](#spec) > syncMode
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.devMode.command[]`
+### `spec.syncMode.command[]`
 
-[spec](#spec) > [devMode](#specdevmode) > command
+[spec](#spec) > [syncMode](#specsyncmode) > command
 
-The command to run to deploy in dev mode. When in dev mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the `garden logs` command as usual.
+The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the `garden logs` command as usual.
 
 If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering the deployment ready. Otherwise it considers it immediately ready.
 
@@ -552,11 +552,11 @@ Note that if a Build is referenced in the `build` field, the command will be run
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `spec.devMode.statusCommand[]`
+### `spec.syncMode.statusCommand[]`
 
-[spec](#spec) > [devMode](#specdevmode) > statusCommand
+[spec](#spec) > [syncMode](#specsyncmode) > statusCommand
 
-Optionally set a command to check the status of the deployment in dev mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
+Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
 
 If no `statusCommand` is set, Garden will consider the deploy ready as soon as it has started the process.
 
@@ -566,9 +566,9 @@ Note that if a Build is referenced in the `build` field, the command will be run
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `spec.devMode.timeout`
+### `spec.syncMode.timeout`
 
-[spec](#spec) > [devMode](#specdevmode) > timeout
+[spec](#spec) > [syncMode](#specsyncmode) > timeout
 
 The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no `statusCommand` is set.
 

@@ -77,7 +77,7 @@ describe("conftest-kubernetes provider", () => {
         action,
         force: true,
         forceBuild: true,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

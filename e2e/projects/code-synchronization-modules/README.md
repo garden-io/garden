@@ -2,21 +2,22 @@
 
 This example showcases Garden's code synchronization functionality.
 
-You can synchronize your code (and other files) to and from running containers using dev mode.
+You can synchronize your code (and other files) to and from running containers.
 
 ## Structure of this project
 
 This project contains a single service called `node-service`. When running, the service waits for requests on `/hello` and responds with a message.
 
-In the `garden.yml` file of the `node-service` module we configure `devMode` and specify its two key settings:
-1. `command` tells the module which command should be run if dev mode is enabled to start the service.
-2. `sync` defines the sync mode, exclusions, target and source directories.
+In the `garden.yml` file of the `node-service` module we configure `sync` and specify its two key settings:
+
+1. `command` tells the module which command should be run if sync is enabled to start the service.
+2. `paths` defines the sync mode, exclusions, target and source directories.
 
 ```yaml
 # ...
-devMode:
+sync:
   command: [npm, run, dev]
-  sync:
+  paths:
     - source: src
       target: /app/src
       # Make sure to specify any paths that should not be synced!
@@ -27,10 +28,10 @@ devMode:
 
 ## Usage
 
-You are now ready to run dev mode
+You are now ready to run with sync enabled:
 
 ```sh
-garden dev
+garden deploy --sync
 ```
 
 Our service is now up and running. We can open the displayed ingress URL in the browser, which will show a friendly greeting (Garden is friendly by default):
@@ -55,4 +56,4 @@ And you can verify the change by opening the displayed ingress URL in your brows
 }
 ```
 
-Check out the [docs](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information on dev mode and code synchronization.
+Check out the [docs](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information on code synchronization.

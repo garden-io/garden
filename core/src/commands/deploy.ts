@@ -41,12 +41,12 @@ export const deployOpts = {
   "force": new BooleanParameter({ help: "Force re-deploy." }),
   "force-build": new BooleanParameter({ help: "Force re-build of build dependencies." }),
   "watch": watchParameter,
-  "dev-mode": new StringsParameter({
-    help: deline`The name(s) of the deploys to deploy with dev mode enabled.
+  "sync": new StringsParameter({
+    help: deline`The name(s) of the deploys to deploy with sync enabled.
       Use comma as a separator to specify multiple names. Use * to deploy all
-      with dev mode enabled.
+      supported deployments with sync enabled.
     `,
-    alias: "dev",
+    aliases: ["dev", "dev-mode"],
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
@@ -57,10 +57,10 @@ export const deployOpts = {
     deploys with local mode enabled. When this option is used,
     the command is run in persistent mode.
 
-    This always takes the precedence over dev mode if there are any conflicts,
-    i.e. if the same deploys are passed to both \`--dev\` and \`--local\` options.
+    This always takes the precedence over sync mode if there are any conflicts,
+    i.e. if the same deploys are passed to both \`--sync\` and \`--local\` options.
     `,
-    alias: "local",
+    aliases: ["local"],
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
@@ -74,12 +74,12 @@ export const deployOpts = {
   "skip-dependencies": new BooleanParameter({
     help: deline`
     Deploy the specified actions, but don't build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments.
-    This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in dev mode without building, deploying or running dependencies that may have changed since you last deployed.
+    This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
     `,
-    alias: "nodeps",
+    aliases: ["nodeps"],
   }),
   "forward": new BooleanParameter({
-    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --dev/--dev-mode or --local/--local-mode are set.`,
+    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --sync or --local/--local-mode are set.`,
   }),
 }
 
@@ -106,8 +106,8 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy my-deploy            # only deploy my-deploy
         garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
         garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-        garden deploy --dev=my-deploy      # deploys all deploys, with dev mode enabled for my-deploy
-        garden deploy --dev                # deploys all compatible deploys with dev mode enabled
+        garden deploy --sync=my-deploy     # deploys all deploys, with sync enabled for my-deploy
+        garden deploy --sync               # deploys all compatible deploys with sync enabled
         garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
         garden deploy --local              # deploys all compatible deploys with local mode enabled
         garden deploy --env stage          # deploy your deploys to an environment called stage
@@ -123,7 +123,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts["dev-mode"] || !!opts["local-mode"] || !!opts.forward
+    return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward
   }
 
   printHeader({ headerLog }) {
@@ -175,7 +175,7 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const localModeDeployNames = getMatchingDeployNames(opts["local-mode"], initGraph)
-    const devModeDeployNames = getMatchingDeployNames(opts["dev-mode"], initGraph).filter(
+    const syncModeDeployNames = getMatchingDeployNames(opts.sync, initGraph).filter(
       (name) => !localModeDeployNames.includes(name)
     )
 
@@ -192,7 +192,7 @@ export class DeployCommand extends Command<Args, Opts> {
           forceBuild: opts["force-build"],
           skipRuntimeDependencies,
           localModeDeployNames,
-          devModeDeployNames,
+          syncModeDeployNames,
         })
     )
 

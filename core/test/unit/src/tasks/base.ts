@@ -71,7 +71,7 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -92,7 +92,7 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -116,7 +116,7 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -141,7 +141,7 @@ describe("BaseActionTask", () => {
         action,
         force: false,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -164,7 +164,7 @@ describe("BaseActionTask", () => {
           force: true,
           forceBuild: false,
           skipRuntimeDependencies: true, // <-----
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 

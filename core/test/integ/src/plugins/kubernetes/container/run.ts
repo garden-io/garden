@@ -48,7 +48,7 @@ describe("runContainerTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -92,7 +92,7 @@ describe("runContainerTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -124,7 +124,7 @@ describe("runContainerTask", () => {
       force: true,
       forceBuild: false,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 
@@ -159,7 +159,7 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -182,7 +182,7 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
       await emptyDir(garden.artifactsPath)
@@ -206,7 +206,7 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -229,7 +229,7 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -257,7 +257,7 @@ describe("runContainerTask", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
