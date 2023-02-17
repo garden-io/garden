@@ -1,0 +1,12 @@
+kind: Project
+name: tls-and-dns
+defaultEnvironment: remote
+environments:
+  - name: remote
+providers:
+  - name: kubernetes
+    environments: [remote]
+    context: garden-dns-tls-test
+    namespace: tls-and-dns
+    buildMode: kaniko
+    setupIngressController: nginx

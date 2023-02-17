@@ -1,0 +1,32 @@
+---
+# Cert-Manager Helm Chart configuration
+kind: Module
+type: helm
+name: cert-manager
+namespace: cert-manager
+description: This module installs cert-manager in our Kubernetes Cluster.
+repo: https://charts.jetstack.io
+chart: "cert-manager"
+version: v1.11.0
+chartPath: .
+values:
+  installCRDs: ${var.CERT_MANAGER_INSTALL_CRDS} # Should be true for the first time, false for subsequent runs
+---
+# External-DNS Helm Chart
+kind: Module
+type: helm
+name: external-dns
+namespace: external-dns
+description: This module installs external-dns in our Kubernetes Cluster.
+repo: https://charts.bitnami.com/bitnami
+chart: "external-dns"
+version: 6.13.3
+chartPath: .
+values: # To check a full list of values, see https://artifacthub.io/packages/helm/bitnami/external-dns
+  provider: ${var.CF_DNS_PROVIDER}
+  domainFilter: ${var.CF_DOMAIN}
+  policy: ${var.CF_UPDATE_STRATEGY}
+  cloudflare:
+    email: ${var.CF_EMAIL}
+    proxied: ${var.CF_PROXIED}
+    apiToken: ${local.env.CF_API_TOKEN}
