@@ -18,9 +18,7 @@ import { TreeCache } from "@garden-io/core/build/src/cache"
 require("source-map-support").install()
 
 // make sure logger is initialized
-try {
-  Logger.initialize({ level: LogLevel.info, type: "quiet", storeEntries: false })
-} catch (_) {}
+Logger.initialize({ level: LogLevel.info, type: "quiet", storeEntries: false })
 
 /**
  * Write .garden-version files for modules in garden-system/static.

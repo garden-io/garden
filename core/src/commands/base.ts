@@ -184,7 +184,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   getLoggerType(_: CommandParamsBase<A, O>): LoggerType {
-    return "basic"
+    return "default"
   }
 
   describe() {
@@ -263,7 +263,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
    * @memberof Command
    */
   async isAllowedToRun(garden: Garden, log: Log, opts: ParameterValues<GlobalOptions>): Promise<Boolean> {
-    log.root.stop()
     if (!opts.yes && this.protected && garden.production) {
       const defaultMessage = chalk.yellow(dedent`
         Warning: you are trying to run "garden ${this.getFullName()}" against a production environment ([${

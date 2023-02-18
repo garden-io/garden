@@ -8,9 +8,9 @@
 
 import { expect } from "chai"
 
-import { getLogger, LogLevel, logLevelMap, Logger } from "../../../../src/logger/logger"
+import { getLogger, LogLevel, Logger } from "../../../../src/logger/logger"
 import { freezeTime } from "../../../helpers"
-import { LogEntryMetadata, TaskMetadata } from "../../../../src/logger/log-entry"
+import { LogEntryMetadata } from "../../../../src/logger/log-entry"
 import { omit } from "lodash"
 
 const logger: Logger = getLogger()
@@ -44,9 +44,8 @@ describe("Log", () => {
         index: 2,
       },
     })
-    expect(entry.parent.key).to.eql(log.key)
     expect(entry.root).to.exist
-    const partialEntry = omit(entry, "parent", "root", "metadata")
+    const partialEntry = omit(entry, "root", "metadata")
 
     expect(partialEntry).to.eql({
       type: "logEntry",
@@ -59,8 +58,7 @@ describe("Log", () => {
       key: entry.key,
       id: "my-id",
       level: LogLevel.info,
-      indent: 1,
-      errorData: undefined,
+      error: undefined,
     })
   })
   context("metadata", () => {

@@ -29,7 +29,6 @@ import chalk = require("chalk")
 import hasha = require("hasha")
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import AsyncLock from "async-lock"
-import { LogLevel } from "../logger/logger"
 
 const gitConfigAsyncLock = new AsyncLock()
 

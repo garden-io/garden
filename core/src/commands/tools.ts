@@ -13,7 +13,6 @@ import { Log } from "../logger/log-entry"
 import { Garden, DummyGarden } from "../garden"
 import { Command, CommandParams } from "./base"
 import { getTerminalWidth } from "../logger/util"
-import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { uniqByName, exec, shutdown } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
@@ -74,10 +73,6 @@ export class ToolsCommand extends Command<Args, Opts> {
 
   arguments = toolsArgs
   options = toolsOpts
-
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
 
   printHeader() {}
 

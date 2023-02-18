@@ -27,7 +27,7 @@ import { ProjectConfig } from "../../../../src/config/project"
 import { join } from "path"
 import { remove, readFile, pathExists } from "fs-extra"
 import { dedent } from "../../../../src/util/string"
-import { Log, LogEntry } from "../../../../src/logger/log-entry"
+import { LogEntry } from "../../../../src/logger/log-entry"
 import { defaultWorkflowResources, WorkflowStepSpec } from "../../../../src/config/workflow"
 
 describe("RunWorkflowCommand", () => {
@@ -79,7 +79,9 @@ describe("RunWorkflowCommand", () => {
   })
 
   it("should add workflowStep metadata to log entries provided to steps", async () => {
-    const _garden = await makeTestGardenA()
+    const _garden = await makeTestGardenA(undefined)
+    // Ensure log entries are empty
+    _garden.log.root.entries = []
     const _log = _garden.log
     const _defaultParams = {
       garden: _garden,
@@ -101,7 +103,7 @@ describe("RunWorkflowCommand", () => {
     ])
 
     await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
-    const entries = _garden.log.getLogEntries()
+    const entries = _garden.log.getAllLogEntries()
     const stepHeaderEntries = filterLogEntries(entries, /Running step/)
     const stepBodyEntries = filterLogEntries(entries, /Starting processActions/)
     const stepFooterEntries = filterLogEntries(entries, /Step.*completed/)
@@ -188,9 +190,12 @@ describe("RunWorkflowCommand", () => {
       throw errors[0]
     }
 
+    const graphResults = result?.steps["step-1"]?.outputs?.graphResults!
+    const taskResult = graphResults["run.task-a"]
+
     expect(result).to.exist
     expect(errors).to.not.exist
-    expectFuzzyMatch(result?.steps["step-1"].log!.trim()!, "echo OK")
+    expectFuzzyMatch(taskResult.outputs.log!.trim()!, "echo OK")
   })
 
   it("should abort subsequent steps if a command returns an error", async () => {

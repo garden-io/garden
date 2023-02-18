@@ -110,20 +110,17 @@ jobs:
       - image: gardendev/garden-gcloud:v0.10.0-1
     environment:
       GARDEN_LOG_LEVEL: debug # set the log level to your preference here
-      GARDEN_LOGGER_TYPE: basic # this is important, since the default logger doesn't play nice with CI :)
     steps:
       - checkout
       - configure_kubectl_context
       - run:
           name: Test project
-          command: garden test --logger-type=basic --env=preview
+          command: garden test --env=preview
       - run:
           name: Deploy project
-          command: garden deploy --logger-type=basic --env=preview
+          command: garden deploy --env=preview
 ```
 
-Note the two environment variables. Setting `GARDEN_LOGGER_TYPE=basic` is important, because the default fancy logger will not play nice with CI and just spam it with spinner glyphs.
-
-Also, notice that there are no configuration steps outside of just configuring the kubectl context.
+Notice that there are no configuration steps outside of just configuring the kubectl context.
 And no matter how you change your stack, these steps will remain the same, making for a highly portable
 workflow—and much less fiddling around with CI!

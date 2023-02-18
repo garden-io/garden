@@ -22,7 +22,7 @@ try {
     type: "quiet",
     storeEntries: false,
     // level: LogLevel.debug,
-    // writers: [new BTerminalWriter()],
+    // writers: [new TerminalWriter()],
   })
 } catch (_) {}
 

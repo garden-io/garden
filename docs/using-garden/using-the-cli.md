@@ -20,7 +20,6 @@ Every Garden command supports a common set of option flags. The full reference c
 
 - `--env` sets the environment (and optionally namespace) that the command should act on. Most Garden commands only act on a specific environment, so in most cases you'll specify this, unless you're working on the default environment for the project. See [here](./projects.md#environments-and-namespaces) for more about environments and namespaces.
 - `--log-level` / `-l` sets the log level. Use e.g. `-l=debug` to get debug logs for the command.
-- `--logger-type=basic` disables the fancy log output (with spinners etc.) and just prints a simple line-by-line output. Setting `GARDEN_LOGGER_TYPE=basic` does the same thing. You should set that environment variable in CI and other automated environments.
 - `--output` / `-o` sets the output format. Use this to get structured output from the commands. `--output=json` outputs JSON, and `--output=yaml` outputs YAML. The structure of the outputs is documented in [the reference](../reference/commands.md) for most commands.
 
 All option flags can be specified with a space or a `=` between the flag and the value.

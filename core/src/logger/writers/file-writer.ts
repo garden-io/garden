@@ -104,6 +104,4 @@ export class FileWriter extends Writer {
       this.fileLogger.log(levelToStr(entry.level), out)
     }
   }
-
-  stop() {}
 }

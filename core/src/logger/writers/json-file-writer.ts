@@ -7,7 +7,7 @@
  */
 
 import winston from "winston"
-import { Log, LogEntry } from "../log-entry"
+import { LogEntry } from "../log-entry"
 import { LogLevel } from "../logger"
 import { formatForJson } from "../renderers"
 import { FileWriter, levelToStr } from "./file-writer"

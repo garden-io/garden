@@ -255,8 +255,8 @@ describe("processCliArgs", () => {
 
   it("correctly handles global option flags", () => {
     const cmd = new BuildCommand()
-    const { opts } = parseAndProcess(["--log-level", "debug", "--logger-type=basic"], cmd)
-    expect(opts["logger-type"]).to.equal("basic")
+    const { opts } = parseAndProcess(["--logger-type", "json", "--log-level", "debug"], cmd)
+    expect(opts["logger-type"]).to.equal("json")
     expect(opts["log-level"]).to.equal("debug")
   })
 

@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 
 import { Events, EventName, EventBus, pipedEventNames } from "../events"
-import { LogEntryMetadata, Log, LogEntryMessage, LogEntry } from "../logger/log-entry"
+import { LogEntryMetadata, Log, LogEntry } from "../logger/log-entry"
 import { got } from "../util/http"
 
 import { LogLevel } from "../logger/logger"
@@ -22,12 +22,14 @@ export type StreamEvent = {
   timestamp: Date
 }
 
+type LogEntryMessage = Pick<LogEntry, "msg" | "section" | "symbol" | "data" | "dataFormat">
+
 // TODO: Remove data, section, timestamp and msg once we've updated GE (it's included in the message)
 export interface LogEntryEventPayload {
   key: string
   timestamp: string
   level: LogLevel
-  message: Omit<LogEntryMessage, "timestamp">
+  message: LogEntryMessage
   metadata?: LogEntryMetadata
 }
 

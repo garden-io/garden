@@ -396,9 +396,11 @@ export const globalOptions = {
     choices: [...LOGGER_TYPES],
     help: deline`
       Set logger type.
-      ${chalk.bold("fancy")} updates log lines in-place when their status changes (e.g. when tasks complete),
-      ${chalk.bold("basic")} appends a new log line when a log line's status changes,
-      ${chalk.bold("json")} same as basic, but renders log lines as JSON,
+      ${chalk.bold("default")} The default Garden logger,
+      ${chalk.bold(
+        "basic"
+      )} [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release,
+      ${chalk.bold("json")} same as default, but renders log lines as JSON,
       ${chalk.bold("quiet")} suppresses all log output, same as --silent.
     `,
     cliOnly: true,

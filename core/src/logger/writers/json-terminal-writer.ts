@@ -40,6 +40,4 @@ export class JsonTerminalWriter extends Writer {
       process.stdout.write(out + "\n")
     }
   }
-
-  stop() {}
 }

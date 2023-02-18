@@ -35,6 +35,4 @@ export class InkTerminalWriter extends Writer {
       this.writeCallback(out)
     }
   }
-
-  stop() {}
 }

@@ -127,19 +127,19 @@ describe("renderers", () => {
       expect(formatForTerminal(entry)).to.equal(
         `${logSymbols["info"]} ${chalk.cyan.italic(padSection(section))} → ${msgStyle("hello world")}\n`
       )
+    })
+    context("basic", () => {
       before(() => {
         logger.showTimestamps = true
       })
-      context("basic", () => {
-        it("should include timestamp with formatted string", () => {
-          const now = freezeTime()
-          const entry = logger.makeNewLogContext().info("hello world").getLatestEntry()
+      it("should include timestamp with formatted string", () => {
+        const now = freezeTime()
+        const entry = logger.makeNewLogContext().info("hello world").getLatestEntry()
 
-          expect(formatForTerminal(entry)).to.equal(`[${now.toISOString()}] ${msgStyle("hello world")}\n`)
-        })
-        after(() => {
-          logger.showTimestamps = false
-        })
+        expect(formatForTerminal(entry)).to.equal(`[${now.toISOString()}] ${msgStyle("hello world")}\n`)
+      })
+      after(() => {
+        logger.showTimestamps = false
       })
     })
     describe("formatForJson", () => {

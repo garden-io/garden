@@ -62,9 +62,9 @@ describe("kubernetes-module handlers", () => {
     return cloned
   }
 
-  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logEntry: Log) => {
+  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logCtx: Log) => {
     const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
-      getDeployedResource(ctx, ctx.provider, resource, logEntry)
+      getDeployedResource(ctx, ctx.provider, resource, logCtx)
     )
     return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   }

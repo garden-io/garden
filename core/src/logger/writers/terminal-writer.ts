@@ -24,6 +24,4 @@ export class TerminalWriter extends Writer {
       this.output.write(out)
     }
   }
-
-  stop() {}
 }

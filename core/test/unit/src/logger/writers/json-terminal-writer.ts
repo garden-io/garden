@@ -18,16 +18,14 @@ beforeEach(() => {
   logger["entries"] = []
 })
 
-describe.only("JsonTerminalWriter", () => {
+describe("JsonTerminalWriter", () => {
   describe("render", () => {
     it("should return a JSON-formatted message if level is geq than entry level", () => {
       const now = freezeTime()
       const writer = new JsonTerminalWriter()
       const entry = logger.makeNewLogContext().info("hello logger").getLatestEntry()
       const out = writer.render(entry, logger)
-      expect(out).to.eql(
-        `{"msg":"hello logger","section":"","timestamp":"${now.toISOString()}","level":"info"}`
-      )
+      expect(out).to.eql(`{"msg":"hello logger","section":"","timestamp":"${now.toISOString()}","level":"info"}`)
     })
 
     it("should return null if message is an empty string", () => {
