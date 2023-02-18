@@ -82,7 +82,7 @@ async function makeGarden(tmpDir: tmp.DirectoryResult, plugin: GardenPlugin) {
 // Returns all entries that match the logMsg as string, sorted by service name.
 function getLogOutput(garden: TestGarden, msg: string, extraFilter: (e: LogEntry) => boolean = () => true) {
   const entries = garden.log
-    .getLogEntries()
+    .getChildLogEntries()
     .filter(extraFilter)
     .filter((e) => e.msg?.includes(msg))!
   return entries.map((e) => formatForTerminal(e).trim())

@@ -18,7 +18,8 @@ import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./resu
 import { gardenEnv } from "../constants"
 import type { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
-import { formatGardenErrorWithDetail, renderDivider, renderMessageWithDivider } from "../logger/util"
+import { renderDivider, renderMessageWithDivider } from "../logger/util"
+import { formatGardenErrorWithDetail } from "../logger/logger"
 import chalk from "chalk"
 import {
   CompleteTaskParams,

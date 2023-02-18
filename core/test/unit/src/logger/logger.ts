@@ -14,7 +14,7 @@ import { freezeTime, projectRootA } from "../../../helpers"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { joi } from "../../../../src/config/common"
 import { Log } from "../../../../src/logger/log-entry"
-import { sanitizeValue } from "../../../../src/logger/util"
+import { sanitizeValue } from "../../../../src/logger/logger"
 
 const logger: Logger = getLogger()
 
@@ -103,31 +103,6 @@ describe("Logger", () => {
       expect(logger.entries).to.eql([])
     })
   })
-  describe("findById", () => {
-    it("should return the first log entry with a matching id and undefined otherwise", () => {
-      const log = logger.makeNewLogContext()
-      log.info({ msg: "0" })
-      log.info({ msg: "a1", id: "a" })
-      log.info({ msg: "a2", id: "a" })
-      expect(logger.findById("a")?.msg).to.eql("a1")
-      expect(logger.findById("z")).to.be.undefined
-    })
-  })
-
-  describe("filterBySection", () => {
-    it("should return an array of all entries with the matching section name", () => {
-      const log = logger.makeNewLogContext()
-      log.info({ section: "s0" })
-      log.info({ section: "s1", id: "a" })
-      log.info({ section: "s2" })
-      log.info({ section: "s1", id: "b" })
-      const s1 = logger.filterBySection("s1")
-      const sEmpty = logger.filterBySection("s99")
-      expect(s1.map((entry) => entry.id)).to.eql(["a", "b"])
-      expect(sEmpty).to.eql([])
-    })
-  })
-
   describe("getLogEntries", () => {
     it("should return the list of log entries", () => {
       const log = logger.makeNewLogContext()

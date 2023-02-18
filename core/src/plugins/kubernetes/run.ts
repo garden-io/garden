@@ -209,7 +209,7 @@ export async function runAndCopy({
     const logEventContext = {
       // XXX command cannot be possibly undefined, can it?
       origin: command ? command[0] : "unknown command",
-      log: log.placeholder({ level: LogLevel.verbose }),
+      log: log.makeNewLogContext({ level: LogLevel.verbose }),
     }
 
     const outputStream = new PassThrough()
@@ -793,7 +793,7 @@ export class PodRunner extends PodRunnerParams {
       ? this.logEventContext
       : {
           origin: this.getFullCommand()[0]!,
-          log: log.placeholder({ level: LogLevel.verbose }),
+          log: log.makeNewLogContext({ level: LogLevel.verbose }),
         }
 
     const stream = new Stream<RunLogEntry>()

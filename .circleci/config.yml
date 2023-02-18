@@ -13,7 +13,6 @@ orbs:
     GARDEN_DISABLE_VERSION_CHECK: "true"
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
-    GARDEN_LOGGER_TYPE: basic
 
   shared-machine-config: &shared-machine-config
     image: "ubuntu-2204:2022.10.2"
@@ -363,7 +362,7 @@ jobs:
       - run:
           name: Unit test framework components
           command: |
-            GARDEN_LOGGER_TYPE="" yarn run test:framework:unit
+            yarn run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096

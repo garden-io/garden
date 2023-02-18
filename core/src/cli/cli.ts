@@ -88,7 +88,15 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
-function renderHeader({ environmentName, namespaceName, log }: { environmentName: string; namespaceName: string, log: Log }) {
+function renderHeader({
+  environmentName,
+  namespaceName,
+  log,
+}: {
+  environmentName: string
+  namespaceName: string
+  log: Log
+}) {
   const divider = chalk.gray(renderDivider())
   let msg = `${printEmoji("🌍", log)}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
     environmentName
@@ -554,7 +562,6 @@ ${renderCommands(commands)}
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
       if (exitOnError) {
-        logger && logger.stop()
         // eslint-disable-next-line no-console
         console.log(consoleOutput)
         await waitForOutputFlush()
@@ -685,7 +692,7 @@ ${renderCommands(commands)}
     } catch (_) {
       logger = Logger.initialize({
         level: LogLevel.info,
-        type: "basic",
+        type: "default",
         storeEntries: false,
       })
     }
@@ -695,10 +702,6 @@ ${renderCommands(commands)}
       renderCommandErrors(logger, gardenErrors)
       await waitForOutputFlush()
       code = commandResult.exitCode || 1
-    }
-    if (exitOnError) {
-      logger.stop()
-      logger.cleanup()
     }
 
     if (this.bufferedEventStream) {

@@ -18,7 +18,6 @@ import { GardenBaseError, ParameterError } from "../../exceptions"
 import { renderProjectConfigReference } from "../../docs/config"
 import { addConfig } from "./helpers"
 import { wordWrap } from "../../util/string"
-import { LoggerType } from "../../logger/logger"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
 
@@ -87,10 +86,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
   arguments = createProjectArgs
   options = createProjectOpts
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
   printHeader({ headerLog }) {
     printHeader(headerLog, "Create new project", "✏️")
   }
@@ -124,8 +119,6 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     let name = opts.name || basename(configDir)
 
     if (opts.interactive && !opts.name) {
-      log.root.stop()
-
       const answer = await userPrompt({
         name: "name",
         message: "Project name:",

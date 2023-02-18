@@ -11,7 +11,7 @@ import td from "testdouble"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
 import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log, LogEntry } from "../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { expect } from "chai"
 import { ContainerBuildAction, ContainerModuleConfig } from "../../../../../src/plugins/container/moduleConfig"
@@ -59,7 +59,7 @@ describe("plugins.container", () => {
 
   let garden: TestGarden
   let ctx: PluginContext
-  let log: LogEntry
+  let log: Log
   let containerProvider: ContainerProvider
   let graph: ConfigGraph
 

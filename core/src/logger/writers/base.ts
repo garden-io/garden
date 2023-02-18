@@ -26,6 +26,4 @@ export abstract class Writer {
   }
 
   abstract write(entry: LogEntry, logger: Logger): void
-  abstract stop(): void
-  cleanup(): void {}
 }

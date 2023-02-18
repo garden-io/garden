@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { keyBy, mapValues } from "lodash"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetModulesCommand } from "../../../../../src/commands/get/get-modules"
-import { withoutInternalFields } from "../../../../../src/logger/util"
+import { withoutInternalFields } from "../../../../../src/logger/logger"
 
 describe("GetModulesCommand", () => {
   const command = new GetModulesCommand()

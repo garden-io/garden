@@ -16,8 +16,7 @@ import hasAnsi = require("has-ansi")
 import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, safeDumpYaml } from "../util/util"
-import { Logger, logLevelMap, LogLevel } from "./logger"
-import { formatGardenErrorWithDetail } from "./util"
+import { Logger, logLevelMap, LogLevel, formatGardenErrorWithDetail } from "./logger"
 
 type RenderFn = (entry: LogEntry) => string
 
@@ -43,7 +42,7 @@ export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
 }
 
 export function renderError(entry: LogEntry): string {
-  const { errorData: error } = entry
+  const { error } = entry
   if (error) {
     return formatGardenErrorWithDetail(error)
   }
@@ -145,14 +144,7 @@ export function formatForTerminal(entry: LogEntry): string {
     return ""
   }
 
-  return combineRenders(entry, [
-    renderTimestamp,
-    renderSymbol,
-    renderSection,
-    renderMsg,
-    renderData,
-    () => "\n",
-  ])
+  return combineRenders(entry, [renderTimestamp, renderSymbol, renderSection, renderMsg, renderData, () => "\n"])
 }
 
 export function cleanForJSON(input?: string | string[]): string {
@@ -178,7 +170,7 @@ export function render(entry: LogEntry, logger: Logger): string | null {
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
   const { msg, metadata, section } = entry
-  const errorDetail = entry.errorData && entry ? formatGardenErrorWithDetail(entry.errorData) : undefined
+  const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(entry.error) : undefined
   const jsonLogEntry: JsonLogEntry = {
     msg: cleanForJSON(msg),
     data: entry.data,

@@ -11,9 +11,9 @@ import { cloneDeep, round } from "lodash"
 
 import { LogLevel, logLevelMap } from "./logger"
 import { Omit } from "../util/util"
-import { findParentEntry } from "./util"
+import { findParentLogContext } from "./util"
 import { GardenError } from "../exceptions"
-import { CreateLogEntryParams, Logger, PlaceholderOpts } from "./logger"
+import { Logger } from "./logger"
 import uniqid from "uniqid"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
@@ -38,25 +38,36 @@ export interface WorkflowStepMetadata {
   index: number
 }
 
-interface MessageBase {
-  msg?: string
-  section?: string
-  symbol?: LogSymbol
-  data?: any
-  dataFormat?: "json" | "yaml"
-}
-
-export interface LogEntryMessage extends MessageBase {
-  timestamp: Date
-}
-
 interface LogCommonParams {
   id?: string
   metadata?: LogEntryMetadata
 }
 
-export interface LogEntryParams extends MessageBase, LogCommonParams {
+interface LogParams extends LogCommonParams {
+  msg?: string
+  /**
+   * The log entry section. By default inherited from parent log context
+   * but can optionally be overwritten here.
+   */
+  section?: string
+  symbol?: LogSymbol
+  data?: any
+  dataFormat?: "json" | "yaml"
   error?: GardenError
+}
+
+interface CreateLogEntryParams extends LogParams {
+  level: LogLevel
+}
+
+export interface LogEntry extends CreateLogEntryParams {
+  type: "logEntry"
+  timestamp: string
+  metadata?: LogEntryMetadata
+  key: string
+  level: LogLevel
+  id?: string
+  root: Logger
 }
 
 export interface LogConstructor extends LogCommonParams {
@@ -64,56 +75,54 @@ export interface LogConstructor extends LogCommonParams {
   level: LogLevel
   root: Logger
   parent?: Log
+  /**
+   * If set to true, all log entries inherit the level of their parent log context.
+   */
   fixLevel?: boolean
 }
 
-function resolveCreateParams(level: LogLevel, params: string | LogEntryParams): CreateLogEntryParams {
+function resolveCreateParams(level: LogLevel, params: string | LogParams): CreateLogEntryParams {
   if (typeof params === "string") {
     return { msg: params, level }
   }
   return { ...params, level }
 }
 
-interface LogEntryBase {
-  type: "logEntry" | "actionLogEntry" | "pluginLogEntry"
-  msg?: string
-  // TODO: Only allow section on Log class?
-  section?: string
-  symbol?: LogSymbol
-  data?: any
-  dataFormat?: "json" | "yaml"
-  timestamp: string
-  metadata?: LogEntryMetadata
-  key: string
-  level: LogLevel
-  errorData?: GardenError
-  id?: string
-  root: Logger
-  parent: Log
-}
-
-export interface LogEntry extends LogEntryBase {
-  type: "logEntry"
-}
-
+/**
+ * The 'Log' class exposes function for logging information at different levels.
+ *
+ * Each instance of the class holds some log context that its entries inherit.
+ * Typically a 'log' instance corresponds to a given 'section' so that its log entries share
+ * a common format.
+ *
+ * A new log context can be created from an existing one in which case the new context inherits
+ * its parent config with optional overwrites.
+ *
+ * Example:
+ *
+ * const buildLog = log.makeNewLogContext({ section: "build.api" })
+ * const debugBuildLog = buildLog.makeNewLogContext({ level: LogLevel.debug, fixLevel: true })
+ * buildLog.info("hello")
+ */
 export class Log {
   public readonly metadata?: LogEntryMetadata
   public readonly parent?: Log
-  public readonly timestamp: Date
+  public readonly timestamp: string
   public readonly key: string
+  // TODO @eysi: It doesn't really make sense to have a level on the Log class itself
+  // unless 'fixLevel' is also set. Consider merging the two.
   public readonly level: LogLevel
   public readonly root: Logger
   public readonly section?: string
-  public readonly errorData?: GardenError
   public readonly fixLevel?: boolean
   public readonly id?: string
-  public readonly type: "logEntry"
+  public readonly type: "log"
   public entries: LogEntry[]
 
   constructor(params: LogConstructor) {
     this.key = uniqid()
     this.entries = []
-    this.timestamp = new Date()
+    this.timestamp = new Date().toISOString()
     this.level = params.level
     this.parent = params.parent
     this.id = params.id
@@ -121,14 +130,14 @@ export class Log {
     this.fixLevel = params.fixLevel
     this.metadata = params.metadata
     this.id = params.id
-    // Require section?
+    // Require section? (Won't be needed for ActionLog and PluginLog)
     this.section = params.section
   }
 
   private createLogEntry(params: CreateLogEntryParams) {
     // If fixLevel is set to true, all children must have a level geq to the level
     // of the parent entry that set the flag.
-    const parentWithPreserveFlag = findParentEntry(this, (log) => !!log.fixLevel)
+    const parentWithPreserveFlag = findParentLogContext(this, (log) => !!log.fixLevel)
     const level = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, params.level) : params.level
     const section = params.section || this.section
 
@@ -141,13 +150,12 @@ export class Log {
       type: "logEntry",
       section,
       ...params,
-      errorData: params.error,
+      error: params.error,
       level,
       timestamp: new Date().toISOString(),
       metadata,
       key: uniqid(),
       root: this.root,
-      parent: this,
     }
 
     return logEntry
@@ -176,27 +184,27 @@ export class Log {
     })
   }
 
-  silly(params: string | LogEntryParams): Log {
+  silly(params: string | LogParams): Log {
     return this.log(resolveCreateParams(LogLevel.silly, params))
   }
 
-  debug(params: string | LogEntryParams): Log {
+  debug(params: string | LogParams): Log {
     return this.log(resolveCreateParams(LogLevel.debug, params))
   }
 
-  verbose(params: string | LogEntryParams): Log {
+  verbose(params: string | LogParams): Log {
     return this.log(resolveCreateParams(LogLevel.verbose, params))
   }
 
-  info(params: string | LogEntryParams): Log {
+  info(params: string | LogParams): Log {
     return this.log(resolveCreateParams(LogLevel.info, params))
   }
 
-  warn(params: string | LogEntryParams): Log {
+  warn(params: string | LogParams): Log {
     return this.log(resolveCreateParams(LogLevel.warn, params))
   }
 
-  error(params: string | LogEntryParams): Log {
+  error(params: string | LogParams): Log {
     return this.log(resolveCreateParams(LogLevel.error, params))
   }
 
@@ -204,26 +212,20 @@ export class Log {
     return this.entries.slice(-1)[0]
   }
 
-  placeholder({ level = LogLevel.info, fixLevel = false, metadata }: PlaceholderOpts = {}): Log {
-    return new Log({
-      level,
-      metadata,
-      fixLevel,
-      root: this.root,
-      parent: this,
-    })
-  }
-
   // TODO: Keeping this for now, will update in a follow up PR
-  setSuccess(params?: string | Omit<LogEntryParams, "symbol">): Log {
+  setSuccess(params?: string | Omit<LogParams, "symbol">): Log {
     return this.info({
       ...resolveCreateParams(LogLevel.info, params || {}),
       symbol: "success",
     })
   }
 
-  getLogEntries() {
+  getChildLogEntries() {
     return this.entries
+  }
+
+  getAllLogEntries() {
+    return this.root.getLogEntries()
   }
 
   /**
@@ -234,13 +236,13 @@ export class Log {
   }
 
   /**
-   * Dumps the log entry and all child entries as a string, optionally filtering the entries with `filter`.
+   * Dumps child entries as a string, optionally filtering the entries with `filter`.
    * For example, to dump all the logs of level info or higher:
    *
    *   log.toString((entry) => entry.level <= LogLevel.info)
    */
   toString(filter?: (log: LogEntry) => boolean) {
-    return this.getLogEntries()
+    return this.getChildLogEntries()
       .filter((entry) => (filter ? filter(entry) : true))
       .map((entry) => entry.msg)
       .join("\n")
@@ -250,6 +252,6 @@ export class Log {
    * Returns the duration in seconds, defaults to 2 decimal precision
    */
   getDuration(precision: number = 2): number {
-    return round((new Date().getTime() - this.timestamp.getTime()) / 1000, precision)
+    return round((new Date().getTime() - new Date(this.timestamp).getTime()) / 1000, precision)
   }
 }

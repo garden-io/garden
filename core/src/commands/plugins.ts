@@ -16,7 +16,6 @@ import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams } from "./base"
 import Bluebird from "bluebird"
 import { printHeader, getTerminalWidth } from "../logger/util"
-import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
 import { ConfigGraph } from "../graph/config-graph"
 import { ModuleGraph } from "../graph/modules"
@@ -60,10 +59,6 @@ export class PluginsCommand extends Command<Args> {
   `
 
   arguments = pluginArgs
-
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Plugins", "gear")

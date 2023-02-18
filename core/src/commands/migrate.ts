@@ -16,7 +16,6 @@ import { defaultDotIgnoreFile, findConfigPathsInPath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
 import { exec, safeDumpYaml } from "../util/util"
-import { LoggerType } from "../logger/logger"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml, findProjectConfig } from "../config/base"
 import { BooleanParameter, StringsParameter } from "../cli/params"
@@ -66,10 +65,6 @@ export class MigrateCommand extends Command<Args, Opts> {
         garden migrate ./garden.yml # scans the provided garden.yml file and prints the updated version.
 
   `
-
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
 
   printHeader() {}
 

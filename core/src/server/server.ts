@@ -31,11 +31,12 @@ import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
-import { LogLevel, sanitizeValue } from "../logger/logger"
+import { LogLevel } from "../logger/logger"
 import { clientRequestNames, ClientRequestType, ClientRouter } from "./client-router"
 import { EventEmitter } from "eventemitter3"
 import { ServeCommand } from "../commands/serve"
 import { getBuiltinCommands } from "../commands/commands"
+import { sanitizeValue } from "../logger/logger"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.

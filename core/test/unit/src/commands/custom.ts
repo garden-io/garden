@@ -335,10 +335,10 @@ describe("CustomCommandWrapper", () => {
       headerLog: log,
       footerLog: log,
       args: {},
-      opts: withDefaultGlobalOpts({ "log-level": "error", "logger-type": "basic" }),
+      opts: withDefaultGlobalOpts({ "log-level": "error" }),
     })
 
-    expect(result?.gardenCommand?.command).to.eql(["--logger-type", "basic", "echo", "foo", "bar", "-l=5"])
+    expect(result?.gardenCommand?.command).to.eql(["echo", "foo", "bar", "-l=5"])
   })
 
   it("can run nested custom commands", async () => {

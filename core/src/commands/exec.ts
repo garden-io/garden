@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import { LoggerType } from "../logger/logger"
 import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
@@ -63,10 +62,6 @@ export class ExecCommand extends Command<Args, Opts> {
   options = execOpts
 
   outputsSchema = () => execInDeployResultSchema()
-
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
 
   printHeader({ headerLog, args }) {
     const serviceName = args.service

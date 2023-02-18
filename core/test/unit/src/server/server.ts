@@ -52,7 +52,7 @@ describe("GardenServer", () => {
 
   it("should show no URL on startup", async () => {
     const line = gardenServer["statusLog"]
-    expect(line.getLatestEntry().msg).to.be.undefined
+    expect(line.getLatestEntry()).to.be.undefined
   })
 
   it("should update server URL with own if the external server goes down", async () => {
@@ -63,7 +63,7 @@ describe("GardenServer", () => {
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
     const status = stripAnsi(line.getLatestEntry().msg || "")
-    expect(status).to.equal(`Garden server running at ${gardenServer.getUrl()}`)
+    expect(status).to.equal(`🌻 Garden server running at ${gardenServer.getUrl()}`)
   })
 
   it("should update server URL with new one if another is started", async () => {
@@ -74,7 +74,7 @@ describe("GardenServer", () => {
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
     const status = stripAnsi(line.getLatestEntry().msg || "")
-    expect(status).to.equal(`Garden server running at http://${hostname}:9800?key=foo`)
+    expect(status).to.equal(`🌻 Garden server running at http://${hostname}:9800?key=foo`)
   })
 
   describe("POST /api", () => {

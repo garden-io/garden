@@ -13,7 +13,7 @@ import { every, some, sortBy } from "lodash"
 import Bluebird = require("bluebird")
 import { DeployLogEntry } from "../types/service"
 import Stream from "ts-stream"
-import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
+import { logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import hasAnsi = require("has-ansi")
@@ -114,10 +114,6 @@ export class LogsCommand extends Command<Args, Opts> {
 
   private events?: PluginEventBroker
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
   printHeader({ headerLog }) {
     printHeader(headerLog, "Logs", "scroll")
   }
@@ -185,7 +181,6 @@ export class LogsCommand extends Command<Args, Opts> {
     log.info("")
     log.info(chalk.white.bold("Service logs" + details + ":"))
     log.info(chalk.white.bold(renderDivider()))
-    log.root.stop()
 
     // Map all deploys names in the project to a specific color. This ensures
     // that in most cases they have the same color (unless any have been added/removed),

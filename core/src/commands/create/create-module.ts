@@ -25,7 +25,6 @@ import { flatten, keyBy } from "lodash"
 import { fixedPlugins } from "../../config/project"
 import { deline, wordWrap, truncate } from "../../util/string"
 import { joi } from "../../config/common"
-import { LoggerType } from "../../logger/logger"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "../../types/module"
 import { Log } from "../../logger/log-entry"
@@ -91,10 +90,6 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   arguments = createModuleArgs
   options = createModuleOpts
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
   printHeader({ headerLog }) {
     printHeader(headerLog, "Create new module", "pencil2")
   }
@@ -127,8 +122,6 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     const allModuleTypes = getModuleTypes(getSupportedPlugins().map((p) => p.callback()))
 
     if (opts.interactive && (!opts.name || !opts.type)) {
-      log.root.stop()
-
       if (!opts.type) {
         const choices = await getModuleTypeSuggestions(log, allModuleTypes, configDir, name)
 

@@ -337,7 +337,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const { code, result } = await cli.run({ args: ["--logger-type=basic", "test-command"], exitOnError: false })
+      const { code, result } = await cli.run({ args: ["test-command"], exitOnError: false })
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
@@ -510,13 +510,12 @@ describe("cli", () => {
         "..",
         "--silent",
         "--env=default",
-        "--logger-type",
-        "basic",
         "-l=4",
         "--output",
         "json",
         "--yes",
         "--emoji=false",
+        "--logger-type=json",
         "--show-timestamps=false",
         "--force-refresh",
         "--var",
@@ -536,7 +535,7 @@ describe("cli", () => {
           "root": resolve(process.cwd(), ".."),
           "silent": true,
           "env": "default",
-          "logger-type": "basic",
+          "logger-type": "json",
           "log-level": "4",
           "output": "json",
           "emoji": false,

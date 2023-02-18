@@ -50,7 +50,7 @@ export interface EventLogEntry {
  */
 export function getLogMessages(log: Log, filter?: (log: LogEntry) => boolean) {
   return log
-    .getLogEntries()
+    .getChildLogEntries()
     .filter((entry) => (filter ? filter(entry) : true))
     .map((entry) => stripAnsi(entry.msg || ""))
 }
