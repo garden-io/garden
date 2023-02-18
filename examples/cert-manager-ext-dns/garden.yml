@@ -10,7 +10,7 @@ chart: "cert-manager"
 version: v1.11.0
 chartPath: .
 values:
-  installCRDs: ${var.CERT_MANAGER_INSTALL_CRDS} # Should be true for the first time, false for subsequent runs
+  installCRDs: ${var.CERT_MANAGER_INSTALL_CRDS}
 ---
 # External-DNS Helm Chart
 kind: Module
@@ -24,9 +24,26 @@ version: 6.13.3
 chartPath: .
 values: # To check a full list of values, see https://artifacthub.io/packages/helm/bitnami/external-dns
   provider: ${var.CF_DNS_PROVIDER}
-  domainFilter: ${var.CF_DOMAIN}
+  domainFilters: ${var.CF_DOMAIN}
   policy: ${var.CF_UPDATE_STRATEGY}
   cloudflare:
     email: ${var.CF_EMAIL}
     proxied: ${var.CF_PROXIED}
     apiToken: ${local.env.CF_API_TOKEN}
+---
+# Cluster-issuers module configuration
+kind: Module
+type: helm
+name: cluster-issuers
+namespace: default
+description: This module installs cluster-issuers in our Kubernetes Cluster.
+chartPath: charts/cluster-issuers
+dependencies:
+  - cert-manager # This module depends on the cert-manager module (we need the CRDs to be installed)
+values:
+  cloudflare:
+    email: ${var.CF_EMAIL}
+    apiToken: ${local.env.CF_API_TOKEN}
+    cfDomain: ${var.CF_DOMAIN[0]} # For this example, at the moment we only support one domain.
+  generateStgCert: ${var.GENERATE_STG_CERTS}
+  generateProdCert: ${var.GENERATE_PROD_CERTS}

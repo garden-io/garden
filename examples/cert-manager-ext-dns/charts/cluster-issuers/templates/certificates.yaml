@@ -1,0 +1,27 @@
+{{ if .Values.generateStgCert }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: staging-cert
+spec:
+  dnsNames:
+  - "react.{{ .Values.cloudflare.cfDomain }}"
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+  secretName: staging-cert
+{{ end }}
+---
+{{ if .Values.generateProdCert }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: production-cert
+spec:
+  dnsNames:
+  - "react.{{ .Values.cloudflare.cfDomain }}"
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  secretName: production-cert
+{{ end }}
