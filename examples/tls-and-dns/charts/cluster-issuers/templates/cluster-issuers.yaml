@@ -1,0 +1,35 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    email: {{ .Values.cloudflare.email }}
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+    - dns01:
+         cloudflare:
+           email: {{ .Values.cloudflare.email }}
+           apiTokenSecretRef:
+             name: cloudflare-api-token-secret
+             key: api-token
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    email: {{ .Values.cloudflare.email }}
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-production
+    solvers:
+    - dns01:
+         cloudflare:
+           email: {{ .Values.cloudflare.email }}
+           apiTokenSecretRef:
+             name: cloudflare-api-token-secret
+             key: api-token

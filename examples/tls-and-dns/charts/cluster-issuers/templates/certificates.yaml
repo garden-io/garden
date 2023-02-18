@@ -1,0 +1,27 @@
+{{ if .Values.generateStgCert }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: staging-cert-wildcard
+spec:
+  dnsNames:
+  - "*.{{ .Values.cloudflare.cfDomain }}"
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
+  secretName: staging-cert-wildcard
+{{ end }}
+---
+{{ if .Values.generateProdCert }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: production-cert-wildcard
+spec:
+  dnsNames:
+  - "*.{{ .Values.cloudflare.cfDomain }}"
+  issuerRef:
+    name: letsencrypt-production
+    kind: ClusterIssuer
+  secretName: production-cert-wildcard
+{{ end }}
