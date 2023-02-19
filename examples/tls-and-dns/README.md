@@ -1,3 +1,4 @@
+{/* Author: ShankyJS */}
 # Scenario
 
 Company A is managing a Kubernetes cluster in GCP and using CloudFlare to handle its DNS zone.
@@ -186,4 +187,3 @@ Annnnnd **voilà**! we can see the desired 🔒️ in our website, if you got in
 - Make sure you deployed your frontend service to the `default` namespace, to make things easier for us we deployed the service there as the secrets live there.
 - Your certificates might not be ready or deployed, you can deploy only the prerequisites by using the following command: `garden deploy --env=prod external-dns,cert-manager,cluster-issuers --yes`
 - After checking that your certificate is there and you are deploying your service to the default namespace you can trigger a deployment again an it should work as expected this time. `garden deploy --env=prod --yes`
-
