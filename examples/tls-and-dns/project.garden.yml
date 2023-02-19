@@ -20,7 +20,10 @@ providers:
     namespace: ${var.DEFAULT_NAMESPACE}
     buildMode: kaniko
     setupIngressController: nginx
-
+    # tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
+    #   - name: staging-cert-wildcard
+    #     secretRef:
+    #       name: staging-cert-wildcard
   - name: local-kubernetes
     environments: [local]
     context: docker-desktop # Make sure to change this to your own context
@@ -29,12 +32,12 @@ providers:
     setupIngressController: nginx
 
 variables:
-  DEFAULT_NAMESPACE: frontend
-  # Cert-Manager
+  DEFAULT_NAMESPACE: default # Frontend will be deployed in this namespace.
+  # Cert-Manager variables
   CERT_MANAGER_INSTALL_CRDS: true
-  GENERATE_PROD_CERTS: false # Set this to true if you want to generate production certificates
+  GENERATE_PROD_CERTS: true # Set this to true if you want to generate production certificates
   GENERATE_STG_CERTS: true # Set this to true if you want to generate staging certificates
-  # External-DNS
+  # External-DNS variables
   CF_DNS_PROVIDER: cloudflare # This demo only supports Cloudflare at the moment
   CF_DOMAIN: [ change-me.com ] # Has to be an array, even if you only have one domain
   CF_UPDATE_STRATEGY: sync # Be careful with this, it can cause downtime if you're not careful
