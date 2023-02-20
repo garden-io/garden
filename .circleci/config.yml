@@ -872,11 +872,10 @@ jobs:
       - run:
           name: Deploy demo-project
           command: |
-            $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
-            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=win-$CIRCLE_BUILD_NUM
+            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
           name: Cleanup
-          command: (kubectl delete namespace --wait=false demo-project-$env:CIRCLE_BUILD_NUM-win) -or $true
+          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
 
 workflows:
