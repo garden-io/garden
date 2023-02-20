@@ -58,7 +58,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       include: module.spec.files,
 
       spec: {
-        ...omit(module.spec, ["name", "dependencies", "serviceResource", "tasks", "tests", "sync"]),
+        ...omit(module.spec, ["build", "name", "dependencies", "serviceResource", "tasks", "tests", "sync"]),
         files: module.spec.files || [],
         manifests: module.spec.manifests || [],
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
