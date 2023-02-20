@@ -89,7 +89,7 @@ const actionSourceSpecSchema = () =>
     .xor("path", "repository")
     .meta({ name: "action-source", advanced: true, templateContext: ActionConfigContext })
 
-export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs())
+export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
 
 export const baseActionConfigSchema = createSchema({
   name: "action-config-base",

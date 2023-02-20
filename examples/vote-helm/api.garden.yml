@@ -6,7 +6,8 @@ dependencies:
   - deploy.redis
 spec:
   chart:
-    path: ../base-chart/
+    # chart path must be a subpath (no .. allowed), so this file api.garden.yml has to be at the project root
+    path: ./base-chart/
   values:
     name: api
     image:
