@@ -2,13 +2,21 @@ kind: Deploy
 description: Helm chart for the voting UI
 type: helm
 name: vote
+
 dependencies:
   - deploy.api
+
+variables:
+  hostname: vote.${var.baseHostname}
+
 spec:
+  defaultTarget:
+    kind: Deployment
+    name: vote
   sync:
     paths:
-      - target: /app/src
-        source: src
+      - containerPath: /app/src
+        sourcePath: ${action.build.vote-image.sourcePath}/src
         mode: two-way
   values:
     image:
@@ -17,12 +25,13 @@ spec:
     ingress:
       enabled: true
       paths: [/]
-      hosts: ["vote.${var.baseHostname}"]
+      hosts: ["${var.hostname}"]
     env:
       - name: HOSTNAME
-        value: vote.${var.baseHostname}
+        value: ${var.hostname}
 
 ---
+
 kind: Test
 name: vote-integ
 type: container
