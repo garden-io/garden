@@ -13,7 +13,7 @@ import { getLogger } from "../../../src/logger/logger"
 
 describe("TreeCache", () => {
   let cache: TreeCache
-  const log = getLogger().placeholder()
+  const log = getLogger().makeNewLogContext()
 
   beforeEach(() => {
     cache = new TreeCache()

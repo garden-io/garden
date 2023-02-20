@@ -14,7 +14,7 @@ import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/comm
 import { PluginTool } from "./util/ext-tools"
 import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 import { logEntrySchema } from "./plugin/base"
 import { EventEmitter } from "eventemitter3"
 
@@ -41,7 +41,7 @@ type ResolveTemplateStringsOpts = Omit<ContextResolveOpts, "stack">
 
 export interface PluginContext<C extends GenericProviderConfig = GenericProviderConfig> extends WrappedFromGarden {
   command: CommandInfo
-  log: LogEntry
+  log: Log
   events: PluginEventBroker
   projectSources: SourceConfig[]
   provider: Provider<C>
@@ -102,7 +102,7 @@ export type PluginEventLogContext = {
    *
    * @todo 0.13 consider removing this once we have the append-only logger (#3254)
    */
-  log: LogEntry
+  log: Log
 }
 
 export type PluginEventLogMessage = PluginEventLogContext & {

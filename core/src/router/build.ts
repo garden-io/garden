@@ -59,7 +59,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
 
       params.events.on("log", ({ timestamp, data, origin, log }) => {
         // stream logs to CLI
-        log.setState(renderOutputStream(data.toString(), origin))
+        log.info(renderOutputStream(data.toString(), origin))
         // stream logs to Garden Cloud
         // TODO: consider sending origin as well
         garden.events.emit("log", {

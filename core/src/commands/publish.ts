@@ -91,7 +91,7 @@ export class PublishCommand extends Command<Args, Opts, ProcessCommandResult> {
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Publish builds", "rocket")
+    printHeader(headerLog, "Publish builds", "🚀")
   }
 
   async action({

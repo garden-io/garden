@@ -16,7 +16,7 @@ import { pruneRemoteSources, updateRemoteSharedOptions } from "./helpers"
 import { SourceConfig, projectSourceSchema } from "../../config/project"
 import { printHeader } from "../../logger/util"
 import { Garden } from "../../garden"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { joiArray, joi } from "../../config/common"
 import { StringsParameter, ParameterValues } from "../../cli/params"
 
@@ -63,7 +63,7 @@ export class UpdateRemoteSourcesCommand extends Command<Args, Opts> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Update remote sources", "hammer_and_wrench")
+    printHeader(headerLog, "Update remote sources", "🛠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<Output>> {
@@ -78,7 +78,7 @@ export async function updateRemoteSources({
   opts,
 }: {
   garden: Garden
-  log: LogEntry
+  log: Log
   args: ParameterValues<Args>
   opts: ParameterValues<Opts>
 }) {

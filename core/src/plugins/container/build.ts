@@ -58,7 +58,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const identifier = outputs.localImageId
 
   // build doesn't exist, so we create it
-  log.setState(`Building ${identifier}...`)
+  log.info(`Building ${identifier}...`)
 
   const dockerfilePath = joinWithPosix(action.getBuildPath(), spec.dockerfile)
 
@@ -66,7 +66,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   const logEventContext = {
     origin: "docker build",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    log: log.makeNewLogContext({ level: LogLevel.verbose }),
   }
 
   const outputStream = split2()

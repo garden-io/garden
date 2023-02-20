@@ -136,7 +136,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
               dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
               spec: {
-                accessModules: module.spec.accessModes,
+                accessModes: module.spec.accessModes,
                 namespace: module.spec.namespace,
                 data: module.spec.data,
               },

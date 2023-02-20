@@ -10,14 +10,13 @@ import unixify = require("unixify")
 import klaw = require("klaw")
 import glob from "glob"
 import tmp from "tmp-promise"
-import _spawn from "cross-spawn"
 import { pathExists, readFile, writeFile, lstat, realpath, Stats } from "fs-extra"
 import { join, basename, win32, posix } from "path"
 import { platform } from "os"
 
 import { FilesystemError } from "../exceptions"
 import { VcsHandler } from "../vcs/vcs"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
 import { uuidv4, exec } from "./util"
@@ -153,7 +152,7 @@ export async function findConfigPathsInPath({
   dir: string
   include?: string[]
   exclude?: string[]
-  log: LogEntry
+  log: Log
 }): Promise<string[]> {
   if (include) {
     include = include.map((path) => {

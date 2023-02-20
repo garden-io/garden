@@ -11,7 +11,7 @@ import { parse, basename, resolve } from "path"
 import { pathToCacheContext } from "./cache"
 import { GardenModule } from "./types/module"
 import { Garden } from "./garden"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 import { sleep } from "./util/util"
 import { some } from "lodash"
 import { isConfigFilename, matchPath } from "./util/fs"
@@ -41,7 +41,7 @@ let watcher: FSWatcher | undefined
  */
 export class Watcher extends EventEmitter {
   private garden: Garden
-  private log: LogEntry
+  private log: Log
   private paths: string[]
   private skipPaths: string[]
   private actions: Action[]
@@ -61,7 +61,7 @@ export class Watcher extends EventEmitter {
     bufferInterval,
   }: {
     garden: Garden
-    log: LogEntry
+    log: Log
     paths: string[]
     actions: Action[]
     skipPaths?: string[]

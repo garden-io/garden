@@ -13,7 +13,7 @@ import { uniq } from "lodash"
 import { AnalyticsGlobalConfig } from "../config-store/global"
 import { getPackageVersion, uuidv4, sleep } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import hasha = require("hasha")
 import { Garden } from "../garden"
 import { AnalyticsType } from "./analytics-types"
@@ -202,7 +202,7 @@ export interface SegmentEvent {
 export class AnalyticsHandler {
   private static instance?: AnalyticsHandler
   private segment: any // TODO
-  private log: LogEntry
+  private log: Log
   private analyticsConfig: AnalyticsGlobalConfig
   private projectId: string
   private projectName: string
@@ -236,7 +236,7 @@ export class AnalyticsHandler {
     ciInfo,
   }: {
     garden: Garden
-    log: LogEntry
+    log: Log
     analyticsConfig: AnalyticsGlobalConfig
     anonymousUserId: string
     moduleConfigs: ModuleConfig[]
@@ -321,7 +321,7 @@ export class AnalyticsHandler {
     })
   }
 
-  static async init(garden: Garden, log: LogEntry) {
+  static async init(garden: Garden, log: Log) {
     if (!AnalyticsHandler.instance) {
       // We're passing this explictliy to that it's easier to overwrite and test
       // in actual CI.
@@ -359,7 +359,7 @@ export class AnalyticsHandler {
    *
    * It also initializes the analytics config and updates the analytics data we store in local config.
    */
-  static async factory({ garden, log, ciInfo }: { garden: Garden; log: LogEntry; ciInfo: CiInfo }) {
+  static async factory({ garden, log, ciInfo }: { garden: Garden; log: Log; ciInfo: CiInfo }) {
     const currentAnalyticsConfig = await garden.globalConfigStore.get("analytics")
     const isFirstRun = !currentAnalyticsConfig.firstRunAt
     const moduleConfigs = await garden.getRawModuleConfigs()

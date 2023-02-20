@@ -32,8 +32,7 @@ import { ToolsCommand } from "../../../../src/commands/tools"
 import { Logger, getLogger } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
 import { startServer, GardenServer } from "../../../../src/server/server"
-import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-terminal-writer"
-import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
+import { TerminalWriter } from "../../../../src/logger/writers/terminal-writer"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
@@ -236,7 +235,7 @@ describe("cli", () => {
         initTestLogger()
       })
 
-      it("uses the fancy logger by default", async () => {
+      it("uses the 'TerminalWriter' by default", async () => {
         class TestCommand extends Command {
           name = "test-command"
           help = "halp!"
@@ -256,54 +255,7 @@ describe("cli", () => {
 
         const logger = getLogger()
         const writers = logger.getWriters()
-        expect(writers.map((w) => w.type)).to.include("fancy")
-      })
-
-      it("uses the basic logger if log level > info", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "halp!"
-          noProject = true
-
-          printHeader() {}
-
-          async action({}) {
-            return { result: { something: "important" } }
-          }
-        }
-
-        const cmd = new TestCommand()
-        cli.addCommand(cmd)
-
-        await cli.run({
-          args: ["--logger-type=fancy", "--log-level=3", "test-command"],
-          exitOnError: false,
-        })
-
-        const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(BasicTerminalWriter)
-      })
-
-      it("uses the basic logger if --show-timestamps flag is set to true", async () => {
-        class TestCommand extends Command {
-          name = "test-command"
-          help = "halp!"
-          noProject = true
-
-          printHeader() {}
-
-          async action({}) {
-            return { result: { something: "important" } }
-          }
-        }
-
-        const cmd = new TestCommand()
-        cli.addCommand(cmd)
-
-        await cli.run({ args: ["--logger-type=fancy", "--show-timestamps", "test-command"], exitOnError: false })
-
-        const logger = getLogger()
-        expect(logger.getWriters()[0]).to.be.instanceOf(BasicTerminalWriter)
+        expect(writers.map((w) => w.type)).to.include("basic")
       })
     })
 
@@ -385,7 +337,7 @@ describe("cli", () => {
       const cmd = new TestCommand()
       cli.addCommand(cmd)
 
-      const { code, result } = await cli.run({ args: ["--logger-type=basic", "test-command"], exitOnError: false })
+      const { code, result } = await cli.run({ args: ["test-command"], exitOnError: false })
 
       expect(code).to.equal(0)
       expect(result).to.eql({ something: "important" })
@@ -558,13 +510,12 @@ describe("cli", () => {
         "..",
         "--silent",
         "--env=default",
-        "--logger-type",
-        "basic",
         "-l=4",
         "--output",
         "json",
         "--yes",
         "--emoji=false",
+        "--logger-type=json",
         "--show-timestamps=false",
         "--force-refresh",
         "--var",
@@ -584,7 +535,7 @@ describe("cli", () => {
           "root": resolve(process.cwd(), ".."),
           "silent": true,
           "env": "default",
-          "logger-type": "basic",
+          "logger-type": "json",
           "log-level": "4",
           "output": "json",
           "emoji": false,
@@ -1113,7 +1064,7 @@ describe("cli", () => {
     describe("validateRuntimeRequirementsCached", () => {
       let config: GlobalConfigStore
       let tmpDir
-      const log = getLogger()
+      const log = getLogger().makeNewLogContext()
 
       before(async () => {
         tmpDir = await tmp.dir({ unsafeCleanup: true })

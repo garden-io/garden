@@ -44,30 +44,19 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       )
     }
 
-    let log = this.log.info({
-      section: this.getName(),
-      msg: `Building version ${action.versionString()}...`,
-      status: "active",
-    })
+    let log = this.log
+      .makeNewLogContext({ section: this.getName() })
+      .info(`Building version ${action.versionString()}...`)
 
     const files = action.getFullVersion().files
 
     if (files.length > 0) {
-      log = this.log.verbose({
-        section: this.getName(),
-        msg: `Syncing module sources (${pluralize("file", files.length, true)})...`,
-        status: "active",
-      })
+      log.verbose(`Syncing module sources (${pluralize("file", files.length, true)})...`)
     }
 
     await this.garden.buildStaging.syncFromSrc(action, log || this.log)
 
-    if (log) {
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
-    }
+    log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
 
     await this.garden.buildStaging.syncDependencyProducts(action, log)
 
@@ -77,10 +66,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         action,
         log,
       })
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
+      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
 
       return {
         ...result,
@@ -88,7 +74,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         executedAction: resolvedActionToExecuted(action, { status: result }),
       }
     } catch (err) {
-      log.setError()
+      log.error(`Error syncing modules`)
       throw err
     }
   }

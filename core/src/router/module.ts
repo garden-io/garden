@@ -10,7 +10,7 @@ import { fromPairs, uniqBy } from "lodash"
 import { validateSchema } from "../config/validation"
 import { defaultProvider } from "../config/provider"
 import { ParameterError, PluginError, InternalError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
 import {
   ModuleActionOutputs,
@@ -37,7 +37,7 @@ import { ConvertModuleParams, ConvertModuleResult } from "../plugin/handlers/Mod
 
 export interface DeployManyParams {
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
   deployNames?: string[]
   force?: boolean
   forceBuild?: boolean

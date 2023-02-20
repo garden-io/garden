@@ -9,7 +9,7 @@
 import { dedent } from "../../../util/string"
 import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { joi } from "../../../config/common"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { BaseActionConfig } from "../../../actions/types"
 import { baseActionConfigSchema, baseRuntimeActionConfigSchema } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"
@@ -17,7 +17,7 @@ import { pluginContextSchema } from "../../../plugin-context"
 import { noTemplateFields } from "../../../config/base"
 
 interface ConfigureActionConfigParams<T extends BaseActionConfig> extends PluginActionContextParams {
-  log: LogEntry
+  log: Log
   config: T
   // dependencies: BaseActionConfig[]
 }

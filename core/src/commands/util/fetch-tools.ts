@@ -59,7 +59,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
     if (opts.all) {
       plugins = await garden.getAllPlugins()
-      printHeader(log, "Fetching tools for all registered providers", "hammer_and_wrench")
+      printHeader(log, "Fetching tools for all registered providers", "🛠️")
     } else {
       const projectRoot = findProjectConfig(garden.projectRoot)
 

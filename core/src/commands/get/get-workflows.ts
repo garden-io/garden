@@ -29,7 +29,7 @@ export class GetWorkflowsCommand extends Command<Args> {
   arguments = getWorkflowsArgs
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Workflows", "open_book")
+    printHeader(headerLog, "Workflows", "📖")
   }
 
   async action({ args, garden, log }: CommandParams<Args>): Promise<CommandResult> {

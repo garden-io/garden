@@ -9,7 +9,7 @@
 import { GardenModule } from "../../types/module"
 import { PrimitiveMap, joi, joiModuleIncludeDirective, joiSparseArray, joiIdentifier } from "../../config/common"
 import { GardenService } from "../../types/service"
-import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
+import { ModuleSpec, ModuleConfig, baseBuildSpecSchema } from "../../config/module"
 import { baseServiceSpecSchema, CommonServiceSpec, ServiceConfig } from "../../config/service"
 import { baseTaskSpecSchema, BaseTaskSpec } from "../../config/task"
 import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"

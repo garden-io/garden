@@ -15,7 +15,7 @@ import { KubernetesResource, KubernetesPod, BaseResource } from "./types"
 import { getAllPods } from "./util"
 import { KubeApi } from "./api"
 import Stream from "ts-stream"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
 import { PluginContext } from "../../plugin-context"
@@ -32,7 +32,7 @@ const maxLogLinesInMemory = 100000
 interface GetAllLogsParams {
   ctx: PluginContext
   defaultNamespace: string
-  log: LogEntry
+  log: Log
   provider: KubernetesProvider
   actionName: string
   stream: Stream<DeployLogEntry>
@@ -84,7 +84,7 @@ async function readLogs<T>({
   defaultNamespace,
   since,
 }: {
-  log: LogEntry
+  log: Log
   ctx: PluginContext
   provider: KubernetesProvider
   stream: Stream<T>
@@ -179,7 +179,7 @@ export class K8sLogFollower<T> {
   private stream: Stream<T>
   private entryConverter: PodLogEntryConverter<T>
   private k8sApi: KubeApi
-  private log: LogEntry
+  private log: Log
   private deduplicationBufferSize: number
   private deduplicationBuffers: { [key: string]: { msg: string; time: number }[] }
   private defaultNamespace: string
@@ -201,7 +201,7 @@ export class K8sLogFollower<T> {
     stream: Stream<T>
     entryConverter: PodLogEntryConverter<T>
     k8sApi: KubeApi
-    log: LogEntry
+    log: Log
     deduplicationBufferSize?: number
     defaultNamespace: string
     resources: KubernetesResource<BaseResource>[]

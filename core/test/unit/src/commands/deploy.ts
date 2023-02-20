@@ -591,7 +591,7 @@ describe("DeployCommand", () => {
   describe("isPersistent", () => {
     it("should return persistent=true if --dev is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
+      const log = getLogger().makeNewLogContext()
       const persistent = cmd.isPersistent({
         log,
         headerLog: log,
@@ -616,7 +616,7 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --local-mode is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
+      const log = getLogger().makeNewLogContext()
       const persistent = cmd.isPersistent({
         log,
         headerLog: log,
@@ -642,7 +642,7 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --follow is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
+      const log = getLogger().makeNewLogContext()
       const persistent = cmd.isPersistent({
         log,
         headerLog: log,

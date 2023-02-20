@@ -13,7 +13,7 @@ import {
   serviceStateToActionState,
   ServiceStatus,
 } from "../../../types/service"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
@@ -161,7 +161,7 @@ export async function getRenderedResources({
 }: {
   ctx: KubernetesPluginContext
   releaseName: string
-  log: LogEntry
+  log: Log
   action: Resolved<HelmDeployAction>
 }) {
   const namespace = await getActionNamespace({
@@ -193,7 +193,7 @@ export async function getReleaseStatus({
   ctx: KubernetesPluginContext
   action: Resolved<HelmDeployAction>
   releaseName: string
-  log: LogEntry
+  log: Log
   devMode: boolean
   localMode: boolean
 }): Promise<ServiceStatus> {
@@ -287,7 +287,7 @@ export async function getPausedResources({
   namespace: string
   action: Resolved<HelmDeployAction>
   releaseName: string
-  log: LogEntry
+  log: Log
 }) {
   const api = await KubeApi.factory(log, ctx, ctx.provider)
   const renderedResources = await getRenderedResources({ ctx, action, releaseName, log })
@@ -313,7 +313,7 @@ async function isPaused({
   namespace: string
   action: Resolved<HelmDeployAction>
   releaseName: string
-  log: LogEntry
+  log: Log
 }) {
   return (await getPausedResources({ ctx, action, namespace, releaseName, log })).length > 0
 }

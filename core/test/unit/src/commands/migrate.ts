@@ -13,7 +13,7 @@ import { dedent } from "../../../../src/util/string"
 import { sortBy } from "lodash"
 import { expectError, withDefaultGlobalOpts, makeTestGardenA, getDataDir } from "../../../helpers"
 import { MigrateCommand, MigrateCommandResult, dumpSpec } from "../../../../src/commands/migrate"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { Garden } from "../../../../src/garden"
 import execa from "execa"
 import { writeFile } from "fs-extra"
@@ -25,7 +25,7 @@ describe("commands", () => {
     const projectPathErrors = getDataDir("test-projects", "v10-configs-errors")
     const command = new MigrateCommand()
     let garden: Garden
-    let log: LogEntry
+    let log: Log
 
     before(async () => {
       garden = await makeTestGardenA()

@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { isArray, isString, mapValues } from "lodash"
+import { mapValues } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
 import { joi, PrimitiveMap, StringMap } from "../../config/common"
@@ -17,7 +17,7 @@ import { LOGS_DIR } from "../../constants"
 import { dedent } from "../../util/string"
 import { exec, ExecOpts, runScript, sleep } from "../../util/util"
 import { RuntimeError, TimeoutError } from "../../exceptions"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
 import execa, { ExecaError, ExecaChildProcess } from "execa"
 import chalk = require("chalk")
@@ -105,7 +105,7 @@ function runPersistent({
 }: {
   command: string[]
   action: ResolvedExecAction
-  log: LogEntry
+  log: Log
   serviceName: string
   logFilePath: string
   env?: PrimitiveMap
@@ -160,7 +160,7 @@ async function run({
   command: string[]
   ctx: PluginContext
   action: ResolvedExecAction
-  log: LogEntry
+  log: Log
   env?: PrimitiveMap
   opts?: ExecOpts
 }) {
@@ -410,7 +410,7 @@ async function deployPersistentExecService({
 }: {
   ctx: PluginContext
   serviceName: string
-  log: LogEntry
+  log: Log
   devModeSpec: ExecDevModeSpec
   action: Resolved<ExecDeploy>
   env: { [key: string]: string }
@@ -799,12 +799,7 @@ export const execPlugin = () =>
 
 export const gardenPlugin = execPlugin
 
-async function copyArtifacts(
-  log: LogEntry,
-  artifacts: ArtifactSpec[] | undefined,
-  from: string,
-  artifactsPath: string
-) {
+async function copyArtifacts(log: Log, artifacts: ArtifactSpec[] | undefined, from: string, artifactsPath: string) {
   return Bluebird.map(artifacts || [], async (spec) => {
     log.verbose(`→ Copying artifacts ${spec.source}`)
 

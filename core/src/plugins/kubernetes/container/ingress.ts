@@ -18,7 +18,7 @@ import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
 import { KubernetesResource } from "../types"
 import { V1Ingress, V1Secret } from "@kubernetes/client-node"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import chalk from "chalk"
 import { Resolved } from "../../../actions/types"
 
@@ -37,7 +37,7 @@ const certificateHostnames: { [name: string]: string[] } = {}
  * preference order).
  */
 export async function getIngressApiVersion(
-  log: LogEntry,
+  log: Log,
   api: KubeApi,
   preferenceOrder: string[]
 ): Promise<string | undefined> {
@@ -55,7 +55,7 @@ export async function createIngressResources(
   provider: KubernetesProvider,
   namespace: string,
   action: Resolved<ContainerDeployAction>,
-  log: LogEntry
+  log: Log
 ) {
   const { ports, ingresses } = action.getSpec()
 

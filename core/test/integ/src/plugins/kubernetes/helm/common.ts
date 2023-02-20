@@ -18,7 +18,7 @@ import {
   getValueArgs,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { Log } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
 import { dedent, deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
@@ -89,7 +89,7 @@ describe("Helm common functions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     garden = await getHelmTestGarden()

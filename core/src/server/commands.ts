@@ -13,7 +13,7 @@ import { joi } from "../config/common"
 import { validateSchema } from "../config/validation"
 import { extend, mapValues, omitBy } from "lodash"
 import { LogLevel } from "../logger/logger"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Parameters, ParameterValues, globalOptions } from "../cli/params"
 
 export interface CommandMap {
@@ -38,7 +38,7 @@ const baseRequestSchema = () =>
 /**
  * Validate and map a request body to a Command
  */
-export function parseRequest(ctx: Koa.ParameterizedContext, log: LogEntry, commands: CommandMap, request: any) {
+export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: CommandMap, request: any) {
   // Perform basic validation and find command.
   try {
     request = validateSchema(request, baseRequestSchema(), { context: "API request" })
@@ -63,7 +63,7 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: LogEntry, comma
   const command = commandSpec.command
 
   // We generally don't want actions to log anything in the server.
-  const cmdLog = log.placeholder({ level: LogLevel.silly, childEntriesInheritLevel: true })
+  const cmdLog = log.makeNewLogContext({ level: LogLevel.silly, fixLevel: true })
 
   const cmdArgs = mapParams(ctx, request.parameters, command.arguments)
   const optParams = extend({ ...globalOptions, ...command.options })

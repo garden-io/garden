@@ -9,7 +9,7 @@
 import chalk from "chalk"
 
 import type { Garden } from "../garden"
-import type { LogEntry } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin"
 import { getServiceStatuses } from "../tasks/helpers"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
@@ -29,7 +29,7 @@ import type { ActionKind, BaseActionConfig, ResolvedAction } from "../actions/ty
 
 export interface DeployManyParams {
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
   deployNames?: string[]
   force?: boolean
   forceBuild?: boolean
@@ -78,7 +78,7 @@ export class ActionRouter extends BaseRouter {
     return this[kind.toLowerCase()]
   }
 
-  async configureAction<K extends ActionKind>({ config, log }: { config: BaseActionConfig<K>; log: LogEntry }) {
+  async configureAction<K extends ActionKind>({ config, log }: { config: BaseActionConfig<K>; log: Log }) {
     const router = this.getRouterForActionKind(config.kind)
     return router.configure({ config, log })
   }
@@ -104,7 +104,7 @@ export class ActionRouter extends BaseRouter {
     graph,
     names,
   }: {
-    log: LogEntry
+    log: Log
     graph: ConfigGraph
     names?: string[]
   }): Promise<{ [name: string]: DeployStatus }> {
@@ -159,12 +159,11 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst,
   }: {
     graph: ConfigGraph
-    log: LogEntry
+    log: Log
     dependantsFirst?: boolean
     names?: string[]
   }): Promise<DeployStatusMap> {
-    const servicesLog = log.info({ msg: chalk.white("Deleting deployments..."), status: "active" })
-
+    const servicesLog = log.makeNewLogContext({}).info(chalk.white("Deleting deployments..."))
     const deploys = graph.getDeploys({ names })
 
     const tasks = deploys.map((action) => {

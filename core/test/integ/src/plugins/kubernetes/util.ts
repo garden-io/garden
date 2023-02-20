@@ -31,7 +31,7 @@ import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/co
 import { getHelmTestGarden } from "./helm/common"
 import { deline } from "../../../../../src/util/string"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"
 import {
@@ -51,7 +51,7 @@ describe("util", () => {
   let helmGarden: TestGarden
   let helmGraph: ConfigGraph
   let ctx: KubernetesPluginContext
-  let log: LogEntry
+  let log: Log
   let api: KubeApi
 
   before(async () => {
@@ -242,8 +242,8 @@ describe("util", () => {
   describe("getTargetResource", () => {
     it("should return the resource specified by serviceResource", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
-      const asd = await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
         action,
@@ -258,7 +258,7 @@ describe("util", () => {
         action,
         manifests,
         query: {
-          name: action.name,
+          name: action.getSpec().releaseName,
           kind: "Deployment",
         },
       })

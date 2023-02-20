@@ -9,11 +9,10 @@
 import chalk from "chalk"
 import { max, omit, sortBy } from "lodash"
 import { dedent, renderTable, tablePresets } from "../util/string"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Garden, DummyGarden } from "../garden"
 import { Command, CommandParams } from "./base"
 import { getTerminalWidth } from "../logger/util"
-import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { uniqByName, exec, shutdown } from "../util/util"
 import { PluginTool } from "../util/ext-tools"
@@ -74,10 +73,6 @@ export class ToolsCommand extends Command<Args, Opts> {
 
   arguments = toolsArgs
   options = toolsOpts
-
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
 
   printHeader() {}
 
@@ -173,7 +168,6 @@ export class ToolsCommand extends Command<Args, Opts> {
       return { result: { tools, path, stdout: result.stdout, stderr: result.stderr, exitCode: result.exitCode } }
     } else {
       // We attach stdout and stderr directly, and exit with the same code as we get from the command
-      log.stop()
       const result = await exec(path, args["--"] || [], { reject: false, stdio: "inherit" })
       await shutdown(result.exitCode)
       // Note: We never reach this line, just putting it here for the type-checker
@@ -190,7 +184,7 @@ async function getTools(garden: Garden) {
   )
 }
 
-async function printTools(garden: Garden, log: LogEntry) {
+async function printTools(garden: Garden, log: Log) {
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 

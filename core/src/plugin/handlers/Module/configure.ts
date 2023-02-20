@@ -12,11 +12,11 @@ import { PluginContext, pluginContextSchema } from "../../../plugin-context"
 import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { baseModuleSpecSchema, ModuleConfig, moduleConfigSchema } from "../../../config/module"
 import { joi } from "../../../config/common"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 
 export interface ConfigureModuleParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   moduleConfig: T["_config"]
 }
 

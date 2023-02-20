@@ -22,7 +22,7 @@ import {
 import { Writable } from "stream"
 import Bluebird from "bluebird"
 import { flatten, uniq, fromPairs, reduce } from "lodash"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
@@ -34,7 +34,6 @@ import { ContainerBuildAction, defaultDockerfileName } from "./config"
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
 import pMemoize from "../../lib/p-memoize"
-import { GARDEN_GLOBAL_PATH } from "../../constants"
 
 interface DockerVersion {
   client?: string
@@ -237,7 +236,7 @@ const helpers = {
     }
   },
 
-  async imageExistsLocally(identifier: string, log: LogEntry, ctx: PluginContext) {
+  async imageExistsLocally(identifier: string, log: Log, ctx: PluginContext) {
     const result = await helpers.dockerCli({
       cwd: ctx.projectRoot,
       args: ["images", identifier, "-q"],
@@ -305,7 +304,7 @@ const helpers = {
   }: {
     cwd: string
     args: string[]
-    log: LogEntry
+    log: Log
     ctx: PluginContext
     ignoreError?: boolean
     stdout?: Writable
@@ -359,7 +358,7 @@ const helpers = {
    * Returns undefined if the whole module directory should be included, or if the Dockerfile cannot be parsed.
    * Returns an empty list if there is no Dockerfile, and an `image` is set.
    */
-  async autoResolveIncludes(config: ContainerModuleConfig, log: LogEntry) {
+  async autoResolveIncludes(config: ContainerModuleConfig, log: Log) {
     const dockerfilePath = getDockerfilePath(config.path, config.spec.dockerfile)
 
     if (!(await pathExists(dockerfilePath))) {

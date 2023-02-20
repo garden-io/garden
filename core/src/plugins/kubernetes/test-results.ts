@@ -11,7 +11,7 @@ import { KubeApi } from "./api"
 import { ContainerTestAction } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
 import { KubernetesPluginContext } from "./config"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { TestResult } from "../../types/test"
 import hasha from "hasha"
 import { gardenAnnotationKey } from "../../util/string"
@@ -60,7 +60,7 @@ export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction
 
 interface StoreTestResultParams {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   action: ContainerTestAction | KubernetesTestAction
   result: TestResult
 }

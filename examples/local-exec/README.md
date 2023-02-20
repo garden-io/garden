@@ -2,39 +2,39 @@
 
 > Note: You need to have Go installed to run this project.
 
-This example project demonstrates how you can use the `exec` module type to run build commands, tasks and tests in the module directory, by setting `local: true` in the module config. By default the commands are executed in the `.garden/build` directory.
+This example project demonstrates how you can use the `exec` action type to run various actions (e.g. Build, Run, and Test) from the action directory, by setting `buildAtSource: true` in the action config. By default, the commands are executed in the `.garden/build` directory.
 
-The idea is to use a local `exec` module to run pre-build commands for a container module.
+The idea is to use a local `exec` action type to run pre-build commands for a `container` build action.
 
 ## Project Structure
 
-The project consists of a `builder` module and a `backend` module. Both modules are in the same `garden.yml` file in the `backend` directory.
+The project consists of a `builder` build action of type `exex` and 2 `backend` actions of type `container`: build and deploy. All actions are defined in the same `garden.yml` file in the `backend` directory.
 
-The `backend` module is a simple `container` module that acts as a web server written in Go. The corresponding Dockerfile expects the web server binary to already be built before adding it to the image.
+The `backend` application acts as a web server written in Go. The corresponding Dockerfile expects the web server binary to already be built before adding it to the image.
 
-To achieve this, we add a `go build` command to the `builder` module, set `local: true`, and then declare it as a build dependency in the `backend` module. We also tell Garden to copy the built binary to the `backend` build context since we're git ignoring it. This way, it's available with rest of the `backend` build context at `./garden/build/backend`. These are the relevant parts of the config
+To achieve this, we add a `go build` command to the `builder` action, set `buildAtSource: true`, and then declare it as a dependency in the `backend` build action. We also tell Garden to copy the built binary to the `backend` build context since we're git ignoring it. This way, it's available with rest of the `backend` build context at `./garden/build/backend`. These are the relevant parts of the config
 
 ```yaml
 # backend/garden.yml
-kind: Module
+kind: Build
 type: exec
-local: true
+buildAtSource: true
 ...
-build:
+spec:
   command: [go, build, -o, bin/backend]
 ---
-kind: Module
+kind: Build
 type: container
-build:
-  dependencies:
-    - name: builder
-      copy:
-        - source: bin
-          target: .
+dependencies:
+  - build.builder
+copyFrom:
+  - build: builder
+    sourcePath: bin
+    targetPath: .
 ...
 ```
 
-This ensures that Garden runs `go build` in the module directory before it attempts to build the Docker image for the `backend` module.
+This ensures that Garden runs `go build` in the action directory before it attempts to build the Docker image for the `backend` build action.
 
 ## Usage
 

@@ -21,7 +21,7 @@ import { omit } from "lodash"
 import { Garden } from "../garden"
 import { prepareCommands, parseRequest, CommandMap } from "./commands"
 import { gardenEnv } from "../constants"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events, EventBus, GardenEventListener } from "../events"
@@ -31,11 +31,12 @@ import { joi } from "../config/common"
 import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
-import { LogLevel, sanitizeValue } from "../logger/logger"
+import { LogLevel } from "../logger/logger"
 import { clientRequestNames, ClientRequestType, ClientRouter } from "./client-router"
 import { EventEmitter } from "eventemitter3"
 import { ServeCommand } from "../commands/serve"
 import { getBuiltinCommands } from "../commands/commands"
+import { sanitizeValue } from "../logger/logger"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -67,7 +68,7 @@ const websocketCloseEvents: WebsocketCloseEvents = {
 }
 
 interface GardenServerParams {
-  log: LogEntry
+  log: Log
   command: ServeCommand
   port?: number
 }
@@ -94,8 +95,8 @@ export async function startServer(params: GardenServerParams) {
 }
 
 export class GardenServer extends EventEmitter {
-  private log: LogEntry
-  private debugLog: LogEntry
+  private log: Log
+  private debugLog: Log
   private server: Server
   private garden: Garden | undefined
   private commands: CommandMap
@@ -104,7 +105,7 @@ export class GardenServer extends EventEmitter {
   private app: websockify.App
   private analytics?: AnalyticsHandler
   private incomingEvents: EventBus
-  private statusLog: LogEntry
+  private statusLog: Log
   private serversUpdatedListener: GardenEventListener<"serversUpdated">
   private activePersistentRequests: { [requestId: string]: { command: Command; connectionId: string } }
 
@@ -114,7 +115,7 @@ export class GardenServer extends EventEmitter {
   constructor({ log, command, port }: GardenServerParams) {
     super()
     this.log = log
-    this.debugLog = this.log.placeholder({ level: LogLevel.debug, childEntriesInheritLevel: true })
+    this.debugLog = this.log.makeNewLogContext({ level: LogLevel.debug, fixLevel: true })
     this.commands = prepareCommands(getBuiltinCommands()) // This gets updated when .setGarden() is called
     this.serveCommand = command
     this.clientRouter = undefined
@@ -163,7 +164,7 @@ export class GardenServer extends EventEmitter {
     })
 
     this.log.info("")
-    this.statusLog = this.log.placeholder()
+    this.statusLog = this.log.makeNewLogContext({})
   }
 
   getBaseUrl() {
@@ -175,10 +176,7 @@ export class GardenServer extends EventEmitter {
   }
 
   showUrl(url?: string) {
-    this.statusLog.setState({
-      emoji: "sunflower",
-      msg: chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()),
-    })
+    this.statusLog.info("🌻 " + chalk.cyan("Garden server running at ") + chalk.blueBright(url || this.getUrl()))
   }
 
   async close() {

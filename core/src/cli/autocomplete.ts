@@ -9,7 +9,7 @@
 import { Memoize } from "typescript-memoize"
 import { Command, CommandGroup } from "../commands/base"
 import { ConfigDump } from "../garden"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { parseCliArgs, pickCommand } from "./helpers"
 import { globalOptions, Parameter, Parameters } from "./params"
 
@@ -25,7 +25,7 @@ export interface AutocompleteSuggestion {
 // TODO: validate the input string (to e.g. highlight invalid names/arguments/flags in red)
 
 interface AutocompleterParams {
-  log: LogEntry
+  log: Log
   commands: Command[]
   configDump?: ConfigDump
   debug?: boolean
@@ -37,7 +37,7 @@ interface GetSuggestionsOpts {
 }
 
 export class Autocompleter {
-  private log: LogEntry
+  private log: Log
   private commands: (Command | CommandGroup)[]
   private configDump?: ConfigDump
   private enableDebug: boolean

@@ -12,12 +12,12 @@ import { PluginActionContextParams, logEntrySchema } from "../../base"
 import { joi, PrimitiveMap, joiVariables, moduleVersionSchema } from "../../../config/common"
 import { templateStringLiteral } from "../../../docs/common"
 import { ModuleVersion } from "../../../vcs/vcs"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { pluginContextSchema } from "../../../plugin-context"
 import { baseModuleSpecSchema } from "../../../config/module"
 
 export interface GetModuleOutputsParams<T extends GardenModule = GardenModule> extends PluginActionContextParams {
-  log: LogEntry
+  log: Log
   moduleConfig: T["_config"]
   version: ModuleVersion
 }

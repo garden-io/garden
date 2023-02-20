@@ -10,13 +10,13 @@ import { dedent } from "../../../util/string"
 import { AddModuleSpec } from "../../../config/module"
 import { joi, joiArray } from "../../../config/common"
 import { addModuleSchema } from "../Provider/augmentGraph"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { ActionHandlerParamsBase } from "../../plugin"
 
 export const maxDescriptionLength = 48
 
 export interface SuggestModulesParams extends ActionHandlerParamsBase {
-  log: LogEntry
+  log: Log
   name: string
   path: string
 }

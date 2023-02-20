@@ -61,7 +61,7 @@ export class LinkSourceCommand extends Command<Args> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Link source", "link")
+    printHeader(headerLog, "Link source", "🔗")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {

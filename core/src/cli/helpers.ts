@@ -15,12 +15,12 @@ import { platform, release } from "os"
 import qs from "qs"
 import stringWidth from "string-width"
 import { maxBy, zip } from "lodash"
-import { Logger } from "../logger/logger"
+import { Logger, formatGardenErrorWithDetail } from "../logger/logger"
 
 import { ParameterValues, Parameter, Parameters } from "./params"
 import { GardenBaseError, InternalError, ParameterError, toGardenError } from "../exceptions"
 import { getPackageVersion, removeSlice } from "../util/util"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv, ERROR_LOG_FILENAME } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore } from "../config-store/global"
@@ -31,7 +31,6 @@ import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
 import { validateGitInstall } from "../vcs/vcs"
-import { renderError } from "../logger/renderers"
 import { FileWriter } from "../logger/writers/file-writer"
 
 let _cliStyles: any
@@ -79,7 +78,7 @@ export async function checkRequirements() {
   await validateGitInstall()
 }
 
-export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntry) {
+export async function checkForUpdates(config: GlobalConfigStore, logger: Log) {
   if (gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
     return
   }
@@ -227,7 +226,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
   inheritedOpts,
   warnOnGlobalOpts,
 }: {
-  log?: LogEntry
+  log?: Log
   rawArgs: string[]
   parsedArgs: minimist.ParsedArgs
   command: Command<A, O>
@@ -467,23 +466,21 @@ function renderParameters(params: Parameters, formatName: (name: string, param: 
   })
 }
 
-export function renderCommandErrors(logger: Logger, errors: Error[], logEntry?: LogEntry) {
+export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) {
   const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
-  const log = logEntry || logger
+  const errorLog = log || logger.makeNewLogContext()
 
   for (const error of gardenErrors) {
-    const entry = log.error({
+    errorLog.error({
       msg: error.message,
       error,
     })
     // Output error details to console when log level is silly
-    log.silly({
-      msg: renderError(entry),
-    })
+    errorLog.silly(formatGardenErrorWithDetail(error))
   }
 
   if (logger.getWriters().find((w) => w instanceof FileWriter)) {
-    log.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
+    errorLog.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
   }
 }

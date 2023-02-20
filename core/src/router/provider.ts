@@ -14,7 +14,7 @@ import { fromPairs, mapValues, omit } from "lodash"
 import { validateSchema } from "../config/validation"
 import { defaultProvider } from "../config/provider"
 import { ParameterError, PluginError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { PluginActionParamsBase } from "../plugin/base"
 import {
   ProviderActionOutputs,
@@ -174,22 +174,22 @@ export class ProviderRouter extends BaseRouter {
   /**
    * Runs cleanupEnvironment for all configured providers
    */
-  async cleanupAll(log: LogEntry) {
-    const envLog = log.info({ msg: chalk.white("Cleaning up environments..."), status: "active" })
+  async cleanupAll(log: Log) {
+    log.info(chalk.white("Cleaning up environments..."))
     const environmentStatuses: EnvironmentStatusMap = {}
 
     const providers = await this.garden.resolveProviders(log)
     await Bluebird.each(Object.values(providers), async (provider) => {
-      await this.cleanupEnvironment({ pluginName: provider.name, log: envLog, events: undefined })
+      await this.cleanupEnvironment({ pluginName: provider.name, log, events: undefined })
       environmentStatuses[provider.name] = { ready: false, outputs: {} }
     })
 
-    envLog.setSuccess()
+    log.setSuccess()
 
     return environmentStatuses
   }
 
-  async getDebugInfo({ log, includeProject }: { log: LogEntry; includeProject: boolean }): Promise<DebugInfoMap> {
+  async getDebugInfo({ log, includeProject }: { log: Log; includeProject: boolean }): Promise<DebugInfoMap> {
     const handlers = await this.getPluginHandlers("getDebugInfo")
     return Bluebird.props(
       mapValues(handlers, async (h) =>

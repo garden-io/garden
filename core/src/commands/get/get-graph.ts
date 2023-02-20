@@ -20,7 +20,7 @@ export class GetGraphCommand extends Command {
   help = "Outputs the dependency relationships across the project."
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Get graph", "chart_with_upwards_trend")
+    printHeader(headerLog, "Get graph", "📈")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<GraphOutput>> {

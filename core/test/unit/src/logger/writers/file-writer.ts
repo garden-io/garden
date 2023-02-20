@@ -17,22 +17,22 @@ import { render } from "../../../../../src/logger/writers/file-writer"
 const logger: Logger = getLogger()
 
 beforeEach(() => {
-  logger["children"] = []
+  logger["entries"] = []
 })
 
 describe("FileWriter", () => {
   describe("render", () => {
     it("should render message without ansi characters", () => {
-      const entry = logger.info(chalk.red("hello"))
+      const entry = logger.makeNewLogContext().info(chalk.red("hello")).getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal("hello")
     })
     it("should render error message if entry level is error", () => {
-      const entry = logger.error("error")
+      const entry = logger.makeNewLogContext().error("error").getLatestEntry()
       const expectedOutput = stripAnsi(renderError(entry))
       expect(render(LogLevel.info, entry)).to.equal(expectedOutput)
     })
     it("should return null if entry level is geq to writer level", () => {
-      const entry = logger.silly("silly")
+      const entry = logger.makeNewLogContext().silly("silly").getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal(null)
     })
   })

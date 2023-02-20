@@ -13,22 +13,22 @@ import { EventEmitter2 } from "eventemitter2"
 import bodyParser = require("koa-bodyparser")
 import Router = require("koa-router")
 import getPort = require("get-port")
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { AuthTokenResponse } from "./api"
 import { isArray } from "lodash"
 
 // TODO: Add analytics tracking
 export class AuthRedirectServer {
-  private log: LogEntry
+  private log: Log
   private server: Server
   private app: Koa
   private enterpriseDomain: string
   private events: EventEmitter2
 
-  constructor(enterpriseDomain: string, events: EventEmitter2, log: LogEntry, public port?: number) {
+  constructor(enterpriseDomain: string, events: EventEmitter2, log: Log, public port?: number) {
     this.enterpriseDomain = enterpriseDomain
     this.events = events
-    this.log = log.placeholder()
+    this.log = log.makeNewLogContext({})
   }
 
   async start() {

@@ -95,7 +95,7 @@ export class FileWriter extends Writer {
     return render(this.level, entry)
   }
 
-  onGraphChange(entry: LogEntry) {
+  write(entry: LogEntry) {
     const out = this.render(entry)
     if (out) {
       if (!this.fileLogger) {
@@ -104,6 +104,4 @@ export class FileWriter extends Writer {
       this.fileLogger.log(levelToStr(entry.level), out)
     }
   }
-
-  stop() {}
 }

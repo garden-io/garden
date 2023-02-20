@@ -11,7 +11,7 @@ import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
 import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
@@ -35,7 +35,7 @@ describe("dev mode deployments and sync behavior", () => {
   let ctx: KubernetesPluginContext
   let provider: KubernetesProvider
 
-  const execInPod = async (command: string[], log: LogEntry, workload: KubernetesWorkload) => {
+  const execInPod = async (command: string[], log: Log, workload: KubernetesWorkload) => {
     const execRes = await execInWorkload({
       command,
       ctx,

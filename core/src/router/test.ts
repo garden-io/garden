@@ -51,7 +51,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
           if (!params.interactive) {
             // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
             // TODO: 0.13 make sure that logs of different tests in the same module can be differentiated
-            log.setState(renderOutputStream(data.toString(), origin))
+            log.info(renderOutputStream(data.toString(), origin))
           }
           // stream logs to Garden Cloud
           // TODO: consider sending origin as well

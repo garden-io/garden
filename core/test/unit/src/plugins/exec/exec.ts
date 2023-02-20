@@ -13,7 +13,7 @@ import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { ExecProvider, gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import {
   getDataDir,
@@ -58,7 +58,7 @@ describe("exec plugin", () => {
     let ctx: PluginContext
     let execProvider: ExecProvider
     let graph: ConfigGraph
-    let log: LogEntry
+    let log: Log
 
     beforeEach(async () => {
       garden = await makeTestGarden(testProjectRoot, { plugins: [plugin] })

@@ -16,7 +16,7 @@ import { join } from "path"
 import { TestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 import { DeployCommand } from "../../../../src/commands/deploy"
 import { parseCliArgs } from "../../../../src/cli/helpers"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { DeleteDeployCommand } from "../../../../src/commands/delete"
 import { GetOutputsCommand } from "../../../../src/commands/get/get-outputs"
 import { TestCommand } from "../../../../src/commands/test"
@@ -180,7 +180,7 @@ function parseAndProcess<A extends Parameters, O extends Parameters>(
 
 describe("processCliArgs", () => {
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   let defaultActionParams: any
 
   before(async () => {
@@ -255,8 +255,8 @@ describe("processCliArgs", () => {
 
   it("correctly handles global option flags", () => {
     const cmd = new BuildCommand()
-    const { opts } = parseAndProcess(["--log-level", "debug", "--logger-type=basic"], cmd)
-    expect(opts["logger-type"]).to.equal("basic")
+    const { opts } = parseAndProcess(["--logger-type", "json", "--log-level", "debug"], cmd)
+    expect(opts["logger-type"]).to.equal("json")
     expect(opts["log-level"]).to.equal("debug")
   })
 

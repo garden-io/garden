@@ -7,10 +7,9 @@
  */
 
 import Bluebird from "bluebird"
-import { omit } from "lodash"
 
 import { Events, EventName, EventBus, pipedEventNames } from "../events"
-import { LogEntryMetadata, LogEntry, LogEntryMessage } from "../logger/log-entry"
+import { LogEntryMetadata, Log, LogEntry } from "../logger/log-entry"
 import { got } from "../util/http"
 
 import { LogLevel } from "../logger/logger"
@@ -23,30 +22,30 @@ export type StreamEvent = {
   timestamp: Date
 }
 
+type LogEntryMessage = Pick<LogEntry, "msg" | "section" | "symbol" | "data" | "dataFormat">
+
 // TODO: Remove data, section, timestamp and msg once we've updated GE (it's included in the message)
 export interface LogEntryEventPayload {
   key: string
-  parentKey: string | null
-  revision: number
-  timestamp: Date
+  timestamp: string
   level: LogLevel
-  message: Omit<LogEntryMessage, "timestamp">
+  message: LogEntryMessage
   metadata?: LogEntryMetadata
 }
 
 export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayload {
-  const message = entry.getLatestMessage()
-  const { key, revision, level } = entry
-  const parentKey = entry.parent ? entry.parent.key : null
-  const metadata = entry.getMetadata()
   return {
-    key,
-    parentKey,
-    revision,
-    metadata,
-    timestamp: message.timestamp,
-    level,
-    message: omit(message, "timestamp"),
+    key: entry.key,
+    metadata: entry.metadata,
+    timestamp: entry.timestamp,
+    level: entry.level,
+    message: {
+      msg: entry.msg,
+      symbol: entry.symbol,
+      data: entry.data,
+      section: entry.section,
+      dataFormat: entry.dataFormat,
+    },
   }
 }
 
@@ -90,7 +89,7 @@ export interface ApiLogBatch extends ApiBatchBase {
 export const controlEventNames: Set<EventName> = new Set(["_workflowRunRegistered"])
 
 export interface BufferedEventStreamParams {
-  log: LogEntry
+  log: Log
   cloudApi?: CloudApi
   sessionId: string
 }
@@ -105,7 +104,7 @@ export interface BufferedEventStreamParams {
  * any) e.g. when config changes during a watch-mode command.
  */
 export class BufferedEventStream {
-  protected log: LogEntry
+  protected log: Log
   protected cloudApi?: CloudApi
   public sessionId: string
 

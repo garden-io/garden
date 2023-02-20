@@ -16,7 +16,7 @@ import {
   configureContainerModule,
 } from "../../../../../src/plugins/container/container"
 import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { GardenModule, moduleFromConfig } from "../../../../../src/types/module"
 import { expect } from "chai"
@@ -69,7 +69,7 @@ describe("plugins.container", () => {
 
   let garden: TestGarden
   let ctx: PluginContext
-  let log: LogEntry
+  let log: Log
   let containerProvider: ContainerProvider
   let graph: ConfigGraph
 

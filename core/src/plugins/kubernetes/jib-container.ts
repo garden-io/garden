@@ -142,7 +142,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
     const deploymentImageId = baseResult.outputs.deploymentImageId
     syncCommand.push("oci:" + dataPath, "docker://" + deploymentImageId)
 
-    log.setState(`Pushing image ${deploymentImageId} to registry`)
+    log.info(`Pushing image ${deploymentImageId} to registry`)
 
     const runner = new PodRunner({
       api,
@@ -165,7 +165,7 @@ async function buildAndPushViaRemote(params: BuildActionParams<"build", Containe
     })
 
     log.debug(skopeoLog)
-    log.setState(`Image ${deploymentImageId} built and pushed to registry`)
+    log.info(`Image ${deploymentImageId} built and pushed to registry`)
 
     return baseResult
   } finally {

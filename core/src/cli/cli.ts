@@ -59,14 +59,12 @@ import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
 import { Profile } from "../util/profiling"
 import { prepareDebugLogfiles } from "./debug-logs"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
-import { renderDivider } from "../logger/util"
-import { emoji as nodeEmoji } from "node-emoji"
+import { printEmoji, renderDivider } from "../logger/util"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess } from "../process"
-import { GardenServer } from "../server/server"
 import { ServeCommand } from "../commands/serve"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
@@ -90,9 +88,17 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
-function renderHeader({ environmentName, namespaceName }: { environmentName: string; namespaceName: string }) {
+function renderHeader({
+  environmentName,
+  namespaceName,
+  log,
+}: {
+  environmentName: string
+  namespaceName: string
+  log: Log
+}) {
   const divider = chalk.gray(renderDivider())
-  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
+  let msg = `${printEmoji("🌍", log)}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
     environmentName
   )}`
 
@@ -159,7 +165,7 @@ ${renderCommands(commands)}
     commandFullName,
   }: {
     logger: Logger
-    log: LogEntry
+    log: Log
     gardenDirPath: string
     commandFullName: string
   }) {
@@ -267,7 +273,7 @@ ${renderCommands(commands)}
 
     const logger = Logger.initialize({
       level,
-      storeEntries: loggerType === "fancy",
+      storeEntries: false,
       type: loggerType,
       useEmoji: emoji,
       showTimestamps,
@@ -276,13 +282,14 @@ ${renderCommands(commands)}
     // Currently we initialise empty placeholder entries and pass those to the
     // framework as opposed to the logger itself. This is to give better control over where on
     // the screen the logs are printed.
-    const headerLog = logger.placeholder()
-    const log = logger.placeholder()
-    const footerLog = logger.placeholder()
+    // TODO: Remove header and footer logs. Not needed any more.
+    const headerLog = logger.makeNewLogContext()
+    const log = logger.makeNewLogContext()
+    const footerLog = logger.makeNewLogContext()
 
     const globalConfigStore = new GlobalConfigStore()
 
-    await validateRuntimeRequirementsCached(logger, globalConfigStore, checkRequirements)
+    await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
 
     command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
@@ -359,7 +366,7 @@ ${renderCommands(commands)}
     // Print header log before we know the namespace to prevent content from
     // jumping.
     // TODO: Link to Cloud namespace page here.
-    const nsLog = headerLog.placeholder()
+    const nsLog = headerLog.makeNewLogContext({})
 
     do {
       try {
@@ -368,7 +375,7 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
+          nsLog.info(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName, log }))
 
           if (!cloudApi && garden.projectId) {
             log.warn({
@@ -430,12 +437,12 @@ ${renderCommands(commands)}
           if (namespaceUrl) {
             const distroName = getCloudDistributionName(cloudApi?.domain || "")
             const msg = dedent`
-              \n${nodeEmoji.lightning}   ${chalk.cyan(
+              \n${printEmoji("🌩️", log)}   ${chalk.cyan(
               `Connected to ${distroName}! Click the link below to view logs and more.`
             )}
-              ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
+              ${printEmoji("🔗", log)}  ${chalk.blueBright.underline(namespaceUrl)}
             `
-            footerLog.setState(msg)
+            footerLog.info(msg)
           }
         }
 
@@ -504,7 +511,7 @@ ${renderCommands(commands)}
           })
         } else {
           // The command is protected and the user decided to not continue with the exectution.
-          log.setState("\nCommand aborted.")
+          log.info("\nCommand aborted.")
           result = {}
         }
         await garden.close()
@@ -555,7 +562,6 @@ ${renderCommands(commands)}
 
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
       if (exitOnError) {
-        logger && logger.stop()
         // eslint-disable-next-line no-console
         console.log(consoleOutput)
         await waitForOutputFlush()
@@ -686,7 +692,7 @@ ${renderCommands(commands)}
     } catch (_) {
       logger = Logger.initialize({
         level: LogLevel.info,
-        type: "basic",
+        type: "default",
         storeEntries: false,
       })
     }
@@ -696,10 +702,6 @@ ${renderCommands(commands)}
       renderCommandErrors(logger, gardenErrors)
       await waitForOutputFlush()
       code = commandResult.exitCode || 1
-    }
-    if (exitOnError) {
-      logger.stop()
-      logger.cleanup()
     }
 
     if (this.bufferedEventStream) {
@@ -734,7 +736,7 @@ ${renderCommands(commands)}
 }
 
 export async function validateRuntimeRequirementsCached(
-  log: Logger,
+  log: Log,
   globalConfig: GlobalConfigStore,
   requirementCheckFunction: () => Promise<void>
 ) {

@@ -75,7 +75,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   options = secretsCreateOpts
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Create users", "lock")
+    printHeader(headerLog, "Create users", "🔒")
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
@@ -119,7 +119,8 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "users"), {})
     }
 
-    const cmdLog = log.info({ status: "active", section: "users-command", msg: "Creating users..." })
+    const cmdLog = log.makeNewLogContext({ section: "users-command" })
+    cmdLog.info("Creating users...")
 
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
       name,
@@ -142,7 +143,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
         const asyncBatch = Math.ceil(count / nAsyncBatches)
         if (asyncBatch > currentAsyncBatch) {
           currentAsyncBatch = asyncBatch
-          cmdLog.setState({ msg: `Creating users... → Batch ${currentAsyncBatch}/${nAsyncBatches}` })
+          cmdLog.info({ msg: `Creating users... → Batch ${currentAsyncBatch}/${nAsyncBatches}` })
         }
         count++
         try {

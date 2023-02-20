@@ -8,7 +8,7 @@
 
 import { join } from "path"
 
-import { ConfigGraph, GardenModule, ProjectConfig } from "@garden-io/sdk/types"
+import { GardenModule, ProjectConfig } from "@garden-io/sdk/types"
 import { expect } from "chai"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import { defaultApiVersion, defaultNamespace } from "@garden-io/sdk/constants"

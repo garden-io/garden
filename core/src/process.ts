@@ -11,7 +11,7 @@ import chalk from "chalk"
 
 import { BaseTask } from "./tasks/base"
 import { Garden } from "./garden"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
 import { renderDivider } from "./logger/util"
 import { Action } from "./actions/types"
@@ -23,7 +23,7 @@ export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<Bas
 interface ProcessParams {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
   persistent: boolean
   initialTasks: BaseTask[]
 }

@@ -14,7 +14,7 @@ import { basename, join, relative, resolve } from "path"
 
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
 import { getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 import { deline } from "../../../../src/util/string"
 import { uuidv4 } from "../../../../src/util/util"
@@ -63,7 +63,7 @@ describe("GitHandler", () => {
   let tmpPath: string
   let git: any
   let handler: GitHandler
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
     garden = await makeTestGardenA()

@@ -20,7 +20,7 @@ import {
 import { UpdateRemoteSourcesCommand } from "../../../../src/commands/update-remote/sources"
 import { UpdateRemoteModulesCommand } from "../../../../src/commands/update-remote/modules"
 import { Garden } from "../../../../src/garden"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 
 function withDefaultOpts(opts: any) {
   return withDefaultGlobalOpts({ parallel: false, ...opts })
@@ -29,7 +29,7 @@ function withDefaultOpts(opts: any) {
 describe("UpdateRemoteCommand", () => {
   describe("UpdateRemoteSourcesCommand", () => {
     let garden: Garden
-    let log: LogEntry
+    let log: Log
     const cmd = new UpdateRemoteSourcesCommand()
 
     before(async () => {
@@ -127,7 +127,7 @@ describe("UpdateRemoteCommand", () => {
 
   describe("UpdateRemoteModulesCommand", () => {
     let garden: Garden
-    let log: LogEntry
+    let log: Log
     const cmd = new UpdateRemoteModulesCommand()
 
     beforeEach(async () => {

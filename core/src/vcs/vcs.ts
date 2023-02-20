@@ -8,7 +8,7 @@
 
 import Joi from "@hapi/joi"
 import normalize = require("normalize-path")
-import { sortBy, omit, pick } from "lodash"
+import { sortBy, pick } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
@@ -17,7 +17,7 @@ import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
-import type { LogEntry } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry"
 import { treeVersionSchema } from "../config/common"
 import { dedent } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
@@ -93,7 +93,7 @@ export interface VcsInfo {
 }
 
 export interface GetFilesParams {
-  log: LogEntry
+  log: Log
   path: string
   pathDescription?: string
   include?: string[]
@@ -106,7 +106,7 @@ export interface RemoteSourceParams {
   url: string
   name: string
   sourceType: ExternalSourceType
-  log: LogEntry
+  log: Log
   failOnPrompt?: boolean
 }
 
@@ -139,14 +139,14 @@ export abstract class VcsHandler {
   }
 
   abstract name: string
-  abstract getRepoRoot(log: LogEntry, path: string): Promise<string>
+  abstract getRepoRoot(log: Log, path: string): Promise<string>
   abstract getFiles(params: GetFilesParams): Promise<VcsFile[]>
   abstract ensureRemoteSource(params: RemoteSourceParams): Promise<string>
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
-  abstract getPathInfo(log: LogEntry, path: string): Promise<VcsInfo>
+  abstract getPathInfo(log: Log, path: string): Promise<VcsInfo>
 
   async getTreeVersion(
-    log: LogEntry,
+    log: Log,
     projectName: string,
     config: ModuleConfig | BaseActionConfig,
     force = false
@@ -211,6 +211,13 @@ export abstract class VcsHandler {
     })
 
     return result
+  }
+
+  async resolveTreeVersion(log: Log, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
+    // the version file is used internally to specify versions outside of source control
+    const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
+    const fileVersion = await readTreeVersionFile(versionFilePath)
+    return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
   getRemoteSourcesDirname(type: ExternalSourceType) {

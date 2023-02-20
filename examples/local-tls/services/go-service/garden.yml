@@ -1,12 +1,20 @@
-kind: Module
+kind: Build
+name: go-service
+description: Go service container image
+type: container
+
+---
+kind: Deploy
 name: go-service
 description: Go service container
 type: container
-services:
-  - name: go-service
-    ports:
-      - name: http
-        containerPort: 80
-    ingresses:
-      - path: /
-        port: http
+
+build: go-service
+
+spec:
+  ports:
+    - name: http
+      containerPort: 80
+  ingresses:
+    - path: /
+      port: http

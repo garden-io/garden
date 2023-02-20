@@ -16,7 +16,7 @@ import { dedent } from "../util/string"
 import { getLogLevelChoices, LogLevel } from "../logger/logger"
 import { getBuiltinCommands } from "./commands"
 import { getCustomCommands } from "./custom"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { CommandLine } from "../cli/command-line"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import chalk from "chalk"
@@ -117,7 +117,7 @@ export class ServeCommand<
     })
   }
 
-  async reload(log: LogEntry, garden: Garden) {
+  async reload(log: Log, garden: Garden) {
     this.commandLine?.disable("🌸  Loading Garden project...")
 
     try {
@@ -216,7 +216,7 @@ const logLevelArguments = {
 type LogLevelArguments = typeof logLevelArguments
 
 // These are the only writers for which we want to dynamically update the log level
-const displayWriterTypes = ["basic", "ink", "fancy"]
+const displayWriterTypes = ["basic", "ink"]
 
 class LogLevelCommand extends InteractiveCommand<LogLevelArguments> {
   name = "log-level"
