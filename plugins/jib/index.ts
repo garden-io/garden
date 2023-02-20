@@ -29,7 +29,7 @@ import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
 import { cloneDeep, pick } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
-import { detectProjectType, getBuildFlags, JibBuildConfig, JibContainerModule } from "./util"
+import { detectProjectType, getBuildFlags, JibBuildActionSpec, JibBuildConfig, JibContainerModule } from "./util"
 import { ConvertModuleParams, ConvertModuleResult } from "@garden-io/core/build/src/plugin/handlers/Module/convert"
 import { PluginEventLogContext } from "@garden-io/core/build/src/plugin-context"
 
@@ -180,20 +180,20 @@ export const gardenPlugin = () =>
                 openJdkPath = await openJdk.getPath(log)
               }
 
-              const statusLine = log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true })
+              const statusLine = log.makeNewLogContext({ level: LogLevel.verbose, fixLevel: true })
 
               let projectType = spec.projectType
 
               if (!projectType) {
                 projectType = detectProjectType(action)
-                statusLine.setState(renderOutputStream(`Detected project type ${projectType}`))
+                statusLine.info(renderOutputStream(`Detected project type ${projectType}`))
               }
 
               let buildLog = ""
 
               const logEventContext: PluginEventLogContext = {
                 origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
-                log: log.placeholder({ level: LogLevel.verbose }),
+                log: log.makeNewLogContext({ level: LogLevel.verbose }),
               }
 
               const outputStream = split2()
@@ -203,7 +203,7 @@ export const gardenPlugin = () =>
                 buildLog += data.toString()
               })
 
-              statusLine.setState({ section: action.key(), msg: `Using JAVA_HOME=${openJdkPath}` })
+              statusLine.info({ section: action.key(), msg: `Using JAVA_HOME=${openJdkPath}` })
 
               const { args, tarPath } = getBuildFlags(action, projectType)
 
@@ -295,6 +295,7 @@ export const gardenPlugin = () =>
             const actions = output.group!.actions
             const buildActionIndex = actions.findIndex((a) => a.kind === "Build")
 
+            const defaults = pick(module.spec.build, Object.keys(jibBuildSchemaKeys())) as Partial<JibBuildActionSpec>
             const buildAction: JibBuildConfig = {
               kind: "Build",
               type: "jib-container",
@@ -311,15 +312,14 @@ export const gardenPlugin = () =>
                 extraFlags: module.spec.extraFlags,
                 publishId: module.spec.image,
                 targetStage: module.spec.build.targetImage,
-                timeout: module.spec.build.timeout,
 
                 // jib fields
+                ...defaults,
                 jdkVersion: module.spec.build.jdkVersion,
                 projectType: module.spec.build.projectType,
                 tarFormat: module.spec.build.tarFormat,
                 tarOnly: module.spec.build.tarOnly,
                 dockerfile: "_jib", // See configure handler above
-                ...pick(module.spec.build, Object.keys(jibBuildSchemaKeys())),
                 mavenPhases: module.spec.build.mavenPhases,
               },
             }

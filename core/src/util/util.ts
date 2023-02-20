@@ -36,7 +36,7 @@ import { DumpOptions, safeDump, safeLoad } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
 import { Readable, Writable } from "stream"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
@@ -152,12 +152,12 @@ export function renderOutputStream(msg: string, command?: string) {
  * Note that new entries are not created but rather the passed log entry gets updated.
  * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
  */
-export function createOutputStream(log: LogEntry) {
+export function createOutputStream(log: Log) {
   const outputStream = split2()
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    log.setState(renderOutputStream(line.toString()))
+    log.info(renderOutputStream(line.toString()))
   })
 
   return outputStream
@@ -742,7 +742,7 @@ export async function runScript({
   script,
   envVars,
 }: {
-  log: LogEntry
+  log: Log
   cwd: string
   script: string
   envVars?: PrimitiveMap

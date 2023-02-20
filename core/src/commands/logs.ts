@@ -13,7 +13,7 @@ import { every, some, sortBy } from "lodash"
 import Bluebird = require("bluebird")
 import { DeployLogEntry } from "../types/service"
 import Stream from "ts-stream"
-import { LoggerType, logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
+import { logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import hasAnsi = require("has-ansi")
@@ -45,14 +45,14 @@ const logsOpts = {
   }),
   "follow": new BooleanParameter({
     help: "Continuously stream new logs.",
-    alias: "f",
+    aliases: ["f"],
   }),
   "tail": new IntegerParameter({
     help: deline`
       Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over
       the \`--since\` flag if both are set. Note that we don't recommend using a large value here when in follow mode.
     `,
-    alias: "t",
+    aliases: ["t"],
   }),
   "show-tags": new BooleanParameter({
     help: "Show any tags attached to each log line. May not apply to all providers",
@@ -69,7 +69,7 @@ const logsOpts = {
   }),
   "hide-name": new BooleanParameter({
     help: "Hide the action name and render the logs directly.",
-    alias: "hide-service",
+    aliases: ["hide-service"],
     defaultValue: false,
   }),
 }
@@ -113,10 +113,6 @@ export class LogsCommand extends Command<Args, Opts> {
   options = logsOpts
 
   private events?: PluginEventBroker
-
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Logs", "scroll")
@@ -185,7 +181,6 @@ export class LogsCommand extends Command<Args, Opts> {
     log.info("")
     log.info(chalk.white.bold("Service logs" + details + ":"))
     log.info(chalk.white.bold(renderDivider()))
-    log.root.stop()
 
     // Map all deploys names in the project to a specific color. This ensures
     // that in most cases they have the same color (unless any have been added/removed),

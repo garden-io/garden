@@ -8,7 +8,7 @@
 
 import { dedent } from "../../../util/string"
 import { joi, joiArray } from "../../../config/common"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { ActionHandlerParamsBase } from "../../../plugin/plugin"
 import { BaseActionConfig } from "../../../actions/types"
 import { baseActionConfigSchema } from "../../../actions/base"
@@ -17,7 +17,7 @@ import { ActionTypeHandlerSpec } from "./base"
 export const maxDescriptionLength = 48
 
 interface SuggestActionsParams extends ActionHandlerParamsBase {
-  log: LogEntry
+  log: Log
   name: string
   path: string
 }

@@ -31,7 +31,7 @@ import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/co
 import { getHelmTestGarden } from "./helm/common"
 import { deline } from "../../../../../src/util/string"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"
 import {
@@ -51,7 +51,7 @@ describe("util", () => {
   let helmGarden: TestGarden
   let helmGraph: ConfigGraph
   let ctx: KubernetesPluginContext
-  let log: LogEntry
+  let log: Log
   let api: KubeApi
 
   before(async () => {
@@ -97,7 +97,7 @@ describe("util", () => {
         log,
         action,
         force: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
 
         localModeDeployNames: [],
       })
@@ -134,7 +134,7 @@ describe("util", () => {
           graph,
           log: garden.log,
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -145,7 +145,7 @@ describe("util", () => {
           ctx,
           imageId: action.getSpec().image,
           namespace: provider.config.namespace!.name!,
-          enableDevMode: false,
+          enableSyncMode: false,
 
           enableLocalMode: false,
           log: garden.log,
@@ -182,7 +182,7 @@ describe("util", () => {
           log: garden.log,
           action,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -242,12 +242,12 @@ describe("util", () => {
   describe("getTargetResource", () => {
     it("should return the resource specified by serviceResource", async () => {
       const rawAction = helmGraph.getDeploy("api")
-      const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
-      const asd = await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
+      const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
+      await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -258,7 +258,7 @@ describe("util", () => {
         action,
         manifests,
         query: {
-          name: action.name,
+          name: action.getSpec().releaseName,
           kind: "Deployment",
         },
       })
@@ -272,7 +272,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -294,7 +294,7 @@ describe("util", () => {
           expect(stripAnsi(err.message)).to.equal(
             deline`helm module api doesn't specify a serviceResource in its configuration.
           You must specify a resource in the module config in order to use certain Garden features,
-          such as dev mode, local mode, tasks and tests.`
+          such as sync, local mode, tasks and tests.`
           )
       )
     })
@@ -305,7 +305,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -333,7 +333,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -361,7 +361,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -394,7 +394,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -425,7 +425,7 @@ describe("util", () => {
           graph: helmGraph,
           log: helmGarden.log,
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -539,7 +539,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })

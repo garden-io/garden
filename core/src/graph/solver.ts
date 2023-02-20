@@ -7,7 +7,7 @@
  */
 
 import type { BaseTask, Task } from "../tasks/base"
-import type { LogEntry } from "../logger/log-entry"
+import type { Log } from "../logger/log-entry"
 import { GardenBaseError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/util"
 import { DependencyGraph, metadataForLog } from "./common"
@@ -18,8 +18,8 @@ import { GraphResult, GraphResults, resultToString, TaskEventBase } from "./resu
 import { gardenEnv } from "../constants"
 import type { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
-import { renderError } from "../logger/renderers"
 import { renderDivider, renderMessageWithDivider } from "../logger/util"
+import { formatGardenErrorWithDetail } from "../logger/logger"
 import chalk from "chalk"
 import {
   CompleteTaskParams,
@@ -41,7 +41,7 @@ export interface SolveOpts {
 }
 
 export interface SolveParams<T extends BaseTask = BaseTask> extends SolveOpts {
-  log: LogEntry
+  log: Log
   tasks: T[]
 }
 
@@ -63,7 +63,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
   private inLoop: boolean
 
-  private log: LogEntry
+  private log: Log
   private lock: AsyncLock
 
   constructor(
@@ -472,7 +472,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     node.task.log.silly({
       section: "graph-solver",
       msg: `Processing node ${taskStyle(node.getKey())}`,
-      status: "active",
       metadata: metadataForLog(node.task, "active"),
     })
   }
@@ -487,14 +486,14 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     this.logError(node.task.log, err, prefix)
   }
 
-  private logError(log: LogEntry, err: Error, errMessagePrefix: string) {
+  private logError(log: Log, err: Error, errMessagePrefix: string) {
     const error = toGardenError(err)
     const errorMessage = error.message.trim()
     const msg = renderMessageWithDivider(errMessagePrefix, errorMessage, true)
     // TODO-G2: pass along log entry here instead of using Garden logger
-    const entry = log.error({ msg, error })
+    log.error({ msg, error })
     const divider = renderDivider()
-    log.silly({ msg: chalk.gray(`Full error with stack trace:\n${divider}\n${renderError(entry)}\n${divider}`) })
+    log.silly(chalk.gray(`Full error with stack trace:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`))
   }
 
   // // Overriding to ease debugging

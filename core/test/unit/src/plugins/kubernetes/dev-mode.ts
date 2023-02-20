@@ -7,9 +7,9 @@
  */
 
 import { expect } from "chai"
-import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/dev-mode"
+import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/sync"
 
-describe("k8s dev mode helpers", () => {
+describe("k8s sync helpers", () => {
   describe("getLocalSyncPath", () => {
     context("relative source path", () => {
       it("should join the module root path with the source path", () => {

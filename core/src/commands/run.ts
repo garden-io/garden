@@ -71,7 +71,7 @@ const runOpts = {
       Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
       your test suites are up to date when this option is used.
     `,
-    alias: "nodeps",
+    aliases: ["nodeps"],
   }),
 }
 
@@ -100,7 +100,7 @@ export class RunCommand extends Command<Args, Opts> {
 
   printHeader({ headerLog }: PrepareParams<Args, Opts>) {
     const msg = `Run`
-    printHeader(headerLog, msg, "runner")
+    printHeader(headerLog, msg, "🏃‍♂️")
   }
 
   async action(params: CommandParams<Args, Opts>) {
@@ -221,7 +221,7 @@ export class RunCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
           skipRuntimeDependencies,
           // interactive: opts.interactive,

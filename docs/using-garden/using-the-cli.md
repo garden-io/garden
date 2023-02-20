@@ -20,7 +20,6 @@ Every Garden command supports a common set of option flags. The full reference c
 
 - `--env` sets the environment (and optionally namespace) that the command should act on. Most Garden commands only act on a specific environment, so in most cases you'll specify this, unless you're working on the default environment for the project. See [here](./projects.md#environments-and-namespaces) for more about environments and namespaces.
 - `--log-level` / `-l` sets the log level. Use e.g. `-l=debug` to get debug logs for the command.
-- `--logger-type=basic` disables the fancy log output (with spinners etc.) and just prints a simple line-by-line output. Setting `GARDEN_LOGGER_TYPE=basic` does the same thing. You should set that environment variable in CI and other automated environments.
 - `--output` / `-o` sets the output format. Use this to get structured output from the commands. `--output=json` outputs JSON, and `--output=yaml` outputs YAML. The structure of the outputs is documented in [the reference](../reference/commands.md) for most commands.
 
 All option flags can be specified with a space or a `=` between the flag and the value.
@@ -57,12 +56,12 @@ When arguments accept one or more services, modules etc. we comma-separate the n
 garden deploy service-a,service-b
 ```
 
-### Deploying a service in dev mode
+### Deploying a service with sync enabled
 
-See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for more information on how to configure and use dev mode for rapid iteration on services.
+See the [Code synchronization guide](../guides/code-synchronization.md) for more information on how to configure and use syncing for rapid iteration on services.
 
 ```sh
-garden deploy my-service --dev=*
+garden deploy my-service --sync=*
 ```
 
 ### Running a single ad-hoc service and attaching
@@ -222,7 +221,7 @@ The dashboard gives you:
 ## Dev mode
 
 For rapid iteration on a running service, you can use a feature called _dev mode_.
-See the [Code synchronization guide](../guides/code-synchronization-dev-mode.md) for details on how to configure and use that feature.
+See the [Code synchronization guide](../guides/code-synchronization.md) for details on how to configure and use that feature.
 
 ## Project outputs
 

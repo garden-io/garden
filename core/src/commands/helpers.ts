@@ -13,7 +13,7 @@ import { TestAction } from "../actions/test"
 
 import { ConfigGraph } from "../graph/config-graph"
 import { WorkflowConfig } from "../config/workflow"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
 
@@ -69,16 +69,16 @@ function printField(name: string, value: string | null) {
 
 export const watchParameter = new BooleanParameter({
   help: "[REMOVED] Watch for changes and update actions automatically.",
-  alias: "w",
+  aliases: ["w"],
   cliOnly: true,
   hidden: true,
 })
 
-export async function watchRemovedWarning(garden: Garden, log: LogEntry) {
+export async function watchRemovedWarning(garden: Garden, log: Log) {
   return garden.emitWarning({
     log,
     key: "watch-flag-removed",
     message:
-      "The -w/--watch flag has been removed. Please use other options instead, such as the --dev/--dev-mode option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community",
+      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community",
   })
 }

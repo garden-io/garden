@@ -134,7 +134,7 @@ describe("kubernetes container module handlers", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -162,7 +162,7 @@ describe("kubernetes container module handlers", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -192,7 +192,7 @@ describe("kubernetes container module handlers", () => {
 
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
-        const action = graph.getTest("artifacts-test")
+        const action = graph.getTest("simple-artifacts-test")
 
         const testTask = new TestTask({
           garden,
@@ -202,7 +202,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -215,7 +215,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should fail if an error occurs, but copy the artifacts out of the container", async () => {
-        const action = graph.getTest("artifacts-test-fail")
+        const action = graph.getTest("simple-artifacts-test-fail")
 
         const testTask = new TestTask({
           garden,
@@ -225,7 +225,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -233,14 +233,14 @@ describe("kubernetes container module handlers", () => {
 
         const results = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
-        expect(results[testTask.getBaseKey()]!.error).to.exist
+        expect(results.error).to.exist
 
         expect(await pathExists(join(garden.artifactsPath, "test.txt"))).to.be.true
         expect(await pathExists(join(garden.artifactsPath, "subdir", "test.txt"))).to.be.true
       })
 
       it("should handle globs when copying artifacts out of the container", async () => {
-        const action = graph.getTest("globs-test")
+        const action = graph.getTest("simple-globs-test")
 
         const testTask = new TestTask({
           garden,
@@ -250,7 +250,7 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
@@ -263,7 +263,7 @@ describe("kubernetes container module handlers", () => {
       })
 
       it("should throw when container doesn't contain sh", async () => {
-        const action = graph.getTest("missing-sh-test")
+        const action = graph.getTest("missing-sh-missing-sh-test")
 
         const testTask = new TestTask({
           garden,
@@ -273,24 +273,18 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
         const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
-        const key = "test.missing-sh.missing-sh-test"
-        expect(result).to.have.property(key)
-        expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
-          Test 'missing-sh-test' in container module 'missing-sh' specifies artifacts to export, but the image doesn't
-          contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
-          to be installed in the image.
-        `)
+        expect(result.error).to.exist
+        expect(result.error!.message).to.include(deline`sh and tar need to be installed in the image.`)
       })
 
       it("should throw when container doesn't contain tar", async () => {
-        const action = graph.getTest("missing-tar-test")
+        const action = graph.getTest("missing-tar-missing-tar-test")
 
         const testTask = new TestTask({
           garden,
@@ -300,20 +294,14 @@ describe("kubernetes container module handlers", () => {
           force: true,
           forceBuild: false,
 
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 
         const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
-        const key = "test.missing-tar.missing-tar-test"
-        expect(result).to.have.property(key)
-        expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
-          Test 'missing-tar-test' in container module 'missing-tar' specifies artifacts to export, but the
-          image doesn't contain the tar binary. In order to copy artifacts out of Kubernetes containers, both
-          sh and tar need to be installed in the image.
-        `)
+        expect(result.error).to.exist
+        expect(result.error!.message).to.include(deline`sh and tar need to be installed in the image.`)
       })
     })
   })

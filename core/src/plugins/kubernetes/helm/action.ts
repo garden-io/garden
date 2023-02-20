@@ -56,7 +56,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
 
       // Automatically set the include if not explicitly set
       if (chartPath && !(config.include || config.exclude)) {
-        const valueFiles = config.spec.valueFiles
+        const valueFiles = config.spec.valueFiles || []
         config.include = containsSources
           ? ["*", "charts/**/*", "templates/**/*", ...valueFiles]
           : ["*.yaml", "*.yml", ...valueFiles]

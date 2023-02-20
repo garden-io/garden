@@ -7,7 +7,7 @@
  */
 
 import { PluginContext } from "../../../plugin-context"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { ServiceStatus, ForwardablePort, serviceStateToActionState } from "../../../types/service"
 import { createContainerManifests, startContainerDevSync } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
@@ -32,7 +32,7 @@ interface ContainerStatusDetail {
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail, ContainerDeployOutputs>
 
 export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (params) => {
-  const { ctx, action, log, devMode, localMode } = params
+  const { ctx, action, log, syncMode, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -40,7 +40,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   const api = await KubeApi.factory(log, ctx, provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
-  const enableDevMode = devMode && !!action.getSpec("devMode")
+  const enableSyncMode = syncMode && !!action.getSpec("sync")
   const imageId = getDeployedImageId(action, provider)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
@@ -50,17 +50,16 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     log,
     action,
     imageId,
-    enableDevMode,
+    enableSyncMode,
     enableLocalMode: localMode,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const { state, remoteResources, deployedWithDevMode, deployedWithLocalMode } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    manifests,
-    log
-  )
+  const {
+    state,
+    remoteResources,
+    deployedWithSyncMode: deployedWithDevMode,
+    deployedWithLocalMode,
+  } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(action, api, provider)
 
   // Local mode has its own port-forwarding configuration
@@ -87,14 +86,14 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? action.versionString() : undefined,
     detail: { remoteResources, workload },
-    devMode: deployedWithDevMode,
+    syncMode: deployedWithDevMode,
     localMode: deployedWithLocalMode,
     outputs: {
       deployedImageId: imageId,
     },
   }
 
-  if (state === "ready" && devMode) {
+  if (state === "ready" && syncMode) {
     // If the service is already deployed, we still need to make sure the sync is started
     await startContainerDevSync({
       ctx: <KubernetesPluginContext>ctx,
@@ -117,9 +116,9 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
  */
 export async function waitForContainerService(
   ctx: PluginContext,
-  log: LogEntry,
+  log: Log,
   action: Resolved<ContainerDeployAction>,
-  devMode: boolean,
+  syncMode: boolean,
   localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
@@ -130,7 +129,7 @@ export async function waitForContainerService(
       ctx,
       log,
       action,
-      devMode,
+      syncMode,
       localMode,
     })
 

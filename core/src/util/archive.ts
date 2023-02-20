@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { createWriteStream } from "fs"
 
 /**
@@ -15,10 +15,10 @@ import { createWriteStream } from "fs"
  * @export
  * @param {string} src source folder
  * @param {string} dest destination path (ex. my/destination/path/filename.zip )
- * @param {LogEntry} log logger
+ * @param {Log} log logger
  * @returns {Promise}
  */
-export async function zipFolder(src: string, dest: string, log: LogEntry) {
+export async function zipFolder(src: string, dest: string, log: Log) {
   return new Promise<void>((resolve, reject) => {
     const output = createWriteStream(dest)
     const archiveOpts = {

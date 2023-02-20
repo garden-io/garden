@@ -159,7 +159,7 @@ describe("DeployTask", () => {
         forceBuild: false,
 
         log: garden.log,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -174,7 +174,7 @@ describe("DeployTask", () => {
         forceBuild: false,
 
         log: garden.log,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

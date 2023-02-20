@@ -10,7 +10,7 @@ import { expect } from "chai"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { ActionKind } from "../../../../src/actions/types"
 import { joi } from "../../../../src/config/common"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
 import { ResolveActionTask } from "../../../../src/tasks/resolve-action"
 import {
@@ -24,7 +24,7 @@ import {
 
 describe("ResolveActionTask", () => {
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
   const projectRoot = getDataDir("test-project-test-deps")
 
@@ -42,7 +42,7 @@ describe("ResolveActionTask", () => {
       log,
       graph,
       action,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
       force: false,
     })

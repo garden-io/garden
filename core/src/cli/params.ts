@@ -51,7 +51,7 @@ type GetSuggestionsCallback = (params: GetSuggestionsParams) => string[]
 export interface ParameterConstructor<T> {
   help: string
   required?: boolean
-  alias?: string
+  aliases?: string[]
   defaultValue?: T
   valueName?: string
   hints?: string
@@ -73,7 +73,7 @@ export abstract class Parameter<T> {
   defaultValue: T | undefined
   readonly help: string
   readonly required: boolean
-  readonly alias?: string
+  readonly aliases?: string[]
   readonly hints?: string
   readonly valueName: string
   readonly overrides: string[]
@@ -89,7 +89,7 @@ export abstract class Parameter<T> {
   constructor({
     help,
     required,
-    alias,
+    aliases,
     defaultValue,
     valueName,
     overrides,
@@ -103,7 +103,7 @@ export abstract class Parameter<T> {
   }: ParameterConstructor<T>) {
     this.help = help
     this.required = required || false
-    this.alias = alias
+    this.aliases = aliases
     this.hints = hints
     this.defaultValue = defaultValue
     this.valueName = valueName || "_valueType"
@@ -341,7 +341,7 @@ export class EnvironmentOption extends StringParameter {
     super({
       help,
       required: false,
-      alias: "e",
+      aliases: ["e"],
       getSuggestions: ({ configDump }) => {
         return configDump.allEnvironmentNames
       },
@@ -381,12 +381,14 @@ export function describeParameters(args?: Parameters) {
 
 export const globalOptions = {
   "root": new PathParameter({
-    alias: "r",
+    // TODO: remove this alias in 0.13?
+    aliases: ["r"],
     help:
       "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
   }),
   "silent": new BooleanParameter({
-    alias: "s",
+    // TODO: remove this alias in 0.13?
+    aliases: ["s"],
     help: "Suppress log output. Same as setting --logger-type=quiet.",
     defaultValue: false,
     cliOnly: true,
@@ -396,15 +398,17 @@ export const globalOptions = {
     choices: [...LOGGER_TYPES],
     help: deline`
       Set logger type.
-      ${chalk.bold("fancy")} updates log lines in-place when their status changes (e.g. when tasks complete),
-      ${chalk.bold("basic")} appends a new log line when a log line's status changes,
-      ${chalk.bold("json")} same as basic, but renders log lines as JSON,
+      ${chalk.bold("default")} The default Garden logger,
+      ${chalk.bold(
+        "basic"
+      )} [DEPRECATED] Sames as the default Garden logger. This option will be removed in a future release,
+      ${chalk.bold("json")} same as default, but renders log lines as JSON,
       ${chalk.bold("quiet")} suppresses all log output, same as --silent.
     `,
     cliOnly: true,
   }),
   "log-level": new ChoicesParameter({
-    alias: "l",
+    aliases: ["l"],
     choices: getLogLevelChoices(),
     help: deline`
       Set logger level. Values can be either string or numeric and are prioritized from 0 to 5
@@ -413,7 +417,7 @@ export const globalOptions = {
     defaultValue: LogLevel[LogLevel.info],
   }),
   "output": new ChoicesParameter({
-    alias: "o",
+    aliases: ["o"],
     choices: Object.keys(OUTPUT_RENDERERS),
     help: "Output command result in specified format (note: disables progress logging and interactive functionality).",
   }),
@@ -429,7 +433,7 @@ export const globalOptions = {
     defaultValue: false,
   }),
   "yes": new BooleanParameter({
-    alias: "y",
+    aliases: ["y"],
     help: "Automatically approve any yes/no prompts during execution.",
     defaultValue: false,
   }),
@@ -442,11 +446,11 @@ export const globalOptions = {
       'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
   }),
   "version": new BooleanParameter({
-    alias: "V",
+    aliases: ["V"],
     help: "Show the current CLI version.",
   }),
   "help": new BooleanParameter({
-    alias: "h",
+    aliases: ["h"],
     help: "Show help",
   }),
   "disable-port-forwards": new BooleanParameter({

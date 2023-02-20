@@ -35,7 +35,7 @@ import {
 import { join, posix } from "path"
 import { runPodSpecIncludeFields } from "../run"
 import { omit } from "lodash"
-import { kubernetesModuleDevModeSchema, KubernetesModuleDevModeSpec } from "../dev-mode"
+import { kubernetesModuleSyncSchema, KubernetesModuleDevModeSpec } from "../sync"
 import { helmChartNameSchema, helmChartRepoSchema, helmChartVersionSchema, helmCommonSchemaKeys } from "./config"
 import { pathExists } from "fs-extra"
 import { helmChartYamlFilename } from "./common"
@@ -57,7 +57,7 @@ export interface HelmServiceSpec {
   chart?: string
   chartPath: string
   dependencies: string[]
-  devMode?: KubernetesModuleDevModeSpec
+  sync?: KubernetesModuleDevModeSpec
   localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
@@ -125,62 +125,65 @@ const helmTestSchema = () =>
   })
 
 export const helmModuleSpecSchema = () =>
-  joi.object().keys({
-    ...helmCommonSchemaKeys(),
-    base: joiUserIdentifier()
-      .description(
-        deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across
+  joi
+    .object()
+    .keys({
+      ...helmCommonSchemaKeys(),
+      base: joiUserIdentifier()
+        .description(
+          deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across
       multiple services. For example, you might have an organization-wide base chart for certain types of services.
 
       If set, this module will by default inherit the following properties from the base module:
       \`serviceResource\`, \`values\`
 
       Each of those can be overridden in this module. They will be merged with a JSON Merge Patch (RFC 7396).`
-      )
-      .example("my-base-chart"),
-    build: baseBuildSpecSchema(),
-    chart: helmChartNameSchema(),
-    chartPath: joi
-      .posixPath()
-      .subPathOnly()
-      .description(
-        deline`The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any).
+        )
+        .example("my-base-chart"),
+      build: baseBuildSpecSchema(),
+      chart: helmChartNameSchema(),
+      chartPath: joi
+        .posixPath()
+        .subPathOnly()
+        .description(
+          deline`The path, relative to the module path, to the chart sources (i.e. where the Chart.yaml file is, if any).
       Not used when \`base\` is specified.`
-      )
-      .default("."),
-    dependencies: joiSparseArray(joiIdentifier()).description(
-      "List of names of services that should be deployed before this chart."
-    ),
-    devMode: kubernetesModuleDevModeSchema(),
-    localMode: kubernetesLocalModeSchema(),
-    include: joiModuleIncludeDirective(dedent`
+        )
+        .default("."),
+      dependencies: joiSparseArray(joiIdentifier()).description(
+        "List of names of services that should be deployed before this chart."
+      ),
+      sync: kubernetesModuleSyncSchema(),
+      localMode: kubernetesLocalModeSchema(),
+      include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
       automatically sets \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.
 
       If neither \`include\` nor \`exclude\` is set and the module specifies a remote chart, Garden
       automatically sets \`ìnclude\` to \`[]\`.
     `),
-    repo: helmChartRepoSchema(),
-    serviceResource: helmServiceResourceSchema().description(
-      dedent`
+      repo: helmChartRepoSchema(),
+      serviceResource: helmServiceResourceSchema().description(
+        dedent`
       The Deployment, DaemonSet or StatefulSet or Pod that Garden should regard as the _Garden service_ in this module (not to be confused with Kubernetes Service resources).
 
       ${serviceResourceDescription}
 
       Because a Helm chart can contain any number of Kubernetes resources, this needs to be specified for certain Garden features and commands to work.
       `
-    ),
-    skipDeploy: joi
-      .boolean()
-      .default(false)
-      .description(
-        deline`Set this to true if the chart should only be built, but not deployed as a service.
-      Use this, for example, if the chart should only be used as a base for other modules.`
       ),
-    tasks: joiSparseArray(helmTaskSchema()).description("The task definitions for this module."),
-    tests: joiSparseArray(helmTestSchema()).description("The test suite definitions for this module."),
-    version: helmChartVersionSchema(),
-  })
+      skipDeploy: joi
+        .boolean()
+        .default(false)
+        .description(
+          deline`Set this to true if the chart should only be built, but not deployed as a service.
+      Use this, for example, if the chart should only be used as a base for other modules.`
+        ),
+      tasks: joiSparseArray(helmTaskSchema()).description("The task definitions for this module."),
+      tests: joiSparseArray(helmTestSchema()).description("The test suite definitions for this module."),
+      version: helmChartVersionSchema(),
+    })
+    .rename("devMode", "sync")
 
 export async function configureHelmModule({
   moduleConfig,

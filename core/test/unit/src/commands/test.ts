@@ -18,13 +18,13 @@ import {
   getAllProcessedTaskNames,
 } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 
 describe("TestCommand", () => {
   const command = new TestCommand()
 
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
     garden = await makeTestGardenA()

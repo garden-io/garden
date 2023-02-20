@@ -7,7 +7,7 @@
  */
 
 import AsyncLock from "async-lock"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { find } from "lodash"
 import { PluginError } from "@garden-io/core/build/src/exceptions"
 import { Writable } from "node:stream"
@@ -113,7 +113,7 @@ export async function mvnd({
   ctx: PluginContext
   args: string[]
   cwd: string
-  log: LogEntry
+  log: Log
   openJdkPath: string
   outputStream?: Writable
 }) {

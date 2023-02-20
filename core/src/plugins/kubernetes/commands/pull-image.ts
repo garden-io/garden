@@ -13,7 +13,7 @@ import { PluginError, ParameterError } from "../../../exceptions"
 import { PluginCommand } from "../../../plugin/command"
 import chalk from "chalk"
 import { KubeApi } from "../api"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { containerHelpers } from "../../container/helpers"
 import { RuntimeError } from "../../../exceptions"
 import { PodRunner } from "../run"
@@ -62,13 +62,13 @@ export const pullImage: PluginCommand = {
 
     await pullBuilds(k8sCtx, Object.values(resolvedBuilds), log)
 
-    log.info({ msg: chalk.green("\nDone!"), status: "success" })
+    log.setSuccess(chalk.green("\nDone!"))
 
     return { result }
   },
 }
 
-async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<ContainerBuildAction>[], log: LogEntry) {
+async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<ContainerBuildAction>[], log: Log) {
   await Promise.all(
     builds.map(async (action) => {
       const outputs = k8sGetContainerBuildActionOutputs({ provider: ctx.provider, action })
@@ -84,7 +84,7 @@ async function pullBuilds(ctx: KubernetesPluginContext, builds: Resolved<Contain
 interface PullParams {
   ctx: KubernetesPluginContext
   action: ContainerBuildAction
-  log: LogEntry
+  log: Log
   localId: string
   remoteId: string
 }
@@ -199,7 +199,7 @@ async function pullFromExternalRegistry({ ctx, log, localId, remoteId }: PullPar
   }
 }
 
-async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: PodRunner; log: LogEntry }) {
+async function loadImage({ ctx, runner, log }: { ctx: PluginContext; runner: PodRunner; log: Log }) {
   await tmp.withFile(async ({ path }) => {
     let writeStream = fs.createWriteStream(path)
 

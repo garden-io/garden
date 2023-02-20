@@ -11,7 +11,7 @@ import chalk from "chalk"
 import { join } from "path"
 import { chmod, ensureSymlink, mkdirp, pathExists, remove, removeSync, writeFile } from "fs-extra"
 import respawn from "respawn"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { PluginToolSpec } from "../../plugin/tools"
 import { PluginTool } from "../../util/ext-tools"
 import { makeTempDir, TempDirectory } from "../../util/fs"
@@ -20,7 +20,7 @@ import { GardenBaseError } from "../../exceptions"
 import { prepareConnectionOpts } from "./kubectl"
 import { KubernetesPluginContext } from "./config"
 import pRetry from "p-retry"
-import { devModeGuideLink } from "./dev-mode"
+import { syncGuideLink } from "./sync"
 import dedent from "dedent"
 import { PluginContext } from "../../plugin-context"
 import Bluebird from "bluebird"
@@ -111,7 +111,7 @@ function stopDaemonProc() {
   } catch {}
 }
 
-export async function ensureMutagenDaemon(ctx: PluginContext, log: LogEntry) {
+export async function ensureMutagenDaemon(ctx: PluginContext, log: Log) {
   return mutagenConfigLock.acquire("start-daemon", async () => {
     if (!mutagenTmp) {
       mutagenTmp = await makeTempDir()
@@ -237,7 +237,7 @@ export async function ensureMutagenDaemon(ctx: PluginContext, log: LogEntry) {
   })
 }
 
-export async function execMutagenCommand(ctx: PluginContext, log: LogEntry, args: string[]) {
+export async function execMutagenCommand(ctx: PluginContext, log: Log, args: string[]) {
   let dataDir = await ensureMutagenDaemon(ctx, log)
 
   let loops = 0
@@ -364,9 +364,9 @@ interface SyncSession {
 
 let monitorInterval: NodeJS.Timeout
 
-const syncStatusLines: { [sessionName: string]: LogEntry } = {}
+const syncStatusLines: { [sessionName: string]: Log } = {}
 
-function checkMutagen(ctx: PluginContext, log: LogEntry) {
+function checkMutagen(ctx: PluginContext, log: Log) {
   getActiveMutagenSyncSessions(ctx, log)
     .then((sessions) => {
       for (const session of sessions) {
@@ -428,10 +428,10 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
             })
           } else {
             if (!syncStatusLines[sessionName]) {
-              syncStatusLines[sessionName] = log.info("").placeholder()
+              syncStatusLines[sessionName] = log.makeNewLogContext({})
             }
             const time = new Date().toLocaleTimeString()
-            syncStatusLines[sessionName].setState({
+            syncStatusLines[sessionName].info({
               symbol: "info",
               section,
               msg: chalk.gray(`Synchronized ${description} at ${time}`),
@@ -452,7 +452,7 @@ function checkMutagen(ctx: PluginContext, log: LogEntry) {
     })
 }
 
-export function startMutagenMonitor(ctx: PluginContext, log: LogEntry) {
+export function startMutagenMonitor(ctx: PluginContext, log: Log) {
   if (!monitorInterval) {
     monitorInterval = setInterval(() => checkMutagen(ctx, log), monitorDelay)
   }
@@ -461,7 +461,7 @@ export function startMutagenMonitor(ctx: PluginContext, log: LogEntry) {
 /**
  * List the currently active syncs in the mutagen daemon.
  */
-export async function getActiveMutagenSyncSessions(ctx: PluginContext, log: LogEntry): Promise<SyncSession[]> {
+export async function getActiveMutagenSyncSessions(ctx: PluginContext, log: Log): Promise<SyncSession[]> {
   const res = await execMutagenCommand(ctx, log, ["sync", "list", "--template={{ json . }}"])
 
   // TODO: validate further
@@ -494,7 +494,7 @@ export async function ensureMutagenSync({
   config,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   logSection: string
   key: string
   sourceDescription: string
@@ -559,7 +559,7 @@ export async function ensureMutagenSync({
 /**
  * Remove the specified sync (by name) from the sync daemon.
  */
-export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
+export async function terminateMutagenSync(ctx: PluginContext, log: Log, key: string) {
   log.debug(`Terminating mutagen sync ${key}`)
 
   return mutagenConfigLock.acquire("configure", async () => {
@@ -577,14 +577,14 @@ export async function terminateMutagenSync(ctx: PluginContext, log: LogEntry, ke
 /**
  * Ensure a sync is completed.
  */
-export async function flushMutagenSync(ctx: PluginContext, log: LogEntry, key: string) {
+export async function flushMutagenSync(ctx: PluginContext, log: Log, key: string) {
   await execMutagenCommand(ctx, log, ["sync", "flush", key])
 }
 
 /**
  * Ensure all active syncs are completed.
  */
-export async function flushAllMutagenSyncs(ctx: PluginContext, log: LogEntry) {
+export async function flushAllMutagenSyncs(ctx: PluginContext, log: Log) {
   const active = await getActiveMutagenSyncSessions(ctx, log)
   await Bluebird.map(active, async (session) => {
     try {
@@ -604,7 +604,7 @@ export async function getKubectlExecDestination({
   targetPath,
 }: {
   ctx: KubernetesPluginContext
-  log: LogEntry
+  log: Log
   namespace: string
   containerName: string
   resourceName: string
@@ -706,7 +706,7 @@ function formatSyncConflict(sourceDescription: string, targetDescription: string
       "one-way-replica"
     )} or ${chalk.white("one-way-replica-reverse")} sync modes instead.
 
-    See the code synchronization guide for more details: ${chalk.white(devModeGuideLink + "#sync-modes")}`
+    See the code synchronization guide for more details: ${chalk.white(syncGuideLink + "#sync-modes")}`
 }
 
 /**

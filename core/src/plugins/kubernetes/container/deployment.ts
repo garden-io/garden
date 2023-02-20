@@ -18,13 +18,13 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { prepareEnvVars, workloadTypes } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
-import { configureDevMode, convertContainerDevModeSpec, startDevModeSyncs } from "../dev-mode"
+import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
@@ -48,18 +48,18 @@ export const DEFAULT_MINIMUM_REPLICAS = 1
 export const PRODUCTION_MINIMUM_REPLICAS = 3
 
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
-  const { ctx, action, log, devMode, localMode } = params
+  const { ctx, action, log, syncMode, localMode } = params
   const { deploymentStrategy } = params.ctx.provider.config
-  const deployWithDevMode = devMode && !!action.getSpec("devMode")
+  const deployWithSyncMode = syncMode && !!action.getSpec("sync")
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action, k8sCtx.provider)
 
   if (deploymentStrategy === "blue-green") {
-    await deployContainerServiceBlueGreen({ ...params, devMode: deployWithDevMode, api, imageId })
+    await deployContainerServiceBlueGreen({ ...params, syncMode: deployWithSyncMode, api, imageId })
   } else {
-    await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api, imageId })
+    await deployContainerServiceRolling({ ...params, syncMode: deployWithSyncMode, api, imageId })
   }
 
   const status = await k8sGetContainerDeployStatus(params)
@@ -67,7 +67,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   // Make sure port forwards work after redeployment
   killPortForwards(action, status.detail?.forwardablePorts || [], log)
 
-  if (deployWithDevMode) {
+  if (deployWithSyncMode) {
     await startContainerDevSync({
       ctx: k8sCtx,
       log,
@@ -96,13 +96,13 @@ export async function startContainerDevSync({
 }: {
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
-  log: LogEntry
+  log: Log
   action: Resolved<ContainerDeployAction>
 }) {
-  const devMode = action.getSpec("devMode")
+  const sync = action.getSpec("sync")
   const workload = status.detail.workload
 
-  if (!devMode?.sync || !workload) {
+  if (!sync?.paths || !workload) {
     return
   }
 
@@ -111,7 +111,7 @@ export async function startContainerDevSync({
     // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
     // it's not rendered.
     symbol: "info",
-    msg: chalk.grey(`Deploying in dev mode`),
+    msg: chalk.grey(`Deploying in sync mode`),
   })
 
   const defaultNamespace = await getAppNamespace(ctx, log, ctx.provider)
@@ -121,14 +121,14 @@ export async function startContainerDevSync({
     name: workload.metadata.name,
   }
 
-  const syncs = devMode.sync.map((s) => ({
+  const syncs = sync.paths.map((s) => ({
     ...s,
     sourcePath: s.source,
     containerPath: s.target,
     target,
   }))
 
-  await startDevModeSyncs({
+  await startSyncs({
     ctx,
     log,
     action,
@@ -149,7 +149,7 @@ export async function startLocalMode({
 }: {
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
-  log: LogEntry
+  log: Log
   action: Resolved<ContainerDeployAction>
 }) {
   const localModeSpec = action.getSpec("localMode")
@@ -174,7 +174,7 @@ export async function startLocalMode({
 export const deployContainerServiceRolling = async (
   params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, log, devMode, imageId, localMode } = params
+  const { ctx, api, action, log, syncMode, imageId, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -186,7 +186,7 @@ export const deployContainerServiceRolling = async (
     log,
     action,
     imageId,
-    enableDevMode: devMode,
+    enableSyncMode: syncMode,
     enableLocalMode: localMode,
     blueGreen: false,
   })
@@ -210,7 +210,7 @@ export const deployContainerServiceRolling = async (
 export const deployContainerServiceBlueGreen = async (
   params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, log, devMode, imageId, localMode } = params
+  const { ctx, api, action, log, syncMode, imageId, localMode } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
@@ -222,7 +222,7 @@ export const deployContainerServiceBlueGreen = async (
     log,
     action,
     imageId,
-    enableDevMode: devMode,
+    enableSyncMode: syncMode,
     enableLocalMode: localMode,
     blueGreen: true,
   })
@@ -332,16 +332,16 @@ export async function createContainerManifests({
   log,
   action,
   imageId,
-  enableDevMode,
+  enableSyncMode,
   enableLocalMode,
   blueGreen,
 }: {
   ctx: PluginContext
   api: KubeApi
-  log: LogEntry
+  log: Log
   action: Resolved<ContainerDeployAction>
   imageId: string
-  enableDevMode: boolean
+  enableSyncMode: boolean
   enableLocalMode: boolean
   blueGreen: boolean
 }) {
@@ -357,7 +357,7 @@ export async function createContainerManifests({
     action,
     imageId,
     namespace,
-    enableDevMode,
+    enableSyncMode,
     enableLocalMode,
     log,
     production,
@@ -395,9 +395,9 @@ interface CreateDeploymentParams {
   action: Resolved<ContainerDeployAction>
   namespace: string
   imageId: string
-  enableDevMode: boolean
+  enableSyncMode: boolean
   enableLocalMode: boolean
-  log: LogEntry
+  log: Log
   production: boolean
   blueGreen: boolean
 }
@@ -409,7 +409,7 @@ export async function createWorkloadManifest({
   action,
   imageId,
   namespace,
-  enableDevMode,
+  enableSyncMode,
   enableLocalMode,
   log,
   production,
@@ -423,9 +423,9 @@ export async function createWorkloadManifest({
     configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
   }
 
-  if (enableDevMode && configuredReplicas > 1) {
+  if (enableSyncMode && configuredReplicas > 1) {
     log.warn({
-      msg: chalk.gray(`Ignoring replicas config on container service ${action.name} while in dev mode`),
+      msg: chalk.gray(`Ignoring replicas config on container service ${action.name} while in sync mode`),
       symbol: "warning",
     })
     configuredReplicas = 1
@@ -509,7 +509,7 @@ export async function createWorkloadManifest({
 
   if (spec.healthCheck) {
     let mode: HealthCheckMode
-    if (enableDevMode) {
+    if (enableSyncMode) {
       mode = "dev"
     } else if (enableLocalMode) {
       mode = "local"
@@ -622,25 +622,25 @@ export async function createWorkloadManifest({
     workload.spec.template.spec!.securityContext = securityContext
   }
 
-  const devModeSpec = convertContainerDevModeSpec(ctx, action)
+  const syncSpec = convertContainerSyncSpec(ctx, action)
   const localModeSpec = spec.localMode
 
-  // Local mode always takes precedence over dev mode
+  // Local mode always takes precedence over sync mode
   if (enableLocalMode && localModeSpec) {
     // no op here, local mode will be configured later after all manifests are ready
-  } else if (enableDevMode && devModeSpec) {
-    log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in dev mode`) })
+  } else if (enableSyncMode && syncSpec) {
+    log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
 
     const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
 
-    const configured = await configureDevMode({
+    const configured = await configureSyncMode({
       ctx,
       log,
       provider,
       action,
       defaultTarget: target,
       manifests: [workload],
-      spec: devModeSpec,
+      spec: syncSpec,
     })
 
     workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
@@ -756,7 +756,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
 
   // We wait for the effective failure duration (period * threshold) of the readiness probe before starting the
   // liveness probe.
-  // We also increase the periodSeconds and failureThreshold when in dev mode. This is to prevent
+  // We also increase the periodSeconds and failureThreshold when in sync mode. This is to prevent
   // K8s from restarting the pod when liveness probes fail during build or server restarts on a
   // sync event.
   container.livenessProbe = {

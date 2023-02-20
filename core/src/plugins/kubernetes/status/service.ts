@@ -13,7 +13,7 @@ import { KubernetesServerResource } from "../types"
 import { TimeoutError } from "../../../exceptions"
 import { getReadyPods } from "../util"
 import { sleep } from "../../../util/util"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 
 // There's something strange going on if this takes more than 10 seconds to resolve
 const timeout = 10000
@@ -24,7 +24,7 @@ const timeout = 10000
  */
 export async function waitForServiceEndpoints(
   api: KubeApi,
-  log: LogEntry,
+  log: Log,
   namespace: string,
   resources: KubernetesServerResource[]
 ) {
@@ -64,7 +64,7 @@ export async function waitForServiceEndpoints(
         })
       }
 
-      log.setState({ symbol: "warning", msg: `Waiting for Service '${serviceName}' Endpoints to resolve...` })
+      log.info({ symbol: "warning", msg: `Waiting for Service '${serviceName}' Endpoints to resolve...` })
       await sleep(1000)
     }
   })

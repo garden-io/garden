@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { BuildTask } from "./build"
-import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams, BaseTask, ValidResultType } from "../tasks/base"
+import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { resolveTemplateString } from "../template-string/template-string"
 import { joi } from "../config/common"
 import { versionStringPrefix } from "../vcs/vcs"
@@ -64,7 +64,6 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       this.log.info({
         section: this.action.key(),
         msg: "Publishing disabled (allowPublish=false set on build)",
-        status: "active",
       })
       return {
         state: <ActionState>"ready",
@@ -99,11 +98,11 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       // TODO: validate the tag?
     }
 
-    const log = this.log.info({
-      section: action.key(),
-      msg: "Publishing with tag " + tag,
-      status: "active",
-    })
+    const log = this.log
+      .makeNewLogContext({
+        section: action.key(),
+      })
+      .info("Publishing with tag " + tag)
 
     const router = await this.garden.getActionRouter()
 
@@ -111,17 +110,14 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     try {
       result = await router.build.publish({ action, log, graph: this.graph, tag })
     } catch (err) {
-      log.setError()
+      log.error(`Failed publishing build ${action.name}`)
       throw err
     }
 
     if (result.detail?.published) {
-      log.setSuccess({
-        msg: chalk.green(result.detail.message || `Ready`),
-        append: true,
-      })
+      log.setSuccess(chalk.green(result.detail.message || `Ready`))
     } else if (result.detail?.message) {
-      log.setWarn({ msg: result.detail.message, append: true })
+      log.warn(result.detail.message)
     }
 
     return { ...result, version }

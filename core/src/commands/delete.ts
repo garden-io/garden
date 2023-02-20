@@ -18,12 +18,7 @@ import { deline } from "../util/string"
 import { uniqByName } from "../util/util"
 import { isDeployAction } from "../actions/deploy"
 import { omit, mapValues } from "lodash"
-import {
-  DeployStatus,
-  DeployStatusMap,
-  GetDeployStatus,
-  getDeployStatusSchema,
-} from "../plugin/handlers/Deploy/get-status"
+import { DeployStatus, DeployStatusMap, getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status"
 
 // TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
@@ -83,7 +78,7 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
     })
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, `Cleanup namespace`, "recycle")
+    printHeader(headerLog, `Cleanup namespace`, "☠️")
   }
 
   async action({
@@ -166,7 +161,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
     ).description("A map of statuses for all the deleted deploys.")
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Cleaning up deployment(s)", "recycle")
+    printHeader(headerLog, "Cleaning up deployment(s)", "☠️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<DeleteDeployArgs, DeleteDeployOpts>): Promise<CommandResult> {
@@ -201,7 +196,7 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
         dependantsFirst,
         force: false,
         forceActions: [],
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
     })

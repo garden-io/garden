@@ -310,22 +310,20 @@ providers:
     # services).
     deploymentStrategy: rolling
 
-    # Configuration options for dev mode.
-    devMode:
-      # Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
+    # Configuration options for code synchronization.
+    sync:
+      # Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
       #
-      # These are overridden/extended by the settings of any individual dev mode sync specs.
+      # These are overridden/extended by the settings of any individual sync specs.
       #
-      # Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden
-      # deploy` command.
+      # Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
       #
       # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
       # information.
       defaults:
         # Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
         #
-        # Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these
-        # patterns.
+        # Any exclusion patterns defined in individual sync specs will be applied in addition to these patterns.
         #
         # `.git` directories and `.garden` directories are always ignored.
         exclude:
@@ -1221,25 +1219,25 @@ Note that this setting only applies to `container` services (and not, for exampl
 | -------- | ----------- | -------- |
 | `string` | `"rolling"` | No       |
 
-### `providers[].devMode`
+### `providers[].sync`
 
-[providers](#providers) > devMode
+[providers](#providers) > sync
 
-Configuration options for dev mode.
+Configuration options for code synchronization.
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].devMode.defaults`
+### `providers[].sync.defaults`
 
-[providers](#providers) > [devMode](#providersdevmode) > defaults
+[providers](#providers) > [sync](#providerssync) > defaults
 
-Specifies default settings for dev mode syncs (e.g. for `container`, `kubernetes` and `helm` services).
+Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
 
-These are overridden/extended by the settings of any individual dev mode sync specs.
+These are overridden/extended by the settings of any individual sync specs.
 
-Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+Sync is enabled e.g by setting the `--sync` flag on the `garden deploy` command.
 
 See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
 
@@ -1247,13 +1245,13 @@ See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchron
 | -------- | -------- |
 | `object` | No       |
 
-### `providers[].devMode.defaults.exclude[]`
+### `providers[].sync.defaults.exclude[]`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > exclude
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
 
-Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
+Any exclusion patterns defined in individual sync specs will be applied in addition to these patterns.
 
 `.git` directories and `.garden` directories are always ignored.
 
@@ -1265,7 +1263,7 @@ Example:
 
 ```yaml
 providers:
-  - devMode:
+  - sync:
       ...
       defaults:
         ...
@@ -1274,9 +1272,9 @@ providers:
           - '*.log'
 ```
 
-### `providers[].devMode.defaults.fileMode`
+### `providers[].sync.defaults.fileMode`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > fileMode
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > fileMode
 
 The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1284,9 +1282,9 @@ The default permission bits, specified as an octal, to set on files at the sync 
 | -------- | -------- |
 | `number` | No       |
 
-### `providers[].devMode.defaults.directoryMode`
+### `providers[].sync.defaults.directoryMode`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > directoryMode
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > directoryMode
 
 The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1294,9 +1292,9 @@ The default permission bits, specified as an octal, to set on directories at the
 | -------- | -------- |
 | `number` | No       |
 
-### `providers[].devMode.defaults.owner`
+### `providers[].sync.defaults.owner`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > owner
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > owner
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
@@ -1304,9 +1302,9 @@ Set the default owner of files and directories at the target. Specify either an 
 | ------------------ | -------- |
 | `number \| string` | No       |
 
-### `providers[].devMode.defaults.group`
+### `providers[].sync.defaults.group`
 
-[providers](#providers) > [devMode](#providersdevmode) > [defaults](#providersdevmodedefaults) > group
+[providers](#providers) > [sync](#providerssync) > [defaults](#providerssyncdefaults) > group
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 

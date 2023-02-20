@@ -1,5 +1,5 @@
 kind: Project
-name: kubernetes-module
+name: kubernetes-deploy
 environments:
   - name: local
   - name: remote

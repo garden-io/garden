@@ -9,7 +9,7 @@
 import Joi, { SchemaLike } from "@hapi/joi"
 import Ajv from "ajv"
 import addFormats from "ajv-formats"
-import { serializeObject, splitLast } from "../util/util"
+import { splitLast } from "../util/util"
 import { deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"

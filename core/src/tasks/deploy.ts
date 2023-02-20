@@ -28,10 +28,10 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<DeployAction>) {
-    const log = this.log.placeholder()
+    const log = this.log.makeNewLogContext({})
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const devMode = includes(this.devModeDeployNames, action.name)
+    const syncMode = includes(this.syncModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
 
     const router = await this.garden.getActionRouter()
@@ -40,7 +40,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       graph: this.graph,
       action,
       log,
-      devMode,
+      syncMode,
       localMode,
     })
 
@@ -51,31 +51,28 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()
 
-    const devMode = includes(this.devModeDeployNames, action.name)
+    const syncMode = includes(this.syncModeDeployNames, action.name)
     const localMode = includes(this.localModeDeployNames, action.name)
 
     const router = await this.garden.getActionRouter()
 
     // TODO-G2: move status check entirely to getStatus()
-    const devModeSkipRedeploy = status.detail?.devMode && devMode
+    const syncModeSkipRedeploy = status.detail?.syncMode && syncMode
     const localModeSkipRedeploy = status.detail?.localMode && localMode
 
-    const log = this.log.info({
-      status: "active",
-      section: action.name,
-      msg: `Deploying version ${version}...`,
-    })
+    const log = this.log
+      .makeNewLogContext({
+        section: action.name,
+      })
+      .info(`Deploying version ${version}...`)
 
     if (
       !this.force &&
       status.state === "ready" &&
-      (version === status.detail?.version || devModeSkipRedeploy || localModeSkipRedeploy)
+      (version === status.detail?.version || syncModeSkipRedeploy || localModeSkipRedeploy)
     ) {
       // already deployed and ready
-      log.setSuccess({
-        msg: chalk.green("Already deployed"),
-        append: true,
-      })
+      log.setSuccess(chalk.green("Already deployed"))
     } else {
       try {
         status = await router.deploy.deploy({
@@ -83,18 +80,15 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
           action,
           log,
           force: this.force,
-          devMode,
+          syncMode,
           localMode,
         })
       } catch (err) {
-        log.setError()
+        log.error(`Error deploying ${action.name}`)
         throw err
       }
 
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
+      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
     }
 
     const executedAction = resolvedActionToExecuted(action, { status })

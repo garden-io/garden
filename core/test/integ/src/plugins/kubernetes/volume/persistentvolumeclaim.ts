@@ -77,7 +77,7 @@ describe("persistentvolumeclaim", () => {
       action,
       force: true,
       forceBuild: false,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
 

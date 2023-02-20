@@ -16,7 +16,7 @@ import { findByName } from "../../../src/util/util"
 import { expectError } from "../../helpers"
 
 describe("resolvePlugins", () => {
-  const log = getLogger().placeholder()
+  const log = getLogger().makeNewLogContext()
 
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {

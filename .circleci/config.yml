@@ -13,7 +13,6 @@ orbs:
     GARDEN_DISABLE_VERSION_CHECK: "true"
     GARDEN_DISABLE_ANALYTICS: "true"
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
-    GARDEN_LOGGER_TYPE: basic
 
   shared-machine-config: &shared-machine-config
     image: "ubuntu-2204:2022.10.2"
@@ -363,7 +362,7 @@ jobs:
       - run:
           name: Unit test framework components
           command: |
-            GARDEN_LOGGER_TYPE="" yarn run test:framework:unit
+            yarn run test:framework:unit
           environment:
             CHOKIDAR_USEPOLLING: "1"
             NODE_OPTIONS: --max_old_space_size=4096
@@ -615,7 +614,7 @@ jobs:
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic --var userId=dist-$CIRCLE_BUILD_NUM
       - cleanup_remote_cluster
 
   test-plugins:
@@ -873,11 +872,10 @@ jobs:
       - run:
           name: Deploy demo-project
           command: |
-            $env:CIRCLE_BUILD_NUM = "$env:CIRCLE_BUILD_NUM-win"
-            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build
+            .\dist\windows-amd64\garden.exe deploy --root .\examples\demo-project\ --logger-type basic --log-level silly --env remote --force-build --var userId=$env:CIRCLE_BUILD_NUM-win
       - run:
           name: Cleanup
-          command: (kubectl delete namespace --wait=false demo-project-$env:CIRCLE_BUILD_NUM-win) -or $true
+          command: (kubectl delete namespace --wait=false demo-project-testing-$env:CIRCLE_BUILD_NUM-win) -or $true
           when: always
 
 workflows:
@@ -984,12 +982,12 @@ workflows:
       #     name: e2e-hadolint-modules
       #     project: hadolint-modules
       #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-jib-container
-      #     project: jib-container
-      #     environment: remote
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-jib-container
+          project: jib-container
+          environment: remote
+          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-jib-container-modules
@@ -1048,11 +1046,11 @@ workflows:
       #     project: vote-modules
       #     environment: remote
       #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-vote-helm
-      #     project: vote-helm
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-vote-helm
+          project: vote-helm
+          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-vote-helm-modules

@@ -11,9 +11,9 @@ localMode:
   command: [ ]
   containerName: backend
 
-# this is here to test that local mode always take precedence over dev mode
-devMode:
-  sync:
+# this is here to test that local mode always take precedence over sync mode
+sync:
+  paths:
     - target: /app
       mode: one-way
 

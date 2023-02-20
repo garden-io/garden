@@ -198,7 +198,7 @@ const forwardablePortSchema = createSchema({
 export interface ServiceStatus<D = any, O = PrimitiveMap> {
   createdAt?: string
   detail: D
-  devMode?: boolean
+  syncMode?: boolean
   localMode?: boolean
   namespaceStatuses?: NamespaceStatus[]
   externalId?: string
@@ -219,37 +219,40 @@ export interface ServiceStatusMap {
 }
 
 export const serviceStatusSchema = () =>
-  joi.object().keys({
-    createdAt: joi.string().description("When the service was first deployed by the provider."),
-    detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
-    devMode: joi.boolean().description("Whether the service was deployed with dev mode enabled."),
-    localMode: joi.boolean().description("Whether the service was deployed with local mode enabled."),
-    namespaceStatuses: namespaceStatusesSchema().optional(),
-    externalId: joi
-      .string()
-      .description("The ID used for the service by the provider (if not the same as the service name)."),
-    externalVersion: joi
-      .string()
-      .description("The provider version of the deployed service (if different from the Garden module version."),
-    forwardablePorts: joiArray(forwardablePortSchema()).description(
-      "A list of ports that can be forwarded to from the Garden agent by the provider."
-    ),
-    ingresses: joi
-      .array()
-      .items(serviceIngressSchema())
-      .description("List of currently deployed ingress endpoints for the service."),
-    lastMessage: joi.string().allow("").description("Latest status message of the service (if any)."),
-    lastError: joi.string().description("Latest error status message of the service (if any)."),
-    outputs: joiVariables().description("A map of values output from the deployment."),
-    runningReplicas: joi.number().description("How many replicas of the service are currently running."),
-    state: joi
-      .string()
-      .valid(...serviceStates)
-      .default("unknown")
-      .description("The current deployment status of the service."),
-    updatedAt: joi.string().description("When the service was last updated by the provider."),
-    version: joi.string().description("The Garden module version of the deployed service."),
-  })
+  joi
+    .object()
+    .keys({
+      createdAt: joi.string().description("When the service was first deployed by the provider."),
+      detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
+      syncMode: joi.boolean().description("Whether the service was deployed with sync enabled."),
+      localMode: joi.boolean().description("Whether the service was deployed with local mode enabled."),
+      namespaceStatuses: namespaceStatusesSchema().optional(),
+      externalId: joi
+        .string()
+        .description("The ID used for the service by the provider (if not the same as the service name)."),
+      externalVersion: joi
+        .string()
+        .description("The provider version of the deployed service (if different from the Garden module version."),
+      forwardablePorts: joiArray(forwardablePortSchema()).description(
+        "A list of ports that can be forwarded to from the Garden agent by the provider."
+      ),
+      ingresses: joi
+        .array()
+        .items(serviceIngressSchema())
+        .description("List of currently deployed ingress endpoints for the service."),
+      lastMessage: joi.string().allow("").description("Latest status message of the service (if any)."),
+      lastError: joi.string().description("Latest error status message of the service (if any)."),
+      outputs: joiVariables().description("A map of values output from the deployment."),
+      runningReplicas: joi.number().description("How many replicas of the service are currently running."),
+      state: joi
+        .string()
+        .valid(...serviceStates)
+        .default("unknown")
+        .description("The current deployment status of the service."),
+      updatedAt: joi.string().description("When the service was last updated by the provider."),
+      version: joi.string().description("The Garden module version of the deployed service."),
+    })
+    .rename("devMode", "syncMode")
 
 /**
  * Returns the link URL or falls back to constructing the URL from the ingress spec

@@ -220,24 +220,23 @@ timeout: 300
 dependencies: []
 
 # Specifies which files or directories to sync to which paths inside the running containers of the service when it's
-# in dev mode, and overrides for the container command and/or arguments.
+# in sync mode, and overrides for the container command and/or arguments.
 #
-# Note that `serviceResource` must also be specified to enable dev mode.
+# Note that `serviceResource` must also be specified to enable sync.
 #
-# Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy`
-# command.
+# Sync is enabled by setting the `--sync` flag on the `garden deploy` command.
 #
 # See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more
 # information.
-devMode:
-  # Override the default container arguments when in dev mode.
+sync:
+  # Override the default container arguments when in sync mode.
   args:
 
-  # Override the default container command (i.e. entrypoint) when in dev mode.
+  # Override the default container command (i.e. entrypoint) when in sync mode.
   command:
 
   # Specify one or more source files or directories to automatically sync with the running container.
-  sync:
+  paths:
     - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
       # relative path. Defaults to the config's directory if no value is provided.
       source: .
@@ -250,7 +249,7 @@ devMode:
       # `.git` directories and `.garden` directories are always ignored.
       exclude:
 
-      # The sync mode to use for the given paths. See the [Dev Mode
+      # The sync mode to use for the given paths. See the [Code Synchronization
       # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
       mode: one-way-safe
 
@@ -287,7 +286,7 @@ devMode:
 # Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 #
 # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
-# Local mode always takes the precedence over dev mode if there are any conflicting service names.
+# Local mode always takes the precedence over sync mode if there are any conflicting service names.
 #
 # Health checks are disabled for services running in local mode.
 #
@@ -354,7 +353,7 @@ serviceResource:
   podSelector:
 
   # The Garden module that contains the sources for the container. This needs to be specified under `serviceResource`
-  # in order to enable dev mode, but is not necessary for tasks and tests. Must be a `container` module.
+  # in order to enable syncing, but is not necessary for tasks and tests. Must be a `container` module.
   #
   # _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
   containerModule:
@@ -1009,13 +1008,13 @@ The names of any services that this service depends on at runtime, and the names
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
 
-### `devMode`
+### `sync`
 
-Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
 
-Note that `serviceResource` must also be specified to enable dev mode.
+Note that `serviceResource` must also be specified to enable sync.
 
-Dev mode is enabled when running the `garden dev` command, and by setting the `--dev` flag on the `garden deploy` command.
+Sync is enabled by setting the `--sync` flag on the `garden deploy` command.
 
 See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for more information.
 
@@ -1023,29 +1022,29 @@ See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchron
 | -------- | -------- |
 | `object` | No       |
 
-### `devMode.args[]`
+### `sync.args[]`
 
-[devMode](#devmode) > args
+[sync](#sync) > args
 
-Override the default container arguments when in dev mode.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `devMode.command[]`
-
-[devMode](#devmode) > command
-
-Override the default container command (i.e. entrypoint) when in dev mode.
+Override the default container arguments when in sync mode.
 
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `devMode.sync[]`
+### `sync.command[]`
 
-[devMode](#devmode) > sync
+[sync](#sync) > command
+
+Override the default container command (i.e. entrypoint) when in sync mode.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `sync.paths[]`
+
+[sync](#sync) > paths
 
 Specify one or more source files or directories to automatically sync with the running container.
 
@@ -1053,9 +1052,9 @@ Specify one or more source files or directories to automatically sync with the r
 | --------------- | -------- |
 | `array[object]` | No       |
 
-### `devMode.sync[].source`
+### `sync.paths[].source`
 
-[devMode](#devmode) > [sync](#devmodesync) > source
+[sync](#sync) > [paths](#syncpaths) > source
 
 POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
 
@@ -1066,15 +1065,15 @@ POSIX-style path of the directory to sync to the target, relative to the config'
 Example:
 
 ```yaml
-devMode:
+sync:
   ...
-  sync:
+  paths:
     - source: "src"
 ```
 
-### `devMode.sync[].target`
+### `sync.paths[].target`
 
-[devMode](#devmode) > [sync](#devmodesync) > target
+[sync](#sync) > [paths](#syncpaths) > target
 
 POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
 
@@ -1085,15 +1084,15 @@ POSIX-style absolute path to sync to inside the container. The root path (i.e. "
 Example:
 
 ```yaml
-devMode:
+sync:
   ...
-  sync:
+  paths:
     - target: "/app/src"
 ```
 
-### `devMode.sync[].exclude[]`
+### `sync.paths[].exclude[]`
 
-[devMode](#devmode) > [sync](#devmodesync) > exclude
+[sync](#sync) > [paths](#syncpaths) > exclude
 
 Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
 
@@ -1106,27 +1105,27 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 Example:
 
 ```yaml
-devMode:
+sync:
   ...
-  sync:
+  paths:
     - exclude:
         - dist/**/*
         - '*.log'
 ```
 
-### `devMode.sync[].mode`
+### `sync.paths[].mode`
 
-[devMode](#devmode) > [sync](#devmodesync) > mode
+[sync](#sync) > [paths](#syncpaths) > mode
 
-The sync mode to use for the given paths. See the [Dev Mode guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
+The sync mode to use for the given paths. See the [Code Synchronization guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
 
 | Type     | Allowed Values                                                                                                                            | Default          | Required |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | -------- |
 | `string` | "one-way", "one-way-safe", "one-way-replica", "one-way-reverse", "one-way-replica-reverse", "two-way", "two-way-safe", "two-way-resolved" | `"one-way-safe"` | Yes      |
 
-### `devMode.sync[].defaultFileMode`
+### `sync.paths[].defaultFileMode`
 
-[devMode](#devmode) > [sync](#devmodesync) > defaultFileMode
+[sync](#sync) > [paths](#syncpaths) > defaultFileMode
 
 The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1134,9 +1133,9 @@ The default permission bits, specified as an octal, to set on files at the sync 
 | -------- | -------- |
 | `number` | No       |
 
-### `devMode.sync[].defaultDirectoryMode`
+### `sync.paths[].defaultDirectoryMode`
 
-[devMode](#devmode) > [sync](#devmodesync) > defaultDirectoryMode
+[sync](#sync) > [paths](#syncpaths) > defaultDirectoryMode
 
 The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#permissions) for more information.
 
@@ -1144,9 +1143,9 @@ The default permission bits, specified as an octal, to set on directories at the
 | -------- | -------- |
 | `number` | No       |
 
-### `devMode.sync[].defaultOwner`
+### `sync.paths[].defaultOwner`
 
-[devMode](#devmode) > [sync](#devmodesync) > defaultOwner
+[sync](#sync) > [paths](#syncpaths) > defaultOwner
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
@@ -1154,9 +1153,9 @@ Set the default owner of files and directories at the target. Specify either an 
 | ------------------ | -------- |
 | `number \| string` | No       |
 
-### `devMode.sync[].defaultGroup`
+### `sync.paths[].defaultGroup`
 
-[devMode](#devmode) > [sync](#devmodesync) > defaultGroup
+[sync](#sync) > [paths](#syncpaths) > defaultGroup
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
@@ -1164,9 +1163,9 @@ Set the default group on files and directories at the target. Specify either an 
 | ------------------ | -------- |
 | `number \| string` | No       |
 
-### `devMode.containerName`
+### `sync.containerName`
 
-[devMode](#devmode) > containerName
+[sync](#sync) > containerName
 
 Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
 
@@ -1182,7 +1181,7 @@ The selected container of the target Kubernetes resource will be replaced by a p
 Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
 Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
-Local mode always takes the precedence over dev mode if there are any conflicting service names.
+Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
 
@@ -1368,7 +1367,7 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 
 [serviceResource](#serviceresource) > containerModule
 
-The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable dev mode, but is not necessary for tasks and tests. Must be a `container` module.
+The Garden module that contains the sources for the container. This needs to be specified under `serviceResource` in order to enable syncing, but is not necessary for tasks and tests. Must be a `container` module.
 
 _Note: If you specify a module here, you don't need to specify it additionally under `build.dependencies`._
 

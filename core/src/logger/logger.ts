@@ -6,23 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry, LogEntryMetadata, LogEntryParams } from "./log-entry"
-import { getChildEntries, findLogEntry } from "./util"
+import { Log, LogEntryMetadata, LogEntry } from "./log-entry"
 import { Writer } from "./writers/base"
 import { CommandError, GardenError, InternalError, ParameterError } from "../exceptions"
-import { BasicTerminalWriter } from "./writers/basic-terminal-writer"
-import { FancyTerminalWriter } from "./writers/fancy-terminal-writer"
+import { TerminalWriter } from "./writers/terminal-writer"
 import { JsonTerminalWriter } from "./writers/json-terminal-writer"
 import { EventBus } from "../events"
 import { formatLogEntryForEventStream } from "../cloud/buffered-event-stream"
 import { gardenEnv } from "../constants"
-import { deepFilter, getEnumKeys, safeDumpYaml } from "../util/util"
+import { getEnumKeys } from "../util/util"
 import { isArray, isEmpty, isPlainObject, mapValues, range } from "lodash"
-import { isPrimitive } from "../config/common"
+import { deepFilter, safeDumpYaml } from "../util/util"
 import { InkTerminalWriter } from "./writers/ink-terminal-writer"
+import { isPrimitive } from "../config/common"
 
-export type LoggerType = "quiet" | "basic" | "fancy" | "json" | "ink"
-export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "basic", "fancy", "json", "ink"])
+export type LoggerType = "quiet" | "default" | "basic" | "json" | "ink"
+export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "default", "basic", "json", "ink"])
 
 export enum LogLevel {
   error = 0,
@@ -54,6 +53,57 @@ export function parseLogLevel(level: string): LogLevel {
     )
   }
   return lvl
+}
+
+/**
+ * Strips undefined values, internal objects and circular references from an object.
+ */
+export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
+  if (!_parents) {
+    _parents = new WeakSet()
+  } else if (_parents.has(value)) {
+    return "[Circular]"
+  }
+
+  if (value === null || value === undefined) {
+    return value
+  } else if (Buffer.isBuffer(value)) {
+    return "<Buffer>"
+  } else if (value instanceof Logger) {
+    return "<Logger>"
+  } else if (value instanceof Log) {
+    return "<Log>"
+    // This is hacky but fairly reliably identifies a Joi schema object
+  } else if (value.$_root) {
+    // TODO: Identify the schema
+    return "<JoiSchema>"
+  } else if (value.isGarden) {
+    return "<Garden>"
+  } else if (isArray(value)) {
+    _parents.add(value)
+    const out = value.map((v) => sanitizeValue(v, _parents))
+    _parents.delete(value)
+    return out
+  } else if (isPlainObject(value)) {
+    _parents.add(value)
+    const out = mapValues(value, (v) => sanitizeValue(v, _parents))
+    _parents.delete(value)
+    return out
+  } else if (!isPrimitive(value) && value.constructor) {
+    // Looks to be a class instance
+    if (value.toSanitizedValue) {
+      // Special allowance for internal objects
+      return value.toSanitizedValue()
+    } else {
+      // Any other class. Convert to plain object and sanitize attributes.
+      _parents.add(value)
+      const out = mapValues({ ...value }, (v) => sanitizeValue(v, _parents))
+      _parents.delete(value)
+      return out
+    }
+  } else {
+    return value
+  }
 }
 
 // Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
@@ -92,58 +142,6 @@ export function formatGardenErrorWithDetail(error: GardenError) {
   return out
 }
 
-/**
- * Strips undefined values, internal objects and circular references from an object.
- */
-export function sanitizeValue(value: any, _parents?: WeakSet<any>): any {
-  if (!_parents) {
-    _parents = new WeakSet()
-  } else if (_parents.has(value)) {
-    // console.log("CIRCULAR")
-    return "[Circular]"
-  }
-
-  if (value === null || value === undefined) {
-    return value
-  } else if (Buffer.isBuffer(value)) {
-    return "<Buffer>"
-  } else if (value instanceof Logger) {
-    return "<Logger>"
-  } else if (value instanceof LogEntry) {
-    return "<LogEntry>"
-    // This is hacky but fairly reliably identifies a Joi schema object
-  } else if (value.$_root) {
-    // TODO: Identify the schema
-    return "<JoiSchema>"
-  } else if (value.isGarden) {
-    return "<Garden>"
-  } else if (isArray(value)) {
-    _parents.add(value)
-    const out = value.map((v) => sanitizeValue(v, _parents))
-    _parents.delete(value)
-    return out
-  } else if (isPlainObject(value)) {
-    _parents.add(value)
-    const out = mapValues(value, (v) => sanitizeValue(v, _parents))
-    _parents.delete(value)
-    return out
-  } else if (!isPrimitive(value) && value.constructor) {
-    // Looks to be a class instance
-    if (value.toSanitizedValue) {
-      // Special allowance for internal objects
-      return value.toSanitizedValue()
-    } else {
-      // Any other class. Convert to plain object and sanitize attributes.
-      _parents.add(value)
-      const out = mapValues({ ...value }, (v) => sanitizeValue(v, _parents))
-      _parents.delete(value)
-      return out
-    }
-  } else {
-    return value
-  }
-}
-
 export const logLevelMap = {
   [LogLevel.error]: "error",
   [LogLevel.warn]: "warn",
@@ -157,10 +155,9 @@ const eventLogLevel = LogLevel.debug
 
 export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   switch (loggerType) {
+    case "default":
     case "basic":
-      return new BasicTerminalWriter({ level })
-    case "fancy":
-      return new FancyTerminalWriter({ level })
+      return new TerminalWriter({ level })
     case "json":
       return new JsonTerminalWriter({ level })
     case "ink":
@@ -170,67 +167,53 @@ export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
   }
 }
 
-export interface LoggerConfigBase {
+interface LoggerConfigBase {
   level: LogLevel
   storeEntries?: boolean
   showTimestamps?: boolean
   useEmoji?: boolean
 }
 
-export interface LoggerConfig extends LoggerConfigBase {
+interface LoggerConfig extends LoggerConfigBase {
   type: LoggerType
   storeEntries: boolean
 }
 
-export interface LoggerConstructor extends LoggerConfigBase {
+interface LoggerConstructor extends LoggerConfigBase {
   writers: Writer[]
   storeEntries: boolean
 }
 
-export interface CreateNodeParams extends LogEntryParams {
-  level: LogLevel
-  isPlaceholder?: boolean
-}
-
-export interface PlaceholderOpts {
-  level?: number
-  childEntriesInheritLevel?: boolean
-  indent?: number
-  metadata?: LogEntryMetadata
-}
-
-export interface LogNode {
-  silly(params: string | LogEntryParams): LogEntry
-  debug(params: string | LogEntryParams): LogEntry
-  verbose(params: string | LogEntryParams): LogEntry
-  info(params: string | LogEntryParams): LogEntry
-  warn(params: string | LogEntryParams): LogEntry
-  error(params: string | LogEntryParams): LogEntry
-}
-
-function resolveParams(level: LogLevel, params: string | LogEntryParams): CreateNodeParams {
-  if (typeof params === "string") {
-    return { msg: params, level }
-  }
-  return { ...params, level }
-}
-
-export class Logger implements LogNode {
+/**
+ * The "root" Logger. Responsible for calling the log writers on log events
+ * and holds the command-wide log configuration.
+ *
+ * Is initialized as a singleton class.
+ *
+ * Note that this class does not have methods for logging at different levels. Rather
+ * thats handled by the 'Log' class which in turns calls the root Logger.
+ */
+export class Logger {
   public events: EventBus
   public useEmoji: boolean
   public showTimestamps: boolean
   public level: LogLevel
-  public children: LogEntry[]
+  public entries: LogEntry[]
   /**
-   * Whether or not the log entries are stored in-memory on the logger instance.
-   * Defaults to false except when the FancyWriter is used, in which case storing the entries
-   * is required. Otherwise useful for testing.
+   * Whether or not the log entries are stored in-memory on the logger instance. Useful for testing.
    */
   public storeEntries: boolean
 
   private writers: Writer[]
   private static instance?: Logger
 
+  /**
+   * Returns the already initialized Logger singleton instance.
+   *
+   * Throws and error if called before logger is initialized.
+   *
+   * @throws(InternalError)
+   */
   static getInstance() {
     if (!Logger.instance) {
       throw new InternalError("Logger not initialized", {})
@@ -272,21 +255,17 @@ export class Logger implements LogNode {
       config.type = loggerTypeFromEnv
     }
 
-    // The fancy logger doesn't play well with high log levels and/or timestamps
-    // so we enforce that the type is set to basic.
-    if (config.type === "fancy" && (config.level > LogLevel.info || config.showTimestamps)) {
-      config.type = "basic"
-    }
-
     const writer = getWriterInstance(config.type, config.level)
 
     instance = new Logger({ ...config, storeEntries: config.storeEntries, writers: writer ? [writer] : [] })
 
+    const initLog = instance.makeNewLogContext()
+
     if (gardenEnv.GARDEN_LOG_LEVEL) {
-      instance.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)
+      initLog.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)
     }
     if (gardenEnv.GARDEN_LOGGER_TYPE) {
-      instance.debug(`Setting logger type to ${gardenEnv.GARDEN_LOGGER_TYPE} (from GARDEN_LOGGER_TYPE)`)
+      initLog.debug(`Setting logger type to ${gardenEnv.GARDEN_LOGGER_TYPE} (from GARDEN_LOGGER_TYPE)`)
     }
 
     Logger.instance = instance
@@ -302,21 +281,12 @@ export class Logger implements LogNode {
 
   constructor(config: LoggerConstructor) {
     this.level = config.level
-    this.children = []
+    this.entries = []
     this.writers = config.writers || []
     this.useEmoji = config.useEmoji === false ? false : true
     this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
     this.storeEntries = config.storeEntries
-  }
-
-  private addNode(params: CreateNodeParams): LogEntry {
-    const entry = new LogEntry({ ...params, root: this })
-    if (this.storeEntries) {
-      this.children.push(entry)
-    }
-    this.onGraphChange(entry)
-    return entry
   }
 
   addWriter(writer: Writer) {
@@ -327,76 +297,50 @@ export class Logger implements LogNode {
     return this.writers
   }
 
-  onGraphChange(entry: LogEntry) {
-    if (entry.level <= eventLogLevel && !entry.isPlaceholder) {
+  log(entry: LogEntry) {
+    if (this.storeEntries) {
+      this.entries.push(entry)
+    }
+    if (entry.level <= eventLogLevel) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
     for (const writer of this.writers) {
       if (entry.level <= writer.level) {
-        writer.onGraphChange(entry, this)
+        writer.write(entry, this)
       }
     }
   }
 
-  silly(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveParams(LogLevel.silly, params))
+  /**
+   * Creates a new log context from the root Logger.
+   */
+  makeNewLogContext({
+    level = LogLevel.info,
+    metadata,
+    fixLevel,
+  }: {
+    level?: LogLevel
+    metadata?: LogEntryMetadata
+    fixLevel?: boolean
+  } = {}) {
+    return new Log({
+      level,
+      fixLevel,
+      metadata,
+      root: this,
+    })
   }
 
-  debug(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveParams(LogLevel.debug, params))
-  }
-
-  verbose(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveParams(LogLevel.verbose, params))
-  }
-
-  info(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveParams(LogLevel.info, params))
-  }
-
-  warn(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveParams(LogLevel.warn, params))
-  }
-
-  error(params: string | LogEntryParams): LogEntry {
-    return this.addNode(resolveParams(LogLevel.error, params))
-  }
-
-  placeholder({ level = LogLevel.info, indent, metadata }: PlaceholderOpts = {}): LogEntry {
-    // Ensure placeholder child entries align with parent context
-    return this.addNode({ level, indent: indent || -1, isPlaceholder: true, metadata })
-  }
-
+  /**
+   * Returns all log entries. Throws if storeEntries=false
+   *
+   * @throws(InternalError)
+   */
   getLogEntries(): LogEntry[] {
     if (!this.storeEntries) {
       throw new InternalError(`Cannot get entries when storeEntries=false`, {})
     }
-    return getChildEntries(this).filter((entry) => !entry.fromStdStream)
-  }
-
-  filterBySection(section: string): LogEntry[] {
-    if (!this.storeEntries) {
-      throw new InternalError(`Cannot filter entries when storeEntries=false`, {})
-    }
-    return getChildEntries(this).filter((entry) => entry.getLatestMessage().section === section)
-  }
-
-  findById(id: string): LogEntry | void {
-    if (!this.storeEntries) {
-      throw new InternalError(`Cannot find entry when storeEntries=false`, {})
-    }
-    return findLogEntry(this, (node) => node.id === id)
-  }
-
-  stop(): void {
-    if (this.storeEntries) {
-      this.getLogEntries().forEach((e) => e.stop())
-    }
-    this.writers.forEach((writer) => writer.stop())
-  }
-
-  cleanup(): void {
-    this.writers.forEach((writer) => writer.cleanup())
+    return this.entries
   }
 }
 

@@ -137,10 +137,10 @@ And then change into the directory of the quickstart example with:
 cd quickstart-example
 ```
 
-And finally deploy the project with Garden in dev mode:
+And finally deploy the project with Garden in sync mode:
 
 ```sh
-garden deploy --dev
+garden deploy --sync
 ```
 
 You should now be able to visit the example project at [http://vote.local.app.garden](http://vote.local.app.garden).

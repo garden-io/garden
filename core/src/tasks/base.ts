@@ -9,7 +9,7 @@
 import { GraphResults } from "../graph/results"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
-import { LogEntry } from "../logger/log-entry"
+import { Log as Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import type { Action, ActionState, Executed, Resolved } from "../actions/types"
 import { ConfigGraph, GraphError } from "../graph/config-graph"
@@ -35,15 +35,16 @@ export function makeBaseKey(type: string, name: string) {
 
 export interface CommonTaskParams {
   garden: Garden
-  log: LogEntry
+  log: Log
   force: boolean
   skipDependencies?: boolean
 }
 
 export interface BaseActionTaskParams<T extends Action = Action> extends CommonTaskParams {
+  log: Log
   action: T
   graph: ConfigGraph
-  devModeDeployNames: string[]
+  syncModeDeployNames: string[]
   localModeDeployNames: string[]
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
@@ -89,7 +90,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   concurrencyLimit = 10
 
   public readonly garden: Garden
-  public readonly log: LogEntry
+  public readonly log: Log
   public readonly uid: string
   public readonly force: boolean
   public readonly skipDependencies: boolean
@@ -154,7 +155,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   }
 
   /**
-   * A key that factors in different parameters, e.g. dev mode for deploys, force flags, versioning etc.
+   * A key that factors in different parameters, e.g. sync mode for deploys, force flags, versioning etc.
    * Used to handle overlapping graph solve requests.
    */
   getKey(): string {
@@ -193,7 +194,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
   action: T
   graph: ConfigGraph
-  devModeDeployNames: string[]
+  syncModeDeployNames: string[]
   localModeDeployNames: string[]
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
@@ -203,7 +204,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     super({ ...params })
     this.action = action
     this.graph = params.graph
-    this.devModeDeployNames = params.devModeDeployNames
+    this.syncModeDeployNames = params.syncModeDeployNames
     this.localModeDeployNames = params.localModeDeployNames
     this.forceActions = params.forceActions || []
     this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
@@ -279,7 +280,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       garden: this.garden,
       log: this.log,
       graph: this.graph,
-      devModeDeployNames: this.devModeDeployNames,
+      syncModeDeployNames: this.syncModeDeployNames,
       localModeDeployNames: this.localModeDeployNames,
       forceActions: this.forceActions,
       skipDependencies: this.skipDependencies,

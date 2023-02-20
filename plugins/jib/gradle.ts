@@ -8,7 +8,7 @@
 
 import execa from "execa"
 import { find } from "lodash"
-import { LogEntry, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
+import { Log, PluginContext, PluginToolSpec } from "@garden-io/sdk/types"
 import { PluginError, RuntimeError } from "@garden-io/core/build/src/exceptions"
 import { resolve } from "path"
 import { pathExists } from "fs-extra"
@@ -127,7 +127,7 @@ export async function gradle({
   ctx: PluginContext
   args: string[]
   cwd: string
-  log: LogEntry
+  log: Log
   openJdkPath: string
   gradlePath?: string
   outputStream: Writable

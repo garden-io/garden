@@ -108,7 +108,7 @@ describe("RunTask", () => {
         force: false,
         forceBuild: false,
         log: garden.log,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

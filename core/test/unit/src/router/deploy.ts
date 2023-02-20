@@ -10,7 +10,7 @@ import { expect } from "chai"
 import Stream from "ts-stream"
 import { ResolvedDeployAction } from "../../../../src/actions/deploy"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { DeployLogEntry } from "../../../../src/types/service"
 import { TestGarden, expectError } from "../../../helpers"
@@ -19,7 +19,7 @@ import { getRouterTestData } from "./_helpers"
 describe("deploy actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
   let actionRouter: ActionRouter
   let resolvedDeployAction: ResolvedDeployAction
   let returnWrongOutputsCfgKey: string
@@ -48,7 +48,7 @@ describe("deploy actions", () => {
         log,
         action: resolvedDeployAction,
         graph,
-        devMode: false,
+        syncMode: false,
 
         localMode: false,
       })
@@ -65,7 +65,7 @@ describe("deploy actions", () => {
         log,
         action: resolvedDeployAction,
         graph,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       })
       const event = garden.events.eventLog[0]
@@ -86,7 +86,7 @@ describe("deploy actions", () => {
             log,
             action: resolvedDeployAction,
             graph,
-            devMode: false,
+            syncMode: false,
             localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
@@ -101,7 +101,7 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       })
       expect(result).to.eql({
@@ -118,7 +118,7 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       })
       const moduleVersion = resolvedDeployAction.moduleVersion().versionString
@@ -151,7 +151,7 @@ describe("deploy actions", () => {
             action: resolvedDeployAction,
             graph,
             force: true,
-            devMode: false,
+            syncMode: false,
             localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }

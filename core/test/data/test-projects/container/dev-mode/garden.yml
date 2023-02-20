@@ -1,12 +1,12 @@
 kind: Module
-name: dev-mode
+name: sync-mode
 description: Test module for a simple live reloadable service
 type: container
 services:
-  - name: dev-mode
+  - name: sync-mode
     command: [sh, -c, "echo Server running... && nc -l -p 8080"]
-    devMode:
-      sync:
+    sync:
+      paths:
         - target: /tmp/
           mode: two-way
     healthCheck:

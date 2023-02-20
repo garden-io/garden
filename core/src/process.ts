@@ -11,7 +11,7 @@ import chalk from "chalk"
 
 import { BaseTask } from "./tasks/base"
 import { Garden } from "./garden"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
 import { renderDivider } from "./logger/util"
 import { Action } from "./actions/types"
@@ -23,7 +23,7 @@ export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<Bas
 interface ProcessParams {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
   persistent: boolean
   initialTasks: BaseTask[]
 }
@@ -70,7 +70,7 @@ export async function processActions({
   }
 
   // Garden process is persistent but not in watch mode. E.g. used to
-  // keep port forwards alive without enabling watch or dev mode.
+  // keep port forwards alive without enabling watch or sync mode.
   await new Promise((resolve) => {
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })

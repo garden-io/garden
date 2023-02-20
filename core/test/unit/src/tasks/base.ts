@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
 import { BaseActionTask, ValidResultType } from "../../../../src/tasks/base"
 import { TestAction } from "../../../../src/actions/test"
@@ -16,7 +16,7 @@ import { TestAction } from "../../../../src/actions/test"
 describe("BaseActionTask", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
 
   const projectRoot = getDataDir("test-project-test-deps")
 
@@ -71,7 +71,7 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -92,7 +92,7 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -116,7 +116,7 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -141,7 +141,7 @@ describe("BaseActionTask", () => {
         action,
         force: false,
         forceBuild: false,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -164,7 +164,7 @@ describe("BaseActionTask", () => {
           force: true,
           forceBuild: false,
           skipRuntimeDependencies: true, // <-----
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
 

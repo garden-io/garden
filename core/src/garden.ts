@@ -63,7 +63,7 @@ import {
   SupportedArchitecture,
   SUPPORTED_ARCHITECTURES,
 } from "./constants"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 import { EventBus } from "./events"
 import { Watcher } from "./watch"
 import {
@@ -156,7 +156,7 @@ export interface GardenOpts {
   gardenDirPath?: string
   globalConfigStore?: GlobalConfigStore
   legacyBuildSync?: boolean
-  log?: LogEntry
+  log?: Log
   noEnterprise?: boolean
   persistent?: boolean
   plugins?: RegisterPluginParam[]
@@ -178,7 +178,7 @@ export interface GardenParams {
   namespace: string
   gardenDirPath: string
   globalConfigStore?: GlobalConfigStore
-  log: LogEntry
+  log: Log
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
   opts: GardenOpts
@@ -201,7 +201,7 @@ export interface GardenParams {
 
 @Profile()
 export class Garden {
-  public log: LogEntry
+  public log: Log
   private loadedPlugins: GardenPlugin[]
   protected actionConfigs: ActionConfigMap
   protected moduleConfigs: ModuleConfigMap
@@ -427,7 +427,7 @@ export class Garden {
     this.solver.clearCache()
   }
 
-  async emitWarning({ key, log, message }: { key: string; log: LogEntry; message: string }) {
+  async emitWarning({ key, log, message }: { key: string; log: Log; message: string }) {
     const existing = await this.configStore.get("warnings", key)
 
     if (!existing || !existing.hidden) {
@@ -446,7 +446,7 @@ export class Garden {
     return this.solver.solve(params)
   }
 
-  async processTask<T extends Task>(task: T, log: LogEntry, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
+  async processTask<T extends Task>(task: T, log: Log, opts: SolveOpts): Promise<GraphResultFromTask<T> | null> {
     const { results } = await this.solver.solve({ tasks: [task], log, ...opts })
     return results.getResult(task)
   }
@@ -470,7 +470,7 @@ export class Garden {
     const linkedPaths = (await getLinkedSources(this)).map((s) => s.path)
     const paths = [this.projectRoot, ...linkedPaths]
 
-    // For skipped modules/actions (e.g. those with services in dev mode), we skip watching all files and folders in the
+    // For skipped modules/actions (e.g. those with services in sync mode), we skip watching all files and folders in the
     // module/action root except for the config path. This way, we can still react to changes in config files.
     const skipDirectories = uniq([...skipModules.map((m) => m.path), ...skipActions.map((a) => a.basePath())])
     const configPaths = new Set(
@@ -596,7 +596,7 @@ export class Garden {
     return names ? findByNames(names, this.providerConfigs, "provider") : this.providerConfigs
   }
 
-  async resolveProvider(log: LogEntry, name: string) {
+  async resolveProvider(log: Log, name: string) {
     if (name === "_default") {
       return defaultProvider
     }
@@ -625,7 +625,7 @@ export class Garden {
     return provider
   }
 
-  async resolveProviders(log: LogEntry, forceInit = false, names?: string[]): Promise<ProviderMap> {
+  async resolveProviders(log: Log, forceInit = false, names?: string[]): Promise<ProviderMap> {
     // TODO-G2: split this out of the Garden class
     let providers: Provider[] = []
 
@@ -647,11 +647,8 @@ export class Garden {
 
       log.silly(`Resolving providers`)
 
-      log = log.info({
-        section: "providers",
-        msg: "Getting status...",
-        status: "active",
-      })
+      const providerLog = log.makeNewLogContext({ section: "providers" })
+      providerLog.info("Getting status...")
 
       const plugins = keyBy(await this.getAllPlugins(), "name")
 
@@ -691,7 +688,7 @@ export class Garden {
 
         return new ResolveProviderTask({
           garden: this,
-          log,
+          log: providerLog,
           plugin,
           config,
           force: false,
@@ -735,16 +732,16 @@ export class Garden {
       }
 
       if (gotCachedResult) {
-        log.setSuccess({ msg: chalk.green("Cached"), append: true })
-        log.info({
+        providerLog.setSuccess(chalk.green("Cached"))
+        providerLog.info({
           symbol: "info",
           msg: chalk.gray("Run with --force-refresh to force a refresh of provider statuses."),
         })
       } else {
-        log.setSuccess({ msg: chalk.green("Done"), append: true })
+        providerLog.setSuccess(chalk.green("Done"))
       }
 
-      log.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
+      providerLog.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
     })
 
     return keyBy(providers, "name")
@@ -792,7 +789,7 @@ export class Garden {
   /**
    * Returns the reported status from all configured providers.
    */
-  async getEnvironmentStatus(log: LogEntry) {
+  async getEnvironmentStatus(log: Log) {
     const providers = await this.resolveProviders(log)
     return mapValues(providers, (p) => p.status)
   }
@@ -833,7 +830,7 @@ export class Garden {
     return this.actionConfigs
   }
 
-  async getOutputConfigContext(log: LogEntry, modules: GardenModule[], graphResults: GraphResults) {
+  async getOutputConfigContext(log: Log, modules: GardenModule[], graphResults: GraphResults) {
     const providers = await this.resolveProviders(log)
     return new OutputConfigContext({
       garden: this,
@@ -861,12 +858,12 @@ export class Garden {
     const resolvedProviders = await this.resolveProviders(log)
     const rawModuleConfigs = await this.getRawModuleConfigs()
 
-    log = log.info({ status: "active", section: "graph", msg: `Resolving actions and modules...` })
+    const graphLog = log.makeNewLogContext({ section: "graph" }).info(`Resolving actions and modules...`)
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
       garden: this,
-      log,
+      log: graphLog,
       rawConfigs: rawModuleConfigs,
       resolvedProviders,
       graphResults,
@@ -893,7 +890,7 @@ export class Garden {
     // Convert modules to actions
     const { groups: moduleGroups, actions: moduleActionConfigs } = await convertModules(
       this,
-      log,
+      graphLog,
       resolvedModules,
       moduleGraph
     )
@@ -929,7 +926,7 @@ export class Garden {
       garden: this,
       configs: Object.values(actionConfigs),
       groupConfigs: moduleGroups,
-      log,
+      log: graphLog,
       moduleGraph,
     })
 
@@ -958,7 +955,7 @@ export class Garden {
 
       const { addDependencies, addActions } = await router.provider.augmentGraph({
         pluginName,
-        log,
+        log: graphLog,
         providers: resolvedProviders,
         actions: graph.getActions(),
         events: undefined,
@@ -981,7 +978,7 @@ export class Garden {
           graph,
           config,
           router,
-          log,
+          log: graphLog,
           configsByKey: actionConfigs,
         })
         graph.addAction(action)
@@ -1026,7 +1023,7 @@ export class Garden {
       this.events.emit("stackGraph", graph.render())
     }
 
-    log.setSuccess({ msg: chalk.green("Done"), append: true })
+    graphLog.setSuccess(chalk.green("Done"))
 
     return graph.toConfigGraph()
   }
@@ -1042,7 +1039,7 @@ export class Garden {
     })
   }
 
-  async resolveAction<T extends Action>({ action, graph, log }: { action: T; log: LogEntry; graph?: ConfigGraph }) {
+  async resolveAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph?: ConfigGraph }) {
     if (!graph) {
       graph = await this.getConfigGraph({ log, emit: false })
     }
@@ -1050,15 +1047,7 @@ export class Garden {
     return resolveAction({ garden: this, action, graph, log })
   }
 
-  async resolveActions<T extends Action>({
-    actions,
-    graph,
-    log,
-  }: {
-    actions: T[]
-    log: LogEntry
-    graph?: ConfigGraph
-  }) {
+  async resolveActions<T extends Action>({ actions, graph, log }: { actions: T[]; log: Log; graph?: ConfigGraph }) {
     if (!graph) {
       graph = await this.getConfigGraph({ log, emit: false })
     }
@@ -1066,7 +1055,7 @@ export class Garden {
     return resolveActions({ garden: this, actions, graph, log })
   }
 
-  async executeAction<T extends Action>({ action, graph, log }: { action: T; log: LogEntry; graph?: ConfigGraph }) {
+  async executeAction<T extends Action>({ action, graph, log }: { action: T; log: Log; graph?: ConfigGraph }) {
     if (!graph) {
       graph = await this.getConfigGraph({ log, emit: false })
     }
@@ -1078,7 +1067,7 @@ export class Garden {
    * Resolves the module version (i.e. build version) for the given module configuration and its build dependencies.
    */
   async resolveModuleVersion(
-    log: LogEntry,
+    log: Log,
     moduleConfig: ModuleConfig,
     moduleDependencies: GardenModule[],
     force = false
@@ -1407,7 +1396,7 @@ export class Garden {
     includeDisabled = false,
     partial = false,
   }: {
-    log: LogEntry
+    log: Log
     includeDisabled?: boolean
     partial?: boolean
   }): Promise<ConfigDump> {
@@ -1490,7 +1479,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   const _username = (await username()) || ""
   const projectName = config.name
-  const log = opts.log || getLogger().placeholder()
+  const log = opts.log || getLogger().makeNewLogContext()
 
   const { sources: projectSources, path: projectRoot } = config
   const commandInfo = opts.commandInfo
@@ -1552,7 +1541,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
-    const cloudLog = log.info({ section, msg: "Initializing...", status: "active" })
+    const cloudLog = log.makeNewLogContext({ section })
+    cloudLog.info("Initializing...")
 
     let project: CloudProject | undefined
 
@@ -1593,11 +1583,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         // Only fetch secrets if the projectId exists in the cloud API instance
         try {
           secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
-          cloudLog.setSuccess({ msg: chalk.green("Ready"), append: true })
+          cloudLog.setSuccess(chalk.green("Ready"))
           cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
           cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)
-          cloudLog.setWarn()
         }
       }
     } else {
@@ -1722,7 +1711,7 @@ export interface ConfigDump {
 }
 
 interface GetConfigGraphParams {
-  log: LogEntry
+  log: Log
   graphResults?: GraphResults
   emit: boolean
 }

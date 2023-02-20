@@ -142,7 +142,7 @@ services:
 
 An example can be found in the [`local-mode project`](../../examples/local-mode).
 
-### Configuring dev mode for `kubernetes` modules
+### Configuring sync for `kubernetes` modules
 
 ```yaml
 kind: Module

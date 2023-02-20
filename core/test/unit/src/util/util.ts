@@ -124,27 +124,27 @@ describe("util", () => {
 
     it("should optionally pipe stdout to an output stream", async () => {
       const logger = getLogger()
-      const entry = logger.placeholder()
+      const log = logger.makeNewLogContext()
 
-      await exec("echo", ["hello"], { stdout: createOutputStream(entry) })
+      await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
-      expect(entry.getLatestMessage().msg).to.equal(renderOutputStream("hello"))
+      expect(log.getLatestEntry().msg).to.equal(renderOutputStream("hello"))
     })
 
     it("should optionally pipe stderr to an output stream", async () => {
       const logger = getLogger()
-      const entry = logger.placeholder()
+      const log = logger.makeNewLogContext()
 
-      await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(entry) })
+      await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(log) })
 
-      expect(entry.getLatestMessage().msg).to.equal(renderOutputStream("hello"))
+      expect(log.getLatestEntry().msg).to.equal(renderOutputStream("hello"))
     })
 
     it("should buffer outputs when piping to stream", async () => {
       const logger = getLogger()
-      const entry = logger.placeholder()
+      const log = logger.makeNewLogContext()
 
-      const res = await exec("echo", ["hello"], { stdout: createOutputStream(entry) })
+      const res = await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
       expect(res.stdout).to.equal("hello")
     })

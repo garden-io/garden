@@ -31,7 +31,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       params.events.on("log", ({ timestamp, data, origin, log }) => {
         // stream logs to CLI
-        log.setState(renderOutputStream(data.toString(), origin))
+        log.info(renderOutputStream(data.toString(), origin))
         // stream logs to Garden Cloud
         // TODO: consider sending origin as well
         garden.events.emit("log", {
@@ -87,13 +87,13 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     delete: async (params) => {
       const { action, router, handlers } = params
 
-      const log = params.log.info({
-        section: action.key(),
-        msg: "Deleting...",
-        status: "active",
-      })
+      const log = params.log
+        .makeNewLogContext({
+          section: action.key(),
+        })
+        .info("Deleting...")
 
-      const status = await handlers.getStatus({ ...params, devMode: false, localMode: false })
+      const status = await handlers.getStatus({ ...params, syncMode: false, localMode: false })
 
       if (status.detail?.state === "missing") {
         log.setSuccess({
@@ -108,7 +108,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         handlerType: "delete",
         defaultHandler: async (p) => {
           const msg = `No delete handler available for ${p.action.kind} action type ${p.action.type}`
-          p.log.setError(msg)
+          p.log.error(msg)
           return {
             state: "not-ready" as ActionState,
             detail: { state: "missing" as ServiceState, detail: {} },
@@ -119,10 +119,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
-      log.setSuccess({
-        msg: chalk.green(`Done (took ${log.getDuration(1)} sec)`),
-        append: true,
-      })
+      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
 
       return result
     },

@@ -14,7 +14,7 @@ import { serviceStateToActionState, ServiceStatus } from "../../../types/service
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
-import { configureDevMode, convertKubernetesModuleDevModeSpec, startDevModeSyncs } from "../dev-mode"
+import { configureSyncMode, convertKubernetesModuleDevModeSpec, startSyncs } from "../sync"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
@@ -29,7 +29,7 @@ import type { ExecBuildConfig } from "../../exec/config"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
 import { getTargetResource } from "../util"
-import type { LogEntry } from "../../../logger/log-entry"
+import type { Log } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
@@ -58,10 +58,10 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       include: module.spec.files,
 
       spec: {
-        ...omit(module.spec, ["name", "dependencies", "serviceResource", "tasks", "tests", "devMode"]),
+        ...omit(module.spec, ["build", "name", "dependencies", "serviceResource", "tasks", "tests", "sync"]),
         files: module.spec.files || [],
         manifests: module.spec.manifests || [],
-        devMode: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
+        sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
     }
 
@@ -142,7 +142,7 @@ interface KubernetesStatusDetail {
 export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
 
 export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
-  const { ctx, action, log, devMode, localMode } = params
+  const { ctx, action, log, syncMode, localMode } = params
   const spec = action.getSpec()
 
   const k8sCtx = <KubernetesPluginContext>ctx
@@ -165,25 +165,24 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     ctx: k8sCtx,
     log,
     action,
-    devMode,
+    syncMode,
     localMode,
     manifests,
   })
   const preparedManifests = prepareResult.manifests
 
-  let { state, remoteResources, deployedWithDevMode, deployedWithLocalMode } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    preparedManifests,
-    log
-  )
+  let {
+    state,
+    remoteResources,
+    deployedWithSyncMode: deployedWithDevMode,
+    deployedWithLocalMode,
+  } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts = deployedWithLocalMode ? [] : getForwardablePorts(remoteResources, action)
 
   if (state === "ready") {
-    // Local mode always takes precedence over dev mode
+    // Local mode always takes precedence over sync mode
     if (localMode && spec.localMode) {
       const targetSpec = spec.localMode.target || spec.defaultTarget
 
@@ -201,18 +200,18 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
           state = "outdated"
         }
       }
-    } else if (devMode && spec.devMode?.syncs) {
-      // Need to start the dev-mode sync here, since the deployment handler won't be called with state=ready.
-      await startDevModeSyncs({
+    } else if (syncMode && spec.sync?.paths) {
+      // Need to start the sync here, since the deployment handler won't be called with state=ready.
+      await startSyncs({
         ctx: k8sCtx,
         log,
         action,
-        actionDefaults: spec.devMode.defaults || {},
+        actionDefaults: spec.sync.defaults || {},
         defaultTarget: spec.defaultTarget,
         basePath: action.basePath(), // TODO-G2: double check if this holds up
         defaultNamespace: namespace,
         manifests: preparedManifests,
-        syncs: spec.devMode.syncs,
+        syncs: spec.sync.paths,
       })
     }
   }
@@ -224,7 +223,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       state,
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
-      devMode: deployedWithDevMode,
+      syncMode: deployedWithDevMode,
       localMode: deployedWithLocalMode,
       namespaceStatuses: [namespaceStatus],
       ingresses: getK8sIngresses(remoteResources),
@@ -235,7 +234,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
 }
 
 export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAction> = async (params) => {
-  const { ctx, action, log, devMode, localMode } = params
+  const { ctx, action, log, syncMode, localMode } = params
 
   const spec = action.getSpec()
 
@@ -277,12 +276,12 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   const pruneLabels = { [gardenAnnotationKey("service")]: action.name }
 
   if (otherManifests.length > 0) {
-    if ((devMode && spec.devMode) || (localMode && spec.localMode)) {
+    if ((syncMode && spec.sync) || (localMode && spec.localMode)) {
       const configured = await configureSpecialModesForManifests({
         ctx: k8sCtx,
         log,
         action,
-        devMode,
+        syncMode,
         localMode,
         manifests,
       })
@@ -308,7 +307,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   killPortForwards(action, status.detail?.forwardablePorts || [], log)
 
   if (modifiedResources.length > 0) {
-    // Local mode always takes precedence over dev mode
+    // Local mode always takes precedence over sync mode
     if (localMode && spec.localMode) {
       await startServiceInLocalMode({
         ctx,
@@ -319,17 +318,17 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         namespace,
         log,
       })
-    } else if (devMode && spec.devMode?.syncs?.length) {
-      await startDevModeSyncs({
+    } else if (syncMode && spec.sync?.paths?.length) {
+      await startSyncs({
         ctx: k8sCtx,
         log,
         action,
-        actionDefaults: spec.devMode.defaults || {},
+        actionDefaults: spec.sync.defaults || {},
         defaultTarget: spec.defaultTarget,
         basePath: action.basePath(), // TODO-G2: double check if this holds up
         defaultNamespace: namespace,
         manifests: preparedManifests,
-        syncs: spec.devMode.syncs,
+        syncs: spec.sync.paths,
       })
     }
   }
@@ -445,32 +444,32 @@ export const getKubernetesDeployLogs: DeployActionHandler<"getLogs", KubernetesD
 }
 
 /**
- * Looks for a dev-mode or local-mode target in a list of manifests.
- * If found, the target is either configured for dev-mode/local-mode
- * or annotated with `dev-mode: false`, or `local-mode: false`.
+ * Looks for a sync-mode or local-mode target in a list of manifests.
+ * If found, the target is either configured for sync-mode/local-mode
+ * or annotated with `sync-mode: false`, or `local-mode: false`.
  *
  * Returns the manifests with the original resource replaced by the modified spec.
  *
- * No-op if no target is found and neither dev-mode nor local-mode is enabled.
+ * No-op if no target is found and neither sync-mode nor local-mode is enabled.
  */
 async function configureSpecialModesForManifests({
   ctx,
   log,
   action,
-  devMode,
+  syncMode,
   localMode,
   manifests,
 }: {
   ctx: KubernetesPluginContext
-  log: LogEntry
+  log: Log
   action: Resolved<KubernetesDeployAction>
-  devMode: boolean
+  syncMode: boolean
   localMode: boolean
   manifests: KubernetesResource<BaseResource>[]
 }) {
   const spec = action.getSpec()
 
-  // Local mode always takes precedence over dev mode
+  // Local mode always takes precedence over sync mode
   if (localMode && spec.localMode && !isEmpty(spec.localMode)) {
     // TODO-G2: Support multiple local processes+targets
     const query = spec.localMode.target || spec.defaultTarget
@@ -511,16 +510,16 @@ async function configureSpecialModesForManifests({
       .concat(<KubernetesResource<BaseResource>>target)
 
     return { updated: [target], manifests: preparedManifests }
-  } else if (devMode && spec.devMode && !isEmpty(spec.devMode)) {
-    // The "dev-mode" annotation is set in `configureDevMode`.
-    return configureDevMode({
+  } else if (syncMode && spec.sync && !isEmpty(spec.sync)) {
+    // The "sync-mode" annotation is set in `configureDevMode`.
+    return configureSyncMode({
       ctx,
       log,
       provider: ctx.provider,
       action,
       defaultTarget: spec.defaultTarget,
       manifests,
-      spec: spec.devMode,
+      spec: spec.sync,
     })
   } else {
     // Nothing to do, so we return the original manifests

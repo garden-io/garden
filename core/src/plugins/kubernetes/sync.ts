@@ -8,9 +8,9 @@
 
 import {
   ContainerDeployAction,
-  containerDevModeSchema,
-  ContainerDevModeSpec,
-  defaultDevModeSyncMode,
+  containerSyncPathSchema,
+  ContainerSyncSpec,
+  defaultSyncMode,
   DevModeSyncOptions,
   DevModeSyncSpec,
   syncDefaultDirectoryModeSchema,
@@ -31,7 +31,7 @@ import {
   labelSelectorToString,
 } from "./util"
 import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import {
   ensureMutagenSync,
@@ -49,7 +49,7 @@ import {
   targetContainerNameSchema,
   targetResourceSpecSchema,
 } from "./config"
-import { isConfiguredForDevMode } from "./status/status"
+import { isConfiguredForSyncMode } from "./status/status"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
@@ -66,31 +66,31 @@ import { getDeploymentName } from "./container/deployment"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
-export const devModeGuideLink = "https://docs.garden.io/guides/code-synchronization-dev-mode"
+export const syncGuideLink = "https://docs.garden.io/guides/code-synchronization-dev-mode"
 
-export interface KubernetesModuleDevModeSpec extends ContainerDevModeSpec {
+export interface KubernetesModuleDevModeSpec extends ContainerSyncSpec {
   containerName?: string
 }
 
-export const kubernetesModuleDevModeSchema = () =>
-  containerDevModeSchema().keys({
+export const kubernetesModuleSyncSchema = () =>
+  containerSyncPathSchema().keys({
     containerName: joiIdentifier().description(
       `Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.`
     ),
   }).description(dedent`
-    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in sync mode, and overrides for the container command and/or arguments.
 
-    Note that \`serviceResource\` must also be specified to enable dev mode.
+    Note that \`serviceResource\` must also be specified to enable sync.
 
-    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+    Sync is enabled by setting the \`--sync\` flag on the \`garden deploy\` command.
 
-    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+    See the [Code Synchronization guide](${syncGuideLink}) for more information.
   `)
 
 /**
- * Provider-level dev mode settings for the local and remote k8s providers.
+ * Provider-level sync mode settings for the local and remote k8s providers.
  */
-export interface DevModeDefaults {
+export interface SyncDefaults {
   exclude?: string[]
   fileMode?: number
   directoryMode?: number
@@ -98,12 +98,12 @@ export interface DevModeDefaults {
   group?: number | string
 }
 
-export const devModeDefaultsSchema = () =>
+export const syncDefaultsSchema = () =>
   joi.object().keys({
     exclude: syncExcludeSchema().description(dedent`
         Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
 
-        Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
+        Any exclusion patterns defined in individual sync specs will be applied in addition to these patterns.
 
         \`.git\` directories and \`.garden\` directories are always ignored.
       `),
@@ -112,13 +112,13 @@ export const devModeDefaultsSchema = () =>
     owner: syncDefaultOwnerSchema(),
     group: syncDefaultGroupSchema(),
   }).description(dedent`
-    Specifies default settings for dev mode syncs (e.g. for \`container\`, \`kubernetes\` and \`helm\` services).
+    Specifies default settings for syncs (e.g. for \`container\`, \`kubernetes\` and \`helm\` services).
 
-    These are overridden/extended by the settings of any individual dev mode sync specs.
+    These are overridden/extended by the settings of any individual sync specs.
 
-    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+    Sync is enabled e.g by setting the \`--sync\` flag on the \`garden deploy\` command.
 
-    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+    See the [Code Synchronization guide](${syncGuideLink}) for more information.
   `)
 
 export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
@@ -128,10 +128,10 @@ export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
   containerName?: string
 }
 
-const exampleActionRef = templateStringLiteral("build.my-container-image.sourcePath")
+const exampleActionRef = templateStringLiteral("action.build.my-container-image.sourcePath")
 
-export const kubernetesDeployDevModeSyncSchema = () =>
-  devModeDefaultsSchema()
+export const kubernetesDeploySyncPathSchema = () =>
+  syncDefaultsSchema()
     .keys({
       target: targetResourceSpecSchema().description(
         "The Kubernetes resource to sync to. If specified, this is used instead of `spec.defaultTarget`."
@@ -171,13 +171,13 @@ export interface KubernetesDeployOverrideSpec {
   args?: string[]
 }
 
-export interface KubernetesDeployDevModeSpec {
-  defaults?: DevModeDefaults
-  syncs?: KubernetesDeployDevModeSyncSpec[]
+export interface KubernetesDeploySyncSpec {
+  defaults?: SyncDefaults
+  paths?: KubernetesDeployDevModeSyncSpec[]
   overrides?: KubernetesDeployOverrideSpec[]
 }
 
-const devModeOverrideSpec = () =>
+const syncModeOverrideSpec = () =>
   joi.object().keys({
     target: joi.object().keys({
       kind: joi
@@ -192,22 +192,23 @@ const devModeOverrideSpec = () =>
     args: joi.array().items(joi.string()).description("Override the args in the matched container."),
   })
 
-export const kubernetesDeployDevModeSchema = () =>
+export const kubernetesDeploySyncSchema = () =>
   joi
     .object()
     .keys({
-      defaults: devModeDefaultsSchema().description(
+      defaults: syncDefaultsSchema().description(
         "Defaults to set across every sync for this Deploy. If you use the `exclude` field here, it will be merged with any excludes set in individual syncs. These are applied on top of any defaults set in the provider configuration."
       ),
-      syncs: joi
+      paths: joi
         .array()
-        .items(kubernetesDeployDevModeSyncSchema())
+        .items(kubernetesDeploySyncPathSchema())
         .description("A list of syncs to start once the Deploy is successfully started."),
-      overrides: joi.array().items(devModeOverrideSpec()),
+      overrides: joi.array().items(syncModeOverrideSpec()),
     })
+    .rename("syncs", "paths")
     .description(
       dedent`
-      Configure dev mode syncs for the resources in this Deploy.
+      Configure path syncs for the resources in this Deploy.
 
       If you have multiple syncs for the Deploy, you can use the \`defaults\` field to set common configuration for every individual sync.
       `
@@ -217,45 +218,45 @@ export function convertKubernetesModuleDevModeSpec(
   module: KubernetesModule | HelmModule,
   service: KubernetesService | HelmService,
   serviceResource: ServiceResourceSpec | undefined
-): KubernetesDeployDevModeSpec | undefined {
+): KubernetesDeploySyncSpec | undefined {
   const target = convertServiceResource(module, serviceResource)
   const sourcePath = service.sourceModule.path
-  const devModeSpec = module.spec.devMode
+  const syncSpec = module.spec.sync
 
-  if (!devModeSpec || !target) {
+  if (!syncSpec || !target) {
     return undefined
   }
 
-  const devMode: KubernetesDeployDevModeSpec = {
-    syncs: convertSyncPaths(sourcePath, devModeSpec.sync, target),
+  const sync: KubernetesDeploySyncSpec = {
+    paths: convertSyncPaths(sourcePath, syncSpec.paths, target),
   }
 
-  if (devModeSpec.command || devModeSpec.args) {
+  if (syncSpec.command || syncSpec.args) {
     if (target.kind && target.name) {
-      devMode.overrides = [
+      sync.overrides = [
         {
           target: {
             kind: target.kind,
             name: target.name,
             containerName: target.containerName,
           },
-          command: devModeSpec.command,
-          args: devModeSpec.args,
+          command: syncSpec.command,
+          args: syncSpec.args,
         },
       ]
     }
   }
 
-  return devMode
+  return sync
 }
 
-export function convertContainerDevModeSpec(
+export function convertContainerSyncSpec(
   ctx: KubernetesPluginContext,
   action: Resolved<ContainerDeployAction>
-): KubernetesDeployDevModeSpec | undefined {
+): KubernetesDeploySyncSpec | undefined {
   const spec = action.getSpec()
 
-  if (!spec.devMode) {
+  if (!spec.sync) {
     return
   }
 
@@ -265,7 +266,7 @@ export function convertContainerDevModeSpec(
   const target = { kind, name: deploymentName }
 
   return {
-    syncs: convertSyncPaths(action.basePath(), spec.devMode.sync, target),
+    paths: convertSyncPaths(action.basePath(), spec.sync.paths, target),
   }
 }
 
@@ -282,7 +283,7 @@ function convertSyncPaths(
   }))
 }
 
-export async function configureDevMode({
+export async function configureSyncMode({
   ctx,
   log,
   provider,
@@ -292,12 +293,12 @@ export async function configureDevMode({
   spec,
 }: {
   ctx: PluginContext
-  log: LogEntry
+  log: Log
   provider: KubernetesProvider
   action: Resolved<SupportedRuntimeActions>
   defaultTarget: KubernetesTargetResourceSpec | undefined
   manifests: KubernetesResource[]
-  spec: KubernetesDeployDevModeSpec
+  spec: KubernetesDeploySyncSpec
 }) {
   // Make sure we don't modify inputs in-place
   manifests = cloneDeep(manifests)
@@ -322,7 +323,7 @@ export async function configureDevMode({
     }
   }
 
-  for (const sync of spec.syncs || []) {
+  for (const sync of spec.paths || []) {
     const target = sync.target || defaultTarget
 
     if (!target) {
@@ -368,7 +369,7 @@ export async function configureDevMode({
       continue
     }
 
-    set(resolved, ["metadata", "annotations", gardenAnnotationKey("dev-mode")], "true")
+    set(resolved, ["metadata", "annotations", gardenAnnotationKey("sync-mode")], "true")
     const targetContainer = getResourceContainer(resolved, target.containerName)
 
     if (override.command) {
@@ -381,7 +382,7 @@ export async function configureDevMode({
     updatedTargets[key] = resolved
   }
 
-  for (const sync of spec.syncs || []) {
+  for (const sync of spec.paths || []) {
     const target = sync.target || defaultTarget
 
     if (!target) {
@@ -396,7 +397,7 @@ export async function configureDevMode({
       continue
     }
 
-    set(resolved, ["metadata", "annotations", gardenAnnotationKey("dev-mode")], "true")
+    set(resolved, ["metadata", "annotations", gardenAnnotationKey("sync-mode")], "true")
     const targetContainer = getResourceContainer(resolved, target.containerName)
 
     const podSpec = getResourcePodSpec(resolved)
@@ -448,14 +449,14 @@ export async function configureDevMode({
   return { updated: Object.values(updatedTargets), manifests }
 }
 
-interface StartDevModeSyncParams {
+interface StartSyncModeParams {
   ctx: KubernetesPluginContext
-  log: LogEntry
+  log: Log
   action: Resolved<SupportedRuntimeActions>
   defaultNamespace: string
   manifests: KubernetesResource[]
   basePath: string
-  actionDefaults: DevModeDefaults
+  actionDefaults: SyncDefaults
   defaultTarget: KubernetesTargetResourceSpec | undefined
   syncs: KubernetesDeployDevModeSyncSpec[]
 }
@@ -465,7 +466,7 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
   return localPath.replace(/ /g, "\\ ") // Escape spaces in path
 }
 
-export async function startDevModeSyncs({
+export async function startSyncs({
   ctx,
   log,
   basePath,
@@ -475,7 +476,7 @@ export async function startDevModeSyncs({
   actionDefaults,
   defaultTarget,
   syncs,
-}: StartDevModeSyncParams) {
+}: StartSyncModeParams) {
   if (syncs.length === 0) {
     return
   }
@@ -483,7 +484,7 @@ export async function startDevModeSyncs({
   return mutagenConfigLock.acquire("start-sync", async () => {
     const k8sCtx = <KubernetesPluginContext>ctx
     const k8sProvider = <KubernetesProvider>k8sCtx.provider
-    const providerDefaults = k8sProvider.config.devMode?.defaults || {}
+    const providerDefaults = k8sProvider.config.sync?.defaults || {}
 
     for (const [i, s] of enumerate(syncs)) {
       const resourceSpec = s.target || defaultTarget
@@ -505,8 +506,8 @@ export async function startDevModeSyncs({
       const resourceName = getResourceKey(target)
 
       // Validate the target
-      if (!isConfiguredForDevMode(target)) {
-        log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in dev mode, cannot start sync.`))
+      if (!isConfiguredForSyncMode(target)) {
+        log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
         continue
       }
 
@@ -538,7 +539,7 @@ export async function startDevModeSyncs({
       let sourceDescription: string
       let targetDescription: string
 
-      const mode = s.mode || defaultDevModeSyncMode
+      const mode = s.mode || defaultSyncMode
 
       if (isReverseMode(mode)) {
         sourceDescription = remoteDestinationDescription
@@ -575,11 +576,11 @@ export function makeSyncConfig({
 }: {
   localPath: string
   remoteDestination: string
-  providerDefaults: DevModeDefaults
-  actionDefaults: DevModeDefaults
+  providerDefaults: SyncDefaults
+  actionDefaults: SyncDefaults
   opts: DevModeSyncOptions
 }): SyncConfig {
-  const mode = opts.mode || defaultDevModeSyncMode
+  const mode = opts.mode || defaultSyncMode
   const reverse = isReverseMode(mode)
 
   const ignore = [

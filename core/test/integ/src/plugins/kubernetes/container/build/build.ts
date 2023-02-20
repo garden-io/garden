@@ -19,13 +19,13 @@ import { expect } from "chai"
 import { getContainerTestGarden } from "../container"
 import { containerHelpers } from "../../../../../../../src/plugins/container/helpers"
 import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish"
-import { LogEntry } from "../../../../../../../src/logger/log-entry"
+import { Log } from "../../../../../../../src/logger/log-entry"
 import { cloneDeep } from "lodash"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
-  let log: LogEntry
+  let log: Log
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext

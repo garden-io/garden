@@ -108,10 +108,7 @@ export function stringifyJsonLog(entry: JsonLogEntry, opts = { error: false }) {
     return `${linePrefix}[INVALID] ${JSON.stringify(entry)}`
   }
 
-  const sections = entry.allSections || (entry.section ? [entry.section] : [])
-  const sectionStr = sections.map((s) => chalk.cyanBright(s)).join(sectionDivider)
-
-  const line = sectionStr ? `${sectionStr}${sectionDivider}${entry.msg}` : entry.msg
+  const line = entry.section ? `${entry.section}${sectionDivider}${entry.msg}` : entry.msg
 
   const level = chalk.gray(padEnd(`[${entry.level}] `, 10))
 

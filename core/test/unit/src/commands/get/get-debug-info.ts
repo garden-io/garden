@@ -23,7 +23,7 @@ import { readdir, remove, pathExists, readJSON, readFile } from "fs-extra"
 import { ERROR_LOG_FILENAME } from "../../../../../src/constants"
 import { join, relative, basename } from "path"
 import { Garden } from "../../../../../src/garden"
-import { LogEntry } from "../../../../../src/logger/log-entry"
+import { Log } from "../../../../../src/logger/log-entry"
 import { defaultConfigFilename } from "../../../../../src/util/fs"
 import { makeTestGarden } from "../../../../helpers"
 import { getDataDir } from "../../../../helpers"
@@ -44,7 +44,7 @@ async function cleanupTmpDebugFiles(root: string, gardenDirPath: string) {
 
 describe("GetDebugInfoCommand", () => {
   let garden: Garden
-  let log: LogEntry
+  let log: Log
   let gardenDebugTmp: string
 
   before(async () => {

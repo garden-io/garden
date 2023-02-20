@@ -6,19 +6,19 @@
 
 # Code synchronization example project with Gatsby.js
 
-This project shows how you can configure Garden to use dev mode for code synchronization. We'll use [Gatsby.js](https://www.gatsbyjs.org/), a static site generator with built-in live reload support to try out the functionality.
+This project shows how you can configure Garden to perform code synchronization. We'll use [Gatsby.js](https://www.gatsbyjs.org/), a static site generator with built-in live reload support to try out the functionality.
 
 ## Usage
 
-Use the `dev` command:
+Use the `deploy` command with `--sync` enabled:
 
 ```sh
-garden dev
+garden deploy --sync
 ```
 
 This tells Garden to reload the files into the container, without re-building and re-deploying.
 
-Now, open `http://gatsby-dev-mode.local.app.garden/` in your browser, and then try changing some of the website code. For example, open [src/pages/index.js](src/pages/index.js) and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
+Now, open `http://gatsby-sync.local.app.garden/` in your browser, and then try changing some of the website code. For example, open [src/pages/index.js](src/pages/index.js) and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
 
 ## Notes
 

@@ -16,10 +16,10 @@ import { ArtifactSpec } from "../../config/validation"
 import { GardenModule } from "../../types/module"
 import { baseServiceSpecSchema, CommonServiceSpec } from "../../config/service"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
-import { ModuleSpec, BaseBuildSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
+import { ModuleSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
 import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
 import { dedent } from "../../util/string"
-import { artifactsSchema, ExecBuildConfig, ExecDevModeSpec } from "./config"
+import { artifactsSchema, ExecDevModeSpec } from "./config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { omit } from "lodash"
@@ -86,7 +86,7 @@ export interface ExecServiceSpec extends CommonServiceSpec {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  devMode?: ExecDevModeSpec
+  syncMode?: ExecDevModeSpec
   timeout?: number
   env: { [key: string]: string }
 }
@@ -135,13 +135,13 @@ export const execServiceSchema = () =>
         The maximum duration (in seconds) to wait for a local script to exit.
       `),
       env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
-      devMode: joi.object().keys({
+      syncMode: joi.object().keys({
         command: joi
           .sparseArray()
           .items(joi.string().allow(""))
           .description(
             dedent`
-              The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+              The command to run to deploy the service in sync mode. When in sync mode, Garden assumes that
               the command starts a persistent process and does not wait for it return. The logs from the process
               can be retrieved via the \`garden logs\` command as usual.
 
@@ -156,7 +156,7 @@ export const execServiceSchema = () =>
           .items(joi.string().allow(""))
           .description(
             dedent`
-              Optionally set a command to check the status of the service in dev mode. Garden will run the status command
+              Optionally set a command to check the status of the service in sync mode. Garden will run the status command
               at an interval until it returns a zero exit code or times out.
 
               If no \`statusCommand\` is set, Garden will consider the service ready as soon as it has started the process.
@@ -170,6 +170,7 @@ export const execServiceSchema = () =>
         `),
       }),
     })
+    .rename("devMode", "syncMode")
     .description("A service to deploy using shell commands.")
 
 export interface ExecTestSpec extends BaseTestSpec {

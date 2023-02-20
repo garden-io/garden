@@ -13,7 +13,7 @@ import { isEmpty } from "lodash"
 import { buildSyncVolumeName, dockerAuthSecretKey } from "../../constants"
 import { KubeApi } from "../../api"
 import { KubernetesDeployment } from "../../types"
-import { LogEntry } from "../../../../logger/log-entry"
+import { Log } from "../../../../logger/log-entry"
 import { waitForResources, compareDeployedResources } from "../../status/status"
 import { KubernetesProvider, KubernetesPluginContext, ClusterBuildkitCacheConfig } from "../../config"
 import { PluginContext } from "../../../../plugin-context"
@@ -101,11 +101,11 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     deploymentName: buildkitDeploymentName,
   })
 
-  log.setState(`Building image ${localId}...`)
+  log.info(`Building image ${localId}...`)
 
   const logEventContext = {
     origin: "buildkit",
-    log: log.placeholder({ level: LogLevel.verbose }),
+    log: log.makeNewLogContext({ level: LogLevel.verbose }),
   }
 
   const outputStream = split2()
@@ -180,12 +180,12 @@ export async function ensureBuildkit({
 }: {
   ctx: PluginContext
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   api: KubeApi
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.placeholder()
+    const deployLog = log.makeNewLogContext({})
 
     // Make sure auth secret is in place
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
@@ -210,7 +210,7 @@ export async function ensureBuildkit({
     }
 
     // Deploy the buildkit daemon
-    deployLog.setState(
+    deployLog.info(
       chalk.gray(`-> Deploying ${buildkitDeploymentName} daemon in ${namespace} namespace (was ${status.state})`)
     )
 
@@ -226,7 +226,7 @@ export async function ensureBuildkit({
       timeoutSec: 600,
     })
 
-    deployLog.setState({ append: true, msg: "Done!" })
+    deployLog.info("Done!")
 
     return { authSecret, updated: true }
   })

@@ -18,7 +18,7 @@ import {
   getValueArgs,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { Log } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
 import { dedent, deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
@@ -70,7 +70,7 @@ export async function buildHelmModules(garden: Garden | TestGarden, graph: Confi
         action,
         force: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
   )
@@ -89,7 +89,7 @@ describe("Helm common functions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
-  let log: LogEntry
+  let log: Log
 
   before(async () => {
     garden = await getHelmTestGarden()
@@ -115,7 +115,7 @@ describe("Helm common functions", () => {
       const templates = await renderTemplates({
         ctx,
         action: await garden.resolveAction<HelmDeployAction>({ action: deployAction, log, graph }),
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -240,7 +240,7 @@ ${expectedIngressOutput}
       const templates = await renderTemplates({
         ctx,
         action: await garden.resolveAction({ action, log, graph }),
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -261,7 +261,7 @@ ${expectedIngressOutput}
       const resources = await getChartResources({
         ctx,
         action: await garden.resolveAction<HelmDeployAction>({ action, log, graph }),
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -429,7 +429,7 @@ ${expectedIngressOutput}
       const resources = await getChartResources({
         ctx,
         action: await garden.resolveAction({ action, log, graph }),
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -448,7 +448,7 @@ ${expectedIngressOutput}
         await getChartResources({
           ctx,
           action: await garden.resolveAction({ action, log, graph }),
-          devMode: false,
+          syncMode: false,
           localMode: false,
           log,
         })
@@ -460,7 +460,7 @@ ${expectedIngressOutput}
       const resources = await getChartResources({
         ctx,
         action: await garden.resolveAction({ action, log, graph }),
-        devMode: false,
+        syncMode: false,
         localMode: false,
         log,
       })
@@ -565,27 +565,27 @@ ${expectedIngressOutput}
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
       ])
     })
 
-    it("should add a --set flag if devMode=true", async () => {
+    it("should add a --set flag if syncMode=true", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, devMode: true, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, syncMode: true, localMode: false, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
-        "\\.garden.devMode=true",
+        "\\.garden.syncMode=true",
       ])
     })
 
     it("should add a --set flag if localMode=true", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, devMode: false, localMode: true, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, syncMode: false, localMode: true, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -593,10 +593,10 @@ ${expectedIngressOutput}
       ])
     })
 
-    it("localMode should always take precedence over devMode when add a --set flag", async () => {
+    it("localMode should always take precedence over syncMode when add a --set flag", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, devMode: true, localMode: true, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, syncMode: true, localMode: true, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -608,7 +608,7 @@ ${expectedIngressOutput}
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = ["foo.yaml", "bar.yaml"]
 
-      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         resolve(action.getBuildPath(), "foo.yaml"),
         "--values",
@@ -622,7 +622,7 @@ ${expectedIngressOutput}
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = ["../relative.yaml"]
 
-      expect(await getValueArgs({ action, devMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         resolve(action.getBuildPath(), "../relative.yaml"),
         "--values",

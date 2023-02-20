@@ -9,7 +9,7 @@
 import { isEqual } from "lodash"
 import { normalize, parse, sep } from "path"
 import { InternalError, NotFoundError, ParameterError } from "./exceptions"
-import { LogEntry } from "./logger/log-entry"
+import { Log } from "./logger/log-entry"
 
 export type CacheKey = string[]
 export type CacheContext = string[]
@@ -76,7 +76,7 @@ export class TreeCache {
     this.contextTree = makeContextNode([])
   }
 
-  set(log: LogEntry, key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
+  set(log: Log, key: CacheKey, value: CacheValue, ...contexts: CacheContext[]) {
     if (key.length === 0) {
       throw new ParameterError(`Cache key must have at least one part`, {
         key,
@@ -133,7 +133,7 @@ export class TreeCache {
     }
   }
 
-  get(log: LogEntry, key: CacheKey): CacheValue | undefined {
+  get(log: Log, key: CacheKey): CacheValue | undefined {
     const stringKey = stringifyKey(key)
     const entry = this.cache.get(stringKey)
 
@@ -146,7 +146,7 @@ export class TreeCache {
     }
   }
 
-  getOrThrow(log: LogEntry, key: CacheKey): CacheValue {
+  getOrThrow(log: Log, key: CacheKey): CacheValue {
     const value = this.get(log, key)
     if (value === undefined) {
       throw new NotFoundError(`Could not find key ${key} in cache`, { key })
@@ -175,7 +175,7 @@ export class TreeCache {
   /**
    * Delete a specific entry from the cache.
    */
-  delete(log: LogEntry, key: CacheKey) {
+  delete(log: Log, key: CacheKey) {
     log.silly(`TreeCache: Deleting key ${stringifyKey(key)}`)
 
     const stringKey = stringifyKey(key)
@@ -197,7 +197,7 @@ export class TreeCache {
   /**
    * Invalidates all cache entries whose context equals `context`
    */
-  invalidate(log: LogEntry, context: CacheContext) {
+  invalidate(log: Log, context: CacheContext) {
     log.silly(`TreeCache: Invalidating all caches for context ${stringifyKey(context)}`)
 
     const node = this.getNode(context)
@@ -212,7 +212,7 @@ export class TreeCache {
    * Invalidates all cache entries where the given `context` starts with the entries' context
    * (i.e. the whole path from the tree root down to the context leaf)
    */
-  invalidateUp(log: LogEntry, context: CacheContext) {
+  invalidateUp(log: Log, context: CacheContext) {
     log.silly(`TreeCache: Invalidating caches up from context ${stringifyKey(context)}`)
 
     let node = this.contextTree
@@ -230,7 +230,7 @@ export class TreeCache {
    * Invalidates all cache entries whose context _starts_ with the given `context`
    * (i.e. the context node and the whole tree below it)
    */
-  invalidateDown(log: LogEntry, context: CacheContext) {
+  invalidateDown(log: Log, context: CacheContext) {
     log.silly(`TreeCache: Invalidating caches down from context ${stringifyKey(context)}`)
 
     const node = this.getNode(context)

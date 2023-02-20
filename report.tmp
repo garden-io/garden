@@ -1,0 +1,200 @@
+[96m[39m
+[96mRunning script [97mtest[39m[96m in package(s) [97m@garden-io/cli, @garden-io/core, @garden-io/e2e, @garden-io/sdk[39m[96m[39m
+[90m┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[39m
+[32m[1mcore   [22m[39m[2K[1G[2m$ mocha[22m                                                                                                         [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[0m[0m                                                                                                                [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[0m  RunWorkflowCommand[0m                                                                                            [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should run a workflow[0m[31m (822ms)[0m                                                                             [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mHeader entries:                                                                                                 [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[                                                                                                               [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  '\x1B[36m\x1B[1mRunning step \x1B[37m1\x1B[39m\x1B[36m/\x1B[37m2\x1B[39m\x1B[36m\x1B[22m\x1B[39m\n' +         [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    '\x1B[37m════════════════════════════════════════════════════════════════════════════════\x1B[39m',         [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  '\x1B[36m\x1B[1mRunning step \x1B[37m2\x1B[39m\x1B[36m/\x1B[37m2\x1B[39m\x1B[36m\x1B[22m\x1B[39m\n' +         [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m    '\x1B[37m════════════════════════════════════════════════════════════════════════════════\x1B[39m'          [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m]                                                                                                               [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should add workflowStep metadata to log entries provided to steps[0m[31m (382ms)[0m                                 [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should emit workflow events[0m[31m (346ms)[0m                                                                       [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should collect log outputs from a command step[0m                                                            [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should abort subsequent steps if a command returns an error[0m[31m (187ms)[0m                                       [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should write a file with string data ahead of the run, before resolving providers[0m[31m (88ms)[0m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should write a file with data from a secret[0m                                                               [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should throw if a file references a secret that doesn't exist[0m                                             [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should throw if attempting to write a file with a directory path that contains an existing file[0m           [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should throw if attempting to write a file to an existing directory path[0m                                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should run a script step in the project root[0m                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mfoo                                                                                                             [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should run a custom command in a command step[0m                                                             [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should support global parameters for custom commands[0m[31m (401ms)[0m                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should include env vars from the workflow config, if provided[0m                                             [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should override env vars from the workflow config with script step env vars, if provided[0m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should apply configured envVars when running script steps[0m                                                 [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should skip disabled steps[0m                                                                                [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should collect log outputs, including stderr, from a script step[0m                                          [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should throw if a script step fails[0m                                                                       [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should throw if a script step fails and add log to output with --output flag set[0m                          [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should return script logs with the --output flag set[0m                                                      [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should include outputs from steps in the command output[0m[31m (160ms)[0m                                           [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should use explicit names for steps if specified[0m                                                          [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should resolve references to previous steps when running a command step[0m[33m (38ms)[0m                            [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should resolve references to previous steps when running a script step[0m                                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m  [32m  [32m✔[39m[0m[90m should only resolve the workflow that's being run[0m[33m (41ms)[0m                                                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[0m    shouldBeDropped[0m                                                                                             [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[0m      step has no when modifier[0m                                                                                 [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m      [32m  [32m✔[39m[0m[90m should include the step if no error has been thrown by previous steps[0m                                 [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m      [32m  [32m✔[39m[0m[90m should drop the step when errors have been thrown by previous steps[0m                                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[0m      step has when = always[0m                                                                                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m      [32m  [32m✔[39m[0m[90m should include the step even when errors have been thrown by previous steps[0m                           [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[0m      step has when = never[0m                                                                                     [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m      [32m  [32m✔[39m[0m[90m should drop the step even if no error has been thrown by previous steps[0m                               [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[0m      step has when = onError[0m                                                                                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m      [32m  [32m✔[39m[0m[90m should be dropped if no previous steps have failed[0m                                                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m      [32m  [32m✔[39m[0m[90m should be included if a step in the current sequence failed[0m                                           [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries 0                                                                                              [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39mN logger entries after 0                                                                                        [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m      [32m  [32m✔[39m[0m[90m should be dropped if a step in a preceding sequence failed[0m                                            [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [37m[1mProfiling data:[22m[39m                                                                                                [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m ─────────────────────────────────────────────────────────────────────────────────────────                      [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [37m[4mFunction/method[24m[39m                               [37m[4m# Invocations[24m[39m  [37m[4mTotal ms[24m[39m    [37m[4mAvg. ms[24m[39m    [37m[4mFirst ms[24m[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGraphSolver[39m#[92mprocessNode[39m                       401            1512.66[90m ms[39m  3.77[90m ms[39m    0.91[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetConfigGraph[39m                         22             1130.88[90m ms[39m  51.40[90m ms[39m   288.20[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGitHandler[39m#[92mgetFiles[39m                           18             858.83[90m ms[39m   47.71[90m ms[39m   106.11[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mActionRouter[39m#[92mconfigureAction[39m                  317            783.24[90m ms[39m   2.47[90m ms[39m    5.54[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mprocessTasks[39m                           27             689.59[90m ms[39m   25.54[90m ms[39m   17.20[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGraphSolver[39m#[92msolve[39m                             27             689.51[90m ms[39m   25.54[90m ms[39m   17.19[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mModuleResolver[39m#[92mresolveAll[39m                     22             569.47[90m ms[39m   25.89[90m ms[39m   150.49[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mModuleResolver[39m#[92mresolveModule[39m                  63             483.37[90m ms[39m   7.67[90m ms[39m    43.65[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mresolveModuleVersion[39m                   63             458.09[90m ms[39m   7.27[90m ms[39m    42.52[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGitHandler[39m#[92mgetRepoRoot[39m                        18             435.95[90m ms[39m   24.22[90m ms[39m   66.88[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mscanAndAddConfigs[39m                      29             426.64[90m ms[39m   14.71[90m ms[39m   126.45[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mResolveActionTask[39m#[92mprocess[39m                     119            398.78[90m ms[39m   3.35[90m ms[39m    3.86[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGardenCli[39m#[92mrun[39m                                 1              396.87[90m ms[39m   396.87[90m ms[39m  396.87[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mscanForConfigs[39m                         5              384.97[90m ms[39m   76.99[90m ms[39m   106.22[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetWorkflowConfig[39m                      30             357.66[90m ms[39m   11.92[90m ms[39m   128.82[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetRawWorkflowConfig[39m                   30             347.61[90m ms[39m   11.59[90m ms[39m   126.67[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetRawWorkflowConfigs[39m                  32             347.47[90m ms[39m   10.86[90m ms[39m   126.66[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGardenCli[39m#[92mrunCommand[39m                          1              346.99[90m ms[39m   346.99[90m ms[39m  346.99[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mresolveProviders[39m                       613            342.22[90m ms[39m   0.56[90m ms[39m    111.80[90m ms[39m                  [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGitHandler[39m#[92mensureSafeDirGitRepo[39m               34             315.66[90m ms[39m   9.28[90m ms[39m    50.26[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mTestTask[39m#[92mprocess[39m                              15             302.59[90m ms[39m   20.17[90m ms[39m   95.89[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mBuildTask[39m#[92mprocess[39m                             19             275.90[90m ms[39m   14.52[90m ms[39m   29.57[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [92m_makeTestGarden[39m                               5              219.84[90m ms[39m   43.97[90m ms[39m   87.66[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetPluginContext[39m                       789            219.02[90m ms[39m   0.28[90m ms[39m    1.22[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGraphSolver[39m#[92mloop[39m                              633            190.10[90m ms[39m   0.30[90m ms[39m    0.97[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [92m_resolveGardenParams[39m                          6              141.25[90m ms[39m   23.54[90m ms[39m   34.11[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [92m_makeTestGardenA[39m                              3              139.41[90m ms[39m   46.47[90m ms[39m   87.68[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGitHandler[39m#[92mgetModifiedFiles[39m                   18             136.77[90m ms[39m   7.60[90m ms[39m    10.11[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGitHandler[39m#[92mgetPathInfo[39m                        6              124.00[90m ms[39m   20.67[90m ms[39m   25.07[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mdumpConfig[39m                             2              121.15[90m ms[39m   60.57[90m ms[39m   60.39[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mResolveProviderTask[39m#[92mprocess[39m                   23             120.64[90m ms[39m   5.25[90m ms[39m    9.28[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetResolvedConfigGraph[39m                 2              120.52[90m ms[39m   60.26[90m ms[39m   60.06[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mResolveActionTask[39m#[92mgetStatus[39m                   119            118.41[90m ms[39m   1.00[90m ms[39m    0.42[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGraphSolver[39m#[92mcompleteTask[39m                      401            103.42[90m ms[39m   0.26[90m ms[39m    0.24[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mresolveActions[39m                         2              89.29[90m ms[39m    44.65[90m ms[39m   44.37[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mBaseTask[39m#[92mgetProcessDependencies[39m               8718           84.26[90m ms[39m    0.01[90m ms[39m    0.09[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetRawModuleConfigs[39m                    23             80.06[90m ms[39m    3.48[90m ms[39m    0.02[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGraphSolver[39m#[92mgetPendingGraph[39m                   427            65.44[90m ms[39m    0.15[90m ms[39m    0.09[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mResolveActionTask[39m#[92mresolveProcessDependencies[39m  6996           63.99[90m ms[39m    0.01[90m ms[39m    0.05[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mModuleResolver[39m#[92mresolveModuleConfig[39m            63             63.65[90m ms[39m    1.01[90m ms[39m    3.22[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mgetProjectSources[39m                      794            52.31[90m ms[39m    0.07[90m ms[39m    0.28[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mModuleRouter[39m#[92mconvert[39m                          63             51.50[90m ms[39m    0.82[90m ms[39m    1.75[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mResolveProviderTask[39m#[92mensurePrepared[39m            23             48.92[90m ms[39m    2.13[90m ms[39m    2.26[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mBuildStaging[39m#[92msyncFromSrc[39m                      19             43.50[90m ms[39m    2.29[90m ms[39m    12.47[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mActionRouter[39m#[92mgetActionOutputs[39m                 118            42.80[90m ms[39m    0.36[90m ms[39m    0.46[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mBuildStaging[39m#[92msync[39m                             19             42.76[90m ms[39m    2.25[90m ms[39m    12.36[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGraphSolver[39m#[92mevaluateRequests[39m                  427            38.60[90m ms[39m    0.09[90m ms[39m    0.26[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [92mconvertModules[39m                                22             35.32[90m ms[39m    1.61[90m ms[39m    3.37[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mResolveActionTask[39m#[92mvalidateSpec[39m                119            31.51[90m ms[39m    0.26[90m ms[39m    0.26[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mloadResources[39m                          20             31.32[90m ms[39m    1.57[90m ms[39m    1.30[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mResolveProviderTask[39m#[92msetCachedStatus[39m           23             30.96[90m ms[39m    1.35[90m ms[39m    1.27[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGitHandler[39m#[92mhashObject[39m                         64             29.36[90m ms[39m    0.46[90m ms[39m    0.32[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mActionRouter[39m#[92mdeleteDeploys[39m                    1              22.38[90m ms[39m    22.38[90m ms[39m   22.38[90m ms[39m                   [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mBuildStaging[39m#[92msyncDependencyProducts[39m           19             19.69[90m ms[39m    1.04[90m ms[39m    6.35[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mTestTask[39m#[92mgetStatus[39m                            15             17.94[90m ms[39m    1.20[90m ms[39m    1.27[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGraphSolver[39m#[92mgetNode[39m                           23627          17.47[90m ms[39m    0.00[90m ms[39m    0.07[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mBaseTask[39m#[92mgetKey[39m                               54006          16.61[90m ms[39m    0.00[90m ms[39m    0.01[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mRunTask[39m#[92mprocess[39m                               7              14.82[90m ms[39m    2.12[90m ms[39m    2.79[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mGarden[39m#[92mresolveProvider[39m                        743            13.91[90m ms[39m    0.02[90m ms[39m    0.06[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [36mDeployTask[39m#[92mgetStatus[39m                          18             13.53[90m ms[39m    0.75[90m ms[39m    1.35[90m ms[39m                    [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m [90m...[39m                                                                                                            [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m ─────────────────────────────────────────────────────────────────────────────────────────                      [32m[1m  ┄┄[22m[39m
+[32m[1mcore   [22m[39m[92m [0m[32m 33 passing[0m[90m (3s)[0m                                                                                               [32m[1m  ┄┄[22m[39m
+[90m┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[39m
+[31m[1mcli ┄  [22m[39m[2K[1G[2m$ mocha[22m                                                                                                         [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m[0m[0m                                                                                                                [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m[0m  build-pkg[0m                                                                                                     [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m[0m    tarball-filenames[0m                                                                                           [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m    [32m  [32m✔[39m[0m[90m ensure filename format for tar packages[0m                                                                 [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m[0m    zip-filenames[0m                                                                                               [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m    [32m  [32m✔[39m[0m[90m ensure filename format for alpine package[0m                                                               [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m[0m  runCli[0m                                                                                                        [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m  [32m  [32m✔[39m[0m[90m should add bundled plugins[0m[31m (651ms)[0m                                                                        [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m  [32m  [32m✔[39m[0m[90m should register a GardenProcess entry and pass to cli.run()[0m[31m (149ms)[0m                                       [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m  [32m  [32m✔[39m[0m[90m should clean up the GardenProcess entry on exit[0m[31m (149ms)[0m                                                   [31m[1m  ┄┄[22m[39m
+[31m[1mcli ┄  [22m[39m[92m [0m[32m 5 passing[0m[90m (952ms)[0m                                                                                             [31m[1m  ┄┄[22m[39m
+[90m┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄[39m
+[92mDone![39m
+[92m[39m

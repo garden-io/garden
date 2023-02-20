@@ -10,7 +10,7 @@ import { KubeApi } from "./api"
 import { ProviderSecretRef } from "./config"
 import { ConfigurationError } from "../../exceptions"
 import { pick } from "lodash"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 
 /**
  * Read the specified secret ref from the cluster.
@@ -36,7 +36,7 @@ export async function readSecret(api: KubeApi, secretRef: ProviderSecretRef) {
 /**
  * Make sure the specified secret exists in the target namespace, copying it if necessary.
  */
-export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string, log: LogEntry) {
+export async function ensureSecret(api: KubeApi, secretRef: ProviderSecretRef, targetNamespace: string, log: Log) {
   const secret = await readSecret(api, secretRef)
 
   if (secretRef.namespace === targetNamespace) {
@@ -65,7 +65,7 @@ export async function prepareSecrets({
   api: KubeApi
   namespace: string
   secrets: Array<ProviderSecretRef>
-  log: LogEntry
+  log: Log
 }) {
   await Promise.all(secrets.map((s) => ensureSecret(api, s, namespace, log)))
   return secrets.map((s) => ({ name: s.name }))

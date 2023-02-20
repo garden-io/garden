@@ -11,7 +11,6 @@ import Bluebird from "bluebird"
 import {
   ConfigGraph,
   Garden,
-  LogEntry,
   PluginCommand,
   PluginCommandParams,
   PluginContext,
@@ -40,6 +39,7 @@ import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
 import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
 import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
 import { deletePulumiDeploy } from "./handlers"
+import { Log } from "@garden-io/core/src/logger/log-entry"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -48,7 +48,7 @@ type PulumiRunFn = (params: PulumiParams) => Promise<any>
 interface PulumiCommandSpec {
   name: string
   commandDescription: string
-  beforeFn?: ({ ctx, log }: { ctx: PluginContext; log: LogEntry }) => Promise<any>
+  beforeFn?: ({ ctx, log }: { ctx: PluginContext; log: Log }) => Promise<any>
   runFn: PulumiRunFn
   afterFn?: ({
     ctx,
@@ -57,7 +57,7 @@ interface PulumiCommandSpec {
     pulumiTasks,
   }: {
     ctx: PluginContext
-    log: LogEntry
+    log: Log
     results: GraphResults
     pulumiTasks: PulumiPluginCommandTask[]
   }) => Promise<any>
@@ -179,7 +179,7 @@ const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garde
 interface PulumiPluginCommandTaskParams {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
   action: PulumiDeploy
   commandName: string
   commandDescription: string
@@ -216,7 +216,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       action,
       graph,
 
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
     this.commandName = commandName
@@ -269,11 +269,11 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
-    const log = this.log.info({
-      section: this.action.key(),
-      msg: chalk.gray(`Running ${chalk.white(this.commandDescription)}`),
-      status: "active",
-    })
+    const log = this.log
+      .makeNewLogContext({
+        section: this.action.key(),
+      })
+      .info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
 
     const params = { ...this.pulumiParams, action: this.getResolvedAction(this.action, dependencyResults) }
 
@@ -291,9 +291,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       })
       return result
     } catch (err) {
-      log.setError({
-        msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
-      })
+      log.error(chalk.red(`Failed! (took ${log.getDuration(1)} sec)`))
       throw err
     }
   }
@@ -309,7 +307,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
     "skip-dependencies": new BooleanParameter({
       help: deline`Run ${pulumiCommand} for the specified services, but not for any pulumi services that they depend on
       (unless they're specified too).`,
-      alias: "nodeps",
+      aliases: ["nodeps"],
     }),
   }
 

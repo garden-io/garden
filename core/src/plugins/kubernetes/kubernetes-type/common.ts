@@ -16,7 +16,7 @@ import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
 import { KubeApi } from "../api"
 import { gardenAnnotationKey } from "../../../util/string"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
 import { ConfigurationError, PluginError } from "../../../exceptions"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
@@ -44,7 +44,7 @@ export async function getManifests({
 }: {
   ctx: PluginContext
   api: KubeApi
-  log: LogEntry
+  log: Log
   action: Resolved<KubernetesDeployAction>
   defaultNamespace: string
   readFromSrcDir?: boolean
@@ -100,7 +100,7 @@ const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
 export async function readManifests(
   ctx: PluginContext,
   action: Resolved<KubernetesDeployAction>,
-  log: LogEntry,
+  log: Log,
   readFromSrcDir = false
 ) {
   const manifestPath = readFromSrcDir ? action.basePath() : action.getBuildPath()
@@ -184,7 +184,7 @@ export async function runOrTest(
   params: CommonRunParams & {
     ctx: KubernetesPluginContext
     action: Resolved<KubernetesRunAction | KubernetesTestAction>
-    log: LogEntry
+    log: Log
     namespace: string
   }
 ) {

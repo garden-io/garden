@@ -8,7 +8,7 @@
 
 import { join, relative } from "path"
 import { readFile, writeFile } from "fs-extra"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Garden } from "../garden"
 import chalk from "chalk"
 
@@ -36,7 +36,7 @@ export async function getArtifactFileList({
 }: {
   artifactsPath: string
   key: string
-  log: LogEntry
+  log: Log
 }) {
   const metadataPath = join(artifactsPath, `.metadata.${key}.json`)
   let files: string[] = []
@@ -66,7 +66,7 @@ export async function copyArtifacts({
   key,
 }: {
   garden: Garden
-  log: LogEntry
+  log: Log
   artifactsPath: string
   key: string
 }) {

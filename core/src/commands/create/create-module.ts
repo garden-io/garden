@@ -25,10 +25,9 @@ import { flatten, keyBy } from "lodash"
 import { fixedPlugins } from "../../config/project"
 import { deline, wordWrap, truncate } from "../../util/string"
 import { joi } from "../../config/common"
-import { LoggerType } from "../../logger/logger"
 import Bluebird from "bluebird"
 import { ModuleTypeMap } from "../../types/module"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { getProviderUrl, getModuleTypeUrl } from "../../docs/common"
 import { PathParameter, StringParameter, BooleanParameter, StringOption } from "../../cli/params"
 import { userPrompt } from "../../util/util"
@@ -44,7 +43,7 @@ const createModuleOpts = {
     defaultValue: defaultConfigFilename,
   }),
   interactive: new BooleanParameter({
-    alias: "i",
+    aliases: ["i"],
     help: "Set to false to disable interactive prompts.",
     defaultValue: true,
   }),
@@ -91,10 +90,6 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   arguments = createModuleArgs
   options = createModuleOpts
 
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
-
   printHeader({ headerLog }) {
     printHeader(headerLog, "Create new module", "pencil2")
   }
@@ -127,8 +122,6 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     const allModuleTypes = getModuleTypes(getSupportedPlugins().map((p) => p.callback()))
 
     if (opts.interactive && (!opts.name || !opts.type)) {
-      log.root.stop()
-
       if (!opts.type) {
         const choices = await getModuleTypeSuggestions(log, allModuleTypes, configDir, name)
 
@@ -276,7 +269,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 }
 
 export async function getModuleTypeSuggestions(
-  log: LogEntry,
+  log: Log,
   moduleTypes: ModuleTypeMap,
   path: string,
   defaultName: string

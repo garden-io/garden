@@ -22,7 +22,7 @@ import { PodRunner } from "../../run"
 import { PluginContext } from "../../../../plugin-context"
 import { hashString, sleep } from "../../../../util/util"
 import { InternalError, RuntimeError } from "../../../../exceptions"
-import { LogEntry } from "../../../../logger/log-entry"
+import { Log } from "../../../../logger/log-entry"
 import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
@@ -67,7 +67,7 @@ const deployLock = new AsyncLock()
 
 interface SyncToSharedBuildSyncParams {
   ctx: KubernetesPluginContext
-  log: LogEntry
+  log: Log
   api: KubeApi
   action: ContainerBuildAction
   namespace: string
@@ -151,7 +151,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     log.debug(`Sync connection terminated`)
   }
 
-  log.setState("File sync to cluster complete")
+  log.info("File sync to cluster complete")
 
   return { contextRelPath, contextPath, dataPath }
 }
@@ -172,7 +172,7 @@ export async function skopeoBuildStatus({
   namespace: string
   deploymentName: string
   containerName: string
-  log: LogEntry
+  log: Log
   api: KubeApi
   ctx: PluginContext
   provider: KubernetesProvider
@@ -286,12 +286,12 @@ export async function ensureUtilDeployment({
 }: {
   ctx: PluginContext
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   api: KubeApi
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.placeholder()
+    const deployLog = log.makeNewLogContext({})
 
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
       provider,
@@ -321,7 +321,7 @@ export async function ensureUtilDeployment({
     }
 
     // Deploy the service
-    deployLog.setState(
+    deployLog.info(
       chalk.gray(`-> Deploying ${utilDeploymentName} service in ${namespace} namespace (was ${status.state})`)
     )
 
@@ -338,7 +338,7 @@ export async function ensureUtilDeployment({
       timeoutSec: 600,
     })
 
-    deployLog.setState({ append: true, msg: "Done!" })
+    deployLog.info("Done!")
 
     return { authSecret, updated: true }
   })
@@ -366,7 +366,7 @@ export async function ensureBuilderSecret({
   namespace,
 }: {
   provider: KubernetesProvider
-  log: LogEntry
+  log: Log
   api: KubeApi
   namespace: string
 }) {
@@ -383,7 +383,7 @@ export async function ensureBuilderSecret({
   const existingSecret = await api.readOrNull({ log, namespace, manifest: authSecret })
 
   if (!existingSecret || authSecret.data?.[dockerAuthSecretKey] !== existingSecret.data?.[dockerAuthSecretKey]) {
-    log.setState(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
+    log.info(chalk.gray(`-> Updating Docker auth secret in namespace ${namespace}`))
     await api.upsert({ kind: "Secret", namespace, log, obj: authSecret })
     updated = true
   }

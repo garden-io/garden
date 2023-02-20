@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry, LogEntryMetadata } from "../log-entry"
+import { LogEntryMetadata, LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { Writer } from "./base"
 import { formatForJson } from "../renderers"
@@ -19,7 +19,6 @@ export interface JsonLogEntry {
   section?: string
   metadata?: LogEntryMetadata
   level: string
-  allSections?: string[]
 }
 
 export class JsonTerminalWriter extends Writer {
@@ -35,12 +34,10 @@ export class JsonTerminalWriter extends Writer {
     return null
   }
 
-  onGraphChange(entry: LogEntry, logger: Logger) {
+  write(entry: LogEntry, logger: Logger) {
     const out = this.render(entry, logger)
     if (out) {
       process.stdout.write(out + "\n")
     }
   }
-
-  stop() {}
 }

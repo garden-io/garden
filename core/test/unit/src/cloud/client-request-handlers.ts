@@ -8,14 +8,14 @@
 
 import { expect } from "chai"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { ClientRequestHandlerCommonParams, clientRequestHandlers } from "../../../../src/server/client-router"
 import { makeTestGardenA, TestGarden } from "../../../helpers"
 
 describe("clientRequestHandlers", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: LogEntry
+  let log: Log
   let params: ClientRequestHandlerCommonParams
 
   before(async () => {
@@ -55,26 +55,26 @@ describe("clientRequestHandlers", () => {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          devMode: false,
+          syncMode: false,
           hotReload: false,
 
           localMode: false,
           skipDependencies: true,
         },
       })
-      expect(deployTask.devModeDeployNames).to.eql([])
+      expect(deployTask.syncModeDeployNames).to.eql([])
       expect(deployTask.localModeDeployNames).to.eql([])
       expect(deployTask.action.name).to.eql("service-a")
     })
 
-    it("should return a dev-mode deploy task for the requested service", async () => {
+    it("should return a sync-mode deploy task for the requested service", async () => {
       const deployTask = await clientRequestHandlers.deploy({
         ...params,
         request: {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          devMode: true,
+          syncMode: true,
           hotReload: false,
           localMode: false,
           skipDependencies: true,
@@ -92,7 +92,7 @@ describe("clientRequestHandlers", () => {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          devMode: false,
+          syncMode: false,
           localMode: true,
           hotReload: false,
           skipDependencies: true,

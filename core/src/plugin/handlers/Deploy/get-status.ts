@@ -16,7 +16,7 @@ import type { ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } fro
 import { actionStatusSchema } from "../../../actions/base"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
-  devMode: boolean
+  syncMode: boolean
   localMode: boolean
 }
 
@@ -50,7 +50,7 @@ export class GetDeployStatus<T extends DeployAction = DeployAction> extends Acti
 
   paramsSchema = () =>
     actionParamsSchema().keys({
-      devMode: joi.boolean().default(false).description("Whether the deployment should be configured in dev mode."),
+      syncMode: joi.boolean().default(false).description("Whether the deployment should be configured in sync mode."),
       localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
     })
 

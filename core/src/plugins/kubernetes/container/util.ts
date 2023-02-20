@@ -9,7 +9,7 @@
 import { resolve } from "url"
 import { getPortForward } from "../port-forward"
 import { CLUSTER_REGISTRY_DEPLOYMENT_NAME, CLUSTER_REGISTRY_PORT } from "../constants"
-import { LogEntry } from "../../../logger/log-entry"
+import { Log } from "../../../logger/log-entry"
 import {
   KubernetesResourceConfig,
   KubernetesPluginContext,
@@ -51,7 +51,7 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, pro
   }
 }
 
-export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry, path: string, opts?: GotTextOptions) {
+export async function queryRegistry(ctx: KubernetesPluginContext, log: Log, path: string, opts?: GotTextOptions) {
   const registryFwd = await getRegistryPortForward(ctx, log)
   const baseUrl = `http://localhost:${registryFwd.localPort}/v2/`
   const url = resolve(baseUrl, path)
@@ -59,7 +59,7 @@ export async function queryRegistry(ctx: KubernetesPluginContext, log: LogEntry,
   return got(url, opts)
 }
 
-export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: LogEntry) {
+export async function getRegistryPortForward(ctx: KubernetesPluginContext, log: Log) {
   const systemNamespace = await getSystemNamespace(ctx, ctx.provider, log)
 
   return getPortForward({

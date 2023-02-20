@@ -58,7 +58,7 @@ describe("kubernetes", () => {
         graph,
         log: garden.log,
         action,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 
@@ -104,7 +104,7 @@ describe("kubernetes", () => {
           graph,
           log: garden.log,
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
 
           localModeDeployNames: [],
         })
@@ -130,7 +130,7 @@ describe("kubernetes", () => {
             action: resolvedDeployAction,
             namespace,
             imageId: getDeployedImageId(resolvedDeployAction, provider),
-            enableDevMode: false,
+            enableSyncMode: false,
             enableLocalMode: false,
             production: ctx.production,
             log,
@@ -177,7 +177,7 @@ describe("kubernetes", () => {
           graph,
           log: garden.log,
           action,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
         })
         const deleteTask = new DeleteDeployTask({
@@ -185,7 +185,7 @@ describe("kubernetes", () => {
           graph,
           action,
           log: garden.log,
-          devModeDeployNames: [],
+          syncModeDeployNames: [],
           localModeDeployNames: [],
 
           force: false,
@@ -211,7 +211,7 @@ describe("kubernetes", () => {
             action: resolvedDeployAction,
             namespace,
             imageId: getDeployedImageId(resolvedDeployAction, provider),
-            enableDevMode: false,
+            enableSyncMode: false,
             enableLocalMode: false,
             production: ctx.production,
             log,

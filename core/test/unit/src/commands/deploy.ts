@@ -129,7 +129,7 @@ describe("DeployCommand", () => {
         names: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "dev-mode": undefined,
+        "sync": undefined,
         "local-mode": undefined,
         "watch": false,
         "force": false,
@@ -397,7 +397,7 @@ describe("DeployCommand", () => {
         names: ["service-b"],
       },
       opts: withDefaultGlobalOpts({
-        "dev-mode": undefined,
+        "sync": undefined,
         "local-mode": undefined,
         "watch": false,
         "force": false,
@@ -446,7 +446,7 @@ describe("DeployCommand", () => {
           names: ["service-b", "service-c"],
         },
         opts: withDefaultGlobalOpts({
-          "dev-mode": undefined,
+          "sync": undefined,
           "local-mode": undefined,
           "watch": false,
           "force": false,
@@ -496,7 +496,7 @@ describe("DeployCommand", () => {
         names: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "dev-mode": undefined,
+        "sync": undefined,
         "local-mode": undefined,
         "watch": false,
         "force": false,
@@ -535,7 +535,7 @@ describe("DeployCommand", () => {
         names: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "dev-mode": undefined,
+        "sync": undefined,
         "local-mode": undefined,
         "watch": false,
         "force": false,
@@ -569,7 +569,7 @@ describe("DeployCommand", () => {
         names: undefined,
       },
       opts: withDefaultGlobalOpts({
-        "dev-mode": undefined,
+        "sync": undefined,
         "local-mode": undefined,
         "watch": false,
         "force": false,
@@ -589,9 +589,9 @@ describe("DeployCommand", () => {
   })
 
   describe("isPersistent", () => {
-    it("should return persistent=true if --dev is set", async () => {
+    it("should return persistent=true if --sync is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
+      const log = getLogger().makeNewLogContext()
       const persistent = cmd.isPersistent({
         log,
         headerLog: log,
@@ -600,7 +600,7 @@ describe("DeployCommand", () => {
           names: undefined,
         },
         opts: withDefaultGlobalOpts({
-          "dev-mode": [],
+          "sync": [],
           "local-mode": undefined,
           "watch": false,
           "force": false,
@@ -616,7 +616,7 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --local-mode is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
+      const log = getLogger().makeNewLogContext()
       const persistent = cmd.isPersistent({
         log,
         headerLog: log,
@@ -625,8 +625,7 @@ describe("DeployCommand", () => {
           names: undefined,
         },
         opts: withDefaultGlobalOpts({
-          "dev-mode": undefined,
-
+          "sync": undefined,
           "local-mode": [],
           "watch": false,
           "force": false,
@@ -642,7 +641,7 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --follow is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().placeholder()
+      const log = getLogger().makeNewLogContext()
       const persistent = cmd.isPersistent({
         log,
         headerLog: log,
@@ -651,7 +650,7 @@ describe("DeployCommand", () => {
           names: undefined,
         },
         opts: withDefaultGlobalOpts({
-          "dev-mode": undefined,
+          "sync": undefined,
 
           "local-mode": undefined,
           "watch": false,

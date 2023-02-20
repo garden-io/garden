@@ -229,8 +229,8 @@ services:
     # Environment variables to set when running the deploy and status commands.
     env: {}
 
-    devMode:
-      # The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+    syncMode:
+      # The command to run to deploy the service in sync mode. When in sync mode, Garden assumes that
       # the command starts a persistent process and does not wait for it return. The logs from the process
       # can be retrieved via the `garden logs` command as usual.
       #
@@ -241,7 +241,7 @@ services:
       # If the top level `local` directive is set to `true`, the command runs in the module source directory instead.
       command:
 
-      # Optionally set a command to check the status of the service in dev mode. Garden will run the status command
+      # Optionally set a command to check the status of the service in sync mode. Garden will run the status command
       # at an interval until it returns a zero exit code or times out.
       #
       # If no `statusCommand` is set, Garden will consider the service ready as soon as it has started the process.
@@ -779,19 +779,19 @@ Environment variables to set when running the deploy and status commands.
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-### `services[].devMode`
+### `services[].syncMode`
 
-[services](#services) > devMode
+[services](#services) > syncMode
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `services[].devMode.command[]`
+### `services[].syncMode.command[]`
 
-[services](#services) > [devMode](#servicesdevmode) > command
+[services](#services) > [syncMode](#servicessyncmode) > command
 
-The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+The command to run to deploy the service in sync mode. When in sync mode, Garden assumes that
 the command starts a persistent process and does not wait for it return. The logs from the process
 can be retrieved via the `garden logs` command as usual.
 
@@ -805,11 +805,11 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `services[].devMode.statusCommand[]`
+### `services[].syncMode.statusCommand[]`
 
-[services](#services) > [devMode](#servicesdevmode) > statusCommand
+[services](#services) > [syncMode](#servicessyncmode) > statusCommand
 
-Optionally set a command to check the status of the service in dev mode. Garden will run the status command
+Optionally set a command to check the status of the service in sync mode. Garden will run the status command
 at an interval until it returns a zero exit code or times out.
 
 If no `statusCommand` is set, Garden will consider the service ready as soon as it has started the process.
@@ -821,9 +821,9 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 | --------------- | -------- |
 | `array[string]` | No       |
 
-### `services[].devMode.timeout`
+### `services[].syncMode.timeout`
 
-[services](#services) > [devMode](#servicesdevmode) > timeout
+[services](#services) > [syncMode](#servicessyncmode) > timeout
 
 The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero
 exit code. Ignored if no `statusCommand` is set.

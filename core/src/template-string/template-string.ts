@@ -30,7 +30,7 @@ import {
 import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
 import { deepMap, ObjectWithName } from "../util/util"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import type { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
 import { ActionKind, actionKindsLower } from "../actions/types"
@@ -515,12 +515,7 @@ export function getModuleTemplateReferences<T extends object>(obj: T, context: M
  *
  * TODO: We've disabled this for now. Re-introudce once we've removed get config command call from GE!
  */
-export function throwOnMissingSecretKeys(
-  configs: ObjectWithName[],
-  secrets: StringMap,
-  prefix: string,
-  log?: LogEntry
-) {
+export function throwOnMissingSecretKeys(configs: ObjectWithName[], secrets: StringMap, prefix: string, log?: Log) {
   const allMissing: [string, ContextKeySegment[]][] = [] // [[key, missing keys]]
   for (const config of configs) {
     const missing = detectMissingSecretKeys(config, secrets)

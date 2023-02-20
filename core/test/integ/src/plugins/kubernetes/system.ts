@@ -75,7 +75,7 @@ describe("System services", () => {
         log: garden.log,
         action: resolved,
         localModeDeployNames: [],
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         force: false,
 
         graph,

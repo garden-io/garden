@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { StringMap } from "../config/common"
 import { CloudApi, isGotError } from "./api"
 import { BaseResponse } from "@garden-io/platform-api-types"
@@ -14,7 +14,7 @@ import { deline } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 
 export interface GetSecretsParams {
-  log: LogEntry
+  log: Log
   projectId: string
   environmentName: string
   cloudApi: CloudApi

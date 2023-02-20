@@ -9,7 +9,7 @@
 import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "./base"
 import { GraphResults } from "../graph/results"
 import { DeployAction, isDeployAction } from "../actions/deploy"
-import { DeployStatus, GetDeployStatus } from "../plugin/handlers/Deploy/get-status"
+import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { omit } from "lodash"
 
 export interface DeleteDeployTaskParams extends BaseActionTaskParams<DeployAction> {
@@ -83,7 +83,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     try {
       status = await router.deploy.delete({ log: this.log, action, graph: this.graph })
     } catch (err) {
-      this.log.setError()
+      this.log.error(`Failed deleting ${action.name}`)
       throw err
     }
 

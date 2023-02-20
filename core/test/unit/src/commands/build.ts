@@ -19,7 +19,7 @@ import {
 } from "../../../helpers"
 import { taskResultOutputs, getAllTaskResults } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { writeFile } from "fs-extra"
 import { join } from "path"
 import { ProcessCommandResult } from "../../../../src/commands/base"
@@ -230,13 +230,13 @@ describe("BuildCommand", () => {
 
   // adds a third level of dependants and tests rebuild logic after changes to modules
   context("tracking changes and rebuilding logic", () => {
-    let log: LogEntry
+    let log: Log
     let buildCommand: BuildCommand
     let projectPath: string
     let defaultOpts: {
-      log: LogEntry
-      headerLog: LogEntry
-      footerLog: LogEntry
+      log: Log
+      headerLog: Log
+      footerLog: Log
     }
 
     beforeEach(async () => {

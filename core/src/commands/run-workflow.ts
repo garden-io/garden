@@ -13,7 +13,7 @@ import { Command, CommandParams, CommandResult } from "./base"
 import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { GardenError, WorkflowScriptError } from "../exceptions"
 import {
   WorkflowConfigContext,
@@ -28,7 +28,7 @@ import Bluebird from "bluebird"
 import { getDurationMsec, toEnvVars } from "../util/util"
 import { runScript } from "../util/util"
 import { ExecaError } from "execa"
-import { formatGardenErrorWithDetail, LogLevel } from "../logger/logger"
+import { LogLevel, formatGardenErrorWithDetail } from "../logger/logger"
 import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
@@ -70,11 +70,11 @@ export class RunWorkflowCommand extends Command<Args, {}> {
   arguments = runWorkflowArgs
 
   printHeader({ headerLog, args }) {
-    printHeader(headerLog, `Running workflow ${chalk.white(args.workflow)}`, "runner")
+    printHeader(headerLog, `Running workflow ${chalk.white(args.workflow)}`, "🏃‍♂️")
   }
 
   async action({ cli, garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
-    const outerLog = log.placeholder()
+    const outerLog = log.makeNewLogContext({})
     // Prepare any configured files before continuing
     const workflow = await garden.getWorkflowConfig(args.workflow)
 
@@ -112,13 +112,13 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       const metadata = {
         workflowStep: { index },
       }
-      const stepHeaderLog = outerLog.placeholder({ indent: 1, metadata })
-      const stepBodyLog = outerLog.placeholder({ indent: 1, metadata })
-      const stepFooterLog = outerLog.placeholder({ indent: 1, metadata })
-      garden.log.setState({ metadata })
+      const stepHeaderLog = outerLog.makeNewLogContext({ metadata })
+      const stepBodyLog = outerLog.makeNewLogContext({ metadata })
+      const stepFooterLog = outerLog.makeNewLogContext({ metadata })
+      garden.log.info({ metadata })
 
       if (step.skip) {
-        stepBodyLog.setState(chalk.yellow(`Skipping step ${chalk.white(index + 1)}/${chalk.white(steps.length)}`))
+        stepBodyLog.info(chalk.yellow(`Skipping step ${chalk.white(index + 1)}/${chalk.white(steps.length)}`))
         result.steps[stepName] = {
           number: index + 1,
           outputs: {},
@@ -225,10 +225,10 @@ export class RunWorkflowCommand extends Command<Args, {}> {
 export interface RunStepParams {
   cli?: GardenCli
   garden: Garden
-  outerLog: LogEntry
-  headerLog: LogEntry
-  bodyLog: LogEntry
-  footerLog: LogEntry
+  outerLog: Log
+  headerLog: Log
+  bodyLog: Log
+  footerLog: Log
   inheritedOpts: ParameterValues<GlobalOptions>
   step: WorkflowStepSpec
   stepIndex: number
@@ -251,7 +251,7 @@ function getStepName(index: number, name?: string) {
 
 const minWidth = 120
 
-export function printStepHeader(log: LogEntry, stepIndex: number, stepCount: number, stepDescription?: string) {
+export function printStepHeader(log: Log, stepIndex: number, stepCount: number, stepDescription?: string) {
   const maxWidth = Math.min(getTerminalWidth(), minWidth)
   let text = `Running step ${formattedStepDescription(stepIndex, stepCount, stepDescription)}`
   const header = dedent`
@@ -300,7 +300,7 @@ function printResult({
   success,
 }: {
   startedAt: number
-  log: LogEntry
+  log: Log
   workflow: WorkflowConfig
   success: boolean
 }) {
@@ -447,7 +447,7 @@ export function shouldBeDropped(stepIndex: number, steps: WorkflowStepSpec[], st
 }
 
 export function logErrors(
-  log: LogEntry,
+  log: Log,
   errors: GardenError[],
   stepIndex: number,
   stepCount: number,
@@ -476,7 +476,7 @@ export function logErrors(
   }
 }
 
-async function registerAndSetUid(garden: Garden, log: LogEntry, config: WorkflowConfig) {
+async function registerAndSetUid(garden: Garden, log: Log, config: WorkflowConfig) {
   const { cloudApi } = garden
   if (cloudApi) {
     const workflowRunUid = await registerWorkflowRun({

@@ -7,7 +7,7 @@
  */
 
 import { Garden } from ".."
-import { EmojiName, LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import chalk from "chalk"
 import { BuildTask } from "../tasks/build"
 import { DeployTask } from "../tasks/deploy"
@@ -16,12 +16,13 @@ import { naturalList } from "../util/string"
 import { ConfigGraph } from "../graph/config-graph"
 import { RunTask } from "../tasks/run"
 import { moduleTestNameToActionName } from "../types/module"
+import { printEmoji } from "../logger/util"
 
 export class ClientRouter {
   private garden: Garden
-  private log: LogEntry
+  private log: Log
 
-  constructor(garden: Garden, log: LogEntry) {
+  constructor(garden: Garden, log: Log) {
     this.garden = garden
     this.log = log
   }
@@ -52,10 +53,7 @@ export class ClientRouter {
   async build(req: ClientRequests["build"]) {
     const { log, garden } = this
     log.info("")
-    log.info({
-      emoji: "hammer",
-      msg: chalk.white(`Build requested for ${chalk.italic(chalk.cyan(req.moduleName))}`),
-    })
+    log.info(chalk.white(`🔨 Build requested for ${chalk.italic(chalk.cyan(req.moduleName))}`))
 
     try {
       garden.clearCaches()
@@ -70,26 +68,26 @@ export class ClientRouter {
   async deploy(req: ClientRequests["deploy"]) {
     const { log, garden } = this
     let prefix: string
-    let emoji: EmojiName
+    let emoji: string
     if (req.hotReload) {
-      emoji = "fire"
+      emoji = printEmoji("🔥", log)
       prefix = `Hot reload-enabled deployment`
     } else {
-      // local mode always takes precedence over dev mode
+      // local mode always takes precedence over sync mode
       if (req.localMode) {
-        emoji = "left_right_arrow"
+        emoji = printEmoji("↔️", log)
         prefix = `Local-mode deployment`
-      } else if (req.devMode) {
-        emoji = "zap"
-        prefix = `Dev-mode deployment`
+      } else if (req.syncMode) {
+        emoji = printEmoji("⚡", log)
+        prefix = `Sync-mode deployment`
       } else {
-        emoji = "rocket"
+        emoji = printEmoji("🚀", log)
         prefix = "Deployment"
       }
     }
     const msg = `${prefix} requested for ${chalk.italic(chalk.cyan(req.serviceName))}`
     log.info("")
-    log.info({ emoji, msg: chalk.white(msg) })
+    log.info(emoji + chalk.white(msg))
 
     try {
       garden.clearCaches()
@@ -110,7 +108,7 @@ export class ClientRouter {
     }
     const msg = chalk.white(`Tests requested for ${chalk.italic(chalk.cyan(req.moduleName))}${suffix}`)
     log.info("")
-    log.info({ emoji: "thermometer", msg })
+    log.info("🌡️ " + msg)
 
     try {
       garden.clearCaches()
@@ -126,7 +124,7 @@ export class ClientRouter {
     const { log, garden } = this
     const msg = chalk.white(`Run requested for task ${chalk.italic(chalk.cyan(req.taskName))}`)
     log.info("")
-    log.info({ emoji: "runner", msg })
+    log.info("🏃 " + msg)
 
     try {
       garden.clearCaches()
@@ -147,7 +145,7 @@ export interface ClientRequests {
   }
   deploy: {
     serviceName: string
-    devMode: boolean
+    syncMode: boolean
     hotReload: boolean
     localMode: boolean
     force: boolean
@@ -187,13 +185,9 @@ export const clientRequestNames = [
 export interface ClientRequestHandlerCommonParams {
   garden: Garden
   graph: ConfigGraph
-  log: LogEntry
+  log: Log
 }
 
-/*
- * TODO: initialize devModeServiceNames/hotReloadServiceNames/localModeServiceNames
- *       depending on the corresponding deployment flags. See class DeployCommand for details.
- */
 export const clientRequestHandlers = {
   build: async (params: ClientRequestHandlerCommonParams & { request: ClientRequests["build"] }) => {
     const { garden, graph, log } = params
@@ -204,7 +198,7 @@ export const clientRequestHandlers = {
       graph,
       action: graph.getBuild(moduleName),
       force,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
     return tasks
@@ -221,7 +215,7 @@ export const clientRequestHandlers = {
       forceBuild,
 
       skipRuntimeDependencies: params.request.skipDependencies,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
       localModeDeployNames: [],
     })
   },
@@ -239,7 +233,7 @@ export const clientRequestHandlers = {
         forceBuild,
         action: graph.getTest(testName),
         skipRuntimeDependencies: params.request.skipDependencies,
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
 
         localModeDeployNames: [],
       })
@@ -255,7 +249,7 @@ export const clientRequestHandlers = {
       action: graph.getRun(taskName),
       force,
       forceBuild,
-      devModeDeployNames: [],
+      syncModeDeployNames: [],
 
       localModeDeployNames: [],
     })

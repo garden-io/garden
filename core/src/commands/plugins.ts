@@ -11,12 +11,11 @@ import { max, fromPairs, zip } from "lodash"
 import { findByName, getNames } from "../util/util"
 import { dedent, renderTable, tablePresets } from "../util/string"
 import { ParameterError, toGardenError } from "../exceptions"
-import { LogEntry } from "../logger/log-entry"
+import { Log } from "../logger/log-entry"
 import { Garden } from "../garden"
 import { Command, CommandResult, CommandParams } from "./base"
 import Bluebird from "bluebird"
 import { printHeader, getTerminalWidth } from "../logger/util"
-import { LoggerType } from "../logger/logger"
 import { StringOption } from "../cli/params"
 import { ConfigGraph } from "../graph/config-graph"
 import { ModuleGraph } from "../graph/modules"
@@ -60,10 +59,6 @@ export class PluginsCommand extends Command<Args> {
   `
 
   arguments = pluginArgs
-
-  getLoggerType(): LoggerType {
-    return "basic"
-  }
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Plugins", "gear")
@@ -126,7 +121,7 @@ export class PluginsCommand extends Command<Args> {
   }
 }
 
-async function listPlugins(garden: Garden, log: LogEntry, pluginsToList: string[]) {
+async function listPlugins(garden: Garden, log: Log, pluginsToList: string[]) {
   log.info(dedent`
   ${chalk.white.bold("USAGE")}
 

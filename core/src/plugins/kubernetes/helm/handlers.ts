@@ -23,7 +23,7 @@ import { convertServiceResource } from "../kubernetes-type/common"
 import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
 import { SuggestModulesParams, SuggestModulesResult } from "../../../plugin/handlers/Module/suggest"
 import { makeDummyBuild } from "../../../resolve-module"
-import { convertKubernetesModuleDevModeSpec } from "../dev-mode"
+import { convertKubernetesModuleDevModeSpec } from "../sync"
 
 export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
   configure: configureHelmModule,
@@ -217,7 +217,7 @@ function prepareDeployAction({
         version: module.spec.version,
       },
 
-      devMode: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
+      sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
     },
   }
 

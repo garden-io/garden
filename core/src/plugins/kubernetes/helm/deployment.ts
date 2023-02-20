@@ -15,7 +15,7 @@ import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
-import { configureDevMode, startDevModeSyncs } from "../dev-mode"
+import { configureSyncMode, startSyncs } from "../sync"
 import { KubeApi } from "../api"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler } from "../../../plugin/action-types"
@@ -25,7 +25,7 @@ import { SyncableResource } from "../types"
 import { getTargetResource } from "../util"
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
-  const { ctx, action, log, force, devMode, localMode } = params
+  const { ctx, action, log, force, syncMode, localMode } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const spec = action.getSpec()
@@ -47,14 +47,14 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   })
   const { reference } = preparedTemplates
   const releaseName = getReleaseName(action)
-  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, devMode, localMode })
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, syncMode, localMode })
 
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
     spec.timeout.toString(10) + "s",
-    ...(await getValueArgs({ action, devMode, localMode, valuesPath: preparedTemplates.valuesPath })),
+    ...(await getValueArgs({ action, syncMode, localMode, valuesPath: preparedTemplates.valuesPath })),
   ]
 
   if (spec.atomicInstall) {
@@ -102,7 +102,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     ctx: k8sCtx,
     log,
     action,
-    devMode,
+    syncMode,
     localMode,
     ...preparedTemplates,
   })
@@ -123,8 +123,8 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   }
 
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
-  // installing/upgrading via Helm, we need to separately update the target here for dev-mode/local-mode.
-  // Local mode always takes precedence over dev mode.
+  // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
+  // Local mode always takes precedence over sync mode.
   if (localMode && spec.localMode && !isEmpty(spec.localMode) && localModeTarget) {
     await configureLocalMode({
       ctx,
@@ -135,15 +135,15 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       containerName: spec.localMode.target?.containerName,
     })
     await apply({ log, ctx, api, provider, manifests: [localModeTarget], namespace })
-  } else if (devMode && spec.devMode && !isEmpty(spec.devMode)) {
-    const configured = await configureDevMode({
+  } else if (syncMode && spec.sync && !isEmpty(spec.sync)) {
+    const configured = await configureSyncMode({
       ctx,
       log,
       provider,
       action,
       defaultTarget: spec.defaultTarget,
       manifests,
-      spec: spec.devMode,
+      spec: spec.sync,
     })
     await apply({ log, ctx, api, provider, manifests: configured.updated, namespace })
   }
@@ -166,7 +166,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   // Make sure port forwards work after redeployment
   killPortForwards(action, forwardablePorts || [], log)
 
-  // Local mode always takes precedence over dev mode.
+  // Local mode always takes precedence over sync mode.
   if (localMode && spec.localMode && localModeTarget) {
     await startServiceInLocalMode({
       ctx,
@@ -176,17 +176,17 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespace,
       log,
     })
-  } else if (devMode && spec.devMode?.syncs?.length) {
-    await startDevModeSyncs({
+  } else if (syncMode && spec.sync?.paths?.length) {
+    await startSyncs({
       ctx: k8sCtx,
       log,
       action,
-      actionDefaults: spec.devMode.defaults || {},
+      actionDefaults: spec.sync.defaults || {},
       defaultTarget: spec.defaultTarget,
       basePath: action.basePath(), // TODO-G2: double check if this holds up
       defaultNamespace: namespace,
       manifests,
-      syncs: spec.devMode.syncs,
+      syncs: spec.sync.paths,
     })
   }
 

@@ -16,7 +16,7 @@ import { getKubernetesTestGarden } from "./common"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { LogEntry } from "../../../../../../src/logger/log-entry"
+import { Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
@@ -38,7 +38,7 @@ import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
 describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
   let ctx: KubernetesPluginContext
   let api: KubeApi
   /**
@@ -62,9 +62,9 @@ describe("kubernetes-module handlers", () => {
     return cloned
   }
 
-  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logEntry: LogEntry) => {
+  const findDeployedResources = async (manifests: KubernetesResource<BaseResource>[], logCtx: Log) => {
     const maybeDeployedObjects = await Bluebird.map(manifests, (resource) =>
-      getDeployedResource(ctx, ctx.provider, resource, logEntry)
+      getDeployedResource(ctx, ctx.provider, resource, logCtx)
     )
     return <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
   }
@@ -133,7 +133,7 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
         force: false,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       }
       action.getConfig().spec.manifests = [
@@ -159,7 +159,7 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
         force: false,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       }
       const status = await kubernetesDeploy(deployParams)
@@ -173,7 +173,7 @@ describe("kubernetes-module handlers", () => {
       ])
     })
 
-    it("should toggle devMode", async () => {
+    it("should toggle syncMode", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("with-source-module")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
@@ -189,7 +189,7 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: resolvedAction,
         force: false,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       }
       const manifests = await getManifests({
@@ -201,21 +201,21 @@ describe("kubernetes-module handlers", () => {
         readFromSrcDir: true,
       })
 
-      // Deploy without dev mode
+      // Deploy without sync mode
       await kubernetesDeploy(deployParams)
       const res1 = await findDeployedResources(manifests, log)
 
-      // Deploy with dev mode
-      await kubernetesDeploy({ ...deployParams, devMode: true })
+      // Deploy with sync mode
+      await kubernetesDeploy({ ...deployParams, syncMode: true })
       const res2 = await findDeployedResources(manifests, log)
 
-      // Deploy without dev mode again
+      // Deploy without sync mode again
       await kubernetesDeploy(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("true")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
     })
 
     it("should toggle localMode", async () => {
@@ -234,7 +234,7 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: resolvedAction,
         force: false,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       }
       const manifests = await getManifests({
@@ -266,7 +266,7 @@ describe("kubernetes-module handlers", () => {
       expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
     })
 
-    it("localMode should always take precedence over devMode", async () => {
+    it("localMode should always take precedence over syncMode", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("with-source-module")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
@@ -282,7 +282,7 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: resolvedAction,
         force: false,
-        devMode: false,
+        syncMode: false,
         localMode: false,
       }
       const manifests = await getManifests({
@@ -299,7 +299,7 @@ describe("kubernetes-module handlers", () => {
       const res1 = await findDeployedResources(manifests, log)
 
       // Deploy with local mode
-      await kubernetesDeploy({ ...deployParams, localMode: true, devMode: true })
+      await kubernetesDeploy({ ...deployParams, localMode: true, syncMode: true })
       const res2 = await findDeployedResources(manifests, log)
       // shut down local app and tunnels to avoid retrying after redeploy
       LocalModeProcessRegistry.getInstance().shutdown()
@@ -313,9 +313,9 @@ describe("kubernetes-module handlers", () => {
       expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
       expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("dev-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
     })
 
     it("should not delete previously deployed namespace resources", async () => {
@@ -335,7 +335,7 @@ describe("kubernetes-module handlers", () => {
         force: true,
         forceBuild: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
       const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -380,7 +380,7 @@ describe("kubernetes-module handlers", () => {
         force: true,
         forceBuild: true,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
       await garden.processTasks({ tasks: [deployTask2], throwOnError: true })
@@ -411,7 +411,7 @@ describe("kubernetes-module handlers", () => {
         action: graph.getDeploy("namespace-resource"),
         force: false,
 
-        devModeDeployNames: [],
+        syncModeDeployNames: [],
         localModeDeployNames: [],
       })
 

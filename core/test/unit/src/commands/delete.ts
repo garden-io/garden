@@ -18,7 +18,7 @@ import {
 import { expect } from "chai"
 import { EnvironmentStatus } from "../../../../src/plugin/handlers/Provider/getEnvironmentStatus"
 import { ModuleConfig } from "../../../../src/config/module"
-import { LogEntry } from "../../../../src/logger/log-entry"
+import { Log } from "../../../../src/logger/log-entry"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { ActionStatus } from "../../../../src/actions/types"
 
@@ -77,7 +77,7 @@ describe("DeleteEnvironmentCommand", () => {
   let deleteOrder: string[] = []
   const testEnvStatuses: { [key: string]: EnvironmentStatus } = {}
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
   const testProvider = customizedTestPlugin({
     name: "test-plugin",
@@ -221,7 +221,7 @@ describe("DeleteDeployCommand", () => {
 
   const command = new DeleteDeployCommand()
   let garden: TestGarden
-  let log: LogEntry
+  let log: Log
 
   beforeEach(async () => {
     deleteOrder = []

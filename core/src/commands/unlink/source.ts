@@ -26,7 +26,8 @@ const unlinkSourceArguments = {
 const unlinkSourceOptions = {
   all: new BooleanParameter({
     help: "Unlink all sources.",
-    alias: "a",
+    // TODO: remove this alias in 0.13
+    aliases: ["a"],
   }),
 }
 
@@ -50,7 +51,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Unlink source", "chains")
+    printHeader(headerLog, "Unlink source", "⛓️")
   }
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<LinkedSource[]>> {

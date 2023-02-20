@@ -10,7 +10,7 @@ import { TerraformProvider } from "."
 import which from "which"
 import { ConfigurationError, RuntimeError } from "@garden-io/sdk/exceptions"
 import { CliWrapper, PluginToolSpec } from "@garden-io/sdk/util/ext-tools"
-import { LogEntry, PluginContext } from "@garden-io/sdk/types"
+import { Log, PluginContext } from "@garden-io/sdk/types"
 
 export function terraform(ctx: PluginContext, provider: TerraformProvider) {
   const version = provider.config.version
@@ -36,7 +36,7 @@ export class GlobalTerraform extends CliWrapper {
     super("terraform", "terraform")
   }
 
-  async getPath(_: LogEntry) {
+  async getPath(_: Log) {
     try {
       return await which("terraform")
     } catch (err) {

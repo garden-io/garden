@@ -19,7 +19,7 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   const localId = action.getOutput("localImageId")
   const remoteId = containerHelpers.getPublicImageId(action, tag)
 
-  log.setState({ msg: `Publishing image ${remoteId}...` })
+  log.info({ msg: `Publishing image ${remoteId}...` })
 
   if (localId !== remoteId) {
     await containerHelpers.dockerCli({

@@ -9,7 +9,7 @@
 import Stream from "ts-stream"
 import split2 = require("split2")
 
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import { DeployLogEntry } from "../../types/service"
 import { pathExists, stat, watch } from "fs-extra"
 import parseDuration from "parse-duration"
@@ -89,7 +89,7 @@ class StreamEventBus extends EventEmitter2 {
 export class ExecLogsFollower {
   private deployName: string
   private stream: Stream<DeployLogEntry>
-  private log: LogEntry
+  private log: Log
   private intervalId: NodeJS.Timer | null
   private resolve: ((val: unknown) => void) | null
   private retryIntervalMs: number
@@ -110,7 +110,7 @@ export class ExecLogsFollower {
   }: {
     stream: Stream<DeployLogEntry>
     deployName: string
-    log: LogEntry
+    log: Log
     logFilePath: string
     retryIntervalMs?: number
   }) {

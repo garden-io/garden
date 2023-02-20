@@ -11,7 +11,7 @@ import { fromPairs } from "lodash"
 import { deepFilter } from "../../util/util"
 import { Command, CommandResult, CommandParams } from "../base"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
-import { LogEntry } from "../../logger/log-entry"
+import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { deline } from "../../util/string"
 import { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus"
@@ -101,7 +101,7 @@ export class GetStatusCommand extends Command {
   }
 }
 
-async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: LogEntry) {
+async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log) {
   const actions = graph.getBuilds()
 
   return fromPairs(
@@ -112,11 +112,7 @@ async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph
   )
 }
 
-async function getTestStatuses(
-  router: ActionRouter,
-  graph: ResolvedConfigGraph,
-  log: LogEntry
-): Promise<TestStatusMap> {
+async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log): Promise<TestStatusMap> {
   const actions = graph.getTests()
 
   return fromPairs(
@@ -127,7 +123,7 @@ async function getTestStatuses(
   )
 }
 
-async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: LogEntry): Promise<RunStatusMap> {
+async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, log: Log): Promise<RunStatusMap> {
   const actions = graph.getRuns()
 
   return fromPairs(
