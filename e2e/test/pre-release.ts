@@ -52,7 +52,7 @@ describe("PreReleaseTests", () => {
     }
     // Override the userId variable
     if (process.env.CIRCLE_BUILD_NUM) {
-      command.push("--var", "userId=" + userId)
+      command.push("--var", "userId=" + userId + "-e2e")
     }
     return command
   }
