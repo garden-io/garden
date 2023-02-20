@@ -336,8 +336,8 @@ spec:
         # defined.
         #
         # This should generally be a templated path to another action's source path (e.g.
-        # `${build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure
-        # the path exists, and that it is reliably the correct path for every user.
+        # `${action.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make
+        # sure the path exists, and that it is reliably the correct path for every user.
         sourcePath: .
 
         # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -1118,7 +1118,7 @@ The name of a container in the target. Specify this if the target contains more 
 
 The local path to sync from, either absolute or relative to the source directory where the Deploy action is defined.
 
-This should generally be a templated path to another action's source path (e.g. `${build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
+This should generally be a templated path to another action's source path (e.g. `${action.build.my-container-image.sourcePath}`), or a relative path. If a path is hard-coded, you must make sure the path exists, and that it is reliably the correct path for every user.
 
 | Type        | Default | Required |
 | ----------- | ------- | -------- |
