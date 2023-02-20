@@ -580,6 +580,7 @@ export async function getTargetResource({
     throw new InternalError(`Neither kind nor podSelector set in resource query`, { query })
   }
 
+  // Look in the specified manifests, if provided
   if (manifests) {
     const chartResourceNames = manifests.map((o) => getResourceKey(o))
 
@@ -600,7 +601,7 @@ export async function getTargetResource({
         })
       }
 
-      target = find(<SyncableResource[]>manifests, (o) => o.kind === targetKind && o.metadata.name === targetName)!
+      target = find(<SyncableResource[]>applicableChartResources, (o) => o.metadata.name === targetName)!
 
       if (!target) {
         throw new ConfigurationError(
@@ -632,8 +633,11 @@ export async function getTargetResource({
 
       target = <SyncableResource>applicableChartResources[0]
     }
+
+    return target
   }
 
+  // No manifests provided, need to look up in the remote namespace
   if (!targetName) {
     // This should be caught in config/schema validation
     throw new InternalError(`Must specify name in resource/target query`, { query })
