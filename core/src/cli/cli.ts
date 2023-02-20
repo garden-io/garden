@@ -54,7 +54,7 @@ import type { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginReference } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api"
+import { CloudApi, EnterpriseApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
@@ -285,12 +285,29 @@ ${renderCommands(commands)}
 
     // Init Cloud API
     let cloudApi: CloudApi | null = null
+    let distroName: string = ""
+
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
 
-      let cloudDomain: string = getGardenCloudDomain(config)
+      const cloudDomain: string = getGardenCloudDomain(config)
+      distroName = getCloudDistributionName(cloudDomain)
 
-      cloudApi = await CloudApi.factory({ log, cloudDomain })
+      try {
+        cloudApi = await CloudApi.factory({ log, cloudDomain })
+      } catch (err) {
+        if (err instanceof EnterpriseApiTokenRefreshError) {
+          log.warn(dedent`
+          ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+          Command results for this command run will not be available in ${distroName}. If this not a
+          ${distroName} project you can ignore this warning. Otherwise, please try logging out with
+          \`garden logout\` and back in again with \`garden login\`.
+        `)
+        } else {
+          // unhandled error when creating the cloud api
+          throw err
+        }
+      }
     }
 
     // Init event & log streaming.
@@ -423,7 +440,6 @@ ${renderCommands(commands)}
 
           // Print a specific header and footer when connected to Garden Cloud.
           if (namespaceUrl) {
-            const distroName = getCloudDistributionName(cloudApi?.domain || "")
             const msg = dedent`
               \n${nodeEmoji.lightning}   ${chalk.cyan(
               `Connected to ${distroName}! Click the link below to view logs and more.`

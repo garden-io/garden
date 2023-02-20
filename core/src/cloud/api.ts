@@ -31,6 +31,7 @@ const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
 
 export class EnterpriseApiDuplicateProjectsError extends EnterpriseApiError {}
+export class EnterpriseApiTokenRefreshError extends EnterpriseApiError {}
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -228,18 +229,9 @@ export class CloudApi {
       // Refresh the token if it's invalid.
       if (!tokenIsValid) {
         enterpriseLog?.debug({ msg: `Current auth token is invalid, refreshing` })
-        try {
-          // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
-          await api.refreshToken(token!)
-        } catch (err) {
-          enterpriseLog?.setError({ msg: `Invalid session`, append: true })
-          enterpriseLog?.warn(deline`
-          Your session is invalid and could not be refreshed. If you were previously logged
-          in to another instance of ${distroName}, please log out first and then
-          log back in again.
-        `)
-          throw err
-        }
+
+        // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
+        await api.refreshToken(token!)
       }
 
       // Start refresh interval if using JWT
@@ -497,7 +489,7 @@ export class CloudApi {
     } catch (err) {
       this.log.debug({ msg: `Failed to refresh the token.` })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
-      throw new EnterpriseApiError(
+      throw new EnterpriseApiTokenRefreshError(
         `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
           err.message
         }`,
