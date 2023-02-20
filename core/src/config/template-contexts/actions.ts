@@ -30,6 +30,8 @@ export class ActionConfigContext extends RemoteSourceConfigContext {
 interface ActionReferenceContextParams {
   root: ConfigContext
   disabled: boolean
+  buildPath: string
+  sourcePath: string
   variables: DeepPrimitiveMap
 }
 
@@ -37,12 +39,32 @@ class ActionReferenceContext extends ConfigContext {
   @schema(joi.boolean().required().description("Whether the action is disabled.").example(true))
   public disabled: boolean
 
+  @schema(
+    joi
+      .string()
+      .required()
+      .description("The local path to the action build directory.")
+      .example("/my/project/.garden/build/my-action")
+  )
+  public buildPath: string
+
+  @schema(
+    joi
+      .string()
+      .required()
+      .description("The local path to the action source directory.")
+      .example("/my/project/my-action")
+  )
+  public sourcePath: string
+
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
   public var: DeepPrimitiveMap
 
-  constructor({ root, disabled, variables }: ActionReferenceContextParams) {
+  constructor({ root, disabled, buildPath, sourcePath, variables }: ActionReferenceContextParams) {
     super(root)
     this.disabled = disabled
+    this.buildPath = buildPath
+    this.sourcePath = sourcePath
     this.var = variables
   }
 }
@@ -125,6 +147,8 @@ class ActionReferencesContext extends ConfigContext {
           outputs: action.getOutputs(),
           version: action.versionString(),
           disabled: action.isDisabled(),
+          buildPath: action.getBuildPath(),
+          sourcePath: action.basePath(),
           variables: action.getVariables(),
         })
       )

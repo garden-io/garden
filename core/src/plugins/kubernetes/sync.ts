@@ -128,7 +128,7 @@ export interface KubernetesDeployDevModeSyncSpec extends DevModeSyncOptions {
   containerName?: string
 }
 
-const exampleActionRef = templateStringLiteral("build.my-container-image.sourcePath")
+const exampleActionRef = templateStringLiteral("action.build.my-container-image.sourcePath")
 
 export const kubernetesDeploySyncPathSchema = () =>
   syncDefaultsSchema()
