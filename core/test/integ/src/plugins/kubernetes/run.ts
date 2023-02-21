@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import tmp from "tmp-promise"
-import { expectError } from "../../../../helpers"
+import { expectError, pruneEmpty } from "../../../../helpers"
 import { pathExists } from "fs-extra"
 import { expect } from "chai"
 import { join } from "path"
@@ -48,6 +48,7 @@ import { ContainerResourcesSpec } from "../../../../../src/plugins/container/mod
 import { KubernetesRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/run"
 import { Resolved } from "../../../../../src/actions/types"
 import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
+import { executeAction } from "../../../../../src/graph/actions"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -552,7 +553,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmTarget: KubernetesWorkload | KubernetesPod
     let helmContainer: V1Container
     let helmNamespace: string
-    let randomHelmAction: Resolved<HelmDeployAction>
+    let helmAction: Resolved<HelmDeployAction>
     const resources: ContainerResourcesSpec = {
       cpu: {
         min: 123,
@@ -575,17 +576,17 @@ describe("kubernetes Pod runner functions", () => {
       helmGraph = await helmGarden.getConfigGraph({ log: helmLog, emit: false })
       await buildHelmModules(helmGarden, helmGraph)
       helmModule = helmGraph.moduleGraph.getModule("artifacts")
-      // just need an action here (any will do)
-      randomHelmAction = await helmGarden.resolveAction({
+      helmAction = await helmGarden.resolveAction({
         action: helmGraph.getDeploy("api"),
         log: helmLog,
         graph: helmGraph,
       })
+      await executeAction({ action: helmAction, graph: helmGraph, garden: helmGarden, log: helmGarden.log })
 
       helmManifests = await getChartResources({
         ctx: helmCtx,
         syncMode: false,
-        action: randomHelmAction,
+        action: helmAction,
         localMode: false,
         log: helmLog,
       })
@@ -594,7 +595,7 @@ describe("kubernetes Pod runner functions", () => {
       helmNamespace = await getActionNamespace({
         ctx: helmCtx,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         provider: helmCtx.provider,
       })
       helmTarget = await getTargetResource({
@@ -602,8 +603,8 @@ describe("kubernetes Pod runner functions", () => {
         log: helmLog,
         provider: helmCtx.provider,
         manifests: helmManifests,
-        action: randomHelmAction,
-        query: { ...helmResourceSpec, name: randomHelmAction.getSpec().releaseName },
+        action: helmAction,
+        query: { ...helmResourceSpec, name: helmAction.getSpec().releaseName },
       })
       helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
     })
@@ -627,16 +628,17 @@ describe("kubernetes Pod runner functions", () => {
         container: helmContainer,
         namespace: helmNamespace,
         volumes: [],
-        action: randomHelmAction,
+        action: helmAction,
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
             image: "foo",
             imagePullPolicy: "IfNotPresent",
             args: ["sh", "-c"],
+            resources: {},
             ports: [
               {
                 name: "http",
@@ -644,10 +646,20 @@ describe("kubernetes Pod runner functions", () => {
                 protocol: "TCP",
               },
             ],
-            resources: {},
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
+            terminationMessagePath: "/dev/termination-log",
+            terminationMessagePolicy: "File",
           },
         ],
         imagePullSecrets: [],
@@ -662,7 +674,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -677,7 +689,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
@@ -692,7 +704,18 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: getResourceRequirements(resources),
-            env: [],
+            terminationMessagePath: "/dev/termination-log",
+            terminationMessagePolicy: "File",
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
           },
@@ -710,7 +733,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -725,7 +748,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
@@ -740,14 +763,28 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: getResourceRequirements(resources),
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
+            terminationMessagePath: "/dev/termination-log",
+            terminationMessagePolicy: "File",
             volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
-        shareProcessNamespace: true,
+        dnsPolicy: "ClusterFirst",
         imagePullSecrets: [],
+        schedulerName: "default-scheduler",
+        securityContext: {},
         volumes: [],
+        shareProcessNamespace: true,
       })
     })
 
@@ -758,7 +795,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -776,7 +813,7 @@ describe("kubernetes Pod runner functions", () => {
         dropCapabilities: ["NET_ADMIN"], // <----
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
@@ -791,7 +828,18 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: getResourceRequirements(resources),
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
+            terminationMessagePath: "/dev/termination-log",
+            terminationMessagePolicy: "File",
             volumeMounts: [],
             command: ["echo", "foo"],
             securityContext: {
@@ -810,14 +858,13 @@ describe("kubernetes Pod runner functions", () => {
 
     it("should include only the right pod spec fields in the generated pod spec", async () => {
       const podSpec = getResourcePodSpec(helmTarget)
-      expect(podSpec).to.eql({
+      expect(pruneEmpty(podSpec)).to.eql({
         // This field is *not* included in `runPodSpecIncludeFields`, so it shouldn't appear in the
         // generated pod spec below.
-        terminationGracePeriodSeconds: 60,
         containers: [
           {
             name: "api",
-            image: "busybox:latest",
+            image: "api-image:v-4d59656b5e",
             imagePullPolicy: "IfNotPresent",
             args: ["python", "app.py"],
             ports: [
@@ -828,10 +875,15 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: {},
+            terminationMessagePath: "/dev/termination-log",
+            terminationMessagePolicy: "File",
           },
         ],
-        // This field is included in `runPodSpecIncludeFields`, so it *should* appear in the generated
-        // pod spec below.
+        dnsPolicy: "ClusterFirst",
+        restartPolicy: "Always",
+        schedulerName: "default-scheduler",
+        securityContext: {},
+        terminationGracePeriodSeconds: 30,
         shareProcessNamespace: true,
       })
       const generatedPodSpec = await prepareRunPodSpec({
@@ -840,7 +892,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -854,7 +906,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         // `shareProcessNamespace` is not excluded, so it should be propagated to here.
         shareProcessNamespace: true,
         // `terminationGracePeriodSeconds` *is* excluded, so it should not appear here.
@@ -872,12 +924,26 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: {},
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
+            terminationMessagePath: "/dev/termination-log",
+            terminationMessagePolicy: "File",
             volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
+        dnsPolicy: "ClusterFirst",
         imagePullSecrets: [],
+        schedulerName: "default-scheduler",
+        securityContext: {},
         volumes: [],
       })
     })
@@ -911,7 +977,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -925,7 +991,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         // `shareProcessNamespace` is not excluded, so it should be propagated to here.
         shareProcessNamespace: true,
         // `terminationGracePeriodSeconds` *is* excluded, so it should not appear here.
@@ -944,12 +1010,26 @@ describe("kubernetes Pod runner functions", () => {
             ],
             // We expect `livenessProbe` and `readinessProbe` to be omitted here.
             resources: {},
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
+            terminationMessagePath: "/dev/termination-log",
+            terminationMessagePolicy: "File",
           },
         ],
+        dnsPolicy: "ClusterFirst",
         imagePullSecrets: [],
+        schedulerName: "default-scheduler",
+        securityContext: {},
         volumes: [],
       })
     })
