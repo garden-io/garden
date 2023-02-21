@@ -97,7 +97,7 @@ export type PluginEventLogContext = {
   origin: string
 
   /**
-   * LogEntry placeholder to be used to stream the logs to the CLI
+   * Log placeholder to be used to stream the logs to the CLI
    * It's recommended to pass a verbose placeholder created like this: `log.placeholder({ level: LogLevel.verbose })`
    *
    * @todo 0.13 consider removing this once we have the append-only logger (#3254)
