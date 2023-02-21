@@ -49,9 +49,9 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
   const { ctx, action, log, syncMode, localMode } = params
-  const { deploymentStrategy } = params.ctx.provider.config
-  const deployWithSyncMode = syncMode && !!action.getSpec("sync")
   const k8sCtx = <KubernetesPluginContext>ctx
+  const { deploymentStrategy } = k8sCtx.provider.config
+  const deployWithSyncMode = syncMode && !!action.getSpec("sync")
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action, k8sCtx.provider)
