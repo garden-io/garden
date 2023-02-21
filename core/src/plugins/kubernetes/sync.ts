@@ -258,9 +258,24 @@ export function convertContainerSyncSpec(
   const blueGreen = ctx.provider.config.deploymentStrategy === "blue-green"
   const deploymentName = getDeploymentName(action.name, blueGreen, action.versionString())
   const target = { kind, name: deploymentName }
+  const paths = convertSyncPaths(action.basePath(), spec.sync.paths, target)
+
+  // override the entrypoint command if specified
+  const command = spec?.sync?.command
+  if (command) {
+    return {
+      paths,
+      overrides: [
+        {
+          target,
+          command,
+        },
+      ],
+    }
+  }
 
   return {
-    paths: convertSyncPaths(action.basePath(), spec.sync.paths, target),
+    paths,
   }
 }
 
