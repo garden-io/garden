@@ -7,7 +7,6 @@ environments:
 providers:
   - name: local-kubernetes
     environments: [local]
-    buildMode: kaniko
   - name: kubernetes
     environments: [remote]
     # Replace the below values as appropriate
