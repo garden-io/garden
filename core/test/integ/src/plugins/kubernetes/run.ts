@@ -658,8 +658,6 @@ describe("kubernetes Pod runner functions", () => {
             ],
             volumeMounts: [],
             command: ["echo", "foo"],
-            terminationMessagePath: "/dev/termination-log",
-            terminationMessagePolicy: "File",
           },
         ],
         imagePullSecrets: [],
@@ -704,8 +702,6 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: getResourceRequirements(resources),
-            terminationMessagePath: "/dev/termination-log",
-            terminationMessagePolicy: "File",
             env: [
               {
                 name: "GARDEN_ACTION_VERSION",
@@ -773,16 +769,11 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            terminationMessagePath: "/dev/termination-log",
-            terminationMessagePolicy: "File",
             volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
-        dnsPolicy: "ClusterFirst",
         imagePullSecrets: [],
-        schedulerName: "default-scheduler",
-        securityContext: {},
         volumes: [],
         shareProcessNamespace: true,
       })
@@ -838,8 +829,6 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            terminationMessagePath: "/dev/termination-log",
-            terminationMessagePolicy: "File",
             volumeMounts: [],
             command: ["echo", "foo"],
             securityContext: {
@@ -875,15 +864,8 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: {},
-            terminationMessagePath: "/dev/termination-log",
-            terminationMessagePolicy: "File",
           },
         ],
-        dnsPolicy: "ClusterFirst",
-        restartPolicy: "Always",
-        schedulerName: "default-scheduler",
-        securityContext: {},
-        terminationGracePeriodSeconds: 30,
         shareProcessNamespace: true,
       })
       const generatedPodSpec = await prepareRunPodSpec({
@@ -934,16 +916,11 @@ describe("kubernetes Pod runner functions", () => {
                 value: helmAction.versionString(),
               },
             ],
-            terminationMessagePath: "/dev/termination-log",
-            terminationMessagePolicy: "File",
             volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
-        dnsPolicy: "ClusterFirst",
         imagePullSecrets: [],
-        schedulerName: "default-scheduler",
-        securityContext: {},
         volumes: [],
       })
     })
@@ -1022,14 +999,9 @@ describe("kubernetes Pod runner functions", () => {
             ],
             volumeMounts: [],
             command: ["echo", "foo"],
-            terminationMessagePath: "/dev/termination-log",
-            terminationMessagePolicy: "File",
           },
         ],
-        dnsPolicy: "ClusterFirst",
         imagePullSecrets: [],
-        schedulerName: "default-scheduler",
-        securityContext: {},
         volumes: [],
       })
     })
@@ -1049,7 +1021,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     it("should run a basic action", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("simple.echo-task"), log, graph })
+      const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
 
       const result = await runAndCopy({
         ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1068,7 +1040,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     it("should clean up the created container", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("simple.echo-task"), log, graph })
+      const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
       const podName = makePodName("test", action.name)
 
       await runAndCopy({
@@ -1092,7 +1064,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     it("should return with success=false when command exceeds timeout", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+      const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
 
       const timeout = 4
       const result = await runAndCopy({
@@ -1116,7 +1088,7 @@ describe("kubernetes Pod runner functions", () => {
 
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         const result = await runAndCopy({
@@ -1140,7 +1112,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should clean up the created Pod", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
         const podName = makePodName("test", action.name)
 
@@ -1167,7 +1139,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should handle globs when copying artifacts out of the container", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.globs-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("globs-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await runAndCopy({
@@ -1190,7 +1162,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should not throw when an artifact is missing", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await runAndCopy({
@@ -1210,7 +1182,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should correctly copy a whole directory", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1237,7 +1209,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should correctly copy a whole directory without setting a wildcard or target", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1263,7 +1235,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should return with logs and success=false when command exceeds timeout", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         const timeout = 3
@@ -1290,7 +1262,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should copy artifacts out of the container even when task times out", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         const timeout = 3
@@ -1316,7 +1288,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should throw when container doesn't contain sh", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-sh.missing-sh-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("missing-sh-task"), log, graph })
         const _image = action._outputs["deployment-image-id"]
         const spec = action.getSpec() as KubernetesRunActionSpec
 
@@ -1357,7 +1329,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should throw when container doesn't contain tar", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-tar.missing-tar-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
         const _image = action._outputs["deployment-image-id"]
         const spec = action.getSpec() as KubernetesRunActionSpec
 
@@ -1398,7 +1370,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should throw when no command is specified", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-tar.missing-tar-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await expectError(
