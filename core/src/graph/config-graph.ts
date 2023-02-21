@@ -59,7 +59,7 @@ export class GraphError extends GardenBaseError {
   type = "graph"
 }
 
-type PickTypeByKind<
+export type PickTypeByKind<
   K extends ActionKind,
   B extends BuildAction,
   D extends DeployAction,
