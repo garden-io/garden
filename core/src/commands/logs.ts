@@ -115,7 +115,7 @@ export class LogsCommand extends Command<Args, Opts> {
   private events?: PluginEventBroker
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Logs", "scroll")
+    printHeader(headerLog, "Logs", "📜")
   }
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {

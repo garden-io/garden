@@ -15,7 +15,7 @@ import { dedent } from "../util/string"
 export class ValidateCommand extends Command {
   name = "validate"
   help = "Check your garden configuration for errors."
-  emoji: "heavy_check_mark"
+  emoji: "✔️"
 
   aliases: ["scan"]
 

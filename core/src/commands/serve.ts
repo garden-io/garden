@@ -63,7 +63,7 @@ export class ServeCommand<
   options = <O>serveOpts
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Server", "bar_chart")
+    printHeader(headerLog, "Server", "📊")
   }
 
   terminate() {
