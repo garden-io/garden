@@ -31,8 +31,6 @@ description: Node service container unit tests
 type: container
 
 build: node-service
-dependencies:
-  - deploy.go-service
 
 spec:
   command: [ npm, test ]
