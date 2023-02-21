@@ -531,10 +531,6 @@ export async function createWorkloadManifest({
   return workload
 }
 
-export function getDeploymentName(deployName: string, blueGreen: boolean, versionString: string) {
-  return blueGreen ? `${deployName}-${versionString}` : deployName
-}
-
 export function getDeploymentLabels(action: ContainerDeployAction) {
   return {
     [gardenAnnotationKey("module")]: action.moduleName() || "",
@@ -569,7 +565,7 @@ function workloadConfig({
     kind: daemon ? "DaemonSet" : "Deployment",
     apiVersion: "apps/v1",
     metadata: {
-      name: getDeploymentName(action.name, false, action.versionString()),
+      name: action.name,
       annotations: {
         // we can use this to avoid overriding the replica count if it has been manually scaled
         "garden.io/configured.replicas": configuredReplicas.toString(),
