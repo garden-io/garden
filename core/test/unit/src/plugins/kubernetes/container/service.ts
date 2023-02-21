@@ -26,7 +26,7 @@ describe("createServiceResources", () => {
     const rawAction = graph.getDeploy("service-a")
     const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
 
-    const resources = await createServiceResources(action, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace")
 
     expect(resources).to.eql([
       {
@@ -49,42 +49,6 @@ describe("createServiceResources", () => {
           selector: {
             [gardenAnnotationKey("actionName")]: "service-a",
             [gardenAnnotationKey("service")]: "service-a",
-          },
-          type: "ClusterIP",
-        },
-      },
-    ])
-  })
-
-  it("should pin to specific deployment version if blueGreen=true", async () => {
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const rawAction = graph.getDeploy("service-a")
-    const action = await garden.resolveAction({ graph, log: garden.log, action: rawAction })
-
-    const resources = await createServiceResources(action, "my-namespace", true)
-
-    expect(resources).to.eql([
-      {
-        apiVersion: "v1",
-        kind: "Service",
-        metadata: {
-          annotations: {},
-          name: "service-a",
-          namespace: "my-namespace",
-        },
-        spec: {
-          ports: [
-            {
-              name: "http",
-              protocol: "TCP",
-              targetPort: 8080,
-              port: 8080,
-            },
-          ],
-          selector: {
-            [gardenAnnotationKey("actionName")]: "service-a",
-            [gardenAnnotationKey("service")]: "service-a",
-            [gardenAnnotationKey("version")]: action.versionString(),
           },
           type: "ClusterIP",
         },
@@ -99,7 +63,7 @@ describe("createServiceResources", () => {
 
     action._config.spec.annotations = { my: "annotation" }
 
-    const resources = await createServiceResources(action, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace")
 
     expect(resources).to.eql([
       {
@@ -138,7 +102,7 @@ describe("createServiceResources", () => {
 
     action._config.spec.ports[0].nodePort = 12345
 
-    const resources = await createServiceResources(action, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace")
 
     expect(resources).to.eql([
       {
@@ -176,7 +140,7 @@ describe("createServiceResources", () => {
 
     action._config.spec.ports[0].nodePort = true
 
-    const resources = await createServiceResources(action, "my-namespace", false)
+    const resources = await createServiceResources(action, "my-namespace")
 
     expect(resources).to.eql([
       {

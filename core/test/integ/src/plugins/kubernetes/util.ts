@@ -150,7 +150,6 @@ describe("util", () => {
           enableLocalMode: false,
           log: garden.log,
           production: false,
-          blueGreen: false,
         })
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
