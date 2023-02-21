@@ -7,7 +7,7 @@
  */
 
 import { stringify } from "query-string"
-import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { ConfigurationError, CloudApiError } from "../../../exceptions"
 import { ListSecretsResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -67,7 +67,7 @@ export class SecretsListCommand extends Command<{}, Opts> {
     const project = await api.getProject()
 
     if (!project) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         {}
       )

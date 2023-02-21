@@ -115,8 +115,8 @@ export class WorkflowScriptError extends GardenBaseError {
   type = "workflow-script"
 }
 
-export class EnterpriseApiError extends GardenBaseError {
-  type = "enterprise-api"
+export class CloudApiError extends GardenBaseError {
+  type = "cloud-api"
 }
 
 export class TemplateStringError extends GardenBaseError {

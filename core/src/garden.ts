@@ -110,7 +110,7 @@ import {
 } from "./config/module-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildDirRsync } from "./build-staging/rsync"
-import { CloudApi, CloudProject, EnterpriseApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
+import { CloudApi, CloudProject, CloudApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { DefaultEnvironmentContext, RemoteSourceConfigContext } from "./config/template-contexts/project"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
@@ -1321,7 +1321,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       try {
         project = await cloudApi.getOrCreateProject(projectName)
       } catch (err) {
-        if (err instanceof EnterpriseApiDuplicateProjectsError) {
+        if (err instanceof CloudApiDuplicateProjectsError) {
           cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
         } else {
           cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)

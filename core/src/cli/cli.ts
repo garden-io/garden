@@ -54,7 +54,7 @@ import type { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginReference } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
-import { CloudApi, EnterpriseApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
+import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
@@ -296,13 +296,18 @@ ${renderCommands(commands)}
       try {
         cloudApi = await CloudApi.factory({ log, cloudDomain })
       } catch (err) {
-        if (err instanceof EnterpriseApiTokenRefreshError) {
+        if (err instanceof CloudApiTokenRefreshError) {
           log.warn(dedent`
           ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
           Command results for this command run will not be available in ${distroName}. If this not a
           ${distroName} project you can ignore this warning. Otherwise, please try logging out with
           \`garden logout\` and back in again with \`garden login\`.
         `)
+
+          // Project is configured for cloud usage => fail early to force re-auth
+          if (config && config.id) {
+            throw err
+          }
         } else {
           // unhandled error when creating the cloud api
           throw err
