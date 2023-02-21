@@ -255,8 +255,7 @@ export function convertContainerSyncSpec(
   }
 
   const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
-  const blueGreen = ctx.provider.config.deploymentStrategy === "blue-green"
-  const deploymentName = getDeploymentName(action.name, blueGreen, action.versionString())
+  const deploymentName = getDeploymentName(action.name, false, action.versionString())
   const target = { kind, name: deploymentName }
 
   return {

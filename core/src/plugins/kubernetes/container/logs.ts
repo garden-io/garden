@@ -36,7 +36,6 @@ export const k8sGetContainerDeployLogs: DeployActionHandler<"getLogs", Container
       enableLocalMode: false,
       production: ctx.production,
       log,
-      blueGreen: provider.config.deploymentStrategy === "blue-green",
     }),
   ]
 
