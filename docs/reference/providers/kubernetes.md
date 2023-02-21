@@ -301,15 +301,6 @@ providers:
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
 
-    # Sets the deployment strategy for `container` services.
-    #
-    # The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green
-    # deployments (via the `"blue-green"` strategy).
-    #
-    # Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm`
-    # services).
-    deploymentStrategy: rolling
-
     # Configuration options for code synchronization.
     sync:
       # Specifies default settings for syncs (e.g. for `container`, `kubernetes` and `helm` services).
@@ -1209,11 +1200,17 @@ providers:
 **Experimental**: this is an experimental feature and the API might change in the future.
 {% endhint %}
 
-Sets the deployment strategy for `container` services.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
-The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green deployments (via the `"blue-green"` strategy).
+Sets the deployment strategy for `container` deploy actions.
 
-Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm` services).
+Note that this field has been deprecated since 0.13, and has no effect.
+The `"rolling"` will be applied in all cases.
+The experimental support for blue/green deployments (via the `"blue-green"` strategy) has been removed.
+
+Note that this setting only applies to `container` deploy actions (and not, for example,  `kubernetes` or `helm` deploy actions).
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |

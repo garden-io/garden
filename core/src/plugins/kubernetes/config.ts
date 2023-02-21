@@ -93,7 +93,15 @@ interface KubernetesStorage {
 
 export type ContainerBuildMode = "local-docker" | "kaniko" | "cluster-buildkit"
 
+/**
+ * To be removed in 0.14
+ * @deprecated since 0.13
+ */
 export type DefaultDeploymentStrategy = "rolling"
+/**
+ * To be removed in 0.14
+ * @deprecated since 0.13
+ */
 export type DeploymentStrategy = DefaultDeploymentStrategy | "blue-green"
 
 export interface NamespaceConfig {
@@ -138,6 +146,10 @@ export interface KubernetesConfig extends BaseProviderConfig {
   context: string
   defaultHostname?: string
   deploymentRegistry?: ContainerRegistryConfig
+  /**
+   * Deprecated. Has no effect since 0.13. To be removed in 0.14.
+   * @deprecated since 0.13
+   */
   deploymentStrategy?: DeploymentStrategy
   sync?: {
     defaults?: SyncDefaults
@@ -585,15 +597,18 @@ export const kubernetesConfigBase = () =>
         .allow("rolling", "blue-green")
         .description(
           dedent`
-          Sets the deployment strategy for \`container\` services.
+          Sets the deployment strategy for \`container\` deploy actions.
 
-          The default is \`"rolling"\`, which performs rolling updates. There is also experimental support for blue/green deployments (via the \`"blue-green"\` strategy).
+          Note that this field has been deprecated since 0.13, and has no effect.
+          The \`"rolling"\` will be applied in all cases.
+          The experimental support for blue/green deployments (via the \`"blue-green"\` strategy) has been removed.
 
-          Note that this setting only applies to \`container\` services (and not, for example,  \`kubernetes\` or \`helm\` services).
+          Note that this setting only applies to \`container\` deploy actions (and not, for example,  \`kubernetes\` or \`helm\` deploy actions).
         `
         )
         .meta({
           experimental: true,
+          deprecated: "This field has been deprecated since 0.13, and has no effect.",
         }),
       sync: joi
         .object()
