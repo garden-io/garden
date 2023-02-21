@@ -53,6 +53,10 @@ import {
   ResolvedActionWrapperParams,
 } from "./types"
 import { varfileDescription } from "../config/base"
+import { PickTypeByKind } from "../graph/config-graph"
+import { DeployAction } from "./deploy"
+import { TestAction } from "./test"
+import { RunAction } from "./run"
 
 // TODO-G2: split this file
 
@@ -427,12 +431,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return false
   }
 
-  getDependency(refOrString: string | ActionReference) {
-    const ref = isString(refOrString) ? parseActionReference(refOrString) : refOrString
-
+  getDependency<K extends ActionKind>(ref: ActionReference<K>) {
     for (const dep of this.dependencies) {
       if (actionRefMatches(dep, ref)) {
-        return this.graph.getActionByRef(ref)
+        return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref)
       }
     }
 
