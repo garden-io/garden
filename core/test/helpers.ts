@@ -57,6 +57,7 @@ import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
 import { GraphResultExport, GraphResultMap } from "../src/graph/results"
 import { localConfigFilename } from "../src/config-store/local"
+import _ from "lodash"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -661,6 +662,24 @@ export function trimLineEnds(str: string) {
 }
 
 const skipGroups = gardenEnv.GARDEN_SKIP_TESTS.split(" ")
+
+// Modified version of https://stackoverflow.com/a/26202058
+/**
+ * Recursively remove null or undefined values from an object (inluding array elements).
+ */
+export function pruneEmpty(obj) {
+  return (function prune(current) {
+    _.forOwn(current, function (value, key) {
+      if (_.isObject(value)) prune(value)
+      else if (_.isUndefined(value) || _.isNull(value)) {
+        delete current[key]
+      }
+    })
+    // remove any leftover undefined values from the delete operation on an array
+    if (_.isArray(current)) _.pull(current, undefined)
+    return current
+  })(obj)
+}
 
 /**
  * Helper function that wraps mocha functions and assigns them to one or more groups.
