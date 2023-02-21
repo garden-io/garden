@@ -81,7 +81,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   _baseReleasesUrl = "https://download.garden.io/core/"
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Update Garden", "rolled_up_newspaper")
+    printHeader(headerLog, "Update Garden", "🗞️")
   }
 
   async action({

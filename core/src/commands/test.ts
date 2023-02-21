@@ -123,7 +123,7 @@ export class TestCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, `Running Tests`, "thermometer")
+    printHeader(headerLog, `Running Tests`, "🌡️")
   }
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {

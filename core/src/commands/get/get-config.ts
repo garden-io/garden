@@ -71,7 +71,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
   options = getConfigOptions
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Get config", "open_file_folder")
+    printHeader(headerLog, "Get config", "📂")
   }
 
   async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult<ConfigDump>> {

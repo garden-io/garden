@@ -61,7 +61,7 @@ export class PluginsCommand extends Command<Args> {
   arguments = pluginArgs
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Plugins", "gear")
+    printHeader(headerLog, "Plugins", "⚙️")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult> {
@@ -97,7 +97,7 @@ export class PluginsCommand extends Command<Args> {
         typeof command.title === "function"
           ? await command.title({ args: commandArgs, environmentName })
           : command.title
-      printHeader(log, title, "gear")
+      printHeader(log, title, "⚙️")
     }
 
     const provider = await garden.resolveProvider(log, args.plugin)
