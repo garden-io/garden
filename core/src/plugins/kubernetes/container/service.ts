@@ -51,7 +51,7 @@ export async function createServiceResources(action: Resolved<ContainerDeployAct
       },
       spec: {
         ports: servicePorts,
-        selector: getDeploymentSelector(action, false),
+        selector: getDeploymentSelector(action),
         type: serviceType,
       },
     }

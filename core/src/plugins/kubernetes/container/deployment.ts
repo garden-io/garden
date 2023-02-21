@@ -535,27 +535,18 @@ export function getDeploymentName(deployName: string, blueGreen: boolean, versio
   return blueGreen ? `${deployName}-${versionString}` : deployName
 }
 
-export function getDeploymentLabels(action: ContainerDeployAction, blueGreen: boolean) {
-  if (blueGreen) {
-    return {
-      [gardenAnnotationKey("module")]: action.moduleName() || "",
-      [gardenAnnotationKey("actionName")]: action.name,
-      [gardenAnnotationKey("service")]: action.name,
-      [gardenAnnotationKey("version")]: action.versionString(),
-    }
-  } else {
-    return {
-      [gardenAnnotationKey("module")]: action.moduleName() || "",
-      [gardenAnnotationKey("actionName")]: action.name,
-      [gardenAnnotationKey("service")]: action.name,
-    }
+export function getDeploymentLabels(action: ContainerDeployAction) {
+  return {
+    [gardenAnnotationKey("module")]: action.moduleName() || "",
+    [gardenAnnotationKey("actionName")]: action.name,
+    [gardenAnnotationKey("service")]: action.name,
   }
 }
 
-export function getDeploymentSelector(action: ContainerDeployAction, blueGreen: boolean) {
+export function getDeploymentSelector(action: ContainerDeployAction) {
   // Unfortunately we need this because matchLabels is immutable, and we had omitted the module annotation before
   // in the selector.
-  return omit(getDeploymentLabels(action, blueGreen), gardenAnnotationKey("module"))
+  return omit(getDeploymentLabels(action), gardenAnnotationKey("module"))
 }
 
 function workloadConfig({
@@ -567,9 +558,9 @@ function workloadConfig({
   configuredReplicas: number
   namespace: string
 }): KubernetesResource<V1Deployment | V1DaemonSet> {
-  const labels = getDeploymentLabels(action, false)
+  const labels = getDeploymentLabels(action)
   const selector = {
-    matchLabels: getDeploymentSelector(action, false),
+    matchLabels: getDeploymentSelector(action),
   }
 
   const { annotations, daemon } = action.getSpec()
