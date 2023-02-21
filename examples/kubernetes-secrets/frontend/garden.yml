@@ -31,8 +31,6 @@ name: frontend-unit
 description: Frontend service container unit tests
 type: container
 build: frontend
-dependencies:
-  - deploy.frontend
 spec:
   command: [ npm, test ]
 
