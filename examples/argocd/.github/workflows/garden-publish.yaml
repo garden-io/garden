@@ -1,0 +1,65 @@
+# This workflow yaml can be used once its moved to <repo_root>/.github/workflows from here
+# Update paths accordingly
+
+name: Garden publish to dockerhub
+
+on:
+  push:
+    paths:
+    - 'api/**'
+    - 'web/**'
+    branches:
+    - main
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }} # Update accordingly
+  GKE_CLUSTER: gitops-dev # Update accordingly
+  GKE_ZONE: us-central1-a # Update accordingly
+
+jobs:
+  setup-and-deploy:
+    name: Setup and Deploy
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Set USE_GKE_GCLOUD_AUTH_PLUGIN=True env var
+      run: echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
+
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        credentials_json: '${{ secrets.GKE_SA_KEY }}' # Update accordingly
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+
+    - name: Set up kubernetes context
+      run: |-
+        gcloud components install gke-gcloud-auth-plugin
+        gcloud container clusters get-credentials "$GKE_CLUSTER" --zone "$GKE_ZONE"
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Install garden-cli
+      run: |-
+        curl -sL https://get.garden.io/install.sh | bash
+        echo "$HOME/.garden/bin" >> $GITHUB_PATH
+
+    - name: Garden publish
+      run: |-
+        garden publish --force-build api-image,web-image --tag ${GITHUB_REF_NAME}-${GITHUB_RUN_NUMBER}
+
+    - name: Garden delete environment
+      run: |-
+        garden delete environment
