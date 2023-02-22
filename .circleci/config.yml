@@ -219,15 +219,19 @@ commands:
 
   cleanup_remote_cluster:
     description: Clean up namespaces in the ci cluster on gcloud (to be used with configure_remote_cluster)
+    parameters:
+      filter:
+        description: What to grep namespaces by to select the current namespace to delete
+        type: string
     steps:
       - run:
-          name: Delete current namespace
-          command: kubectl get ns | grep ${CIRCLE_BUILD_NUM} | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          name: Delete current namespace(s)
+          command: kubectl get ns | grep <<parameters.filter>> | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
           when: always
       - run:
           name: Delete namespaces older than 1 hour
           # hack: find namespaces that contain '-ci' and their age ends with h or d, e.g. 1d5h or 24h
-          command: kubectl get ns | grep -E '(d|h)$' | grep -- '-ci' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          command: kubectl get ns | grep -E '(d|h)$' | grep -- '-testing' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
           when: always
 
   build_dist:
@@ -384,16 +388,14 @@ jobs:
       - docker_login
       - *attach-workspace
       - run:
-          name: Set environment
-          command: export CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-e2e-<<parameters.project>>
-      - run:
           name: Run e2e test
           command: |
             cd e2e/projects/<<parameters.project>>
             git checkout .
             cd ~/project
             yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
-      - cleanup_remote_cluster
+      - cleanup_remote_cluster:
+          filter: <<parameters.project>>-testing-$CIRCLE_BUILD_NUM-e2e
 
   build-docker-alpine:
     <<: *node-config
@@ -515,7 +517,8 @@ jobs:
           name: Deploy demo-project with container
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
-      - cleanup_remote_cluster
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-docker
 
   release-service-docker:
     <<: *node-config
@@ -614,8 +617,9 @@ jobs:
       - run:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic --var userId=dist-$CIRCLE_BUILD_NUM
-      - cleanup_remote_cluster
+          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic --var userId=$CIRCLE_BUILD_NUM-dist
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-dist
 
   test-plugins:
     machine:
@@ -840,8 +844,9 @@ jobs:
       - configure_remote_cluster
       - run:
           name: Deploy demo-project
-          command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=testing-$CIRCLE_BUILD_NUM-macos
-      - cleanup_remote_cluster
+          command: dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic -l=silly --env remote --var userId=$CIRCLE_BUILD_NUM-macos
+      - cleanup_remote_cluster:
+          filter: $CIRCLE_BUILD_NUM-macos
 
   test-windows:
     executor: win/default

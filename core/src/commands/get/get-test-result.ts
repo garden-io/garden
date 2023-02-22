@@ -66,7 +66,7 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
     printHeader(
       headerLog,
       `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
-      "heavy_check_mark"
+      "✔️"
     )
   }
 

@@ -670,7 +670,9 @@ describe("kubernetes container deployment handlers", () => {
       const action = await resolveDeployAction("volume-reference")
       const namespace = provider.config.namespace!.name!
 
-      action.getSpec().volumes = [{ name: "test", containerPath: "TODO-G2", action: "simple-service" }]
+      action.getSpec().volumes = [
+        { name: "test", containerPath: "TODO-G2", action: { name: "simple-service", kind: "Deploy" } },
+      ]
 
       await expectError(
         () =>

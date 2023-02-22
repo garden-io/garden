@@ -76,7 +76,7 @@ export class FetchToolsCommand extends Command<{}, FetchToolsOpts> {
 
       plugins = await garden.getConfiguredPlugins()
 
-      printHeader(log, "Fetching all tools for the current project and environment", "hammer_and_wrench")
+      printHeader(log, "Fetching all tools for the current project and environment", "🛠️")
     }
 
     let tools = plugins.flatMap((plugin) =>

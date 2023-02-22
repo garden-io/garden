@@ -1,11 +1,12 @@
 # Kubernetes Secrets
 
 This is a simple variation on the [demo project](../demo-project/README.md) example, adding a Secret reference to
-one of the modules.
+the `backend` application.
 
 ## Setup
 
-_Note: The commands below assume you're running a local Kubernetes cluster. Please adjust the commands accordingly if you're running against a remote environment (setting the `--env` parameter and the correct `--namespace` for kubectl)._
+_Note: The commands below assume you're running a local Kubernetes cluster. Please adjust the commands accordingly if
+you're running against a remote environment (setting the `--env` parameter and the correct `--namespace` for kubectl)._
 
 You can start by creating a namespace for the project and secrets to live in:
 
@@ -25,4 +26,5 @@ Now you can deploy the services:
 garden deploy
 ```
 
-Finally, try opening the frontend service by opening the displayed ingress URL, which should display the secret value.
+Finally, try calling the backend application via the frontend service by opening the displayed ingress
+URL `/call-backend`, which should display the secret value.

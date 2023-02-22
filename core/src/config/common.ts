@@ -452,8 +452,8 @@ joi = joi.extend({
   },
 })
 
-export interface ActionReference {
-  kind: ActionKind
+export interface ActionReference<K extends ActionKind = ActionKind> {
+  kind: K
   name: string
 }
 
@@ -678,13 +678,7 @@ joi = joi.extend({
       args: [
         {
           name: "kind",
-          normalize: (v) => {
-            try {
-              return v.toLowerCase()
-            } catch {
-              return v
-            }
-          },
+          normalize: (v) => v,
           assert: joi
             .string()
             .allow(...actionKinds)
@@ -693,7 +687,7 @@ joi = joi.extend({
       ],
       method(value: string) {
         // eslint-disable-next-line no-invalid-this
-        return this.$_setFlag("kind", value.toLowerCase())
+        return this.$_setFlag("kind", value)
       },
       validate(value) {
         // This is validated above ^

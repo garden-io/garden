@@ -91,7 +91,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
   options = createModuleOpts
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Create new module", "pencil2")
+    printHeader(headerLog, "Create new module", "✏️")
   }
 
   // Defining it like this because it'll stall on waiting for user input.
