@@ -4,5 +4,5 @@ helm:
     value: srihasg/api-image
     forcestring: true
   - name: image.tag
-    value: v-77ea98c7ce
+    value: main-27
     forcestring: true

@@ -26,3 +26,5 @@ spec:
             prefix: docker.io
             api_url: https://registry-1.docker.io
             default: true
+          gitCommitTemplate: |
+            [skip ci] build: automatic update of {{ .AppName }}

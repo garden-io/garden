@@ -1,28 +1,36 @@
 kind: Project
 name: vote-helm-argocd
+defaultEnvironment: "${local.env.GITHUB_ACTIONS ? 'ci' : 'gke-gitops-dev'}"
 variables:
-  userId: ${local.username}
+  common-k8s-provider-config:
+    context: gke_garden # update context accordingly, using the same cluster as both CI and Dev
+    buildMode: cluster-buildkit
+    imagePullSecrets:
+      - name: regcred
+        namespace: default
+    deploymentRegistry:
+      hostname: index.docker.io
+      namespace: srihasg # Update with your user's registry namespace
+  dev-k8s-namespace: ${project.name}-${local.username}
+  ci-k8s-namespace: ${project.name}-${local.username}-${local.env.GITHUB_REF_NAME || "branch"}-${local.env.GITHUB_RUN_NUMBER || 0}
 environments:
   - name: local
     variables:
       baseHostname: vote.local.app.garden
   - name: gke-gitops-dev
-    defaultNamespace: ${var.userId}
+    defaultNamespace: ${var.dev-k8s-namespace}
     variables:
-      baseHostname: ${project.name}-${var.userId}.dev-1.sys.garden
+      baseHostname: ${var.dev-k8s-namespace}.dev-1.sys.garden
+  - name: ci
+    defaultNamespace: ${var.ci-k8s-namespace}
+    variables:
+      baseHostname: ${var.ci-k8s-namespace}.ci.sys.garden
 providers:
   - name: local-kubernetes
     environments: [local]
     context: docker-desktop
   - name: kubernetes
-    environments: [gke-gitops-dev]
-    context: gke_garden-demo-324810_us-central1-a_gitops-dev
-    namespace: ${project.name}-${var.userId}
+    environments: [gke-gitops-dev, ci]
+    $merge: ${var.common-k8s-provider-config}
+    namespace: ${environment.namespace}
     defaultHostname: ${var.baseHostname}
-    buildMode: cluster-buildkit
-    deploymentRegistry:
-      hostname: index.docker.io
-      namespace: srihasg
-    imagePullSecrets:
-      - name: regcred
-        namespace: default
