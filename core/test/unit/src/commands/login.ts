@@ -20,12 +20,11 @@ import {
 import { AuthRedirectServer } from "../../../../src/cloud/auth"
 
 import { LoginCommand } from "../../../../src/commands/login"
-import stripAnsi from "strip-ansi"
 import { dedent, randomString } from "../../../../src/util/string"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
-import { EnterpriseApiError } from "../../../../src/exceptions"
+import { CloudApiError } from "../../../../src/exceptions"
 import { getLogMessages } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 import { makeDummyGarden } from "../../../../src/cli/cli"
@@ -239,7 +238,7 @@ describe("LoginCommand", () => {
     await CloudApi.saveAuthToken(garden.log, garden.globalConfigStore, testToken, garden.cloudDomain!)
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
     td.replace(CloudApi.prototype, "refreshToken", async () => {
-      throw new EnterpriseApiError("bummer", { statusCode: 401 })
+      throw new CloudApiError("bummer", { statusCode: 401 })
     })
 
     const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)

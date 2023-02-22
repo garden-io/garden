@@ -53,7 +53,7 @@ import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/
 import { defaultDotIgnoreFile } from "../util/fs"
 import { CoreEventStream } from "../server/core-event-stream"
 import { GardenPluginReference } from "../plugin/plugin"
-import { CloudApi, getGardenCloudDomain } from "../cloud/api"
+import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
@@ -296,10 +296,34 @@ ${renderCommands(commands)}
 
     // Init Cloud API
     let cloudApi: CloudApi | null = null
+    let distroName: string = ""
+
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
-      let cloudDomain: string = getGardenCloudDomain(config)
-      cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })
+
+      const cloudDomain: string = getGardenCloudDomain(config)
+      distroName = getCloudDistributionName(cloudDomain)
+
+      try {
+        cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })
+      } catch (err) {
+        if (err instanceof CloudApiTokenRefreshError) {
+          log.warn(dedent`
+          ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+          Command results for this command run will not be available in ${distroName}. If this not a
+          ${distroName} project you can ignore this warning. Otherwise, please try logging out with
+          \`garden logout\` and back in again with \`garden login\`.
+        `)
+
+          // Project is configured for cloud usage => fail early to force re-auth
+          if (config && config.id) {
+            throw err
+          }
+        } else {
+          // unhandled error when creating the cloud api
+          throw err
+        }
+      }
     }
 
     // Init event & log streaming.
@@ -430,7 +454,6 @@ ${renderCommands(commands)}
 
           // Print a specific header and footer when connected to Garden Cloud.
           if (namespaceUrl) {
-            const distroName = getCloudDistributionName(cloudApi?.domain || "")
             const msg = dedent`
               \n${printEmoji("🌩️", log)}   ${chalk.cyan(
               `Connected to ${distroName}! Click the link below to view logs and more.`
