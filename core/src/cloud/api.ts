@@ -122,11 +122,11 @@ function toCloudProject(
   const environments: CloudEnvironment[] = []
 
   for (const environment of project.environments) {
-    environments.push({ id: environment.id, name: environment.name })
+    environments.push({ id: `${environment.id}`, name: `${environment.name}` })
   }
 
   return {
-    id: project.id,
+    id: `${project.id}`,
     name: project.name,
     repositoryUrl: project.repositoryUrl,
     environments,
