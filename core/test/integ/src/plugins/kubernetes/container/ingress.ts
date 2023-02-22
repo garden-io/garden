@@ -319,12 +319,6 @@ describe("createIngressResources", () => {
 
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
 
-    td.replace(Garden.prototype, "resolveModuleVersion", async () => ({
-      versionString: "1234",
-      dependencyVersions: {},
-      files: [],
-    }))
-
     basicProvider = {
       name: "kubernetes",
       config: { ...basicConfig, context },
@@ -373,28 +367,17 @@ describe("createIngressResources", () => {
       graph,
       config: {
         internal: {
-          basePath: "TODO-G2",
+          basePath: garden.projectRoot
         },
         kind: "Deploy",
-        name: "test",
+        name: "my-service",
+        type: "container",
         spec: {
-          name: "my-service",
-          annotations: {},
-          args: [],
-          daemon: false,
-          dependencies: [],
-          disabled: false,
-          env: {},
+          image: "busybox:1.31.1",
           ingresses,
-          cpu: defaultContainerResources.cpu,
-          memory: defaultContainerResources.memory,
           ports,
-          replicas: 1,
-          volumes: [],
-          deploymentStrategy: defaultDeploymentStrategy,
-        } as ContainerDeploySpec,
-        type: "",
-      } as DeployActionConfig,
+        },
+      },
     })) as DeployAction
 
     return await garden.resolveAction({ action: unresolved, graph, log })
