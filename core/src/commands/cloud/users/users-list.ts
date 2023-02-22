@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { ConfigurationError, CloudApiError } from "../../../exceptions"
 import { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -59,7 +59,7 @@ export class UsersListCommand extends Command<{}, Opts> {
     const project = await api.getProject()
 
     if (!project) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         {}
       )

@@ -8,7 +8,7 @@
 
 import { WorkflowConfig, makeRunConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
-import { EnterpriseApiError } from "../exceptions"
+import { CloudApiError } from "../exceptions"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
 import { ApiFetchResponse, isGotError } from "./api"
@@ -59,7 +59,7 @@ export async function registerWorkflowRun({
           CLI version is compatible with your version of Garden Cloud. See error.log for details
           on the failed registration request payload.
         `
-        throw new EnterpriseApiError(errMsg, {
+        throw new CloudApiError(errMsg, {
           requestData,
         })
       } else {
@@ -71,11 +71,11 @@ export async function registerWorkflowRun({
     if (res?.workflowRunUid && res?.status === "success") {
       return res.workflowRunUid
     } else {
-      throw new EnterpriseApiError(`Error while registering workflow run: Request failed with status ${res?.status}`, {
+      throw new CloudApiError(`Error while registering workflow run: Request failed with status ${res?.status}`, {
         status: res?.status,
         workflowRunUid: res?.workflowRunUid,
       })
     }
   }
-  throw new EnterpriseApiError("Error while registering workflow run: Couldn't initialize API.", {})
+  throw new CloudApiError("Error while registering workflow run: Couldn't initialize API.", {})
 }
