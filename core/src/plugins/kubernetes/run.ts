@@ -819,7 +819,9 @@ export class PodRunner extends PodRunnerParams {
     })
     return new K8sLogFollower({
       defaultNamespace: this.namespace,
-      retryIntervalMs: 10,
+      // We use 1 second in the PodRunner, because the task / test will only finish once the LogFollower finished.
+      // If this is too low, we waste resources (network/cpu) – if it's too high we add extra time to the run execution.
+      retryIntervalMs: 1000,
       stream,
       log,
       entryConverter: makeRunLogEntry,
@@ -845,8 +847,7 @@ export class PodRunner extends PodRunnerParams {
 
     const startedAt = new Date()
     const logsFollower = this.prepareLogsFollower(params)
-    const limitBytes = 1000 * 1024 // 1MB
-    logsFollower.followLogs({ limitBytes }).catch((_err) => {
+    logsFollower.followLogs({}).catch((_err) => {
       // Errors in `followLogs` are logged there, so all we need to do here is to ensure that the follower is closed.
       logsFollower.close()
     })
@@ -873,8 +874,10 @@ export class PodRunner extends PodRunnerParams {
         success: exitCode === undefined || exitCode === 0,
       }
     } finally {
-      logsFollower.close()
+      log.debug("Closing logsFollower...")
+      await logsFollower.closeAndFlush()
       if (remove) {
+        log.debug("Stopping PodRunner")
         await this.stop()
       }
     }
