@@ -104,14 +104,13 @@ export interface RegisterSessionResponse {
 
 // Represents a cloud environment
 export interface CloudEnvironment {
-  id: number
+  id: string
   name: string
 }
 
 // Represents a cloud project
 export interface CloudProject {
-  id: number
-  uid: string
+  id: string
   name: string
   repositoryUrl: string
   environments: CloudEnvironment[]
@@ -128,7 +127,6 @@ function toCloudProject(
 
   return {
     id: project.id,
-    uid: project.uid,
     name: project.name,
     repositoryUrl: project.repositoryUrl,
     environments,
@@ -441,7 +439,7 @@ export class CloudApi {
 
     // This is necessary to internally configure the project for this instance
     this._project = project
-    this.projectId = project.uid
+    this.projectId = project.id
 
     return project
   }
@@ -679,7 +677,7 @@ export class CloudApi {
     // NOTE: If we wan't to use this with multiple project IDs we need
     // a cache supporting that + check if the remote project metadata
     // was updated.
-    if (this._project && this._project.uid === this.projectId) {
+    if (this._project && this._project.id === this.projectId) {
       return this._project
     }
 
