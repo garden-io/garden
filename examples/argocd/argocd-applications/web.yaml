@@ -8,7 +8,8 @@ metadata:
     argocd-image-updater.argoproj.io/image-list: web=srihasg/web-image
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
-    argocd-image-updater.argoproj.io/web.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/web.update-strategy: name
+    argocd-image-updater.argoproj.io/web.allow-tags: regexp:^main-[0-9]+$
     argocd-image-updater.argoproj.io/web.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/web.helm.image-tag: image.tag
 spec:
