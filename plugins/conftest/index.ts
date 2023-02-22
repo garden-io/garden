@@ -97,6 +97,15 @@ const testActionSchema = () =>
   joi.object().keys({
     ...commonSchemaKeys(),
     build: joiIdentifier().description("Specify a build whose files we want to test."),
+    files: joi
+      .array()
+      .items(joi.posixPath().subPathOnly().relativeOnly().allowGlobs())
+      .required()
+      .description(
+        dedent`
+      A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
+    `
+      ),
   })
 
 const commonModuleSchema = () =>
@@ -289,7 +298,7 @@ export const gardenPlugin = () =>
               return {
                 state: success ? "ready" : "not-ready",
                 detail: {
-                  testName: test.name,
+                  testName: action.name,
                   moduleName: action.moduleName(),
                   command: ["conftest", ...args],
                   version: action.versionString(),
@@ -317,17 +326,7 @@ export const gardenPlugin = () =>
 
         See the [conftest docs](https://github.com/instrumenta/conftest) for details on how to configure policies.
       `,
-        schema: commonModuleSchema().keys({
-          files: joi
-            .array()
-            .items(joi.posixPath().subPathOnly().relativeOnly().allowGlobs())
-            .required()
-            .description(
-              dedent`
-              A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
-            `
-            ),
-        }),
+        schema: commonModuleSchema(),
         needsBuild: false,
         handlers: {
           configure: async ({ moduleConfig }) => {
