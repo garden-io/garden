@@ -18,7 +18,7 @@ import { noApiMsg, applyFilter } from "../helpers"
 
 // TODO: Add created at and updated at timestamps. Need to add it to the API response first.
 interface Groups {
-  id: number
+  id: string
   name: string
   description: string
   defaultAdminGroup: boolean

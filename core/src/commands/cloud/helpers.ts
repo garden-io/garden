@@ -29,29 +29,29 @@ export interface ApiCommandError {
 }
 
 export interface SecretResult {
-  id: number
+  id: string
   createdAt: string
   updatedAt: string
   name: string
   environment?: {
     name: string
-    id: number
+    id: string
   }
   user?: {
     name: string
-    id: number
+    id: string
     vcsUsername: string
   }
 }
 
 export interface UserResult {
-  id: number
+  id: string
   createdAt: string
   updatedAt: string
   name: string
   vcsUsername: string | null | undefined
   groups: {
-    id: number
+    id: string
     name: string
   }[]
 }
