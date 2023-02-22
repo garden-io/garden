@@ -615,10 +615,7 @@ describe("kubernetes container deployment handlers", () => {
         {
           name: "test",
           configMap: {
-            name: {
-              kind: "Deploy",
-              name: "configmap-module",
-            },
+            name: "configmap-module",
           },
         },
       ])
