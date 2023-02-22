@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { CommandError, ConfigurationError, CloudApiError } from "../../../exceptions"
 import { CreateSecretResponse } from "@garden-io/platform-api-types"
 import { readFile } from "fs-extra"
 
@@ -129,7 +129,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     const project = await api.getProject()
 
     if (!project) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         {}
       )
@@ -140,7 +140,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     if (envName) {
       const environment = project.environments.find((e) => e.name === envName)
       if (!environment) {
-        throw new EnterpriseApiError(`Environment with name ${envName} not found in project`, {
+        throw new CloudApiError(`Environment with name ${envName} not found in project`, {
           environmentName: envName,
           availableEnvironmentNames: project.environments.map((e) => e.name),
         })
@@ -152,7 +152,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     if (userId) {
       const user = await api.get(`/users/${userId}`)
       if (!user) {
-        throw new EnterpriseApiError(`User with ID ${userId} not found.`, {
+        throw new CloudApiError(`User with ID ${userId} not found.`, {
           userId,
         })
       }
