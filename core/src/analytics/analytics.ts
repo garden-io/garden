@@ -11,17 +11,18 @@ import { platform, release } from "os"
 import ci = require("ci-info")
 import { isEmpty, uniq } from "lodash"
 import { globalConfigKeys, AnalyticsGlobalConfig } from "../config-store"
-import { getPackageVersion, uuidv4, sleep } from "../util/util"
+import { getPackageVersion, uuidv4, sleep, getDurationMsec } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { LogEntry } from "../logger/log-entry"
 import hasha = require("hasha")
 import { Garden } from "../garden"
-import { AnalyticsType } from "./analytics-types"
+import { AnalyticsCommandResult, AnalyticsType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
+import { GardenBaseError } from "../exceptions"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -131,6 +132,16 @@ interface ApiEvent extends EventBase {
   }
 }
 
+interface CommandResultEvent extends EventBase {
+  type: AnalyticsType.COMMAND_RESULT
+  properties: PropertiesBase & {
+    name: string
+    durationMsec: number
+    result: AnalyticsCommandResult
+    errors: string[] // list of GardenBaseError types
+  }
+}
+
 interface ConfigErrorEvent extends EventBase {
   type: AnalyticsType.MODULE_CONFIG_ERROR
   properties: PropertiesBase & {
@@ -173,7 +184,13 @@ interface ApiRequestBody {
   command: string
 }
 
-type AnalyticsEvent = CommandEvent | ApiEvent | ConfigErrorEvent | ProjectErrorEvent | ValidationErrorEvent
+type AnalyticsEvent =
+  | CommandEvent
+  | CommandResultEvent
+  | ApiEvent
+  | ConfigErrorEvent
+  | ProjectErrorEvent
+  | ValidationErrorEvent
 
 export interface SegmentEvent {
   userId?: string
@@ -520,6 +537,26 @@ export class AnalyticsHandler {
       type: AnalyticsType.COMMAND,
       properties: {
         name: commandName,
+        ...this.getBasicAnalyticsProperties(),
+      },
+    })
+  }
+
+  /**
+   * Track a command result.
+   */
+  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date) {
+    const result = errors.length > 0 ? AnalyticsCommandResult.FAILURE : AnalyticsCommandResult.SUCCESS
+
+    const durationMsec = getDurationMsec(startTime, new Date())
+
+    return this.track({
+      type: AnalyticsType.COMMAND_RESULT,
+      properties: {
+        name: commandName,
+        durationMsec,
+        result,
+        errors: errors.map((e) => e.type),
         ...this.getBasicAnalyticsProperties(),
       },
     })
