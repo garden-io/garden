@@ -40,7 +40,6 @@
     "chokidar": "^3.4.0",
     "ci-info": "^3.5.0",
     "circular-json": "^0.5.9",
-    "cli-cursor": "^3.1.0",
     "cli-highlight": "^2.1.4",
     "cli-table3": "^0.6.0",
     "cli-truncate": "^2.1.0",
