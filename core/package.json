@@ -55,7 +55,6 @@
     "docker-file-parser": "^1.0.4",
     "dotenv": "^16.0.0",
     "env-var": "^6.2.0",
-    "escape-string-regexp": "^4.0.0",
     "eventemitter2": "^6.4.1",
     "eventemitter3": "^4.0.7",
     "execa": "^4.0.2",
