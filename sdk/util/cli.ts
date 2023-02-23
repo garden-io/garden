@@ -8,6 +8,8 @@
 
 import { Parameters } from "@garden-io/core/build/src/cli/params"
 import { prepareMinimistOpts } from "@garden-io/core/build/src/cli/helpers"
+import { isTruthy } from "@garden-io/core/build/src/util/util"
+import { flatten, pick, without } from "lodash"
 import minimist from "minimist"
 
 export {
@@ -24,7 +26,7 @@ export {
 
 /**
  * Parses the given CLI arguments using minimist, according to the CLI options spec provided. Useful for plugin commands
- * that want to support CLI options.
+ * that want to support CLI options. Any CLI options not present in `optionSpec` will be returned as `otherOpts`.
  *
  * @param stringArgs  Raw string arguments
  * @param optionSpec  A map of CLI options that should be detected and parsed.
@@ -48,8 +50,26 @@ export function parsePluginCommandArgs(params: {
     "--": true,
   })
 
+  const optionKeysFromSpec = flatten(Object.entries(optionSpec).map(([optName, { alias }]) => [optName, alias])).filter(
+    isTruthy
+  )
+
   return {
     args: parsed["_"],
     opts: parsed,
+    otherOpts: pick(parsed, ...without(Object.keys(parsed), ...optionKeysFromSpec, "_", "--")),
   }
+}
+
+export function unparseMinimistOptions(opts: { [name: string]: string | number | boolean }): string[] {
+  return flatten(
+    Object.entries(opts).map(([opt, val]) => {
+      const renderedOpt = opt.length === 1 ? `-${opt}` : `--${opt}`
+      if (typeof val === "boolean") {
+        return [renderedOpt]
+      } else {
+        return [renderedOpt, val.toString()]
+      }
+    })
+  ).filter(isTruthy)
 }

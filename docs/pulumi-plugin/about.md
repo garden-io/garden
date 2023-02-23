@@ -79,6 +79,10 @@ For example:
 ```
 garden plugins pulumi preview -- my-pulumi-module my-other-pulumi-module
 ```
+Any CLI options passed after the `--` will be passed on to the Pulumi CLI, unless it's reserved by the plugin command (e.g. the `--plan-path` or `--config-file` options, which the Pulumi plugin needs to set internally to function correctly).
+
+For example, in `garden plugins pulumi preview -- some-service --same --suppress-outputs`, `--same` and `--suppres-outputs` would be passed as CLI options to `pulumi preview`.
+
 
 ## Next steps
 

@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { countBy, flatten, isEmpty, uniq } from "lodash"
+import { countBy, flatten, isEmpty, omit, uniq } from "lodash"
 import { safeLoad } from "js-yaml"
 import stripAnsi from "strip-ansi"
 import chalk from "chalk"
@@ -23,12 +23,21 @@ import { LogEntry, PluginContext } from "@garden-io/sdk/types"
 import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiModule, PulumiProvider } from "./config"
 import { deline } from "@garden-io/sdk/util/string"
+import { unparseMinimistOptions } from "@garden-io/sdk/util/cli"
+
+interface ExtraOpts {
+  [opt: string]: any
+}
 
 export interface PulumiParams {
   ctx: PluginContext
   log: LogEntry
   provider: PulumiProvider
   module: PulumiModule
+  /**
+   * Used by Pulumi plugin commands to pass arbitrary CLI options directly to the Pulumi CLI.
+   */
+  extraCliOpts?: ExtraOpts
 }
 
 export interface PulumiConfig {
@@ -102,7 +111,7 @@ export interface PreviewResult {
 export async function previewStack(
   params: PulumiParams & { logPreview: boolean; previewDirPath?: string }
 ): Promise<PreviewResult> {
-  const { log, ctx, provider, module, logPreview, previewDirPath } = params
+  const { log, ctx, provider, module, logPreview, previewDirPath, extraCliOpts } = params
 
   const configPath = await applyConfig({ ...params, previewDirPath })
   const planPath = previewDirPath
@@ -114,7 +123,16 @@ export async function previewStack(
   const res = await pulumi(ctx, provider).exec({
     log,
     // We write the plan to the `.garden` directory for subsequent use by the deploy handler.
-    args: ["preview", "--color", "always", "--config-file", configPath, "--save-plan", planPath],
+    args: [
+      "preview",
+      "--color",
+      "always",
+      "--config-file",
+      configPath,
+      "--save-plan",
+      planPath,
+      ...processExtraOpts(extraCliOpts, ["color", "config-file", "save-plan"]),
+    ],
     cwd: getModuleStackRoot(module),
     env: defaultPulumiEnv,
   })
@@ -342,11 +360,11 @@ export function countAffectedResources(plan: PulumiPlan): number {
 /**
  * Wrapper for `pulumi cancel --yes`. Does not throw on error, since we may also want to cancel other updates upstream.
  */
-export async function cancelUpdate({ module, ctx, provider, log }: PulumiParams): Promise<void> {
+export async function cancelUpdate({ module, ctx, provider, log, extraCliOpts }: PulumiParams): Promise<void> {
   const res = await pulumi(ctx, provider).exec({
     log,
     ignoreError: true,
-    args: ["cancel", "--yes", "--color", "always"],
+    args: ["cancel", "--yes", "--color", "always", ...processExtraOpts(extraCliOpts, ["yes", "color"])],
     env: defaultPulumiEnv,
     cwd: getModuleStackRoot(module),
   })
@@ -361,13 +379,21 @@ export async function cancelUpdate({ module, ctx, provider, log }: PulumiParams)
  * Wrapper for `pulumi refresh --yes`.
  */
 export async function refreshResources(params: PulumiParams): Promise<void> {
-  const { module, ctx, provider, log } = params
+  const { module, ctx, provider, log, extraCliOpts } = params
   const configPath = await applyConfig(params)
 
   const res = await pulumi(ctx, provider).exec({
     log,
     ignoreError: false,
-    args: ["refresh", "--yes", "--color", "always", "--config-file", configPath],
+    args: [
+      "refresh",
+      "--yes",
+      "--color",
+      "always",
+      "--config-file",
+      configPath,
+      ...processExtraOpts(extraCliOpts, ["yes", "color", "config-file"]),
+    ],
     env: defaultPulumiEnv,
     cwd: getModuleStackRoot(module),
   })
@@ -428,6 +454,13 @@ export function getPlanPath(ctx: PluginContext, module: PulumiModule): string {
 export function getStackConfigPath(module: PulumiModule, environmentName: string): string {
   const stackName = module.spec.stack || environmentName
   return join(getModuleStackRoot(module), `Pulumi.${stackName}.yaml`)
+}
+
+/**
+ * Note: Always skip any options that are already being passed/used to avoid passing the same option twice.
+ */
+function processExtraOpts(extraCliOpts: ExtraOpts | undefined, skip: string[]) {
+  return unparseMinimistOptions(omit(extraCliOpts || {}, ...skip))
 }
 
 /**

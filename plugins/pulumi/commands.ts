@@ -343,7 +343,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
         optionSpec: pulumiCommandOpts,
         cli: true,
       })
-      const { args: parsedArgs, opts } = parsed
+      const { args: parsedArgs, opts, otherOpts } = parsed
       const skipRuntimeDependencies = opts["skip-dependencies"]
       const serviceNames = parsedArgs.length === 0 ? undefined : parsedArgs
 
@@ -359,6 +359,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
           log,
           module: <PulumiModule>service.module,
           service,
+          extraCliOpts: otherOpts,
         }
         // TODO: Generate a non-empty runtime context to provide runtime values for template resolution in varfiles.
         // This will require processing deploy & task dependencies (also for non-pulumi modules).
