@@ -79,7 +79,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
-    const addToGroups = (opts["add-to-groups"] || []).map((groupId) => parseInt(groupId, 10))
+    const addToGroups: string[] = opts["add-to-groups"] || []
     const fromFile = opts["from-file"] as string | undefined
     let users: StringMap
 
