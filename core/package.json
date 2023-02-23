@@ -54,7 +54,6 @@
     "directory-tree": "^2.2.4",
     "docker-file-parser": "^1.0.4",
     "dotenv": "^16.0.0",
-    "elegant-spinner": "^2.0.0",
     "env-var": "^6.2.0",
     "escape-string-regexp": "^4.0.0",
     "eventemitter2": "^6.4.1",
