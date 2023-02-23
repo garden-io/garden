@@ -156,6 +156,16 @@ varfile:
 # List of services and tasks to deploy/run before deploying this ConfigMap.
 dependencies: []
 
+# A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
+# are as follows:
+#
+#  ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
+#  ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
+#  ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
+#
+# At least one mode must be specified.
+accessModes:
+
 # The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same
 # namespace, so in most cases you should leave this unset.
 namespace:
@@ -463,6 +473,20 @@ List of services and tasks to deploy/run before deploying this ConfigMap.
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
 | `array[string]` | `[]`    | No       |
+
+### `accessModes[]`
+
+A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
+
+ ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
+ ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
+ ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
+
+At least one mode must be specified.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `namespace`
 
