@@ -26,14 +26,14 @@ class FakeCloudApi extends CloudApi {
   }
   async getProfile() {
     return {
-      id: 1,
+      id: "1",
       createdAt: new Date().toString(),
       updatedAt: new Date().toString(),
       name: "gordon",
       vcsUsername: "gordon@garden.io",
       serviceAccount: false,
       organization: {
-        id: 1,
+        id: "1",
         name: "garden",
       },
       cachedPermissions: {},
