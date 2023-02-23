@@ -135,7 +135,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       )
     }
 
-    let environmentId: number | undefined
+    let environmentId: string | undefined
 
     if (envName) {
       const environment = project.environments.find((e) => e.name === envName)
