@@ -123,7 +123,7 @@ function doClone(params: CopyParams) {
   const dir = parse(to).dir
 
   // TODO: take care of this ahead of time to avoid the extra i/o
-  ensureDir(dir, undefined, (err) => {
+  ensureDir(dir, (err) => {
     if (err) {
       return done(err)
     }
