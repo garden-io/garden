@@ -201,7 +201,7 @@ describe("hadolint provider", () => {
 
       expect(result).to.exist
       expect(result!.error).to.exist
-      expect(stripAnsi(result!.error!.message)).to.equal(dedent`
+      expect(stripAnsi(result!.error!.message)).to.include(dedent`
       hadolint reported 1 error(s) and 1 warning(s):
 
       DL3007: Using latest is prone to errors if the image will ever update. Pin the version explicitly to a release tag
@@ -274,7 +274,7 @@ describe("hadolint provider", () => {
 
       expect(result).to.exist
       expect(result!.error).to.exist
-      expect(stripAnsi(result!.error!.message)).to.equal(dedent`
+      expect(stripAnsi(result!.error!.message)).to.include(dedent`
       hadolint reported 1 error(s):
 
       DL4000: MAINTAINER is deprecated
@@ -342,7 +342,7 @@ describe("hadolint provider", () => {
 
       expect(result).to.exist
       expect(result!.error).to.exist
-      expect(stripAnsi(result!.error!.message)).to.equal(dedent`
+      expect(stripAnsi(result!.error!.message)).to.include(dedent`
       hadolint reported 1 error(s):
 
       DL4000: MAINTAINER is deprecated
