@@ -13,9 +13,9 @@
     "slash": "^3.0.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.12",
+    "@types/chai": "^4.3.4",
     "@types/node": "^18",
-    "chai": "^4.2.0",
+    "chai": "^4.3.7",
     "mocha": "^10.2.0",
     "strip-ansi": "^6.0.0"
   },
