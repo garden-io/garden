@@ -841,6 +841,11 @@ jobs:
             tar xzf google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
+      - run:
+          name: Install gke-gcloud-auth-plugin
+          command: |
+            gcloud --quiet components install gke-gcloud-auth-plugin
+            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
       - configure_remote_cluster
       - run:
           name: Deploy demo-project
