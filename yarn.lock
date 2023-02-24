@@ -1206,17 +1206,17 @@
   dependencies:
     "@types/koa" "*"
 
-"@types/koa-mount@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@types/koa-mount/-/koa-mount-4.0.0.tgz#aa0505763c0d20bf4a16cdec0d9ccd2f4f2d2a86"
-  integrity sha512-56iBULArwY3uKLl28eRFchZ2v0diEoJzJbDaHH/ehgruF/s2/KMHyWsKcIhvDJ3tGdKu9oZNQvxaMg++1IKFdA==
+"@types/koa-mount@^4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@types/koa-mount/-/koa-mount-4.0.2.tgz#988f94995dfb94869817280763d1b7445bd80123"
+  integrity sha512-XnuGwV8bzw22nv2WqOs5a8wCHR2VgSnLLLuBQPzNTmhyiAvH0O6c+994rQVbMaBuwQJKefUInkvKoKuk+21uew==
   dependencies:
     "@types/koa" "*"
 
-"@types/koa-router@^7.4.1":
-  version "7.4.1"
-  resolved "https://registry.yarnpkg.com/@types/koa-router/-/koa-router-7.4.1.tgz#3702a4cabe4558cc4eec70d5574acc04beecff7c"
-  integrity sha512-Hg78TXz78QYfEgdq3nTeRmQFEwJKZljsXb/DhtexmyrpRDRnl59oMglh9uPj3/WgKor0woANrYTnxA8gaWGK2A==
+"@types/koa-router@^7.4.4":
+  version "7.4.4"
+  resolved "https://registry.yarnpkg.com/@types/koa-router/-/koa-router-7.4.4.tgz#db72bde3616365d74f00178d5f243c4fce7da572"
+  integrity sha512-3dHlZ6CkhgcWeF6wafEUvyyqjWYfKmev3vy1PtOmr0mBc3wpXPU5E8fBBd4YQo5bRpHPfmwC5yDaX7s4jhIN6A==
   dependencies:
     "@types/koa" "*"
 
@@ -1227,18 +1227,18 @@
   dependencies:
     "@types/koa" "*"
 
-"@types/koa-static@^4.0.1":
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/@types/koa-static/-/koa-static-4.0.1.tgz#b740d80a549b0a0a7a3b38918daecde88a7a50ec"
-  integrity sha512-SSpct5fEcAeRkBHa3RiwCIRfDHcD1cZRhwRF///ZfvRt8KhoqRrhK6wpDlYPk/vWHVFE9hPGqh68bhzsHkir4w==
+"@types/koa-static@^4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@types/koa-static/-/koa-static-4.0.2.tgz#a199d2d64d2930755eb3ea370aeaf2cb6f501d67"
+  integrity sha512-ns/zHg+K6XVPMuohjpOlpkR1WLa4VJ9czgUP9bxkCDn0JZBtUWbD/wKDZzPGDclkQK1bpAEScufCHOy8cbfL0w==
   dependencies:
     "@types/koa" "*"
     "@types/koa-send" "*"
 
-"@types/koa-websocket@^5.0.5":
-  version "5.0.5"
-  resolved "https://registry.yarnpkg.com/@types/koa-websocket/-/koa-websocket-5.0.5.tgz#f3611daae6ce89340316c9ced217654a57878936"
-  integrity sha512-qJYBVtda3rySYUQGFA7H15QwgxDMako9IpskW4BycR2wI3JYd+Iq4IsqZqra3PxaKSTpSmCZDx6Gjirmba0bzQ==
+"@types/koa-websocket@^5.0.7":
+  version "5.0.7"
+  resolved "https://registry.yarnpkg.com/@types/koa-websocket/-/koa-websocket-5.0.7.tgz#8e9a4d291714cb09c98477cfebf15d232c416a58"
+  integrity sha512-zv5F0iaV9zk3iXLzvskUZKgX35RW7F7UNX3tK1FNQUn2nierQWlY2aM0dBTYs0kLVLRtBhsxcUdiKzDp9JPOAw==
   dependencies:
     "@types/koa" "*"
     "@types/koa-compose" "*"
