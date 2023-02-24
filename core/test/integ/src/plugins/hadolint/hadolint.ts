@@ -188,7 +188,6 @@ describe("hadolint provider", () => {
       const testTask = new TestTask({
         garden,
         log: garden.log,
-
         graph,
         force: true,
         forceBuild: false,
@@ -263,7 +262,6 @@ describe("hadolint provider", () => {
         log: garden.log,
         graph,
         action,
-
         force: true,
         forceBuild: false,
         syncModeDeployNames: [],
@@ -331,7 +329,6 @@ describe("hadolint provider", () => {
         log: garden.log,
         graph,
         action,
-
         force: true,
         forceBuild: false,
         syncModeDeployNames: [],
@@ -393,7 +390,6 @@ describe("hadolint provider", () => {
         log: garden.log,
         graph,
         action,
-
         force: true,
         forceBuild: false,
         syncModeDeployNames: [],
@@ -445,7 +441,6 @@ describe("hadolint provider", () => {
         log: garden.log,
         graph,
         action,
-
         force: true,
         forceBuild: false,
         syncModeDeployNames: [],
@@ -500,7 +495,6 @@ describe("hadolint provider", () => {
         log: garden.log,
         graph,
         action,
-
         force: true,
         forceBuild: false,
         syncModeDeployNames: [],
