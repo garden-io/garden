@@ -10,11 +10,8 @@ description: The API backend for the voting UI
 type: helm
 name: api
 chartPath: "./chart"
-# base: base-chart
 serviceResource:
   containerModule: api-image
-# dependencies:
-#   - redis
 values:
   name: api
   image:
