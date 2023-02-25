@@ -3,18 +3,20 @@
 
 __TL;DR__
 
-1. Dev uses garden in the development environment and is happy with the changes made to the `api` service. Commits changes to GitHub repo.
-2. Once they are pushed to `main`, GitHub workflow gets triggered that will push a new image via `garden publish api-image` to the container repository.
-3. ArgoCD image updater picks the updated tag and commits it back to the GitHub repo. A new tag will be written to `api/chart/.argocd-source-api.yaml`.
-4. ArgoCD watches the GitHub repo for new commits and syncs the new tag on Prod cluster.
+1. Developers use Garden for "inner loop" develop and push their changes to GitHub.
+2. Once changes are approved and merged to then `main` branch, a GitHub action is triggered that pushes images via the `garden publish` command.
+3. ArgoCD image updater picks the updated tag and commits it back to GitHub repo. This new tag will be written to `api/chart/.argocd-source-api.yaml`.
+4. ArgoCD watches the GitHub repo for new commits and sync's new images to the Prod cluster.
 
 ## Overview
 
-This example is based on a traditional:tm: 3-tier app with `web`, `api` and `postgres` services.
+This example is based on a traditional 3-tier app with `web`, `api` and `postgres` services.
 
-This implementation requires two k8s clusters; one of which is a Dev/CI cluster while the other is a Prod cluster. Purpose of Dev/CI cluster is to have resources deployed via `garden` during development (remote development environment on top on Kubernetes) and CI phases  while Prod cluster gets deployments sync'd via ArgoCD. Dev cluster has an in-cluster builder that will help with building service related container images and pushing them to respective container repositories. A dockerhub registry has been used.
+This implementation requires two Kubernetes clusters; one of which is a Dev/CI cluster while the other is a Prod cluster. Garden is used to start development environments and trigger CI jobs in the Dev/CI cluster while ArgoCD is used for production deployments in the Prod cluster. Container images are built via Garden's in-cluster building functionality in the Dev/CI cluster and pushed to the respective repositories. In this example, we're using Dockerhub as our container registry.
 
-Argocd image updater helps with actively watching the container repos for new image builds and then creates a commit back to the GitHub repo with the image tag. Image tags are filtered based on `update-strategy` annotated in the ArgoCD application definition. For example, `api`'s definition will have below annotations that help image updater to pick the right tag.
+Purpose of Dev/CI cluster is to have resources deployed via `garden` during development (remote development environment on top on Kubernetes) and CI phases  while Prod cluster gets deployments sync'd via ArgoCD. Dev cluster has an in-cluster builder that will help with building service related container images and pushing them to respective container repositories. A dockerhub registry has been used.
+
+Argocd image updater helps with actively watching the container repos for new image builds and then creates a commit back to the GitHub repo with the image tag. Image tags are filtered based on `update-strategy` annotated in the ArgoCD application definition. For example, `api`'s definition will have the annotations referenced below that help image updater to pick the right tag.
 ```yaml
 ---
 apiVersion: argoproj.io/v1alpha1
@@ -44,15 +46,16 @@ helm:
     value: main-27
     forcestring: true
 ```
-ArgoCD image updater by default uses the same repo credential, that ArgoCD would use, to commit above changes. We use a GitHub App that has been installed on the repo.
+ArgoCD image updater by default uses the same repo credential that ArgoCD would use, to commit above changes. We use a GitHub App that has been installed on the repo.
 
 ArgoCD watches updates to the GitHub repo. Once the image tag has been updated, changes are sync'd via the [App of apps](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/#app-of-apps-pattern) pattern. 
 
 In the current example; A dedicated `values-prod.yaml` file has been created per service, which will be used by ArgoCD to overwrite default values and then sync to the Prod cluster.
 
 ## Setup
-- Bring two (Dev/CI and Prod) GKE clusters up. For simplicity, we use the same cluster for both Dev and CI workloads.
-- Create dockerhub repos for __api__ and __web__ services.
+- To get started, set up two GKE clusters - one for development and continuous integration (Dev/CI) and another for production (Prod). Refer to our comprehensive documentation for detailed instructions on using the [remote Kubernetes plugin](https://docs.garden.io/kubernetes-plugins/remote-k8s) with Garden.io.
+- For the __api__ and __web__ services, create repositories on Docker Hub to simplify the deployment process.
+- For ease of use, we'll be using the same cluster for both the Dev and CI workloads. However, you can also choose to use separate clusters depending on your requirements.
 
 ### Dev
 - Add required ImagePullSecrets and initialize dev cluster with garden along with buildkit in-cluster builder via kubernetes provider
