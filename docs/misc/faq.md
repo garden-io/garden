@@ -199,7 +199,7 @@ This will run the task even if the result is cached.
 
 ### How do I pass secrets to container modules?
 
-See [this section](https://docs.garden.io/other-plugins/container#secrets) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
@@ -207,7 +207,7 @@ You'll need to use the [`kubernetes`](https://docs.garden.io/reference/module-ty
 
 ### Can I use Kubernetes secrets as `buildArgs`?
 
-No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/other-plugins/container#secrets) of our docs for more.
+No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -219,13 +219,13 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ### How do I mount persistent volumes?
 
-See [this section](https://docs.garden.io/other-plugins/container#mounting-volumes) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs.
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
 You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](https://docs.garden.io/using-garden/tests#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/other-plugins/container#mounting-volumes) of our docs for more.
+You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs for more.
 
 ## Kubernetes
 

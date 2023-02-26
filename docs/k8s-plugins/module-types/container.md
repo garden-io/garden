@@ -41,7 +41,7 @@ This, first of all, tells Garden that it should deploy the built `frontend` cont
 
 If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific module types (e.g. `kubernetes` or `helm`). The `container` module type is not intended to capture all those features.
 
-### Environment variables
+## Environment variables
 
 Container services can specify environment variables, using the `services[].env` field:
 
@@ -61,7 +61,7 @@ services:
 
 `env` is a simple mapping of "name: value". Above, we see a simple example with a string value, but you'll also commonly use [template strings](../../using-garden/variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
 
-#### Secrets
+### Secrets
 
 As of Garden v0.10.1 you can reference secrets in environment variables. For Kubernetes, this translates to `valueFrom.secretKeyRef` fields in the Pod specs, which direct Kubernetes to mount values from `Secret` resources that you have created in the application namespace, as environment variables in the Pod.
 
