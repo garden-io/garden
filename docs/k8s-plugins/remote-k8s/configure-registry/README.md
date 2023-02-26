@@ -10,7 +10,7 @@ You can skip this step and use Garden's built-in in-cluster registry.
 
 The in-cluster registry is a simple way to get started with Garden that requires no configuration but is not a particularly good approach for clusters with many users or lots of builds.
 
-You can learn more in our [advanced in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#configuring-a-deployment-registry).
+You can learn more in our [advanced in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
 {% endhint %}
 
 You'll need a container registry to be able to push and pull your container images. We typically refer to this as a **deployment registry**.

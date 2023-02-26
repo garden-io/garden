@@ -95,10 +95,10 @@ It’s the plugins that determine what happens when you run a given Garden comma
 
 You can for example use the Kubernetes plugin to install your Helm charts and apply your Kubernetes manifests, and the Terraform plugin to provision infrastructure.
 
-For more detail on how some common plugins work, see below:
+For more detail on how some common plugins work, see for example:
 
-- How the Kubernetes plugin works
-- How the Terraform plugin works
+- [How the Kubernetes plugin works](../k8s-plugins/about.md)
+- [How the Terraform plugin works](../terraform-plugin/about.md)
 
 We will be adding more plugins and releasing a Plugin SDK (exact timeline TBD) which will allow the community to maintain their own Garden plugins.
 
