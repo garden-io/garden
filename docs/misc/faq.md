@@ -137,7 +137,7 @@ See also the [base image example project](https://github.com/garden-io/garden/tr
 
 Not currently. Besides, multiple Docker daemons would not be able to share image layer caches.
 
-You can, however, run multiple [Kaniko pods](https://docs.garden.io/guides/in-cluster-building#kaniko) in parallel. In some scenarios, that may scale better.
+You can, however, run multiple [Kaniko pods](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#kaniko) in parallel. In some scenarios, that may scale better.
 
 ### How do I delete the services in the `garden-system` namespace?
 
@@ -151,11 +151,11 @@ It removes all cluster-wide Garden services.
 
 ### How do I pull a base image (using the FROM directive) from a private registry in in-cluster build mode?
 
-See [this section](https://docs.garden.io/guides/in-cluster-building#pulling-base-images-from-private-registries) of our docs.
+See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#pulling-base-images-from-private-registries) of our docs.
 
 ### How do I use my own private registry in in-cluster build mode?
 
-See [this section](https://docs.garden.io/guides/in-cluster-building#configuring-a-deployment-registry) of our docs.
+See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#configuring-a-deployment-registry) of our docs.
 
 ### How do I clean up the in-cluster registry and build sync volumes?
 
@@ -221,11 +221,11 @@ Note that due to a [known limitation](https://github.com/garden-io/garden/issues
 
 We plan on making `--interactive=false` the default with our next major release.
 
-## Secrets
+### Secrets
 
 ### How do I pass secrets to container modules?
 
-See [this section](https://docs.garden.io/guides/container-modules#secrets) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
@@ -233,7 +233,7 @@ You'll need to use the [`kubernetes`](https://docs.garden.io/reference/module-ty
 
 ### Can I use Kubernetes secrets as `buildArgs`?
 
-No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/guides/container-modules#secrets) of our docs for more.
+No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -245,13 +245,13 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ### How do I mount persistent volumes?
 
-See [this section](https://docs.garden.io/guides/container-modules#mounting-volumes) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs.
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
 You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](https://docs.garden.io/using-garden/tests#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/guides/container-modules#mounting-volumes) of our docs for more.
+You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs for more.
 
 ## Kubernetes
 
@@ -291,7 +291,7 @@ We're exploring how we can release it incrementally. Please let us know if this 
 
 ### What system components does Garden install?
 
-The components installed when using the remote building functionality are discussed in the [In-cluster building docs](https://docs.garden.io/guides/in-cluster-building).
+The components installed when using the remote building functionality are discussed in the [In-cluster building docs](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
 
 Garden also optionally installs Nginx. The `local-kubernetes` provider defaults to installing Nginx, but the (remote) `kubernetes` provider does not install it by default.
 

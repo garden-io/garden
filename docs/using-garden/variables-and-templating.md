@@ -508,7 +508,7 @@ On top of that, you can reference the resolved module variables in other modules
 
 You can also provide variables using "variable files" or _varfiles_. These work mostly like "dotenv" files or envfiles. However, they don't implicitly affect the environment of the Garden process and the configured services, but rather are added on top of the `variables` you define in your project configuration (or module variables defined in the `variables` of your individual module configurations).
 
-This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://git-secret.io/) to securely store the files in your Git repo.
+This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://github.com/sobolevn/git-secret) to securely store the files in your Git repo.
 
 By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well.
 
