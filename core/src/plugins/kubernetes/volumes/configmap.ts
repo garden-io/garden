@@ -38,7 +38,7 @@ export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
   docs: dedent`
     Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-    See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/guides/container-modules#mounting-kubernetes-configmaps) guide for more info and usage examples.
+    See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/k8s-plugins/module-types/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
     `,
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),

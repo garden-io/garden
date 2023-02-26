@@ -101,7 +101,7 @@ export async function configureProvider({
         key: "cluster-docker-deprecated",
         log,
         message:
-          "The cluster-docker build mode has been deprecated. Please see the docs for details: https://docs.garden.io/guides/in-cluster-building",
+          "The cluster-docker build mode has been deprecated. Please see the docs for details: https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building",
       })
 
       config._systemServices.push("build-sync", "util", "docker-daemon")
@@ -242,7 +242,7 @@ export const gardenPlugin = () =>
         name: "helm",
         docs: dedent`
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-        Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
+        Refer to the [Helm guide](${DOCS_BASE_URL}/kubernetes-plugins/module-types/helm) for usage instructions.
       `,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),

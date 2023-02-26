@@ -51,7 +51,7 @@ yarn install
 cd ..
 ```
 
-Assuming you've [set _your_ K8s context](https://docs.garden.io/getting-started/3-connect-to-a-cluster), you can start the project with:
+Assuming you've [set _your_ K8s context](https://docs.garden.io/kubernetes-plugins/remote-k8s), you can start the project with:
 
 ```console
 garden dev

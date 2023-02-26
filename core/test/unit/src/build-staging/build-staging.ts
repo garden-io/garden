@@ -243,7 +243,7 @@ describe("BuildStagingRsync", () => {
       `Please make sure rsync (version ${minRsyncVersion} or later) is installed and on your PATH.`
     )
     expect(err.message).to.include(
-      "More about garden installation and requirements can be found in our documentation at https://docs.garden.io/getting-started/1-installation#requirements"
+      "More about garden installation and requirements can be found in our documentation at https://docs.garden.io/guides/installation"
     )
   }
 
