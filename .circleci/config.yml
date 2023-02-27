@@ -250,7 +250,7 @@ commands:
           command: yarn run dist --version "<<parameters.version>>"
       - run:
           name: Run dist script air gapped images
-          command: ./scripts/package-airgap.sh amd64
+          command: ./scripts/package-airgap.sh amd64 "<<parameters.version>>"
       - persist_to_workspace:
           root: ./
           paths:
