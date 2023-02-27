@@ -1,10 +1,6 @@
 image:
   repository: srihasg/web-image
   tag: v-260c4e3d8d
-ingress:
-  enabled: true
-  paths: [/]
-  hosts: ["web.vote.prod.local.app.garden"]
 env:
   - name: HOSTNAME
-    value: web.vote.prod.local.app.garden
+    value: web
