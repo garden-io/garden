@@ -52,3 +52,6 @@ static/**/.garden-version
 
 #debug files
 debug-info-*
+
+# airgap
+airgap
