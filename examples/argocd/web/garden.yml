@@ -21,10 +21,6 @@ values:
   image:
     repository: ${modules.web-image.outputs.deployment-image-name}
     tag: ${modules.web-image.version}
-  ingress:
-    enabled: true
-    paths: [/]
-    hosts: ["web.${var.baseHostname}"]
   healthCheckPath: /
 
 ---
