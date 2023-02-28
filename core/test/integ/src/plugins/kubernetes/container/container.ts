@@ -138,7 +138,7 @@ describe("kubernetes container module handlers", () => {
       garden.events.eventLog = []
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: true })
-      const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "test")
+      const logEvent = garden.events.eventLog.find((l) => l.name === "log")
 
       expect(result.error).to.be.null
       const task = result.results.getResult(testTask)!

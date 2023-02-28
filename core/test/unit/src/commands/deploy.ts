@@ -181,16 +181,16 @@ describe("DeployCommand", () => {
 
     // Note: Runs A and C should not run or be queried for status because service-a is ready beforehand
     const runTaskBUid = getActionUid("task-b")
-    const taskVersionB = getRunVersion("task-b")
+    const runVersionB = getRunVersion("task-b")
 
     const moduleVersionA = getModuleVersion("module-a")
     const moduleVersionB = getModuleVersion("module-b")
     const moduleVersionC = getModuleVersion("module-c")
 
-    const serviceVersionA = getDeployVersion("service-a")
-    const serviceVersionB = getDeployVersion("service-b")
-    const serviceVersionC = getDeployVersion("service-c")
-    const serviceVersionD = getDeployVersion("service-d") // `service-d` is defined in `module-c`
+    const deployVersionA = getDeployVersion("service-a")
+    const deployVersionB = getDeployVersion("service-b")
+    const deployVersionC = getDeployVersion("service-c")
+    const deployVersionD = getDeployVersion("service-d") // `service-d` is defined in `module-c`
 
     for (const graphResult of Object.values(deployResults)) {
       expect(graphResult).to.exist
@@ -215,165 +215,102 @@ describe("DeployCommand", () => {
     }
 
     expect(sortedEvents[0]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-a",
-        serviceName: "service-a",
-        moduleName: "module-a",
-        moduleVersion: moduleVersionA,
-        actionVersion: serviceVersionA,
         actionUid: deployServiceAUid,
-        serviceVersion: serviceVersionA,
         status: { state: "deploying" },
       },
     })
     expect(sortedEvents[1]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-a",
-        serviceName: "service-a",
-        moduleName: "module-a",
-        moduleVersion: moduleVersionA,
-        actionVersion: serviceVersionA,
-        serviceVersion: serviceVersionA,
+        actionVersion: deployVersionA,
         status: { state: "ready" },
       },
     })
     expect(sortedEvents[2]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-a",
-        serviceName: "service-a",
-        moduleName: "module-a",
-        moduleVersion: moduleVersionA,
-        actionVersion: serviceVersionA,
-        serviceVersion: serviceVersionA,
+        actionVersion: deployVersionA,
         actionUid: deployServiceAUid,
         status: { state: "ready" },
       },
     })
     expect(sortedEvents[3]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-b",
-        serviceName: "service-b",
-        moduleName: "module-b",
-        actionUid: deployServiceBUid,
-        moduleVersion: moduleVersionB,
-        actionVersion: serviceVersionB,
-        serviceVersion: serviceVersionB,
+        actionVersion: deployVersionB,
         status: { state: "deploying" },
       },
     })
     expect(sortedEvents[4]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-b",
-        serviceName: "service-b",
-        moduleName: "module-b",
-        actionUid: deployServiceBUid,
-        moduleVersion: moduleVersionB,
-        actionVersion: serviceVersionB,
-        serviceVersion: serviceVersionB,
+        actionVersion: deployVersionB,
         status: { state: "ready" },
       },
     })
     expect(sortedEvents[5]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-b",
-        serviceName: "service-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: serviceVersionB,
-        serviceVersion: serviceVersionB,
         status: { state: "unknown" },
       },
     })
     expect(sortedEvents[6]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-c",
-        serviceName: "service-c",
-        moduleName: "module-c",
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionC,
-        serviceVersion: serviceVersionC,
         status: { state: "ready" },
       },
     })
     expect(sortedEvents[7]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-d",
-        serviceName: "service-d",
-        moduleName: "module-c",
-        actionUid: deployServiceDUid,
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionD,
-        serviceVersion: serviceVersionD,
+        actionVersion: deployVersionD,
         status: { state: "deploying" },
       },
     })
     expect(sortedEvents[8]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-d",
-        serviceName: "service-d",
-        moduleName: "module-c",
-        actionUid: deployServiceDUid,
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionD,
-        serviceVersion: serviceVersionD,
+        actionVersion: deployVersionD,
         status: { state: "ready" },
       },
     })
     expect(sortedEvents[9]).to.eql({
-      name: "serviceStatus",
+      name: "deployStatus",
       payload: {
         actionName: "service-d",
-        serviceName: "service-d",
-        moduleName: "module-c",
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionD,
-        serviceVersion: serviceVersionD,
         status: { state: "unknown" },
       },
     })
     expect(sortedEvents[10]).to.eql({
-      name: "taskStatus",
+      name: "runStatus",
       payload: {
         actionName: "task-b",
-        taskName: "task-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: taskVersionB,
-        taskVersion: taskVersionB,
         status: { state: "outdated" },
       },
     })
     expect(sortedEvents[11]).to.eql({
-      name: "taskStatus",
+      name: "runStatus",
       payload: {
         actionName: "task-b",
-        taskName: "task-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: taskVersionB,
-        taskVersion: taskVersionB,
         actionUid: runTaskBUid,
         status: { state: "running" },
       },
     })
     expect(sortedEvents[12]).to.eql({
-      name: "taskStatus",
+      name: "runStatus",
       payload: {
         actionName: "task-b",
-        taskName: "task-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: taskVersionB,
-        taskVersion: taskVersionB,
         actionUid: runTaskBUid,
         status: { state: "succeeded" },
       },

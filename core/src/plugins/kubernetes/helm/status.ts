@@ -9,8 +9,7 @@
 import {
   ForwardablePort,
   ServiceIngress,
-  ServiceState,
-  serviceStateToActionState,
+  DeployState,
   ServiceStatus,
 } from "../../../types/service"
 import { Log } from "../../../logger/log-entry"
@@ -29,10 +28,11 @@ import { getK8sIngresses } from "../status/ingress"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
 import { ActionMode, Resolved } from "../../../actions/types"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
-const helmStatusMap: { [status: string]: ServiceState } = {
+const helmStatusMap: { [status: string]: DeployState } = {
   unknown: "unknown",
   deployed: "ready",
   deleted: "missing",
@@ -55,7 +55,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   const releaseName = getReleaseName(action)
 
   const detail: HelmStatusDetail = {}
-  let state: ServiceState
+  let state: DeployState
   let helmStatus: ServiceStatus
 
   const namespaceStatus = await getActionNamespaceStatus({
@@ -136,7 +136,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   }
 
   return {
-    state: serviceStateToActionState(state),
+    state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
       state,

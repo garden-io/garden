@@ -11,7 +11,7 @@ import normalizePath from "normalize-path"
 import tmp from "tmp-promise"
 import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
-import { runStatus } from "../plugin/base"
+import { runStatusForEventPayload } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
 import { uuidv4 } from "../util/random"
 import { renderOutputStream } from "../util/util"
@@ -28,20 +28,20 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
-      const taskName = actionName
-      const taskVersion = actionVersion
       const moduleName = action.moduleName()
-      const moduleVersion = action.moduleVersion().versionString
 
-      garden.events.emit("taskStatus", {
+      const payloadAttrs = {
         actionName,
         actionVersion,
-        taskName,
         moduleName,
-        moduleVersion,
-        taskVersion,
         actionUid,
-        status: { state: "running", startedAt: new Date() },
+        startedAt: new Date().toISOString()
+      }
+
+      garden.events.emit("runStatus", {
+        ...payloadAttrs,
+        state: "processing",
+        status: { state: "running" },
       })
 
       params.events = params.events || new PluginEventBroker()
@@ -59,11 +59,8 @@ export const runRouter = (baseParams: BaseRouterParams) =>
           garden.events.emit("log", {
             timestamp,
             actionUid,
-            entity: {
-              type: "task",
-              key: taskName,
-              moduleName,
-            },
+            actionName,
+            moduleName,
             data: data.toString(),
           })
         })
@@ -73,15 +70,11 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
         // Emit status
-        garden.events.emit("taskStatus", {
-          actionName,
-          actionVersion,
-          taskName,
-          moduleName,
-          moduleVersion,
-          taskVersion,
-          actionUid,
-          status: runStatus(result.detail),
+        garden.events.emit("runStatus", {
+          ...payloadAttrs,
+          state: result.state,
+          completedAt: new Date().toISOString(),
+          status: runStatusForEventPayload(result.detail),
         })
         // result && this.validateTaskOutputs(params.task, result)
         // TODO-G2: get this out of the core framework and shift it to the provider
@@ -106,27 +99,35 @@ export const runRouter = (baseParams: BaseRouterParams) =>
     getResult: async (params) => {
       const { garden, router, action } = params
 
+      const actionName = action.name
+      const actionVersion = action.versionString()
+      const moduleName = action.moduleName()
+
+      const payloadAttrs = {
+        actionName,
+        actionVersion,
+        moduleName,
+        actionUid: undefined,
+        startedAt: new Date().toISOString()
+      }
+
+      garden.events.emit("runStatus", {
+        ...payloadAttrs,
+        state: "getting-status",
+        status: { state: "unknown" }
+      })
+
       const result = await router.callHandler({
         params,
         handlerType: "getResult",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
       })
 
-      const actionName = action.name
-      const actionVersion = action.versionString()
-      const taskName = actionName
-      const taskVersion = actionVersion
-      const moduleName = action.moduleName()
-      const moduleVersion = action.moduleVersion().versionString
-
-      garden.events.emit("taskStatus", {
-        actionName,
-        actionVersion,
-        taskName,
-        moduleName,
-        moduleVersion,
-        taskVersion,
-        status: runStatus(result.detail),
+      garden.events.emit("runStatus", {
+        ...payloadAttrs,
+        state: result.state,
+        completedAt: new Date().toISOString(),
+        status: runStatusForEventPayload(result.detail),
       })
 
       if (result) {

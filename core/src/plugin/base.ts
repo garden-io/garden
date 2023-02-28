@@ -140,20 +140,15 @@ export const runResultSchema = createSchema({
 export const artifactsPathSchema = () =>
   joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
 
-export type RunState = "outdated" | "running" | "succeeded" | "failed" | "not-implemented"
+export type RunState = "outdated" | "unknown" | "running" | "succeeded" | "failed" | "not-implemented"
 
-export interface RunStatus {
+export interface RunStatusForEventPayload {
   state: RunState
-  startedAt?: Date
-  completedAt?: Date
 }
 
-export function runStatus<R extends RunResult>(result: R | null | undefined): RunStatus {
+export function runStatusForEventPayload<R extends RunResult>(result: R | null | undefined): RunStatusForEventPayload {
   if (result) {
-    const { startedAt, completedAt } = result
     return {
-      startedAt,
-      completedAt,
       state: result.success ? "succeeded" : "failed",
     }
   } else {

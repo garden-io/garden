@@ -8,12 +8,12 @@
 
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
-import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
-import { createSchema } from "../../../config/common"
 import type { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import type { ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } from "../../../actions/types"
+import type { ActionState, ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } from "../../../actions/types"
 import { actionStatusSchema } from "../../../actions/base"
+import { createSchema } from "../../../config/common"
+import { ServiceStatus, DeployState, serviceStatusSchema } from "../../../types/service"
 
 interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
 
@@ -24,6 +24,20 @@ export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
 
 export interface DeployStatusMap extends ActionStatusMap<DeployAction> {
   [key: string]: DeployStatus
+}
+
+const deployStateMap: { [key in DeployState]: ActionState } = {
+  ready: "ready",
+  deploying: "processing",
+  stopped: "not-ready",
+  unhealthy: "failed",
+  unknown: "unknown",
+  outdated: "not-ready",
+  missing: "not-ready",
+}
+
+export function deployStateToActionState(state: DeployState): ActionState {
+  return deployStateMap[state]
 }
 
 export const getDeployStatusSchema = createSchema({
