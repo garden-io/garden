@@ -194,7 +194,7 @@ function prepareDeployAction({
   const deployAction: HelmDeployConfig = {
     kind: "Deploy",
     type: "helm",
-    name: module.name,
+    name: service.name,
     ...baseFields,
 
     disabled: module.spec.skipDeploy,

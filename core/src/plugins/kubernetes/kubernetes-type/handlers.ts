@@ -49,7 +49,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
       type: "kubernetes",
-      name: module.name,
+      name: service.name,
       ...params.baseFields,
 
       build: dummyBuild?.name,
@@ -84,7 +84,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       actions.push({
         kind: "Run",
         type: "kubernetes-pod",
-        name: module.name,
+        name: task.name,
         ...params.baseFields,
         disabled: task.disabled,
 
