@@ -50,7 +50,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const actionUid = uuidv4()
       params.events = params.events || new PluginEventBroker()
 
-      const startedAt = new Date()
+      const startedAt = new Date().toISOString()
 
       const actionName = action.name
       const actionVersion = action.versionString()
@@ -92,7 +92,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           status: {
             state,
             startedAt,
-            completedAt: new Date(),
+            completedAt: new Date().toISOString(),
           },
         })
       }

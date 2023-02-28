@@ -72,7 +72,7 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
   })
   const timeout = action.getConfig("timeout")
   const res = await containerHelpers.dockerCli({

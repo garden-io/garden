@@ -157,7 +157,7 @@ export class CliWrapper {
     }
 
     logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().getTime(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
     })
 
     await new Promise<void>((resolve, reject) => {
