@@ -55,7 +55,7 @@ describe("runContainerTask", () => {
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
-    const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "task")
+    const logEvent = garden.events.eventLog.find((l) => l.name === "log")
 
     expect(result).to.exist
     expect(result!.result).to.exist

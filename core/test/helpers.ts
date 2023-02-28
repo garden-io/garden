@@ -775,7 +775,7 @@ export async function enableAnalytics(garden: TestGarden) {
 }
 
 export function getRuntimeStatusEvents(eventLog: EventLogEntry[]) {
-  const runtimeEventNames = ["taskStatus", "testStatus", "serviceStatus"]
+  const runtimeEventNames = ["runStatus", "testStatus", "deployStatus"]
   return eventLog
     .filter((e) => runtimeEventNames.includes(e.name))
     .map((e) => {

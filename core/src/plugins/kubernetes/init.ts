@@ -22,7 +22,7 @@ import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../../plugin
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
-import { combineStates, ServiceState } from "../../types/service"
+import { combineStates, DeployState } from "../../types/service"
 import {
   setupCertManager,
   checkCertManagerStatus,
@@ -56,7 +56,7 @@ interface KubernetesProviderOutputs extends PrimitiveMap {
 interface KubernetesEnvironmentDetail {
   deployStatuses: DeployStatusMap
   systemReady: boolean
-  systemServiceState: ServiceState
+  systemServiceState: DeployState
   systemCertManagerReady: boolean
   systemManagedCertificatesReady: boolean
 }
@@ -83,7 +83,7 @@ export async function getEnvironmentStatus({
   const detail: KubernetesEnvironmentDetail = {
     deployStatuses: {},
     systemReady: true,
-    systemServiceState: <ServiceState>"unknown",
+    systemServiceState: <DeployState>"unknown",
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }

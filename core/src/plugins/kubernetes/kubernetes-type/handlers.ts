@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { cloneDeep, isEmpty, omit, partition, uniq } from "lodash"
 import type { NamespaceStatus } from "../../../types/namespace"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
-import { serviceStateToActionState, ServiceStatus } from "../../../types/service"
+import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
@@ -31,6 +31,7 @@ import type { DeployActionHandler } from "../../../plugin/action-types"
 import { getTargetResource } from "../util"
 import type { Log } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -208,7 +209,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   }
 
   return {
-    state: serviceStateToActionState(state),
+    state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
       state,

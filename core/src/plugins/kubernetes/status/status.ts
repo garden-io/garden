@@ -9,8 +9,6 @@
 import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
-import { ServiceState, combineStates } from "../../../types/service"
-import { sleep } from "../../../util/util"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
@@ -37,9 +35,11 @@ import { SyncableResource } from "../types"
 import { LogLevel } from "../../../logger/logger"
 import { ActionMode } from "../../../actions/types"
 import { deepMap } from "../../../util/objects"
+import { DeployState, combineStates } from "../../../types/service"
+import { sleep } from "../../../util/util"
 
 export interface ResourceStatus<T = BaseResource> {
-  state: ServiceState
+  state: DeployState
   resource: KubernetesServerResource<T>
   lastMessage?: string
   warning?: true
@@ -58,7 +58,7 @@ interface StatusHandler<T = BaseResource> {
   (params: StatusHandlerParams<T>): Promise<ResourceStatus<T>>
 }
 
-const pvcPhaseMap: { [key: string]: ServiceState } = {
+const pvcPhaseMap: { [key: string]: DeployState } = {
   Available: "ready",
   Bound: "ready",
   Released: "stopped",
@@ -76,7 +76,7 @@ const objHandlers: { [kind: string]: StatusHandler } = {
 
   PersistentVolumeClaim: async ({ resource }: StatusHandlerParams<V1PersistentVolumeClaim>) => {
     const pvc = <KubernetesServerResource<V1PersistentVolumeClaim>>resource
-    const state: ServiceState = pvcPhaseMap[pvc.status.phase!] || "unknown"
+    const state: DeployState = pvcPhaseMap[pvc.status.phase!] || "unknown"
     return { state, resource }
   },
 
@@ -143,7 +143,7 @@ export async function checkResourceStatus(api: KubeApi, namespace: string, manif
     resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
     if (err.statusCode === 404) {
-      return { state: <ServiceState>"missing", resource: manifest }
+      return { state: <DeployState>"missing", resource: manifest }
     } else {
       throw err
     }
@@ -278,7 +278,7 @@ export async function waitForResources({
 }
 
 interface ComparisonResult {
-  state: ServiceState
+  state: DeployState
   remoteResources: KubernetesResource[]
   mode: ActionMode
   /**

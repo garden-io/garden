@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { omit } from "lodash"
 import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
-import { ServiceState } from "../types/service"
+import { DeployState } from "../types/service"
 import { uuidv4 } from "../util/random"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
@@ -24,10 +24,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       params.events = params.events || new PluginEventBroker()
 
       const actionName = action.name
-      const serviceName = actionName
       const actionVersion = action.versionString()
-      const moduleVersion = action.moduleVersion().versionString
-      const serviceVersion = actionVersion
       const moduleName = action.moduleName()
 
       params.events.on("log", ({ timestamp, data, origin, log }) => {
@@ -38,26 +35,26 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         garden.events.emit("log", {
           timestamp,
           actionUid,
-          entity: {
-            type: "deploy",
-            key: `${serviceName}`,
-            moduleName,
-          },
+          actionName,
+          moduleName,
           data: data.toString(),
         })
       })
 
-      const deployStartedAt = new Date().toISOString()
+      const startedAt = new Date().toISOString()
 
-      garden.events.emit("serviceStatus", {
+      const payloadAttrs = {
         actionName,
         actionVersion,
-        serviceName,
         moduleName,
-        moduleVersion,
-        serviceVersion,
         actionUid,
-        status: { state: "deploying", deployStartedAt },
+        startedAt,
+      }
+
+      garden.events.emit("deployStatus", {
+        ...payloadAttrs,
+        state: "processing",
+        status: { state: "deploying" },
       })
 
       const result = await router.callHandler({ params, handlerType: "deploy" })
@@ -65,19 +62,11 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", result.outputs)
 
-      garden.events.emit("serviceStatus", {
-        actionName,
-        actionVersion,
-        serviceName,
-        moduleName,
-        moduleVersion,
-        serviceVersion,
-        actionUid,
-        status: {
-          ...omit(result.detail, "detail"),
-          deployStartedAt,
-          deployCompletedAt: new Date().toISOString(),
-        },
+      garden.events.emit("deployStatus", {
+        ...payloadAttrs,
+        state: result.state,
+        completedAt: new Date().toISOString(),
+        status: omit(result.detail, "detail"),
       })
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
@@ -112,7 +101,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           p.log.error(msg)
           return {
             state: "not-ready" as ActionState,
-            detail: { state: "missing" as ServiceState, detail: {} },
+            detail: { state: "missing" as DeployState, detail: {} },
             outputs: {},
           }
         },
@@ -149,20 +138,30 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
     getStatus: async (params) => {
       const { garden, router, action } = params
-
-      const result = await router.callHandler({ params, handlerType: "getStatus" })
-
       const actionName = action.name
       const actionVersion = action.versionString()
 
-      garden.events.emit("serviceStatus", {
+      const payloadAttrs = {
         actionName,
         actionVersion,
-        serviceName: actionName,
-        moduleVersion: action.moduleVersion().versionString,
+        actionUid: undefined,
         moduleName: action.moduleName(),
-        serviceVersion: actionVersion,
-        status: omit(result.detail, "detail"),
+        startedAt: new Date().toISOString(),
+      }
+
+      garden.events.emit("deployStatus", {
+        ...payloadAttrs,
+        state: "getting-status",
+        status: { state: "unknown" },
+      })
+
+      const result = await router.callHandler({ params, handlerType: "getStatus" })
+
+      garden.events.emit("deployStatus", {
+        ...payloadAttrs,
+        completedAt: new Date().toISOString(),
+        state: result.state,
+        status: omit(result.detail, "detail")
       })
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)

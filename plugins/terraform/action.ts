@@ -23,6 +23,8 @@ import { TerraformProvider } from "."
 import chalk = require("chalk")
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
 import { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types"
+import { DeployState } from "@garden-io/core/build/src/types/service"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
 
 export interface TerraformDeploySpec extends TerraformBaseSpec {
   root: string
@@ -86,10 +88,10 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
     workspace,
   })
 
-  const state = status === "up-to-date" ? "ready" : "outdated"
+  const state: DeployState = status === "up-to-date" ? "ready" : "outdated"
 
   return {
-    state,
+    state: deployStateToActionState(state),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {
       state,
@@ -133,13 +135,14 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
 export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
   const spec = action.getSpec()
+  const deployState: DeployState = "outdated"
 
   if (!spec.allowDestroy) {
     log.warn({ section: action.key(), msg: "allowDestroy is set to false. Not calling terraform destroy." })
     return {
-      state: "outdated",
+      state: deployStateToActionState(deployState),
       detail: {
-        state: "outdated",
+        state: deployState,
         detail: {},
       },
       outputs: {},

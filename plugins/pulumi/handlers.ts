@@ -25,6 +25,8 @@ import {
 import { PulumiDeploy, PulumiProvider } from "./config"
 import chalk from "chalk"
 import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
+import { DeployState } from "@garden-io/core/build/src/types/service"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services
@@ -73,7 +75,7 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
 
   if (!cacheStatus) {
     return {
-      state: "outdated",
+      state: deployStateToActionState("outdated"),
       outputs: {},
       detail: {
         state: "outdated",
@@ -85,10 +87,10 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
   await selectStack(pulumiParams)
   const stackStatus = await getStackStatusFromTag(pulumiParams)
 
-  const state = stackStatus === "up-to-date" ? "ready" : "outdated"
+  const state: DeployState = stackStatus === "up-to-date" ? "ready" : "outdated"
 
   return {
-    state,
+    state: deployStateToActionState(state),
     outputs: await getStackOutputs(pulumiParams),
     detail: {
       state,
@@ -155,7 +157,7 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
   if (!action.getSpec("allowDestroy")) {
     log.warn(chalk.yellow(`${action.longDescription()} has allowDestroy = false. Skipping destroy.`))
     return {
-      state: "outdated",
+      state: deployStateToActionState("outdated"),
       outputs: {},
       detail: {
         state: "outdated",
@@ -183,7 +185,7 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
   await clearStackVersionTag(pulumiParams)
 
   return {
-    state: "not-ready",
+    state: deployStateToActionState("missing"),
     outputs: {},
     detail: {
       state: "missing",

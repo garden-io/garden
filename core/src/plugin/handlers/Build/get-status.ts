@@ -14,15 +14,16 @@ import { actionStatusSchema } from "../../../actions/base"
 import { ActionStatus, ActionStatusMap, Resolved } from "../../../actions/types"
 import { joi } from "../../../config/common"
 
-interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}
-
 /**
- * - `fetched`: The build was fetched from a remote repository instead of building.
+ * - `fetched`: The build was fetched from a repository instead of building.
+ * - `outdated`: No up-to-date build was found the remote repository.
  * - `building`: The build is in progress.
  * - `built`: The build was completed successfully.
  * - `failed`: An error occurred while fetching or building.
  */
-export type BuildState = "fetched" | "building" | "built" | "failed"
+export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed"
+
+interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}
 
 export interface BuildResult {
   buildLog?: string

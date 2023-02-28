@@ -46,16 +46,26 @@ describe("build actions", () => {
       expect(result.outputs.foo).to.eql("bar")
     })
 
-    it("should emit a buildStatus event", async () => {
+    it("should emit buildStatus events", async () => {
       garden.events.eventLog = []
       await actionRouter.build.getStatus({ log, action: resolvedBuildAction, graph })
-      const event = garden.events.eventLog[0]
-      expect(event).to.exist
-      expect(event.name).to.eql("buildStatus")
-      expect(event.payload.moduleName).to.eql("module-a")
-      expect(event.payload.moduleVersion).to.eql(module.version.versionString)
-      expect(event.payload.actionUid).to.be.undefined
-      expect(event.payload.status.state).to.eql("fetched")
+
+      const event1 = garden.events.eventLog[0]
+      const event2 = garden.events.eventLog[1]
+
+      expect(event1).to.exist
+      expect(event1.name).to.eql("buildStatus")
+      expect(event1.payload.moduleName).to.eql("module-a")
+      expect(event1.payload.actionUid).to.be.undefined
+      expect(event1.payload.state).to.eql("getting-status")
+      expect(event1.payload.status.state).to.eql("fetching")
+
+      expect(event2).to.exist
+      expect(event2.name).to.eql("buildStatus")
+      expect(event2.payload.moduleName).to.eql("module-a")
+      expect(event2.payload.actionUid).to.be.undefined
+      expect(event2.payload.state).to.eql("ready")
+      expect(event2.payload.status.state).to.eql("fetched")
     })
   })
 
@@ -77,17 +87,18 @@ describe("build actions", () => {
       await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
       const event1 = garden.events.eventLog[0]
       const event2 = garden.events.eventLog[1]
-      const moduleVersion = module.version.versionString
+
       expect(event1).to.exist
       expect(event1.name).to.eql("buildStatus")
       expect(event1.payload.moduleName).to.eql("module-a")
-      expect(event1.payload.moduleVersion).to.eql(moduleVersion)
+      expect(event1.payload.state).to.eql("processing")
       expect(event1.payload.status.state).to.eql("building")
       expect(event1.payload.actionUid).to.be.ok
+
       expect(event2).to.exist
       expect(event2.name).to.eql("buildStatus")
       expect(event2.payload.moduleName).to.eql("module-a")
-      expect(event2.payload.moduleVersion).to.eql(moduleVersion)
+      expect(event2.payload.state).to.eql("ready")
       expect(event2.payload.status.state).to.eql("built")
       expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
     })

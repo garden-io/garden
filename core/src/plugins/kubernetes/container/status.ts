@@ -8,7 +8,7 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { Log } from "../../../logger/log-entry"
-import { ServiceStatus, ForwardablePort, serviceStateToActionState } from "../../../types/service"
+import { ServiceStatus, ForwardablePort } from "../../../types/service"
 import { createContainerManifests, startContainerDevSync } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
@@ -23,6 +23,7 @@ import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
 import { Resolved } from "../../../actions/types"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -101,7 +102,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   }
 
   return {
-    state: serviceStateToActionState(state),
+    state: deployStateToActionState(state),
     detail,
     outputs,
   }
@@ -126,7 +127,9 @@ export async function waitForContainerService(
       action,
     })
 
-    if (status.state === "ready" || status.state === "outdated") {
+    const deployState = status.detail?.state
+
+    if (deployState === "ready" || deployState === "outdated") {
       return
     }
 
