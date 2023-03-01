@@ -11,7 +11,7 @@ build: node-service
 spec:
   args: [npm, start]
   sync:
-    command: [npm, run, dev] # Overrides the container's default when the service is deployed in sync mode
+    command: [npm, run, dev] # Overrides the container's default when the service is deployed in dev mode
     paths:
       - source: src
         target: /app/src
