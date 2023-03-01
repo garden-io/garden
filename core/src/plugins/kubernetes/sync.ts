@@ -249,34 +249,38 @@ export function convertContainerSyncSpec(
   action: Resolved<ContainerDeployAction>
 ): KubernetesDeploySyncSpec | undefined {
   const spec = action.getSpec()
-
-  if (!spec.sync) {
-    return
-  }
-
   const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
   const blueGreen = ctx.provider.config.deploymentStrategy === "blue-green"
   const deploymentName = getDeploymentName(action.name, blueGreen, action.versionString())
-  const target = { kind, name: deploymentName }
-  const paths = convertSyncPaths(action.basePath(), spec.sync.paths, target)
 
-  // override the entrypoint command if specified
-  const command = spec?.sync?.command
-  if (command) {
-    return {
-      paths,
-      overrides: [
+  const target = { kind, name: deploymentName }
+  const sourcePath = action.basePath()
+  const syncSpec = spec.sync
+
+  if (!syncSpec || !target) {
+    return
+  }
+
+  const sync: KubernetesDeploySyncSpec = {
+    paths: convertSyncPaths(sourcePath, syncSpec.paths, target),
+  }
+
+  if (syncSpec.command || syncSpec.args) {
+    if (target.kind && target.name) {
+      sync.overrides = [
         {
-          target,
-          command,
+          target: {
+            kind: target.kind,
+            name: target.name,
+          },
+          command: syncSpec.command,
+          args: syncSpec.args,
         },
-      ],
+      ]
     }
   }
 
-  return {
-    paths,
-  }
+  return sync
 }
 
 function convertSyncPaths(
