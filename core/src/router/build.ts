@@ -27,7 +27,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         moduleName: action.moduleName(),
         actionName: action.name,
-        actionUid: undefined,
+        actionUid: action.getUid(),
         actionVersion,
         startedAt,
       }
@@ -57,7 +57,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
     build: async (params) => {
       const { action, garden, router } = params
 
-      const actionUid = uuidv4()
+      const actionUid = action.getUid()
       params.events = params.events || new PluginEventBroker()
 
       const startedAt = new Date().toISOString()
@@ -70,12 +70,12 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         // stream logs to CLI
         log.info(renderOutputStream(data.toString(), origin))
         // stream logs to Garden Cloud
-        // TODO: consider sending origin as well
         garden.events.emit("log", {
           timestamp,
           actionUid,
           actionName,
           moduleName,
+          origin,
           data: data.toString(),
         })
       })

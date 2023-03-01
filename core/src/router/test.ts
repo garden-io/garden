@@ -13,7 +13,6 @@ import { PluginEventBroker } from "../plugin-context"
 import { runStatusForEventPayload } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
 import { makeTempDir } from "../util/fs"
-import { uuidv4 } from "../util/random"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
@@ -24,7 +23,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
       const tmpDir = await makeTempDir()
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
-      const actionUid = uuidv4()
+      const actionUid = action.getUid()
 
       const actionName = action.name
       const actionVersion = action.versionString()
@@ -55,12 +54,12 @@ export const testRouter = (baseParams: BaseRouterParams) =>
             log.info(renderOutputStream(data.toString(), origin))
           }
           // stream logs to Garden Cloud
-          // TODO: consider sending origin as well
           garden.events.emit("log", {
             timestamp,
             actionUid,
             actionName,
             moduleName,
+            origin,
             data: data.toString(),
           })
         })
@@ -105,7 +104,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         actionName,
         actionVersion,
         moduleName: action.moduleName(),
-        actionUid: undefined,
+        actionUid: action.getUid(),
         startedAt: new Date().toISOString(),
       }
 

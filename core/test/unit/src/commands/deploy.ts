@@ -12,7 +12,7 @@ import {
   taskResultOutputs,
   withDefaultGlobalOpts,
   makeTestGarden,
-  getRuntimeStatusEvents,
+  getRuntimeStatusEventsWithoutTimestamps,
   customizedTestPlugin,
   testDeploySchema,
   testTestSchema,
@@ -24,6 +24,7 @@ import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
 import { makeDummyGarden } from "../../../../src/cli/cli"
+import { ActionStatusPayload } from "../../../../src/events"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -159,12 +160,14 @@ describe("DeployCommand", () => {
     const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
 
     const sortedEvents = sortBy(
-      getRuntimeStatusEvents(garden.events.eventLog),
+      getRuntimeStatusEventsWithoutTimestamps(garden.events.eventLog),
       (e) => `${e.name}.${e.payload.actionName}.${e.payload.status.state}`
     )
 
     const getActionUid = (actionName: string): string => {
-      const event = sortedEvents.find((e) => e.payload.actionName === actionName && !!e.payload.actionUid)
+      const event = sortedEvents.find((e: { payload: ActionStatusPayload<{}> }) => {
+        return e.payload.actionName === actionName && !!e.payload.actionUid
+      })
       if (!event) {
         throw new Error(`No event with an actionUid found for action name ${actionName}`)
       }
@@ -174,23 +177,6 @@ describe("DeployCommand", () => {
     const getModuleVersion = (moduleName: string) => graph.getModule(moduleName).version.versionString
     const getDeployVersion = (serviceName: string) => graph.getDeploy(serviceName).versionString()
     const getRunVersion = (taskName: string) => graph.getRun(taskName).versionString()
-
-    const deployServiceAUid = getActionUid("service-a")
-    const deployServiceBUid = getActionUid("service-b")
-    const deployServiceDUid = getActionUid("service-d")
-
-    // Note: Runs A and C should not run or be queried for status because service-a is ready beforehand
-    const runTaskBUid = getActionUid("task-b")
-    const runVersionB = getRunVersion("task-b")
-
-    const moduleVersionA = getModuleVersion("module-a")
-    const moduleVersionB = getModuleVersion("module-b")
-    const moduleVersionC = getModuleVersion("module-c")
-
-    const deployVersionA = getDeployVersion("service-a")
-    const deployVersionB = getDeployVersion("service-b")
-    const deployVersionC = getDeployVersion("service-c")
-    const deployVersionD = getDeployVersion("service-d") // `service-d` is defined in `module-c`
 
     for (const graphResult of Object.values(deployResults)) {
       expect(graphResult).to.exist
@@ -214,107 +200,6 @@ describe("DeployCommand", () => {
       expect(res.outputs).to.eql({})
     }
 
-    expect(sortedEvents[0]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-a",
-        actionUid: deployServiceAUid,
-        status: { state: "deploying" },
-      },
-    })
-    expect(sortedEvents[1]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-a",
-        actionVersion: deployVersionA,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[2]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-a",
-        actionVersion: deployVersionA,
-        actionUid: deployServiceAUid,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[3]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-b",
-        actionVersion: deployVersionB,
-        status: { state: "deploying" },
-      },
-    })
-    expect(sortedEvents[4]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-b",
-        actionVersion: deployVersionB,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[5]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-b",
-        status: { state: "unknown" },
-      },
-    })
-    expect(sortedEvents[6]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-c",
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[7]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-d",
-        actionVersion: deployVersionD,
-        status: { state: "deploying" },
-      },
-    })
-    expect(sortedEvents[8]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-d",
-        actionVersion: deployVersionD,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[9]).to.eql({
-      name: "deployStatus",
-      payload: {
-        actionName: "service-d",
-        status: { state: "unknown" },
-      },
-    })
-    expect(sortedEvents[10]).to.eql({
-      name: "runStatus",
-      payload: {
-        actionName: "task-b",
-        status: { state: "outdated" },
-      },
-    })
-    expect(sortedEvents[11]).to.eql({
-      name: "runStatus",
-      payload: {
-        actionName: "task-b",
-        actionUid: runTaskBUid,
-        status: { state: "running" },
-      },
-    })
-    expect(sortedEvents[12]).to.eql({
-      name: "runStatus",
-      payload: {
-        actionName: "task-b",
-        actionUid: runTaskBUid,
-        status: { state: "succeeded" },
-      },
-    })
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {

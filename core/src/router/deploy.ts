@@ -11,7 +11,6 @@ import { omit } from "lodash"
 import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { DeployState } from "../types/service"
-import { uuidv4 } from "../util/random"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
@@ -20,7 +19,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     deploy: async (params) => {
       const { router, action, garden } = params
 
-      const actionUid = uuidv4()
+      const actionUid = action.getUid()
       params.events = params.events || new PluginEventBroker()
 
       const actionName = action.name
@@ -31,12 +30,12 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         // stream logs to CLI
         log.info(renderOutputStream(data.toString(), origin))
         // stream logs to Garden Cloud
-        // TODO: consider sending origin as well
         garden.events.emit("log", {
           timestamp,
           actionUid,
           actionName,
           moduleName,
+          origin,
           data: data.toString(),
         })
       })
@@ -144,7 +143,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         actionName,
         actionVersion,
-        actionUid: undefined,
+        actionUid: action.getUid(),
         moduleName: action.moduleName(),
         startedAt: new Date().toISOString(),
       }

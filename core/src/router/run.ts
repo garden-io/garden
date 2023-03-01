@@ -13,7 +13,6 @@ import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatusForEventPayload } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
-import { uuidv4 } from "../util/random"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
@@ -22,7 +21,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
     run: async (params) => {
       const { garden, router, action } = params
 
-      const actionUid = uuidv4()
+      const actionUid = action.getUid()
       const tmpDir = await tmp.dir({ unsafeCleanup: true })
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
 
@@ -55,12 +54,12 @@ export const runRouter = (baseParams: BaseRouterParams) =>
             log.info(renderOutputStream(data.toString(), origin))
           }
           // stream logs to Garden Cloud
-          // TODO: consider sending origin as well
           garden.events.emit("log", {
             timestamp,
             actionUid,
             actionName,
             moduleName,
+            origin,
             data: data.toString(),
           })
         })
@@ -107,7 +106,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         actionName,
         actionVersion,
         moduleName,
-        actionUid: undefined,
+        actionUid: action.getUid(),
         startedAt: new Date().toISOString()
       }
 

@@ -194,13 +194,13 @@ describe("test actions", () => {
 
     expect(event1.name).to.eql("testStatus")
     expect(event1.payload.moduleName).to.eql("module-a")
-    expect(event1.payload.actionUid).to.be.undefined
+    expect(event1.payload.actionUid).to.be.ok
     expect(event1.payload.state).to.eql("getting-status")
     expect(event1.payload.status.state).to.eql("unknown")
 
     expect(event2.name).to.eql("testStatus")
     expect(event1.payload.moduleName).to.eql("module-a")
-    expect(event2.payload.actionUid).to.be.undefined
+    expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
     expect(event2.payload.state).to.eql("ready")
     expect(event2.payload.status.state).to.eql("succeeded")
   })
