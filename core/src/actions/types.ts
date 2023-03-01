@@ -116,7 +116,7 @@ export const actionStateTypes = ["getting-status", "ready", "not-ready", "proces
  * ```
  *
  * The states have the following semantics:
- * 
+ *
  * - `"unknown"`: A null state used e.g. by default/no-op action handlers.
  *
  * - `"getting-status"`: The status of the action is being checked/fetched.

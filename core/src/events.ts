@@ -102,12 +102,10 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
   return payload
 }
 
-interface ActionStatusPayload<S> {
+export interface ActionStatusPayload<S = {}> {
   actionName: string
   actionVersion: string
-  // TODO: Generate for each task class instance instead of generating in actions, and provide to the action router
-  // calls. This way, we can tie together the `actionUid` of the status check action with that of the processing action.
-  actionUid: string | undefined
+  actionUid: string
   moduleName: string | null // DEPRECATED: Remove in 0.14
   startedAt: string
   completedAt?: string
@@ -220,6 +218,7 @@ export interface Events {
     actionUid: string
     actionName: string
     moduleName: string | null
+    origin: string
     data: string
   }
   logEntry: LogEntryEventPayload
