@@ -395,7 +395,7 @@ jobs:
             cd ~/project
             yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
       - cleanup_remote_cluster:
-          filter: <<parameters.project>>-testing-$CIRCLE_BUILD_NUM-e2e
+          filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
   build-docker-alpine:
     <<: *node-config
@@ -841,6 +841,11 @@ jobs:
             tar xzf google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
+      - run:
+          name: Install gke-gcloud-auth-plugin
+          command: |
+            gcloud --quiet components install gke-gcloud-auth-plugin
+            echo 'export USE_GKE_GCLOUD_AUTH_PLUGIN=True' >> $BASH_ENV
       - configure_remote_cluster
       - run:
           name: Deploy demo-project
@@ -965,18 +970,18 @@ workflows:
           project: demo-project-modules
           environment: remote
           requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-gke-kaniko
-      #     project: gke
-      #     environment: gke-kaniko
-      #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-gke-buildkit
-      #     project: gke
-      #     environment: gke-buildkit
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-gke-kaniko
+          project: gke
+          environment: gke-kaniko
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-gke-buildkit
+          project: gke
+          environment: gke-buildkit
+          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-hadolint

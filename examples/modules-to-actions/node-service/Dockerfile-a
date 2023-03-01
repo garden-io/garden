@@ -1,6 +1,8 @@
-FROM node:12.22.6-alpine
+FROM node:18-alpine
 
 ENV PORT=8080
+ENV ENVIRONMENT=a
+ENV HELLO_PATH=/hello-a
 EXPOSE ${PORT}
 WORKDIR /app
 

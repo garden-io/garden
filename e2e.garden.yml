@@ -23,5 +23,3 @@ tests:
   - name: remote-sources
     command: [yarn, e2e-project, --, --project=remote-sources, "--showlog=${var.show-log}", "--env=${environment.name}"]
     timeout: ${var.timeout}
-  - name: deployment-strategies
-    command: [yarn, e2e-project, --, --project=deployment-strategies, --showlog=true, --env=testing]

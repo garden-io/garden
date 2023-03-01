@@ -22,6 +22,7 @@ import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kuber
 import { Log } from "../../../../../../../src/logger/log-entry"
 import { cloneDeep } from "lodash"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
+import { BuildTask } from "../../../../../../../src/tasks/build"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
@@ -48,31 +49,14 @@ describe("kubernetes build flow", () => {
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
   }
 
-  async function resolveBuildImageAction(buildActionName: string) {
-    const buildAction = cloneDeep(graph.getBuild(buildActionName))
-    const key = `${currentEnv}.${buildAction.name}.${buildAction.versionString()}`
-
-    if (!!builtImages[key]) {
-      return builtImages[key]
-    }
-
-    await garden.buildStaging.syncFromSrc(buildAction, garden.log)
-
-    const resolvedBuildAction = await garden.resolveAction<ContainerBuildAction>({
-      action: buildAction,
-      log: garden.log,
-      graph,
-    })
-
-    await k8sBuildContainer({
-      ctx,
+  async function executeBuild(buildActionName: string) {
+    const action = await garden.resolveAction({ action: graph.getBuild(buildActionName), graph, log })
+    const result = await garden.processTask(
+      new BuildTask({ action, force: true, garden, graph, localModeDeployNames: [], log, syncModeDeployNames: [] }),
       log,
-      action: resolvedBuildAction,
-    })
-
-    builtImages[key] = true
-
-    return resolvedBuildAction
+      {}
+    )
+    return result?.result?.executedAction!
   }
 
   context("local mode", () => {
@@ -81,7 +65,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      await resolveBuildImageAction("simple-service")
+      await executeBuild("simple-service")
     })
   })
 
@@ -91,9 +75,9 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      const action = await resolveBuildImageAction("remote-registry-test")
+      const action = await executeBuild("remote-registry-test")
 
-      const remoteId = action._outputs["deployment-image-id"]
+      const remoteId = action.getOutput("deployment-image-id")
       // This throws if the image doesn't exist
       await containerHelpers.dockerCli({
         cwd: action.getBuildPath(),
@@ -104,9 +88,9 @@ describe("kubernetes build flow", () => {
     })
 
     it("should get the build status from the deploymentRegistry", async () => {
-      const action = await resolveBuildImageAction("remote-registry-test")
+      const action = await executeBuild("remote-registry-test")
 
-      const remoteId = action._outputs["deployment-image-id"]
+      const remoteId = action.getOutput("deployment-image-id")
 
       await containerHelpers.dockerCli({
         cwd: action.getBuildPath(),
@@ -127,7 +111,7 @@ describe("kubernetes build flow", () => {
 
     context("publish handler", () => {
       it("should publish the built image", async () => {
-        const action = await resolveBuildImageAction("remote-registry-test")
+        const action = await executeBuild("remote-registry-test")
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -139,7 +123,7 @@ describe("kubernetes build flow", () => {
       })
 
       it("should set custom tag if specified", async () => {
-        const action = await resolveBuildImageAction("remote-registry-test")
+        const action = await executeBuild("remote-registry-test")
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -159,11 +143,11 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      await resolveBuildImageAction("simple-service")
+      await executeBuild("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const action = await resolveBuildImageAction("simple-service")
+      const action = await executeBuild("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -181,11 +165,11 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build and push to configured deploymentRegistry", async () => {
-      await resolveBuildImageAction("remote-registry-test")
+      await executeBuild("remote-registry-test")
     })
 
     it("should get the build status from the registry", async () => {
-      const action = await resolveBuildImageAction("remote-registry-test")
+      const action = await executeBuild("remote-registry-test")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -212,7 +196,7 @@ describe("kubernetes build flow", () => {
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      await resolveBuildImageAction("private-base")
+      await executeBuild("private-base")
     })
 
     it("should throw if attempting to pull from private registry without access", async () => {
@@ -234,7 +218,7 @@ describe("kubernetes build flow", () => {
 
     context("publish handler", () => {
       it("should publish the built image", async () => {
-        const action = await resolveBuildImageAction("remote-registry-test")
+        const action = await executeBuild("remote-registry-test")
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -246,7 +230,7 @@ describe("kubernetes build flow", () => {
       })
 
       it("should set custom tag if specified", async () => {
-        const action = await resolveBuildImageAction("remote-registry-test")
+        const action = await executeBuild("remote-registry-test")
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -266,7 +250,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should push to configured deploymentRegistry if specified", async () => {
-      await resolveBuildImageAction("remote-registry-test")
+      await executeBuild("remote-registry-test")
     })
   })
 
@@ -277,11 +261,11 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build and push a simple container", async () => {
-      await resolveBuildImageAction("simple-service")
+      await executeBuild("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const action = await resolveBuildImageAction("simple-service")
+      const action = await executeBuild("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -293,7 +277,7 @@ describe("kubernetes build flow", () => {
     })
 
     it("should support pulling from private registries", async () => {
-      await resolveBuildImageAction("private-base")
+      await executeBuild("private-base")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
@@ -330,7 +314,7 @@ describe("kubernetes build flow", () => {
 
     context("publish handler", () => {
       it("should publish the built image", async () => {
-        const action = await resolveBuildImageAction("remote-registry-test")
+        const action = await executeBuild("remote-registry-test")
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -342,7 +326,7 @@ describe("kubernetes build flow", () => {
       })
 
       it("should set custom tag if specified", async () => {
-        const action = await resolveBuildImageAction("remote-registry-test")
+        const action = await executeBuild("remote-registry-test")
 
         const result = await k8sPublishContainerBuild({
           ctx,
@@ -363,11 +347,11 @@ describe("kubernetes build flow", () => {
     })
 
     it("should build a simple container", async () => {
-      await resolveBuildImageAction("simple-service")
+      await executeBuild("simple-service")
     })
 
     it("should get the build status from the registry", async () => {
-      const action = await resolveBuildImageAction("simple-service")
+      const action = await executeBuild("simple-service")
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -379,7 +363,7 @@ describe("kubernetes build flow", () => {
     })
 
     grouped("remote-only").it("should support pulling from private registries", async () => {
-      await resolveBuildImageAction("private-base")
+      await executeBuild("private-base")
     })
 
     it("should return ready=false status when image doesn't exist in registry", async () => {

@@ -23,7 +23,7 @@ export class GetLinkedReposCommand extends Command {
   help = "Outputs a list of all linked remote sources and modules for this project."
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "List linked modules and sources", "open_book")
+    printHeader(headerLog, "List linked modules and sources", "📖")
   }
 
   async action({ garden, log }: CommandParams<Args>): Promise<CommandResult<LinkedSource[]>> {

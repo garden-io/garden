@@ -56,7 +56,6 @@ import { joinWithPosix } from "../../util/fs"
 import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config"
 import { HelmModule, HelmService } from "./helm/module-config"
 import { convertServiceResource } from "./kubernetes-type/common"
-import { getDeploymentName } from "./container/deployment"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -250,10 +249,7 @@ export function convertContainerSyncSpec(
 ): KubernetesDeploySyncSpec | undefined {
   const spec = action.getSpec()
   const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
-  const blueGreen = ctx.provider.config.deploymentStrategy === "blue-green"
-  const deploymentName = getDeploymentName(action.name, blueGreen, action.versionString())
-
-  const target = { kind, name: deploymentName }
+  const target = { kind, name: action.name }
   const sourcePath = action.basePath()
   const syncSpec = spec.sync
 

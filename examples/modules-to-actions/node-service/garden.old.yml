@@ -18,7 +18,6 @@ tests:
     args: [npm, test]
 
 ---
-
 kind: Module
 name: b
 description: Node service B

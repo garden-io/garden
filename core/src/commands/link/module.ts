@@ -60,7 +60,7 @@ export class LinkModuleCommand extends Command<Args> {
   `
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Link module", "link")
+    printHeader(headerLog, "Link module", "🔗")
   }
 
   async action({ garden, log, args }: CommandParams<Args>): Promise<CommandResult<Output>> {

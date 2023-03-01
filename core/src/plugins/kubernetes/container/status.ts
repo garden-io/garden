@@ -52,7 +52,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     imageId,
     enableSyncMode,
     enableLocalMode: localMode,
-    blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
   const {
     state,

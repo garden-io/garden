@@ -32,7 +32,7 @@ export class GetOutputsCommand extends Command {
   outputsSchema = () => joiVariables().description("A map of all the defined project outputs, fully resolved.")
 
   printHeader({ headerLog }) {
-    printHeader(headerLog, "Resolving project outputs", "notebook")
+    printHeader(headerLog, "Resolving project outputs", "📓")
   }
 
   async action({ garden, log }: CommandParams): Promise<CommandResult<PrimitiveMap>> {

@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { find } from "lodash"
-import minimatch = require("minimatch")
+import minimatch from "minimatch"
 
 import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "../tasks/base"
 import { Profile } from "../util/profiling"
