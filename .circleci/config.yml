@@ -1154,13 +1154,14 @@ workflows:
       ### MAIN AND 0.13 ###
       - release-service-docker:
           context: docker
-          requires: [build-dist-edge]
+          requires:
+            - build-dist-edge
+            - build-dist-edge-bonsai
           filters:
             branches:
               only:
                 - main
                 - "0.13"
-              ignore: /.*/
 
   tags:
     jobs:
