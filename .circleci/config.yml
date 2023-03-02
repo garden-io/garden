@@ -540,6 +540,11 @@ jobs:
             if [[ "$TAG" == "$CIRCLE_TAG" ]] && [[ $VERSION != *"-"* ]]; then
               ./scripts/push-containers.sh latest
             fi
+            # Push again with bonsai-edge tag for 0.13 branch
+            if [ "$CIRCLE_BRANCH" == "0.13" ]; then
+              ./scripts/push-containers.sh bonsai-edge
+            fi
+
   release-service-dist:
     <<: *release-config
     steps:
@@ -1136,10 +1141,6 @@ workflows:
           name: build-dist-edge-bonsai
           version: edge-bonsai
           requires: [build]
-      - release-service-docker:
-          <<: *only-main
-          context: docker
-          requires: [build-dist-edge]
       - release-service-dist-edge:
           <<: *only-main
           version: edge
@@ -1149,6 +1150,17 @@ workflows:
           name: release-service-dist-edge-bonsai
           version: edge-bonsai
           requires: [build-dist-edge-bonsai]
+
+      ### MAIN AND 0.13 ###
+      - release-service-docker:
+          context: docker
+          requires: [build-dist-edge]
+          filters:
+            branches:
+              only:
+                - main
+                - "0.13"
+              ignore: /.*/
 
   tags:
     jobs:
