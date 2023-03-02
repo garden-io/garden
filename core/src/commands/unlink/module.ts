@@ -26,8 +26,6 @@ const unlinkModuleArguments = {
 const unlinkModuleOptions = {
   all: new BooleanParameter({
     help: "Unlink all modules.",
-    // TODO: remove this alias in 0.13
-    aliases: ["a"],
   }),
 }
 
