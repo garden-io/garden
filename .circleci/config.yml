@@ -1162,7 +1162,6 @@ workflows:
               only:
                 - main
                 - "0.13"
-              ignore: /.*/
 
   tags:
     jobs:
