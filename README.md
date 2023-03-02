@@ -12,7 +12,7 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://discord.gg/gxeuDgp6Xt">Discord</a>
+  <a href="https://discord.gg/FrmhuUjFs6">Discord</a>
 </div>
 
 ### **What is Garden?**
