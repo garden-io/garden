@@ -95,6 +95,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          namespace: module.spec.namespace
         },
       })
     }
@@ -119,6 +120,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled"]),
           resource,
+          namespace: module.spec.namespace
         },
       })
     }
