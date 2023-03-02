@@ -6,9 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ensureFile, readFile } from "fs-extra"
+import { readFile } from "fs-extra"
 import { z, ZodType } from "zod"
-import { lock } from "proper-lockfile"
 import { InternalError } from "../exceptions"
 import { dump } from "js-yaml"
 import writeFileAtomic from "write-file-atomic"
@@ -31,18 +30,13 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   async get<S extends keyof I<T>>(section: S): Promise<I<T>[S]>
   async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K): Promise<I<T>[S][K]>
   async get<S extends keyof I<T>, K extends keyof I<T>[S]>(section?: S, key?: K) {
-    const release = await this.lock()
-    try {
-      const config = await this.readConfig()
-      if (section === undefined) {
-        return config
-      } else if (key === undefined) {
-        return config[section]
-      } else {
-        return config[section][key]
-      }
-    } finally {
-      await release()
+    const config = await this.readConfig()
+    if (section === undefined) {
+      return config
+    } else if (key === undefined) {
+      return config[section]
+    } else {
+      return config[section][key]
     }
   }
 
@@ -52,19 +46,14 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
   async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, value: I<T>[S]): Promise<void>
   async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K, value: I<T>[S][K]): Promise<void>
   async set<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K | I<T>[S], value?: I<T>[S][K]) {
-    const release = await this.lock()
-    try {
-      const config = await this.readConfig()
-      if (value === undefined) {
-        config[section] = <I<T>[S]>key
-      } else {
-        config[section][<K>key] = value
-      }
-      const validated = this.validate(config, "updating")
-      await this.writeConfig(validated)
-    } finally {
-      await release()
+    const config = await this.readConfig()
+    if (value === undefined) {
+      config[section] = <I<T>[S]>key
+    } else {
+      config[section][<K>key] = value
     }
+    const validated = this.validate(config, "updating")
+    await this.writeConfig(validated)
   }
 
   /**
@@ -89,46 +78,36 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
     nameOrPartialValue: N | Partial<I<T>[S][K]>,
     value?: I<T>[S][K][N]
   ) {
-    const release = await this.lock()
-    try {
-      const config = await this.readConfig()
-      const record = config[section]?.[key]
+    const config = await this.readConfig()
+    const record = config[section]?.[key]
 
-      if (!record) {
-        throw new InternalError(
-          `The config store does not contain a record for key '${String(section)}.${String(key)}. Cannot update.'`,
-          { section, key, value }
-        )
-      }
-
-      if (value) {
-        config[section][key][<N>nameOrPartialValue] = value
-      } else {
-        config[section][key] = { ...config[section][key], ...(<Partial<I<T>[S][K]>>nameOrPartialValue) }
-      }
-
-      const validated = this.validate(config, "updating")
-      await this.writeConfig(validated)
-    } finally {
-      await release()
+    if (!record) {
+      throw new InternalError(
+        `The config store does not contain a record for key '${String(section)}.${String(key)}. Cannot update.'`,
+        { section, key, value }
+      )
     }
+
+    if (value) {
+      config[section][key][<N>nameOrPartialValue] = value
+    } else {
+      config[section][key] = { ...config[section][key], ...(<Partial<I<T>[S][K]>>nameOrPartialValue) }
+    }
+
+    const validated = this.validate(config, "updating")
+    await this.writeConfig(validated)
   }
 
   /**
    * Delete the given object/record from the specified section, if it exists.
    */
   async delete<S extends keyof I<T>, K extends keyof I<T>[S]>(section: S, key: K) {
-    const release = await this.lock()
-    try {
-      const config = await this.readConfig()
+    const config = await this.readConfig()
 
-      if (config[section]?.[key]) {
-        delete config[section][key]
-        const validated = this.validate(config, "deleting from")
-        await this.writeConfig(validated)
-      }
-    } finally {
-      await release()
+    if (config[section]?.[key]) {
+      delete config[section][key]
+      const validated = this.validate(config, "deleting from")
+      await this.writeConfig(validated)
     }
   }
 
@@ -151,12 +130,6 @@ export abstract class ConfigStore<T extends z.ZodObject<any>> {
         }
       )
     }
-  }
-
-  private async lock() {
-    const path = this.getConfigPath()
-    await ensureFile(path)
-    return lock(path, { retries: 5, stale: 5000 })
   }
 
   private async readConfig(): Promise<I<T>> {
