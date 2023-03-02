@@ -90,9 +90,10 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
+        timeout: task.spec.timeout || undefined,
 
         spec: {
-          ...omit(task.spec, ["name", "dependencies", "disabled"]),
+          ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
         },
       })
