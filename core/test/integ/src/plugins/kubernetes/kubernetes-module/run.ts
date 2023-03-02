@@ -53,11 +53,9 @@ describe("runKubernetesTask", () => {
     const result = results.results.getResult(testTask)
 
     expect(result).to.exist
-    expect(result!.result).to.exist
-    expect(result).to.have.property("output")
-    expect(result!.result!.detail?.log.trim()).to.equal("ok")
-    expect(result!.result).to.have.property("outputs")
-    expect(result!.result!.outputs.log.trim()).to.equal("ok")
+    expect(result?.result).to.exist
+    expect(result?.outputs).to.exist
+    expect(result?.result?.outputs.log).to.equal("ok")
     expect(result!.result!.detail?.namespaceStatus).to.exist
 
     // Verify that the result was saved
