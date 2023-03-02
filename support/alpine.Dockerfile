@@ -15,10 +15,11 @@ RUN apk add --no-cache \
   libstdc++
 
 # Note: This is run with the dist/alpine-amd64 directory as the context root
-ADD . /garden
+ADD --chown=node:node . /garden
 
 WORKDIR /project
 
+USER node
 RUN chmod +x /garden/garden \
   && ln -s /garden/garden /bin/garden \
   && chmod +x /bin/garden \

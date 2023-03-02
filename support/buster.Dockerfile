@@ -22,10 +22,11 @@ RUN set -ex; \
   rm -rf /var/lib/apt/lists/*;
 
 # Note: This Dockerfile is run with dist/linux-amd64 as the context root
-ADD . /garden
+ADD --chown=node:node . /garden
 
 WORKDIR /project
 
+USER node
 RUN ln -s /garden/garden /bin/garden \
   && chmod +x /bin/garden \
   && cd /garden/static \
