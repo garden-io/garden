@@ -261,7 +261,7 @@ describe("BuildStagingRsync", () => {
     it("should not sync symlinks that point outside the module root", async () => {
       const actionWithSymlink = graph.getBuild("symlink-outside-module")
 
-      await garden.buildStaging.syncFromSrc(actionWithSymlink, garden.log)
+      await garden.buildStaging.syncFromSrc({ action: actionWithSymlink, log: garden.log })
 
       const buildDir = garden.buildStaging.getBuildPath(actionWithSymlink.getConfig())
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false
@@ -272,7 +272,7 @@ describe("BuildStagingRsync", () => {
 
       try {
         process.env.PATH = ""
-        await expectError(() => buildStaging.syncFromSrc(action, garden.log), {
+        await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
           contains:
             "Could not find rsync binary. Please make sure rsync (version 3.1.0 or later) is installed and on your PATH.",
         })
@@ -293,7 +293,7 @@ describe("BuildStagingRsync", () => {
 
     it("should throw if rsync is too old", async () => {
       buildStaging.setRsyncPath(getDataDir("dummy-rsync", "old-version", "rsync"))
-      await expectError(() => buildStaging.syncFromSrc(action, garden.log), {
+      await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
         contains: [
           "found rsync binary but the version is too old",
           "please make sure rsync",
@@ -304,7 +304,7 @@ describe("BuildStagingRsync", () => {
 
     it("should throw if rsync returns invalid version", async () => {
       buildStaging.setRsyncPath(getDataDir("dummy-rsync", "invalid", "rsync"))
-      await expectError(() => buildStaging.syncFromSrc(action, garden.log), {
+      await expectError(() => buildStaging.syncFromSrc({ action, log: garden.log }), {
         contains: [
           "could not detect rsync binary version in the version command",
           "please make sure rsync",
@@ -413,7 +413,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
   it("should sync sources to the build dir", async () => {
     const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const buildActionA = graph.getBuild("module-a")
-    await buildStaging.syncFromSrc(buildActionA, garden.log)
+    await buildStaging.syncFromSrc({ action: buildActionA, log: garden.log })
     const buildDirA = buildStaging.getBuildPath(buildActionA.getConfig())
 
     const copiedPaths = [join(buildDirA, "some-dir", "some-file")]
@@ -444,7 +444,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
     it("should not sync sources for local exec modules", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const buildActionE = graph.getBuild("module-e")
-      await buildStaging.syncFromSrc(buildActionE, garden.log)
+      await buildStaging.syncFromSrc({ action: buildActionE, log: garden.log })
       // This is the dir Garden would have synced the sources into
       const buildDirF = join(buildStaging.buildDirPath, buildActionE.name)
 
@@ -457,7 +457,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
       buildActionA.getFullVersion().files = [join(buildActionA.basePath(), defaultConfigFilename)]
 
-      await buildStaging.syncFromSrc(buildActionA, garden.log)
+      await buildStaging.syncFromSrc({ action: buildActionA, log: garden.log })
       const buildDirA = buildStaging.getBuildPath(buildActionA.getConfig())
 
       expect(await pathExists(join(buildDirA, defaultConfigFilename))).to.eql(true)
@@ -475,7 +475,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
 
       buildActionA.getFullVersion().files = [join(buildActionA.getBuildPath(), defaultConfigFilename)]
 
-      await buildStaging.syncFromSrc(buildActionA, garden.log)
+      await buildStaging.syncFromSrc({ action: buildActionA, log: garden.log })
 
       expect(await pathExists(deleteMe)).to.be.false
     })
@@ -484,7 +484,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const buildAction = graph.getBuild("hidden-files")
 
-      await buildStaging.syncFromSrc(buildAction, garden.log)
+      await buildStaging.syncFromSrc({ action: buildAction, log: garden.log })
 
       const buildDir = buildStaging.getBuildPath(buildAction.getConfig())
       expect(await pathExists(join(buildDir, ".hidden-file"))).to.be.true
@@ -495,7 +495,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const buildAction = graph.getBuild("symlink-within-module")
 
-      await buildStaging.syncFromSrc(buildAction, garden.log)
+      await buildStaging.syncFromSrc({ action: buildAction, log: garden.log })
 
       const buildDir = buildStaging.getBuildPath(buildAction.getConfig())
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.true
@@ -506,7 +506,7 @@ function commonSyncTests(legacyBuildSync: boolean) {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const buildAction = graph.getBuild("symlink-absolute")
 
-      await buildStaging.syncFromSrc(buildAction, garden.log)
+      await buildStaging.syncFromSrc({ action: buildAction, log: garden.log })
 
       const buildDir = buildStaging.getBuildPath(buildAction.getConfig())
       expect(await pathExists(join(buildDir, "symlink.txt"))).to.be.false

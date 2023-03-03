@@ -51,7 +51,7 @@ export class BuildStaging {
     this.createdPaths = new Set()
   }
 
-  async syncFromSrc(action: BuildAction, log: Log, withDelete: boolean = true) {
+  async syncFromSrc({ action, log, withDelete = true }: { action: BuildAction; log: Log; withDelete?: boolean }) {
     // We don't sync local exec modules to the build dir
     if (action.getConfig("buildAtSource")) {
       log.silly(`Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
@@ -100,7 +100,7 @@ export class BuildStaging {
 
       // init .garden/build directory of the source build before syncing it to the build directory of the target action
       // here we do not want to remove any existing files produce by the source build action
-      await this.syncFromSrc(sourceBuild, log, false)
+      await this.syncFromSrc({ action: sourceBuild, log, withDelete: false })
 
       return this.sync({
         sourceRoot: sourceBuild.getBuildPath(),

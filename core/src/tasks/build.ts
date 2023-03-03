@@ -54,7 +54,10 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       log.verbose(`Syncing module sources (${pluralize("file", files.length, true)})...`)
     }
 
-    await this.garden.buildStaging.syncFromSrc(action, log || this.log)
+    await this.garden.buildStaging.syncFromSrc({
+      action,
+      log: log || this.log,
+    })
 
     log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
 
