@@ -54,7 +54,7 @@ export function getExecuteTaskForAction<T extends Action>(
   }
 }
 
-export function getServiceStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
+export function getDeployStatuses(dependencyResults: GraphResults): { [name: string]: DeployStatus } {
   const deployResults = pickBy(dependencyResults.getMap(), (r) => r && r.type === "deploy")
   const statuses = mapValues(deployResults, (r) => omit(r!.result, "version") as DeployStatus)
   return mapKeys(statuses, (_, key) => splitLast(key, ".")[1])

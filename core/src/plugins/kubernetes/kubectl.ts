@@ -131,14 +131,7 @@ export async function apply({
   }
 }
 
-export async function deleteResources({
-  log,
-  ctx,
-  provider,
-  namespace,
-  resources,
-  includeUninitialized = false,
-}: {
+export async function deleteResources(params: {
   log: Log
   ctx: PluginContext
   provider: KubernetesProvider
@@ -146,7 +139,26 @@ export async function deleteResources({
   resources: KubernetesResource[]
   includeUninitialized?: boolean
 }) {
-  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...resources.map(getResourceKey)]
+  const keys = params.resources.map(getResourceKey)
+  return deleteResourceKeys({ ...params, keys })
+}
+
+export async function deleteResourceKeys({
+  log,
+  ctx,
+  provider,
+  namespace,
+  keys,
+  includeUninitialized = false,
+}: {
+  log: Log
+  ctx: PluginContext
+  provider: KubernetesProvider
+  namespace: string
+  keys: string[]
+  includeUninitialized?: boolean
+}) {
+  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...keys]
 
   includeUninitialized && args.push("--include-uninitialized")
 
