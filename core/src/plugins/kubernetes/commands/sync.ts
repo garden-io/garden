@@ -18,7 +18,7 @@ import { PluginCommand } from "../../../plugin/command"
 
 const logSuccess = (log: Log) => log.info({ msg: chalk.green("\nDone!") })
 
-const commonDocs = `'garden dev' or 'garden deploy --dev' must be running in this project for this command to work.`
+const commonDocs = `'garden deploy --sync' must be running in this project for this command to work.`
 
 export const syncStatus: PluginCommand = {
   name: "sync-status",
