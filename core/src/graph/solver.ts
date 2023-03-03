@@ -477,7 +477,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   private logTaskError(node: TaskNode, err: Error) {
-    const prefix = `Failed to ${node.describe()}. Here is the output:`
+    const prefix = `Failed ${node.describe()}. Here is the output:`
     this.logError(node.task.log, err, prefix)
   }
 
