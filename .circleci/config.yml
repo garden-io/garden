@@ -417,10 +417,14 @@ jobs:
             if [ "$CIRCLE_BRANCH" == "0.13" ]; then
               ./scripts/push-containers.sh bonsai-edge
             fi
+            # Get remote image digest of pushed container
+            DIGEST=$(docker inspect --format='{{.RepoDigests}}' gardendev/garden:bonsai-edge-buster | tr -d '[]')
+            echo "export DIGEST=$DIGEST" >> $BASH_ENV
 
   test-docker-gcloud:
     docker:
-      - image: gardendev/garden-gcloud:latest
+    # Use remote image digest from previous job
+      - image: $DIGEST
         environment:
           <<: *shared-env-config
           GARDEN_TASK_CONCURRENCY_LIMIT: "10"
@@ -835,7 +839,7 @@ workflows:
       # - test-docker-gcloud:
       #     <<: *only-internal-prs
       #     context: docker
-      #     requires: [build-docker-gcloud]
+      #     requires: [release-service-docker]
       - test-framework:
           requires: [build]
       - test-dist:
