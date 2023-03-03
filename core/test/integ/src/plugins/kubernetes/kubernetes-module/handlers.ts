@@ -30,7 +30,7 @@ import {
 import Bluebird from "bluebird"
 import { buildHelmModules } from "../helm/common"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
-import { getServiceStatuses } from "../../../../../../src/tasks/helpers"
+import { getDeployStatuses } from "../../../../../../src/tasks/helpers"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
 import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
@@ -343,7 +343,7 @@ describe("kubernetes-module handlers", () => {
         localModeDeployNames: [],
       })
       const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
-      const status = getServiceStatuses(results.results)["namespace-resource"]
+      const status = getDeployStatuses(results.results)["namespace-resource"]
       ns1Resource = await getDeployedResource(ctx, ctx.provider, ns1Manifest!, log)
 
       expect(ns1Manifest, "ns1Manifest").to.exist
