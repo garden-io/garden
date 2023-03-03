@@ -19,7 +19,7 @@ import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure
 import { GardenModule } from "../../../types/module"
 import { KubernetesResource } from "../types"
 import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
-import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
@@ -201,8 +201,9 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
     },
   }
 
-  return new DeployAction<KubernetesDeployActionConfig, {}>({
+  return new ResolvedDeployAction<KubernetesDeployActionConfig, {}>({
     ...action["params"],
     config,
+    spec: config.spec,
   })
 }
