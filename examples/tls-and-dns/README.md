@@ -1,26 +1,27 @@
 {/* Author: ShankyJS */}
-# Scenario
 
-Company A is managing a Kubernetes cluster in GCP and using CloudFlare to handle its DNS zone.
+# Deploy cert-manager and ExternalDNS with Garden
 
-In the past, they have been provisioning all their DNS records manually, as well as creating and managing their certificates manually. To streamline and automate this process, they have decided to adopt Garden as their automation tool of choice.
+Company A is managing a Kubernetes cluster in Google Cloud Platform and using Cloudflare to handle its DNS zone.
+
+In the past, they have provisioned all their DNS records manually, as well as creating and managing their certificates manually. To streamline and automate this process, they have decided to adopt Garden as their automation tool of choice.
 
 To achieve their goal of automating certificate provisioning and renewal, they have decided to deploy cert-manager, a popular Kubernetes add-on that automates the management and issuance of TLS certificates.
 
-Additionally, to enable dynamic DNS provisioning, they have also decided to deploy external-dns, which allows for automatic registration of Kubernetes services and ingress objects into their CloudFlare DNS zone.
+Additionally, to enable dynamic DNS provisioning, they have also decided to deploy ExternalDNS, which allows for automatic registration of Kubernetes services and ingress objects into their Cloudflare DNS zone.
 
 By deploying these two tools, Company A will be able to significantly reduce the manual effort required to manage certificates and DNS records, as well as improve the security and reliability of the infrastructure.
 
 ## About
 
-This project deploys an small create-react-app application in a Kubernetes Cluster and exposes it to an Nginx ingress with HTTPs by using the following Kubernetes Operators:
+This project deploys a small React service in a Kubernetes Cluster and exposes it to an Nginx ingress with HTTPs by using the following Kubernetes Operators:
 
 | service 	    |   version 	    |
 |---------------|---------------	|
 | cert-manager	|  v1.11.0      	|
 | external-dns  |   v6.13.3         |
 
-We were able to run this by using a combination of `container` and `helm` module within Garden.io and with minimal manual intervention.
+By using a combination of `container` and `helm` modules supported by Garden and with minimal manual intervention, we are able to rapidly deploy and provision our cluster with everything it needs for automatic TLS and DNS.
 
 ### Folder structure
 
@@ -43,38 +44,39 @@ In the following block you will find the structure that we followed for this tls
 ````
 
 ## Prerequisites
-To execute this scenario successfully we assume that you might have already setup the following:
-1. A Kubernetes Cluster with the correct Security Groups/Firewall rules to allow HTTP/HTTPs.
-2. An account in CloudFlare with at least 1 DNS hosted zone.
-   - You will also need a CloudFlare API Token with the permissions defined [here](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#creating-cloudflare-credentials)
-3. Some prior knowledge in [cert-manager](https://cert-manager.io/docs/) and [external-dns](https://github.com/kubernetes-sigs/external-dns) and their use cases.
+
+To execute this scenario successfully we assume the following:
+
+1. A Kubernetes cluster with the correct Security Groups/Firewall rules to allow HTTP/HTTPs.
+2. An account in Cloudflare with at least 1 DNS hosted zone.
+   - You will also need a Cloudflare API Token with the permissions defined [here](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#creating-cloudflare-credentials)
+3. Some prior knowledge in [cert-manager](https://cert-manager.io/docs/) and [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) and their use cases.
 
 
 # Setup
-After making sure that the prerequisites are fulfilled we can proceed with the execution of the project.
 
-This project requires some configuration in environment variables to make use of the Garden Configuration and be able to deploy this demo successfully.
+This project requires some configuration of environment variables to work properly. We will go through each of them and explain their purpose.
 
-## Exporting necessary env-vars/secrets
+## Exporting necessary environment variables and secrets
 
-To make secret-management easier we decided to use environment variables to fill the CloudFlare API Token. Make sure to have this variable exported as it's used across the project.
+To make secret management easier we use environment variables to provide the Cloudflare API Token. Make sure to have this variable exported as it's used across the project.
 
 ````bash
 export CF_API_TOKEN="your-cloudflare-api-key"
 ````
 
-Make sure to modify ./project.garden.yml and add the necessary environment variables to match your environment configuration.
+Make sure to modify `project.garden.yml` and add the necessary environment variables to match your environment configuration.
 
-You will find some comments in each variable to explain the need of it.
+Comments are provided for each variable to explain its purpose.
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676710972/i1600x362-nCHxEHiCwX2L_yzdcm9.png" alt="" />
 
 ### Example of configuration
 
-<i>Note: I would recommend running this project for the first time with GENERATE_PROD_CERTS to false as it will use Production Letsencrypt that has strict policies/API rates.</i>
+⚠️ It is recommended to run this project for the first time with GENERATE_PROD_CERTS to false. If set to true, Let's Encrypt production API endpoint is used that has strict policies/API rates and could result in long delays if certificates are configured incorrectly.
 
-Only enable it after you already now that your configuration is valid by using the Staging Letsencrypt first.
+Enable it after you already now that your configuration is valid by using the Staging Letsencrypt first.
 
-<img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676711252/i1600x342-qBL-bNbNlj22_avct6f.png" alt="" />
+![Environment variable comments](https://res.cloudinary.com/djp21wtxm/image/upload/v1676711252/i1600x342-qBL-bNbNlj22_avct6f.png)
 
 <i>Also make sure to update line 19 in the same file to specify the correct context.</i> 
 ````yaml
