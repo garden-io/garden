@@ -8,18 +8,19 @@ updates:
   # Automatically update GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     schedule:
       interval: "weekly"
   # Automatically update Dockerfile FROM images
   - package-ecosystem: "docker"
     directory: "/"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     schedule:
       interval: "daily"
+  # TODO: Consider enabling the NPM package ecosystem once we have fixed our build process to support pure ESM build dependencies, see also https://github.com/garden-io/garden/issues/3841
   # Automatically update NPM packages
-  - package-ecosystem: "npm"
-    directory: "/"
-    open-pull-requests-limit: 3 # for now, once 0.13 landed we can increase this
-    schedule:
-      interval: "daily"
+  # - package-ecosystem: "npm"
+  #   directory: "/"
+  #   open-pull-requests-limit: 5
+  #   schedule:
+  #     interval: "daily"
