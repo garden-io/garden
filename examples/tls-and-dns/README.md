@@ -104,19 +104,19 @@ After a couple of minutes you should be able to see your environment was deploye
 
 ![Successful deployment message](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712270/i1563x1137-YBwTDWQW1SRN_jvtug7.png)
 
-`external-dns` will create 2 DNS records: 1 for the React service and and 1 wildcard (`*.DOMAINNAME) that will help cert-manager to authenticate the ownership of our domain and be able to generate the certificate.
+`external-dns` will create 2 DNS records: 1 for the React service and and 1 wildcard (`*.DOMAINNAME`) that will help cert-manager to authenticate the ownership of our domain and be able to generate the certificate.
 
-<img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676713413/i1600x105-9w7fM9ZAJjwR_wqzhmx.png" alt="" />
+![DNS records in Cloudflare dashboard](https://res.cloudinary.com/djp21wtxm/image/upload/v1676713413/i1600x105-9w7fM9ZAJjwR_wqzhmx.png)
 
-And also if you check your certificates, there should be a new certificate for staging (because we deployed with `GENERATE_PROD_CERTS=false`
+If you check your certificates with `kubectl get cert`, there should be a new certificate for staging (because we deployed with `GENERATE_PROD_CERTS=false`
 
-<img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676712336/i1167x182-iL4-rXCneopO_ubbzy2.png" alt="" />
+![Staging certificate](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712336/i1167x182-iL4-rXCneopO_ubbzy2.png)
 
-Now that we validated that our configuration is indeed correct we can proceed to enable Production Certificate.
+Once validated, proceed to generating a production certificate.
 
-<img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676712383/i496x238-6njMxQwTOKhk_bwy5gd.png" alt="" />
+![Production certificate](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712383/i496x238-6njMxQwTOKhk_bwy5gd.png)
 
-And then re-deploy with
+Re-deploy with
 
 ````bash
 garden deploy --env=prod --yes
