@@ -48,9 +48,10 @@ In the following block you will find the structure that we followed for this tls
 To execute this scenario successfully we assume the following:
 
 1. A Kubernetes cluster with the correct Security Groups/Firewall rules to allow HTTP/HTTPs.
-2. An account in Cloudflare with at least 1 DNS hosted zone.
+2. A domain name that you own (e.g. example.com). This domain name can be purchased anywhere but we expect for this example that Cloudflare is at least your [primary DNS provider](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup).
+3. An account in Cloudflare with at least 1 DNS hosted zone.
    - You will also need a Cloudflare API Token with the permissions defined [here](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#creating-cloudflare-credentials)
-3. Some prior knowledge in [cert-manager](https://cert-manager.io/docs/) and [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) and their use cases.
+4. Some prior knowledge in [cert-manager](https://cert-manager.io/docs/) and [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) and their use cases.
 
 
 # Setup
@@ -68,17 +69,19 @@ export CF_API_TOKEN="your-cloudflare-api-key"
 Make sure to modify `project.garden.yml` and add the necessary environment variables to match your environment configuration.
 
 Comments are provided for each variable to explain its purpose.
-<img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676710972/i1600x362-nCHxEHiCwX2L_yzdcm9.png" alt="" />
+
+![Environment variable placeholders](https://res.cloudinary.com/djp21wtxm/image/upload/v1676710972/i1600x362-nCHxEHiCwX2L_yzdcm9.png)
 
 ### Example of configuration
 
 ⚠️ It is recommended to run this project for the first time with GENERATE_PROD_CERTS to false. If set to true, Let's Encrypt production API endpoint is used that has strict policies/API rates and could result in long delays if certificates are configured incorrectly.
 
-Enable it after you already now that your configuration is valid by using the Staging Letsencrypt first.
+Enable it after you have confirmed your configuration is valid by using the Staging Let's Encrypt API endpoint first .
 
-![Environment variable comments](https://res.cloudinary.com/djp21wtxm/image/upload/v1676711252/i1600x342-qBL-bNbNlj22_avct6f.png)
+![Environment variable example comments](https://res.cloudinary.com/djp21wtxm/image/upload/v1676711252/i1600x342-qBL-bNbNlj22_avct6f.png)
 
-<i>Also make sure to update line 19 in the same file to specify the correct context.</i> 
+⚠️ Update line 19 in the same file to specify the correct context.
+
 ````yaml
     context: garden-dns-tls-test # Make sure to change this to your own context
 ````
@@ -96,13 +99,12 @@ Now we can proceed with deploying for the first time ever 🎉
 ````bash
 garden deploy --env=prod --yes
 ````
+
 After a couple of minutes you should be able to see your environment was deployed successfully.
 
-<img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676712270/i1563x1137-YBwTDWQW1SRN_jvtug7.png" alt="" />
+![Successful deployment message](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712270/i1563x1137-YBwTDWQW1SRN_jvtug7.png)
 
-Two things are going to happen with this deployment, first:
-
-`external-dns` will create 2 DNS 1 for the React application and 1 WildCard that will help cert-manager to authenticate the ownership of our domain and be able to generate the certificate.
+`external-dns` will create 2 DNS records: 1 for the React service and and 1 wildcard (`*.DOMAINNAME) that will help cert-manager to authenticate the ownership of our domain and be able to generate the certificate.
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676713413/i1600x105-9w7fM9ZAJjwR_wqzhmx.png" alt="" />
 
