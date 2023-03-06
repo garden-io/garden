@@ -122,21 +122,21 @@ Re-deploy with
 garden deploy --env=prod --yes
 ````
 
-Now your certificate should be available in your cluster. You will need to wait a couple of minutes because this is the `production` LetsEncrypt, at this moment cert-manager is executing the challenges/orders and validations to generate your wildcard certificate.
+Now your certificate should be available in your cluster. You may need to wait a few minutes because for the `production` Let's Encrypt endpoint to provision your certificate.
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676712552/i1225x174-snbD3cVmy3OD_ihlmqr.png" alt="" />
 
 # Using Certificates in your ingress
 
-Up to this moment you should have a service running in the following DNS `react.${your-domain-termination}`without HTTPs (not secure).
+You should now have a service running at the following DNS `react.${your-domain-termination}` insecurely (HTTP).
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676712587/i1600x744-DlhjPIr3f0XI_aut50k.png" alt="" />
 
 ## Staging Certificates
 
-We recommend testing first with only staging certificates because of the limits/rates from Letsencrypt in the production certificate generation. Use production first at your own risk (you might get quota exceeded if you generate too much certificates in a short span of time.)
+We recommend testing with only staging certificates because of the limits/rates from Let's Encrypt in the production certificate generation. Use production first at your own risk (you might get quota exceeded if you generate too much certificates in a short span of time.)
 
-Now let's uncomment from line 23 to line 26 in your project.garden.yml, as you can see it has the staging-certificates configured by default.
+Now let's uncomment from line 23 to line 26 in your `project.garden.yml`, as you can see it has the staging-certificates configured by default.
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676834801/i1600x278-0Fs34Dn9YD9e_nkq43p.png" alt="" />
 
@@ -144,7 +144,7 @@ After uncommenting those lines, deploy again one more time to prod.
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676834871/i1600x1155-WiQ-YkbY1Dwk_ntwqlg.png" alt="" />
 
-If you access your site now you will be getting a "connection not private", if you click "Advanced and then proceed to `react.${your-domain-termination}`" you will be able to see your Hello Garden🌸 using the staging Letsencrypt certificate.
+If you access your site now you will receive the message: "connection not private". If you click "Advanced" in your web browser and then proceed to `react.${your-domain-termination}`" you will be able to view your fancy Hello Garden🌸 landing page using the staging Let's Encrypt certificate.
 
 1.
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676834933/i1425x1036-pyYqS8azWa2P_ccsaez.png" alt="" />
@@ -152,21 +152,21 @@ If you access your site now you will be getting a "connection not private", if y
 2.
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676835016/i1600x1085-R-nlUNxT6bML_eangbo.png" alt="" />
 
-This is great! This means that our certificate is being correctly used by our Ingress Controller and now we are able to proceed with the Production (valid) certificates 🕺.
+This is great! This means that our certificate is being correctly used by our Ingress Controller and we are able to proceed with the Production certificate for a valid, secured, HTTPS endpoint 🕺.
 
 ## Production Certificates
 
-After you are already confident with your configuration, let's run production using our prod certificates.
+When you are confident with your configuration, let's run production using our prod certificates.
 
-In your project.garden.yml file replace the word `staging` with `production` in your tlsCertificates configuration.
+In your project.garden.yml file replace the word `staging` with `production` under `tlsCertificates` in your `project.garden.yml` file.
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676835286/i786x426-00AM-rF4sJK1_jrhh0y.png" alt="" />
 
-<i><b>Note:</b> Please make sure that your Production certificate is valid and ready by using `kubectl get certificates`</i>
+⚠️ Please make sure that your Production certificate is valid and ready by using `kubectl get certificates` and checking the status of your certificate.
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676835440/i1209x154-Ni_gOnEl4tFf_nfwapg.png" alt="" />
 
-If your certificate is not in `Ready` status, you will need to debug why the generation is not being successful, follow this [link](https://cert-manager.io/docs/troubleshooting/acme/) for some common cert-manager issues/misconfigurations.
+If your certificate is not in `Ready` status, you will need to debug why the generation is not being successful. View the cert-manager [troubleshooting docs](https://cert-manager.io/docs/troubleshooting/acme/) for some common cert-manager issues/misconfigurations.
 
 Now, deploy just one more time!🌟
 
@@ -179,15 +179,15 @@ Annnnnd **voilà**! we can see the desired 🔒️ in our website, if you got in
 # Conclusions
 
 - We adopted Garden as our automation tool of choice to streamline and automate our manual processes.
-- Deployed cert-manager and external-dns Kubernetes add-ons to automate the management and issuance of TLS certificates and enable dynamic DNS provisioning.
+- We deployed cert-manager and external-dns Kubernetes Helm charts to automate the management and issuance of TLS certificates and enable dynamic DNS provisioning.
 - By deploying these two tools, we have significantly reduced manual effort and improved the security and reliability of their infrastructure.
 - The project structure, prerequisites, setup, and usage were explained in detail in this post.
-- Overall, with Garden and Kubernetes add-ons, it is possible to automate and simplify complex processes and increase efficiency in managing infrastructure.
+- With Garden and Helm charts, it is possible to automate and simplify complex processes and improve efficiency when managing infrastructure.
 
 ## Common errors
 
-1. If you get an error saying `Cannot find Secret production-cert-wildcard` or the staging-one.
+- If you get an error saying `Cannot find Secret production-cert-wildcard` or `... staging-cert-wildcard`.
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676838717/i1600x1008-2liOMXuT3a87_rajfex.png" alt="" />
-- Make sure you deployed your frontend service to the `default` namespace, to make things easier for us we deployed the service there as the secrets live there.
+  - Make sure you deployed your frontend service to the `default` namespace, to make things easier for us we deployed the service there as the secrets live there.
 - Your certificates might not be ready or deployed, you can deploy only the prerequisites by using the following command: `garden deploy --env=prod external-dns,cert-manager,cluster-issuers --yes`
-- After checking that your certificate is there and you are deploying your service to the default namespace you can trigger a deployment again an it should work as expected this time. `garden deploy --env=prod --yes`
+  - After checking that your certificate is available and you are deploying your service to the default namespace you can trigger a deployment again to resolve with `garden deploy --env=prod --yes`.
