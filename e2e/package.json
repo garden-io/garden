@@ -20,8 +20,8 @@
   ],
   "main": "e2e-project.js",
   "dependencies": {
-    "@garden-io/cli": "*",
-    "@garden-io/core": "*"
+    "@garden-io/cli": "0.13.0-development",
+    "@garden-io/core": "0.13.0-development"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.191",

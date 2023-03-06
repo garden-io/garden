@@ -5,8 +5,8 @@
   "main": "index.js",
   "private": true,
   "dependencies": {
-    "@garden-io/core": "*",
-    "@garden-io/sdk": "*",
+    "@garden-io/core": "0.13.0-development",
+    "@garden-io/sdk": "0.13.0-development",
     "chalk": "^4.1.0",
     "execa": "^4.0.3",
     "slash": "^3.0.0"

@@ -20,7 +20,7 @@
   ],
   "main": "index.js",
   "dependencies": {
-    "@garden-io/core": "*",
+    "@garden-io/core": "0.13.0-development",
     "minimist": "^1.2.8"
   },
   "devDependencies": {
