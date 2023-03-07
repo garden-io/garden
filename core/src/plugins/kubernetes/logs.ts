@@ -11,7 +11,7 @@ import parseDuration from "parse-duration"
 
 import { ServiceLogEntry } from "../../types/plugin/service/getServiceLogs"
 import { KubernetesResource, KubernetesPod, BaseResource } from "./types"
-import { getAllPods } from "./util"
+import { getAllPods, summarize } from "./util"
 import { KubeApi, KubernetesError } from "./api"
 import { GardenService } from "../../types/service"
 import Stream from "ts-stream"
@@ -310,6 +310,13 @@ export class K8sLogFollower<T extends LogEntryBase> {
       this.log.silly(`<Lost connection to ${description}. Reason: ${reason}>`)
     }
 
+    /**
+     * Helper to stop retrying a connection.
+     *
+     * This means that we won't fetch logs again from this container, but createConnections will still
+     * be called and thus we will still notice when new Pods are added to the Deployment, for example when
+     * the user runs `garden deploy`.
+     */
     const stopRetrying = (why: string) => {
       this.log.silly(`<Will stop retrying connecting to ${description}. Reason: ${why}>`)
 
@@ -354,9 +361,6 @@ export class K8sLogFollower<T extends LogEntryBase> {
     })
 
     if (containers.length === 0) {
-      function summarize(resources: KubernetesResource[]) {
-        return resources.map((r) => `${r.kind} ${r.metadata.name}`).join(", ")
-      }
       this.log.debug(
         `<No running containers found for ${summarize(this.resources)}. Will retry in ${
           this.retryIntervalMs / 1000
