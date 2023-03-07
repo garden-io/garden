@@ -1,9 +1,9 @@
 ---
-order: 5
-title: Remote Source configuration context
+order: 7
+title: Remote Source template context
 ---
 
-# Remote Source configuration context
+# Remote Source template context
 
 The following keys are available in template strings under the `sources` key in project configs.
 

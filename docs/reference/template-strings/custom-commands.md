@@ -1,9 +1,9 @@
 ---
-order: 7
-title: Custom Command configuration context
+order: 9
+title: Custom Command template context
 ---
 
-# Custom Command configuration context
+# Custom Command template context
 
 The below keys are available in template strings for the `exec` and `gardenCommand` fields in [Custom Commands](../../advanced/custom-commands.md).
 

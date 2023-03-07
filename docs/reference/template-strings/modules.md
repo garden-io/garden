@@ -1,9 +1,9 @@
 ---
-order: 4
-title: Module configuration context
+order: 6
+title: Module template context
 ---
 
-# Module configuration context
+# Module template context
 
 The below keys are available in template strings in module configs.
 
