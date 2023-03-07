@@ -757,3 +757,7 @@ export function renderPodEvents(events: CoreV1Event[]): string {
 
   return text
 }
+
+export function summarize(resources: KubernetesResource[]) {
+  return resources.map((r) => `${r.kind} ${r.metadata.name}`).join(", ")
+}

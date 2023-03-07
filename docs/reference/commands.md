@@ -2984,17 +2984,17 @@ sources:
 
 ### garden logs
 
-**Retrieves the most recent logs for the specified service(s).**
+**Retrieves the most recent logs for the specified Deploy(s).**
 
-Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-to getting logs from the last minute when in `--follow` mode. You can change this with the `--since` option.
+Outputs logs for all or specified Deploys, and optionally waits for news logs to come in. Defaults to getting logs
+from the last minute when in `--follow` mode. You can change this with the `--since` or `--tail` options.
 
 Examples:
 
-    garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
-    garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
-    garden logs --tail 100                 # interleaves the last 100 log lines from all services
-    garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+    garden logs                            # interleaves color-coded logs from all Deploys (up to a certain limit)
+    garden logs --since 2d                 # interleaves color-coded logs from all Deploys from the last 2 days
+    garden logs --tail 100                 # interleaves the last 100 log lines from all Deploys
+    garden logs deploy-a,deploy-b          # interleaves color-coded logs for deploy-a and deploy-b
     garden logs --follow                   # keeps running and streams all incoming logs to the console
     garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
 
@@ -3013,7 +3013,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
-  | `--follow` |  | boolean | Continuously stream new logs.
+  | `--follow` |  | boolean | Continuously stream new logs. When the &#x60;--follow&#x60; option is set, we default to &#x60;--since 1m&#x60;.
   | `--tail` |  | number | Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.

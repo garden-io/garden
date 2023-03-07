@@ -44,7 +44,9 @@ const logsOpts = {
     `,
   }),
   "follow": new BooleanParameter({
-    help: "Continuously stream new logs.",
+    help: deline`
+      Continuously stream new logs.
+      When the \`--follow\` option is set, we default to \`--since 1m\`.`,
     aliases: ["f"],
   }),
   "tail": new IntegerParameter({
@@ -93,18 +95,18 @@ function skipEntry(entry: DeployLogEntry) {
 
 export class LogsCommand extends Command<Args, Opts> {
   name = "logs"
-  help = "Retrieves the most recent logs for the specified service(s)."
+  help = "Retrieves the most recent logs for the specified Deploy(s)."
 
   description = dedent`
-    Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-    to getting logs from the last minute when in \`--follow\` mode. You can change this with the \`--since\` option.
+    Outputs logs for all or specified Deploys, and optionally waits for news logs to come in. Defaults to getting logs
+    from the last minute when in \`--follow\` mode. You can change this with the \`--since\` or \`--tail\` options.
 
     Examples:
 
-        garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
-        garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
-        garden logs --tail 100                 # interleaves the last 100 log lines from all services
-        garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+        garden logs                            # interleaves color-coded logs from all Deploys (up to a certain limit)
+        garden logs --since 2d                 # interleaves color-coded logs from all Deploys from the last 2 days
+        garden logs --tail 100                 # interleaves the last 100 log lines from all Deploys
+        garden logs deploy-a,deploy-b          # interleaves color-coded logs for deploy-a and deploy-b
         garden logs --follow                   # keeps running and streams all incoming logs to the console
         garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
   `
