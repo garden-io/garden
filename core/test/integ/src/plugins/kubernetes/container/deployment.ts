@@ -42,7 +42,6 @@ import {
   ProxySshKeystore,
 } from "../../../../../../src/plugins/kubernetes/local-mode"
 import stripAnsi = require("strip-ansi")
-import { executeAction } from "../../../../../../src/graph/actions"
 
 describe("kubernetes container deployment handlers", () => {
   let garden: Garden
@@ -288,14 +287,14 @@ describe("kubernetes container deployment handlers", () => {
           name: "simple-service",
           annotations: { "garden.io/configured.replicas": "1" },
           namespace,
-          labels: { module: "simple-service", service: "simple-service" },
+          labels: { "garden.io/module": "simple-service", "garden.io/action": "deploy.simple-service" },
         },
         spec: {
-          selector: { matchLabels: { service: "simple-service" } },
+          selector: { matchLabels: { "garden.io/action": "deploy.simple-service" } },
           template: {
             metadata: {
               annotations: {},
-              labels: { module: "simple-service", service: "simple-service" },
+              labels: { "garden.io/module": "simple-service", "garden.io/action": "deploy.simple-service" },
             },
             spec: {
               containers: [
@@ -304,8 +303,8 @@ describe("kubernetes container deployment handlers", () => {
                   image: imageId,
                   command: ["sh", "-c", "echo Server running... && nc -l -p 8080"],
                   env: [
-                    { name: "GARDEN_VERSION", value: action.getFullVersion().versionString },
-                    { name: "GARDEN_MODULE_VERSION", value: "v-acd6a1dac7" },
+                    { name: "GARDEN_ACTION_VERSION", value: action.getFullVersion().versionString },
+                    { name: "GARDEN_MODULE_VERSION", value: action.getFullVersion().versionString },
                     { name: "POD_HOST_IP", valueFrom: { fieldRef: { fieldPath: "status.hostIP" } } },
                     { name: "POD_IP", valueFrom: { fieldRef: { fieldPath: "status.podIP" } } },
                     { name: "POD_NAME", valueFrom: { fieldRef: { fieldPath: "metadata.name" } } },
@@ -643,8 +642,8 @@ describe("kubernetes container deployment handlers", () => {
             production: false,
           }),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "Container module volume-reference specifies a unsupported module simple-service for volume mount test. Only `persistentvolumeclaim` and `configmap` modules are supported at this time."
+          expect(stripAnsi(err.message)).to.include(
+            "Deploy type=container name=volume-reference (from module volume-reference) specifies a unsupported config simple-service for volume mount test. Only `persistentvolumeclaim` and `configmap` action are supported at this time."
           )
       )
     })
