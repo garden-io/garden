@@ -2759,8 +2759,8 @@ sources:
 
 **Retrieves the most recent logs for the specified service(s).**
 
-Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-to getting logs from the last minute when in `--follow` mode. You can change this with the `--since` option.
+Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults to getting logs
+from the last minute when in `--follow` mode. You can change this with the `--since` or `--tail` options.
 
 Examples:
 
@@ -2786,7 +2786,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
-  | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
+  | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s). When the &#x60;--follow&#x60; option is set, we default to &#x60;--since 1m&#x60;.
   | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-container` |  | boolean | Show the name of the container with log output. May not apply to all providers
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
