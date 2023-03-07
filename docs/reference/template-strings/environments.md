@@ -1,9 +1,9 @@
 ---
 order: 2
-title: Environment configuration context
+title: Environment template context
 ---
 
-# Environment configuration context
+# Environment template context
 
 The following keys are available in template strings under the `environments` key in project configs. Additional keys are available for the `environments[].providers` field, see the [Provider](./providers.md) section for those.
 

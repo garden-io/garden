@@ -1,11 +1,15 @@
 ---
-order: 1
-title: Project template context
+order: 4
+title: Action (all fields) template context
 ---
 
-# Project template context
+# Action (all fields) template context
 
-The following keys are available in any template strings within Project configurations, except the `name` field (which cannot be templated). See the [Environment](./environments.md) and [Provider](./providers.md) sections for additional keys available when configuring `environments` and `providers`, respectively.
+The below keys are available in template strings for **built-in fields**in action configs, i.e. everything except the `spec` field. Please see [here](./action-specs.md) for all the additional fields available under the `spec` field.
+
+Actions can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.
+
+Note that the built-in config fields do not allow referencing other actions or modules, whereas it _is_ allowed under the `spec` field (see [here](./action-specs.md) for more details).
 
 ### `${local.*}`
 
@@ -298,4 +302,84 @@ The secret's value.
 | Type     |
 | -------- |
 | `string` |
+
+### `${variables.*}`
+
+A map of all variables defined in the project configuration, including environment-specific variables.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${variables.<variable-name>}`
+
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
+
+### `${var.*}`
+
+Alias for the variables field.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${var.<name>}`
+
+Number, string or boolean
+
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
+
+### `${environment.*}`
+
+Information about the environment that Garden is running against.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${environment.name}`
+
+The name of the environment Garden is running against, excluding the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.name}
+```
+
+### `${environment.fullName}`
+
+The full name of the environment Garden is running against, including the namespace.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.fullName}
+```
+
+### `${environment.namespace}`
+
+The currently active namespace (if any).
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${environment.namespace}
+```
 

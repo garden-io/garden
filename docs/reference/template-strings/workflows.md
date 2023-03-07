@@ -1,9 +1,9 @@
 ---
-order: 8
-title: Workflow configuration context
+order: 10
+title: Workflow template context
 ---
 
-# Workflow configuration context
+# Workflow template context
 
 The below keys are available in template strings for [Workflow](../../using-garden/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../advanced/custom-commands.md).
 
