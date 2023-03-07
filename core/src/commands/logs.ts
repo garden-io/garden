@@ -17,10 +17,10 @@ import { logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import hasAnsi = require("has-ansi")
-import { dedent, deline } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import { padSection } from "../logger/renderers"
 import { PluginEventBroker } from "../plugin-context"
-import { ParameterError } from "../exceptions"
+import { CommandError, ParameterError } from "../exceptions"
 
 const logsArgs = {
   names: new StringsParameter({
@@ -164,6 +164,22 @@ export class LogsCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const allDeploys = graph.getDeploys()
     const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
+    const allDeployNames = allDeploys
+      .map((s) => s.name)
+      .filter(Boolean)
+      .sort()
+
+    if (actions.length === 0) {
+      let msg: string
+      if (args.names) {
+        msg = `Deploy(s) ${naturalList(
+          args.names.map((s) => `"${s}"`)
+        )} not found. Available Deploys: ${naturalList(allDeploys.map((s) => `"${s}"`))}.`
+      } else {
+        msg = "No Deploys found in project."
+      }
+      throw new CommandError(msg, { args, opts, availableDeploys: allDeployNames })
+    }
 
     // If the container name should be displayed, we align the output wrt to the longest container name
     let maxDeployName = 1
@@ -185,10 +201,6 @@ export class LogsCommand extends Command<Args, Opts> {
     // Map all deploys names in the project to a specific color. This ensures
     // that in most cases they have the same color (unless any have been added/removed),
     // regardless of what params you pass to the command.
-    const allDeployNames = allDeploys
-      .map((s) => s.name)
-      .filter(Boolean)
-      .sort()
     const colorMap = allDeployNames.reduce((acc, name, idx) => {
       const color = colors[idx % colors.length]
       acc[name] = color
