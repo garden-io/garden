@@ -26,6 +26,7 @@ import { Writable } from "stream"
 import request from "request"
 import { LogLevel } from "../../logger/logger"
 import { clearTimeout } from "timers"
+import { HttpError } from "@kubernetes/client-node"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.
@@ -64,7 +65,10 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
       logsFollower.close()
     })
 
-    await logsFollower.followLogs({ tail: params.tail, since: params.since })
+    // We use sinceOnRetry 30s here, to cap the maximum age of log messages on retry attempts to max 30s
+    // because we don't want to spam users with old log messages if they were running `garden logs` and then
+    // disconnected for a long time, e.g. because the laptop was in sleep.
+    await logsFollower.followLogs({ tail: params.tail, since: params.since, sinceOnRetry: "30s" })
   } else {
     const pods = await getAllPods(api, params.defaultNamespace, params.resources)
     let tail = params.tail
@@ -147,6 +151,16 @@ interface LogConnection {
 interface LogOpts {
   tail?: number
   since?: string
+  /**
+   * Maximum age of logs to fetch on retry attempts.
+   *
+   * Can be useful in case you don't want to fetch the complete history of logs on retry attempts, for example when the
+   * we don't care about completeness, for example in `garden logs --follow`.
+   *
+   * By default the LogFollower will try to fetch all the logs (unless the amount the app logged between retries exceeds
+   * maxLogLinesInMemory).
+   */
+  sinceOnRetry?: string
 }
 
 const defaultRetryIntervalMs = 10000
@@ -165,7 +179,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
   private log: LogEntry
   private defaultNamespace: string
   private resources: KubernetesResource<BaseResource>[]
-  private timeoutId: NodeJS.Timer | null
+  private timeoutId?: NodeJS.Timer | null
   private resolve: ((val: unknown) => void) | null
   private retryIntervalMs: number
 
@@ -193,7 +207,6 @@ export class K8sLogFollower<T extends LogEntryBase> {
     this.log = log
     this.defaultNamespace = defaultNamespace
     this.resources = resources
-    this.timeoutId = null
     this.resolve = null
     this.retryIntervalMs = retryIntervalMs
   }
@@ -208,7 +221,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
       try {
         await this.createConnections(opts)
       } finally {
-        this.timeoutId = setTimeout(followLoop, this.retryIntervalMs)
+        // if timeoutId is null, close() has been called and we should stop the loop.
+        if (this.timeoutId !== null) {
+          this.timeoutId = setTimeout(followLoop, this.retryIntervalMs)
+        }
       }
     }
 
@@ -275,7 +291,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     )
   }
 
-  private async handleConnectionClose(connection: LogConnection, status: ConnectionStatus, reason: string) {
+  private async handleConnectionClose(connection: LogConnection, status: ConnectionStatus, error: Error | string) {
     clearTimeout(connection.timeout)
 
     const prevStatus = connection.status
@@ -287,6 +303,10 @@ export class K8sLogFollower<T extends LogEntryBase> {
     // There's no need to log the closed event that happens after an error event
     // Also no need to log the error event after a timed-out event
     if (!(prevStatus === "error" && status === "closed") && !(prevStatus === "timed-out" && status === "error")) {
+      let reason = error
+      if (error instanceof HttpError) {
+        reason = `HTTP request failed with status ${error.statusCode}`
+      }
       this.log.silly(`<Lost connection to ${description}. Reason: ${reason}>`)
     }
 
@@ -316,7 +336,7 @@ export class K8sLogFollower<T extends LogEntryBase> {
     }
   }
 
-  private async createConnections({ tail, since }: LogOpts) {
+  private async createConnections({ tail, since, sinceOnRetry }: LogOpts) {
     let pods: KubernetesPod[]
 
     try {
@@ -417,18 +437,19 @@ export class K8sLogFollower<T extends LogEntryBase> {
           connection,
           stream: writableStream,
           tail: tail || Math.floor(maxLogLinesInMemory / containers.length),
-          sinceSeconds: since,
+          since,
+          sinceOnRetry,
         })
         this.log.silly(`<Connected to container '${containerName}' in Pod '${pod.metadata.name}'>`)
       } catch (err) {
-        await this.handleConnectionClose(connection, "error", err.message)
+        await this.handleConnectionClose(connection, "error", err)
         return
       }
       connection.request = req
       connection.status = "connected"
       connection.timeout = makeTimeout()
 
-      req.on("error", async (error) => await this.handleConnectionClose(connection, "error", error.message))
+      req.on("error", async (error) => await this.handleConnectionClose(connection, "error", error))
       req.on("close", async () => await this.handleConnectionClose(connection, "closed", "Request closed"))
     })
   }
@@ -437,12 +458,14 @@ export class K8sLogFollower<T extends LogEntryBase> {
     connection,
     stream,
     tail,
-    sinceSeconds,
+    since,
+    sinceOnRetry,
   }: {
     connection: LogConnection
     stream: Writable
     tail: number
-    sinceSeconds?: string
+    since?: string
+    sinceOnRetry?: string
   }) {
     const opts = {
       follow: true, // only works with follow true, as we receive chunks with multiple messages in the stream otherwise
@@ -455,14 +478,20 @@ export class K8sLogFollower<T extends LogEntryBase> {
     // Get timestamp of last seen message from previous connection attempt, and only fetch logs since this time.
     // This is because we've already streamed all the previous logs. This helps avoid unnecessary data transfer.
     let sinceTime = connection.lastLogEntries?.timestamp.toISOString()
-    if (sinceTime) {
+
+    // If this is a retry attempt and the sinceOnRetry parameter is set, we don't want to fetch old logs
+    if (sinceTime && sinceOnRetry) {
+      opts["sinceSeconds"] = parseDuration(sinceOnRetry, "s") || undefined
+    }
+
+    // This is a retry attempt
+    else if (sinceTime) {
       opts["sinceTime"] = sinceTime
     }
 
-    // Do not pass sinceSeconds parameter if we use sinceTime. The sinceSeconds parameter should only be used for the
-    // first request; For any subsequent re-try we want to get all the missing logs in between the attempts (see above)
-    if (sinceSeconds && !sinceTime) {
-      opts["sinceSeconds"] = parseDuration(sinceSeconds, "s") || undefined
+    // If this is not a retry attempt and the since parameter has been set
+    else if (since) {
+      opts["sinceSeconds"] = parseDuration(since, "s") || undefined
     }
 
     return this.k8sApi
