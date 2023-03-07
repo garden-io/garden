@@ -500,13 +500,13 @@ ${expectedIngressOutput}
 
   describe("getBaseModule", () => {
     it("should return undefined if no base module is specified", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("postgres")
 
       expect(await getBaseModule(module)).to.be.undefined
     })
 
     it("should return the resolved base module if specified", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("two-containers")
       const baseModule = graph.getModule("postgres")
 
       module.spec.base = baseModule.name
@@ -516,7 +516,7 @@ ${expectedIngressOutput}
     })
 
     it("should throw if the base module isn't in the build dependency map", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("two-containers")
 
       module.spec.base = "postgres"
 
@@ -524,13 +524,13 @@ ${expectedIngressOutput}
         () => getBaseModule(module),
         (err) =>
           expect(err.message).to.equal(
-            deline`Helm module 'api' references base module 'postgres' but it is missing from the module's build dependencies.`
+            deline`Helm module 'two-containers' references base module 'postgres' but it is missing from the module's build dependencies.`
           )
       )
     })
 
     it("should throw if the base module isn't a Helm module", async () => {
-      const module = graph.getModule("api")
+      const module = graph.getModule("two-containers")
       const baseModule = graph.getModule("postgres")
 
       baseModule.type = "foo"
@@ -542,7 +542,7 @@ ${expectedIngressOutput}
         () => getBaseModule(module),
         (err) =>
           expect(err.message).to.equal(
-            deline`Helm module 'api' references base module 'postgres' which is a 'foo' module,
+            deline`Helm module 'two-containers' references base module 'postgres' which is a 'foo' module,
             but should be a helm module.`
           )
       )
