@@ -42,7 +42,9 @@ const logsOpts = {
     `,
   }),
   "follow": new BooleanParameter({
-    help: "Continuously stream new logs from the service(s).",
+    help: deline`
+    Continuously stream new logs from the service(s).
+    When the \`--follow\` option is set, we default to \`--since 1m\`.`,
     alias: "f",
   }),
   "tail": new IntegerParameter({
@@ -104,8 +106,8 @@ export class LogsCommand extends Command<Args, Opts> {
   help = "Retrieves the most recent logs for the specified service(s)."
 
   description = dedent`
-    Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-    to getting logs from the last minute when in \`--follow\` mode. You can change this with the \`--since\` option.
+    Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults to getting logs
+    from the last minute when in \`--follow\` mode. You can change this with the \`--since\` or \`--tail\` options.
 
     Examples:
 
