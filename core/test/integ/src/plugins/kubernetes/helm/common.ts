@@ -28,6 +28,7 @@ import { Garden } from "../../../../../../src"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress"
 import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
+import { loadAllYaml } from "@kubernetes/client-node"
 
 let helmTestGarden: TestGarden
 
@@ -217,6 +218,7 @@ spec:
         app.kubernetes.io/name: api
         app.kubernetes.io/instance: api-release
     spec:
+      shareProcessNamespace: true
       containers:
         - name: api
           image: "api-image:${buildImageAction.versionString()}"
@@ -230,9 +232,14 @@ spec:
             {}
 ---
 ${expectedIngressOutput}
-      `
-
-      expect(templates.trim()).to.eql(expected.trim())
+`
+      const resultArr = loadAllYaml(templates.trim())
+      const expectedArr = loadAllYaml(expected.trim())
+      expect(resultArr.length).to.eql(expectedArr.length)
+      resultArr.forEach((result, i) => {
+        const message = result.kind
+        expect(result, message).to.eql(expectedArr[i])
+      })
     })
 
     it("should render and return the manifests for a remote template", async () => {
@@ -400,6 +407,7 @@ ${expectedIngressOutput}
                 },
               },
               spec: {
+                shareProcessNamespace: true,
                 containers: [
                   {
                     name: "api",
