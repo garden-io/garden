@@ -21,7 +21,7 @@ You need to update the `remote` environment configuration in your project `garde
 Replace `my-context` with your configured `kubectl` context for the remote cluster, and `mycluster.example.com`
 with a hostname that points to the ingress controller on your cluster.
 
-If you don't have an ingress controller configured, you can add `setupIngressController: nginx` to the provider
+If you don't have an ingress controller configured, you can add `ingressClass: nginx` to the provider
 configuration, but you will then still need to work out your DNS to route requests to the cluster (how best to do
 that varies quite a bit by how you're hosting the cluster).
 
@@ -54,10 +54,4 @@ Once you've completed the above, you can run deploy the project to the `remote` 
 
 ```sh
 garden --env=remote deploy
-```
-
-And then try sending a simple request using:
-
-```sh
-garden --env=remote call node-service/hello
 ```
