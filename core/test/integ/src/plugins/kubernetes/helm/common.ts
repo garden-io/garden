@@ -550,19 +550,17 @@ ${expectedIngressOutput}
   })
 
   describe("getChartPath", () => {
-    context("module has chart sources", () => {
-      it("should return the chart path in the build directory", async () => {
+    context("action has chart sources", () => {
+      it("should return the chart path", async () => {
         const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-        expect(await getChartPath(action)).to.equal(resolve(ctx.projectRoot, ".garden", "build", "api"))
+        expect(await getChartPath(action)).to.equal(resolve(ctx.projectRoot, "api"))
       })
     })
 
-    context("module references remote chart", () => {
-      it("should construct the chart path based on the chart name", async () => {
+    context("action references remote chart", () => {
+      it("should return undefined", async () => {
         const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
-        expect(await getChartPath(action)).to.equal(
-          resolve(ctx.projectRoot, ".garden", "build", "postgres", "postgresql")
-        )
+        expect(await getChartPath(action)).to.be.undefined
       })
     })
   })
