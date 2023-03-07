@@ -125,13 +125,17 @@ describe("kubernetes-module handlers", () => {
   })
 
   describe("getServiceStatus", () => {
-    it("should return missing status for a manifest with a missing resource type", async () => {
+    it("should return not-ready status for a manifest with a missing resource type", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("module-simple")
+      const action = await garden.resolveAction<KubernetesDeployAction>({
+        action: graph.getDeploy("module-simple"),
+        log: garden.log,
+        graph,
+      })
       const deployParams = {
         ctx,
         log: garden.log,
-        action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
+        action,
         force: false,
         syncMode: false,
         localMode: false,
@@ -146,7 +150,7 @@ describe("kubernetes-module handlers", () => {
       ]
 
       const status = await getKubernetesDeployStatus(deployParams)
-      expect(status.state).to.equal("missing")
+      expect(status.state).to.equal("not-ready")
     })
   })
 
