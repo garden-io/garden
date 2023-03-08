@@ -16,6 +16,7 @@ import {
   getChartResources,
   getReleaseName,
   getValueArgs,
+  prepareTemplates,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { Log } from "../../../../../../src/logger/log-entry"
@@ -28,7 +29,8 @@ import { Garden } from "../../../../../../src"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import { getIngressApiVersion } from "../../../../../../src/plugins/kubernetes/container/ingress"
 import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
-import { loadAllYaml } from "@kubernetes/client-node"
+import { loadAllYaml, loadYaml } from "@kubernetes/client-node"
+import { readdir, readFile } from "fs-extra"
 
 let helmTestGarden: TestGarden
 
@@ -651,13 +653,30 @@ ${expectedIngressOutput}
   })
 
   describe("prepareTemplates", () => {
+    const getFileData = async (path: string) => loadYaml((await readFile(path)).toString())
+
     it("writes values to a temp file and returns path", async () => {
-      throw "TODO"
+      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+
+      const { valuesPath } = await prepareTemplates({ ctx, log, action })
+
+      expect(valuesPath).to.not.be.undefined
+      const data = await getFileData(valuesPath)
+      expect(data).to.ownProperty(".garden")
+      expect(data).to.ownProperty("image")
     })
 
     context("chart.path is set", () => {
       it("sets reference to chart path", async () => {
-        throw "TODO"
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
+        action._config.spec.chart = { path: "." }
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.length).to.eql(1)
+        expect(reference[0]).to.include("/api")
+        const pathFiles = await readdir(reference[0])
+        expect(pathFiles).to.include("Chart.yaml")
       })
 
       it("updates dependencies for local charts", async () => {
@@ -667,25 +686,47 @@ ${expectedIngressOutput}
 
     context("chart.url is set", () => {
       it("sets reference to chart.url", async () => {
-        throw "TODO"
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+        action._config.spec.chart = { url: "https://example.com" }
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference).to.eql(["https://example.com"])
       })
 
       it("adds --version flag if chart.version is set", async () => {
-        throw "TODO"
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+        action._config.spec.chart = { url: "https://example.com", version: "1.1.1" }
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.eql("https://example.com --version 1.1.1")
       })
     })
 
     context("chart.name is set", () => {
       it("sets reference to chart.name", async () => {
-        throw "TODO"
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.include("postgresql")
       })
 
       it("adds --version flag if chart.version is set", async () => {
-        throw "TODO"
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.include("--version 11.6.12")
       })
 
       it("adds --repo flag if chart.repo is set", async () => {
-        throw "TODO"
+        const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("postgres"), log, graph })
+
+        const { reference } = await prepareTemplates({ ctx, log, action })
+
+        expect(reference.join(" ")).to.include("--repo https://charts.bitnami.com/bitnami")
       })
     })
   })
