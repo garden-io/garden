@@ -102,6 +102,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          namespace: module.spec.namespace
         },
       })
     }
@@ -129,6 +130,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          namespace: module.spec.namespace
         },
       }
 
@@ -194,7 +196,7 @@ function prepareDeployAction({
   const deployAction: HelmDeployConfig = {
     kind: "Deploy",
     type: "helm",
-    name: module.name,
+    name: service.name,
     ...baseFields,
 
     disabled: module.spec.skipDeploy,

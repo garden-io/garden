@@ -20,7 +20,7 @@ import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
 import { PluginContext } from "../../plugin-context"
 import { getPodLogs } from "./status/pod"
-import { splitFirst } from "../../util/util"
+import { splitFirst, isValidDateInstance } from "../../util/util"
 import { Writable } from "stream"
 import request from "request"
 import { LogLevel } from "../../logger/logger"
@@ -327,7 +327,10 @@ export class K8sLogFollower<T> {
           let msg = line
           try {
             const parts = splitFirst(line, " ")
-            timestamp = new Date(parts[0])
+            const dateInstance = new Date(parts[0])
+            if (isValidDateInstance(dateInstance)) {
+              timestamp = dateInstance
+            }
             msg = parts[1]
           } catch {}
           if (_self.deduplicate({ msg, podName, containerName, timestamp })) {

@@ -694,14 +694,14 @@ export function configureVolumes(
         volumes.push({
           name: volumeName,
           persistentVolumeClaim: {
-            claimName: volume.action,
+            claimName: volume.action.name,
           },
         })
       } else if (volumeAction.isCompatible("configmap")) {
         volumes.push({
           name: volumeName,
           configMap: {
-            name: volume.action,
+            name: volume.action.name,
           },
         })
       } else {

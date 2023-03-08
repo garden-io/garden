@@ -363,7 +363,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     let d = `${chalk.white(this.kind)} type=${chalk.bold.white(this.type)} name=${chalk.bold.white(this.name)}`
 
     if (this._moduleName) {
-      d += ` (from module ${chalk.bold.white(this.name)})`
+      d += ` (from module ${chalk.bold.white(this._moduleName)})`
     }
 
     return d

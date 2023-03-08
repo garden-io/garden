@@ -381,14 +381,10 @@ export function describeParameters(args?: Parameters) {
 
 export const globalOptions = {
   "root": new PathParameter({
-    // TODO: remove this alias in 0.13?
-    aliases: ["r"],
     help:
       "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
   }),
   "silent": new BooleanParameter({
-    // TODO: remove this alias in 0.13?
-    aliases: ["s"],
     help: "Suppress log output. Same as setting --logger-type=quiet.",
     defaultValue: false,
     cliOnly: true,

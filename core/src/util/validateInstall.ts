@@ -23,7 +23,7 @@ function versionCheckError(params: BinaryVersionCheckParams, msg: string, detail
     deline`
       ${msg}
       Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      More about garden installation and requirements can be found in our documentation at https://docs.garden.io/guides/installation#requirements
+      More about garden installation and requirements can be found in our documentation at https://docs.garden.io/guides/installation
       `,
     detail
   )

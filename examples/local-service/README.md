@@ -62,7 +62,7 @@ yarn install
 cd ..
 ```
 
-Assuming you've [set _your_ K8s context](https://docs.garden.io/tutorials/your-first-project/2-connect-to-a-cluster), you can start the project with:
+Assuming you've [set _your_ K8s context](https://docs.garden.io/kubernetes-plugins/remote-k8s), you can start the project with:
 
 ```console
 garden deploy --sync

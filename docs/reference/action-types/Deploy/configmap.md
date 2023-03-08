@@ -9,7 +9,7 @@ tocTitle: "`configmap` Deploy"
 
 Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/other-plugins/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
+See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/k8s-plugins/module-types/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -154,6 +154,16 @@ varfiles: []
 build:
 
 spec:
+  # A list of access modes supported by the volume when mounting. At least one must be specified. The available modes
+  # are as follows:
+  #
+  #  ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
+  #  ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
+  #  ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
+  #
+  # At least one mode must be specified.
+  accessModes:
+
   # The namespace to deploy the ConfigMap in. Note that any module referencing the ConfigMap must be in the same
   # namespace, so in most cases you should leave this unset.
   namespace:
@@ -388,6 +398,22 @@ This would mean that instead of looking for manifest files relative to this acti
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+### `spec.accessModes[]`
+
+[spec](#spec) > accessModes
+
+A list of access modes supported by the volume when mounting. At least one must be specified. The available modes are as follows:
+
+ ReadOnlyMany  - May be mounted as a read-only volume, concurrently by multiple targets.
+ ReadWriteOnce - May be mounted as a read-write volume by a single target at a time.
+ ReadWriteMany - May be mounted as a read-write volume, concurrently by multiple targets.
+
+At least one mode must be specified.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
 
 ### `spec.namespace`
 

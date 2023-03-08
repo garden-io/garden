@@ -45,7 +45,7 @@ You can also deploy `kubernetes` and `helm` modules to their own namespaces.
 
 ### How do I share code between modules?
 
-You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.48/examples/build-dependencies).
+You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/build-dependencies).
 
 Alternatively you can hoist your `garden.yml` file so that it is at the same level or parent to all relevant build context and use the `include` field.
 
@@ -65,7 +65,7 @@ Use the [`targetImage` field](https://docs.garden.io/reference/module-types/cont
 
 ### How do I use base images?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.48/examples/base-image).
+See [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/base-image).
 
 ### Can I use runtime variables in container builds (e.g. from tasks)?
 
@@ -111,11 +111,11 @@ include: [frontend/**/*]
 
 Note that you can put multiple Garden configuration files in the same directory, e.g. `project.garden.yml`, `api.garden.yml` and `frontend.garden.yml`.
 
-If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.48/examples/base-image) for an example of this.
+If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.51/examples/base-image) for an example of this.
 
 ### How do I include files/dirs (e.g. shared libraries) from outside the module root with the build context?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.48/examples/build-dependencies).
+See [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/build-dependencies).
 
 ### How do I add Docker specific flags to the build command?
 
@@ -129,7 +129,7 @@ You can use the `dockerfile` field. For example:
 dockerfile: "${environment.name == 'prod' ? Dockerfile.prod : Dockerfile.dev}"
 ```
 
-See also the [base image example project](https://github.com/garden-io/garden/tree/0.12.48/examples/base-image) for an example of this.
+See also the [base image example project](https://github.com/garden-io/garden/tree/0.12.51/examples/base-image) for an example of this.
 
 ## Remote Building
 
@@ -199,7 +199,7 @@ This will run the task even if the result is cached.
 
 ### How do I pass secrets to container modules?
 
-See [this section](https://docs.garden.io/other-plugins/container#secrets) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
@@ -207,7 +207,7 @@ You'll need to use the [`kubernetes`](https://docs.garden.io/reference/module-ty
 
 ### Can I use Kubernetes secrets as `buildArgs`?
 
-No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/other-plugins/container#secrets) of our docs for more.
+No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -219,13 +219,13 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ### How do I mount persistent volumes?
 
-See [this section](https://docs.garden.io/other-plugins/container#mounting-volumes) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs.
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
 You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](https://docs.garden.io/using-garden/tests#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/other-plugins/container#mounting-volumes) of our docs for more.
+You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs for more.
 
 ## Kubernetes
 

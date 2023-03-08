@@ -49,7 +49,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
       type: "kubernetes",
-      name: module.name,
+      name: service.name,
       ...params.baseFields,
 
       build: dummyBuild?.name,
@@ -84,16 +84,18 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       actions.push({
         kind: "Run",
         type: "kubernetes-pod",
-        name: module.name,
+        name: task.name,
         ...params.baseFields,
         disabled: task.disabled,
 
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
+        timeout: task.spec.timeout || undefined,
 
         spec: {
-          ...omit(task.spec, ["name", "dependencies", "disabled"]),
+          ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          namespace: module.spec.namespace
         },
       })
     }
@@ -114,10 +116,12 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
+        timeout: test.spec.timeout || undefined,
 
         spec: {
-          ...omit(test.spec, ["name", "dependencies", "disabled"]),
+          ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          namespace: module.spec.namespace
         },
       })
     }
