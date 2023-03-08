@@ -8,46 +8,49 @@ The motivation for running local services with Garden is to be able to share env
 
 ## Project Structure
 
-The project contains three modules: `backend`, `frontend`, and `frontend-local`, which as the name suggests, runs the frontend locally.
+The project contains three parts: `backend`, `frontend`, and `frontend-local`.
 
-The `frontend` module declares a variable which holds its env vars so that they can be shared with the local module:
+The `frontend` Deploy action declares a variable which holds its env vars so that they can be shared with other actions:
 
 ```yaml
 # in frontend/garden.yml
-kind: Module
+kind: Deploy
 name: frontend
-# ..
+# ...
 variables:
   env: # <--- Declare as a variable so that we can re-use it
     PORT: 8080
     IS_LOCAL: false
-services:
-  - name: frontend
-    # ...
-    env: ${var.env} # <--- Reference the 'env' variable
+spec:
+  # ...
+  env: ${var.env} # <--- Reference the 'env' variable
 ```
 
-The `frontend-local` module is a "local" `exec` module that can re-use the variables defined for the `frontend` module to avoid duplication:
+The `frontend-local` is a local Run action that can re-use the variables to avoid duplication:
 
 ```yaml
 # also in frontend/garden.yml
-kind: Module
+kind: Run
 name: frontend-local
+description: An exec module for running the frontend locally
 type: exec
-local: true
-env:
-  $merge: ${modules.frontend.var.env} # <--- Merge in the variables from the `frontend` module
-  IS_LOCAL: true # <--- Overwrite the IS_LOCAL variable
+include: []
+spec:
+  command: [yarn, dev]
+  env:
+    $merge: ${action.deploy.frontend.var.env} # <--- Merge in the variables from the `frontend` deploy action
+    IS_LOCAL: true # <--- Overwrite the IS_LOCAL variable
 ```
 
 And in the code itself, we use the `IS_LOCAL` variable:
 
 ```javascript
 // In frontend/app.js
-app.get('/hello-frontend', (_req, res) => {
-  const msg = process.env.IS_LOCAL ? "Hello from local frontend" : "Hello from remote frontend"
+app.get("/hello-frontend", (_req, res) => {
+  const local = process.env.IS_LOCAL === "true"
+  const msg = local ? "Hello from local frontend" : "Hello from remote frontend"
   res.send(msg)
-});
+})
 ```
 
 ## Usage
@@ -58,17 +61,15 @@ app.get('/hello-frontend', (_req, res) => {
 garden deploy
 ```
 
-This deploys both the `backend` and `frontend` services into a remote K8s cluster.
+This deploys both the `backend` and `frontend` into a remote K8s cluster.
 
-**Next**, start the local module in a separate process with:
+**Next**, start the `frontend-local` Run action in a separate process with:
 
 ```console
-garden run module frontend-local "yarn dev"
+garden run frontend-local
 ```
 
-Note that you can pass any arbitrary command to the Garden command.
-
-This simply runs `yarn dev` in the build context of the frontend module with the correct environment variables set.
+This simply runs `yarn dev` in the build context of the `frontend` with the correct environment variables set.
 
 Now, if you go to the remote ingress for the frontend you should see:
 
@@ -76,7 +77,7 @@ Now, if you go to the remote ingress for the frontend you should see:
 Hello from remote frontend
 ```
 
-However, if you go to `localHost:8080/hello-frontend` you should see:
+However, if you go to `localhost:8080/hello-frontend` you should see:
 
 ```console
 Hello from local frontend
