@@ -7,13 +7,12 @@
  */
 
 import { expect } from "chai"
-import { writeFile } from "fs"
 import { join } from "path"
-import { actionConfigsToGraph } from "../../../src/graph/actions"
-import { ModuleGraph } from "../../../src/graph/modules"
-import { Log } from "../../../src/logger/log-entry"
-import { dumpYaml } from "../../../src/util/util"
-import { expectError, makeTempGarden, TempDirectory, TestGarden } from "../../helpers"
+import { actionConfigsToGraph } from "../../../../src/graph/actions"
+import { ModuleGraph } from "../../../../src/graph/modules"
+import { Log } from "../../../../src/logger/log-entry"
+import { dumpYaml } from "../../../../src/util/util"
+import { expectError, makeTempGarden, TempDirectory, TestGarden } from "../../../helpers"
 
 describe("actionConfigsToGraph", () => {
   let tmpDir: TempDirectory
