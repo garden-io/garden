@@ -14,7 +14,7 @@ import psTree from "ps-tree"
 import { Garden } from "../../../../../src/garden"
 import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
 import { Log } from "../../../../../src/logger/log-entry"
-import { keyBy } from "lodash"
+import { keyBy, omit } from "lodash"
 import {
   getDataDir,
   makeTestModule,
@@ -606,7 +606,7 @@ describe("exec plugin", () => {
             `)
           )
         })
-        context("syncMode", () => {
+        context("persistent", () => {
           // We set the pid in the "it" statements.
           let pid = -1
 
@@ -672,43 +672,37 @@ describe("exec plugin", () => {
             expect(pid).to.be.a("number")
             expect(pid).to.be.greaterThan(0)
 
-            const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: action.name })
+            const logFilePath = getLogFilePath({ ctx, deployName: action.name })
             const logFileContents = (await readFile(logFilePath)).toString()
             const logEntriesWithoutTimestamps = logFileContents
               .split("\n")
               .filter((line) => !!line)
               .map((line) => JSON.parse(line))
-              .map((parsed) => {
-                return {
-                  serviceName: parsed.serviceName,
-                  msg: parsed.msg,
-                  level: parsed.level,
-                }
-              })
+              .map((parsed) => omit(parsed, "timestamp"))
 
             expect(logEntriesWithoutTimestamps).to.eql([
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 1",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 2",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 3",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 4",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 5",
                 level: 2,
               },
@@ -732,48 +726,42 @@ describe("exec plugin", () => {
 
             pid = res.detail?.detail.pid
 
-            const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: action.name })
+            const logFilePath = getLogFilePath({ ctx, deployName: action.name })
             const logFileContents = (await readFile(logFilePath)).toString()
             const logEntriesWithoutTimestamps = logFileContents
               .split("\n")
               .filter((line) => !!line)
               .map((line) => JSON.parse(line))
-              .map((parsed) => {
-                return {
-                  serviceName: parsed.serviceName,
-                  msg: parsed.msg,
-                  level: parsed.level,
-                }
-              })
+              .map((parsed) => omit(parsed, "timestamp"))
 
             expect(logEntriesWithoutTimestamps).to.eql([
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "1",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "2",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "3",
                 level: 2,
               },
@@ -798,9 +786,9 @@ describe("exec plugin", () => {
             pid = error.detail.pid
             expect(pid).to.be.a("number")
             expect(pid).to.be.greaterThan(0)
-            expect(error.detail.serviceName).to.eql("sync-mode-timeout")
+            expect(error.detail.deployName).to.eql("sync-mode-timeout")
             expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
-            expect(error.detail.timeout).to.eql(3)
+            expect(error.detail.statusTimeout).to.eql(3)
             expect(error.message).to.include(`Timed out waiting for local service sync-mode-timeout to be ready.`)
             expect(error.message).to.include(`The last exit code was 1.`)
             expect(error.message).to.include(`Command output:\nStatus command output`)
@@ -1195,8 +1183,8 @@ describe("exec plugin", () => {
 
           const moduleNameA = "module-a"
           const buildCommandA = ["echo", moduleNameA]
-          const serviceNameA = "service-a"
-          const deployCommandA = ["echo", "deployed", serviceNameA]
+          const deployNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", deployNameA]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1207,7 +1195,7 @@ describe("exec plugin", () => {
               },
               services: [
                 {
-                  name: serviceNameA,
+                  name: deployNameA,
                   deployCommand: deployCommandA,
                   dependencies: [],
                   disabled: false,
@@ -1238,7 +1226,7 @@ describe("exec plugin", () => {
           expect(buildA).to.exist
           expect(buildA.dependencies).to.eql([])
 
-          const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
+          const deployA = findActionConfigInGroup(groupA, "Deploy", deployNameA)! as DeployActionConfig
           expect(deployA).to.exist
           expect(deployA.build).to.eql(moduleNameA)
           expect(deployA.dependencies).to.eql([])
@@ -1251,8 +1239,8 @@ describe("exec plugin", () => {
           // service spec
 
           const moduleNameA = "module-a"
-          const serviceNameA = "service-a"
-          const deployCommandA = ["echo", "deployed", serviceNameA]
+          const deployNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", deployNameA]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1263,7 +1251,7 @@ describe("exec plugin", () => {
               },
               services: [
                 {
-                  name: serviceNameA,
+                  name: deployNameA,
                   deployCommand: deployCommandA,
                   dependencies: [],
                   disabled: false,
@@ -1295,7 +1283,7 @@ describe("exec plugin", () => {
           // build action must be missing
           expect(buildA).to.not.exist
 
-          const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
+          const deployA = findActionConfigInGroup(groupA, "Deploy", deployNameA)! as DeployActionConfig
           expect(deployA).to.exist
           // no build name expected here
           expect(deployA.build).to.not.exist

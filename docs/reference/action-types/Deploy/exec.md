@@ -164,6 +164,15 @@ spec:
   # - unsafe, potentially allowing command injection.
   shell:
 
+  # Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is
+  # manually terminated.
+  #
+  # This replaces the previously supported `devMode` from `exec` modules.
+  #
+  # If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy
+  # is considered to be immediately ready once the `deployCommand` is started.
+  persistent: false
+
   # The command to run to perform the deployment.
   #
   # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that
@@ -178,6 +187,8 @@ spec:
   # If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify
   # this command if possible.
   #
+  # If `persistent: true`, Garden will run this command at an interval until it returns a zero exit code or times out.
+  #
   # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that
   # Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
@@ -190,40 +201,15 @@ spec:
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
   cleanupCommand:
 
-  # The maximum duration (in seconds) to wait for a local script to exit.
+  # The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
   timeout:
+
+  # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no
+  # `statusCommand` is set.
+  statusTimeout: 10
 
   # Environment variables to set when running the deploy and status commands.
   env: {}
-
-  syncMode:
-    # The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a
-    # persistent process and does not wait for it return. The logs from the process can be retrieved via the `garden
-    # logs` command as usual.
-    #
-    # If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering the
-    # deployment ready. Otherwise it considers it immediately ready.
-    #
-    # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for
-    # that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source
-    # directory of the Build action. If no `build` reference is set, the command is run from the source directory of
-    # this action.
-    command:
-
-    # Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command
-    # at an interval until it returns a zero exit code or times out.
-    #
-    # If no `statusCommand` is set, Garden will consider the deploy ready as soon as it has started the process.
-    #
-    # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for
-    # that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source
-    # directory of the Build action. If no `build` reference is set, the command is run from the source directory of
-    # this action.
-    statusCommand:
-
-    # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if
-    # no `statusCommand` is set.
-    timeout: 10
 ```
 
 ## Configuration Keys
@@ -469,6 +455,20 @@ We recommend against using this option since it is:
 | --------- | -------- |
 | `boolean` | No       |
 
+### `spec.persistent`
+
+[spec](#spec) > persistent
+
+Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is manually terminated.
+
+This replaces the previously supported `devMode` from `exec` modules.
+
+If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy is considered to be immediately ready once the `deployCommand` is started.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `spec.deployCommand[]`
 
 [spec](#spec) > deployCommand
@@ -488,6 +488,8 @@ Note that if a Build is referenced in the `build` field, the command will be run
 Optionally set a command to check the status of the deployment. If this is specified, it is run before the `deployCommand`. If the command runs successfully and returns exit code of 0, the deployment is considered already deployed and the `deployCommand` is not run.
 
 If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify this command if possible.
+
+If `persistent: true`, Garden will run this command at an interval until it returns a zero exit code or times out.
 
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
@@ -511,11 +513,21 @@ Note that if a Build is referenced in the `build` field, the command will be run
 
 [spec](#spec) > timeout
 
-The maximum duration (in seconds) to wait for a local script to exit.
+The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
 
 | Type     | Required |
 | -------- | -------- |
 | `number` | No       |
+
+### `spec.statusTimeout`
+
+[spec](#spec) > statusTimeout
+
+The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no `statusCommand` is set.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
 
 ### `spec.env`
 
@@ -526,52 +538,6 @@ Environment variables to set when running the deploy and status commands.
 | Type     | Default | Required |
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
-
-### `spec.syncMode`
-
-[spec](#spec) > syncMode
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.syncMode.command[]`
-
-[spec](#spec) > [syncMode](#specsyncmode) > command
-
-The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the `garden logs` command as usual.
-
-If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering the deployment ready. Otherwise it considers it immediately ready.
-
-Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.syncMode.statusCommand[]`
-
-[spec](#spec) > [syncMode](#specsyncmode) > statusCommand
-
-Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
-
-If no `statusCommand` is set, Garden will consider the deploy ready as soon as it has started the process.
-
-Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.syncMode.timeout`
-
-[spec](#spec) > [syncMode](#specsyncmode) > timeout
-
-The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no `statusCommand` is set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
 
 
 ## Outputs
