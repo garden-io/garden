@@ -125,13 +125,17 @@ describe("kubernetes-module handlers", () => {
   })
 
   describe("getServiceStatus", () => {
-    it("should return missing status for a manifest with a missing resource type", async () => {
+    it("should return not-ready status for a manifest with a missing resource type", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("module-simple")
+      const action = await garden.resolveAction<KubernetesDeployAction>({
+        action: graph.getDeploy("module-simple"),
+        log: garden.log,
+        graph,
+      })
       const deployParams = {
         ctx,
         log: garden.log,
-        action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
+        action,
         force: false,
         syncMode: false,
         localMode: false,
@@ -146,7 +150,7 @@ describe("kubernetes-module handlers", () => {
       ]
 
       const status = await getKubernetesDeployStatus(deployParams)
-      expect(status.state).to.equal("missing")
+      expect(status.state).to.equal("not-ready")
     })
   })
 
@@ -213,9 +217,9 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
       expect(res2[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
     })
 
     it("should toggle localMode", async () => {
@@ -261,9 +265,9 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
       expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
     })
 
     it("localMode should always take precedence over syncMode", async () => {
@@ -309,13 +313,13 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
       expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("false")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("false")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
     })
 
     it("should not delete previously deployed namespace resources", async () => {

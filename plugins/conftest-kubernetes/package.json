@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/garden-conftest-kubernetes",
-  "version": "0.12.48",
+  "version": "0.12.51",
   "description": "Auto-generator for the conftest plugin and Garden kubernetes/helm modules",
   "main": "index.js",
   "private": true,
@@ -13,9 +13,9 @@
     "slash": "^3.0.0"
   },
   "devDependencies": {
-    "@types/chai": "^4.2.12",
+    "@types/chai": "^4.3.4",
     "@types/node": "^18",
-    "chai": "^4.2.0",
+    "chai": "^4.3.7",
     "mocha": "^10.2.0",
     "strip-ansi": "^6.0.0"
   },

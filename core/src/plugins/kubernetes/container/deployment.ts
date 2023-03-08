@@ -8,18 +8,18 @@
 
 import chalk from "chalk"
 import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
-import { extend, find, keyBy, omit, set } from "lodash"
+import { extend, keyBy, omit, set } from "lodash"
 import { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from "../../container/moduleConfig"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
-import { compareDeployedResources, waitForResources } from "../status/status"
+import { waitForResources } from "../status/status"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { Log } from "../../../logger/log-entry"
-import { prepareEnvVars, workloadTypes } from "../util"
+import { prepareEnvVars } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
@@ -39,6 +39,7 @@ import {
   SupportedRuntimeActions,
 } from "../types"
 import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
+import { emitNonRepeatableWarning } from "../../../warnings"
 
 export const DEFAULT_CPU_REQUEST = "10m"
 export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
@@ -49,18 +50,19 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
   const { ctx, action, log, syncMode, localMode } = params
-  const { deploymentStrategy } = params.ctx.provider.config
-  const deployWithSyncMode = syncMode && !!action.getSpec("sync")
   const k8sCtx = <KubernetesPluginContext>ctx
+  const { deploymentStrategy } = k8sCtx.provider.config
+  const deployWithSyncMode = syncMode && !!action.getSpec("sync")
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action, k8sCtx.provider)
 
   if (deploymentStrategy === "blue-green") {
-    await deployContainerServiceBlueGreen({ ...params, syncMode: deployWithSyncMode, api, imageId })
-  } else {
-    await deployContainerServiceRolling({ ...params, syncMode: deployWithSyncMode, api, imageId })
+    emitNonRepeatableWarning(
+      "The deploymentStrategy configuration option has been deprecated and has no effect. It will be removed iin 0.14. The 'rolling' deployment strategy will be applied."
+    )
   }
+  await deployContainerServiceRolling({ ...params, syncMode: deployWithSyncMode, api, imageId })
 
   const status = await k8sGetContainerDeployStatus(params)
 
@@ -188,7 +190,6 @@ export const deployContainerServiceRolling = async (
     imageId,
     enableSyncMode: syncMode,
     enableLocalMode: localMode,
-    blueGreen: false,
   })
 
   const provider = k8sCtx.provider
@@ -207,125 +208,6 @@ export const deployContainerServiceRolling = async (
   })
 }
 
-export const deployContainerServiceBlueGreen = async (
-  params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
-) => {
-  const { ctx, api, action, log, syncMode, imageId, localMode } = params
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
-  const namespace = namespaceStatus.namespaceName
-
-  // Create all the resource manifests for the Garden service which will be deployed
-  const { manifests } = await createContainerManifests({
-    ctx: k8sCtx,
-    api,
-    log,
-    action,
-    imageId,
-    enableSyncMode: syncMode,
-    enableLocalMode: localMode,
-    blueGreen: true,
-  })
-
-  const provider = k8sCtx.provider
-
-  // Retrieve the k8s service referring to the Garden service which is already deployed
-  const currentService = (await api.core.listNamespacedService(namespace)).items.filter(
-    (s) => s.metadata.name === action.name
-  )
-
-  // If none it means this is the first deployment
-  const isServiceAlreadyDeployed = currentService.length > 0
-
-  if (!isServiceAlreadyDeployed) {
-    // No service found, no need to execute a blue-green deployment
-    // Just apply all the resources for the Garden service
-    await apply({ log, ctx, api, provider, manifests, namespace })
-    await waitForResources({
-      namespace,
-      ctx,
-      provider: k8sCtx.provider,
-      actionName: action.name,
-      resources: manifests,
-      log,
-      timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
-    })
-  } else {
-    // A k8s service matching the current Garden service exist in the cluster.
-    // Proceeding with blue-green deployment
-    const newVersion = action.versionString()
-    const versionKey = gardenAnnotationKey("version")
-
-    // Remove Service manifest from generated resources
-    const filteredManifests = manifests.filter((manifest) => manifest.kind !== "Service")
-
-    // Apply new Deployment manifest (deploy the Green version)
-    await apply({ log, ctx, api, provider, manifests: filteredManifests, namespace })
-    await waitForResources({
-      namespace,
-      ctx,
-      provider: k8sCtx.provider,
-      actionName: `Deploy ${action.name}`,
-      resources: filteredManifests,
-      log,
-      timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
-    })
-
-    // Patch for the current service to point to the new Deployment
-    const servicePatchBody = {
-      metadata: {
-        annotations: {
-          [versionKey]: newVersion,
-        },
-      },
-      spec: {
-        selector: {
-          [versionKey]: newVersion,
-        },
-      },
-    }
-
-    // Update service (divert traffic from Blue to Green)
-
-    // First patch the generated service to point to the new version of the deployment
-    const serviceManifest = find(manifests, (manifest) => manifest.kind === "Service")
-    const patchedServiceManifest = { ...serviceManifest, ...servicePatchBody }
-    // Compare with the deployed Service
-    const result = await compareDeployedResources(k8sCtx, api, namespace, [patchedServiceManifest], log)
-
-    // If the result is outdated it means something in the Service definition itself changed
-    // and we need to apply the whole Service manifest. Otherwise we just patch it.
-    if (result.state === "outdated") {
-      await apply({ log, ctx, api, provider, manifests: [patchedServiceManifest], namespace })
-    } else {
-      await api.core.patchNamespacedService(action.name, namespace, servicePatchBody)
-    }
-
-    await waitForResources({
-      namespace,
-      ctx,
-      provider: k8sCtx.provider,
-      actionName: `Update service`,
-      resources: [serviceManifest],
-      log,
-      timeoutSec: KUBECTL_DEFAULT_TIMEOUT,
-    })
-
-    // Clenup unused deployments:
-    // as a feature we delete all the deployments which don't match any deployed Service.
-    log.verbose(`Cleaning up old workloads`)
-    await deleteObjectsBySelector({
-      ctx,
-      log,
-      provider,
-      namespace,
-      objectTypes: workloadTypes,
-      // Find workloads that match this service, but have a different version
-      selector: `${gardenAnnotationKey("service")}=${action.name},` + `${versionKey}!=${newVersion}`,
-    })
-  }
-}
-
 export async function createContainerManifests({
   ctx,
   api,
@@ -334,7 +216,6 @@ export async function createContainerManifests({
   imageId,
   enableSyncMode,
   enableLocalMode,
-  blueGreen,
 }: {
   ctx: PluginContext
   api: KubeApi
@@ -343,7 +224,6 @@ export async function createContainerManifests({
   imageId: string
   enableSyncMode: boolean
   enableLocalMode: boolean
-  blueGreen: boolean
 }) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -361,9 +241,8 @@ export async function createContainerManifests({
     enableLocalMode,
     log,
     production,
-    blueGreen,
   })
-  const kubeServices = await createServiceResources(action, namespace, blueGreen)
+  const kubeServices = await createServiceResources(action, namespace)
   const localModeSpec = action.getSpec("localMode")
 
   if (enableLocalMode && localModeSpec) {
@@ -399,7 +278,6 @@ interface CreateDeploymentParams {
   enableLocalMode: boolean
   log: Log
   production: boolean
-  blueGreen: boolean
 }
 
 export async function createWorkloadManifest({
@@ -413,11 +291,10 @@ export async function createWorkloadManifest({
   enableLocalMode,
   log,
   production,
-  blueGreen,
 }: CreateDeploymentParams): Promise<KubernetesWorkload> {
   const spec = action.getSpec()
   let configuredReplicas = spec.replicas || DEFAULT_MINIMUM_REPLICAS
-  let workload = workloadConfig({ action, configuredReplicas, namespace, blueGreen })
+  let workload = workloadConfig({ action, configuredReplicas, namespace })
 
   if (production && !spec.replicas) {
     configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
@@ -599,9 +476,9 @@ export async function createWorkloadManifest({
               labelSelector: {
                 matchExpressions: [
                   {
-                    key: gardenAnnotationKey("actionName"),
+                    key: gardenAnnotationKey("action"),
                     operator: "In",
-                    values: [action.name],
+                    values: [action.key()],
                   },
                 ],
               },
@@ -654,47 +531,31 @@ export async function createWorkloadManifest({
   return workload
 }
 
-export function getDeploymentName(deployName: string, blueGreen: boolean, versionString: string) {
-  return blueGreen ? `${deployName}-${versionString}` : deployName
-}
-
-export function getDeploymentLabels(action: ContainerDeployAction, blueGreen: boolean) {
-  if (blueGreen) {
-    return {
-      [gardenAnnotationKey("module")]: action.moduleName() || "",
-      [gardenAnnotationKey("actionName")]: action.name,
-      [gardenAnnotationKey("service")]: action.name,
-      [gardenAnnotationKey("version")]: action.versionString(),
-    }
-  } else {
-    return {
-      [gardenAnnotationKey("module")]: action.moduleName() || "",
-      [gardenAnnotationKey("actionName")]: action.name,
-      [gardenAnnotationKey("service")]: action.name,
-    }
+export function getDeploymentLabels(action: ContainerDeployAction) {
+  return {
+    [gardenAnnotationKey("module")]: action.moduleName() || "",
+    [gardenAnnotationKey("action")]: action.key(),
   }
 }
 
-export function getDeploymentSelector(action: ContainerDeployAction, blueGreen: boolean) {
+export function getDeploymentSelector(action: ContainerDeployAction) {
   // Unfortunately we need this because matchLabels is immutable, and we had omitted the module annotation before
   // in the selector.
-  return omit(getDeploymentLabels(action, blueGreen), gardenAnnotationKey("module"))
+  return omit(getDeploymentLabels(action), gardenAnnotationKey("module"))
 }
 
 function workloadConfig({
   action,
   configuredReplicas,
   namespace,
-  blueGreen,
 }: {
   action: Resolved<ContainerDeployAction>
   configuredReplicas: number
   namespace: string
-  blueGreen: boolean
 }): KubernetesResource<V1Deployment | V1DaemonSet> {
-  const labels = getDeploymentLabels(action, blueGreen)
+  const labels = getDeploymentLabels(action)
   const selector = {
-    matchLabels: getDeploymentSelector(action, blueGreen),
+    matchLabels: getDeploymentSelector(action),
   }
 
   const { annotations, daemon } = action.getSpec()
@@ -703,7 +564,7 @@ function workloadConfig({
     kind: daemon ? "DaemonSet" : "Deployment",
     apiVersion: "apps/v1",
     metadata: {
-      name: getDeploymentName(action.name, blueGreen, action.versionString()),
+      name: action.name,
       annotations: {
         // we can use this to avoid overriding the replica count if it has been manually scaled
         "garden.io/configured.replicas": configuredReplicas.toString(),
@@ -833,14 +694,14 @@ export function configureVolumes(
         volumes.push({
           name: volumeName,
           persistentVolumeClaim: {
-            claimName: volume.action,
+            claimName: volume.action.name,
           },
         })
       } else if (volumeAction.isCompatible("configmap")) {
         volumes.push({
           name: volumeName,
           configMap: {
-            name: volume.action,
+            name: volume.action.name,
           },
         })
       } else {

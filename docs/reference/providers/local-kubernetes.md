@@ -9,7 +9,7 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [Kubernetes plugin section](https://docs.garden.io/kubernetes-plugins/about) in the docs. For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/kubernetes-plugins/local-k8s) guide.
+For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/kubernetes-plugins/local-k8s) guide. The [Quickstart Guide](https://docs.garden.io/basics/quickstart) guide is also helpful as an introduction.
 
 If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/kubernetes-plugins/remote-k8s) guide.
 
@@ -296,15 +296,6 @@ providers:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
-
-    # Sets the deployment strategy for `container` services.
-    #
-    # The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green
-    # deployments (via the `"blue-green"` strategy).
-    #
-    # Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm`
-    # services).
-    deploymentStrategy: rolling
 
     # Configuration options for code synchronization.
     sync:
@@ -1158,11 +1149,17 @@ providers:
 **Experimental**: this is an experimental feature and the API might change in the future.
 {% endhint %}
 
-Sets the deployment strategy for `container` services.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
-The default is `"rolling"`, which performs rolling updates. There is also experimental support for blue/green deployments (via the `"blue-green"` strategy).
+Sets the deployment strategy for `container` deploy actions.
 
-Note that this setting only applies to `container` services (and not, for example,  `kubernetes` or `helm` services).
+Note that this field has been deprecated since 0.13, and has no effect.
+The `"rolling"` will be applied in all cases.
+The experimental support for blue/green deployments (via the `"blue-green"` strategy) has been removed.
+
+Note that this setting only applies to `container` deploy actions (and not, for example,  `kubernetes` or `helm` deploy actions).
 
 | Type     | Default     | Required |
 | -------- | ----------- | -------- |

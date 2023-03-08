@@ -97,7 +97,7 @@ export type PluginEventLogContext = {
   origin: string
 
   /**
-   * LogEntry placeholder to be used to stream the logs to the CLI
+   * Log placeholder to be used to stream the logs to the CLI
    * It's recommended to pass a verbose placeholder created like this: `log.placeholder({ level: LogLevel.verbose })`
    *
    * @todo 0.13 consider removing this once we have the append-only logger (#3254)
@@ -107,17 +107,9 @@ export type PluginEventLogContext = {
 
 export type PluginEventLogMessage = PluginEventLogContext & {
   /**
-   * Number of milliseconds since the epoch OR a date string.
-   *
-   * We need to allow both numberic and string types for backwards compatibility
-   * with Garden Cloud.
-   *
-   * Garden Cloud supports numeric date strings for log streaming as of v1.360.
-   * We can change this to just 'number' once all Cloud instances are up to date.
-   *
-   * TODO: Change to type 'number'.
+   * ISO format date string
    */
-  timestamp: number | string
+  timestamp: string
 
   /** log message */
   data: Buffer

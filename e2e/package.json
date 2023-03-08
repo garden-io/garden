@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/e2e",
-  "version": "0.12.48",
+  "version": "0.12.51",
   "description": "End-to-end tests for the Garden CLI",
   "repository": {
     "type": "git",
@@ -24,18 +24,18 @@
     "@garden-io/core": "*"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.178",
+    "@types/lodash": "^4.14.191",
     "@types/minimist": "^1.2.2",
-    "@types/mocha": "^9.1.0",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^18",
-    "chalk": "^4.0.0",
+    "chalk": "^4.1.2",
     "dedent": "^0.7.0",
-    "execa": "^4.0.3",
-    "fs-extra": "^9.0.0",
+    "execa": "^4.1.0",
+    "fs-extra": "^11.1.0",
     "lodash": "^4.17.21",
-    "minimist": "^1.2.6",
+    "minimist": "^1.2.8",
     "mocha": "^10.2.0",
-    "prettier": "^2.1.1",
+    "prettier": "^2.8.4",
     "split2": "^4.1.0",
     "ts-node": "^10.8.2",
     "typescript": "^4.7.4"

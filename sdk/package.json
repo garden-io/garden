@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/sdk",
-  "version": "0.12.48",
+  "version": "0.12.51",
   "description": "TypeScript plugin SDK for Garden",
   "repository": {
     "type": "git",
@@ -21,11 +21,11 @@
   "main": "index.js",
   "dependencies": {
     "@garden-io/core": "*",
-    "minimist": "^1.2.7"
+    "minimist": "^1.2.8"
   },
   "devDependencies": {
     "@types/node": "^18",
-    "prettier": "^2.1.1",
+    "prettier": "^2.8.4",
     "typescript": "^4.7.4"
   },
   "scripts": {

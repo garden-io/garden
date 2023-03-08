@@ -8,7 +8,7 @@
 
 import td from "testdouble"
 import tmp from "tmp-promise"
-import { expectError } from "../../../../helpers"
+import { expectError, pruneEmpty } from "../../../../helpers"
 import { pathExists } from "fs-extra"
 import { expect } from "chai"
 import { join } from "path"
@@ -48,6 +48,7 @@ import { ContainerResourcesSpec } from "../../../../../src/plugins/container/mod
 import { KubernetesRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/run"
 import { Resolved } from "../../../../../src/actions/types"
 import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
+import { executeAction } from "../../../../../src/graph/actions"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -552,7 +553,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmTarget: KubernetesWorkload | KubernetesPod
     let helmContainer: V1Container
     let helmNamespace: string
-    let randomHelmAction: Resolved<HelmDeployAction>
+    let helmAction: Resolved<HelmDeployAction>
     const resources: ContainerResourcesSpec = {
       cpu: {
         min: 123,
@@ -575,17 +576,17 @@ describe("kubernetes Pod runner functions", () => {
       helmGraph = await helmGarden.getConfigGraph({ log: helmLog, emit: false })
       await buildHelmModules(helmGarden, helmGraph)
       helmModule = helmGraph.moduleGraph.getModule("artifacts")
-      // just need an action here (any will do)
-      randomHelmAction = await helmGarden.resolveAction({
+      helmAction = await helmGarden.resolveAction({
         action: helmGraph.getDeploy("api"),
         log: helmLog,
         graph: helmGraph,
       })
+      await executeAction({ action: helmAction, graph: helmGraph, garden: helmGarden, log: helmGarden.log })
 
       helmManifests = await getChartResources({
         ctx: helmCtx,
         syncMode: false,
-        action: randomHelmAction,
+        action: helmAction,
         localMode: false,
         log: helmLog,
       })
@@ -594,7 +595,7 @@ describe("kubernetes Pod runner functions", () => {
       helmNamespace = await getActionNamespace({
         ctx: helmCtx,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         provider: helmCtx.provider,
       })
       helmTarget = await getTargetResource({
@@ -602,8 +603,8 @@ describe("kubernetes Pod runner functions", () => {
         log: helmLog,
         provider: helmCtx.provider,
         manifests: helmManifests,
-        action: randomHelmAction,
-        query: { ...helmResourceSpec, name: randomHelmAction.getSpec().releaseName },
+        action: helmAction,
+        query: { ...helmResourceSpec, name: helmAction.getSpec().releaseName },
       })
       helmContainer = getResourceContainer(helmTarget, helmResourceSpec.containerName)
     })
@@ -627,16 +628,17 @@ describe("kubernetes Pod runner functions", () => {
         container: helmContainer,
         namespace: helmNamespace,
         volumes: [],
-        action: randomHelmAction,
+        action: helmAction,
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
             image: "foo",
             imagePullPolicy: "IfNotPresent",
             args: ["sh", "-c"],
+            resources: {},
             ports: [
               {
                 name: "http",
@@ -644,8 +646,16 @@ describe("kubernetes Pod runner functions", () => {
                 protocol: "TCP",
               },
             ],
-            resources: {},
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
           },
@@ -662,7 +672,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -677,7 +687,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
@@ -692,7 +702,16 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: getResourceRequirements(resources),
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
           },
@@ -710,7 +729,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -725,7 +744,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
@@ -740,14 +759,23 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: getResourceRequirements(resources),
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
           },
         ],
-        shareProcessNamespace: true,
         imagePullSecrets: [],
         volumes: [],
+        shareProcessNamespace: true,
       })
     })
 
@@ -758,7 +786,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -776,7 +804,7 @@ describe("kubernetes Pod runner functions", () => {
         dropCapabilities: ["NET_ADMIN"], // <----
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         containers: [
           {
             name: "main",
@@ -791,7 +819,16 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: getResourceRequirements(resources),
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
             securityContext: {
@@ -810,14 +847,13 @@ describe("kubernetes Pod runner functions", () => {
 
     it("should include only the right pod spec fields in the generated pod spec", async () => {
       const podSpec = getResourcePodSpec(helmTarget)
-      expect(podSpec).to.eql({
+      expect(pruneEmpty(podSpec)).to.eql({
         // This field is *not* included in `runPodSpecIncludeFields`, so it shouldn't appear in the
         // generated pod spec below.
-        terminationGracePeriodSeconds: 60,
         containers: [
           {
             name: "api",
-            image: "busybox:latest",
+            image: "api-image:v-4d59656b5e",
             imagePullPolicy: "IfNotPresent",
             args: ["python", "app.py"],
             ports: [
@@ -830,8 +866,6 @@ describe("kubernetes Pod runner functions", () => {
             resources: {},
           },
         ],
-        // This field is included in `runPodSpecIncludeFields`, so it *should* appear in the generated
-        // pod spec below.
         shareProcessNamespace: true,
       })
       const generatedPodSpec = await prepareRunPodSpec({
@@ -840,7 +874,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -854,7 +888,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         // `shareProcessNamespace` is not excluded, so it should be propagated to here.
         shareProcessNamespace: true,
         // `terminationGracePeriodSeconds` *is* excluded, so it should not appear here.
@@ -872,7 +906,16 @@ describe("kubernetes Pod runner functions", () => {
               },
             ],
             resources: {},
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
           },
@@ -911,7 +954,7 @@ describe("kubernetes Pod runner functions", () => {
         api: helmApi,
         provider: helmProvider,
         log: helmLog,
-        action: randomHelmAction,
+        action: helmAction,
         args: ["sh", "-c"],
         command: ["echo", "foo"],
 
@@ -925,7 +968,7 @@ describe("kubernetes Pod runner functions", () => {
         volumes: [],
       })
 
-      expect(generatedPodSpec).to.eql({
+      expect(pruneEmpty(generatedPodSpec)).to.eql({
         // `shareProcessNamespace` is not excluded, so it should be propagated to here.
         shareProcessNamespace: true,
         // `terminationGracePeriodSeconds` *is* excluded, so it should not appear here.
@@ -944,7 +987,16 @@ describe("kubernetes Pod runner functions", () => {
             ],
             // We expect `livenessProbe` and `readinessProbe` to be omitted here.
             resources: {},
-            env: [],
+            env: [
+              {
+                name: "GARDEN_ACTION_VERSION",
+                value: helmAction.versionString(),
+              },
+              {
+                name: "GARDEN_MODULE_VERSION",
+                value: helmAction.versionString(),
+              },
+            ],
             volumeMounts: [],
             command: ["echo", "foo"],
           },
@@ -969,7 +1021,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     it("should run a basic action", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("simple.echo-task"), log, graph })
+      const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
 
       const result = await runAndCopy({
         ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -988,7 +1040,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     it("should clean up the created container", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("simple.echo-task"), log, graph })
+      const action = await garden.resolveAction({ action: graph.getRun("echo-task"), log, graph })
       const podName = makePodName("test", action.name)
 
       await runAndCopy({
@@ -1012,7 +1064,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     it("should return with success=false when command exceeds timeout", async () => {
-      const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+      const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
 
       const timeout = 4
       const result = await runAndCopy({
@@ -1036,7 +1088,7 @@ describe("kubernetes Pod runner functions", () => {
 
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         const result = await runAndCopy({
@@ -1060,7 +1112,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should clean up the created Pod", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
         const podName = makePodName("test", action.name)
 
@@ -1087,7 +1139,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should handle globs when copying artifacts out of the container", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.globs-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("globs-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await runAndCopy({
@@ -1110,7 +1162,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should not throw when an artifact is missing", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("artifacts.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await runAndCopy({
@@ -1130,7 +1182,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should correctly copy a whole directory", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1157,7 +1209,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should correctly copy a whole directory without setting a wildcard or target", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1183,7 +1235,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should return with logs and success=false when command exceeds timeout", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         const timeout = 3
@@ -1210,7 +1262,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should copy artifacts out of the container even when task times out", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("simple.artifacts-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         const timeout = 3
@@ -1236,7 +1288,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should throw when container doesn't contain sh", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-sh.missing-sh-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("missing-sh-task"), log, graph })
         const _image = action._outputs["deployment-image-id"]
         const spec = action.getSpec() as KubernetesRunActionSpec
 
@@ -1277,7 +1329,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should throw when container doesn't contain tar", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-tar.missing-tar-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
         const _image = action._outputs["deployment-image-id"]
         const spec = action.getSpec() as KubernetesRunActionSpec
 
@@ -1318,7 +1370,7 @@ describe("kubernetes Pod runner functions", () => {
       })
 
       it("should throw when no command is specified", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-tar.missing-tar-task"), log, graph })
+        const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
         const spec = action.getSpec() as KubernetesRunActionSpec
 
         await expectError(

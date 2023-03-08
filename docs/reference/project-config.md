@@ -101,6 +101,12 @@ defaultEnvironment: ''
 # details.
 dotIgnoreFile: .gardenignore
 
+proxy:
+  # The URL that Garden uses when creating port forwards. Defaults to "localhost".
+  #
+  # Note that the `GARDEN_PROXY_DEFAULT_ADDRESS` environment variable takes precedence over this value.
+  hostname: localhost
+
 # Control where to scan for modules in the project.
 modules:
   # Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
@@ -430,6 +436,32 @@ Example:
 
 ```yaml
 dotIgnoreFile: ".gitignore"
+```
+
+### `proxy`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `proxy.hostname`
+
+[proxy](#proxy) > hostname
+
+The URL that Garden uses when creating port forwards. Defaults to "localhost".
+
+Note that the `GARDEN_PROXY_DEFAULT_ADDRESS` environment variable takes precedence over this value.
+
+| Type     | Default       | Required |
+| -------- | ------------- | -------- |
+| `string` | `"localhost"` | No       |
+
+Example:
+
+```yaml
+proxy:
+  ...
+  hostname: - 127.0.0.1
 ```
 
 ### `modules`

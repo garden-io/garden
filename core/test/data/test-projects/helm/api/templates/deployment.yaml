@@ -19,6 +19,7 @@ spec:
         app.kubernetes.io/name: {{ include "api.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
+      shareProcessNamespace: {{ .Values.shareProcessNamespace }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

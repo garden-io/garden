@@ -27,7 +27,7 @@ Now, open `http://gatsby-sync.local.app.garden/` in your browser, and then try c
 Older versions of Gatsby.js will need to set the `GATSBY_WEBPACK_PUBLICPATH` environment variable to `/`. For example, in the `garden.yml` config:
 
 ```
-kind: Module
+kind: Deploy
 description: Minimal Gatsby example
 ...
 services:

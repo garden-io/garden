@@ -1,0 +1,38 @@
+kind: Module
+name: a
+description: Node service A
+dockerfile: Dockerfile-a
+exclude: [Dockerfile-b]
+type: container
+services:
+  - name: a
+    command: [npm, start]
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /hello-a
+        port: http
+tests:
+  - name: unit
+    args: [npm, test]
+
+---
+kind: Module
+name: b
+description: Node service B
+dockerfile: Dockerfile-b
+exclude: [Dockerfile-a]
+type: container
+services:
+  - name: b
+    command: [npm, start]
+    ports:
+      - name: http
+        containerPort: 8080
+    ingresses:
+      - path: /hello-b
+        port: http
+tests:
+  - name: unit
+    args: [npm, test]

@@ -46,7 +46,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         })
       })
 
-      const deployStartedAt = new Date()
+      const deployStartedAt = new Date().toISOString()
 
       garden.events.emit("serviceStatus", {
         actionName,
@@ -75,7 +75,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         status: {
           ...omit(result.detail, "detail"),
           deployStartedAt,
-          deployCompletedAt: new Date(),
+          deployCompletedAt: new Date().toISOString(),
         },
       })
 

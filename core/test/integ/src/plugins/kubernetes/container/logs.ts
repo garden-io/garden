@@ -134,7 +134,6 @@ describe("kubernetes", () => {
             enableLocalMode: false,
             production: ctx.production,
             log,
-            blueGreen: provider.config.deploymentStrategy === "blue-green",
           }),
         ]
         logsFollower = new K8sLogFollower({
@@ -215,7 +214,6 @@ describe("kubernetes", () => {
             enableLocalMode: false,
             production: ctx.production,
             log,
-            blueGreen: provider.config.deploymentStrategy === "blue-green",
           }),
         ]
         const retryIntervalMs = 1000

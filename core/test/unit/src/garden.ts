@@ -42,7 +42,7 @@ import {
   baseBuildSpecSchema,
   defaultBuildTimeout,
 } from "../../../src/config/module"
-import { DEFAULT_API_VERSION } from "../../../src/constants"
+import { DEFAULT_API_VERSION, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit } from "lodash"
 import { joi } from "../../../src/config/common"
@@ -399,6 +399,103 @@ describe("Garden", () => {
       })
 
       expect(garden.variables).to.eql({ foo: "override", bar: "something" })
+    })
+
+    it("should set the default proxy config if non is specified", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentName: "default",
+        variables: { foo: "override" },
+      })
+
+      expect(garden.proxy).to.eql({ hostname: "localhost" })
+    })
+
+    it("should optionally read the proxy config from the project config", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        proxy: {
+          hostname: "127.0.0.1", // <--- Proxy config is set here
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentName: "default",
+        variables: { foo: "override" },
+      })
+
+      expect(garden.proxy).to.eql({ hostname: "127.0.0.1" })
+    })
+
+    it("should use the GARDEN_PROXY_DEFAULT_ADDRESS env variable if set", async () => {
+      const saveEnv = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+      try {
+        gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
+        const configNoProxy: ProjectConfig = {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFile: ".gitignore",
+          environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+          providers: [{ name: "foo" }],
+          variables: { foo: "default", bar: "something" },
+        }
+        const configWithProxy: ProjectConfig = {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          proxy: {
+            hostname: "127.0.0.1", // <--- This should be overwritten
+          },
+          defaultEnvironment: "default",
+          dotIgnoreFile: ".gitignore",
+          environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+          providers: [{ name: "foo" }],
+          variables: { foo: "default", bar: "something" },
+        }
+
+        const gardenWithProxyConfig = await TestGarden.factory(pathFoo, {
+          config: configWithProxy,
+          environmentName: "default",
+          variables: { foo: "override" },
+          noCache: true,
+        })
+        const gardenNoProxyConfig = await TestGarden.factory(pathFoo, {
+          config: configNoProxy,
+          environmentName: "default",
+          variables: { foo: "override" },
+          noCache: true,
+        })
+
+        expect(gardenWithProxyConfig.proxy).to.eql({ hostname: "example.com" })
+        expect(gardenNoProxyConfig.proxy).to.eql({ hostname: "example.com" })
+      } finally {
+        gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = saveEnv
+      }
     })
   })
 

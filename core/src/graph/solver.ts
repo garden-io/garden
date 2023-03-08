@@ -363,7 +363,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         name,
         type,
         key,
-        startedAt: new Date(),
+        startedAt: new Date().toISOString(),
         inputVersion: node.getInputVersion(),
       })
 

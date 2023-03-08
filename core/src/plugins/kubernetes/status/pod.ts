@@ -136,7 +136,9 @@ export async function getPodLogs({
             timestamps
           )
         } catch (err) {
-          log = ""
+          log = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
+            err.message || "Unknown error occurred"
+          }]`
         }
       } else if (error instanceof KubernetesError && error.message.includes("waiting to start")) {
         log = ""

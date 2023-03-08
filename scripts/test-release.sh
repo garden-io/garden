@@ -45,7 +45,7 @@ test_release() {
   # Mac doesn't have a timeout command so we alias to gtimeout (or exit if gtimeout is not installed).
   if [[ "$OSTYPE" == "darwin"* ]]; then
     if ! [ -x "$(command -v gtimeout)" ]; then
-      echo "Command gtimeout is missing - You can install it with 'brew install gtimeout' on macOS"
+      echo "Command gtimeout is missing - You can install it with 'brew install coreutils' on macOS"
       return 1
     else
       alias timeout=gtimeout
