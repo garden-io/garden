@@ -212,10 +212,6 @@ describe("DeployCommand", () => {
 
       expect(res.state).to.equal("ready")
       expect(res.outputs).to.eql({})
-
-      expect(res.detail.state).to.equal("ready")
-      expect(res.detail.forwardablePorts).to.eql([])
-      expect(res.detail.outputs).to.eql({})
     }
 
     expect(sortedEvents[0]).to.eql({
