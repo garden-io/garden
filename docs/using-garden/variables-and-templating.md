@@ -161,9 +161,27 @@ You can use a variety of helper functions in template strings, for things like s
 
 Check out [the reference](../reference/template-strings/functions.md) to explore all the available functions.
 
-### Multi-line if/else statements
+### If/else conditional objects
 
-In addition to the conditionals described above, you can use if/else blocks. These are particularly handy when templating multi-line strings and generated files in [module templates](./module-templates.md).
+You can conditionally set values by specifying an object with `$if`, `$then` and (optionally) `$else` keys. This can in many cases be clearer and easier to work with, compared to specifying values within conditional template strings.
+
+Here's an example:
+
+```yaml
+spec:
+  command:
+    $if: ${this.mode == "sync"}
+    $then: [npm, run, watch]
+    $else: [npm, start]
+```
+
+This sets `spec.command` to `[npm, run, watch]` when the action is in sync mode, otherwise to `[npm, start]`.
+
+You can also skip the `$else` key to default the conditional to _no value_ (i.e. undefined).
+
+### Multi-line if/else blocks in strings
+
+You can use if/else blocks in strings. These are particularly handy when templating multi-line strings and generated files in [module templates](./module-templates.md).
 
 The syntax is `${if <expression>}<content>[${else}]<alternative content>${endif}`, where `<expression>` is any expression you'd put in a normal template string.
 
