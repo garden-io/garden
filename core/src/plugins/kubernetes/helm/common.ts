@@ -259,7 +259,7 @@ export async function getChartPath(action: Resolved<HelmDeployAction>) {
       )
     }
     return chartDir
-  } else if (chartSpec.name) {
+  } else if (chartSpec.name || chartSpec.url) {
     // Remote chart is specified. Return undefined.
     return
   } else if (chartExists) {
