@@ -731,6 +731,10 @@ export abstract class ExecutedRuntimeAction<
     this.status = params.status
   }
 
+  getStatus() {
+    return this.status
+  }
+
   getOutput<K extends keyof O>(key: K) {
     return this.status.outputs[key] || this._staticOutputs[key]
   }

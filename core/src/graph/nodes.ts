@@ -32,6 +32,7 @@ export interface TaskNodeParams<T extends Task> {
   solver: GraphSolver
   task: T
   dependant?: TaskNode
+  statusOnly: boolean
 }
 
 export abstract class TaskNode<T extends Task = Task> {
@@ -40,15 +41,17 @@ export abstract class TaskNode<T extends Task = Task> {
   public readonly type: string
   public startedAt?: Date
   public readonly task: T
+  public readonly statusOnly: boolean
 
   protected solver: GraphSolver
   protected dependants: { [key: string]: TaskNode }
   protected result?: GraphResult<any>
 
-  constructor({ solver, task }: TaskNodeParams<T>) {
+  constructor({ solver, task, statusOnly }: TaskNodeParams<T>) {
     this.task = task
     this.type = task.type
     this.solver = solver
+    this.statusOnly = statusOnly
     this.dependants = {}
   }
 
@@ -171,7 +174,7 @@ export abstract class TaskNode<T extends Task = Task> {
   }
 
   protected getNode<NT extends keyof InternalNodeTypes>(type: NT, task: Task): InternalNodeTypes[NT] {
-    return this.solver.getNode(type, task)
+    return this.solver.getNode({ type, task, statusOnly: this.statusOnly })
   }
 }
 
@@ -187,7 +190,6 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
 
   public readonly requestedAt: Date
   public readonly batchId: string
-  public readonly statusOnly: boolean
 
   private completeHandler: CompleteHandler<T["_resultType"]>
 
@@ -195,7 +197,6 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
     super(params)
     this.requestedAt = new Date()
     this.batchId = params.batchId
-    this.statusOnly = params.statusOnly
     this.completeHandler = params.completeHandler
   }
 
@@ -269,7 +270,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
 
     const dependencyResults = this.getDependencyResults()
 
-    return this.task.process({ status, dependencyResults })
+    return this.task.process({ status, dependencyResults, statusOnly: false })
   }
 }
 
@@ -289,7 +290,7 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
   async execute() {
     this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
     const dependencyResults = this.getDependencyResults()
-    return this.task.getStatus({ dependencyResults })
+    return this.task.getStatus({ statusOnly: this.statusOnly, dependencyResults })
   }
 }
 

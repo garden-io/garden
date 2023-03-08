@@ -50,6 +50,7 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
 }
 
 export interface TaskProcessParams {
+  statusOnly: boolean
   dependencyResults: GraphResults
 }
 

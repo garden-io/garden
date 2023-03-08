@@ -36,6 +36,8 @@ import { templateStringLiteral } from "../docs/common"
 import { ValidateAction } from "./handlers/base/validate"
 import { ConfigureActionConfig } from "./handlers/base/configure"
 import { GetActionOutputs } from "./handlers/base/get-outputs"
+import { StartSync } from "./handlers/Deploy/start-sync"
+import { StopSync } from "./handlers/Deploy/stop-sync"
 
 // BASE //
 
@@ -84,7 +86,9 @@ const actionTypeClasses = {
     getLogs: new GetDeployLogs(),
     getPortForward: new GetDeployPortForward(),
     getStatus: new GetDeployStatus(),
+    startSync: new StartSync(),
     stopPortForward: new StopDeployPortForward(),
+    stopSync: new StopSync(),
   },
   Run: {
     ...baseActionTypeClasses,
@@ -165,7 +169,9 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
   getStatus: GetDeployStatus<C>
+  startSync: StartSync<C>
   stopPortForward: StopDeployPortForward<C>
+  stopSync: StopSync<C>
 }
 
 export type DeployActionHandler<
