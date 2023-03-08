@@ -227,6 +227,9 @@ deployStatuses:
     outputs:
       <name>:
 
+    # Set to true if the action handler is running a process persistently after returning.
+    persistent:
+
     detail:
       # When the service was first deployed by the provider.
       createdAt:
@@ -354,6 +357,9 @@ When this flag is not used, all services in the project are cleaned up simultane
   outputs:
     <name>:
 
+  # Set to true if the action handler is running a process persistently after returning.
+  persistent:
+
   detail:
     # When the service was first deployed by the provider.
     createdAt:
@@ -461,7 +467,7 @@ Examples:
     garden deploy --local              # deploys all compatible deploys with local mode enabled
     garden deploy --env stage          # deploy your deploys to an environment called stage
     garden deploy --skip deploy-b      # deploy everything except deploy-b
-    garden deploy --forward            # deploy everything and start port forwards without watching for changes
+    garden deploy --forward            # deploy everything and start port forwards without sync or local mode
 
 #### Usage
 
@@ -2544,6 +2550,9 @@ actions:
       outputs:
         <name>:
 
+      # Set to true if the action handler is running a process persistently after returning.
+      persistent:
+
   # A map of statuses for each configured Deploy.
   Deploy:
     <name>:
@@ -2554,6 +2563,9 @@ actions:
       # dependencies and in templating.
       outputs:
         <name>:
+
+      # Set to true if the action handler is running a process persistently after returning.
+      persistent:
 
       detail:
         # When the service was first deployed by the provider.
@@ -2648,6 +2660,9 @@ actions:
       outputs:
         <name>:
 
+      # Set to true if the action handler is running a process persistently after returning.
+      persistent:
+
       detail:
         # Whether the module was successfully run.
         success:
@@ -2683,6 +2698,9 @@ actions:
       # dependencies and in templating.
       outputs:
         <name>:
+
+      # Set to true if the action handler is running a process persistently after returning.
+      persistent:
 
       detail:
         # Whether the module was successfully run.
@@ -2771,6 +2789,9 @@ state:
 outputs:
   <name>:
 
+# Set to true if the action handler is running a process persistently after returning.
+persistent:
+
 detail:
   # Whether the module was successfully run.
   success:
@@ -2827,6 +2848,9 @@ state:
 # dependencies and in templating.
 outputs:
   <name>:
+
+# Set to true if the action handler is running a process persistently after returning.
+persistent:
 
 detail:
   # Whether the module was successfully run.
@@ -3150,6 +3174,9 @@ published:
     # dependencies and in templating.
     outputs:
       <name>:
+
+    # Set to true if the action handler is running a process persistently after returning.
+    persistent:
 
     detail:
       # Set to true if the build was published.

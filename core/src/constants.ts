@@ -20,7 +20,6 @@ export const MUTAGEN_DIR_NAME = "mutagen"
 export const LATEST_MUTAGEN_DATA_DIR_NAME = "latest"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
-export const LOGS_DIR = join(DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"
 export const PROJECT_SOURCES_DIR_NAME = join("sources", "project")
 export const MODULE_SOURCES_DIR_NAME = join("sources", "module")

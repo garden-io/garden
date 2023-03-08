@@ -10,17 +10,16 @@ import { mapValues } from "lodash"
 import { join } from "path"
 import split2 = require("split2")
 import { PrimitiveMap } from "../../config/common"
-import { LOGS_DIR } from "../../constants"
 import { dedent } from "../../util/string"
 import { ExecOpts, sleep } from "../../util/util"
 import { TimeoutError } from "../../exceptions"
 import { Log } from "../../logger/log-entry"
-import execa, { ExecaChildProcess } from "execa"
+import execa from "execa"
 import chalk from "chalk"
 import { renderMessageWithDivider } from "../../logger/util"
 import { LogLevel } from "../../logger/logger"
 import { createWriteStream } from "fs"
-import { ensureFile, remove } from "fs-extra"
+import { ensureFile, readFile, remove, writeFile } from "fs-extra"
 import { Transform } from "stream"
 import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
@@ -29,16 +28,10 @@ import { DeployActionHandler } from "../../plugin/action-types"
 import { DeployStatus } from "../../plugin/handlers/Deploy/get-status"
 import { Resolved } from "../../actions/types"
 import { convertCommandSpec, execRun, getDefaultEnvVars } from "./common"
+import { kill } from "process"
+import { isRunning } from "../../process"
 
 const persistentLocalProcRetryIntervalMs = 2500
-
-interface ExecProc {
-  key: string
-  proc: ExecaChildProcess
-}
-
-const localProcs: { [key: string]: ExecProc } = {}
-const localLogsDir = join(LOGS_DIR, "local-services")
 
 export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
@@ -83,7 +76,7 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
 export const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (params) => {
   const { action, stream, follow, ctx, log } = params
 
-  const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, deployName: action.name })
+  const logFilePath = getLogFilePath({ ctx, deployName: action.name })
   const logsFollower = new ExecLogsFollower({ stream, log, logFilePath, deployName: action.name })
 
   if (follow) {
@@ -109,7 +102,7 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
     log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
     return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
   } else if (spec.persistent) {
-    return deployPersistentExecService({ action, log, ctx, env, serviceName: action.name })
+    return deployPersistentExecService({ action, log, ctx, env, deployName: action.name })
   } else {
     const result = await execRun({
       command: spec.deployCommand,
@@ -136,43 +129,41 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
 
 export async function deployPersistentExecService({
   ctx,
-  serviceName,
+  deployName,
   log,
   action,
   env,
 }: {
   ctx: PluginContext
-  serviceName: string
+  deployName: string
   log: Log
   action: Resolved<ExecDeploy>
   env: { [key: string]: string }
 }): Promise<DeployStatus> {
-  ctx.events.on("abort", () => {
-    const localProc = localProcs[serviceName]
-    if (localProc) {
-      localProc.proc.cancel()
-    }
-  })
+  const logFilePath = getLogFilePath({ ctx, deployName })
+  const pidFilePath = getPidFilePath({ ctx, deployName })
 
-  const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, deployName: serviceName })
   try {
     await resetLogFile(logFilePath)
   } catch (err) {
-    log.debug(`Failed resetting log file for service ${serviceName} at path ${logFilePath}: ${err.message}`)
+    log.debug(`Failed resetting log file for service ${deployName} at path ${logFilePath}: ${err.message}`)
   }
 
-  const key = serviceName
+  await killProcess(log, pidFilePath, deployName)
+
   const proc = runPersistent({
     action,
     log,
-    serviceName,
+    deployName,
     logFilePath,
     env,
     opts: { reject: true },
   })
-  localProcs[key] = {
-    proc,
-    key,
+
+  const pid = proc.pid
+
+  if (pid) {
+    await writeFile(pidFilePath, "" + pid)
   }
 
   const startedAt = new Date()
@@ -202,7 +193,7 @@ export async function deployPersistentExecService({
         }
 
         throw new TimeoutError(
-          dedent`Timed out waiting for local service ${serviceName} to be ready.
+          dedent`Timed out waiting for local service ${deployName} to be ready.
 
           Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)}
           to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
@@ -215,7 +206,7 @@ export async function deployPersistentExecService({
           in your service definition to a value that is greater than the time needed for your service to become ready.
           `,
           {
-            serviceName,
+            deployName,
             statusCommand: spec.statusCommand,
             pid: proc.pid,
             statusTimeout: spec.statusTimeout,
@@ -241,13 +232,15 @@ export async function deployPersistentExecService({
     state: "ready",
     detail: { state: "ready", detail: { persistent: true, pid: proc.pid } },
     outputs: {},
-    persistent: true,
   }
 }
 
 export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
   const { cleanupCommand, env } = action.getSpec()
+
+  const pidFilePath = getPidFilePath({ ctx, deployName: action.name })
+  await killProcess(log, pidFilePath, action.name)
 
   if (cleanupCommand) {
     const result = await execRun({
@@ -274,8 +267,31 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
   }
 }
 
-export function getLogFilePath({ projectRoot, deployName }: { projectRoot: string; deployName: string }) {
-  return join(projectRoot, localLogsDir, `${deployName}.jsonl`)
+function getExecMetadataPath(ctx: PluginContext) {
+  return join(ctx.gardenDirPath, "exec")
+}
+
+export function getLogFilePath({ ctx, deployName }: { ctx: PluginContext; deployName: string }) {
+  return join(getExecMetadataPath(ctx), `${deployName}.jsonl`)
+}
+
+function getPidFilePath({ ctx, deployName }: { ctx: PluginContext; deployName: string }) {
+  return join(getExecMetadataPath(ctx), `${deployName}.pid`)
+}
+
+async function killProcess(log: Log, pidFilePath: string, deployName: string) {
+  try {
+    const pidString = (await readFile(pidFilePath)).toString()
+    if (pidString) {
+      const oldPid = parseInt(pidString, 10)
+      if (isRunning(oldPid)) {
+        kill(oldPid, "SIGINT")
+        log.debug(`Sent SIGINT to existing ${deployName} process (PID ${oldPid})`)
+      }
+    }
+  } catch (err) {
+    // This is normal, there may not be an existing pidfile
+  }
 }
 
 /**
@@ -290,13 +306,13 @@ async function resetLogFile(logFilePath: string) {
 function runPersistent({
   action,
   env,
-  serviceName,
+  deployName,
   logFilePath,
   opts = {},
 }: {
   action: Resolved<ExecDeploy>
   log: Log
-  serviceName: string
+  deployName: string
   logFilePath: string
   env?: PrimitiveMap
   opts?: ExecOpts
@@ -311,7 +327,7 @@ function runPersistent({
         }
         const entry = {
           timestamp: new Date(),
-          serviceName,
+          name: deployName,
           msg: line,
           level,
         }
@@ -332,6 +348,9 @@ function runPersistent({
     shell,
     cleanup: true,
     ...opts,
+    detached: true, // Detach
+    windowsHide: true, // Avoid a console window popping up on Windows
+    stdio: ["ignore", "pipe", "pipe"],
   })
   proc.stdout?.pipe(split2()).pipe(toLogEntry(LogLevel.info)).pipe(createWriteStream(logFilePath))
   proc.stderr?.pipe(split2()).pipe(toLogEntry(LogLevel.error)).pipe(createWriteStream(logFilePath))

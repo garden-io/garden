@@ -149,7 +149,7 @@ export async function registerProcess(
   return record
 }
 
-function isRunning(pid: number) {
+export function isRunning(pid: number) {
   // Taken from https://stackoverflow.com/a/21296291. Doesn't actually kill the process.
   try {
     process.kill(pid, 0)
