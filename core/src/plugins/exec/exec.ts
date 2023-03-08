@@ -20,7 +20,7 @@ import { RuntimeError, TimeoutError } from "../../exceptions"
 import { Log } from "../../logger/log-entry"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
 import execa, { ExecaError, ExecaChildProcess } from "execa"
-import chalk = require("chalk")
+import chalk from "chalk"
 import { renderMessageWithDivider } from "../../logger/util"
 import { LogLevel } from "../../logger/logger"
 import { createWriteStream } from "fs"
@@ -36,12 +36,12 @@ import {
   ExecBuildConfig,
   ExecDeploy,
   execDeployActionSchema,
-  ExecSyncModeSpec,
   execRunActionSchema,
   ExecRun,
   ExecTest,
   execTestActionSchema,
   ResolvedExecAction,
+  defaultStatusTimeout,
 } from "./config"
 import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
 import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
@@ -96,15 +96,13 @@ function convertCommandSpec(command: string[], shell: boolean) {
 }
 
 function runPersistent({
-  command,
   action,
   env,
   serviceName,
   logFilePath,
   opts = {},
 }: {
-  command: string[]
-  action: ResolvedExecAction
+  action: Resolved<ExecDeploy>
   log: Log
   serviceName: string
   logFilePath: string
@@ -131,7 +129,7 @@ function runPersistent({
     })
 
   const shell = !!action.getSpec().shell
-  const { cmd, args } = convertCommandSpec(command, shell)
+  const { cmd, args } = convertCommandSpec(action.getSpec("deployCommand"), shell)
 
   const proc = execa(cmd, args, {
     cwd: action.getBuildPath(),
@@ -366,16 +364,14 @@ const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (par
 const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
   const spec = action.getSpec()
-  const mode = action.mode()
 
   const env = spec.env
-  const syncModeSpec = spec.syncMode
 
-  if (mode === "sync" && syncModeSpec && syncModeSpec.command.length > 0) {
-    return deployPersistentExecService({ action, log, ctx, env, syncModeSpec, serviceName: action.name })
-  } else if (spec.deployCommand.length === 0) {
+  if (spec.deployCommand.length === 0) {
     log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
     return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
+  } else if (spec.persistent) {
+    return deployPersistentExecService({ action, log, ctx, env, serviceName: action.name })
   } else {
     const result = await run({
       command: spec.deployCommand,
@@ -404,14 +400,12 @@ async function deployPersistentExecService({
   ctx,
   serviceName,
   log,
-  syncModeSpec,
   action,
   env,
 }: {
   ctx: PluginContext
   serviceName: string
   log: Log
-  syncModeSpec: ExecSyncModeSpec
   action: Resolved<ExecDeploy>
   env: { [key: string]: string }
 }): Promise<DeployStatus> {
@@ -431,7 +425,6 @@ async function deployPersistentExecService({
 
   const key = serviceName
   const proc = runPersistent({
-    command: syncModeSpec.command,
     action,
     log,
     serviceName,
@@ -446,7 +439,9 @@ async function deployPersistentExecService({
 
   const startedAt = new Date()
 
-  if (syncModeSpec.statusCommand) {
+  const spec = action.getSpec()
+
+  if (spec.statusCommand) {
     let ready = false
     let lastStatusResult: execa.ExecaReturnBase<string> | undefined
 
@@ -456,7 +451,7 @@ async function deployPersistentExecService({
       const now = new Date()
       const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
 
-      if (timeElapsedSec > syncModeSpec.timeout) {
+      if (timeElapsedSec > spec.statusTimeout) {
         let lastResultDescription = ""
         if (lastStatusResult) {
           lastResultDescription = dedent`\n\nThe last exit code was ${lastStatusResult.exitCode}.\n\n`
@@ -471,8 +466,8 @@ async function deployPersistentExecService({
         throw new TimeoutError(
           dedent`Timed out waiting for local service ${serviceName} to be ready.
 
-          Garden timed out waiting for the command ${chalk.gray(syncModeSpec.statusCommand)}
-          to return status code 0 (success) after waiting for ${syncModeSpec.timeout} seconds.
+          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)}
+          to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
           ${lastResultDescription}
           Possible next steps:
 
@@ -483,15 +478,15 @@ async function deployPersistentExecService({
           `,
           {
             serviceName,
-            statusCommand: syncModeSpec.statusCommand,
+            statusCommand: spec.statusCommand,
             pid: proc.pid,
-            timeout: syncModeSpec.timeout,
+            statusTimeout: spec.statusTimeout,
           }
         )
       }
 
       const result = await run({
-        command: syncModeSpec.statusCommand,
+        command: spec.statusCommand,
         action,
         ctx,
         log,
@@ -508,6 +503,7 @@ async function deployPersistentExecService({
     state: "ready",
     detail: { state: "ready", detail: { persistent: true, pid: proc.pid } },
     outputs: {},
+    persistent: true,
   }
 }
 
@@ -597,6 +593,30 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
   }
 
   for (const service of services) {
+    let persistent: any = false
+    let deployCommand = service.spec.deployCommand
+    let statusCommand = service.spec.statusCommand
+
+    if (service.spec.syncMode) {
+      // Maintain compatibility with devMode on exec modules
+      persistent = "${this.mode == 'sync'}"
+
+      if (service.spec.syncMode.command) {
+        deployCommand = <any>{
+          $if: persistent,
+          $then: service.spec.syncMode.command,
+          $else: service.spec.deployCommand,
+        }
+      }
+      if (service.spec.syncMode.statusCommand) {
+        statusCommand = <any>{
+          $if: persistent,
+          $then: service.spec.syncMode.statusCommand,
+          $else: service.spec.statusCommand,
+        }
+      }
+    }
+
     actions.push({
       kind: "Deploy",
       type: "exec",
@@ -609,10 +629,11 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
 
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior
+        persistent,
         cleanupCommand: service.spec.cleanupCommand,
-        deployCommand: service.spec.deployCommand,
-        statusCommand: service.spec.statusCommand,
-        syncMode: service.spec.syncMode,
+        deployCommand,
+        statusCommand,
+        statusTimeout: service.spec.syncMode?.timeout || defaultStatusTimeout,
         timeout: service.spec.timeout,
         env: prepareEnv(service.spec.env),
       },
@@ -713,7 +734,7 @@ export const execPlugin = () =>
           schema: execDeployActionSchema(),
           handlers: {
             async configure({ config }) {
-              return { config, supportedModes: { sync: !!config.spec.syncMode } }
+              return { config, supportedModes: { sync: !!config.spec.persistent } }
             },
 
             deploy: execDeployAction,

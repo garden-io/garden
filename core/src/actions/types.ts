@@ -110,6 +110,7 @@ export interface ActionStatus<
   state: ActionState
   detail: D | null
   outputs: O
+  persistent?: boolean
 }
 
 export interface ActionStatusMap<T extends BaseAction = BaseAction> {
