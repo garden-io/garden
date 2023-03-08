@@ -680,7 +680,20 @@ ${expectedIngressOutput}
       })
 
       it("updates dependencies for local charts", async () => {
-        throw "TODO"
+        const action = await garden.resolveAction<HelmDeployAction>({
+          action: graph.getDeploy("chart-with-dependency"),
+          log,
+          graph,
+        })
+        log.entries = []
+
+        await prepareTemplates({ ctx, log, action })
+
+        const helmDependencyUpdateLogLine = log.entries.find(
+          ({ msg }) =>
+            msg?.includes("helm") && msg?.includes("dependency update") && msg.includes("chart-with-dependency")
+        )
+        expect(helmDependencyUpdateLogLine).to.exist
       })
     })
 
