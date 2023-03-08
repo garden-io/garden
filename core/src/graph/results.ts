@@ -31,6 +31,8 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   task: BaseTask
   processed: boolean
   success: boolean
+  // Set to true if the action indicates that it's persistently running after execution
+  persistent: boolean
 }
 
 export type GraphResultWithoutTask<T extends Task = Task> = Omit<GraphResultFromTask<T>, "task">

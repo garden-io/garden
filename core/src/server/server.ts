@@ -254,7 +254,7 @@ export class GardenServer extends EventEmitter {
       const persistent = command.isPersistent(prepareParams)
 
       if (persistent) {
-        ctx.throw(400, "Attempted to run persistent command (e.g. a watch/follow command). Aborting.")
+        ctx.throw(400, "Attempted to run persistent command (e.g. a dev/follow command). Aborting.")
       }
 
       await command.prepare(prepareParams)

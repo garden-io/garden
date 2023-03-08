@@ -268,6 +268,9 @@ export const actionStatusSchema = createSchema({
       .allow(null)
       .description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
+    persistent: joi
+      .boolean()
+      .description("Set to true if the action handler is running a process persistently after returning."),
   },
 })
 

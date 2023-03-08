@@ -113,9 +113,11 @@ export async function actionConfigsToGraph({
       if (key === pattern) {
         explicitMode = true
         mode = "sync"
+        log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
         break
       } else if (minimatch(key, pattern)) {
         mode = "sync"
+        log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
         break
       }
     }
@@ -126,9 +128,11 @@ export async function actionConfigsToGraph({
       if (key === pattern) {
         explicitMode = true
         mode = "local"
+        log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
         break
       } else if (minimatch(key, pattern)) {
         mode = "local"
+        log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
         break
       }
     }
