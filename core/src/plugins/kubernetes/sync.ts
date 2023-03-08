@@ -465,16 +465,28 @@ export async function configureSyncMode({
   return { updated: Object.values(updatedTargets), manifests }
 }
 
-interface StartSyncModeParams {
+interface SyncParamsBase {
   ctx: KubernetesPluginContext
   log: Log
   action: Resolved<SupportedRuntimeActions>
   defaultNamespace: string
   manifests: KubernetesResource[]
-  basePath: string
-  actionDefaults: SyncDefaults
+}
+
+interface StopSyncsParams extends SyncParamsBase {
   defaultTarget: KubernetesTargetResourceSpec | undefined
   syncs: KubernetesDeployDevModeSyncSpec[]
+}
+
+interface StartSyncsParams extends StopSyncsParams {
+  basePath: string
+  actionDefaults: SyncDefaults
+}
+
+interface PrepareSyncParams extends SyncParamsBase {
+  resourceSpec: KubernetesTargetResourceSpec
+  spec: KubernetesDeployDevModeSyncSpec
+  index: number
 }
 
 export function getLocalSyncPath(sourcePath: string, basePath: string) {
@@ -482,26 +494,17 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
   return localPath.replace(/ /g, "\\ ") // Escape spaces in path
 }
 
-export async function startSyncs({
-  ctx,
-  log,
-  basePath,
-  manifests,
-  action,
-  defaultNamespace,
-  actionDefaults,
-  defaultTarget,
-  syncs,
-}: StartSyncModeParams) {
+export async function startSyncs(params: StartSyncsParams) {
+  const { ctx, log, basePath, manifests, action, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
+
   if (syncs.length === 0) {
     return
   }
 
   const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
   return mutagenDaemon.configLock.acquire("start-sync", async () => {
-    const k8sCtx = <KubernetesPluginContext>ctx
-    const k8sProvider = <KubernetesProvider>k8sCtx.provider
-    const providerDefaults = k8sProvider.config.sync?.defaults || {}
+    const provider = ctx.provider
+    const providerDefaults = provider.config.sync?.defaults || {}
 
     for (const [i, s] of enumerate(syncs)) {
       const resourceSpec = s.target || defaultTarget
@@ -511,16 +514,12 @@ export async function startSyncs({
         continue
       }
 
-      const target = await getTargetResource({
-        ctx: k8sCtx,
-        log,
-        provider: k8sCtx.provider,
-        manifests,
-        action,
-        query: resourceSpec,
+      const { key, description, sourceDescription, targetDescription, target, resourceName } = await prepareSync({
+        ...params,
+        resourceSpec,
+        spec: s,
+        index: i,
       })
-
-      const resourceName = getResourceKey(target)
 
       // Validate the target
       if (!isConfiguredForSyncMode(target)) {
@@ -536,13 +535,10 @@ export async function startSyncs({
       }
 
       const namespace = target.metadata.namespace || defaultNamespace
-      const keyBase = `${target.kind}--${namespace}--${target.metadata.name}`
-
-      const key = `${keyBase}-${i}`
 
       const localPath = getLocalSyncPath(s.sourcePath, basePath)
       const remoteDestination = await getKubectlExecDestination({
-        ctx: k8sCtx,
+        ctx,
         log,
         namespace,
         containerName,
@@ -550,23 +546,7 @@ export async function startSyncs({
         targetPath: s.containerPath,
       })
 
-      const localPathDescription = chalk.white(s.sourcePath)
-      const remoteDestinationDescription = `${chalk.white(s.containerPath)} in ${chalk.white(resourceName)}`
-
-      let sourceDescription: string
-      let targetDescription: string
-
       const mode = s.mode || defaultSyncMode
-
-      if (isReverseMode(mode)) {
-        sourceDescription = remoteDestinationDescription
-        targetDescription = localPathDescription
-      } else {
-        sourceDescription = localPathDescription
-        targetDescription = remoteDestinationDescription
-      }
-
-      const description = `${sourceDescription} to ${targetDescription}`
 
       log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
 
@@ -579,6 +559,90 @@ export async function startSyncs({
       })
     }
   })
+}
+
+export async function stopSyncs(params: StopSyncsParams) {
+  const { ctx, log, action, defaultTarget, syncs } = params
+
+  if (syncs.length === 0) {
+    return
+  }
+
+  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+  return mutagenDaemon.configLock.acquire("start-sync", async () => {
+    for (const [i, s] of enumerate(syncs)) {
+      const resourceSpec = s.target || defaultTarget
+
+      if (!resourceSpec) {
+        // This will have been caught and warned about elsewhere
+        continue
+      }
+
+      const { key, description } = await prepareSync({ ...params, resourceSpec, spec: s, index: i })
+
+      const mode = s.mode || defaultSyncMode
+
+      log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Stopping sync ${description} (${mode})`) })
+
+      await mutagenDaemon.terminateSync(key)
+    }
+  })
+}
+
+async function prepareSync({
+  ctx,
+  log,
+  manifests,
+  action,
+  resourceSpec,
+  defaultNamespace,
+  spec,
+  index,
+}: PrepareSyncParams) {
+  const provider = ctx.provider
+
+  const target = await getTargetResource({
+    ctx,
+    log,
+    provider,
+    manifests,
+    action,
+    query: resourceSpec,
+  })
+
+  const resourceName = getResourceKey(target)
+
+  const namespace = target.metadata.namespace || defaultNamespace
+  const keyBase = `${target.kind}--${namespace}--${target.metadata.name}`
+
+  const key = `${keyBase}-${index}`
+
+  const localPathDescription = chalk.white(spec.sourcePath)
+  const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
+
+  let sourceDescription: string
+  let targetDescription: string
+
+  const mode = spec.mode || defaultSyncMode
+
+  if (isReverseMode(mode)) {
+    sourceDescription = remoteDestinationDescription
+    targetDescription = localPathDescription
+  } else {
+    sourceDescription = localPathDescription
+    targetDescription = remoteDestinationDescription
+  }
+
+  const description = `${sourceDescription} to ${targetDescription}`
+
+  return {
+    key,
+    description,
+    sourceDescription,
+    targetDescription,
+    target,
+    resourceName,
+  }
 }
 
 export function makeSyncConfig({

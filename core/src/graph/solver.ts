@@ -239,7 +239,15 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   // TODO-G2B: This should really only be visible to TaskNode instances
-  getNode<N extends keyof InternalNodeTypes>(type: N, task: Task): InternalNodeTypes[N] {
+  getNode<N extends keyof InternalNodeTypes>({
+    type,
+    task,
+    statusOnly,
+  }: {
+    type: N
+    task: Task
+    statusOnly: boolean
+  }): InternalNodeTypes[N] {
     // Return existing node if it's there
     const key = getNodeKey(task, type)
 
@@ -251,9 +259,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     let node: InternalNodeTypes[N]
 
     if (type === "process") {
-      node = new ProcessTaskNode({ solver: this, task })
+      node = new ProcessTaskNode({ solver: this, task, statusOnly })
     } else {
-      node = new StatusTaskNode({ solver: this, task })
+      node = new StatusTaskNode({ solver: this, task, statusOnly })
     }
 
     this.nodes[key] = node
@@ -396,7 +404,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
 
         // See what is missing to fulfill the request, or resolve
         const task = request.task
-        const statusNode = this.getNode("status", task)
+        const statusNode = this.getNode({ type: "status", task, statusOnly: request.statusOnly })
         const status = this.getPendingResult(statusNode)
 
         if (status?.aborted || status?.error) {
@@ -416,7 +424,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           this.log.silly(`Request ${request.getKey()} has ready status and force=false, no need to process.`)
           request.complete(status)
         } else {
-          const processNode = this.getNode("process", task)
+          const processNode = this.getNode({ type: "process", task, statusOnly: request.statusOnly })
           const result = this.getPendingResult(processNode)
 
           if (result) {

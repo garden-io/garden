@@ -26,7 +26,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<DeployAction>) {
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
     const log = this.log.makeNewLogContext({})
     const action = this.getResolvedAction(this.action, dependencyResults)
 
@@ -38,7 +38,15 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       log,
     })
 
-    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
+    const executedAction = resolvedActionToExecuted(action, { status })
+
+    if (!statusOnly && status.state === "ready" && action.mode() === "sync") {
+      // If the action is already deployed, we still need to make sure the sync is started
+      // TODO-G2: instead, return outdated when sync is not already running?
+      await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
+    }
+
+    return { ...status, version: action.versionString(), executedAction }
   }
 
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
@@ -71,6 +79,12 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     for (const ingress of status.detail?.ingresses || []) {
       log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+    }
+
+    // Start syncing, if requested
+    if (action.mode() === "sync") {
+      log.info(chalk.gray("Starting sync"))
+      await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
     }
 
     if (this.garden.persistent) {

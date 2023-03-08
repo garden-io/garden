@@ -178,4 +178,12 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     stopPortForward: async (params) => {
       return params.router.callHandler({ params, handlerType: "stopPortForward" })
     },
+
+    startSync: async (params) => {
+      return params.router.callHandler({ params, handlerType: "startSync" })
+    },
+
+    stopSync: async (params) => {
+      return params.router.callHandler({ params, handlerType: "stopSync" })
+    },
   })
