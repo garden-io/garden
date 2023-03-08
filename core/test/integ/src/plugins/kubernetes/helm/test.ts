@@ -37,9 +37,6 @@ describe("testHelmModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -63,9 +60,6 @@ describe("testHelmModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -90,9 +84,6 @@ describe("testHelmModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     await expectError(
@@ -123,9 +114,6 @@ describe("testHelmModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -146,9 +134,6 @@ describe("testHelmModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -171,9 +156,6 @@ describe("testHelmModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

@@ -68,14 +68,14 @@ describe("System services", () => {
         graph,
         log: systemGarden.log,
         router,
+        mode: "default",
       })) as TestAction<any, any>
       const resolved = await systemGarden.resolveAction<TestAction>({ action, graph, log: systemGarden.log })
       const testTask = new TestTask({
         garden: systemGarden,
         log: garden.log,
         action: resolved,
-        localModeDeployNames: [],
-        syncModeDeployNames: [],
+
         force: false,
 
         graph,

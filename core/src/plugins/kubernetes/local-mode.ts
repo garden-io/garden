@@ -418,7 +418,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     ),
   })
 
-  set(targetResource, ["metadata", "annotations", gardenAnnotationKey("local-mode")], "true")
+  set(targetResource, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
 
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, action.key())
   log.debug({

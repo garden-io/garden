@@ -84,23 +84,21 @@ describe("sync mode deployments and sync behavior", () => {
     //   force: true,
     //
     //   devModeDeployNames: [action.name],
-    //   localModeDeployNames: [],
+    //
     // })
 
     // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const resolvedAction = await garden.resolveAction({
       action,
       log: garden.log,
-      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
     const status = await k8sGetContainerDeployStatus({
       ctx,
       action: resolvedAction,
       log,
-      syncMode: true,
-      localMode: false,
     })
-    expect(status.detail?.syncMode).to.eql(true)
+    expect(status.detail?.mode).to.equal("sync")
 
     const workload = status.detail?.detail.workload!
 
@@ -149,21 +147,19 @@ describe("sync mode deployments and sync behavior", () => {
     //   force: true,
     //
     //   devModeDeployNames: [action.name],
-    //   localModeDeployNames: [],
+    //
     // })
 
     // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const resolvedAction = await garden.resolveAction({
       action,
       log: garden.log,
-      graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
+      graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
     const status = await k8sGetContainerDeployStatus({
       ctx,
       action: resolvedAction,
       log,
-      syncMode: true,
-      localMode: false,
     })
 
     const workload = status.detail?.detail.workload!

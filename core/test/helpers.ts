@@ -8,7 +8,24 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { cloneDeep, extend, get, intersection, isString, mapValues, merge, omit, pick, uniq } from "lodash"
+import {
+  cloneDeep,
+  extend,
+  forOwn,
+  get,
+  intersection,
+  isArray,
+  isNull,
+  isObject,
+  isString,
+  isUndefined,
+  mapValues,
+  merge,
+  omit,
+  pick,
+  pull,
+  uniq,
+} from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
 import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
@@ -34,13 +51,7 @@ import { ConfigurationError } from "../src/exceptions"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
-import {
-  execBuildSpecSchema,
-  ExecModule,
-  execModuleSpecSchema,
-  execTaskSpecSchema,
-  execTestSchema,
-} from "../src/plugins/exec/moduleConfig"
+import { execBuildSpecSchema, ExecModule, execTaskSpecSchema, execTestSchema } from "../src/plugins/exec/moduleConfig"
 import {
   execBuildActionSchema,
   execDeployActionSchema,
@@ -55,9 +66,8 @@ import { GetRunResult } from "../src/plugin/handlers/Run/get-result"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
-import { GraphResultMapWithoutTask, GraphResultMap } from "../src/graph/results"
 import { localConfigFilename } from "../src/config-store/local"
-import _ from "lodash"
+import { GraphResultMapWithoutTask } from "../src/graph/results"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -260,6 +270,9 @@ export const testPlugin = () =>
           docs: "Test Deploy action",
           schema: testDeploySchema(),
           handlers: {
+            configure: async ({ config }) => {
+              return { config, supportedModes: { sync: !!config.spec.syncMode, local: true } }
+            },
             deploy: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
@@ -377,7 +390,7 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
-    providers: [],
+    providers: [{ name: "test-plugin", dependencies: [] }],
     variables: {},
   })
 
@@ -669,14 +682,17 @@ const skipGroups = gardenEnv.GARDEN_SKIP_TESTS.split(" ")
  */
 export function pruneEmpty(obj) {
   return (function prune(current) {
-    _.forOwn(current, function (value, key) {
-      if (_.isObject(value)) prune(value)
-      else if (_.isUndefined(value) || _.isNull(value)) {
+    forOwn(current, function (value, key) {
+      if (isObject(value)) {
+        prune(value)
+      } else if (isUndefined(value) || isNull(value)) {
         delete current[key]
       }
     })
     // remove any leftover undefined values from the delete operation on an array
-    if (_.isArray(current)) _.pull(current, undefined)
+    if (isArray(current)) {
+      pull(current, undefined)
+    }
     return current
   })(obj)
 }

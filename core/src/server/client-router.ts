@@ -17,6 +17,7 @@ import { ConfigGraph } from "../graph/config-graph"
 import { RunTask } from "../tasks/run"
 import { moduleTestNameToActionName } from "../types/module"
 import { printEmoji } from "../logger/util"
+import { ActionMode } from "../actions/types"
 
 export class ClientRouter {
   private garden: Garden
@@ -69,21 +70,16 @@ export class ClientRouter {
     const { log, garden } = this
     let prefix: string
     let emoji: string
-    if (req.hotReload) {
-      emoji = printEmoji("🔥", log)
-      prefix = `Hot reload-enabled deployment`
+    // local mode always takes precedence over sync mode
+    if (req.mode === "local") {
+      emoji = printEmoji("↔️", log)
+      prefix = `Local-mode deployment`
+    } else if (req.mode === "sync") {
+      emoji = printEmoji("⚡", log)
+      prefix = `Sync-mode deployment`
     } else {
-      // local mode always takes precedence over sync mode
-      if (req.localMode) {
-        emoji = printEmoji("↔️", log)
-        prefix = `Local-mode deployment`
-      } else if (req.syncMode) {
-        emoji = printEmoji("⚡", log)
-        prefix = `Sync-mode deployment`
-      } else {
-        emoji = printEmoji("🚀", log)
-        prefix = "Deployment"
-      }
+      emoji = printEmoji("🚀", log)
+      prefix = "Deployment"
     }
     const msg = `${prefix} requested for ${chalk.italic(chalk.cyan(req.serviceName))}`
     log.info("")
@@ -145,9 +141,7 @@ export interface ClientRequests {
   }
   deploy: {
     serviceName: string
-    syncMode: boolean
-    hotReload: boolean
-    localMode: boolean
+    mode?: ActionMode
     force: boolean
     forceBuild: boolean
     skipDependencies: boolean
@@ -198,8 +192,6 @@ export const clientRequestHandlers = {
       graph,
       action: graph.getBuild(moduleName),
       force,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
     return tasks
   },
@@ -215,8 +207,6 @@ export const clientRequestHandlers = {
       forceBuild,
 
       skipRuntimeDependencies: params.request.skipDependencies,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
   },
   test: async (params: ClientRequestHandlerCommonParams & { request: ClientRequests["test"] }) => {
@@ -233,9 +223,6 @@ export const clientRequestHandlers = {
         forceBuild,
         action: graph.getTest(testName),
         skipRuntimeDependencies: params.request.skipDependencies,
-        syncModeDeployNames: [],
-
-        localModeDeployNames: [],
       })
     })
   },
@@ -249,9 +236,6 @@ export const clientRequestHandlers = {
       action: graph.getRun(taskName),
       force,
       forceBuild,
-      syncModeDeployNames: [],
-
-      localModeDeployNames: [],
     })
   },
 }

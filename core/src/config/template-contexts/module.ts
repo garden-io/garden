@@ -21,29 +21,36 @@ import { GraphResults } from "../../graph/results"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
-class ConfigThisContext extends ConfigContext {
+export interface ModuleThisContextParams {
+  root: ConfigContext
+  buildPath: string
+  name: string
+  path: string
+}
+
+class ModuleThisContext extends ConfigContext {
   @schema(
     joi
       .string()
       .required()
-      .description("The build path of the action/module.")
+      .description("The build path of the module.")
       .example("/home/me/code/my-project/.garden/build/my-build")
   )
   public buildPath: string
 
-  @schema(joiIdentifier().description(`The name of the action/module.`))
+  @schema(joiIdentifier().description(`The name of the module.`))
   public name: string
 
   @schema(
     joi
       .string()
       .required()
-      .description("The source path of the action/module.")
+      .description("The source path of the module.")
       .example("/home/me/code/my-project/my-container")
   )
   public path: string
 
-  constructor(root: ConfigContext, buildPath: string, name: string, path: string) {
+  constructor({ root, buildPath, name, path }: ModuleThisContextParams) {
     super(root)
     this.buildPath = buildPath
     this.name = name
@@ -51,7 +58,7 @@ class ConfigThisContext extends ConfigContext {
   }
 }
 
-export class ModuleReferenceContext extends ConfigThisContext {
+export class ModuleReferenceContext extends ModuleThisContext {
   @schema(
     joiIdentifierMap(
       joiPrimitive().description(
@@ -80,7 +87,7 @@ export class ModuleReferenceContext extends ConfigThisContext {
   public version: string
 
   constructor(root: ConfigContext, module: GardenModule) {
-    super(root, module.buildPath, module.name, module.path)
+    super({ root, buildPath: module.buildPath, name: module.name, path: module.path })
     this.outputs = module.outputs
     this.var = module.variables
     this.version = module.version.versionString
@@ -306,8 +313,8 @@ export class ModuleConfigContext extends OutputConfigContext {
   )
   public template?: TemplateContext
 
-  @schema(ConfigThisContext.getSchema().description("Information about the action/module currently being resolved."))
-  public this: ConfigThisContext
+  @schema(ModuleThisContext.getSchema().description("Information about the action/module currently being resolved."))
+  public this: ModuleThisContext
 
   constructor(params: ModuleConfigContextParams) {
     super(params)
@@ -323,7 +330,7 @@ export class ModuleConfigContext extends OutputConfigContext {
     }
     this.inputs = inputs || {}
 
-    this.this = new ConfigThisContext(this, buildPath, name, path)
+    this.this = new ModuleThisContext({ root: this, buildPath, name, path })
   }
 
   static fromModule(params: Omit<ModuleConfigContextParams, "buildPath"> & { module: GardenModule }) {

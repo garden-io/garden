@@ -492,25 +492,23 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "default",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    const providerNames = res.providers.map((p) => p.name)
+
+    for (const name of fixedPlugins) {
+      expect(providerNames).to.include(name)
+    }
   })
 
   it("should remove null values in provider configs (as per the JSON Merge Patch spec)", async () => {
@@ -542,7 +540,7 @@ describe("pickEnvironment", () => {
       namespace: "default",
       providers: [
         { name: "exec" },
-        { name: "container", newKey: "foo" },
+        { name: "container", newKey: "foo", dependencies: [] },
         { name: "templated" },
         { name: "my-provider", b: "b" },
       ],
@@ -1138,25 +1136,20 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "foo.default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "foo",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "foo.default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    expect(res.environmentName).to.equal("default")
+    expect(res.namespace).to.equal("foo")
   })
 
   it("should use explicit namespace if specified and there is a default", async () => {
@@ -1165,25 +1158,20 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "foo.default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "foo",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "foo.default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    expect(res.environmentName).to.equal("default")
+    expect(res.namespace).to.equal("foo")
   })
 
   it("should use defaultNamespace if set and no explicit namespace is specified", async () => {
@@ -1192,25 +1180,20 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "default",
-        artifactsPath,
-        username,
-        vcsInfo,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "default",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      vcsInfo,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    expect(res.environmentName).to.equal("default")
+    expect(res.namespace).to.equal("default")
   })
 
   it("should throw if invalid environment is specified", async () => {

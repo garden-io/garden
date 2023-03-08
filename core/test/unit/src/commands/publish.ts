@@ -253,9 +253,6 @@ describe("PublishTask", () => {
         action,
         forceBuild: false,
         tagTemplate: tag,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
-
         force: false,
       })
     })
@@ -284,9 +281,6 @@ describe("PublishTask", () => {
         action,
         forceBuild: false,
         tagTemplate: tag,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
-
         force: false,
       })
     })

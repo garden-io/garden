@@ -133,9 +133,6 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       garden.events.eventLog = []
@@ -162,9 +159,6 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await expectError(
@@ -202,9 +196,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -225,9 +216,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -250,9 +238,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -273,9 +258,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -294,9 +276,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })

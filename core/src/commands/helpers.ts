@@ -8,23 +8,13 @@
 
 import chalk from "chalk"
 import indentString from "indent-string"
-import { RunAction } from "../actions/run"
-import { TestAction } from "../actions/test"
+import type { RunAction } from "../actions/run"
+import type { TestAction } from "../actions/test"
 
-import { ConfigGraph } from "../graph/config-graph"
-import { WorkflowConfig } from "../config/workflow"
-import { Log } from "../logger/log-entry"
+import type { WorkflowConfig } from "../config/workflow"
+import type { Log } from "../logger/log-entry"
 import { BooleanParameter } from "../cli/params"
-import { Garden } from "../garden"
-
-export function getMatchingDeployNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
-  const names = namesFromOpt || []
-  if (names.includes("*") || (!!namesFromOpt && namesFromOpt.length === 0)) {
-    return configGraph.getDeploys().map((s) => s.name)
-  } else {
-    return names
-  }
-}
+import type { Garden } from "../garden"
 
 export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
   return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")

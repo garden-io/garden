@@ -86,7 +86,7 @@ export const execBuildActionSchema = createSchema({
 
 // DEPLOY //
 
-export interface ExecDevModeSpec {
+export interface ExecSyncModeSpec {
   command: string[]
   timeout: number
   statusCommand?: string[]
@@ -96,7 +96,7 @@ export interface ExecDeployActionSpec extends CommonKeys {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  syncMode?: ExecDevModeSpec
+  syncMode?: ExecSyncModeSpec
   timeout?: number
   env: StringMap
 }

@@ -112,8 +112,6 @@ export class BuildCommand extends Command<Args, Opts> {
             action,
             force: opts.force,
             forceActions: [],
-            syncModeDeployNames: [],
-            localModeDeployNames: [],
           })
       )
     )

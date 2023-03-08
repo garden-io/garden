@@ -17,19 +17,14 @@ import {
   createIngressResources,
   supportedIngressApiVersions,
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { defaultDeploymentStrategy } from "../../../../../../src/plugins/container/config"
-import {
-  ContainerDeployAction,
-  ContainerDeploySpec,
-  defaultContainerResources,
-} from "../../../../../../src/plugins/container/moduleConfig"
+import { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig"
 import { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig"
 import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
 import { getContainerTestGarden } from "./container"
 import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/types"
 import { actionFromConfig } from "../../../../../../src/graph/actions"
-import { DeployAction, DeployActionConfig } from "../../../../../../src/actions/deploy"
+import { DeployAction } from "../../../../../../src/actions/deploy"
 
 const namespace = "my-namespace"
 const ports = [
@@ -367,7 +362,7 @@ describe("createIngressResources", () => {
       graph,
       config: {
         internal: {
-          basePath: garden.projectRoot
+          basePath: garden.projectRoot,
         },
         kind: "Deploy",
         name: "my-service",
@@ -378,6 +373,7 @@ describe("createIngressResources", () => {
           ports,
         },
       },
+      mode: "default",
     })) as DeployAction
 
     return await garden.resolveAction({ action: unresolved, graph, log })

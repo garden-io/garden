@@ -72,9 +72,6 @@ export async function buildHelmModules(garden: Garden | TestGarden, graph: Confi
         log: garden.log,
         action,
         force: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
   )
   const results = await garden.processTasks({ tasks, log: garden.log })
@@ -118,8 +115,7 @@ describe("Helm common functions", () => {
       const templates = await renderTemplates({
         ctx,
         action: await garden.resolveAction<HelmDeployAction>({ action: deployAction, log, graph }),
-        syncMode: false,
-        localMode: false,
+
         log,
       })
 
@@ -249,8 +245,7 @@ ${expectedIngressOutput}
       const templates = await renderTemplates({
         ctx,
         action: await garden.resolveAction({ action, log, graph }),
-        syncMode: false,
-        localMode: false,
+
         log,
       })
 
@@ -270,8 +265,7 @@ ${expectedIngressOutput}
       const resources = await getChartResources({
         ctx,
         action: await garden.resolveAction<HelmDeployAction>({ action, log, graph }),
-        syncMode: false,
-        localMode: false,
+
         log,
       })
 
@@ -439,8 +433,7 @@ ${expectedIngressOutput}
       const resources = await getChartResources({
         ctx,
         action: await garden.resolveAction({ action, log, graph }),
-        syncMode: false,
-        localMode: false,
+
         log,
       })
 
@@ -458,8 +451,7 @@ ${expectedIngressOutput}
         await getChartResources({
           ctx,
           action: await garden.resolveAction({ action, log, graph }),
-          syncMode: false,
-          localMode: false,
+
           log,
         })
       ).to.not.throw
@@ -470,8 +462,7 @@ ${expectedIngressOutput}
       const resources = await getChartResources({
         ctx,
         action: await garden.resolveAction({ action, log, graph }),
-        syncMode: false,
-        localMode: false,
+
         log,
       })
 
@@ -573,42 +564,30 @@ ${expectedIngressOutput}
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
-        "--values",
-        gardenValuesPath,
-      ])
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
     })
 
-    it("should add a --set flag if syncMode=true", async () => {
+    it("should add a --set flag if in sync mode", async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.api"] } })
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, syncMode: true, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
-        "\\.garden.syncMode=true",
+        "\\.garden.mode=sync",
       ])
     })
 
-    it("should add a --set flag if localMode=true", async () => {
+    it("should add a --set flag if in local mode", async () => {
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { local: ["deploy.api"] } })
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, syncMode: false, localMode: true, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
-        "\\.garden.localMode=true",
-      ])
-    })
-
-    it("localMode should always take precedence over syncMode when add a --set flag", async () => {
-      const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
-      action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, syncMode: true, localMode: true, valuesPath: gardenValuesPath })).to.eql([
-        "--values",
-        gardenValuesPath,
-        "--set",
-        "\\.garden.localMode=true",
+        "\\.garden.mode=local",
       ])
     })
 
@@ -616,7 +595,7 @@ ${expectedIngressOutput}
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = ["foo.yaml", "bar.yaml"]
 
-      expect(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         resolve(action.getBuildPath(), "foo.yaml"),
         "--values",
@@ -630,7 +609,7 @@ ${expectedIngressOutput}
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = ["../relative.yaml"]
 
-      expect(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath: gardenValuesPath })).to.eql([
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
         "--values",
         resolve(action.getBuildPath(), "../relative.yaml"),
         "--values",

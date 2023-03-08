@@ -3553,6 +3553,7 @@ describe("Garden", () => {
           path: pathFoo,
           providers: [],
         }),
+        plugins: [testPlugin()],
       })
 
       garden.setModuleConfigs([

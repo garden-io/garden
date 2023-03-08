@@ -38,16 +38,13 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
     ctx,
     action,
     log,
-    syncMode: false,
-    localMode: false,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   const manifests = await getChartResources({
     ctx: k8sCtx,
     action,
-    syncMode: false,
-    localMode: false,
+
     log,
   })
 

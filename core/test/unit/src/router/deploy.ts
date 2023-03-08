@@ -48,12 +48,9 @@ describe("deploy actions", () => {
         log,
         action: resolvedDeployAction,
         graph,
-        syncMode: false,
-
-        localMode: false,
       })
       expect(result).to.eql({
-        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {} },
+        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {}, mode: "default" },
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
@@ -65,8 +62,6 @@ describe("deploy actions", () => {
         log,
         action: resolvedDeployAction,
         graph,
-        syncMode: false,
-        localMode: false,
       })
       const event = garden.events.eventLog[0]
       expect(event).to.exist
@@ -86,8 +81,6 @@ describe("deploy actions", () => {
             log,
             action: resolvedDeployAction,
             graph,
-            syncMode: false,
-            localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
       )
@@ -101,11 +94,9 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        syncMode: false,
-        localMode: false,
       })
       expect(result).to.eql({
-        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {} },
+        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {}, mode: "default" },
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
@@ -118,8 +109,6 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        syncMode: false,
-        localMode: false,
       })
       const moduleVersion = resolvedDeployAction.moduleVersion().versionString
       const event1 = garden.events.eventLog[0]
@@ -151,8 +140,6 @@ describe("deploy actions", () => {
             action: resolvedDeployAction,
             graph,
             force: true,
-            syncMode: false,
-            localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
       )
@@ -169,6 +156,7 @@ describe("deploy actions", () => {
           outputs: {},
           detail: {},
           state: "ready",
+          mode: "default",
         },
         outputs: {},
       })

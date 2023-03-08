@@ -74,14 +74,13 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
       // Copy the access modes field to match the BaseVolumeSpec schema
       config.spec.accessModes = <VolumeAccessMode[]>config.spec.spec.accessModes || ["ReadWriteOnce"]
 
-      return { config }
+      return { config, supportedModes: {} }
     },
 
     deploy: async (params) => {
       const result = await kubernetesDeploy({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -91,7 +90,6 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
       const result = await getKubernetesDeployStatus({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }

@@ -34,6 +34,7 @@ describe("test actions", () => {
       log: garden.log,
       configsByKey: {},
       router: await garden.getActionRouter(),
+      mode: "default",
     })) as TestAction
     return await garden.resolveAction<TestAction>({ action, log: garden.log })
   }

@@ -8,7 +8,7 @@
 
 import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
 import { cloneDeep, isEqual, keyBy, set, mapValues } from "lodash"
-import { Garden, GardenOpts, GardenParams, resolveGardenParams } from "../garden"
+import { Garden, GardenOpts, GardenParams, GetConfigGraphParams, resolveGardenParams } from "../garden"
 import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
@@ -202,12 +202,11 @@ export class TestGarden extends Garden {
   /**
    * Override to cache the config graph.
    */
-  async getConfigGraph(params: {
-    log: Log
-    graphResults?: GraphResults
-    emit: boolean
-    noCache?: boolean
-  }): Promise<ConfigGraph> {
+  async getConfigGraph(
+    params: GetConfigGraphParams & {
+      noCache?: boolean
+    }
+  ): Promise<ConfigGraph> {
     // TODO-G2: re-instate this after we're done refactoring
     // let cacheKey: string | undefined = undefined
 

@@ -124,6 +124,17 @@ export interface ActionDependencyAttributes {
 
 export type ActionDependency = ActionReference & ActionDependencyAttributes
 
+export interface ActionModes {
+  sync?: boolean
+  local?: boolean
+}
+
+export type ActionMode = keyof ActionModes | "default"
+
+export type ActionModeMap = {
+  [mode in ActionMode]?: string[]
+}
+
 export interface ActionWrapperParams<C extends BaseActionConfig> {
   baseBuildDirectory: string // <project>/.garden/build by default
   compatibleTypes: string[]
@@ -132,7 +143,9 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   graph: ConfigGraph
   moduleName?: string
   moduleVersion?: ModuleVersion
+  mode: ActionMode
   projectRoot: string
+  supportedModes: ActionModes
   treeVersion: TreeVersion
   variables: DeepPrimitiveMap
 }

@@ -6,15 +6,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { merge } from "lodash"
 import { Action, ExecutedAction, ResolvedAction } from "../../actions/types"
 import { Garden } from "../../garden"
 import { GardenModule } from "../../types/module"
 import { deline } from "../../util/string"
-import { DeepPrimitiveMap, joi, joiIdentifierMap, joiPrimitive, joiVariables, PrimitiveMap } from "../common"
+import {
+  DeepPrimitiveMap,
+  joi,
+  joiIdentifier,
+  joiIdentifierMap,
+  joiPrimitive,
+  joiVariables,
+  PrimitiveMap,
+} from "../common"
 import { ProviderMap } from "../provider"
-import { ConfigContext, schema } from "./base"
-import { exampleVersion, ModuleConfigContext } from "./module"
+import { ConfigContext, ErrorContext, schema } from "./base"
+import { exampleVersion, OutputConfigContext, ParentContext, TemplateContext } from "./module"
 import { RemoteSourceConfigContext } from "./project"
 
 /**
@@ -29,13 +38,18 @@ export class ActionConfigContext extends RemoteSourceConfigContext {
 
 interface ActionReferenceContextParams {
   root: ConfigContext
+  name: string
   disabled: boolean
   buildPath: string
   sourcePath: string
+  mode: string
   variables: DeepPrimitiveMap
 }
 
-class ActionReferenceContext extends ConfigContext {
+export class ActionReferenceContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the action.`))
+  public name: string
+
   @schema(joi.boolean().required().description("Whether the action is disabled.").example(true))
   public disabled: boolean
 
@@ -57,15 +71,30 @@ class ActionReferenceContext extends ConfigContext {
   )
   public sourcePath: string
 
+  @schema(
+    joi
+      .string()
+      .required()
+      .default("default")
+      .allow("default", "sync", "local")
+      .description(
+        "The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used."
+      )
+      .example("sync")
+  )
+  public mode: string
+
   @schema(joiVariables().required().description("The variables configured on the action.").example({ foo: "bar" }))
   public var: DeepPrimitiveMap
 
-  constructor({ root, disabled, buildPath, sourcePath, variables }: ActionReferenceContextParams) {
+  constructor({ root, name, disabled, buildPath, sourcePath, mode, variables }: ActionReferenceContextParams) {
     super(root)
+    this.name = name
     this.disabled = disabled
     this.buildPath = buildPath
     this.sourcePath = sourcePath
     this.var = variables
+    this.mode = mode
   }
 }
 
@@ -144,11 +173,13 @@ class ActionReferencesContext extends ConfigContext {
         action.name,
         new ActionResultContext({
           root: this,
+          name: action.name,
           outputs: action.getOutputs(),
           version: action.versionString(),
           disabled: action.isDisabled(),
           buildPath: action.getBuildPath(),
           sourcePath: action.basePath(),
+          mode: action.mode(),
           variables: action.getVariables(),
         })
       )
@@ -159,6 +190,7 @@ class ActionReferencesContext extends ConfigContext {
     this._alwaysAllowPartial = allowPartial
   }
 }
+
 export interface ActionSpecContextParams {
   garden: Garden
   resolvedProviders: ProviderMap
@@ -173,7 +205,7 @@ export interface ActionSpecContextParams {
 /**
  * Used to resolve action spec and variables.
  */
-export class ActionSpecContext extends ModuleConfigContext {
+export class ActionSpecContext extends OutputConfigContext {
   @schema(
     ActionReferencesContext.getSchema().description(
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."
@@ -183,6 +215,30 @@ export class ActionSpecContext extends ModuleConfigContext {
 
   @schema(ActionReferencesContext.getSchema().description("Alias for `action`."))
   public runtime: ActionReferencesContext
+
+  @schema(
+    joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
+      keyPlaceholder: "<input-key>",
+    })
+  )
+  public inputs: DeepPrimitiveMap
+
+  @schema(
+    ParentContext.getSchema().description(
+      `Information about the config parent, if any (usually a template, if applicable).`
+    )
+  )
+  public parent?: ParentContext
+
+  @schema(
+    TemplateContext.getSchema().description(
+      `Information about the template used when generating the config, if applicable.`
+    )
+  )
+  public template?: TemplateContext
+
+  @schema(ActionReferenceContext.getSchema().description("Information about the action currently being resolved."))
+  public this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
     const { action, garden, partialRuntimeResolution, variables, resolvedDependencies, executedDependencies } = params
@@ -196,20 +252,42 @@ export class ActionSpecContext extends ModuleConfigContext {
 
     super({
       ...params,
-      name: action.name,
-      path: action.basePath(),
-      buildPath: action.getBuildPath(),
-      parentName: internal?.parentName,
-      templateName: internal?.templateName,
-      inputs: internal?.inputs,
       variables: mergedVariables,
     })
 
-    // TODO-G2: include resolved dependencies here as well, once static outputs are implemented
+    const name = action.name
+    const buildPath = action.getBuildPath()
+    const sourcePath = action.basePath()
+    const parentName = internal?.parentName
+    const templateName = internal?.templateName
+
     this.action = new ActionReferencesContext(this, partialRuntimeResolution, [
       ...resolvedDependencies,
       ...executedDependencies,
     ])
+
+    // Throw specific error when attempting to resolve self
+    this.action[action.kind.toLowerCase()].set(
+      name,
+      new ErrorContext(`Action ${chalk.white.bold(action.key())} cannot reference itself.`)
+    )
+
+    if (parentName && templateName) {
+      this.parent = new ParentContext(this, parentName)
+      this.template = new TemplateContext(this, templateName)
+    }
+    this.inputs = internal?.inputs || {}
+
     this.runtime = this.action
+
+    this.this = new ActionReferenceContext({
+      root: this,
+      disabled: action.isDisabled(),
+      buildPath,
+      name,
+      sourcePath,
+      mode: action.mode(),
+      variables: mergedVariables,
+    })
   }
 }

@@ -126,7 +126,15 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
-import { Action, ActionConfigMap, ActionConfigsByKey, ActionKind, actionKinds, BaseActionConfig } from "./actions/types"
+import {
+  Action,
+  ActionConfigMap,
+  ActionConfigsByKey,
+  ActionKind,
+  actionKinds,
+  ActionModeMap,
+  BaseActionConfig,
+} from "./actions/types"
 import { actionReferenceToString } from "./actions/base"
 import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
@@ -857,7 +865,7 @@ export class Garden {
    * When implementing a new command that calls this method and also streams events, make sure that the first
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
-  async getConfigGraph({ log, graphResults, emit }: GetConfigGraphParams): Promise<ConfigGraph> {
+  async getConfigGraph({ log, graphResults, emit, actionModes = {} }: GetConfigGraphParams): Promise<ConfigGraph> {
     // TODO-G2: split this out of the Garden class
     await this.scanAndAddConfigs()
 
@@ -934,6 +942,7 @@ export class Garden {
       groupConfigs: moduleGroups,
       log: graphLog,
       moduleGraph,
+      actionModes,
     })
 
     // TODO-G2: detect overlap on Build actions
@@ -979,6 +988,8 @@ export class Garden {
           config.internal.basePath = this.projectRoot
         }
 
+        const key = actionReferenceToString(config)
+
         const action = await actionFromConfig({
           garden: this,
           graph,
@@ -986,8 +997,11 @@ export class Garden {
           router,
           log: graphLog,
           configsByKey: actionConfigs,
+          mode: actionModes[key] || "default",
         })
+
         graph.addAction(action)
+        actionConfigs[key] = config
 
         updated = true
       })
@@ -1730,8 +1744,9 @@ export interface ConfigDump {
   sources: SourceConfig[]
 }
 
-interface GetConfigGraphParams {
+export interface GetConfigGraphParams {
   log: Log
   graphResults?: GraphResults
   emit: boolean
+  actionModes?: ActionModeMap
 }

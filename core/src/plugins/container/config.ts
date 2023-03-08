@@ -611,7 +611,6 @@ const volumeSchema = () =>
     })
     .oxor("hostPath", "action")
 
-
 export function getContainerVolumesSchema(schema: CustomObjectSchema) {
   return joiSparseArray(schema).unique("name").description(dedent`
     List of volumes that should be mounted when starting the container.

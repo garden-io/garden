@@ -6,12 +6,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build"
-import { ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy"
-import { ExecutedRunAction, isRunAction, ResolvedRunAction } from "./run"
-import { ExecutedTestAction, isTestAction, ResolvedTestAction } from "./test"
+import { memoize } from "lodash"
+import { joi } from "../config/common"
+import { buildActionConfigSchema, ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build"
+import { deployActionConfigSchema, ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy"
+import { ExecutedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run"
+import { ExecutedTestAction, isTestAction, ResolvedTestAction, testActionConfigSchema } from "./test"
 import { Action, ExecuteActionParams, Executed, ResolveActionParams, ResolvedAction } from "./types"
 
+/**
+ * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.
+ */
 export function actionToResolved<T extends Action>(action: T, params: ResolveActionParams<T["_config"]>) {
   if (isBuildAction(action)) {
     return new ResolvedBuildAction({ ...action["params"], ...params })
@@ -27,6 +32,9 @@ export function actionToResolved<T extends Action>(action: T, params: ResolveAct
   }
 }
 
+/**
+ * Creates a corresponding Executed version of the given resolved Action, given the additional parameters needed.
+ */
 export function resolvedActionToExecuted<T extends ResolvedAction>(
   action: T,
   params: ExecuteActionParams<T["_config"]>
@@ -44,3 +52,15 @@ export function resolvedActionToExecuted<T extends ResolvedAction>(
     return _exhaustiveCheck
   }
 }
+
+/**
+ * Use this to validate any kind (Build, Deploy, Test etc.) of action config.
+ */
+export const actionConfigSchema = memoize(() =>
+  joi.alternatives(
+    buildActionConfigSchema(),
+    deployActionConfigSchema(),
+    runActionConfigSchema(),
+    testActionConfigSchema()
+  )
+)

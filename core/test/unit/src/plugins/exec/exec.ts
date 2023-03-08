@@ -316,8 +316,6 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
       const result = await _garden.processTask(taskTask, _garden.log, { throwOnError: true })
 
@@ -342,8 +340,6 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(_garden.artifactsPath)
@@ -366,8 +362,6 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(_garden.artifactsPath)
@@ -462,6 +456,7 @@ describe("exec plugin", () => {
             },
           } as TestActionConfig,
           configsByKey: {},
+          mode: "default",
         })) as TestAction
 
         const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
@@ -499,6 +494,7 @@ describe("exec plugin", () => {
             },
           } as TestActionConfig,
           configsByKey: {},
+          mode: "default",
         })) as TestAction
         const action = await garden.resolveAction({ action: rawAction, graph, log })
         const res = await router.test.run({
@@ -561,10 +557,8 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ log, graph, action: rawAction })
           const res = await router.deploy.deploy({
-            syncMode: false,
             force: false,
 
-            localMode: false,
             log,
             action,
             graph,
@@ -579,10 +573,8 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           const res = await router.deploy.deploy({
-            syncMode: false,
             force: false,
 
-            localMode: false,
             log,
             action,
             graph,
@@ -597,10 +589,8 @@ describe("exec plugin", () => {
           await expectError(
             async () =>
               await router.deploy.deploy({
-                syncMode: false,
                 force: false,
 
-                localMode: false,
                 log,
                 action,
                 graph,
@@ -618,6 +608,14 @@ describe("exec plugin", () => {
         context("syncMode", () => {
           // We set the pid in the "it" statements.
           let pid = -1
+
+          beforeEach(async () => {
+            graph = await garden.getConfigGraph({
+              log: garden.log,
+              emit: false,
+              actionModes: { sync: ["deploy.sync-*"] },
+            })
+          })
 
           afterEach(async () => {
             if (pid > 1) {
@@ -643,10 +641,7 @@ describe("exec plugin", () => {
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
             const res = await router.deploy.deploy({
-              syncMode: true,
               force: false,
-
-              localMode: false,
               log,
               action,
               graph,
@@ -662,10 +657,7 @@ describe("exec plugin", () => {
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
             const res = await router.deploy.deploy({
-              syncMode: true,
               force: false,
-
-              localMode: false,
               log,
               action,
               graph,
@@ -727,10 +719,7 @@ describe("exec plugin", () => {
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
             const res = await router.deploy.deploy({
-              syncMode: true,
               force: false,
-
-              localMode: false,
               log,
               action,
               graph,
@@ -796,10 +785,7 @@ describe("exec plugin", () => {
             let error: any
             try {
               await router.deploy.deploy({
-                syncMode: true,
                 force: false,
-
-                localMode: false,
                 log,
                 action,
                 graph,
@@ -847,9 +833,6 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           await router.deploy.deploy({
-            syncMode: false,
-
-            localMode: false,
             force: false,
             log,
             action,
@@ -895,9 +878,6 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           await router.deploy.deploy({
-            syncMode: false,
-
-            localMode: false,
             force: false,
             log,
             action,
