@@ -36,7 +36,7 @@ import {
   ExecBuildConfig,
   ExecDeploy,
   execDeployActionSchema,
-  ExecDevModeSpec,
+  ExecSyncModeSpec,
   execRunActionSchema,
   ExecRun,
   ExecTest,
@@ -366,12 +366,12 @@ const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (par
 const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
   const { action, log, ctx } = params
   const spec = action.getSpec()
+  const mode = action.mode()
 
-  const syncMode = params.syncMode
   const env = spec.env
   const syncModeSpec = spec.syncMode
 
-  if (syncMode && syncModeSpec && syncModeSpec.command.length > 0) {
+  if (mode === "sync" && syncModeSpec && syncModeSpec.command.length > 0) {
     return deployPersistentExecService({ action, log, ctx, env, syncModeSpec, serviceName: action.name })
   } else if (spec.deployCommand.length === 0) {
     log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
@@ -411,7 +411,7 @@ async function deployPersistentExecService({
   ctx: PluginContext
   serviceName: string
   log: Log
-  syncModeSpec: ExecDevModeSpec
+  syncModeSpec: ExecSyncModeSpec
   action: Resolved<ExecDeploy>
   env: { [key: string]: string }
 }): Promise<DeployStatus> {
@@ -712,6 +712,10 @@ export const execPlugin = () =>
           `,
           schema: execDeployActionSchema(),
           handlers: {
+            async configure({ config }) {
+              return { config, supportedModes: { sync: !!config.spec.syncMode } }
+            },
+
             deploy: execDeployAction,
             delete: deleteExecDeploy,
             getLogs: getExecDeployLogs,

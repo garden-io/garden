@@ -234,11 +234,8 @@ deployStatuses:
       # Additional detail, specific to the provider.
       detail:
 
-      # Whether the service was deployed with sync enabled.
-      syncMode:
-
-      # Whether the service was deployed with local mode enabled.
-      localMode:
+      # The mode the action is deployed in.
+      mode:
 
       namespaceStatuses:
         - pluginName:
@@ -364,11 +361,8 @@ When this flag is not used, all services in the project are cleaned up simultane
     # Additional detail, specific to the provider.
     detail:
 
-    # Whether the service was deployed with sync enabled.
-    syncMode:
-
-    # Whether the service was deployed with local mode enabled.
-    localMode:
+    # The mode the action is deployed in.
+    mode:
 
     namespaceStatuses:
       - pluginName:
@@ -1109,9 +1103,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1203,6 +1194,8 @@ actionConfigs:
 
       # The spec for the specific action type.
       spec:
+
+      kind:
 
       # When false, disables publishing this build to remote registries via the publish command.
       allowPublish:
@@ -1283,9 +1276,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1417,6 +1407,8 @@ actionConfigs:
       # This would mean that instead of looking for manifest files relative to this action's location in your project
       # structure, the output directory for the referenced `exec` Build would be the source.
       build:
+
+      kind:
 
   # Run action configs in the project.
   Run:
@@ -1424,9 +1416,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1558,6 +1547,8 @@ actionConfigs:
       # This would mean that instead of looking for manifest files relative to this action's location in your project
       # structure, the output directory for the referenced `exec` Build would be the source.
       build:
+
+      kind:
 
       # Set a timeout for the run to complete, in seconds.
       timeout:
@@ -1568,9 +1559,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1702,6 +1690,8 @@ actionConfigs:
       # This would mean that instead of looking for manifest files relative to this action's location in your project
       # structure, the output directory for the referenced `exec` Build would be the source.
       build:
+
+      kind:
 
       # Set a timeout for the test to complete, in seconds.
       timeout:
@@ -2572,11 +2562,8 @@ actions:
         # Additional detail, specific to the provider.
         detail:
 
-        # Whether the service was deployed with sync enabled.
-        syncMode:
-
-        # Whether the service was deployed with local mode enabled.
-        localMode:
+        # The mode the action is deployed in.
+        mode:
 
         namespaceStatuses:
           - pluginName:

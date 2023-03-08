@@ -26,7 +26,7 @@ import { uniq } from "lodash"
 import { getEntityVersion } from "../vcs/vcs"
 import { NamespaceStatus, namespaceStatusesSchema } from "./namespace"
 import type { LogLevel } from "../logger/logger"
-import type { ActionState } from "../actions/types"
+import type { ActionMode, ActionState } from "../actions/types"
 import type { ModuleGraph } from "../graph/modules"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
@@ -198,8 +198,7 @@ const forwardablePortSchema = createSchema({
 export interface ServiceStatus<D = any, O = PrimitiveMap> {
   createdAt?: string
   detail: D
-  syncMode?: boolean
-  localMode?: boolean
+  mode?: ActionMode
   namespaceStatuses?: NamespaceStatus[]
   externalId?: string
   externalVersion?: string
@@ -224,8 +223,7 @@ export const serviceStatusSchema = () =>
     .keys({
       createdAt: joi.string().description("When the service was first deployed by the provider."),
       detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
-      syncMode: joi.boolean().description("Whether the service was deployed with sync enabled."),
-      localMode: joi.boolean().description("Whether the service was deployed with local mode enabled."),
+      mode: joi.string().default("default").description("The mode the action is deployed in."),
       namespaceStatuses: namespaceStatusesSchema().optional(),
       externalId: joi
         .string()

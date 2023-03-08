@@ -381,6 +381,9 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerDeployOutputsSchema(),
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
+            async configure({ config }) {
+              return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+            },
 
             async validate({ action }) {
               // make sure ports are correctly configured

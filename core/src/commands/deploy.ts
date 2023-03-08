@@ -21,11 +21,13 @@ import {
 } from "./base"
 import { processActions } from "../process"
 import { printHeader } from "../logger/util"
-import { getMatchingDeployNames, watchParameter, watchRemovedWarning } from "./helpers"
+import { watchParameter, watchRemovedWarning } from "./helpers"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
+import Bluebird = require("bluebird")
+import { ActionModeMap } from "../actions/types"
 
 export const deployArgs = {
   names: new StringsParameter({
@@ -143,8 +145,14 @@ export class DeployCommand extends Command<Args, Opts> {
       await watchRemovedWarning(garden, log)
     }
 
-    const initGraph = await garden.getConfigGraph({ log, emit: true })
-    let actions = initGraph.getDeploys({ names: args.names, includeDisabled: true })
+    const actionModes: ActionModeMap = {
+      // Support a single empty value (which comes across as an empty list) as equivalent to '*'
+      local: opts["local-mode"]?.length === 0 ? ["*"] : opts["local-mode"]?.map((s) => "deploy." + s),
+      sync: opts.sync?.length === 0 ? ["*"] : opts.sync?.map((s) => "deploy." + s),
+    }
+
+    const graph = await garden.getConfigGraph({ log, emit: true, actionModes })
+    let actions = graph.getDeploys({ names: args.names, includeDisabled: true })
 
     const disabled = actions.filter((s) => s.isDisabled()).map((s) => s.name)
 
@@ -174,11 +182,6 @@ export class DeployCommand extends Command<Args, Opts> {
       return { result: { aborted: true, success: false, graphResults: {} } }
     }
 
-    const localModeDeployNames = getMatchingDeployNames(opts["local-mode"], initGraph)
-    const syncModeDeployNames = getMatchingDeployNames(opts.sync, initGraph).filter(
-      (name) => !localModeDeployNames.includes(name)
-    )
-
     const force = opts.force
 
     const initialTasks = actions.map(
@@ -186,19 +189,17 @@ export class DeployCommand extends Command<Args, Opts> {
         new DeployTask({
           garden,
           log,
-          graph: initGraph,
+          graph,
           action,
           force,
           forceBuild: opts["force-build"],
           skipRuntimeDependencies,
-          localModeDeployNames,
-          syncModeDeployNames,
         })
     )
 
     const results = await processActions({
       garden,
-      graph: initGraph,
+      graph,
       log,
       actions,
       initialTasks,

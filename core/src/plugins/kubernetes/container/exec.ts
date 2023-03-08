@@ -23,8 +23,6 @@ export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction>
     ctx,
     log,
     action,
-    syncMode: false,
-    localMode: false,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 

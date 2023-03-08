@@ -35,6 +35,7 @@ import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
 import { SyncableResource } from "../types"
 import { LogLevel } from "../../../logger/logger"
+import { ActionMode } from "../../../actions/types"
 
 export interface ResourceStatus<T = BaseResource> {
   state: ServiceState
@@ -278,8 +279,7 @@ export async function waitForResources({
 interface ComparisonResult {
   state: ServiceState
   remoteResources: KubernetesResource[]
-  deployedWithSyncMode: boolean
-  deployedWithLocalMode: boolean
+  mode: ActionMode
   /**
    * These resources have changes in `spec.selector`, and would need to be deleted before redeploying (since Kubernetes
    * doesn't allow updates to immutable fields).
@@ -312,16 +312,13 @@ export async function compareDeployedResources(
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
-    deployedWithSyncMode: false,
-    deployedWithLocalMode: false,
+    mode: "default",
     selectorChangedResourceKeys: detectChangedSpecSelector(manifestsMap, deployedMap),
   }
 
   const logDescription = (resource: KubernetesResource) => getResourceKey(resource)
 
-  const missingObjectNames = manifestKeys
-    .filter((k) => !deployedMap[k])
-    .map((k) => logDescription(manifestsMap[k]))
+  const missingObjectNames = manifestKeys.filter((k) => !deployedMap[k]).map((k) => logDescription(manifestsMap[k]))
 
   if (missingObjectNames.length === manifests.length) {
     // All resources missing.
@@ -377,10 +374,10 @@ export async function compareDeployedResources(
 
     if (isWorkloadResource(manifest)) {
       if (isConfiguredForSyncMode(manifest)) {
-        result.deployedWithSyncMode = true
+        result.mode = "sync"
       }
       if (isConfiguredForLocalMode(manifest)) {
-        result.deployedWithLocalMode = true
+        result.mode = "local"
       }
     }
 
@@ -467,11 +464,11 @@ export async function compareDeployedResources(
 }
 
 export function isConfiguredForSyncMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("sync-mode")] === "true"
+  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "sync"
 }
 
 export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("local-mode")] === "true"
+  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "local"
 }
 
 function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {

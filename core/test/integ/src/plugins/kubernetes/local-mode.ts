@@ -54,6 +54,12 @@ describe("local mode deployments and ssh tunneling behavior", () => {
   }
 
   it("should deploy a service in local mode and successfully start a port-forwarding", async () => {
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      noCache: true,
+      actionModes: { local: ["deploy.local-mode"] },
+    })
     const action = graph.getDeploy("local-mode")
     const log = garden.log
 
@@ -66,10 +72,8 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       force: false,
       forceBuild: false,
       skipRuntimeDependencies: true,
-      localModeDeployNames: [action.name],
-      syncModeDeployNames: [],
     })
-    const results = await garden.processTask(task, log, {})
+    await garden.processTask(task, log, {})
 
     const status = await pRetry(
       async () => {
@@ -78,8 +82,6 @@ describe("local mode deployments and ssh tunneling behavior", () => {
           ctx,
           action: resolvedAction,
           log,
-          syncMode: false,
-          localMode: true,
         })
         if (_status.state === "not-ready") {
           throw "not-yet ready, wait a bit and try again"
@@ -91,7 +93,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
       }
     )
     expect(status.state).to.eql("ready")
-    expect(status.detail?.localMode).to.eql(true)
+    expect(status.detail?.mode).to.eql("local")
 
     const serviceSshKeysPath = ProxySshKeystore.getSshDirPath(ctx.gardenDirPath)
     const serviceSshKeyName = action.name

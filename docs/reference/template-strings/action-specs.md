@@ -149,8 +149,6 @@ my-variable: ${command.name}
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
 
-For example, to see if a service is in sync mode, you might do something like `${command.params contains 'sync' && command.params.sync contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
-
 Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
 
 | Type     |
@@ -435,7 +433,7 @@ Retrieve information about modules that are defined in the project.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -449,7 +447,7 @@ my-variable: ${modules.<module-name>.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -457,7 +455,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |
@@ -529,6 +527,14 @@ Information about a Build action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.build.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${runtime.build.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -569,6 +575,20 @@ Example:
 
 ```yaml
 my-variable: ${runtime.build.<action-name>.sourcePath}
+```
+
+### `${runtime.build.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.build.<action-name>.mode}
 ```
 
 ### `${runtime.build.<action-name>.var.*}`
@@ -623,6 +643,14 @@ Information about a Deploy action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.deploy.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${runtime.deploy.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -663,6 +691,20 @@ Example:
 
 ```yaml
 my-variable: ${runtime.deploy.<action-name>.sourcePath}
+```
+
+### `${runtime.deploy.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.deploy.<action-name>.mode}
 ```
 
 ### `${runtime.deploy.<action-name>.var.*}`
@@ -717,6 +759,14 @@ Information about a Run action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.run.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${runtime.run.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -757,6 +807,20 @@ Example:
 
 ```yaml
 my-variable: ${runtime.run.<action-name>.sourcePath}
+```
+
+### `${runtime.run.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.run.<action-name>.mode}
 ```
 
 ### `${runtime.run.<action-name>.var.*}`
@@ -811,6 +875,14 @@ Information about a Test action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.test.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${runtime.test.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -851,6 +923,20 @@ Example:
 
 ```yaml
 my-variable: ${runtime.test.<action-name>.sourcePath}
+```
+
+### `${runtime.test.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.test.<action-name>.mode}
 ```
 
 ### `${runtime.test.<action-name>.var.*}`
@@ -905,6 +991,14 @@ Alias for `deploy`.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.services.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${runtime.services.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -945,6 +1039,20 @@ Example:
 
 ```yaml
 my-variable: ${runtime.services.<action-name>.sourcePath}
+```
+
+### `${runtime.services.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.services.<action-name>.mode}
 ```
 
 ### `${runtime.services.<action-name>.var.*}`
@@ -999,6 +1107,14 @@ Alias for `run`.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${runtime.tasks.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${runtime.tasks.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -1039,6 +1155,20 @@ Example:
 
 ```yaml
 my-variable: ${runtime.tasks.<action-name>.sourcePath}
+```
+
+### `${runtime.tasks.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${runtime.tasks.<action-name>.mode}
 ```
 
 ### `${runtime.tasks.<action-name>.var.*}`
@@ -1085,96 +1215,6 @@ Example:
 my-variable: ${runtime.tasks.<action-name>.version}
 ```
 
-### `${inputs.*}`
-
-The inputs provided to the config through a template, if applicable.
-
-| Type     | Default |
-| -------- | ------- |
-| `object` | `{}`    |
-
-### `${inputs.<input-key>}`
-
-| Type                                                 |
-| ---------------------------------------------------- |
-| `string \| number \| boolean \| link \| array[link]` |
-
-### `${parent.*}`
-
-Information about the config parent, if any (usually a template, if applicable).
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${parent.name}`
-
-The name of the parent module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${template.*}`
-
-Information about the template used when generating the config, if applicable.
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${template.name}`
-
-The name of the template.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${this.*}`
-
-Information about the action/module currently being resolved.
-
-| Type     |
-| -------- |
-| `object` |
-
-### `${this.buildPath}`
-
-The build path of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${this.buildPath}
-```
-
-### `${this.name}`
-
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${this.path}`
-
-The source path of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${this.path}
-```
-
 ### `${action.*}`
 
 Runtime outputs and information from other actions (only resolved at runtime when executing actions).
@@ -1190,6 +1230,14 @@ Information about a Build action dependency, including its outputs.
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
+
+### `${action.build.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${action.build.<action-name>.disabled}`
 
@@ -1231,6 +1279,20 @@ Example:
 
 ```yaml
 my-variable: ${action.build.<action-name>.sourcePath}
+```
+
+### `${action.build.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${action.build.<action-name>.mode}
 ```
 
 ### `${action.build.<action-name>.var.*}`
@@ -1285,6 +1347,14 @@ Information about a Deploy action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${action.deploy.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${action.deploy.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -1325,6 +1395,20 @@ Example:
 
 ```yaml
 my-variable: ${action.deploy.<action-name>.sourcePath}
+```
+
+### `${action.deploy.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${action.deploy.<action-name>.mode}
 ```
 
 ### `${action.deploy.<action-name>.var.*}`
@@ -1379,6 +1463,14 @@ Information about a Run action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${action.run.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${action.run.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -1419,6 +1511,20 @@ Example:
 
 ```yaml
 my-variable: ${action.run.<action-name>.sourcePath}
+```
+
+### `${action.run.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${action.run.<action-name>.mode}
 ```
 
 ### `${action.run.<action-name>.var.*}`
@@ -1473,6 +1579,14 @@ Information about a Test action dependency, including its outputs.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${action.test.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${action.test.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -1513,6 +1627,20 @@ Example:
 
 ```yaml
 my-variable: ${action.test.<action-name>.sourcePath}
+```
+
+### `${action.test.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${action.test.<action-name>.mode}
 ```
 
 ### `${action.test.<action-name>.var.*}`
@@ -1567,6 +1695,14 @@ Alias for `deploy`.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${action.services.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${action.services.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -1607,6 +1743,20 @@ Example:
 
 ```yaml
 my-variable: ${action.services.<action-name>.sourcePath}
+```
+
+### `${action.services.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${action.services.<action-name>.mode}
 ```
 
 ### `${action.services.<action-name>.var.*}`
@@ -1661,6 +1811,14 @@ Alias for `run`.
 | -------- | ------- |
 | `object` | `{}`    |
 
+### `${action.tasks.<action-name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${action.tasks.<action-name>.disabled}`
 
 Whether the action is disabled.
@@ -1701,6 +1859,20 @@ Example:
 
 ```yaml
 my-variable: ${action.tasks.<action-name>.sourcePath}
+```
+
+### `${action.tasks.<action-name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${action.tasks.<action-name>.mode}
 ```
 
 ### `${action.tasks.<action-name>.var.*}`
@@ -1746,4 +1918,136 @@ Example:
 ```yaml
 my-variable: ${action.tasks.<action-name>.version}
 ```
+
+### `${inputs.*}`
+
+The inputs provided to the config through a template, if applicable.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${inputs.<input-key>}`
+
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
+
+### `${parent.*}`
+
+Information about the config parent, if any (usually a template, if applicable).
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${parent.name}`
+
+The name of the parent module.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${template.*}`
+
+Information about the template used when generating the config, if applicable.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${template.name}`
+
+The name of the template.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${this.*}`
+
+Information about the action currently being resolved.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${this.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${this.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${this.disabled}
+```
+
+### `${this.buildPath}`
+
+The local path to the action build directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${this.buildPath}
+```
+
+### `${this.sourcePath}`
+
+The local path to the action source directory.
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${this.sourcePath}
+```
+
+### `${this.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${this.mode}
+```
+
+### `${this.var.*}`
+
+The variables configured on the action.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${this.var.<name>}`
+
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 

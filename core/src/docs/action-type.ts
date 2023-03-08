@@ -10,13 +10,13 @@ import { readFileSync } from "fs"
 import { resolve } from "path"
 import handlebars = require("handlebars")
 import { joi } from "../config/common"
-import { ModuleReferenceContext } from "../config/template-contexts/module"
 import { renderConfigReference, renderTemplateStringReference, TEMPLATES_DIR } from "./config"
 import { ActionKind, ActionTypeDefinition } from "../plugin/action-types"
 import { buildActionConfigSchema } from "../actions/build"
 import { deployActionConfigSchema } from "../actions/deploy"
 import { runActionConfigSchema } from "../actions/run"
 import { testActionConfigSchema } from "../actions/test"
+import { ActionReferenceContext } from "../config/template-contexts/actions"
 
 /**
  * Generates the action type reference from the action-type.hbs template.
@@ -44,7 +44,7 @@ export function renderActionTypeReference(kind: ActionKind, name: string, desc: 
   const outputsSchema = staticOutputsSchema.concat(runtimeOutputsSchema)
 
   const outputsReference = renderTemplateStringReference({
-    schema: ModuleReferenceContext.getSchema().keys({
+    schema: ActionReferenceContext.getSchema().keys({
       outputs: outputsSchema.required(),
     }),
     prefix: `actions.${kind.toLowerCase()}`,

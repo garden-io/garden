@@ -52,10 +52,7 @@ interface PrepareTemplatesParams {
   log: Log
 }
 
-interface GetChartResourcesParams extends PrepareTemplatesParams {
-  syncMode: boolean
-  localMode: boolean
-}
+interface GetChartResourcesParams extends PrepareTemplatesParams {}
 
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
@@ -68,7 +65,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, action, syncMode, localMode, log } = params
+  const { ctx, action, log } = params
   const prepareResult = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
@@ -76,8 +73,6 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
   return await prepareManifests({
     ctx,
     action,
-    syncMode,
-    localMode,
     log,
     ...prepareResult,
   })
@@ -160,7 +155,7 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
 type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, action, syncMode, localMode, log, namespace, releaseName, valuesPath, reference } = params
+  const { ctx, action, log, namespace, releaseName, valuesPath, reference } = params
   const timeout = action.getSpec("timeout")
 
   const res = await helm({
@@ -179,7 +174,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "json",
       "--timeout",
       timeout.toString(10) + "s",
-      ...(await getValueArgs({ action, syncMode, localMode, valuesPath })),
+      ...(await getValueArgs({ action, valuesPath })),
     ],
     // do not send JSON output to Garden Cloud or CLI verbose log
     emitLogEvents: false,
@@ -276,17 +271,7 @@ export async function getChartPath(action: Resolved<HelmDeployAction>) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs({
-  action,
-  syncMode,
-  localMode,
-  valuesPath,
-}: {
-  action: Resolved<HelmDeployAction>
-  syncMode: boolean
-  localMode: boolean
-  valuesPath: string
-}) {
+export async function getValueArgs({ action, valuesPath }: { action: Resolved<HelmDeployAction>; valuesPath: string }) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
   const valueFiles = action
@@ -296,12 +281,7 @@ export async function getValueArgs({
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
-  // Local mode always takes precedence over sync mode
-  if (localMode) {
-    args.push("--set", "\\.garden.localMode=true")
-  } else if (syncMode) {
-    args.push("--set", "\\.garden.syncMode=true")
-  }
+  args.push("--set", "\\.garden.mode=" + action.mode())
 
   return args
 }
@@ -369,7 +349,7 @@ export async function renderHelmTemplateString({
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath })),
+          ...(await getValueArgs({ action, valuesPath })),
           "--show-only",
           relPath,
           ...reference,

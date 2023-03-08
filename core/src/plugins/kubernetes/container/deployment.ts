@@ -28,7 +28,7 @@ import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
-import { Resolved } from "../../../actions/types"
+import { ActionMode, Resolved } from "../../../actions/types"
 import { ConfigurationError, DeploymentError } from "../../../exceptions"
 import {
   SyncableKind,
@@ -49,10 +49,11 @@ export const DEFAULT_MINIMUM_REPLICAS = 1
 export const PRODUCTION_MINIMUM_REPLICAS = 3
 
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
-  const { ctx, action, log, syncMode, localMode, force } = params
+  const { ctx, action, log, force } = params
   const k8sCtx = <KubernetesPluginContext>ctx
+  const mode = action.mode()
   const { deploymentStrategy } = k8sCtx.provider.config
-  const deployWithSyncMode = syncMode && !!action.getSpec("sync")
+  const deployWithSyncMode = mode === "sync" && !!action.getSpec("sync")
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action, k8sCtx.provider)
@@ -77,7 +78,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
       "The deploymentStrategy configuration option has been deprecated and has no effect. It will be removed iin 0.14. The 'rolling' deployment strategy will be applied."
     )
   }
-  await deployContainerServiceRolling({ ...params, syncMode: deployWithSyncMode, api, imageId })
+  await deployContainerServiceRolling({ ...params, api, imageId })
 
   const postDeployStatus = await k8sGetContainerDeployStatus(params)
 
@@ -93,7 +94,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     })
   }
 
-  if (localMode) {
+  if (mode === "local") {
     await startLocalMode({
       ctx: k8sCtx,
       log,
@@ -191,7 +192,7 @@ export async function startLocalMode({
 export const deployContainerServiceRolling = async (
   params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, log, syncMode, imageId, localMode } = params
+  const { ctx, api, action, log, imageId } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -203,8 +204,6 @@ export const deployContainerServiceRolling = async (
     log,
     action,
     imageId,
-    enableSyncMode: syncMode,
-    enableLocalMode: localMode,
   })
 
   const provider = k8sCtx.provider
@@ -229,16 +228,12 @@ export async function createContainerManifests({
   log,
   action,
   imageId,
-  enableSyncMode,
-  enableLocalMode,
 }: {
   ctx: PluginContext
   api: KubeApi
   log: Log
   action: Resolved<ContainerDeployAction>
   imageId: string
-  enableSyncMode: boolean
-  enableLocalMode: boolean
 }) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -252,15 +247,14 @@ export async function createContainerManifests({
     action,
     imageId,
     namespace,
-    enableSyncMode,
-    enableLocalMode,
     log,
     production,
   })
   const kubeServices = await createServiceResources(action, namespace)
+  const mode = action.mode()
   const localModeSpec = action.getSpec("localMode")
 
-  if (enableLocalMode && localModeSpec) {
+  if (mode === "local" && localModeSpec) {
     await configureLocalMode({
       ctx,
       spec: localModeSpec,
@@ -289,8 +283,6 @@ interface CreateDeploymentParams {
   action: Resolved<ContainerDeployAction>
   namespace: string
   imageId: string
-  enableSyncMode: boolean
-  enableLocalMode: boolean
   log: Log
   production: boolean
 }
@@ -302,12 +294,12 @@ export async function createWorkloadManifest({
   action,
   imageId,
   namespace,
-  enableSyncMode,
-  enableLocalMode,
   log,
   production,
 }: CreateDeploymentParams): Promise<KubernetesWorkload> {
   const spec = action.getSpec()
+  const mode = action.mode()
+
   let configuredReplicas = spec.replicas || DEFAULT_MINIMUM_REPLICAS
   let workload = workloadConfig({ action, configuredReplicas, namespace })
 
@@ -315,7 +307,7 @@ export async function createWorkloadManifest({
     configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
   }
 
-  if (enableSyncMode && configuredReplicas > 1) {
+  if (mode === "sync" && configuredReplicas > 1) {
     log.warn({
       msg: chalk.gray(`Ignoring replicas config on container service ${action.name} while in sync mode`),
       symbol: "warning",
@@ -323,7 +315,7 @@ export async function createWorkloadManifest({
     configuredReplicas = 1
   }
 
-  if (enableLocalMode && configuredReplicas > 1) {
+  if (mode === "local" && configuredReplicas > 1) {
     log.verbose({
       msg: chalk.yellow(`Ignoring replicas config on container Deploy ${action.name} while in local mode`),
       symbol: "warning",
@@ -400,14 +392,6 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    let mode: HealthCheckMode
-    if (enableSyncMode) {
-      mode = "dev"
-    } else if (enableLocalMode) {
-      mode = "local"
-    } else {
-      mode = "normal"
-    }
     configureHealthCheck(container, spec, mode)
   }
 
@@ -518,9 +502,9 @@ export async function createWorkloadManifest({
   const localModeSpec = spec.localMode
 
   // Local mode always takes precedence over sync mode
-  if (enableLocalMode && localModeSpec) {
+  if (mode === "local" && localModeSpec) {
     // no op here, local mode will be configured later after all manifests are ready
-  } else if (enableSyncMode && syncSpec) {
+  } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
 
     const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
@@ -613,7 +597,7 @@ function workloadConfig({
 
 type HealthCheckMode = "dev" | "local" | "normal"
 
-function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: HealthCheckMode): void {
+function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: ActionMode): void {
   if (mode === "local") {
     // no need to configure liveness and readiness probes for a service running in local mode
     return
@@ -637,10 +621,10 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
   // sync event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: mode === "dev" ? 10 : 5,
+    periodSeconds: mode === "sync" ? 10 : 5,
     timeoutSeconds: spec.healthCheck?.livenessTimeoutSeconds || 3,
     successThreshold: 1,
-    failureThreshold: mode === "dev" ? 30 : 3,
+    failureThreshold: mode === "sync" ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")

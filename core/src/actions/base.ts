@@ -42,6 +42,8 @@ import {
   ActionConfig,
   ActionDependency,
   actionKinds,
+  ActionMode,
+  ActionModes,
   ActionReferenceMap,
   actionStateTypes,
   ActionStatus,
@@ -320,7 +322,9 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   protected readonly graph: ConfigGraph
   protected readonly _moduleName?: string // TODO: remove in 0.14
   protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
+  protected readonly _mode: ActionMode
   protected readonly projectRoot: string
+  protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
   protected readonly variables: DeepPrimitiveMap
 
@@ -334,8 +338,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.graph = params.graph
     this._moduleName = params.moduleName
     this._moduleVersion = params.moduleVersion
+    this._mode = params.mode
     this._config = params.config
     this.projectRoot = params.projectRoot
+    this._supportedModes = params.supportedModes
     this._treeVersion = params.treeVersion
     this.variables = params.variables
     this.resolved = false
@@ -512,12 +518,32 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return key ? this._config[key] : this._config
   }
 
+  /**
+   * Returns true if this action is compatible with the given action type.
+   */
   isCompatible(type: string) {
     return this.compatibleTypes.includes(type)
   }
 
+  /**
+   * Returns true if this action matches the given action reference.
+   */
   matchesRef(ref: ActionReference) {
     return actionRefMatches(ref, this)
+  }
+
+  /**
+   * Return the mode that the action should be executed in.
+   * Returns "default" if the action is not configured for the mode or the type does not support it.
+   *
+   * Note: A warning is emitted during action resolution if an unsupported mode is explicitly requested for it.
+   */
+  mode(): ActionMode {
+    return this.supportsMode(this._mode) ? this._mode : "default"
+  }
+
+  supportsMode(mode: ActionMode) {
+    return mode === "default" || !!this._supportedModes[mode]
   }
 
   describe(): ActionDescription {

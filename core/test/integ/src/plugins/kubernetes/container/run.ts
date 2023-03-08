@@ -46,9 +46,6 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     garden.events.eventLog = []
@@ -90,9 +87,6 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -123,9 +117,6 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -158,9 +149,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -181,9 +169,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -205,9 +190,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -228,9 +210,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -250,9 +229,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })

@@ -38,9 +38,6 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -63,9 +60,6 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
@@ -88,9 +82,6 @@ describe("testKubernetesModule", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     await expectError(
@@ -121,9 +112,6 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -144,9 +132,6 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -169,9 +154,6 @@ describe("testKubernetesModule", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

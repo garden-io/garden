@@ -9,16 +9,13 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { ServiceStatus, serviceStatusSchema } from "../../../types/service"
-import { createSchema, joi } from "../../../config/common"
+import { createSchema } from "../../../config/common"
 import type { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
 import type { ActionStatus, ActionStatusMap, GetActionOutputType, Resolved } from "../../../actions/types"
 import { actionStatusSchema } from "../../../actions/base"
 
-interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
-  syncMode: boolean
-  localMode: boolean
-}
+interface GetDeployStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {}
 
 export type DeployStatus<T extends DeployAction = DeployAction> = ActionStatus<
   T,
@@ -48,11 +45,6 @@ export class GetDeployStatus<T extends DeployAction = DeployAction> extends Acti
     Called ahead of any actions that expect a deployment to be running, as well as the \`garden get status\` command.
   `
 
-  paramsSchema = () =>
-    actionParamsSchema().keys({
-      syncMode: joi.boolean().default(false).description("Whether the deployment should be configured in sync mode."),
-      localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
-    })
-
+  paramsSchema = () => actionParamsSchema()
   resultSchema = () => getDeployStatusSchema()
 }

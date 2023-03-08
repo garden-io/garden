@@ -7,7 +7,6 @@
  */
 
 import chalk from "chalk"
-import { includes } from "lodash"
 import { BaseActionTaskParams, ActionTaskProcessParams, ExecuteActionTask, ActionTaskStatusParams } from "./base"
 import { getLinkUrl } from "../types/service"
 import { startPortProxies } from "../proxy"
@@ -31,17 +30,12 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const log = this.log.makeNewLogContext({})
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const syncMode = includes(this.syncModeDeployNames, action.name)
-    const localMode = includes(this.localModeDeployNames, action.name)
-
     const router = await this.garden.getActionRouter()
 
     const status = await router.deploy.getStatus({
       graph: this.graph,
       action,
       log,
-      syncMode,
-      localMode,
     })
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
@@ -51,14 +45,14 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()
 
-    const syncMode = includes(this.syncModeDeployNames, action.name)
-    const localMode = includes(this.localModeDeployNames, action.name)
+    const syncMode = action.mode() === "sync"
+    const localMode = action.mode() === "local"
 
     const router = await this.garden.getActionRouter()
 
     // TODO-G2: move status check entirely to getStatus()
-    const syncModeSkipRedeploy = status.detail?.syncMode && syncMode
-    const localModeSkipRedeploy = status.detail?.localMode && localMode
+    const syncModeSkipRedeploy = status.detail?.mode === "sync" && syncMode
+    const localModeSkipRedeploy = status.detail?.mode === "local" && localMode
 
     const log = this.log
       .makeNewLogContext({
@@ -80,8 +74,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
           action,
           log,
           force: this.force,
-          syncMode,
-          localMode,
         })
       } catch (err) {
         log.error(`Error deploying ${action.name}`)

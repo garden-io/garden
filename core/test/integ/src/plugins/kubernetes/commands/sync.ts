@@ -37,7 +37,11 @@ describe("sync plugin commands", () => {
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: { sync: ["deploy.dev-mode"] },
+    })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
@@ -51,8 +55,6 @@ describe("sync plugin commands", () => {
       action,
       force: true,
       forceBuild: false,
-      syncModeDeployNames: [action.name],
-      localModeDeployNames: [],
     })
 
     await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })

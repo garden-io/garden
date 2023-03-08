@@ -378,7 +378,7 @@ export async function configureSyncMode({
       continue
     }
 
-    set(resolved, ["metadata", "annotations", gardenAnnotationKey("sync-mode")], "true")
+    set(resolved, ["metadata", "annotations", gardenAnnotationKey("mode")], "sync")
     const targetContainer = getResourceContainer(resolved, target.containerName)
 
     if (override.command) {
@@ -406,7 +406,7 @@ export async function configureSyncMode({
       continue
     }
 
-    set(resolved, ["metadata", "annotations", gardenAnnotationKey("sync-mode")], "true")
+    set(resolved, ["metadata", "annotations", gardenAnnotationKey("mode")], "sync")
     const targetContainer = getResourceContainer(resolved, target.containerName)
 
     const podSpec = getResourcePodSpec(resolved)

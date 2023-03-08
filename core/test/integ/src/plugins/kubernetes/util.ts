@@ -90,6 +90,7 @@ describe("util", () => {
         log: helmGarden.log,
         configsByKey: {},
         router,
+        mode: "default",
       })) as BuildAction
       return new BuildTask({
         garden: helmGarden,
@@ -97,9 +98,6 @@ describe("util", () => {
         log,
         action,
         force: false,
-        syncModeDeployNames: [],
-
-        localModeDeployNames: [],
       })
     })
     const results = await helmGarden.processTasks({ tasks })
@@ -134,8 +132,6 @@ describe("util", () => {
           graph,
           log: garden.log,
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -145,9 +141,7 @@ describe("util", () => {
           ctx,
           imageId: action.getSpec().image,
           namespace: provider.config.namespace!.name!,
-          enableSyncMode: false,
 
-          enableLocalMode: false,
           log: garden.log,
           production: false,
         })
@@ -180,9 +174,6 @@ describe("util", () => {
           graph,
           log: garden.log,
           action,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -246,8 +237,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       const result = await getTargetResource({
@@ -271,8 +261,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       delete action._config.spec.serviceResource
@@ -304,8 +293,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       const resourceSpec = {
@@ -332,8 +320,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       const resourceSpec = {
@@ -360,8 +347,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       const deployment = find(manifests, (r) => r.kind === "Deployment")
@@ -393,8 +379,6 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
         log,
       })
       action._config.spec.defaultTarget!.name = `{{ template "postgresql.primary.fullname" . }}`
@@ -424,8 +408,6 @@ describe("util", () => {
           graph: helmGraph,
           log: helmGarden.log,
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await helmGarden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -538,8 +520,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       return <KubernetesWorkload>find(manifests, (r) => r.kind === "Deployment")!

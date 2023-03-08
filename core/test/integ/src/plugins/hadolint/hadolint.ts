@@ -183,6 +183,7 @@ describe("hadolint provider", () => {
         log: garden.log,
         configsByKey: {},
         router: await garden.getActionRouter(),
+        mode: "default",
       })) as TestAction
 
       const testTask = new TestTask({
@@ -191,8 +192,7 @@ describe("hadolint provider", () => {
         graph,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
+
         action,
       })
 
@@ -255,6 +255,7 @@ describe("hadolint provider", () => {
         log: garden.log,
         configsByKey: {},
         router: await garden.getActionRouter(),
+        mode: "default",
       })) as TestAction
 
       const testTask = new TestTask({
@@ -264,8 +265,6 @@ describe("hadolint provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -322,6 +321,7 @@ describe("hadolint provider", () => {
         log: garden.log,
         configsByKey: {},
         router: await garden.getActionRouter(),
+        mode: "default",
       })) as TestAction
 
       const testTask = new TestTask({
@@ -331,8 +331,6 @@ describe("hadolint provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -383,6 +381,7 @@ describe("hadolint provider", () => {
         log: garden.log,
         configsByKey: {},
         router: await garden.getActionRouter(),
+        mode: "default",
       })) as TestAction
 
       const testTask = new TestTask({
@@ -392,8 +391,6 @@ describe("hadolint provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -434,6 +431,7 @@ describe("hadolint provider", () => {
         log: garden.log,
         configsByKey: {},
         router: await garden.getActionRouter(),
+        mode: "default",
       })) as TestAction
 
       const testTask = new TestTask({
@@ -443,8 +441,6 @@ describe("hadolint provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -488,6 +484,7 @@ describe("hadolint provider", () => {
         log: garden.log,
         configsByKey: {},
         router: await garden.getActionRouter(),
+        mode: "default",
       })) as TestAction
 
       const testTask = new TestTask({
@@ -497,8 +494,6 @@ describe("hadolint provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })

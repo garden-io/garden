@@ -159,8 +159,6 @@ describe("DeployTask", () => {
         forceBuild: false,
 
         log: garden.log,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       expect(forcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force).to
@@ -174,8 +172,6 @@ describe("DeployTask", () => {
         forceBuild: false,
 
         log: garden.log,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       expect(unforcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)

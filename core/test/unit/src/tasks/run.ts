@@ -108,8 +108,6 @@ describe("RunTask", () => {
         force: false,
         forceBuild: false,
         log: garden.log,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       let result = await garden.processTasks({ tasks: [taskTask], throwOnError: true })

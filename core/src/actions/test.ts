@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { memoize } from "lodash"
 import { joi } from "../config/common"
 import {
   BaseRuntimeActionConfig,
@@ -21,10 +22,12 @@ export interface TestActionConfig<N extends string = any, S extends object = any
   timeout?: number
 }
 
-export const testActionConfigSchema = () =>
+export const testActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
+    kind: joi.string().allow("Test").only(),
     timeout: joi.number().integer().description("Set a timeout for the test to complete, in seconds."),
   })
+)
 
 export class TestAction<C extends TestActionConfig = any, O extends {} = any> extends RuntimeAction<C, O> {
   kind: "Test"

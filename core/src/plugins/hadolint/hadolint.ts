@@ -194,7 +194,7 @@ export const gardenPlugin = () =>
                 config.include.push(dockerfilePath)
               }
 
-              return { config }
+              return { config, supportedModes: {} }
             },
 
             run: async ({ ctx, log, action }) => {

@@ -585,9 +585,9 @@ describe("kubernetes Pod runner functions", () => {
 
       helmManifests = await getChartResources({
         ctx: helmCtx,
-        syncMode: false,
+
         action: helmAction,
-        localMode: false,
+
         log: helmLog,
       })
       helmBaseModule = getBaseModule(helmModule)

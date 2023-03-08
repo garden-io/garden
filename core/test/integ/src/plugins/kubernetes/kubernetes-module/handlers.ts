@@ -137,8 +137,6 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action,
         force: false,
-        syncMode: false,
-        localMode: false,
       }
       action.getConfig().spec.manifests = [
         {
@@ -163,8 +161,6 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
         force: false,
-        syncMode: false,
-        localMode: false,
       }
       const status = await kubernetesDeploy(deployParams)
       expect(status.state).to.eql("ready")
@@ -177,8 +173,12 @@ describe("kubernetes-module handlers", () => {
       ])
     })
 
-    it("should toggle syncMode", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    it("should toggle sync mode", async () => {
+      const graph = await garden.getConfigGraph({
+        log: garden.log,
+        emit: false,
+        actionModes: { sync: ["deploy.with-source-module"] },
+      })
       const action = graph.getDeploy("with-source-module")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
       const namespace = await getActionNamespace({
@@ -193,8 +193,6 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: resolvedAction,
         force: false,
-        syncMode: false,
-        localMode: false,
       }
       const manifests = await getManifests({
         ctx,
@@ -210,20 +208,24 @@ describe("kubernetes-module handlers", () => {
       const res1 = await findDeployedResources(manifests, log)
 
       // Deploy with sync mode
-      await kubernetesDeploy({ ...deployParams, syncMode: true })
+      await kubernetesDeploy({ ...deployParams })
       const res2 = await findDeployedResources(manifests, log)
 
       // Deploy without sync mode again
       await kubernetesDeploy(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("sync")
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
     })
 
-    it("should toggle localMode", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    it("should handle local mode", async () => {
+      const graph = await garden.getConfigGraph({
+        log: garden.log,
+        emit: false,
+        actionModes: { local: ["deploy.with-source-module"] },
+      })
       const action = graph.getDeploy("with-source-module")
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
       const namespace = await getActionNamespace({
@@ -238,8 +240,6 @@ describe("kubernetes-module handlers", () => {
         log: garden.log,
         action: resolvedAction,
         force: false,
-        syncMode: false,
-        localMode: false,
       }
       const manifests = await getManifests({
         ctx,
@@ -255,7 +255,7 @@ describe("kubernetes-module handlers", () => {
       const res1 = await findDeployedResources(manifests, log)
 
       // Deploy with local mode
-      await kubernetesDeploy({ ...deployParams, localMode: true })
+      await kubernetesDeploy({ ...deployParams })
       const res2 = await findDeployedResources(manifests, log)
       // shut down local app and tunnels to avoid retrying after redeploy
       LocalModeProcessRegistry.getInstance().shutdown()
@@ -265,61 +265,9 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(deployParams)
       const res3 = await findDeployedResources(manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
-    })
-
-    it("localMode should always take precedence over syncMode", async () => {
-      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-      const action = graph.getDeploy("with-source-module")
-      const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
-      const namespace = await getActionNamespace({
-        ctx,
-        log,
-        action: resolvedAction,
-        provider: ctx.provider,
-        skipCreate: true,
-      })
-      const deployParams = {
-        ctx,
-        log: garden.log,
-        action: resolvedAction,
-        force: false,
-        syncMode: false,
-        localMode: false,
-      }
-      const manifests = await getManifests({
-        ctx,
-        api,
-        log,
-        action: resolvedAction,
-        defaultNamespace: namespace,
-        readFromSrcDir: true,
-      })
-
-      // Deploy without local mode
-      await kubernetesDeploy(deployParams)
-      const res1 = await findDeployedResources(manifests, log)
-
-      // Deploy with local mode
-      await kubernetesDeploy({ ...deployParams, localMode: true, syncMode: true })
-      const res2 = await findDeployedResources(manifests, log)
-      // shut down local app and tunnels to avoid retrying after redeploy
-      LocalModeProcessRegistry.getInstance().shutdown()
-      ProxySshKeystore.getInstance(log).shutdown(log)
-
-      // Deploy without local mode again
-      await kubernetesDeploy(deployParams)
-      const res3 = await findDeployedResources(manifests, log)
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.equal("true")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("local-mode")]).to.be.undefined
-
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
-      expect(res2[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("sync-mode")]).to.be.undefined
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("local")
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
     })
 
     it("should not delete previously deployed namespace resources", async () => {
@@ -338,9 +286,6 @@ describe("kubernetes-module handlers", () => {
         action,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
       const results = await garden.processTasks({ tasks: [deployTask], throwOnError: true })
       const status = getDeployStatuses(results.results)["namespace-resource"]
@@ -383,9 +328,6 @@ describe("kubernetes-module handlers", () => {
         action,
         force: true,
         forceBuild: true,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
       await garden.processTasks({ tasks: [deployTask2], throwOnError: true })
       ns2Resource = await getDeployedResource(ctx, ctx.provider, ns2Manifest!, log)
@@ -414,9 +356,6 @@ describe("kubernetes-module handlers", () => {
         log,
         action: graph.getDeploy("namespace-resource"),
         force: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       // This should only delete kubernetes-module-ns-2.

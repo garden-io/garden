@@ -168,8 +168,7 @@ export class TestCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
+
           skipRuntimeDependencies,
           interactive: opts.interactive,
         })

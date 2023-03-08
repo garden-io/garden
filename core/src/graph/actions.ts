@@ -16,6 +16,8 @@ import {
   ActionDependencyAttributes,
   ActionKind,
   actionKinds,
+  ActionMode,
+  ActionModeMap,
   ActionWrapperParams,
   Executed,
   Resolved,
@@ -39,7 +41,7 @@ import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError, ValidationError } from "../exceptions"
 import type { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
-import { ActionTypeDefinition } from "../plugin/action-types"
+import type { ActionTypeDefinition } from "../plugin/action-types"
 import { getActionTypeBases } from "../plugins"
 import type { ActionRouter } from "../router/router"
 import { getExecuteTaskForAction } from "../tasks/helpers"
@@ -50,7 +52,8 @@ import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 import chalk from "chalk"
-import { MaybeUndefined } from "../util/util"
+import type { MaybeUndefined } from "../util/util"
+import minimatch from "minimatch"
 
 export async function actionConfigsToGraph({
   garden,
@@ -58,12 +61,14 @@ export async function actionConfigsToGraph({
   groupConfigs,
   configs,
   moduleGraph,
+  actionModes,
 }: {
   garden: Garden
   log: Log
   groupConfigs: GroupConfig[]
   configs: ActionConfig[]
   moduleGraph: ModuleGraph
+  actionModes: ActionModeMap
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -100,14 +105,49 @@ export async function actionConfigsToGraph({
   // TODO-G2: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
-  await Bluebird.map(Object.values(configsByKey), async (config) => {
+  await Bluebird.map(Object.entries(configsByKey), async ([key, config]) => {
+    // Apply action modes
+    let mode: ActionMode = "default"
+    let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
+
+    for (const pattern of actionModes.sync || []) {
+      if (key === pattern) {
+        explicitMode = true
+        mode = "sync"
+        break
+      } else if (minimatch(key, pattern)) {
+        mode = "sync"
+        break
+      }
+    }
+
+    // Local mode takes precedence over sync
+    // TODO: deduplicate
+    for (const pattern of actionModes.local || []) {
+      if (key === pattern) {
+        explicitMode = true
+        mode = "local"
+        break
+      } else if (minimatch(key, pattern)) {
+        mode = "local"
+        break
+      }
+    }
+
     try {
-      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey })
+      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey, mode })
+
+      if (!action.supportsMode(mode)) {
+        if (explicitMode) {
+          log.warn(chalk.yellow(`${action.longDescription()} is not configured for or does not support ${mode} mode`))
+        }
+      }
+
       graph.addAction(action)
     } catch (error) {
       throw new ConfigurationError(
         chalk.redBright(
-          `\nError parsing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
+          `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
         ) + chalk.red(error.message),
         { error, config }
       )
@@ -122,10 +162,11 @@ export async function actionConfigsToGraph({
 export async function actionFromConfig({
   garden,
   graph,
-  config,
+  config: inputConfig,
   router,
   log,
   configsByKey,
+  mode,
 }: {
   garden: Garden
   graph: ConfigGraph
@@ -133,11 +174,12 @@ export async function actionFromConfig({
   router: ActionRouter
   log: Log
   configsByKey: ActionConfigsByKey
+  mode: ActionMode
 }) {
   let action: Action
 
   // Call configure handler and validate
-  config = await preprocessActionConfig({ garden, config, router, log })
+  const { config, supportedModes } = await preprocessActionConfig({ garden, config: inputConfig, router, log })
 
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
@@ -163,6 +205,8 @@ export async function actionFromConfig({
     variables,
     moduleName: config.internal.moduleName,
     moduleVersion: config.internal.moduleVersion,
+    mode,
+    supportedModes,
   }
 
   if (isBuildActionConfig(config)) {
@@ -220,8 +264,6 @@ export async function resolveAction<T extends Action>({
     graph,
     log,
     force: true,
-    syncModeDeployNames: [],
-    localModeDeployNames: [],
   })
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
@@ -259,8 +301,6 @@ export async function resolveActions<T extends Action>({
         graph,
         log,
         force: true,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
   )
 
@@ -290,8 +330,6 @@ export async function executeAction<T extends Action>({
     graph,
     log,
     force: true,
-    syncModeDeployNames: [],
-    localModeDeployNames: [],
   })
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
@@ -386,7 +424,7 @@ async function preprocessActionConfig({
 
   const description = describeActionConfig(config)
 
-  const { config: updatedConfig } = await router.configureAction({ config, log })
+  const { config: updatedConfig, supportedModes } = await router.configureAction({ config, log })
 
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {
@@ -411,7 +449,7 @@ async function preprocessActionConfig({
     )
   }
 
-  return config
+  return { config, supportedModes }
 }
 
 function dependenciesFromActionConfig(

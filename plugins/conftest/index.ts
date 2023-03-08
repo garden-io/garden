@@ -235,7 +235,7 @@ export const gardenPlugin = () =>
                 config.include = uniq([...config.include, ...files])
               }
 
-              return { config }
+              return { config, supportedModes: {} }
             },
 
             run: async ({ ctx, log, action }) => {
@@ -275,8 +275,7 @@ export const gardenPlugin = () =>
               const templates = await renderTemplates({
                 ctx: k8sCtx,
                 action: sourceAction,
-                syncMode: false,
-                localMode: false,
+
                 log,
               })
 
