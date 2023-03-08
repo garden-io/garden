@@ -1,46 +1,60 @@
-kind: Module
+kind: Build
 name: frontend
-description: Frontend service container
 type: container
-include: ["."]
-variables:
-  env:
-    PORT: 8080
-    IS_LOCAL: false
-services:
-  - name: frontend
-    ports:
-      - name: http
-        containerPort: 8080
-    healthCheck:
-      httpGet:
-        path: /hello-frontend
-        port: http
-    ingresses:
-      - path: /hello-frontend
-        port: http
-      - path: /call-backend
-        port: http
-    env:
-      $merge: ${modules.frontend.var.env}
-    dependencies:
-      - backend
-tests:
-  - name: unit
-    args: [npm, test]
-  - name: integ
-    args: [npm, run, integ]
-    dependencies:
-      - frontend
+description: Frontend service container
 
 ---
+kind: Deploy
+name: frontend
+description: Frontend service
+type: container
+build: frontend
+dependencies:
+  - deploy.backend
+variables:
+  env: # <--- Declare as a variable so that we can re-use it
+    PORT: 8080
+    IS_LOCAL: false
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
+  ingresses:
+    - path: /hello-frontend
+      port: http
+    - path: /call-backend
+      port: http
+  env: ${var.env} # <--- Reference the 'env' variable
 
-kind: Module
+---
+kind: Test
+name: unit
+build: frontend
+type: container
+spec:
+  args: [npm, test]
+
+---
+kind: Test
+name: integ
+type: container
+dependencies:
+  - deploy.frontend
+spec:
+  args: [npm, run, integ]
+
+---
+kind: Run
 name: frontend-local
 description: An exec module for running the frontend locally
 type: exec
-local: true
 include: []
-env:
-  $merge: ${modules.frontend.var.env}
-  IS_LOCAL: true
+spec:
+  command: [yarn, dev]
+  env:
+    $merge: ${action.deploy.frontend.var.env} # <--- Merge in the variables from the `frontend` deploy action
+    IS_LOCAL: true # <--- Overwrite the IS_LOCAL variable
