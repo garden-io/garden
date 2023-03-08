@@ -6,199 +6,42 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import Bluebird from "bluebird"
-import { mapValues } from "lodash"
-import { join } from "path"
-import split2 = require("split2")
-import { joi, PrimitiveMap, StringMap } from "../../config/common"
-import { ArtifactSpec } from "../../config/validation"
+import { joi } from "../../config/common"
 import { createGardenPlugin } from "../../plugin/plugin"
-import { LOGS_DIR } from "../../constants"
 import { dedent } from "../../util/string"
-import { exec, ExecOpts, runScript, sleep } from "../../util/util"
-import { RuntimeError, TimeoutError } from "../../exceptions"
-import { Log } from "../../logger/log-entry"
+import { runScript } from "../../util/util"
+import { RuntimeError } from "../../exceptions"
 import { GenericProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
-import execa, { ExecaError, ExecaChildProcess } from "execa"
+import { ExecaError } from "execa"
 import chalk from "chalk"
 import { renderMessageWithDivider } from "../../logger/util"
-import { LogLevel } from "../../logger/logger"
-import { createWriteStream } from "fs"
-import { ensureFile, remove } from "fs-extra"
-import { Transform } from "stream"
-import { ExecLogsFollower } from "./logs"
-import { PluginContext } from "../../plugin-context"
-import { ConvertModuleParams } from "../../plugin/handlers/Module/convert"
 import {
-  ExecActionConfig,
   ExecBuild,
   execBuildActionSchema,
-  ExecBuildConfig,
-  ExecDeploy,
   execDeployActionSchema,
   execRunActionSchema,
   ExecRun,
   ExecTest,
   execTestActionSchema,
-  ResolvedExecAction,
-  defaultStatusTimeout,
 } from "./config"
-import { configureExecModule, ExecModule, execModuleSpecSchema } from "./moduleConfig"
-import { BuildActionHandler, DeployActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
+import { configureExecModule, execModuleSpecSchema } from "./moduleConfig"
+import { BuildActionHandler, RunActionHandler, TestActionHandler } from "../../plugin/action-types"
 import { runResultToActionState } from "../../actions/base"
-import { DeployStatus } from "../../plugin/handlers/Deploy/get-status"
 import { BuildStatus } from "../../plugin/handlers/Build/get-status"
-import { Resolved } from "../../actions/types"
-
-const persistentLocalProcRetryIntervalMs = 2500
+import { convertExecModule } from "./convert"
+import { copyArtifacts, execRun } from "./common"
+import { execDeployAction, deleteExecDeploy, getExecDeployLogs, getExecDeployStatus } from "./deploy"
 
 export interface ExecProviderConfig extends GenericProviderConfig {}
 
 export type ExecProvider = Provider<ExecProviderConfig>
-
-interface ExecProc {
-  key: string
-  proc: ExecaChildProcess
-}
-
-const localProcs: { [key: string]: ExecProc } = {}
-const localLogsDir = join(LOGS_DIR, "local-services")
-
-export function getLogFilePath({ projectRoot, deployName }: { projectRoot: string; deployName: string }) {
-  return join(projectRoot, localLogsDir, `${deployName}.jsonl`)
-}
-
-function getDefaultEnvVars(action: ResolvedExecAction) {
-  return {
-    ...process.env,
-    // Workaround for https://github.com/vercel/pkg/issues/897
-    PKG_EXECPATH: "",
-    ...action.getEnvVars(),
-    ...action.getSpec().env,
-  }
-}
-
-/**
- * Truncate the log file by deleting it and recreating as an empty file.
- * This ensures that the handlers streaming logs can respond to the file change event.
- */
-async function resetLogFile(logFilePath: string) {
-  await remove(logFilePath)
-  await ensureFile(logFilePath)
-}
-
-function convertCommandSpec(command: string[], shell: boolean) {
-  if (shell) {
-    return { cmd: command.join(" "), args: [] }
-  } else {
-    return { cmd: command[0], args: command.slice(1) }
-  }
-}
-
-function runPersistent({
-  action,
-  env,
-  serviceName,
-  logFilePath,
-  opts = {},
-}: {
-  action: Resolved<ExecDeploy>
-  log: Log
-  serviceName: string
-  logFilePath: string
-  env?: PrimitiveMap
-  opts?: ExecOpts
-}) {
-  const toLogEntry = (level: LogLevel) =>
-    new Transform({
-      transform(chunk, _encoding, cb) {
-        const line = chunk.toString().trim()
-        if (!line) {
-          cb(null)
-          return
-        }
-        const entry = {
-          timestamp: new Date(),
-          serviceName,
-          msg: line,
-          level,
-        }
-        const entryStr = JSON.stringify(entry) + "\n"
-        cb(null, entryStr)
-      },
-    })
-
-  const shell = !!action.getSpec().shell
-  const { cmd, args } = convertCommandSpec(action.getSpec("deployCommand"), shell)
-
-  const proc = execa(cmd, args, {
-    cwd: action.getBuildPath(),
-    env: {
-      ...getDefaultEnvVars(action),
-      ...(env ? mapValues(env, (v) => v + "") : {}),
-    },
-    shell,
-    cleanup: true,
-    ...opts,
-  })
-  proc.stdout?.pipe(split2()).pipe(toLogEntry(LogLevel.info)).pipe(createWriteStream(logFilePath))
-  proc.stderr?.pipe(split2()).pipe(toLogEntry(LogLevel.error)).pipe(createWriteStream(logFilePath))
-
-  return proc
-}
-
-async function run({
-  command,
-  action,
-  ctx,
-  log,
-  env,
-  opts = {},
-}: {
-  command: string[]
-  ctx: PluginContext
-  action: ResolvedExecAction
-  log: Log
-  env?: PrimitiveMap
-  opts?: ExecOpts
-}) {
-  const logEventContext = {
-    origin: command[0],
-    log,
-  }
-
-  const outputStream = split2()
-  outputStream.on("error", () => {})
-  outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
-  })
-
-  const envVars = {
-    ...getDefaultEnvVars(action),
-    ...(env ? mapValues(env, (v) => v + "") : {}),
-  }
-
-  const shell = !!action.getSpec().shell
-  const { cmd, args } = convertCommandSpec(command, shell)
-
-  log.debug(`Running command: ${cmd}`)
-
-  return exec(cmd, args, {
-    ...opts,
-    shell,
-    cwd: action.getBuildPath(),
-    env: envVars,
-    stdout: outputStream,
-    stderr: outputStream,
-  })
-}
 
 export const buildExecAction: BuildActionHandler<"build", ExecBuild> = async ({ action, log, ctx }) => {
   const output: BuildStatus = { state: "ready", outputs: {}, detail: {} }
   const command = action.getSpec("command")
 
   if (command?.length) {
-    const result = await run({ command, action, ctx, log })
+    const result = await execRun({ command, action, ctx, log })
 
     if (!output.detail) {
       output.detail = {}
@@ -222,7 +65,7 @@ export const execTestAction: TestActionHandler<"run", ExecTest> = async ({ log, 
   const startedAt = new Date()
   const { command, env } = action.getSpec()
 
-  const result = await run({ command, action, ctx, log, env, opts: { reject: false } })
+  const result = await execRun({ command, action, ctx, log, env, opts: { reject: false } })
 
   const artifacts = action.getSpec("artifacts")
   await copyArtifacts(log, artifacts, action.getBuildPath(), artifactsPath)
@@ -262,7 +105,7 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
   let success = true
 
   if (command && command.length) {
-    const commandResult = await run({ command, action, ctx, log, env, opts: { reject: false } })
+    const commandResult = await execRun({ command, action, ctx, log, env, opts: { reject: false } })
 
     completedAt = new Date()
     outputLog = commandResult.all?.trim() || ""
@@ -298,399 +141,6 @@ export const execRunAction: RunActionHandler<"run", ExecRun> = async ({ artifact
     detail,
     outputs: {
       log: outputLog,
-    },
-  }
-}
-
-const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> = async (params) => {
-  const { action, log, ctx } = params
-  const { env, statusCommand } = action.getSpec()
-
-  if (statusCommand) {
-    const result = await run({
-      command: statusCommand,
-      action,
-      ctx,
-      log,
-      env,
-      opts: { reject: false },
-    })
-
-    const state = result.exitCode === 0 ? "ready" : "outdated"
-
-    return {
-      state,
-      detail: {
-        state,
-        version: action.versionString(),
-        detail: { statusCommandOutput: result.all },
-      },
-      outputs: {
-        log: result.all || "",
-      },
-    }
-  } else {
-    const state = "unknown"
-
-    return {
-      state,
-      detail: { state, version: action.versionString(), detail: {} },
-      outputs: {
-        log: "",
-      },
-    }
-  }
-}
-
-const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = async (params) => {
-  const { action, stream, follow, ctx, log } = params
-
-  const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, deployName: action.name })
-  const logsFollower = new ExecLogsFollower({ stream, log, logFilePath, deployName: action.name })
-
-  if (follow) {
-    ctx.events.on("abort", () => {
-      logsFollower.stop()
-    })
-
-    await logsFollower.streamLogs({ since: params.since, tail: params.tail, follow: true })
-  } else {
-    await logsFollower.streamLogs({ since: params.since, tail: params.tail, follow: false })
-  }
-
-  return {}
-}
-
-const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async (params) => {
-  const { action, log, ctx } = params
-  const spec = action.getSpec()
-
-  const env = spec.env
-
-  if (spec.deployCommand.length === 0) {
-    log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
-    return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
-  } else if (spec.persistent) {
-    return deployPersistentExecService({ action, log, ctx, env, serviceName: action.name })
-  } else {
-    const result = await run({
-      command: spec.deployCommand,
-      action,
-      ctx,
-      log,
-      env,
-      opts: { reject: true },
-    })
-
-    const outputLog = (result.stdout + result.stderr).trim()
-    if (outputLog) {
-      const prefix = `Finished deploying service ${chalk.white(action.name)}. Here is the output:`
-      log.verbose(renderMessageWithDivider(prefix, outputLog, false, chalk.gray))
-    }
-
-    return {
-      state: "ready",
-      detail: { state: "ready", detail: { deployCommandOutput: result.all } },
-      outputs: {},
-    }
-  }
-}
-
-async function deployPersistentExecService({
-  ctx,
-  serviceName,
-  log,
-  action,
-  env,
-}: {
-  ctx: PluginContext
-  serviceName: string
-  log: Log
-  action: Resolved<ExecDeploy>
-  env: { [key: string]: string }
-}): Promise<DeployStatus> {
-  ctx.events.on("abort", () => {
-    const localProc = localProcs[serviceName]
-    if (localProc) {
-      localProc.proc.cancel()
-    }
-  })
-
-  const logFilePath = getLogFilePath({ projectRoot: ctx.projectRoot, deployName: serviceName })
-  try {
-    await resetLogFile(logFilePath)
-  } catch (err) {
-    log.debug(`Failed resetting log file for service ${serviceName} at path ${logFilePath}: ${err.message}`)
-  }
-
-  const key = serviceName
-  const proc = runPersistent({
-    action,
-    log,
-    serviceName,
-    logFilePath,
-    env,
-    opts: { reject: true },
-  })
-  localProcs[key] = {
-    proc,
-    key,
-  }
-
-  const startedAt = new Date()
-
-  const spec = action.getSpec()
-
-  if (spec.statusCommand) {
-    let ready = false
-    let lastStatusResult: execa.ExecaReturnBase<string> | undefined
-
-    while (!ready) {
-      await sleep(persistentLocalProcRetryIntervalMs)
-
-      const now = new Date()
-      const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
-
-      if (timeElapsedSec > spec.statusTimeout) {
-        let lastResultDescription = ""
-        if (lastStatusResult) {
-          lastResultDescription = dedent`\n\nThe last exit code was ${lastStatusResult.exitCode}.\n\n`
-          if (lastStatusResult.stderr) {
-            lastResultDescription += `Command error output:\n${lastStatusResult.stderr}\n\n`
-          }
-          if (lastStatusResult.stdout) {
-            lastResultDescription += `Command output:\n${lastStatusResult.stdout}\n\n`
-          }
-        }
-
-        throw new TimeoutError(
-          dedent`Timed out waiting for local service ${serviceName} to be ready.
-
-          Garden timed out waiting for the command ${chalk.gray(spec.statusCommand)}
-          to return status code 0 (success) after waiting for ${spec.statusTimeout} seconds.
-          ${lastResultDescription}
-          Possible next steps:
-
-          Find out why the configured status command fails.
-
-          In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
-          in your service definition to a value that is greater than the time needed for your service to become ready.
-          `,
-          {
-            serviceName,
-            statusCommand: spec.statusCommand,
-            pid: proc.pid,
-            statusTimeout: spec.statusTimeout,
-          }
-        )
-      }
-
-      const result = await run({
-        command: spec.statusCommand,
-        action,
-        ctx,
-        log,
-        env,
-        opts: { reject: false },
-      })
-
-      lastStatusResult = result
-      ready = result.exitCode === 0
-    }
-  }
-
-  return {
-    state: "ready",
-    detail: { state: "ready", detail: { persistent: true, pid: proc.pid } },
-    outputs: {},
-    persistent: true,
-  }
-}
-
-const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async (params) => {
-  const { action, log, ctx } = params
-  const { cleanupCommand, env } = action.getSpec()
-
-  if (cleanupCommand) {
-    const result = await run({
-      command: cleanupCommand,
-      action,
-      ctx,
-      log,
-      env,
-      opts: { reject: true },
-    })
-
-    return {
-      state: "not-ready",
-      detail: { state: "missing", detail: { cleanupCommandOutput: result.all } },
-      outputs: {},
-    }
-  } else {
-    log.warn({
-      section: action.key(),
-      symbol: "warning",
-      msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
-    })
-    return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
-  }
-}
-
-export function prepareExecBuildAction(params: ConvertModuleParams<ExecModule>): ExecBuildConfig | undefined {
-  const { module, convertBuildDependency, dummyBuild } = params
-
-  const needsBuild =
-    !!dummyBuild ||
-    !!module.spec.build?.command ||
-    // We create a single Build action if there are no other entities
-    // (otherwise nothing is created, which would be unexpected for users).
-    module.serviceConfigs.length + module.taskConfigs.length + module.testConfigs.length === 0
-
-  if (needsBuild) {
-    return {
-      kind: "Build",
-      type: "exec",
-      name: module.name,
-
-      ...params.baseFields,
-      ...dummyBuild,
-
-      buildAtSource: module.spec.local,
-      dependencies: module.build.dependencies.map(convertBuildDependency),
-
-      spec: {
-        shell: true, // This keeps the old pre-0.13 behavior
-        command: module.spec.build?.command,
-        env: module.spec.env,
-      },
-    }
-  }
-
-  return
-}
-
-export async function convertExecModule(params: ConvertModuleParams<ExecModule>) {
-  const { module, services, tasks, tests, convertBuildDependency, convertRuntimeDependencies } = params
-
-  const actions: ExecActionConfig[] = []
-
-  const buildAction = prepareExecBuildAction(params)
-  buildAction && actions.push(buildAction)
-
-  function prepRuntimeDeps(deps: string[]): string[] {
-    if (buildAction) {
-      return convertRuntimeDependencies(deps)
-    } else {
-      // If we don't return a Build action, we must still include any declared build dependencies
-      return [...module.build.dependencies.map(convertBuildDependency), ...convertRuntimeDependencies(deps)]
-    }
-  }
-
-  // Instead of doing this at runtime, we fold together env vars from the module top-level and the individual
-  // runtime actions at conversion time.
-  function prepareEnv(env: StringMap) {
-    return { ...module.spec.env, ...env }
-  }
-
-  for (const service of services) {
-    let persistent: any = false
-    let deployCommand = service.spec.deployCommand
-    let statusCommand = service.spec.statusCommand
-
-    if (service.spec.syncMode) {
-      // Maintain compatibility with devMode on exec modules
-      persistent = "${this.mode == 'sync'}"
-
-      if (service.spec.syncMode.command) {
-        deployCommand = <any>{
-          $if: persistent,
-          $then: service.spec.syncMode.command,
-          $else: service.spec.deployCommand,
-        }
-      }
-      if (service.spec.syncMode.statusCommand) {
-        statusCommand = <any>{
-          $if: persistent,
-          $then: service.spec.syncMode.statusCommand,
-          $else: service.spec.statusCommand,
-        }
-      }
-    }
-
-    actions.push({
-      kind: "Deploy",
-      type: "exec",
-      name: service.name,
-      ...params.baseFields,
-
-      disabled: service.disabled,
-      build: buildAction ? buildAction.name : undefined,
-      dependencies: prepRuntimeDeps(service.spec.dependencies),
-
-      spec: {
-        shell: true, // This keeps the old pre-0.13 behavior
-        persistent,
-        cleanupCommand: service.spec.cleanupCommand,
-        deployCommand,
-        statusCommand,
-        statusTimeout: service.spec.syncMode?.timeout || defaultStatusTimeout,
-        timeout: service.spec.timeout,
-        env: prepareEnv(service.spec.env),
-      },
-    })
-  }
-
-  for (const task of tasks) {
-    actions.push({
-      kind: "Run",
-      type: "exec",
-      name: task.name,
-      ...params.baseFields,
-
-      disabled: task.disabled,
-      build: buildAction ? buildAction.name : undefined,
-      dependencies: prepRuntimeDeps(task.spec.dependencies),
-      timeout: task.spec.timeout ? task.spec.timeout : undefined,
-
-      spec: {
-        shell: true, // This keeps the old pre-0.13 behavior
-        command: task.spec.command,
-        artifacts: task.spec.artifacts,
-        env: prepareEnv(task.spec.env),
-      },
-    })
-  }
-
-  for (const test of tests) {
-    actions.push({
-      kind: "Test",
-      type: "exec",
-      name: module.name + "-" + test.name,
-      ...params.baseFields,
-
-      disabled: test.disabled,
-      build: buildAction ? buildAction.name : undefined,
-      dependencies: prepRuntimeDeps(test.spec.dependencies),
-      timeout: test.spec.timeout ? test.spec.timeout : undefined,
-
-      spec: {
-        shell: true, // This keeps the old pre-0.13 behavior
-        command: test.spec.command,
-        artifacts: test.spec.artifacts,
-        env: prepareEnv(test.spec.env),
-      },
-    })
-  }
-
-  return {
-    group: {
-      // This is an annoying TypeScript limitation :P
-      kind: <"Group">"Group",
-      name: module.name,
-      path: module.path,
-      actions,
-      variables: module.variables,
-      varfiles: module.varfile ? [module.varfile] : undefined,
     },
   }
 }
@@ -823,14 +273,3 @@ export const execPlugin = () =>
   })
 
 export const gardenPlugin = execPlugin
-
-async function copyArtifacts(log: Log, artifacts: ArtifactSpec[] | undefined, from: string, artifactsPath: string) {
-  return Bluebird.map(artifacts || [], async (spec) => {
-    log.verbose(`→ Copying artifacts ${spec.source}`)
-
-    // Note: lazy-loading for startup performance
-    const cpy = require("cpy")
-
-    await cpy(spec.source, join(artifactsPath, spec.target || "."), { cwd: from })
-  })
-}

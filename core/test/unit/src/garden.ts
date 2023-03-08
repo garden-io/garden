@@ -48,7 +48,7 @@ import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
-import { convertExecModule } from "../../../src/plugins/exec/exec"
+import { convertExecModule } from "../../../src/plugins/exec/convert"
 import { getLogMessages } from "../../../src/util/testing"
 import { TreeCache } from "../../../src/cache"
 import { omitUndefined } from "../../../src/util/objects"

@@ -28,7 +28,8 @@ import {
 } from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
+import { buildExecAction } from "../src/plugins/exec/exec"
+import { convertExecModule } from "../src/plugins/exec/convert"
 import { createSchema, joi, joiArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"

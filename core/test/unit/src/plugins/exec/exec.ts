@@ -12,7 +12,7 @@ import { join } from "path"
 import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
-import { ExecProvider, gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
+import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
 import { Log } from "../../../../../src/logger/log-entry"
 import { keyBy } from "lodash"
 import {
@@ -48,6 +48,7 @@ import { ProjectConfig } from "../../../../../src/config/project"
 import { BuildActionConfig } from "../../../../../src/actions/build"
 import { DeployActionConfig } from "../../../../../src/actions/deploy"
 import { RunActionConfig } from "../../../../../src/actions/run"
+import { getLogFilePath } from "../../../../../src/plugins/exec/deploy"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
