@@ -5,11 +5,11 @@ metadata:
   name: api
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: api=srihasg/api-image
+    argocd-image-updater.argoproj.io/image-list: api=gardendev/api-image # update according to your registry-namespace/image
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/api.update-strategy: name
-    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^main-[0-9]+$
+    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^main-[0-9]+$ # update according to your image tag
     argocd-image-updater.argoproj.io/api.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/api.helm.image-tag: image.tag
 spec:
