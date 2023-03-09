@@ -4,7 +4,7 @@
 import execa from "execa"
 import minimist from "minimist"
 import Bluebird from "bluebird"
-import { max, padEnd, padStart, mapValues, pickBy } from "lodash"
+import { max, padEnd, padStart } from "lodash"
 import { DepGraph } from "dependency-graph"
 import split2 = require("split2")
 import chalk from "chalk"
@@ -12,7 +12,7 @@ import wrapAnsi from "wrap-ansi"
 import stripAnsi from "strip-ansi"
 import { join, resolve } from "path"
 import { createWriteStream, WriteStream } from "fs"
-import { getPackages, yarnPath } from "./script-utils"
+import { getPackages } from "./script-utils"
 
 const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
@@ -70,7 +70,7 @@ async function runInPackages(args: string[]) {
       return
     }
 
-    const proc = execa("node", [yarnPath, "run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
+    const proc = execa("npm", ["run", script, ...rest], { cwd: resolve(repoRoot, location), reject: false })
 
     proc.on("error", (error) => {
       write(chalk.redBright(`\nCould not run ${script} script in package ${packageName}: ${error}`))

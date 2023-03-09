@@ -134,10 +134,10 @@ async function buildBinaries(args: string[]) {
     console.log(chalk.green(" ✓ " + name))
   })
 
-  // Run yarn install in the cli package
+  // Run npm install in the cli package
   console.log(chalk.cyan("Installing packages in @garden-io/cli package"))
   const cliPath = resolve(tmpDir, workspaces["@garden-io/cli"].location)
-  await exec("yarn", ["--production"], { cwd: cliPath })
+  await exec("npm", ["install"], { cwd: cliPath })
 
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
