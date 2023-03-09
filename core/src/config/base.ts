@@ -9,7 +9,7 @@
 import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
 import { safeLoad, safeLoadAll } from "js-yaml"
-import yamlLint from "yaml-lint"
+import { lint } from "yaml-lint"
 import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
@@ -62,7 +62,7 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
-      await yamlLint(content)
+      await lint(content)
     } catch (linterErr) {
       throw new ConfigurationError(
         `Could not parse ${basename(path)} in directory ${path} as valid YAML: ${err.message}`,
