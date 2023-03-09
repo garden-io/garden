@@ -130,7 +130,7 @@ export abstract class TaskNode<T extends Task = Task> {
       key: task.getKey(),
       name: task.getName(),
       result,
-      dependencyResults: dependencyResults.export(),
+      dependencyResults: dependencyResults.filterForGraphResult(),
       aborted,
       startedAt,
       completedAt: new Date(),

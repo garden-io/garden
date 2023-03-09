@@ -19,7 +19,7 @@ import { Log } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
 import { ProcessResults } from "../process"
-import { GraphResultExport } from "../graph/results"
+import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
 import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
@@ -390,7 +390,7 @@ export interface ProcessCommandResult {
   // durationMsec?: number | null
   success: boolean
   error?: string
-  graphResults: GraphResultExport
+  graphResults: GraphResultMapWithoutTask
 }
 
 export const processCommandResultKeys = () => ({
