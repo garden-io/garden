@@ -26,6 +26,7 @@ import {
   V1PersistentVolumeClaim,
   V1Service,
   V1Container,
+  KubernetesObject,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
 import { getPods, getResourceKey, hashManifest } from "../util"
@@ -35,7 +36,7 @@ import { deline, gardenAnnotationKey, stableStringify } from "../../../util/stri
 import { SyncableResource } from "../types"
 import { LogLevel } from "../../../logger/logger"
 
-export interface ResourceStatus<T = BaseResource> {
+export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
   state: ServiceState
   resource: KubernetesServerResource<T>
   lastMessage?: string
@@ -43,7 +44,7 @@ export interface ResourceStatus<T = BaseResource> {
   logs?: string
 }
 
-export interface StatusHandlerParams<T = BaseResource> {
+export interface StatusHandlerParams<T extends BaseResource | KubernetesObject = BaseResource> {
   api: KubeApi
   namespace: string
   resource: KubernetesServerResource<T>
@@ -51,7 +52,7 @@ export interface StatusHandlerParams<T = BaseResource> {
   resourceVersion?: number
 }
 
-interface StatusHandler<T = BaseResource> {
+interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource> {
   (params: StatusHandlerParams<T>): Promise<ResourceStatus<T>>
 }
 
