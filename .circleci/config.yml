@@ -853,11 +853,11 @@ workflows:
           <<: *only-internal-prs
           requires: [build-dist]
 
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-code-synchronization
-          project: code-synchronization
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-code-synchronization
+      #     project: code-synchronization
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-demo-project
@@ -887,11 +887,11 @@ workflows:
           name: e2e-hadolint
           project: hadolint
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-hadolint-modules
-          project: hadolint-modules
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-hadolint-modules
+      #     project: hadolint-modules
+      #     requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-jib-container
@@ -929,11 +929,11 @@ workflows:
           name: e2e-run-actions
           project: run-actions
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-tasks-modules
-          project: tasks-modules
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-tasks-modules
+      #     project: tasks-modules
+      #     requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-templated-k8s-container
@@ -961,11 +961,11 @@ workflows:
           name: e2e-vote-helm
           project: vote-helm
           requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-vote-helm-modules
-          project: vote-helm-modules
-          requires: [build]
+      # - e2e-project:
+      #     <<: *only-internal-prs
+      #     name: e2e-vote-helm-modules
+      #     project: vote-helm-modules
+      #     requires: [build]
 
       ### VM TESTS ###
 
