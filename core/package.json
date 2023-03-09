@@ -26,7 +26,7 @@
   "dependencies": {
     "@codenamize/codenamize": "^1.1.1",
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
-    "@kubernetes/client-node": "git+https://github.com/garden-io/javascript.git#master",
+    "@kubernetes/client-node": "^0.18",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "analytics-node": "3.5.0",
@@ -240,17 +240,17 @@
   },
   "scripts": {
     "build": "gulp pegjs",
-    "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "dev": "gulp pegjs-watch",
     "fix-format": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "eslint -c ../.eslintrc --ignore-pattern 'src/lib/**' --ext .ts src/",
     "migration:generate": "typeorm migration:generate --config ormconfig.js -n",
     "_integ": "mocha --config .mocharc.integ.yml",
-    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" yarn _integ",
-    "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" yarn _integ",
-    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" yarn _integ",
-    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only yarn _integ",
+    "integ-kind": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"cluster-buildkit cluster-buildkit-rootless kaniko remote-only\" npm run _integ",
+    "integ-local": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ",
+    "integ-minikube": "GARDEN_INTEG_TEST_MODE=local GARDEN_SKIP_TESTS=\"remote-only\" npm run _integ",
+    "integ-remote": "GARDEN_INTEG_TEST_MODE=remote GARDEN_SKIP_TESTS=local-only npm run _integ",
     "test": "mocha"
   },
   "pkg": {

@@ -29,7 +29,7 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "check-package-lock": "git diff-index --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
     "clean": "shx rm -rf build",
     "fix-format": "prettier --write \"**/*.ts\"",
     "lint": "eslint -c ../.eslintrc  --ext .ts ."

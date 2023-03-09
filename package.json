@@ -28,7 +28,6 @@
     "@types/treeify": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^5.50.0",
     "@typescript-eslint/parser": "^5.50.0",
-    "@yarnpkg/pnpify": "^2.1.0",
     "chalk": "^4.1.0",
     "csv": "^6.0.5",
     "deline": "^1.0.4",
@@ -64,33 +63,33 @@
   },
   "scripts": {
     "add-licenses": "copyright-header --license-file support/license-header.txt --syntax support/license-syntax.yaml --add-path core/src:core/test --output-dir .",
-    "bootstrap": "yarn",
-    "build": "yarn run clean && yarn run bootstrap && ./scripts/run-script.ts build",
-    "build-containers": "yarn run dist && ./scripts/build-containers.sh",
-    "check-all": "yarn run check-package-lock && yarn run check-licenses && yarn run lint && yarn run check-docs",
+    "bootstrap": "npm i",
+    "build": "npm run clean && npm run bootstrap && ./scripts/run-script.ts build",
+    "build-containers": "npm run dist && ./scripts/build-containers.sh",
+    "check-all": "npm run check-package-lock && npm run check-licenses && npm run lint && npm run check-docs",
     "check-docs": "./scripts/check-docs.sh",
     "check-licenses": "gulp check-licenses",
     "check-package-licenses": "./scripts/check-package-licenses.ts",
-    "check-package-lock": "git diff --quiet HEAD -- yarn.lock || (echo 'yarn.lock is dirty!' && exit 1)",
-    "check-pre-push": "yarn run check-package-lock && yarn run check-licenses && yarn run lint",
+    "check-package-lock": "git diff-index --quiet HEAD -- package-lock.json || (echo 'package-lock.json is dirty!' && exit 1)",
+    "check-pre-push": "npm run check-package-lock && npm run check-licenses && npm run lint",
     "clean": "./scripts/run-script.ts clean && find . -name \".garden\" -type d -prune -exec rm -rf '{}' '+'",
     "clean-node-modules": "find . -name \"node_modules\" -type d -prune -exec rm -rf '{}' '+'",
     "dev": "./scripts/run-script.ts dev --parallel",
     "dist": "node cli/build/src/build-pkg.js",
     "e2e": "./bin/garden test e2e-tests",
-    "e2e-project": "cd e2e; yarn e2e-project",
+    "e2e-project": "cd e2e; npm run e2e-project",
     "fix-format": "./scripts/run-script.ts fix-format --no-bail --parallel",
     "generate-docs": "./scripts/run-script.ts generate-docs",
     "integ": "./scripts/run-script.ts integ",
     "lint": "./scripts/run-script.ts lint --no-bail --parallel && gulp check-licenses",
-    "push-containers": "yarn run dist && ./script/push-containers.sh",
+    "push-containers": "npm run dist && ./script/push-containers.sh",
     "test:plugins": "./scripts/run-script.ts test --no-bail --scope @garden-io/garden-*",
     "test:framework:unit": "./scripts/run-script.ts test --no-bail --ignore @garden-io/garden-* --report report.tmp"
   },
   "husky": {
     "hooks": {
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-push": "yarn run check-pre-push"
+      "pre-push": "npm run check-pre-push"
     }
   },
   "workspaces": [
