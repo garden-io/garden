@@ -1,8 +1,8 @@
 helm:
   parameters:
   - name: image.repository
-    value: srihasg/api-image
+    value: gardendev/api-image
     forcestring: true
   - name: image.tag
-    value: v-77ea98c7ce
+    value: main-27
     forcestring: true
