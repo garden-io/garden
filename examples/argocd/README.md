@@ -25,11 +25,11 @@ metadata:
   name: api
   namespace: argocd
   annotations:
-    argocd-image-updater.argoproj.io/image-list: api=srihasg/api-image
+    argocd-image-updater.argoproj.io/image-list: api=gardendev/api-image # update according to your registry-namespace/image
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
     argocd-image-updater.argoproj.io/api.update-strategy: name
-    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^main-[0-9]+$
+    argocd-image-updater.argoproj.io/api.allow-tags: regexp:^main-[0-9]+$ # update according to your image tag
     argocd-image-updater.argoproj.io/api.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/api.helm.image-tag: image.tag
 ...
@@ -40,10 +40,10 @@ Once the right tag (in this case `main-27`) has been identified, image updater c
 helm:
   parameters:
   - name: image.repository
-    value: srihasg/api-image
+    value: gardendev/api-image # image-updater updates accordingly
     forcestring: true
   - name: image.tag
-    value: main-27
+    value: main-27 # image-updater updates accordingly
     forcestring: true
 ```
 ArgoCD image updater by default uses the same repo credential that ArgoCD would use, to commit above changes. We use a GitHub App that has been installed on the repo.
@@ -73,7 +73,7 @@ In the current example; A dedicated `values-prod.yaml` file has been created per
   helm repo update
   helm -n argocd install argocd argo/argo-cd --version 5.13.5 --create-namespace
   ```
-- Create [argod-applications](https://github.com/garden-io-testing/gitops-demo/tree/main/argocd-applications) which contains all the manifests that will help with sync'ing apps on prod cluster via ArgoCD
+- Create [argocd-applications](https://github.com/garden-io-testing/gitops-demo/tree/main/argocd-applications) which contains all the manifests that will help with sync'ing apps on prod cluster via ArgoCD
 - (Optional) Install ingress-nginx controller
 - Apply necessary annotations to the ArgoCD app, in this case for the `api` and `web` so that argocd-image-updater looks for newest image builds on container repo that match the `update-strategy`. Example configuration for `api` Argocd Application is as below:
   ```yaml
@@ -84,11 +84,11 @@ In the current example; A dedicated `values-prod.yaml` file has been created per
     name: api
     namespace: argocd
     annotations:
-      argocd-image-updater.argoproj.io/image-list: api=srihasg/api-image
+      argocd-image-updater.argoproj.io/image-list: api=gardendev/api-image # update according to your registry-namespace/image
       argocd-image-updater.argoproj.io/write-back-method: git
       argocd-image-updater.argoproj.io/git-branch: main
       argocd-image-updater.argoproj.io/api.update-strategy: name
-      argocd-image-updater.argoproj.io/api.allow-tags: regexp:^main-[0-9]+$
+      argocd-image-updater.argoproj.io/api.allow-tags: regexp:^main-[0-9]+$ # update according to your image tag
       argocd-image-updater.argoproj.io/api.helm.image-name: image.repository
       argocd-image-updater.argoproj.io/api.helm.image-tag: image.tag
   ...
