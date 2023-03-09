@@ -1,9 +1,9 @@
 ---
-order: 6
-title: Project Output configuration context
+order: 8
+title: Project Output template context
 ---
 
-# Project Output configuration context
+# Project Output template context
 
 The below keys are available in template strings for _project outputs_, specified in `outputs[].value` keys in project config files. These include all the keys from the sections above.
 

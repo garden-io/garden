@@ -17,10 +17,10 @@ import { logLevelMap, LogLevel, parseLogLevel } from "../logger/logger"
 import { StringsParameter, BooleanParameter, IntegerParameter, DurationParameter, TagsOption } from "../cli/params"
 import { printHeader, renderDivider } from "../logger/util"
 import hasAnsi = require("has-ansi")
-import { dedent, deline } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import { padSection } from "../logger/renderers"
 import { PluginEventBroker } from "../plugin-context"
-import { ParameterError } from "../exceptions"
+import { CommandError, ParameterError } from "../exceptions"
 
 const logsArgs = {
   names: new StringsParameter({
@@ -44,7 +44,9 @@ const logsOpts = {
     `,
   }),
   "follow": new BooleanParameter({
-    help: "Continuously stream new logs.",
+    help: deline`
+      Continuously stream new logs.
+      When the \`--follow\` option is set, we default to \`--since 1m\`.`,
     aliases: ["f"],
   }),
   "tail": new IntegerParameter({
@@ -93,18 +95,18 @@ function skipEntry(entry: DeployLogEntry) {
 
 export class LogsCommand extends Command<Args, Opts> {
   name = "logs"
-  help = "Retrieves the most recent logs for the specified service(s)."
+  help = "Retrieves the most recent logs for the specified Deploy(s)."
 
   description = dedent`
-    Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-    to getting logs from the last minute when in \`--follow\` mode. You can change this with the \`--since\` option.
+    Outputs logs for all or specified Deploys, and optionally waits for news logs to come in. Defaults to getting logs
+    from the last minute when in \`--follow\` mode. You can change this with the \`--since\` or \`--tail\` options.
 
     Examples:
 
-        garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
-        garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
-        garden logs --tail 100                 # interleaves the last 100 log lines from all services
-        garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+        garden logs                            # interleaves color-coded logs from all Deploys (up to a certain limit)
+        garden logs --since 2d                 # interleaves color-coded logs from all Deploys from the last 2 days
+        garden logs --tail 100                 # interleaves the last 100 log lines from all Deploys
+        garden logs deploy-a,deploy-b          # interleaves color-coded logs for deploy-a and deploy-b
         garden logs --follow                   # keeps running and streams all incoming logs to the console
         garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
   `
@@ -164,6 +166,22 @@ export class LogsCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const allDeploys = graph.getDeploys()
     const actions = args.names ? allDeploys.filter((s) => args.names?.includes(s.name)) : allDeploys
+    const allDeployNames = allDeploys
+      .map((s) => s.name)
+      .filter(Boolean)
+      .sort()
+
+    if (actions.length === 0) {
+      let msg: string
+      if (args.names) {
+        msg = `Deploy(s) ${naturalList(
+          args.names.map((s) => `"${s}"`)
+        )} not found. Available Deploys: ${naturalList(allDeploys.map((s) => `"${s}"`))}.`
+      } else {
+        msg = "No Deploys found in project."
+      }
+      throw new CommandError(msg, { args, opts, availableDeploys: allDeployNames })
+    }
 
     // If the container name should be displayed, we align the output wrt to the longest container name
     let maxDeployName = 1
@@ -185,10 +203,6 @@ export class LogsCommand extends Command<Args, Opts> {
     // Map all deploys names in the project to a specific color. This ensures
     // that in most cases they have the same color (unless any have been added/removed),
     // regardless of what params you pass to the command.
-    const allDeployNames = allDeploys
-      .map((s) => s.name)
-      .filter(Boolean)
-      .sort()
     const colorMap = allDeployNames.reduce((acc, name, idx) => {
       const color = colors[idx % colors.length]
       acc[name] = color
