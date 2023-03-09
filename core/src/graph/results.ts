@@ -171,6 +171,9 @@ function prepareForExport(graphResult: GraphResultWithoutTask | null) {
 }
 
 function filterResultForExport(result: any) {
+  if (!result) {
+    return null
+  }
   // Here, we pick a list of safe (bounded-size) keys across the result types for `BuildTask`, `DeployTask`, `TestTask`
   // and `RunTask`.
   const filteredDetail = pick(
