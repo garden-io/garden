@@ -10,7 +10,7 @@ variables:
         namespace: default
     deploymentRegistry:
       hostname: index.docker.io
-      namespace: srihasg # Update with your user's registry namespace
+      namespace: gardendev # Update according to your container registry namespace
   dev-k8s-namespace: ${project.name}-${local.username}
   ci-k8s-namespace: ${project.name}-${local.username}-${local.env.GITHUB_REF_NAME || "branch"}-${local.env.GITHUB_RUN_NUMBER || 0}
 environments:
