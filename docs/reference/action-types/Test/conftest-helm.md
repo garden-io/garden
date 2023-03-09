@@ -176,6 +176,9 @@ spec:
   # Specify a build whose files we want to test.
   build:
 
+  # A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
+  files:
+
   # The Helm Deploy action to validate.
   helmDeploy:
 ```
@@ -457,6 +460,16 @@ Specify a build whose files we want to test.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `spec.files[]`
+
+[spec](#spec) > files
+
+A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | Yes      |
 
 ### `spec.helmDeploy`
 
