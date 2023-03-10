@@ -83,6 +83,7 @@
     "integ": "./scripts/run-script.ts integ",
     "lint": "./scripts/run-script.ts lint --no-bail --parallel && gulp check-licenses",
     "push-containers": "npm run dist && ./script/push-containers.sh",
+    "postinstall": "patch-package",
     "test:plugins": "./scripts/run-script.ts test --no-bail --scope @garden-io/garden-*",
     "test:framework:unit": "./scripts/run-script.ts test --no-bail --ignore @garden-io/garden-* --report report.tmp"
   },
