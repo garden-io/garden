@@ -34,13 +34,7 @@ import { ConfigurationError } from "../src/exceptions"
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import timekeeper = require("timekeeper")
-import {
-  execBuildSpecSchema,
-  ExecModule,
-  execModuleSpecSchema,
-  execTaskSpecSchema,
-  execTestSchema,
-} from "../src/plugins/exec/moduleConfig"
+import { execBuildSpecSchema, ExecModule, execTaskSpecSchema, execTestSchema } from "../src/plugins/exec/moduleConfig"
 import {
   execBuildActionSchema,
   execDeployActionSchema,
@@ -55,7 +49,7 @@ import { GetRunResult } from "../src/plugin/handlers/Run/get-result"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
-import { GraphResultMapWithoutTask, GraphResultMap } from "../src/graph/results"
+import { GraphResultMapWithoutTask } from "../src/graph/results"
 import { localConfigFilename } from "../src/config-store/local"
 import _ from "lodash"
 
@@ -670,13 +664,16 @@ const skipGroups = gardenEnv.GARDEN_SKIP_TESTS.split(" ")
 export function pruneEmpty(obj) {
   return (function prune(current) {
     _.forOwn(current, function (value, key) {
-      if (_.isObject(value)) prune(value)
-      else if (_.isUndefined(value) || _.isNull(value)) {
+      if (_.isObject(value)) {
+        prune(value)
+      } else if (_.isUndefined(value) || _.isNull(value)) {
         delete current[key]
       }
     })
     // remove any leftover undefined values from the delete operation on an array
-    if (_.isArray(current)) _.pull(current, undefined)
+    if (_.isArray(current)) {
+      _.pull(current, undefined)
+    }
     return current
   })(obj)
 }
@@ -816,7 +813,7 @@ export function getPropertyName<T>(
 ): string {
   const res: { [Property in keyof T]: () => string } = {} as { [Property in keyof T]: () => string }
 
-  Object.keys(obj).map((k) => (res[k as keyof T] = () => k))
+  Object.keys(obj as Object).map((k) => (res[k as keyof T] = () => k))
 
   return expression(res)()
 }
