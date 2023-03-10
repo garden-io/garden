@@ -77,7 +77,7 @@
     "dev": "./scripts/run-script.ts dev --parallel",
     "dist": "node cli/build/src/build-pkg.js",
     "e2e": "./bin/garden test e2e-tests",
-    "e2e-project": "cd e2e; npm run e2e-project",
+    "e2e-project": "cd e2e; npm run e2e-project --",
     "fix-format": "./scripts/run-script.ts fix-format --no-bail --parallel",
     "generate-docs": "./scripts/run-script.ts generate-docs",
     "integ": "./scripts/run-script.ts integ",
