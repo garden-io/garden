@@ -77,7 +77,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         executedAction: resolvedActionToExecuted(action, { status: result }),
       }
     } catch (err) {
-      log.error(`Error syncing modules`)
+      log.error(`Build failed`)
       throw err
     }
   }
