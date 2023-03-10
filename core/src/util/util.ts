@@ -486,7 +486,7 @@ export async function asyncDeepMap<T>(
     return <T>(
       fromPairs(
         await Bluebird.map(
-          Object.entries(obj),
+          Object.entries(obj as Object),
           async ([key, value]) => [key, await asyncDeepMap(value, mapper, options)],
           options
         )

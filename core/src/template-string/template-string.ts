@@ -270,7 +270,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
 
-      for (const [k, v] of Object.entries(value)) {
+      for (const [k, v] of Object.entries(value as Object)) {
         const resolved = resolveTemplateStrings(v, context, opts)
 
         if (k === objectSpreadKey) {
