@@ -86,7 +86,7 @@ export const defaultTag = "latest"
 
 const containerBuildSpecSchema = () =>
   baseBuildSpecSchema().keys({
-    target: joi.string().description(deline`
+    targetImage: joi.string().description(deline`
       For multi-stage Dockerfiles, specify which image/stage to build (see
       https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
       details).

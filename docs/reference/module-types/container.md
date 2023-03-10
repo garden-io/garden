@@ -59,7 +59,7 @@ build:
 
   # For multi-stage Dockerfiles, specify which image/stage to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
-  target:
+  targetImage:
 
 # A description of the module.
 description:
@@ -834,9 +834,9 @@ Maximum time in seconds to wait for build to finish.
 | -------- | ------- | -------- |
 | `number` | `1200`  | No       |
 
-### `build.target`
+### `build.targetImage`
 
-[build](#build) > target
+[build](#build) > targetImage
 
 For multi-stage Dockerfiles, specify which image/stage to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
 
