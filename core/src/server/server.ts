@@ -238,9 +238,11 @@ export class GardenServer extends EventEmitter {
         }
       }
 
-      this.analytics.trackApi("POST", ctx.originalUrl, { ...ctx.request.body })
+      const body: any = ctx.request.body
 
-      const { command, log, args, opts } = parseRequest(ctx, this.debugLog, this.commands, ctx.request.body)
+      this.analytics.trackApi("POST", ctx.originalUrl, { command: body.command })
+
+      const { command, log, args, opts } = parseRequest(ctx, this.debugLog, this.commands, body)
 
       const prepareParams = {
         log,
