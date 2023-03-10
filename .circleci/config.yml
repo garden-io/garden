@@ -251,7 +251,7 @@ commands:
       - run:
           # Need this to make sure pkg cache is scoped to specific pkg version
           name: Get pkg version
-          command: jq '.devDependencies.pkg' cli/package.json > .pkgversion
+          command: jq '.dependencies.pkg' cli/package.json > .pkgversion
       - restore_cache:
           keys:
             - pkg-v1-{{ checksum ".pkgversion" }}
