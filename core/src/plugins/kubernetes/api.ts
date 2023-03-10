@@ -47,6 +47,7 @@ import {
   KubernetesServerList,
   KubernetesList,
   KubernetesPod,
+  BaseResource,
 } from "./types"
 import { Log } from "../../logger/log-entry"
 import { kubectl } from "./kubectl"
@@ -142,10 +143,12 @@ export class KubernetesError extends GardenBaseError {
 }
 
 interface List {
-  items?: Array<any>
+  items?: Array<KubernetesObject | BaseResource>
 }
 
-type WrappedList<T extends List> = T["items"] extends Array<infer V> ? KubernetesServerList<V> : KubernetesServerList
+type WrappedList<T extends List> = T["items"] extends Array<infer V extends KubernetesObject | BaseResource>
+  ? KubernetesServerList<V>
+  : KubernetesServerList
 
 // This describes the API classes on KubeApi after they've been wrapped with KubeApi.wrapApi()
 // prettier-ignore
