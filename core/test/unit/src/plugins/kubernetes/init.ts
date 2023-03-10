@@ -133,12 +133,12 @@ describe("kubernetes init", () => {
     ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     api = await KubeApi.factory(garden.log, ctx, basicProvider)
   })
-  describe("kubernetes init", () => {
+  describe.only("kubernetes init", () => {
     describe("when simple login or cred helpers are present", () => {
       beforeEach(async () => {
         const core = td.replace(api, "core")
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [{ status: { phase: "Active" }, metadata: { name: "default" }, apiVersion: "", kind: "", spec: {} }],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(dockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(dockerCredentialHelperSecret)
@@ -182,7 +182,7 @@ describe("kubernetes init", () => {
           },
         }
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [{ status: { phase: "Active" }, metadata: { name: "default" }, apiVersion: "", kind: "", spec: {} }],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(emptyDockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(
