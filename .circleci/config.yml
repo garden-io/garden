@@ -392,7 +392,7 @@ jobs:
             cd e2e/projects/<<parameters.project>>
             git checkout .
             cd ~/project
-            npm run e2e-project --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
+            npm run e2e-project -- --project=<<parameters.project>> --env=<<parameters.environment>> --showlog -b
       - cleanup_remote_cluster:
           filter: <<parameters.project>>-testing-ci-$CIRCLE_BUILD_NUM-e2e
 
