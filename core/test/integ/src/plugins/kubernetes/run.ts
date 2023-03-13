@@ -44,7 +44,7 @@ import { getActionNamespace } from "../../../../../src/plugins/kubernetes/namesp
 import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
-import { ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
+import { ContainerBuildAction, ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
 import { KubernetesRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/run"
 import { Resolved } from "../../../../../src/actions/types"
 import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
@@ -554,6 +554,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmContainer: V1Container
     let helmNamespace: string
     let helmAction: Resolved<HelmDeployAction>
+    let apiImageBuildAction: Resolved<ContainerBuildAction>
     const resources: ContainerResourcesSpec = {
       cpu: {
         min: 123,
@@ -580,6 +581,11 @@ describe("kubernetes Pod runner functions", () => {
         action: helmGraph.getDeploy("api"),
         log: helmLog,
         graph: helmGraph,
+      })
+      apiImageBuildAction = await helmGarden.resolveAction({
+        log: helmLog,
+        graph: helmGraph,
+        action: helmGraph.getBuild("api-image"),
       })
       await executeAction({ action: helmAction, graph: helmGraph, garden: helmGarden, log: helmGarden.log })
 
@@ -853,7 +859,7 @@ describe("kubernetes Pod runner functions", () => {
         containers: [
           {
             name: "api",
-            image: "api-image:v-4d59656b5e",
+            image: "api-image:" + apiImageBuildAction.versionString(),
             imagePullPolicy: "IfNotPresent",
             args: ["python", "app.py"],
             ports: [
