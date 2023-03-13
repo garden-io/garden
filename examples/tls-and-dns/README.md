@@ -1,5 +1,3 @@
-{/* Author: ShankyJS */}
-
 # Deploy cert-manager and ExternalDNS with Garden
 
 Company A is managing a Kubernetes cluster in Google Cloud Platform and using Cloudflare to handle its DNS zone.
@@ -16,10 +14,10 @@ By deploying these two tools, Company A will be able to significantly reduce the
 
 This project deploys a small React service in a Kubernetes Cluster and exposes it to an Nginx ingress with HTTPs by using the following Kubernetes Operators:
 
-| service 	    |   version 	    |
-|---------------|---------------	|
-| cert-manager	|  v1.11.0      	|
-| external-dns  |   v6.13.3         |
+| service       |   version  |
+|---------------|------------|
+| cert-manager  |  v1.11.0   |
+| external-dns  |   v6.13.3  |
 
 By using a combination of `container` and `helm` modules supported by Garden and with minimal manual intervention, we are able to rapidly deploy and provision our cluster with everything it needs for automatic TLS and DNS.
 
@@ -53,8 +51,7 @@ To execute this scenario successfully we assume the following:
    - You will also need a Cloudflare API Token with the permissions defined [here](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/cloudflare.md#creating-cloudflare-credentials)
 4. Some prior knowledge in [cert-manager](https://cert-manager.io/docs/) and [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) and their use cases.
 
-
-# Setup
+## Setup
 
 This project requires some configuration of environment variables to work properly. We will go through each of them and explain their purpose.
 
@@ -126,19 +123,19 @@ Now your certificate should be available in your cluster. You may need to wait a
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676712552/i1225x174-snbD3cVmy3OD_ihlmqr.png" alt="" />
 
-# Using Certificates in your ingress
+## Using Certificates in your ingress
 
 You should now have a service running at the following DNS `react.${your-domain-termination}` insecurely (HTTP).
 
 <img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676712587/i1600x744-DlhjPIr3f0XI_aut50k.png" alt="" />
 
-## Staging Certificates
+### Staging Certificates
 
 We recommend testing with only staging certificates because of the limits/rates from Let's Encrypt in the production certificate generation. Use production first at your own risk (you might get quota exceeded if you generate too much certificates in a short span of time.)
 
 Now let's uncomment from line 23 to line 26 in your `project.garden.yml`, as you can see it has the staging-certificates configured by default.
 
-<img src="https://res.cloudinary.com/djp21wtxm/image/upload/v1676834801/i1600x278-0Fs34Dn9YD9e_nkq43p.png" alt="" />
+![Visually Impaired](https://res.cloudinary.com/djp21wtxm/image/upload/v1676834801/i1600x278-0Fs34Dn9YD9e_nkq43p.png "Something")
 
 After uncommenting those lines, deploy again one more time to prod.
 

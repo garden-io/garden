@@ -2,26 +2,26 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: staging-cert-wildcard
+  name: staging-cert
 spec:
   dnsNames:
-  - "*.{{ .Values.cloudflare.cfDomain }}"
+  - "react.{{ .Values.cloudflare.cfDomain }}"
   issuerRef:
     name: letsencrypt-staging
     kind: ClusterIssuer
-  secretName: staging-cert-wildcard
+  secretName: staging-cert
 {{ end }}
 ---
 {{ if .Values.generateProdCert }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: production-cert-wildcard
+  name: production-cert
 spec:
   dnsNames:
-  - "*.{{ .Values.cloudflare.cfDomain }}"
+  - "react.{{ .Values.cloudflare.cfDomain }}"
   issuerRef:
     name: letsencrypt-production
     kind: ClusterIssuer
-  secretName: production-cert-wildcard
+  secretName: production-cert
 {{ end }}
