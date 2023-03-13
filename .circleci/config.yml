@@ -257,7 +257,7 @@ commands:
             - pkg-v1-{{ checksum ".pkgversion" }}
       - run:
           name: Run dist script
-          command: npm run dist --version "<<parameters.version>>"
+          command: npm run dist -- --version "<<parameters.version>>"
       - persist_to_workspace:
           root: ./
           paths:
