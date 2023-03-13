@@ -191,7 +191,7 @@ export const syncDefaultFileModeSchema = () =>
   joi
     .number()
     .min(0)
-    .max(0o777)
+    .max(777)
     .description(
       "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
         permissionsDocs
@@ -201,7 +201,7 @@ export const syncDefaultDirectoryModeSchema = () =>
   joi
     .number()
     .min(0)
-    .max(0o777)
+    .max(777)
     .description(
       "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
         permissionsDocs
