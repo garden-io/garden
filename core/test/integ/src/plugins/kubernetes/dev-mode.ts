@@ -28,6 +28,7 @@ import { KubernetesModuleConfig } from "../../../../../src/plugins/kubernetes/ku
 import { TestGarden } from "../../../../helpers"
 import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
 import { resolveAction } from "../../../../../src/graph/actions"
+import { DeployTask } from "../../../../../src/tasks/deploy"
 
 describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden
@@ -65,7 +66,14 @@ describe("sync mode deployments and sync behavior", () => {
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true })
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      noCache: true,
+      actionModes: {
+        sync: ["deploy.sync-mode"],
+      },
+    })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -76,18 +84,15 @@ describe("sync mode deployments and sync behavior", () => {
     await init("local")
     const action = graph.getDeploy("sync-mode")
     const log = garden.log
-    // const deployTask = new DeployTask({
-    //   garden,
-    //   graph,
-    //   log,
-    //   action,
-    //   force: true,
-    //
-    //   devModeDeployNames: [action.name],
-    //
-    // })
+    const deployTask = new DeployTask({
+      garden,
+      graph,
+      log,
+      action,
+      force: true,
+    })
 
-    // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const resolvedAction = await garden.resolveAction({
       action,
       log: garden.log,
@@ -103,7 +108,8 @@ describe("sync mode deployments and sync behavior", () => {
     const workload = status.detail?.detail.workload!
 
     // First, we create a file locally and verify that it gets synced into the pod
-    await writeFile(join(module.path, "made_locally"), "foo")
+    const actionPath = action.basePath()
+    await writeFile(join(actionPath, "made_locally"), "foo")
     await sleep(300)
     const execRes = await execInPod(["/bin/sh", "-c", "cat /tmp/made_locally"], log, workload)
     expect(execRes.output.trim()).to.eql("foo")
@@ -111,7 +117,7 @@ describe("sync mode deployments and sync behavior", () => {
     // Then, we create a file in the pod and verify that it gets synced back
     await execInPod(["/bin/sh", "-c", "echo bar > /tmp/made_in_pod"], log, workload)
     await sleep(500)
-    const localPath = join(module.path, "made_in_pod")
+    const localPath = join(actionPath, "made_in_pod")
     expect(await pathExists(localPath)).to.eql(true)
     expect((await readFile(localPath)).toString().trim()).to.eql("bar")
 
@@ -122,7 +128,7 @@ describe("sync mode deployments and sync behavior", () => {
     // Clean up the files we created locally
     for (const filename of ["made_locally", "made_in_pod"]) {
       try {
-        await remove(join(module.path, filename))
+        await remove(join(actionPath, filename))
       } catch {}
     }
   })
@@ -139,18 +145,15 @@ describe("sync mode deployments and sync behavior", () => {
     action.getConfig().spec.sync!.paths[0].mode = "one-way-replica"
     action.getConfig().spec.sync!.paths[0].exclude = ["somedir"]
     const log = garden.log
-    // const deployTask = new DeployTask({
-    //   garden,
-    //   graph,
-    //   log,
-    //   action,
-    //   force: true,
-    //
-    //   devModeDeployNames: [action.name],
-    //
-    // })
+    const deployTask = new DeployTask({
+      garden,
+      graph,
+      log,
+      action,
+      force: true,
+    })
 
-    // await garden.processTasks({ tasks: [deployTask], throwOnError: true })
+    await garden.processTasks({ tasks: [deployTask], throwOnError: true })
     const resolvedAction = await garden.resolveAction({
       action,
       log: garden.log,
@@ -163,18 +166,19 @@ describe("sync mode deployments and sync behavior", () => {
     })
 
     const workload = status.detail?.detail.workload!
+    const actionPath = action.basePath()
 
     // First, we create a non-ignored file locally
-    await writeFile(join(module.path, "made_locally"), "foo")
+    await writeFile(join(actionPath, "made_locally"), "foo")
 
     // Then, we create files in each of the directories we intended to ignore in the `exclude` spec above, and
     // verify that they didn't get synced into the pod.
-    await mkdirp(join(module.path, "somedir"))
-    await writeFile(join(module.path, "somedir", "file"), "foo")
-    await mkdirp(join(module.path, "prefix-a"))
-    await writeFile(join(module.path, "prefix-a", "file"), "foo")
-    await mkdirp(join(module.path, "nested", "prefix-b"))
-    await writeFile(join(module.path, "nested", "prefix-b", "file"), "foo")
+    await mkdirp(join(actionPath, "somedir"))
+    await writeFile(join(actionPath, "somedir", "file"), "foo")
+    await mkdirp(join(actionPath, "prefix-a"))
+    await writeFile(join(actionPath, "prefix-a", "file"), "foo")
+    await mkdirp(join(actionPath, "nested", "prefix-b"))
+    await writeFile(join(actionPath, "nested", "prefix-b", "file"), "foo")
 
     await sleep(1000)
     const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
@@ -184,7 +188,7 @@ describe("sync mode deployments and sync behavior", () => {
     // Clean up the files we created locally
     for (const filename of ["made_locally", "somedir", "prefix-a", "nested"]) {
       try {
-        await remove(join(module.path, filename))
+        await remove(join(actionPath, filename))
       } catch {}
     }
 
@@ -239,11 +243,13 @@ describe("sync mode deployments and sync behavior", () => {
       const converted = convertKubernetesModuleDevModeSpec(module, service, undefined)
 
       expect(converted).to.eql({
-        syncs: [
+        paths: [
           {
             target: {
               kind: "Deployment",
               name: "some-deployment",
+              containerName: undefined,
+              podSelector: undefined,
             },
             mode: "two-way",
             sourcePath: join(module.path, "src"),
@@ -293,11 +299,13 @@ describe("sync mode deployments and sync behavior", () => {
       const converted = convertKubernetesModuleDevModeSpec(module, service, undefined)
 
       expect(converted).to.eql({
-        syncs: [
+        paths: [
           {
             target: {
               kind: "Deployment",
               name: "some-deployment",
+              containerName: undefined,
+              podSelector: undefined,
             },
             mode: "two-way",
             exclude: ["bad/things"],
@@ -326,6 +334,7 @@ describe("sync mode deployments and sync behavior", () => {
 
   describe("convertContainerDevModeSpec", () => {
     it("converts a sync spec from a container Deploy action", async () => {
+      garden.setModuleConfigs([])
       garden.setActionConfigs([
         <ContainerDeployActionConfig>{
           kind: "Deploy",
@@ -335,6 +344,7 @@ describe("sync mode deployments and sync behavior", () => {
             basePath: garden.projectRoot,
           },
           spec: {
+            image: "foo",
             sync: {
               paths: [
                 {
@@ -359,13 +369,13 @@ describe("sync mode deployments and sync behavior", () => {
       const converted = convertContainerSyncSpec(ctx, action)
 
       expect(converted).to.eql({
-        syncs: [
+        paths: [
           {
             target: {
               kind: "Deployment",
               name: "foo",
             },
-            mode: "one-way-safe",
+            mode: "two-way",
             sourcePath: join(action.basePath(), "src"),
             containerPath: "/app/src",
           },
