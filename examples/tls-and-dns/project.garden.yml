@@ -15,14 +15,13 @@ providers:
     context: arn:aws:eks:eu-central-1:431328314483:cluster/cluster-8 # Make sure to change this to your own context
     namespace: ${var.DEFAULT_NAMESPACE}
     setupIngressController: nginx
-    tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
-      - name: production-cert
-        secretRef:
-          name: production-cert
+    # tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
+    #   - name: staging-cert
+    #     secretRef:
+    #       name: staging-cert
     deploymentRegistry:
       hostname: "${var.registryHostname}"
       namespace: "${var.registryNamespace}"
-      insecure: true
     imagePullSecrets:
     - name: regcred
       namespace: default
@@ -35,8 +34,8 @@ variables:
   DEFAULT_NAMESPACE: default # Frontend will be deployed in this namespace.
   # Cert-Manager variables
   CERT_MANAGER_INSTALL_CRDS: true
-  GENERATE_PROD_CERTS: true # Set this to true if you want to generate production certificates
-  GENERATE_STG_CERTS: true # Set this to true if you want to generate staging certificates
+  GENERATE_PROD_CERTS: false # Set this to true if you want to generate production certificates
+  GENERATE_STG_CERTS: false # Set this to true if you want to generate staging certificates
   # External-DNS variables
   CF_DNS_PROVIDER: cloudflare # This demo only supports Cloudflare at the moment
   CF_DOMAIN: [ shankyjs.com ] # Has to be an array, even if you only have one domain
