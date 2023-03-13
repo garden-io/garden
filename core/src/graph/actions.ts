@@ -355,7 +355,7 @@ async function preprocessActionConfig({
         spec: {},
       },
       schema: getActionSchema(config.kind),
-      configType: `${describeActionConfig(config)}`,
+      configType: describeActionConfig(config),
       name: config.name,
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
