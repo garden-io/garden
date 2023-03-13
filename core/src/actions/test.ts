@@ -18,7 +18,6 @@ import { Action, BaseActionConfig } from "./types"
 
 export interface TestActionConfig<N extends string = any, S extends object = any>
   extends BaseRuntimeActionConfig<"Test", N, S> {
-  type: N
   timeout?: number
 }
 
