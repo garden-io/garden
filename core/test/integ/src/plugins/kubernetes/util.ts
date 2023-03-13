@@ -29,7 +29,6 @@ import {
 } from "../../../../../src/plugins/kubernetes/util"
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { getHelmTestGarden } from "./helm/common"
-import { deline } from "../../../../../src/util/string"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { Log } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
@@ -231,7 +230,7 @@ describe("util", () => {
   })
 
   describe("getTargetResource", () => {
-    it("should return the resource specified by serviceResource", async () => {
+    it("should return the resource specified by the query", async () => {
       const rawAction = helmGraph.getDeploy("api")
       const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
       await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
@@ -256,7 +255,7 @@ describe("util", () => {
       expect(result).to.eql(expected)
     })
 
-    it("should throw if no resourceSpec or serviceResource is specified", async () => {
+    it("should throw if no query is specified", async () => {
       const rawAction = helmGraph.getDeploy("api")
       const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
@@ -274,17 +273,9 @@ describe("util", () => {
             provider: ctx.provider,
             action,
             manifests,
-            query: {
-              // getServiceResourceSpec() <- Use this once it's sgv2 ready
-              /* TODO-G2 */
-            },
+            query: {},
           }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            deline`helm module api doesn't specify a serviceResource in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as sync, local mode, tasks and tests.`
-          )
+        (err) => expect(stripAnsi(err.message)).to.include("Neither kind nor podSelector set in resource query")
       )
     })
 
@@ -297,10 +288,6 @@ describe("util", () => {
 
         log,
       })
-      const resourceSpec = {
-        ...action._config.spec.defaultTarget,
-        kind: "DaemonSet" as SyncableKind,
-      }
       await expectError(
         () =>
           getTargetResource({
@@ -309,9 +296,12 @@ describe("util", () => {
             provider: ctx.provider,
             action,
             manifests,
-            query: resourceSpec,
+            query: {
+              ...action._config.spec.defaultTarget,
+              kind: "DaemonSet" as SyncableKind,
+            },
           }),
-        (err) => expect(stripAnsi(err.message)).to.equal("helm module api contains no DaemonSets.")
+        (err) => expect(stripAnsi(err.message)).to.include("does not contain specified DaemonSet")
       )
     })
 
@@ -324,10 +314,6 @@ describe("util", () => {
 
         log,
       })
-      const resourceSpec = {
-        ...action._config.spec.defaultTarget,
-        name: "foo",
-      }
       await expectError(
         () =>
           getTargetResource({
@@ -336,9 +322,12 @@ describe("util", () => {
             provider: ctx.provider,
             action,
             manifests,
-            query: resourceSpec,
+            query: {
+              ...action._config.spec.defaultTarget,
+              name: "foo",
+            },
           }),
-        (err) => expect(stripAnsi(err.message)).to.equal("helm module api does not contain specified Deployment foo")
+        (err) => expect(stripAnsi(err.message)).to.contain("does not contain specified Deployment foo")
       )
     })
 
@@ -363,13 +352,12 @@ describe("util", () => {
             action,
             manifests,
             query: {
-              // getServiceResourceSpec() <- Use this once it's sgv2 ready
-              /* TODO-G2 */
+              kind: "Deployment",
             },
           }),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "helm module api contains multiple Deployments. You must specify a resource name in the appropriate config in order to identify the correct Deployment to use."
+          expect(stripAnsi(err.message)).to.include(
+            "contains multiple Deployments. You must specify a resource name in the appropriate config in order to identify the correct Deployment to use."
           )
       )
     })
@@ -382,7 +370,7 @@ describe("util", () => {
         action,
         log,
       })
-      action._config.spec.defaultTarget!.name = `{{ template "postgresql.primary.fullname" . }}`
+      action._config.spec.defaultTarget = { name: `{{ template "postgresql.primary.fullname" . }}` }
       const result = await getTargetResource({
         ctx,
         log,
@@ -390,8 +378,8 @@ describe("util", () => {
         action,
         manifests,
         query: {
-          // getServiceResourceSpec() <- Use this once it's sgv2 ready
-          /* TODO-G2 */
+          name: "postgres",
+          kind: "StatefulSet",
         },
       })
       const expected = find(manifests, (r) => r.kind === "StatefulSet")
@@ -460,10 +448,7 @@ describe("util", () => {
 
               query: resourceSpec,
             }),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Could not find any Pod matching provided podSelector (app.kubernetes.io/name=boo,app.kubernetes.io/instance=foo) for resource in helm module api"
-            )
+          (err) => expect(stripAnsi(err.message)).to.include("Could not find any Pod matching provided podSelector")
         )
       })
     })
