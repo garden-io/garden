@@ -19,7 +19,7 @@ import { KubernetesResource } from "../types"
 import { kubernetesDeploy, getKubernetesDeployStatus } from "../kubernetes-type/handlers"
 import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
 import { DeployActionDefinition } from "../../../plugin/action-types"
-import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { Resolved } from "../../../actions/types"
 
@@ -172,8 +172,9 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
     },
   }
 
-  return new DeployAction<KubernetesDeployActionConfig, {}>({
+  return new ResolvedDeployAction<KubernetesDeployActionConfig, {}>({
     ...action["params"],
     config,
+    spec: config.spec
   })
 }
