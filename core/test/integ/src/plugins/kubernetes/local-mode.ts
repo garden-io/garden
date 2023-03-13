@@ -102,7 +102,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     expect(await pathExists(privateSshKeyPath)).to.be.true
     expect(await pathExists(publicSshKeyPath)).to.be.true
 
-    const localModePortSpec = action.getConfig().config.spec.localMode.ports[0]
+    const localModePortSpec = action.getConfig("spec").localMode.ports[0]
     const containerPort = localModePortSpec.remote
     const localPort = localModePortSpec.local
 
