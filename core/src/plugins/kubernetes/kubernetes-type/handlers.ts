@@ -58,7 +58,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       include: module.spec.files,
 
       spec: {
-        ...omit(module.spec, ["build", "name", "dependencies", "serviceResource", "tasks", "tests", "sync"]),
+        ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
         files: module.spec.files || [],
         manifests: module.spec.manifests || [],
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
@@ -178,7 +178,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   let {
     state,
     remoteResources,
-    deployedWithSyncMode: deployedWithDevMode,
+    deployedWithSyncMode,
     deployedWithLocalMode,
   } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
 
@@ -227,7 +227,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       state,
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
-      syncMode: deployedWithDevMode,
+      syncMode: deployedWithSyncMode,
       localMode: deployedWithLocalMode,
       namespaceStatuses: [namespaceStatus],
       ingresses: getK8sIngresses(remoteResources),
@@ -293,6 +293,8 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       modifiedResources = configured.updated
     }
 
+    // TODO: Similarly to `container` deployments, check if immutable fields have changed (and delete before
+    // redeploying, unless in a production environment).
     await apply({ log, ctx, api, provider: k8sCtx.provider, manifests: preparedManifests, pruneLabels })
     await waitForResources({
       namespace,

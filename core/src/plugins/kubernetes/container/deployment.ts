@@ -13,7 +13,7 @@ import { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from 
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources } from "../status/status"
-import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
@@ -29,7 +29,7 @@ import { getDeployedImageId, getResourceRequirements, getSecurityContext } from 
 import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 import { Resolved } from "../../../actions/types"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, DeploymentError } from "../../../exceptions"
 import {
   SyncableKind,
   syncableKinds,
@@ -42,20 +42,35 @@ import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 import { emitNonRepeatableWarning } from "../../../warnings"
 
 export const DEFAULT_CPU_REQUEST = "10m"
-export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
+export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters - or so they tell me
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
 export const DEFAULT_MINIMUM_REPLICAS = 1
 export const PRODUCTION_MINIMUM_REPLICAS = 3
 
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
-  const { ctx, action, log, syncMode, localMode } = params
+  const { ctx, action, log, syncMode, localMode, force } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const { deploymentStrategy } = k8sCtx.provider.config
   const deployWithSyncMode = syncMode && !!action.getSpec("sync")
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action, k8sCtx.provider)
+
+  const status = await k8sGetContainerDeployStatus(params)
+  const specChangedResourceKeys: string[] = (status.detail?.detail.selectorChangedResourceKeys) || []
+  if (specChangedResourceKeys.length > 0) {
+    const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+    await handleChangedSelector({
+      action,
+      specChangedResourceKeys,
+      ctx: k8sCtx,
+      namespace: namespaceStatus.namespaceName,
+      log,
+      production: ctx.production,
+      force,
+    })
+  }
 
   if (deploymentStrategy === "blue-green") {
     emitNonRepeatableWarning(
@@ -64,16 +79,16 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   }
   await deployContainerServiceRolling({ ...params, syncMode: deployWithSyncMode, api, imageId })
 
-  const status = await k8sGetContainerDeployStatus(params)
+  const postDeployStatus = await k8sGetContainerDeployStatus(params)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(action, status.detail?.forwardablePorts || [], log)
+  killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)
 
   if (deployWithSyncMode) {
     await startContainerDevSync({
       ctx: k8sCtx,
       log,
-      status: status.detail!,
+      status: postDeployStatus.detail!,
       action,
     })
   }
@@ -82,12 +97,12 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
     await startLocalMode({
       ctx: k8sCtx,
       log,
-      status: status.detail!,
+      status: postDeployStatus.detail!,
       action,
     })
   }
 
-  return status
+  return postDeployStatus
 }
 
 export async function startContainerDevSync({
@@ -742,4 +757,51 @@ export const deleteContainerDeploy: DeployActionHandler<"delete", ContainerDeplo
   })
 
   return { state: "ready", detail: { state: "missing", detail: {} }, outputs: {} }
+}
+
+/**
+ * Deletes matching deployed resources for the given Deploy action, unless deploying against a production environment
+ * with `force = false`.
+ *
+ * TODO: Also accept `KubernetesDeployAction`s and reuse this helper for deleting before redeploying when selectors
+ * have changed before a `kubernetes` Deploy is redeployed.
+ */
+export async function handleChangedSelector({
+  action,
+  specChangedResourceKeys,
+  ctx,
+  namespace,
+  log,
+  production,
+  force,
+}: {
+  action: ContainerDeployAction
+  specChangedResourceKeys: string[]
+  ctx: KubernetesPluginContext
+  namespace: string
+  log: Log
+  production: boolean
+  force: boolean
+}) {
+  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white("spec.selector")} and needs to be deleted before redeploying.`
+  if (production && !force) {
+    throw new DeploymentError(
+      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white("--force")} flag when deploying e.g. with the ${chalk.white("garden deploy")} command. You can also delete the resource from your cluster manually and try again.`, {
+        deployName: action.name,
+      }
+    )
+  } else {
+    if (production && force) {
+      log.warn(chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`))
+    } else if (!production) {
+      log.warn(chalk.yellow(`${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`))
+    }
+    await deleteResourceKeys({
+      ctx,
+      log,
+      provider: ctx.provider,
+      namespace,
+      keys: specChangedResourceKeys,
+    })
+  }
 }

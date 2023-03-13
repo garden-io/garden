@@ -14,8 +14,8 @@ import { sleep, deepMap } from "../../../util/util"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
-import { KubernetesResource, KubernetesServerResource, BaseResource } from "../types"
-import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit } from "lodash"
+import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
+import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { Log } from "../../../logger/log-entry"
@@ -280,6 +280,11 @@ interface ComparisonResult {
   remoteResources: KubernetesResource[]
   deployedWithSyncMode: boolean
   deployedWithLocalMode: boolean
+  /**
+   * These resources have changes in `spec.selector`, and would need to be deleted before redeploying (since Kubernetes
+   * doesn't allow updates to immutable fields).
+   */
+  selectorChangedResourceKeys: string[]
 }
 
 /**
@@ -300,19 +305,23 @@ export async function compareDeployedResources(
     getDeployedResource(ctx, ctx.provider, resource, log)
   )
   const deployedResources = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
+  const manifestsMap = keyBy(manifests, (m) => getResourceKey(m))
+  const manifestKeys = Object.keys(manifestsMap)
+  const deployedMap = keyBy(deployedResources, (m) => getResourceKey(m))
 
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
     deployedWithSyncMode: false,
     deployedWithLocalMode: false,
+    selectorChangedResourceKeys: detectChangedSpecSelector(manifestsMap, deployedMap),
   }
 
   const logDescription = (resource: KubernetesResource) => getResourceKey(resource)
 
-  const missingObjectNames = zip(manifests, maybeDeployedObjects)
-    .filter(([_, deployed]) => !deployed)
-    .map(([resource, _]) => logDescription(resource!))
+  const missingObjectNames = manifestKeys
+    .filter((k) => !deployedMap[k])
+    .map((k) => logDescription(manifestsMap[k]))
 
   if (missingObjectNames.length === manifests.length) {
     // All resources missing.
@@ -353,8 +362,9 @@ export async function compareDeployedResources(
 
   log.verbose(`Comparing expected and deployed resources...`)
 
-  for (let [newManifest, deployedResource] of zip(manifests, deployedResources) as KubernetesResource[][]) {
-    let manifest = cloneDeep(newManifest)
+  for (const key of Object.keys(manifestsMap)) {
+    let manifest = cloneDeep(manifestsMap[key])
+    let deployedResource = deployedMap[key]
 
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
@@ -365,11 +375,11 @@ export async function compareDeployedResources(
       delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
     }
 
-    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
-      if (isConfiguredForSyncMode(<SyncableResource>manifest)) {
+    if (isWorkloadResource(manifest)) {
+      if (isConfiguredForSyncMode(manifest)) {
         result.deployedWithSyncMode = true
       }
-      if (isConfiguredForLocalMode(<SyncableResource>manifest)) {
+      if (isConfiguredForLocalMode(manifest)) {
         result.deployedWithLocalMode = true
       }
     }
@@ -464,18 +474,42 @@ export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("local-mode")] === "true"
 }
 
-export async function getDeployedResource(
+function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {
+  return resource.kind === "Deployment" || resource.kind === "DaemonSet" || resource.kind === "StatefulSet" || resource.kind === "ReplicaSet"
+}
+
+type KubernetesResourceMap = { [key: string]: KubernetesResource }
+
+function detectChangedSpecSelector(manifestsMap: KubernetesResourceMap, deployedMap: KubernetesResourceMap): string[] {
+  const manifestKeys = Object.keys(manifestsMap)
+  const changedKeys: string[] = []
+  for (const k of manifestKeys) {
+    const manifest = manifestsMap[k]
+    const deployedResource = deployedMap[k]
+    if (
+      deployedResource // If no corresponding resource to the local manifest has been deployed, this will be undefined.
+      && isWorkloadResource(manifest)
+      && isWorkloadResource(deployedResource)
+      && !isEqual(manifest.spec.selector, deployedResource.spec.selector)
+    ) {
+      changedKeys.push(getResourceKey(manifest))
+    }
+  }
+  return changedKeys
+}
+
+export async function getDeployedResource<ResourceKind extends KubernetesObject>(
   ctx: PluginContext,
   provider: KubernetesProvider,
-  resource: KubernetesResource,
+  resource: KubernetesResource<ResourceKind>,
   log: Log
-): Promise<KubernetesResource | null> {
+): Promise<KubernetesResource<ResourceKind> | null> {
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = resource.metadata?.namespace || (await getAppNamespace(ctx, log, provider))
 
   try {
     const res = await api.readBySpec({ namespace, manifest: resource, log })
-    return <KubernetesResource>res
+    return <KubernetesResource<ResourceKind>>res
   } catch (err) {
     if (err.statusCode === 404) {
       return null
