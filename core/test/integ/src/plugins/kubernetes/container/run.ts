@@ -233,8 +233,6 @@ describe("runContainerTask", () => {
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
 
-      const key = "task.missing-tar-task"
-
       expect(result.results.getAll()[0]?.name).to.eql("missing-tar-task")
       expect(result.error).to.exist
       expect(result.error?.message).to.include("both sh and tar need to be installed in the image")
