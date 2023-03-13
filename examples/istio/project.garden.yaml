@@ -5,3 +5,7 @@ environments:
 providers:
   - name: local-kubernetes
     setupIngressController: false
+    namespace: 
+      name: istio-garden-example
+      labels: 
+        istio-injection: enabled
