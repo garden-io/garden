@@ -196,12 +196,12 @@ describe("util", () => {
 
   describe("getServiceResourceSpec", () => {
     it("should return the spec on the given module if it has no base module", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
       expect(getServiceResourceSpec(module, undefined)).to.eql(module.spec.serviceResource)
     })
 
     it("should return the spec on the base module if there is none on the module", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
       const baseModule = helmGraph.getModule("postgres")
       module.spec.base = "postgres"
       delete module.spec.serviceResource
@@ -210,7 +210,8 @@ describe("util", () => {
     })
 
     it("should merge the specs if both module and base have specs", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
+      module.spec.serviceResource.containerModule = "api-image"
       const baseModule = helmGraph.getModule("postgres")
       module.spec.base = "postgres"
       module.buildDependencies = { postgres: baseModule }
@@ -222,7 +223,7 @@ describe("util", () => {
     })
 
     it("returns undefined if there is no serviceResource spec", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
       delete module.spec.serviceResource
       const spec = getServiceResourceSpec(module, undefined)
       expect(spec).to.be.undefined
