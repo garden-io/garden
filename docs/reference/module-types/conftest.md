@@ -170,9 +170,6 @@ namespace: main
 
 # Set to true to use the conftest --combine flag
 combine: false
-
-# A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
-files:
 ```
 
 ## Configuration Keys
@@ -501,14 +498,6 @@ Set to true to use the conftest --combine flag
 | Type      | Default | Required |
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
-
-### `files[]`
-
-A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | Yes      |
 
 
 ## Outputs

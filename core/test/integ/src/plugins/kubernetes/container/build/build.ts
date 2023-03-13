@@ -182,7 +182,7 @@ describe("kubernetes build flow", () => {
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
       const action = cloneDeep(graph.getBuild("remote-registry-test"))
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       action.getFullVersion().versionString = "v-0000000000"
 
@@ -201,7 +201,7 @@ describe("kubernetes build flow", () => {
 
     it("should throw if attempting to pull from private registry without access", async () => {
       const action = graph.getBuild("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await expectError(
         async () =>
@@ -282,7 +282,7 @@ describe("kubernetes build flow", () => {
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
       const action = graph.getBuild("simple-service")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       action.getConfig().spec.image = "skee-ba-dee-skoop"
 
@@ -297,7 +297,7 @@ describe("kubernetes build flow", () => {
 
     it("should throw if attempting to pull from private registry without access", async () => {
       const action = graph.getBuild("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await expectError(
         async () =>
@@ -368,7 +368,7 @@ describe("kubernetes build flow", () => {
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
       const action = graph.getBuild("simple-service")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       action.getConfig().spec.image = "skee-ba-dee-skoop"
 
@@ -383,7 +383,7 @@ describe("kubernetes build flow", () => {
 
     it("should throw if attempting to pull from private registry without access", async () => {
       const action = graph.getBuild("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await expectError(
         async () =>

@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.50/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.51/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -365,8 +365,8 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       paths:
-        - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
-          # relative path. Defaults to the config's directory if no value is provided.
+        - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if
+          # no value is provided.
           source: .
 
           # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -1576,11 +1576,11 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > source
 
-POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"."`   | No       |
 
 Example:
 

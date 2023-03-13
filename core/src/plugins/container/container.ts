@@ -213,6 +213,12 @@ function convertContainerModuleRuntimeActions(
   const { module, services, tasks, tests, prepareRuntimeDependencies } = convertParams
   const actions: ContainerActionConfig[] = []
 
+  let deploymentImageId = module.spec.image
+  if (deploymentImageId) {
+    // If `module.spec.image` is set, but the image id is missing a tag, we need to add the module version as the tag.
+    deploymentImageId = containerHelpers.getModuleDeploymentImageId(module, module.version, undefined)
+  }
+
   for (const service of services) {
     const action: ContainerActionConfig = {
       kind: "Deploy",
@@ -226,7 +232,7 @@ function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
-        image: module.spec.image,
+        image: deploymentImageId,
         volumes: [], // added later
       },
     }

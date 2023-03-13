@@ -11,7 +11,7 @@ import chalk from "chalk"
 import type { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin"
-import { getServiceStatuses } from "../tasks/helpers"
+import { getDeployStatuses } from "../tasks/helpers"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
@@ -125,7 +125,7 @@ export class ActionRouter extends BaseRouter {
     )
     const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true, statusOnly: true })
 
-    return getServiceStatuses(results)
+    return getDeployStatuses(results)
   }
 
   async deployMany({ graph, deployNames, force = false, forceBuild = false, log }: DeployManyParams) {

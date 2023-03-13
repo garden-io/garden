@@ -36,6 +36,8 @@ import {
   ExecutedActionExtension,
 } from "./base"
 import { ResolvedConfigGraph } from "../graph/config-graph"
+import { ActionVersion } from "../vcs/vcs"
+import { Memoize } from "typescript-memoize"
 
 export interface BuildCopyFrom {
   build: string
@@ -141,6 +143,24 @@ export class BuildAction<
   O extends {} = any
 > extends BaseAction<C, O> {
   kind: "Build"
+
+  /**
+   * Builds from module conversions inherit their version from their parent module. This is done for compatibility
+   * reasons, so that e.g. the module version hash that appears in `${modules.*.outputs.deployment-image-id}` in
+   * a runtime step in a module config is consistent with the version hash in the image tag pushed by the `container`
+   * build. Otherwise, this would fail, since the Build version would differ from the module version.
+   *
+   * Semantically, this should be irrelevant to the user, since build cache hits or misses should be triggered for
+   * similar changes to the underlying build-relevant parts of the module config, or to the included sources.
+   */
+  @Memoize()
+  getFullVersion(): ActionVersion {
+    const actionVersion = super.getFullVersion()
+    if (this._moduleVersion) {
+      actionVersion.versionString = this.moduleVersion().versionString
+    }
+    return actionVersion
+  }
 
   /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.

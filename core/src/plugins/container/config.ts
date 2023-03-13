@@ -233,15 +233,12 @@ export const syncTargetPathSchema = () =>
 const containerSyncSchema = () =>
   joi.object().keys({
     source: joi
-      .posixPath()
-      .relativeOnly()
-      .subPathOnly()
-      .allowGlobs()
+      .string()
       .default(".")
       .description(
         deline`
-        POSIX-style path of the directory to sync to the target, relative to the config's directory.
-        Must be a relative path. Defaults to the config's directory if no value is provided.`
+        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+        `
       )
       .example("src"),
     target: syncTargetPathSchema(),

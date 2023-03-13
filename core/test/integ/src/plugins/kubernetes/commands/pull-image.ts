@@ -73,7 +73,7 @@ describe("pull-image plugin command", () => {
       const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await k8sBuildContainer({
         ctx,
@@ -105,7 +105,7 @@ describe("pull-image plugin command", () => {
       const resolvedAction = await garden.resolveAction({ action, graph, log: garden.log })
 
       // build the image
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await k8sBuildContainer({
         ctx,

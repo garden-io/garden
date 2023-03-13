@@ -5,7 +5,7 @@ order: 6
 
 ## Mounting Kubernetes ConfigMaps
 
-Very similarly to the [PeristentVolumeClaim module](./persistentvolumeclaim.md), you can also mount Kubernetes ConfigMaps on `container` modules using the `confingmap` module type ([see here for the full reference](../../reference/module-types/configmap.md)).
+Very similarly to the [PeristentVolumeClaim module](./persistentvolumeclaim.md), you can also mount Kubernetes ConfigMaps on `container` modules using the `configmap` module type ([see here for the full reference](../../reference/module-types/configmap.md)).
 
 Example:
 

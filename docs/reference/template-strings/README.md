@@ -13,6 +13,8 @@ Note that there are multiple sections, since different configuration types and f
 * [Projects](./projects.md) — Keys available to every field in Project configurations.
 * [Environments](./environments.md) — Keys available in the `environments` field in Project configurations.
 * [Providers](./providers.md) — Keys available in the `providers` field in Project configurations.
+* [Action (all fields)](./action-all-fields.md) — Keys available for built-in fields on action configs.
+* [Action specs](./action-specs.md) — Keys available for the `spec` field on action configs.
 * [Modules](./modules.md) — Keys available for Module configurations.
 * [Remote Sources](./remote-sources.md) — Keys available in the `sources` field in Project configurations.
 * [Project Outputs](./project-outputs.md) — Keys available in the `sources` field in Project configurations.

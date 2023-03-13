@@ -27,6 +27,7 @@ import { Resolved } from "../../../actions/types"
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
   workload: KubernetesWorkload | null
+  selectorChangedResourceKeys: string[]
 }
 
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail, ContainerDeployOutputs>
@@ -53,11 +54,12 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     enableSyncMode,
     enableLocalMode: localMode,
   })
-  const {
+  let {
     state,
     remoteResources,
-    deployedWithSyncMode: deployedWithDevMode,
+    deployedWithSyncMode,
     deployedWithLocalMode,
+    selectorChangedResourceKeys,
   } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(action, api, provider)
 
@@ -78,18 +80,17 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
           }
         })
 
-  const detail = {
+  const outputs: ContainerDeployOutputs = { deployedImageId: imageId }
+  const detail: ContainerServiceStatus = {
     forwardablePorts,
     ingresses,
     state,
     namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? action.versionString() : undefined,
-    detail: { remoteResources, workload },
-    syncMode: deployedWithDevMode,
+    detail: { remoteResources, workload, selectorChangedResourceKeys },
+    syncMode: deployedWithSyncMode,
     localMode: deployedWithLocalMode,
-    outputs: {
-      deployedImageId: imageId,
-    },
+    outputs,
   }
 
   if (state === "ready" && syncMode) {
@@ -105,7 +106,7 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   return {
     state: serviceStateToActionState(state),
     detail,
-    outputs: detail.outputs,
+    outputs,
   }
 }
 

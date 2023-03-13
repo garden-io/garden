@@ -202,6 +202,48 @@ describe("helmDeploy", () => {
     ])
   })
 
+  it("should deploy a chart from a converted Helm module referencing a container module version in its image tag", async () => {
+    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    const action = await garden.resolveAction<HelmDeployAction>({
+      action: graph.getDeploy("api-helm-module"),
+      log: garden.log,
+      graph,
+    })
+
+    const status = await helmDeploy({
+      ctx,
+      log: garden.log,
+      action,
+      force: false,
+      syncMode: false,
+      localMode: false,
+    })
+
+    const releaseName = getReleaseName(action)
+    const releaseStatus = await getReleaseStatus({
+      ctx,
+      action,
+      releaseName,
+      log: garden.log,
+      syncMode: false,
+      localMode: false,
+    })
+
+    expect(releaseStatus.state).to.equal("ready")
+    expect(releaseStatus.detail["values"][".garden"]).to.eql({
+      moduleName: "api-helm-module",
+      projectName: garden.projectName,
+      version: action.versionString(),
+    })
+    expect(status.detail?.namespaceStatuses).to.eql([
+      {
+        pluginName: "local-kubernetes",
+        namespaceName: "helm-test-default",
+        state: "ready",
+      },
+    ])
+  })
+
   it("should deploy a chart with sync enabled", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const action = await garden.resolveAction<HelmDeployAction>({

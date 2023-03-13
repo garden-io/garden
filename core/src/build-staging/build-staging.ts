@@ -51,7 +51,7 @@ export class BuildStaging {
     this.createdPaths = new Set()
   }
 
-  async syncFromSrc(action: BuildAction, log: Log) {
+  async syncFromSrc({ action, log, withDelete = true }: { action: BuildAction; log: Log; withDelete?: boolean }) {
     // We don't sync local exec modules to the build dir
     if (action.getConfig("buildAtSource")) {
       log.silly(`Skipping syncing from source, action ${action.longDescription()} has buildAtSource set to true`)
@@ -61,12 +61,13 @@ export class BuildStaging {
     // Normalize to relative POSIX-style paths
     const files = action.getFullVersion().files.map((f) => normalizeRelativePath(action.basePath(), f))
 
-    await this.ensureDir(action.getBuildPath())
+    const buildPath = action.getBuildPath()
+    await this.ensureDir(buildPath)
 
     await this.sync({
       sourceRoot: resolve(this.projectRoot, action.basePath()),
-      targetRoot: action.getBuildPath(),
-      withDelete: true,
+      targetRoot: buildPath,
+      withDelete,
       log,
       files,
     })
@@ -85,8 +86,6 @@ export class BuildStaging {
         )
       }
 
-      const sourceBuildPath = sourceBuild.getBuildPath()
-
       if (isAbsolute(copy.sourcePath)) {
         throw new ConfigurationError(`Source path in build dependency copy spec must be a relative path`, {
           copySpec: copy,
@@ -99,8 +98,12 @@ export class BuildStaging {
         })
       }
 
+      // init .garden/build directory of the source build before syncing it to the build directory of the target action
+      // here we do not want to remove any existing files produce by the source build action
+      await this.syncFromSrc({ action: sourceBuild, log, withDelete: false })
+
       return this.sync({
-        sourceRoot: sourceBuildPath,
+        sourceRoot: sourceBuild.getBuildPath(),
         targetRoot: buildPath,
         sourceRelPath: copy.sourcePath,
         targetRelPath: copy.targetPath,

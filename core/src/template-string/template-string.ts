@@ -26,6 +26,9 @@ import {
   arrayForEachReturnKey,
   arrayForEachFilterKey,
   ActionReference,
+  conditionalKey,
+  conditionalThenKey,
+  conditionalElseKey,
 } from "../config/common"
 import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
@@ -260,6 +263,9 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
     if (value[arrayForEachKey] !== undefined) {
       // Handle $forEach loop
       return handleForEachObject(value, context, opts)
+    } else if (value[conditionalKey] !== undefined) {
+      // Handle $if conditional
+      return handleConditional(value, context, opts)
     } else {
       // Resolve $merge keys, depth-first, leaves-first
       let output = {}
@@ -293,7 +299,7 @@ export const resolveTemplateStrings = profile(function $resolveTemplateStrings<T
   }
 })
 
-const expectedKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
+const expectedForEachKeys = [arrayForEachKey, arrayForEachReturnKey, arrayForEachFilterKey]
 
 function handleForEachObject(value: any, context: ConfigContext, opts: ContextResolveOpts) {
   // Validate input object
@@ -303,14 +309,14 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
     })
   }
 
-  const unexpectedKeys = Object.keys(value).filter((k) => !expectedKeys.includes(k))
+  const unexpectedKeys = Object.keys(value).filter((k) => !expectedForEachKeys.includes(k))
 
   if (unexpectedKeys.length > 0) {
     const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
 
-    throw new ConfigurationError(`Found one or more unexpected keys on $forEach object: ${extraKeys}`, {
+    throw new ConfigurationError(`Found one or more unexpected keys on ${arrayForEachKey} object: ${extraKeys}`, {
       value,
-      expectedKeys,
+      expectedKeys: expectedForEachKeys,
       unexpectedKeys,
     })
   }
@@ -376,6 +382,60 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
   // Need to resolve once more to handle e.g. $concat expressions
   return resolveTemplateStrings(output, context, opts)
+}
+
+const expectedConditionalKeys = [conditionalKey, conditionalThenKey, conditionalElseKey]
+
+function handleConditional(value: any, context: ConfigContext, opts: ContextResolveOpts) {
+  // Validate input object
+  const thenExpression = value[conditionalThenKey]
+  const elseExpression = value[conditionalElseKey]
+
+  if (thenExpression === undefined) {
+    throw new ConfigurationError(`Missing ${conditionalThenKey} field next to ${conditionalKey} field.`, {
+      value,
+    })
+  }
+
+  const unexpectedKeys = Object.keys(value).filter((k) => !expectedConditionalKeys.includes(k))
+
+  if (unexpectedKeys.length > 0) {
+    const extraKeys = naturalList(unexpectedKeys.map((k) => JSON.stringify(k)))
+
+    throw new ConfigurationError(`Found one or more unexpected keys on ${conditionalKey} object: ${extraKeys}`, {
+      value,
+      expectedKeys: expectedConditionalKeys,
+      unexpectedKeys,
+    })
+  }
+
+  // Try resolving the value of the $if key
+  const resolvedConditional = resolveTemplateStrings(value[conditionalKey], context, opts)
+
+  if (typeof resolvedConditional !== "boolean") {
+    if (opts.allowPartial) {
+      return value
+    } else {
+      throw new ConfigurationError(
+        `Value of ${conditionalKey} key must be (or resolve to) a boolean (got ${typeof resolvedConditional})`,
+        {
+          value,
+          resolved: resolvedConditional,
+        }
+      )
+    }
+  }
+
+  // Note: We implicitly default the $else value to undefined
+
+  const resolvedThen = resolveTemplateStrings(thenExpression, context, opts)
+  const resolvedElse = resolveTemplateStrings(elseExpression, context, opts)
+
+  if (!!resolvedConditional) {
+    return resolvedThen
+  } else {
+    return resolvedElse
+  }
 }
 
 /**

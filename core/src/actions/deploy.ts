@@ -16,9 +16,7 @@ import {
 import { Action, BaseActionConfig } from "./types"
 
 export interface DeployActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Deploy", N, S> {
-  type: N
-}
+  extends BaseRuntimeActionConfig<"Deploy", N, S> {}
 
 export const deployActionConfigSchema = () => baseRuntimeActionConfigSchema()
 

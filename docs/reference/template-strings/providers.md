@@ -1,9 +1,9 @@
 ---
 order: 3
-title: Provider configuration context
+title: Provider template context
 ---
 
-# Provider configuration context
+# Provider template context
 
 The following keys are available in template strings under the `providers` key (or `environments[].providers`) in project configs.
 

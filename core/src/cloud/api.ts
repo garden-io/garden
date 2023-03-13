@@ -261,10 +261,11 @@ export class CloudApi {
       throw new EnterpriseApiError(errMsg, { tokenResponse })
     }
     try {
+      const validityMs = tokenResponse.tokenValidity || 604800000
       await globalConfigStore.set("clientAuthTokens", domain, {
         token: tokenResponse.token,
         refreshToken: tokenResponse.refreshToken,
-        validity: add(new Date(), { seconds: tokenResponse.tokenValidity / 1000 }),
+        validity: add(new Date(), { seconds: validityMs / 1000 }),
       })
       log.debug("Saved client auth token to config store")
     } catch (error) {

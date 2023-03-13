@@ -59,7 +59,7 @@ build:
 
   # For multi-stage Dockerfiles, specify which image/stage to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
-  target:
+  targetImage:
 
 # A description of the module.
 description:
@@ -312,8 +312,8 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       paths:
-        - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
-          # relative path. Defaults to the config's directory if no value is provided.
+        - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if
+          # no value is provided.
           source: .
 
           # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -834,9 +834,9 @@ Maximum time in seconds to wait for build to finish.
 | -------- | ------- | -------- |
 | `number` | `1200`  | No       |
 
-### `build.target`
+### `build.targetImage`
 
-[build](#build) > target
+[build](#build) > targetImage
 
 For multi-stage Dockerfiles, specify which image/stage to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
 
@@ -1408,11 +1408,11 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > source
 
-POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"."`   | No       |
 
 Example:
 

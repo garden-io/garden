@@ -8,11 +8,11 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://docs.garden.io/?utm_source=github">Docs</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://github.com/garden-io/garden/tree/0.12.50/examples">Examples</a>
+  <a href="https://github.com/garden-io/garden/tree/0.12.51/examples">Examples</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://garden.io/blog/?utm_source=github">Blog</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://discord.gg/gxeuDgp6Xt">Discord</a>
+  <a href="https://discord.gg/FrmhuUjFs6">Discord</a>
 </div>
 
 ### **What is Garden?**
@@ -36,7 +36,7 @@ _If you’re using Garden or if you like the project, please ★ star this repos
 
 ### **Getting started**
 
-The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/5-min-quickstart).
+The fastest way to get started with Garden is by following our [quickstart guide](https://docs.garden.io/basics/quickstart).
 
 ### **Who should use Garden?**
 

@@ -1,9 +1,9 @@
 ---
 order: 1
-title: Project configuration context
+title: Project template context
 ---
 
-# Project configuration context
+# Project template context
 
 The following keys are available in any template strings within Project configurations, except the `name` field (which cannot be templated). See the [Environment](./environments.md) and [Provider](./providers.md) sections for additional keys available when configuring `environments` and `providers`, respectively.
 

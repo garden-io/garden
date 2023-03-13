@@ -248,17 +248,35 @@ export function convertContainerSyncSpec(
   action: Resolved<ContainerDeployAction>
 ): KubernetesDeploySyncSpec | undefined {
   const spec = action.getSpec()
+  const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
+  const target = { kind, name: action.name }
+  const sourcePath = action.basePath()
+  const syncSpec = spec.sync
 
-  if (!spec.sync) {
+  if (!syncSpec || !target) {
     return
   }
 
-  const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
-  const target = { kind, name: action.name }
-
-  return {
-    paths: convertSyncPaths(action.basePath(), spec.sync.paths, target),
+  const sync: KubernetesDeploySyncSpec = {
+    paths: convertSyncPaths(sourcePath, syncSpec.paths, target),
   }
+
+  if (syncSpec.command || syncSpec.args) {
+    if (target.kind && target.name) {
+      sync.overrides = [
+        {
+          target: {
+            kind: target.kind,
+            name: target.name,
+          },
+          command: syncSpec.command,
+          args: syncSpec.args,
+        },
+      ]
+    }
+  }
+
+  return sync
 }
 
 function convertSyncPaths(
@@ -416,7 +434,7 @@ export async function configureSyncMode({
     if (!podSpec.initContainers) {
       podSpec.initContainers = []
     }
-    if (!podSpec.initContainers.find((c) => c.name === k8sSyncUtilImageName)) {
+    if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
       const initContainer = {
         name: "garden-dev-init",
         image: k8sSyncUtilImageName,

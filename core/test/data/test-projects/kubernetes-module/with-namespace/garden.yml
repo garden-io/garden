@@ -36,7 +36,11 @@ serviceResource:
   name: busybox-deployment
 tests:
   - name: with-namespace-test
+    dependencies:
+      - with-namespace
     command: [sh, -c, "echo $POD_NAMESPACE"]
 tasks:
   - name: with-namespace-task
+    dependencies:
+      - with-namespace
     command: [sh, -c, "echo $POD_NAMESPACE"]
