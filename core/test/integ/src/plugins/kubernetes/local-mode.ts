@@ -96,7 +96,7 @@ describe("local mode deployments and ssh tunneling behavior", () => {
     expect(status.detail?.mode).to.eql("local")
 
     const actionSshKeysPath = ProxySshKeystore.getSshDirPath(ctx.gardenDirPath)
-    const actionSshKeyName = action.name
+    const actionSshKeyName = action.key()
     const privateSshKeyPath = join(actionSshKeysPath, actionSshKeyName)
     const publicSshKeyPath = join(actionSshKeysPath, `${actionSshKeyName}.pub`)
     expect(await pathExists(privateSshKeyPath)).to.be.true
