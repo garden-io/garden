@@ -65,6 +65,13 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
   resultSchema = () =>
     joi.object().keys({
       // Using runtime action schema here because it's a superset of baseActionSchema
-      config: baseRuntimeActionConfigSchema(),
+      config: baseRuntimeActionConfigSchema().keys({
+        // allow timeout field that can exists in Run and Test actions
+        timeout: joi
+          .number()
+          .integer()
+          .optional()
+          .description("The optional timeout for some kinds of runtime action to complete, in seconds."),
+      }),
     })
 }
