@@ -21,6 +21,7 @@
     "arrow-body-style": "off",
     "jsdoc/check-indentation": "off",
     "jsdoc/newline-after-description": "off",
+    "no-console": "error",
     "max-len": [
       "warn",
       {
