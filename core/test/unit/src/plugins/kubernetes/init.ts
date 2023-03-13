@@ -133,7 +133,7 @@ describe("kubernetes init", () => {
     ctx.tools["kubernetes.kubectl"] = new PluginTool(kubectlSpec)
     api = await KubeApi.factory(garden.log, ctx, basicProvider)
   })
-  describe.only("kubernetes init", () => {
+  describe("kubernetes init", () => {
     describe("when simple login or cred helpers are present", () => {
       beforeEach(async () => {
         const core = td.replace(api, "core")
