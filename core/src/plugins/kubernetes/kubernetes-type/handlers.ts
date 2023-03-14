@@ -101,7 +101,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
           resource,
           files,
           manifests,
-          namespace: module.spec.namespace
+          namespace: module.spec.namespace,
         },
       })
     }
@@ -129,7 +129,7 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
           resource,
           files,
           manifests,
-          namespace: module.spec.namespace
+          namespace: module.spec.namespace,
         },
       })
     }
@@ -498,7 +498,7 @@ async function configureSpecialModesForManifests({
     )
 
     // The "local-mode" annotation is set in `configureLocalMode`.
-    await configureLocalMode({
+    const configured = await configureLocalMode({
       ctx,
       spec: spec.localMode,
       defaultTarget: spec.defaultTarget,
@@ -513,7 +513,7 @@ async function configureSpecialModesForManifests({
       .filter((m) => !(m.kind === target!.kind && target?.metadata.name === m.metadata.name))
       .concat(<KubernetesResource<BaseResource>>target)
 
-    return { updated: [target], manifests: preparedManifests }
+    return { updated: [configured.updated], manifests: preparedManifests }
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     // The "sync-mode" annotation is set in `configureDevMode`.
     return configureSyncMode({
