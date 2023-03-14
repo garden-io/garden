@@ -9,7 +9,7 @@
 import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { remove, set } from "lodash"
-import { KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
+import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
 import {
   k8sReverseProxyImageName,
@@ -97,6 +97,11 @@ interface ConfigureLocalModeParams extends BaseLocalModeParams {
 
 interface StartLocalModeParams extends BaseLocalModeParams {
   namespace: string
+}
+
+interface ConfiguredLocalMode {
+  updated: SyncableResource
+  manifests: KubernetesResource<BaseResource, string>[]
 }
 
 export class KeyPair {
@@ -419,8 +424,10 @@ function patchSyncableManifest(
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
-export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { ctx, spec, manifest, action, log } = configParams
+export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<ConfiguredLocalMode> {
+  // TODO-G2: ensure immutability of the input data, allow multiple manifests configuration
+  const { ctx, spec, manifest, manifests, action, log } = configParams
+
   const containerName = spec.target?.containerName
 
   const section = action.key()
@@ -447,6 +454,8 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   const localModePorts = prepareLocalModePorts()
 
   patchSyncableManifest(manifest, targetContainer.name, localModeEnvVars, localModePorts)
+
+  return { updated: manifest, manifests }
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {
