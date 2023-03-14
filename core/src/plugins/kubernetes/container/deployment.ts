@@ -9,11 +9,7 @@
 import chalk from "chalk"
 import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
 import { extend, keyBy, omit, set } from "lodash"
-import {
-  ContainerDeployAction,
-  ContainerDeploySpec,
-  ContainerVolumeSpec,
-} from "../../container/moduleConfig"
+import { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from "../../container/moduleConfig"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources } from "../status/status"
@@ -499,7 +495,7 @@ export async function createWorkloadManifest({
   if (mode === "local" && localModeSpec) {
     const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
 
-    await configureLocalMode({
+    const configured = await configureLocalMode({
       ctx,
       spec: localModeSpec,
       defaultTarget: target,
@@ -508,6 +504,8 @@ export async function createWorkloadManifest({
       action,
       log,
     })
+
+    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated
   } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
 
@@ -771,18 +769,31 @@ export async function handleChangedSelector({
   production: boolean
   force: boolean
 }) {
-  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white("spec.selector")} and needs to be deleted before redeploying.`
+  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white(
+    "spec.selector"
+  )} and needs to be deleted before redeploying.`
   if (production && !force) {
     throw new DeploymentError(
-      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white("--force")} flag when deploying e.g. with the ${chalk.white("garden deploy")} command. You can also delete the resource from your cluster manually and try again.`, {
+      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
+        "--force"
+      )} flag when deploying e.g. with the ${chalk.white(
+        "garden deploy"
+      )} command. You can also delete the resource from your cluster manually and try again.`,
+      {
         deployName: action.name,
       }
     )
   } else {
     if (production && force) {
-      log.warn(chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`))
+      log.warn(
+        chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
+      )
     } else if (!production) {
-      log.warn(chalk.yellow(`${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`))
+      log.warn(
+        chalk.yellow(
+          `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
+        )
+      )
     }
     await deleteResourceKeys({
       ctx,
