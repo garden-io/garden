@@ -188,7 +188,7 @@ export async function startLocalMode({
   await startServiceInLocalMode({
     ctx,
     spec: localModeSpec,
-    targetResource,
+    manifest: targetResource,
     action,
     namespace,
     log,
@@ -499,7 +499,7 @@ export async function createWorkloadManifest({
     await configureLocalMode({
       ctx,
       spec: localModeSpec,
-      targetResource: workload,
+      manifest: workload,
       action,
       log,
     })

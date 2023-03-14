@@ -85,7 +85,7 @@ export const kubernetesLocalModeSchema = () =>
 interface BaseLocalModeParams {
   ctx: PluginContext
   spec: KubernetesLocalModeSpec
-  targetResource: SyncableResource
+  manifest: SyncableResource
   action: Resolved<SyncableRuntimeAction>
   log: Log
 }
@@ -417,7 +417,7 @@ function patchSyncableManifest(
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { ctx, spec, targetResource, action, log } = configParams
+  const { ctx, spec, manifest, action, log } = configParams
   const containerName = spec.target?.containerName
 
   const section = action.key()
@@ -430,7 +430,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     ),
   })
 
-  set(targetResource, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
+  set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
 
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, action.key())
   log.debug({
@@ -438,12 +438,12 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
-  const targetContainer = getResourceContainer(targetResource, containerName)
+  const targetContainer = getResourceContainer(manifest, containerName)
   const portSpecs = validateContainerPorts(targetContainer, spec)
   const localModeEnvVars = await prepareLocalModeEnvVars(portSpecs, keyPair)
   const localModePorts = prepareLocalModePorts()
 
-  patchSyncableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
+  patchSyncableManifest(manifest, targetContainer.name, localModeEnvVars, localModePorts)
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {
@@ -818,14 +818,12 @@ function composeSshTunnelProcessTree(
  *   3. Starts reverse port forwarding from the proxy's containerPort to the local app port.
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
-  const { targetResource, action, namespace, log } = configParams
-  const targetResourceId = getResourceKey(targetResource)
+  const { manifest, action, namespace, log } = configParams
+  const targetResourceId = getResourceKey(manifest)
 
   // Validate the target
-  if (!isConfiguredForLocalMode(targetResource)) {
-    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, {
-      targetResource,
-    })
+  if (!isConfiguredForLocalMode(manifest)) {
+    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, { manifest })
   }
 
   const section = action.key()
@@ -868,7 +866,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     }
   }
 
-  const targetNamespace = targetResource.metadata.namespace || namespace
+  const targetNamespace = manifest.metadata.namespace || namespace
   const kubectlPortForward = await getKubectlPortForwardProcess(
     configParams,
     localSshPort,
