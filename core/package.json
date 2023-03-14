@@ -100,7 +100,7 @@
     "log-symbols": "^4.0.0",
     "micromatch": "^4.0.4",
     "mimic-fn": "^3.1.0",
-    "minimatch": "^3.0.4",
+    "minimatch": "^3.0.5",
     "minimist": "^1.2.6",
     "moment": "^2.29.4",
     "nan": "^2.14.1",
