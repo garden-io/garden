@@ -26,7 +26,11 @@ import { expectError, grouped } from "../../../../../helpers"
 import { kilobytesToString, millicpuToString } from "../../../../../../src/plugins/kubernetes/util"
 import { getDeployedImageId, getResourceRequirements } from "../../../../../../src/plugins/kubernetes/container/util"
 import { isConfiguredForSyncMode } from "../../../../../../src/plugins/kubernetes/status/status"
-import { ContainerDeployAction, ContainerDeployActionConfig, ContainerDeployOutputs } from "../../../../../../src/plugins/container/moduleConfig"
+import {
+  ContainerDeployAction,
+  ContainerDeployActionConfig,
+  ContainerDeployOutputs,
+} from "../../../../../../src/plugins/container/moduleConfig"
 import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { gardenAnnotationKey } from "../../../../../../src/util/string"
@@ -884,7 +888,7 @@ describe("kubernetes container deployment handlers", () => {
         log: garden.log,
       })
 
-      const specChangedResourceKeys: string[] = (status.detail?.detail.selectorChangedResourceKeys) || []
+      const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
       expect(specChangedResourceKeys).to.eql(["Deployment/simple-service"])
 
       await handleChangedSelector({
@@ -911,7 +915,7 @@ describe("kubernetes container deployment handlers", () => {
         log: garden.log,
       })
 
-      const specChangedResourceKeys: string[] = (status.detail?.detail.selectorChangedResourceKeys) || []
+      const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
       expect(specChangedResourceKeys).to.eql(["Deployment/simple-service"])
 
       await handleChangedSelector({
@@ -938,7 +942,7 @@ describe("kubernetes container deployment handlers", () => {
         log: garden.log,
       })
 
-      const specChangedResourceKeys: string[] = (status.detail?.detail.selectorChangedResourceKeys) || []
+      const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
       expect(specChangedResourceKeys).to.eql(["Deployment/simple-service"])
 
       await expectError(
@@ -953,12 +957,13 @@ describe("kubernetes container deployment handlers", () => {
             force: false, // <---
           }),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal("Deploy simple-service was deployed with a different spec.selector and needs to be deleted before redeploying. Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the --force flag when deploying e.g. with the garden deploy command. You can also delete the resource from your cluster manually and try again.")
+          expect(stripAnsi(err.message)).to.equal(
+            "Deploy simple-service was deployed with a different spec.selector and needs to be deleted before redeploying. Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the --force flag when deploying e.g. with the garden deploy command. You can also delete the resource from your cluster manually and try again."
+          )
       )
 
       expect(await simpleServiceIsRunning(action)).to.eql(true)
       await cleanupSpecChangedSimpleService(action)
     })
   })
-
 })
