@@ -127,7 +127,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
   // Local mode always takes precedence over sync mode.
   if (mode === "local" && spec.localMode && !isEmpty(spec.localMode) && localModeTarget) {
-    await configureLocalMode({
+    const configured = await configureLocalMode({
       ctx,
       spec: spec.localMode,
       defaultTarget: spec.defaultTarget,
@@ -136,7 +136,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       action,
       log,
     })
-    await apply({ log, ctx, api, provider, manifests: [localModeTarget], namespace })
+    await apply({ log, ctx, api, provider, manifests: [configured.updated], namespace })
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     const configured = await configureSyncMode({
       ctx,
