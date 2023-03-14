@@ -22,6 +22,7 @@ import chalk from "chalk"
 import { TestActionHandler } from "../../plugin/action-types"
 import { KubernetesTestAction } from "./kubernetes-type/test"
 import { runResultToActionState } from "../../actions/base"
+import { HelmPodTestAction } from "./helm/config"
 
 // TODO-G2: figure out how to get rid of the any case
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
@@ -52,7 +53,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   }
 }
 
-export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction | KubernetesTestAction) {
+export function getTestResultKey(ctx: PluginContext, action: StoreTestResultParams["action"]) {
   const key = `${ctx.projectName}--${action.name}--${action.versionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
@@ -61,7 +62,7 @@ export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction
 interface StoreTestResultParams {
   ctx: PluginContext
   log: Log
-  action: ContainerTestAction | KubernetesTestAction
+  action: ContainerTestAction | KubernetesTestAction | HelmPodTestAction
   result: TestResult
 }
 

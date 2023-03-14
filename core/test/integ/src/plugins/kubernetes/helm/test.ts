@@ -15,7 +15,7 @@ import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 
-describe("testHelmModule", () => {
+describe("Helm Pod Test", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 

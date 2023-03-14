@@ -46,6 +46,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const service = services[0] // There is always exactly one service in kubernetes modules
     const serviceResource = module.spec.serviceResource
 
+    const files = module.spec.files || []
+    const manifests = module.spec.manifests || []
+
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
       type: "kubernetes",
@@ -59,8 +62,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
-        files: module.spec.files || [],
-        manifests: module.spec.manifests || [],
+        files,
+        manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
     }
@@ -95,6 +98,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          files,
+          manifests,
           namespace: module.spec.namespace
         },
       })
@@ -121,6 +126,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          files,
+          manifests,
           namespace: module.spec.namespace
         },
       })

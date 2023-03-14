@@ -14,7 +14,7 @@ import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { getContainerTestGarden } from "./container"
-import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { ContainerRunAction } from "../../../../../../src/plugins/container/config"
 
@@ -51,7 +51,7 @@ describe("runContainerTask", () => {
     garden.events.eventLog = []
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
@@ -90,7 +90,7 @@ describe("runContainerTask", () => {
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
@@ -120,7 +120,7 @@ describe("runContainerTask", () => {
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     await expectError(
       async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),

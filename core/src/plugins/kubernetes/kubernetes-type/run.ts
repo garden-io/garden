@@ -11,22 +11,23 @@ import {
   KubernetesCommonRunSpec,
   KubernetesPluginContext,
   KubernetesTargetResourceSpec,
-  runPodSpecWhitelistDescription,
-  targetResourceSpecSchema,
+  runPodResourceSchema,
+  runPodSpecSchema,
 } from "../config"
 import { k8sGetRunResult, storeRunResult } from "../run-results"
 import { getActionNamespaceStatus } from "../namespace"
-import { STATIC_DIR } from "../../../constants"
 import type { RunActionDefinition } from "../../../plugin/action-types"
 import { dedent } from "../../../util/string"
 import type { RunAction, RunActionConfig } from "../../../actions/run"
-import { joi, createSchema } from "../../../config/common"
+import { createSchema } from "../../../config/common"
 import { containerRunOutputSchema } from "../../container/config"
 import type { V1PodSpec } from "@kubernetes/client-node"
-import { readFileSync } from "fs"
-import { join } from "path"
-import { runOrTest } from "./common"
+import { runOrTestWithPod } from "./common"
 import { runResultToActionState } from "../../../actions/base"
+import { kubernetesFilesSchema, kubernetesManifestsSchema } from "./config"
+import { KubernetesResource } from "../types"
+import { KubernetesKustomizeSpec } from "./kustomize"
+import { ObjectSchema } from "@hapi/joi"
 
 export interface KubernetesRunOutputs {
   log: string
@@ -34,55 +35,52 @@ export interface KubernetesRunOutputs {
 export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
 
 export interface KubernetesRunActionSpec extends KubernetesCommonRunSpec {
+  files: string[]
+  kustomize?: KubernetesKustomizeSpec
+  manifests: KubernetesResource[]
   resource?: KubernetesTargetResourceSpec
   podSpec?: V1PodSpec
 }
 export type KubernetesRunActionConfig = RunActionConfig<"kubernetes-pod", KubernetesRunActionSpec>
 export type KubernetesRunAction = RunAction<KubernetesRunActionConfig, KubernetesRunOutputs>
 
-// Need to use a sync read to avoid having to refactor createGardenPlugin()
-// The `podspec-v1.json` file is copied from the handy
-// kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.18.1-standalone).
-const jsonSchema = () => JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "podspec-v1.json")).toString())
+// Maintaining this cache to avoid errors when `kubernetesRunPodSchema` is called more than once with the same `kind`.
+const runSchemas: { [name: string]: ObjectSchema } = {}
 
-export const kubernetesRunSchema = createSchema({
-  name: "Run:kubernetes-pod",
-  keys: () => ({
-    ...kubernetesCommonRunSchemaKeys(),
-    resource: targetResourceSpecSchema().description(
-      dedent`
-        Specify a Kubernetes resource to derive the Pod spec from for the run.
-
-        This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously (say, by configuring a dependency on a \`helm\` or \`kubernetes\` Deploy).
-
-        The following fields from the Pod will be used (if present) when executing the task:
-        ${runPodSpecWhitelistDescription()}
-        `
-    ),
-    // TODO: allow reading the pod spec from a file
-    podSpec: joi
-      .object()
-      .jsonSchema({ ...jsonSchema(), type: "object" })
-      .description(
-        dedent`
-        Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the run, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
-
-        The following Pod spec fields from the will be used (if present) when executing the task:
-        ${runPodSpecWhitelistDescription()}
-      `
+export const kubernetesRunPodSchema = (kind: string) => {
+  const name = `${kind}:kubernetes-pod`
+  if (runSchemas[name]) {
+    return runSchemas[name]
+  }
+  const schema = createSchema({
+    name,
+    keys: () => ({
+      ...kubernetesCommonRunSchemaKeys(),
+      manifests: kubernetesManifestsSchema()
+        .description(
+        `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-  }),
-  xor: ["resource", "podSpec"],
-})
+      files: kubernetesFilesSchema()
+        .description(
+        `POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the ${kind}.`
+  ),
+      resource: runPodResourceSchema(kind),
+      podSpec: runPodSpecSchema(kind),
+    }),
+    xor: ["resource", "podSpec"],
+  })()
+  runSchemas[name] = schema
+  return schema
+}
 
 export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunAction> => ({
   name: "kubernetes-pod",
   docs: dedent`
-    Run an ad-hoc instance of a Kubernetes Pod and wait for it to complete.
+    Executes a Run in an ad-hoc instance of a Kubernetes Pod and waits for it to complete.
 
-    TODO-G2
+    The pod spec can be provided directly via the \`podSpec\` field, or the \`resource\` field can be used to find the pod spec in the Kubernetes manifests provided via the \`files\` and/or \`manifests\` fields.
   `,
-  schema: kubernetesRunSchema(),
+  schema: kubernetesRunPodSchema("Run"),
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
     run: async (params) => {
@@ -96,7 +94,7 @@ export const kubernetesRunDefinition = (): RunActionDefinition<KubernetesRunActi
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTest({ ...params, ctx: k8sCtx, namespace })
+      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
       const detail = {
         ...res,

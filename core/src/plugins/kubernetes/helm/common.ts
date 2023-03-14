@@ -15,7 +15,7 @@ import cryptoRandomString = require("crypto-random-string")
 import { PluginContext } from "../../../plugin-context"
 import { Log } from "../../../logger/log-entry"
 import { getActionNamespace } from "../namespace"
-import { KubernetesResource } from "../types"
+import { HelmRuntimeAction, KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./module-config"
@@ -48,7 +48,7 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: Log, namespac
 
 interface PrepareTemplatesParams {
   ctx: KubernetesPluginContext
-  action: Resolved<HelmDeployAction>
+  action: Resolved<HelmRuntimeAction>
   log: Log
 }
 
@@ -156,7 +156,7 @@ type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
   const { ctx, action, log, namespace, releaseName, valuesPath, reference } = params
-  const timeout = action.getSpec("timeout")
+  const timeout = action.getSpec().timeout
 
   const res = await helm({
     ctx,
@@ -238,8 +238,8 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
 /**
  * Get the full absolute path to the chart, within the action build path, if applicable.
  */
-export async function getChartPath(action: Resolved<HelmDeployAction>) {
-  const chartSpec = action.getSpec("chart") || {}
+export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
+  const chartSpec = action.getSpec().chart || {}
   const chartPath = chartSpec.path || "."
   const chartDir = resolve(action.getBuildPath(), chartPath)
   const yamlPath = resolve(chartDir, helmChartYamlFilename)
@@ -271,11 +271,14 @@ export async function getChartPath(action: Resolved<HelmDeployAction>) {
 /**
  * Get the value files arguments that should be applied to any helm install/render command.
  */
-export async function getValueArgs({ action, valuesPath }: { action: Resolved<HelmDeployAction>; valuesPath: string }) {
+export async function getValueArgs({
+  action,
+  valuesPath
+}: { action: Resolved<HelmRuntimeAction>; valuesPath: string }) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
   const valueFiles = action
-    .getSpec("valueFiles")
+    .getSpec().valueFiles
     .map((f) => resolve(action.getBuildPath(), f))
     .concat([valuesPath])
 
@@ -289,8 +292,8 @@ export async function getValueArgs({ action, valuesPath }: { action: Resolved<He
 /**
  * Get the release name to use for the module/chart (the module name, unless overridden in config).
  */
-export function getReleaseName(action: Resolved<HelmDeployAction>) {
-  return action.getSpec("releaseName") || action.name
+export function getReleaseName(action: Resolved<HelmRuntimeAction>) {
+  return action.getSpec().releaseName || action.name
 }
 
 /**

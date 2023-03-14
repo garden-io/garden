@@ -23,6 +23,7 @@ import { Action } from "../../actions/types"
 import { RunResult } from "../../plugin/base"
 import { RunActionHandler } from "../../plugin/action-types"
 import { KubernetesRunAction } from "./kubernetes-type/run"
+import { HelmPodRunAction } from "./helm/config"
 
 // TODO-G2: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -69,7 +70,7 @@ export function getRunResultKey(ctx: PluginContext, action: Action) {
 interface StoreTaskResultParams {
   ctx: PluginContext
   log: Log
-  action: ContainerRunAction | KubernetesRunAction
+  action: ContainerRunAction | KubernetesRunAction | HelmPodRunAction
   result: RunResult
 }
 
@@ -108,7 +109,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
 /**
  * Clear the stored result for the given task. No-op if no result had been stored for it.
  */
-export async function clearTaskResult({
+export async function clearRunResult({
   ctx,
   log,
   action,

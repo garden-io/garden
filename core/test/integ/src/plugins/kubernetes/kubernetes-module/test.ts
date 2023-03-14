@@ -16,7 +16,7 @@ import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { KubernetesTestAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/test"
 
-describe("testKubernetesModule", () => {
+describe("kubernetes-type pod Test", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 

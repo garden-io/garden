@@ -9,8 +9,8 @@
 import { storeTestResult } from "../test-results"
 import { KubernetesPluginContext } from "../config"
 import { getActionNamespaceStatus } from "../namespace"
-import { runOrTest } from "./common"
-import { KubernetesRunActionSpec, KubernetesRunOutputs, kubernetesRunOutputsSchema, kubernetesRunSchema } from "./run"
+import { runOrTestWithPod } from "./common"
+import { KubernetesRunActionSpec, KubernetesRunOutputs, kubernetesRunOutputsSchema, kubernetesRunPodSchema } from "./run"
 import { TestAction, TestActionConfig } from "../../../actions/test"
 import { TestActionDefinition } from "../../../plugin/action-types"
 import { dedent } from "../../../util/string"
@@ -24,16 +24,14 @@ interface KubernetesTestActionSpec extends KubernetesRunActionSpec {}
 export type KubernetesTestActionConfig = TestActionConfig<"kubernetes-pod", KubernetesTestActionSpec>
 export type KubernetesTestAction = TestAction<KubernetesTestActionConfig, KubernetesTestOutputs>
 
-const kubernetesTestSchema = () => kubernetesRunSchema()
-
 export const kubernetesTestDefinition = (): TestActionDefinition<KubernetesTestAction> => ({
   name: "kubernetes-pod",
   docs: dedent`
-    Run a test in an ad-hoc instance of a Kubernetes Pod.
+    Executes a Test in an ad-hoc instance of a Kubernetes Pod and waits for it to complete.
 
-    TODO-G2
+    The pod spec can be provided directly via the \`podSpec\` field, or the \`resource\` field can be used to find the pod spec in the Kubernetes manifests provided via the \`files\` and/or \`manifests\` fields.
   `,
-  schema: kubernetesTestSchema(),
+  schema: kubernetesRunPodSchema("Test"),
   runtimeOutputsSchema: kubernetesTestOutputsSchema(),
   handlers: {
     run: async (params) => {
@@ -48,7 +46,7 @@ export const kubernetesTestDefinition = (): TestActionDefinition<KubernetesTestA
       })
       const namespace = namespaceStatus.namespaceName
 
-      const res = await runOrTest({ ...params, ctx: k8sCtx, namespace })
+      const res = await runOrTestWithPod({ ...params, ctx: k8sCtx, namespace })
 
       const detail = {
         testName: action.name,

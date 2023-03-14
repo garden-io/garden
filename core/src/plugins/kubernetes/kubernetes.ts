@@ -52,6 +52,7 @@ import { kustomizeSpec } from "./kubernetes-type/kustomize"
 import { kubernetesRunDefinition } from "./kubernetes-type/run"
 import { kubernetesTestDefinition } from "./kubernetes-type/test"
 import { syncPause, syncResume, syncStatus } from "./commands/sync"
+import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod"
 
 export async function configureProvider({
   namespace,
@@ -182,8 +183,8 @@ export const gardenPlugin = () =>
         configmapDeployDefinition(),
         persistentvolumeclaimDeployDefinition(),
       ],
-      Run: [kubernetesRunDefinition()],
-      Test: [kubernetesTestDefinition()],
+      Run: [kubernetesRunDefinition(), helmPodRunDefinition()],
+      Test: [kubernetesTestDefinition(), helmPodTestDefinition()],
     },
 
     extendActionTypes: {
