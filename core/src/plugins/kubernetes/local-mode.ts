@@ -6,10 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
+import { containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { remove, set } from "lodash"
-import { SyncableResource } from "./types"
+import { SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
 import {
   k8sReverseProxyImageName,
@@ -32,10 +32,9 @@ import { kubectl } from "./kubectl"
 import { OsCommand, ProcessMessage, RecoverableProcess, RetryInfo } from "../../util/recoverable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
-import { HelmDeployAction } from "./helm/config"
-import { KubernetesDeployAction } from "./kubernetes-type/config"
 import getPort = require("get-port")
 import touch = require("touch")
+import { Resolved } from "../../actions/types"
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode"
 
@@ -73,7 +72,7 @@ interface BaseLocalModeParams {
   ctx: PluginContext
   spec: ContainerLocalModeSpec
   targetResource: SyncableResource
-  action: ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
+  action: Resolved<SyncableRuntimeAction>
   log: Log
 }
 

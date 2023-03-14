@@ -96,6 +96,8 @@ export type SyncableResource = KubernetesWorkload | KubernetesPod
 export type SyncableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 export const syncableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
+export type SyncableRuntimeAction = ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
+
 export type HelmRuntimeAction = HelmDeployAction | HelmPodRunAction | HelmPodTestAction
 
 export type SupportedRuntimeActions =
