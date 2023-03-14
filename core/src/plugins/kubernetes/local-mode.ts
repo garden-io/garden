@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
+import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { remove, set } from "lodash"
 import { SyncableResource, SyncableRuntimeAction } from "./types"
@@ -49,6 +49,20 @@ export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
   target?: KubernetesTargetResourceSpec
 }
 
+export function convertContainerLocalModeSpec(
+  ctx: KubernetesPluginContext,
+  action: Resolved<ContainerDeployAction>
+): KubernetesLocalModeSpec | undefined {
+  const spec = action.getSpec()
+  const localModeSpec = spec.localMode
+
+  if (!localModeSpec) {
+    return
+  }
+
+  return { ...localModeSpec }
+}
+
 export const kubernetesLocalModeSchema = () =>
   containerLocalModeSchema().keys({
     target: targetResourceSpecSchema().description(
@@ -70,15 +84,13 @@ export const kubernetesLocalModeSchema = () =>
 
 interface BaseLocalModeParams {
   ctx: PluginContext
-  spec: ContainerLocalModeSpec
+  spec: KubernetesLocalModeSpec
   targetResource: SyncableResource
   action: Resolved<SyncableRuntimeAction>
   log: Log
 }
 
-interface ConfigureLocalModeParams extends BaseLocalModeParams {
-  containerName?: string
-}
+interface ConfigureLocalModeParams extends BaseLocalModeParams {}
 
 interface StartLocalModeParams extends BaseLocalModeParams {
   namespace: string
@@ -405,7 +417,8 @@ function patchSyncableManifest(
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { ctx, spec, targetResource, action, log, containerName } = configParams
+  const { ctx, spec, targetResource, action, log } = configParams
+  const containerName = spec.target?.containerName
 
   const section = action.key()
 

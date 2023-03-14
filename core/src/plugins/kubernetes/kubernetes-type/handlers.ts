@@ -503,7 +503,6 @@ async function configureSpecialModesForManifests({
       targetResource: target,
       action,
       log,
-      containerName: spec.localMode.target?.containerName,
     })
 
     // Replace the original resource with the modified spec

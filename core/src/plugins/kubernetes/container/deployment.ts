@@ -9,7 +9,11 @@
 import chalk from "chalk"
 import { V1Affinity, V1Container, V1DaemonSet, V1Deployment, V1PodSpec, V1VolumeMount } from "@kubernetes/client-node"
 import { extend, keyBy, omit, set } from "lodash"
-import { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from "../../container/moduleConfig"
+import {
+  ContainerDeployAction,
+  ContainerDeploySpec,
+  ContainerVolumeSpec,
+} from "../../container/moduleConfig"
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources } from "../status/status"
@@ -26,7 +30,7 @@ import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
 import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { ConfigurationError, DeploymentError } from "../../../exceptions"
@@ -488,7 +492,7 @@ export async function createWorkloadManifest({
   }
 
   const syncSpec = convertContainerSyncSpec(ctx, action)
-  const localModeSpec = spec.localMode
+  const localModeSpec = convertContainerLocalModeSpec(ctx, action)
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && localModeSpec) {
