@@ -22,10 +22,12 @@ title: Action Types
   * [`exec`](./Run/exec.md)
   * [`container`](./Run/container.md)
   * [`kubernetes-pod`](./Run/kubernetes-pod.md)
+  * [`helm-pod`](./Run/helm-pod.md)
 * `kind`
   * [`exec`](./Test/exec.md)
   * [`container`](./Test/container.md)
   * [`hadolint`](./Test/hadolint.md)
   * [`kubernetes-pod`](./Test/kubernetes-pod.md)
+  * [`helm-pod`](./Test/helm-pod.md)
   * [`conftest`](./Test/conftest.md)
   * [`conftest-helm`](./Test/conftest-helm.md)

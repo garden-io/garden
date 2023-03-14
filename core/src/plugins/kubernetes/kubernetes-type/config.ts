@@ -57,14 +57,20 @@ const kubernetesResourceSchema = () =>
     })
     .unknown(true)
 
+export const kubernetesFilesSchema = () =>
+  joiSparseArray(joi.posixPath().subPathOnly()).description(
+      "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
+    )
+
+export const kubernetesManifestsSchema = () =>
+  joiSparseArray(kubernetesResourceSchema()).description(
+      "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
+    )
+
 export const kubernetesCommonDeploySpecKeys = () => ({
-  files: joiSparseArray(joi.posixPath().subPathOnly()).description(
-    "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
-  ),
+  files: kubernetesFilesSchema(),
   kustomize: kustomizeSpecSchema(),
-  manifests: joiSparseArray(kubernetesResourceSchema()).description(
-    "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
-  ),
+  manifests: kubernetesManifestsSchema(),
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),

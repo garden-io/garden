@@ -14,10 +14,10 @@ import { getKubernetesTestGarden } from "./common"
 import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
-import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
 import { KubernetesRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/run"
 
-describe("runKubernetesTask", () => {
+describe("kubernetes-type pod Run", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 
@@ -44,7 +44,7 @@ describe("runKubernetesTask", () => {
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
@@ -82,7 +82,7 @@ describe("runKubernetesTask", () => {
     // Clear any existing task result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 

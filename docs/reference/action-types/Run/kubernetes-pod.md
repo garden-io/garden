@@ -7,9 +7,9 @@ tocTitle: "`kubernetes-pod` Run"
 
 ## Description
 
-Run an ad-hoc instance of a Kubernetes Pod and wait for it to complete.
+Executes a Run in an ad-hoc instance of a Kubernetes Pod and waits for it to complete.
 
-TODO-G2
+The pod spec can be provided directly via the `podSpec` field, or the `resource` field can be used to find the pod spec in the Kubernetes manifests provided via the `files` and/or `manifests` fields.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -186,12 +186,29 @@ spec:
   # characters.
   namespace:
 
-  # Specify a Kubernetes resource to derive the Pod spec from for the run.
+  # List of Kubernetes resource manifests to be searched (using `resource`e for the pod spec for the Run. If `files`
+  # is also specified, this is combined with the manifests read from the files.
+  manifests:
+    - # The API version of the resource.
+      apiVersion:
+
+      # The kind of the resource.
+      kind:
+
+      metadata:
+        # The name of the resource.
+        name:
+
+  # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
+  # Garden template strings, which will be resolved before searching the manifests for the resource that contains the
+  # Pod spec for the Run.
+  files: []
+
+  # Specify a Kubernetes resource to derive the Pod spec from for the Run.
   #
-  # This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously
-  # (say, by configuring a dependency on a `helm` or `kubernetes` Deploy).
+  # This resource will be selected from the manifests provided in this Run's `files` or `manifests` config field.
   #
-  # The following fields from the Pod will be used (if present) when executing the task:
+  # The following fields from the Pod will be used (if present) when executing the Run:
   # * `affinity`
   # * `automountServiceAccountToken`
   # * `containers`
@@ -236,10 +253,10 @@ spec:
     containerName:
 
   # Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be
-  # modified for the run, including overriding with other fields you may set here (such as `args` and `env`), and
+  # modified for the Run, including overriding with other fields you may set here (such as `args` and `env`), and
   # removing certain fields that are not supported.
   #
-  # The following Pod spec fields from the will be used (if present) when executing the task:
+  # The following Pod spec fields from the selected `resource` will be used (if present) when executing the Run:
   # * `affinity`
   # * `automountServiceAccountToken`
   # * `containers`
@@ -923,15 +940,73 @@ A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (
 | -------- | -------- |
 | `string` | No       |
 
+### `spec.manifests[]`
+
+[spec](#spec) > manifests
+
+List of Kubernetes resource manifests to be searched (using `resource`e for the pod spec for the Run. If `files` is also specified, this is combined with the manifests read from the files.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `spec.manifests[].apiVersion`
+
+[spec](#spec) > [manifests](#specmanifests) > apiVersion
+
+The API version of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.manifests[].kind`
+
+[spec](#spec) > [manifests](#specmanifests) > kind
+
+The kind of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.manifests[].metadata`
+
+[spec](#spec) > [manifests](#specmanifests) > metadata
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+### `spec.manifests[].metadata.name`
+
+[spec](#spec) > [manifests](#specmanifests) > [metadata](#specmanifestsmetadata) > name
+
+The name of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.files[]`
+
+[spec](#spec) > files
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the Run.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
 ### `spec.resource`
 
 [spec](#spec) > resource
 
-Specify a Kubernetes resource to derive the Pod spec from for the run.
+Specify a Kubernetes resource to derive the Pod spec from for the Run.
 
-This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously (say, by configuring a dependency on a `helm` or `kubernetes` Deploy).
+This resource will be selected from the manifests provided in this Run's `files` or `manifests` config field.
 
-The following fields from the Pod will be used (if present) when executing the task:
+The following fields from the Pod will be used (if present) when executing the Run:
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`
@@ -1009,9 +1084,9 @@ The name of a container in the target. Specify this if the target contains more 
 
 [spec](#spec) > podSpec
 
-Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the run, including overriding with other fields you may set here (such as `args` and `env`), and removing certain fields that are not supported.
+Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the Run, including overriding with other fields you may set here (such as `args` and `env`), and removing certain fields that are not supported.
 
-The following Pod spec fields from the will be used (if present) when executing the task:
+The following Pod spec fields from the selected `resource` will be used (if present) when executing the Run:
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`

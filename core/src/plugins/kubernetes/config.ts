@@ -37,6 +37,9 @@ import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecIncludeFields } from "./run"
 import { SyncDefaults, syncDefaultsSchema } from "./sync"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
+import { readFileSync } from "fs-extra"
+import { join } from "path"
+import { STATIC_DIR } from "../../constants"
 
 export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
 
@@ -975,6 +978,36 @@ export const kubernetesCommonRunSchemaKeys = () => ({
   artifacts: joiSparseArray(containerArtifactSchema()).description(artifactsDescription),
   namespace: namespaceNameSchema(),
 })
+
+export const runPodResourceSchema = (kind: string) =>
+  targetResourceSpecSchema().description(
+      dedent`
+        Specify a Kubernetes resource to derive the Pod spec from for the ${kind}.
+
+        This resource will be selected from the manifests provided in this ${kind}'s \`files\` or \`manifests\` config field.
+
+        The following fields from the Pod will be used (if present) when executing the ${kind}:
+        ${runPodSpecWhitelistDescription()}
+        `
+    )
+
+// Need to use a sync read to avoid having to refactor createGardenPlugin()
+// The `podspec-v1.json` file is copied from the handy
+// kubernetes-json-schema repo (https://github.com/instrumenta/kubernetes-json-schema/tree/master/v1.18.1-standalone).
+const jsonSchema = () => JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "podspec-v1.json")).toString())
+
+// TODO: allow reading the pod spec from a file
+export const runPodSpecSchema = (kind: string) => joi
+  .object()
+  .jsonSchema({ ...jsonSchema(), type: "object" })
+  .description(
+    dedent`
+    Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the ${kind}, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
+
+    The following Pod spec fields from the selected \`resource\` will be used (if present) when executing the ${kind}:
+    ${runPodSpecWhitelistDescription()}
+  `
+  )
 
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()
