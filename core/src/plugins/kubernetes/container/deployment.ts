@@ -277,6 +277,11 @@ interface CreateDeploymentParams {
   production: boolean
 }
 
+const getDefaultWorkloadTarget = (w: KubernetesResource<V1Deployment | V1DaemonSet>) => ({
+  kind: <SyncableKind>w.kind,
+  name: w.metadata.name,
+})
+
 export async function createWorkloadManifest({
   ctx,
   api,
@@ -493,12 +498,10 @@ export async function createWorkloadManifest({
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && localModeSpec) {
-    const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
-
     const configured = await configureLocalMode({
       ctx,
       spec: localModeSpec,
-      defaultTarget: target,
+      defaultTarget: getDefaultWorkloadTarget(workload),
       manifest: workload,
       manifests: [workload],
       action,
@@ -508,15 +511,12 @@ export async function createWorkloadManifest({
     workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated
   } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
-
-    const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
-
     const configured = await configureSyncMode({
       ctx,
       log,
       provider,
       action,
-      defaultTarget: target,
+      defaultTarget: getDefaultWorkloadTarget(workload),
       manifests: [workload],
       spec: syncSpec,
     })
