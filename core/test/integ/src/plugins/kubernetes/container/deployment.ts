@@ -859,7 +859,9 @@ describe("kubernetes container deployment handlers", () => {
     const cleanupSpecChangedSimpleService = async (
       action: ResolvedDeployAction<ContainerDeployActionConfig, ContainerDeployOutputs>
     ) => {
-      await api.apps.deleteNamespacedDeployment(action.name, provider.config.namespace!.name)
+      try {
+        await api.apps.deleteNamespacedDeployment(action.name, provider.config.namespace!.name)
+      } catch (err) {}
     }
 
     const simpleServiceIsRunning = async (
@@ -877,8 +879,9 @@ describe("kubernetes container deployment handlers", () => {
       }
     }
 
-    it("should redeploy if production = false", async () => {
+    it("should delete resources if production = false", async () => {
       const action = await resolveDeployAction("simple-service")
+      await cleanupSpecChangedSimpleService(action) // Clean up in case we're re-running the test case
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
@@ -904,8 +907,9 @@ describe("kubernetes container deployment handlers", () => {
       expect(await simpleServiceIsRunning(action)).to.eql(false)
     })
 
-    it("should redeploy if production = true anad force = true", async () => {
+    it("should delete resources if production = true anad force = true", async () => {
       const action = await resolveDeployAction("simple-service")
+      await cleanupSpecChangedSimpleService(action) // Clean up in case we're re-running the test case
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
@@ -931,8 +935,9 @@ describe("kubernetes container deployment handlers", () => {
       expect(await simpleServiceIsRunning(action)).to.eql(false)
     })
 
-    it("should not redeploy and throw an error if production = true anad force = false", async () => {
+    it("should not delete resources and throw an error if production = true anad force = false", async () => {
       const action = await resolveDeployAction("simple-service")
+      await cleanupSpecChangedSimpleService(action) // Clean up in case we're re-running the test case
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
