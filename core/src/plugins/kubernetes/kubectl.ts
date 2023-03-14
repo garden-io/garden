@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { encodeYamlMulti } from "../../util/util"
+import { encodeYamlMulti } from "../../util/serialization"
 import { ExecParams, PluginTool } from "../../util/ext-tools"
 import { Log } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"

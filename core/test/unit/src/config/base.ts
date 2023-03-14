@@ -19,7 +19,7 @@ import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
-import { safeDumpYaml } from "../../../../src/util/util"
+import { safeDumpYaml } from "../../../../src/util/serialization"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")

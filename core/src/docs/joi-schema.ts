@@ -8,9 +8,10 @@
 
 import { uniq, isFunction, extend, isArray, isPlainObject } from "lodash"
 import { BaseKeyDescription, isArrayType } from "./common"
-import { findByName, safeDumpYaml } from "../util/util"
+import { findByName } from "../util/util"
 import { JsonKeyDescription } from "./json-schema"
 import { JoiDescription } from "../config/common"
+import { safeDumpYaml } from "../util/serialization"
 
 export class JoiKeyDescription extends BaseKeyDescription {
   private joiDescription: JoiDescription

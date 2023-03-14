@@ -13,7 +13,8 @@ import { PluginEventBroker } from "../plugin-context"
 import { runStatus } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
 import { makeTempDir } from "../util/fs"
-import { renderOutputStream, uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
+import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 export const testRouter = (baseParams: BaseRouterParams) =>

@@ -26,7 +26,7 @@ import { resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { ConfigurationError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
-import { omitUndefined } from "../util/util"
+import { omitUndefined } from "../util/objects"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu

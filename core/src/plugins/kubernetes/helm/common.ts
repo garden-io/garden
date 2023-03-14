@@ -25,7 +25,7 @@ import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { safeDumpYaml } from "../../../util/util"
+import { safeDumpYaml } from "../../../util/serialization"
 import { HelmDeployAction } from "./config"
 import { Resolved } from "../../../actions/types"
 

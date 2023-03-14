@@ -12,14 +12,7 @@ import { resolve, join } from "path"
 import chalk from "chalk"
 import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
-import {
-  shutdown,
-  sleep,
-  getPackageVersion,
-  uuidv4,
-  registerCleanupFunction,
-  getCloudDistributionName,
-} from "../util/util"
+import { shutdown, sleep, getPackageVersion, registerCleanupFunction, getCloudDistributionName } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
@@ -66,6 +59,7 @@ import { printEmoji, renderDivider } from "../logger/util"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess } from "../process"
 import { ServeCommand } from "../commands/serve"
+import { uuidv4 } from "../util/random"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments: EnvironmentConfig[] = gardenOpts.environmentName

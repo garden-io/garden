@@ -12,22 +12,19 @@ import { includes } from "lodash"
 import {
   pickKeys,
   getEnvVarName,
-  deepOmitUndefined,
-  deepFilter,
-  splitLast,
   exec,
   createOutputStream,
   makeErrorMsg,
   renderOutputStream,
   spawn,
   relationshipClasses,
-  safeDumpYaml,
   isValidDateInstance,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
-import { splitFirst } from "../../../../src/util/util"
+import { splitLast, splitFirst } from "../../../../src/util/string"
 import { getLogger } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
+import { safeDumpYaml } from "../../../../src/util/serialization"
 
 function isLinuxOrDarwin() {
   return process.platform === "darwin" || process.platform === "linux"
@@ -236,84 +233,6 @@ describe("util", () => {
       await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), {
         contains: "Could not find banana(s): foo, bar",
       })
-    })
-  })
-
-  describe("deepFilter", () => {
-    const fn = (v) => v !== 99
-
-    it("should filter keys in a simple object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: 99,
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2 })
-    })
-
-    it("should filter keys in a nested object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: { d: 3, e: 99 },
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: { d: 3 } })
-    })
-
-    it("should filter values in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [3, 99],
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [3] })
-    })
-
-    it("should filter keys in objects in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [{ d: 3, e: 99 }],
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
-    })
-  })
-
-  describe("deepOmitUndefined", () => {
-    it("should omit keys with undefined values in a simple object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: undefined,
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2 })
-    })
-
-    it("should omit keys with undefined values in a nested object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: { d: 3, e: undefined },
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: { d: 3 } })
-    })
-
-    it("should omit undefined values in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [3, undefined],
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [3] })
-    })
-
-    it("should omit undefined values in objects in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [{ d: 3, e: undefined }],
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
     })
   })
 

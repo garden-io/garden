@@ -11,7 +11,7 @@ import { platform, release } from "os"
 import ci = require("ci-info")
 import { uniq } from "lodash"
 import { AnalyticsGlobalConfig } from "../config-store/global"
-import { getPackageVersion, uuidv4, sleep } from "../util/util"
+import { getPackageVersion, sleep } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import hasha = require("hasha")
@@ -22,6 +22,7 @@ import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
+import { uuidv4 } from "../util/random"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"

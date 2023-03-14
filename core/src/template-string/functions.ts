@@ -14,7 +14,7 @@ import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
 import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
 import { safeLoad, safeLoadAll } from "js-yaml"
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 import indentString from "indent-string"
 
 interface ExampleArgument {

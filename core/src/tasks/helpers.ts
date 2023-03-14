@@ -17,7 +17,7 @@ import { InternalError } from "../exceptions"
 import type { GraphResults } from "../graph/results"
 import type { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import type { GetRunResult } from "../plugin/handlers/Run/get-result"
-import { splitLast } from "../util/util"
+import { splitLast } from "../util/string"
 import type { ResolveActionTask } from "./resolve-action"
 
 // NOTE: This is necessary to avoid circular imports.

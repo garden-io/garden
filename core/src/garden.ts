@@ -37,7 +37,6 @@ import {
   getNames,
   findByNames,
   duplicatesByKey,
-  uuidv4,
   getCloudDistributionName,
 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
@@ -141,6 +140,7 @@ import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, r
 import { ActionTypeDefinition } from "./plugin/action-types"
 import { Task } from "./tasks/base"
 import { GraphResultFromTask, GraphResults } from "./graph/results"
+import { uuidv4 } from "./util/random"
 
 const defaultLocalAddress = "localhost"
 

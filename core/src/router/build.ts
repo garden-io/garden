@@ -8,12 +8,13 @@
 
 import chalk from "chalk"
 
-import { renderOutputStream, uuidv4 } from "../util/util"
+import { renderOutputStream } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BuildState } from "../plugin/handlers/Build/get-status"
 import { BaseRouterParams, createActionRouter } from "./base"
 import { ActionState } from "../actions/types"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
+import { uuidv4 } from "../util/random"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Build", baseParams, {

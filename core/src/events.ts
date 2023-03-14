@@ -19,7 +19,7 @@ import type { BuildState } from "./plugin/handlers/Build/get-status"
 import type { ActionReference } from "./config/common"
 import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
-import { sanitizeValue } from "./logger/logger"
+import { sanitizeValue } from "./util/logging"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 

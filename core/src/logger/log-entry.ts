@@ -134,6 +134,11 @@ export class Log {
     this.section = params.section
   }
 
+  toSanitizedValue() {
+    // TODO: add a bit more info here
+    return "<Log>"
+  }
+
   private createLogEntry(params: CreateLogEntryParams) {
     // If fixLevel is set to true, all children must have a level geq to the level
     // of the parent entry that set the flag.

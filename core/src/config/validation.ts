@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
-import { uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
 import { metadataFromDescription } from "./common"
 
 export const joiPathPlaceholder = uuidv4()

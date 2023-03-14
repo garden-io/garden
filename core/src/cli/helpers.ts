@@ -15,7 +15,7 @@ import { platform, release } from "os"
 import qs from "qs"
 import stringWidth from "string-width"
 import { maxBy, zip } from "lodash"
-import { Logger, formatGardenErrorWithDetail } from "../logger/logger"
+import { Logger } from "../logger/logger"
 
 import { ParameterValues, Parameter, Parameters } from "./params"
 import { GardenBaseError, InternalError, ParameterError, toGardenError } from "../exceptions"
@@ -481,7 +481,7 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
       error,
     })
     // Output error details to console when log level is silly
-    errorLog.silly(formatGardenErrorWithDetail(error))
+    errorLog.silly(error.formatWithDetail())
   }
 
   if (logger.getWriters().find((w) => w instanceof FileWriter)) {
