@@ -189,6 +189,7 @@ export async function startLocalMode({
     ctx,
     spec: localModeSpec,
     manifest: targetResource,
+    manifests: status.detail.remoteResources,
     action,
     namespace,
     log,
@@ -503,6 +504,7 @@ export async function createWorkloadManifest({
       spec: localModeSpec,
       defaultTarget: target,
       manifest: workload,
+      manifests: [workload],
       action,
       log,
     })

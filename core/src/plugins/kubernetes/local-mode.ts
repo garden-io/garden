@@ -9,7 +9,7 @@
 import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
 import { remove, set } from "lodash"
-import { SyncableResource, SyncableRuntimeAction } from "./types"
+import { KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
 import {
   k8sReverseProxyImageName,
@@ -86,6 +86,7 @@ interface BaseLocalModeParams {
   ctx: PluginContext
   spec: KubernetesLocalModeSpec
   manifest: SyncableResource
+  manifests: KubernetesResource[]
   action: Resolved<SyncableRuntimeAction>
   log: Log
 }

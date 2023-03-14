@@ -132,6 +132,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       spec: spec.localMode,
       defaultTarget: spec.defaultTarget,
       manifest: localModeTarget,
+      manifests,
       action,
       log,
     })
@@ -173,6 +174,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       ctx,
       spec: spec.localMode,
       manifest: localModeTarget,
+      manifests,
       action,
       namespace,
       log,
