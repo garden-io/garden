@@ -45,7 +45,7 @@ describe("sync plugin commands", () => {
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
-    const action = graph.getDeploy("dev-mode")
+    const action = graph.getDeploy("sync-mode")
 
     // The deploy task actually creates the sync
     const deployTask = new DeployTask({
