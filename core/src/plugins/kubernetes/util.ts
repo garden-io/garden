@@ -639,22 +639,8 @@ export async function getTargetResource({
   }
 
   // No manifests provided, need to look up in the remote namespace
-  if (!targetName) {
-    // This should be caught in config/schema validation
-    throw new InternalError(`Must specify name in resource/target query`, { query })
-  }
-
   try {
-    if (targetKind === "Deployment") {
-      target = await api.apps.readNamespacedDeployment(targetName, namespace)
-    } else if (targetKind === "DaemonSet") {
-      target = await api.apps.readNamespacedDaemonSet(targetName, namespace)
-    } else if (targetKind === "StatefulSet") {
-      target = await api.apps.readNamespacedStatefulSet(targetName, namespace)
-    } else {
-      // This should be caught in config/schema validation
-      throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
-    }
+    target = await readTargetResource({ api, namespace, query })
     return target
   } catch (err) {
     if (err.statusCode === 404) {
@@ -667,6 +653,35 @@ export async function getTargetResource({
     } else {
       throw err
     }
+  }
+}
+
+export async function readTargetResource({
+  api,
+  namespace,
+  query
+}: {
+  api: KubeApi
+  namespace: string
+  query: KubernetesTargetResourceSpec
+}): Promise<SyncableResource> {
+  const targetKind = query.kind
+  let targetName = query.name
+
+  if (!targetName) {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Must specify name in resource/target query`, { query })
+  }
+
+  if (targetKind === "Deployment") {
+    return api.apps.readNamespacedDeployment(targetName, namespace)
+  } else if (targetKind === "DaemonSet") {
+    return api.apps.readNamespacedDaemonSet(targetName, namespace)
+  } else if (targetKind === "StatefulSet") {
+    return api.apps.readNamespacedStatefulSet(targetName, namespace)
+  } else {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
   }
 }
 

@@ -26,9 +26,7 @@ import type {
   ContainerTestAction,
 } from "../container/config"
 import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config"
-import type { KubernetesDeployAction } from "./kubernetes-type/config"
-import { KubernetesRunAction } from "./kubernetes-type/run"
-import { KubernetesTestAction } from "./kubernetes-type/test"
+import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config"
 
 export interface BaseResource {
   apiVersion: string

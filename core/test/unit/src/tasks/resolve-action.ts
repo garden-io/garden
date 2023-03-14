@@ -18,7 +18,7 @@ import {
   makeTestGarden,
   getDataDir,
   expectError,
-  getAllTaskResults,
+  getAllRunResults,
   getDefaultProjectConfig,
 } from "../../../helpers"
 
@@ -265,7 +265,7 @@ describe("ResolveActionTask", () => {
       const task = await getTask("Deploy", "foo")
       const result = await garden.processTask(task, log, { throwOnError: true })
 
-      const all = getAllTaskResults(result?.dependencyResults!)
+      const all = getAllRunResults(result?.dependencyResults!)
 
       const resolvedBuild = all["resolve-action.build.foo"]!.outputs.resolvedAction
       const buildVersion = resolvedBuild.versionString()

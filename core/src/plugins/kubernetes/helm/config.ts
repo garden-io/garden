@@ -22,9 +22,9 @@ import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
 import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
 import { RunActionConfig, RunAction } from "../../../actions/run"
-import { KubernetesRunOutputs } from "../kubernetes-type/run"
 import { TestAction, TestActionConfig } from "../../../actions/test"
 import { ObjectSchema } from "@hapi/joi"
+import { KubernetesRunOutputs } from "../kubernetes-type/config"
 
 // DEPLOY //
 

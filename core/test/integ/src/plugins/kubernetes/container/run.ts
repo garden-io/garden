@@ -36,7 +36,7 @@ describe("runContainerTask", () => {
     await garden.close()
   })
 
-  it("should run a basic task and emit log events", async () => {
+  it("should run a basic Run and emit log events", async () => {
     const action = graph.getRun("echo-task-with-sleep")
 
     const testTask = new RunTask({
@@ -76,7 +76,7 @@ describe("runContainerTask", () => {
     expect(storedResult).to.exist
   })
 
-  it("should not store task results if cacheResult=false", async () => {
+  it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
     action.getConfig().spec.cacheResult = false
 

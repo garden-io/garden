@@ -21,12 +21,14 @@ title: Action Types
 * `kind`
   * [`exec`](./Run/exec.md)
   * [`container`](./Run/container.md)
+  * [`kubernetes-exec`](./Run/kubernetes-exec.md)
   * [`kubernetes-pod`](./Run/kubernetes-pod.md)
   * [`helm-pod`](./Run/helm-pod.md)
 * `kind`
   * [`exec`](./Test/exec.md)
   * [`container`](./Test/container.md)
   * [`hadolint`](./Test/hadolint.md)
+  * [`kubernetes-exec`](./Test/kubernetes-exec.md)
   * [`kubernetes-pod`](./Test/kubernetes-pod.md)
   * [`helm-pod`](./Test/helm-pod.md)
   * [`conftest`](./Test/conftest.md)

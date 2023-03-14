@@ -2824,7 +2824,7 @@ detail:
 
     state:
 
-# Local file paths to any exported artifacts from the task run.
+# Local file paths to any exported artifacts from the Run's execution.
 artifacts:
 ```
 

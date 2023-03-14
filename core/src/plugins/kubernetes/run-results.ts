@@ -22,8 +22,8 @@ import { runResultToActionState } from "../../actions/base"
 import { Action } from "../../actions/types"
 import { RunResult } from "../../plugin/base"
 import { RunActionHandler } from "../../plugin/action-types"
-import { KubernetesRunAction } from "./kubernetes-type/run"
 import { HelmPodRunAction } from "./helm/config"
+import { KubernetesRunAction } from "./kubernetes-type/config"
 
 // TODO-G2: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
@@ -100,7 +100,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store task result: ${err.message}`))
+    log.warn(chalk.yellow(`Unable to store Run result: ${err.message}`))
   }
 
   return data

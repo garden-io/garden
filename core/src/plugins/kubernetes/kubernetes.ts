@@ -49,10 +49,10 @@ import { helmDeployDefinition, helmDeployDocs } from "./helm/action"
 import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
 import { kustomizeSpec } from "./kubernetes-type/kustomize"
-import { kubernetesRunDefinition } from "./kubernetes-type/run"
-import { kubernetesTestDefinition } from "./kubernetes-type/test"
 import { syncPause, syncResume, syncStatus } from "./commands/sync"
 import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod"
+import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod"
+import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec"
 
 export async function configureProvider({
   namespace,
@@ -183,8 +183,8 @@ export const gardenPlugin = () =>
         configmapDeployDefinition(),
         persistentvolumeclaimDeployDefinition(),
       ],
-      Run: [kubernetesRunDefinition(), helmPodRunDefinition()],
-      Test: [kubernetesTestDefinition(), helmPodTestDefinition()],
+      Run: [kubernetesExecRunDefinition(), kubernetesPodRunDefinition(), helmPodRunDefinition()],
+      Test: [kubernetesExecTestDefinition(), kubernetesPodTestDefinition(), helmPodTestDefinition()],
     },
 
     extendActionTypes: {

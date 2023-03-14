@@ -135,7 +135,7 @@ describe("GetRunResultCommand", () => {
     })
   })
 
-  it("should return empty result if task result does not exist", async () => {
+  it("should return empty result if Run result does not exist", async () => {
     const name = "task-c"
 
     const res = await command.action({

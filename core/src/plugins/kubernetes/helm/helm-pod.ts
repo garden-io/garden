@@ -15,7 +15,6 @@ import { Log } from "../../../logger/log-entry"
 import { RunActionDefinition, TestActionDefinition } from "../../../plugin/action-types"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { KubernetesPluginContext } from "../config"
-import { kubernetesRunOutputsSchema } from "../kubernetes-type/run"
 import { getActionNamespaceStatus } from "../namespace"
 import { k8sGetRunResult, storeRunResult } from "../run-results"
 import { getResourceContainer, getResourcePodSpec, getTargetResource, makePodName } from "../util"
@@ -23,6 +22,7 @@ import { HelmPodRunAction, helmPodRunSchema, HelmPodTestAction } from "./config"
 import { runAndCopy } from "../run"
 import { filterManifests, prepareManifests, prepareTemplates } from "./common"
 import { storeTestResult } from "../test-results"
+import { kubernetesRunOutputsSchema } from "../kubernetes-type/config"
 
 const helmRunPodOutputsSchema = kubernetesRunOutputsSchema
 const helmTestPodOutputsSchema = helmRunPodOutputsSchema

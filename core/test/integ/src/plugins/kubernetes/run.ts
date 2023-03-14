@@ -45,7 +45,7 @@ import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
 import { ContainerBuildAction, ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
-import { KubernetesRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/run"
+import { KubernetesPodRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
 import { Resolved } from "../../../../../src/actions/types"
 import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
 import { executeAction } from "../../../../../src/graph/actions"
@@ -1095,7 +1095,7 @@ describe("kubernetes Pod runner functions", () => {
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         const result = await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1119,7 +1119,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should clean up the created Pod", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
         const podName = makePodName("test", action.name)
 
         await runAndCopy({
@@ -1146,7 +1146,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should handle globs when copying artifacts out of the container", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("globs-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1169,7 +1169,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should not throw when an artifact is missing", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1242,7 +1242,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should return with logs and success=false when command exceeds timeout", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         const timeout = 3
         const result = await runAndCopy({
@@ -1269,7 +1269,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should copy artifacts out of the container even when task times out", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         const timeout = 3
         const result = await runAndCopy({
@@ -1295,7 +1295,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should throw when no command is specified", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         await expectError(
           async () =>
