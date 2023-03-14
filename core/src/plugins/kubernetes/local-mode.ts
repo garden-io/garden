@@ -90,7 +90,9 @@ interface BaseLocalModeParams {
   log: Log
 }
 
-interface ConfigureLocalModeParams extends BaseLocalModeParams {}
+interface ConfigureLocalModeParams extends BaseLocalModeParams {
+  defaultTarget: KubernetesTargetResourceSpec | undefined
+}
 
 interface StartLocalModeParams extends BaseLocalModeParams {
   namespace: string

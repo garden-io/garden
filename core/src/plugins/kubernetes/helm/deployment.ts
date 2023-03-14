@@ -130,6 +130,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     await configureLocalMode({
       ctx,
       spec: spec.localMode,
+      defaultTarget: spec.defaultTarget,
       manifest: localModeTarget,
       action,
       log,

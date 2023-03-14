@@ -500,6 +500,7 @@ async function configureSpecialModesForManifests({
     await configureLocalMode({
       ctx,
       spec: spec.localMode,
+      defaultTarget: spec.defaultTarget,
       manifest: target,
       action,
       log,

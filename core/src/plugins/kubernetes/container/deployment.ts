@@ -496,9 +496,12 @@ export async function createWorkloadManifest({
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && localModeSpec) {
+    const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
+
     await configureLocalMode({
       ctx,
       spec: localModeSpec,
+      defaultTarget: target,
       manifest: workload,
       action,
       log,
