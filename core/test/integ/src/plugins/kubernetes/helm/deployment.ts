@@ -150,6 +150,7 @@ describe("helmDeploy", () => {
       moduleName: "api",
       projectName: garden.projectName,
       version: action.versionString(),
+      mode: "default",
     })
     expect(status.detail?.namespaceStatuses).to.eql([
       {
@@ -188,6 +189,7 @@ describe("helmDeploy", () => {
       moduleName: "api-helm-module",
       projectName: garden.projectName,
       version: action.versionString(),
+      mode: "default",
     })
     expect(status.detail?.namespaceStatuses).to.eql([
       {
@@ -314,6 +316,7 @@ describe("helmDeploy", () => {
       moduleName: "api",
       projectName: gardenWithCloudApi.projectName,
       version: action.versionString(),
+      mode: "default",
     })
     expect(status.detail?.namespaceStatuses).to.eql([
       {
