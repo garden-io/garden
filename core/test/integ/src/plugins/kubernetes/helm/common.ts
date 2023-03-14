@@ -564,7 +564,12 @@ ${expectedIngressOutput}
     it("should return just garden-values.yml if no valueFiles are configured", async () => {
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
-      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs({ action, valuesPath: gardenValuesPath })).to.eql([
+        "--values",
+        gardenValuesPath,
+        "--set",
+        "\\.garden.mode=default",
+      ])
     })
 
     it("should add a --set flag if in sync mode", async () => {
@@ -579,7 +584,8 @@ ${expectedIngressOutput}
       ])
     })
 
-    it("should add a --set flag if in local mode", async () => {
+    it("should add a default --set flag if the aciton doesn't support it's mode", async () => {
+      // local mode is not configured for the api deploy
       graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { local: ["deploy.api"] } })
       const action = await garden.resolveAction<HelmDeployAction>({ action: graph.getDeploy("api"), log, graph })
       action.getSpec().valueFiles = []
@@ -587,7 +593,7 @@ ${expectedIngressOutput}
         "--values",
         gardenValuesPath,
         "--set",
-        "\\.garden.mode=local",
+        "\\.garden.mode=default",
       ])
     })
 
@@ -602,6 +608,8 @@ ${expectedIngressOutput}
         resolve(action.getBuildPath(), "bar.yaml"),
         "--values",
         gardenValuesPath,
+        "--set",
+        "\\.garden.mode=default",
       ])
     })
 
@@ -614,6 +622,8 @@ ${expectedIngressOutput}
         resolve(action.getBuildPath(), "../relative.yaml"),
         "--values",
         gardenValuesPath,
+        "--set",
+        "\\.garden.mode=default",
       ])
     })
   })
