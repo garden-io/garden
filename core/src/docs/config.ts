@@ -25,7 +25,7 @@ import {
   isArrayType,
 } from "./common"
 import { JoiKeyDescription } from "./joi-schema"
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")

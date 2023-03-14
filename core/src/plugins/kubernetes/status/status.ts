@@ -10,7 +10,7 @@ import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
 import { ServiceState, combineStates } from "../../../types/service"
-import { sleep, deepMap } from "../../../util/util"
+import { sleep } from "../../../util/util"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
@@ -36,6 +36,7 @@ import { deline, gardenAnnotationKey, stableStringify } from "../../../util/stri
 import { SyncableResource } from "../types"
 import { LogLevel } from "../../../logger/logger"
 import { ActionMode } from "../../../actions/types"
+import { deepMap } from "../../../util/objects"
 
 export interface ResourceStatus<T = BaseResource> {
   state: ServiceState

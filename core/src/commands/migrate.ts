@@ -15,11 +15,12 @@ import { resolve } from "path"
 import { defaultDotIgnoreFile, findConfigPathsInPath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
-import { exec, safeDumpYaml } from "../util/util"
+import { exec } from "../util/util"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml, findProjectConfig } from "../config/base"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { TreeCache } from "../cache"
+import { safeDumpYaml } from "../util/serialization"
 
 const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),

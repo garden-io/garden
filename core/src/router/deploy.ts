@@ -11,7 +11,8 @@ import { omit } from "lodash"
 import { ActionState } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { ServiceState } from "../types/service"
-import { renderOutputStream, uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
+import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 export const deployRouter = (baseParams: BaseRouterParams) =>

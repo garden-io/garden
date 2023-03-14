@@ -26,7 +26,7 @@ import dedent = require("dedent")
 import { TaskMetadata } from "../../../../src/logger/log-entry"
 import logSymbols = require("log-symbols")
 import stripAnsi = require("strip-ansi")
-import { highlightYaml, safeDumpYaml } from "../../../../src/util/util"
+import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization"
 import { freezeTime } from "../../../helpers"
 import chalk = require("chalk")
 

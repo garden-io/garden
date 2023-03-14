@@ -21,9 +21,9 @@ import {
   isPodResource,
   SupportedRuntimeActions,
 } from "./types"
-import { splitLast, serializeValues, findByName, exec } from "../../util/util"
+import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
+import { gardenAnnotationKey, base64, deline, stableStringify, splitLast } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
@@ -40,6 +40,7 @@ import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
 import { Resolved } from "../../actions/types"
+import { serializeValues } from "../../util/serialization"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]

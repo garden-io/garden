@@ -14,7 +14,7 @@ import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
 import { Log } from "../logger/log-entry"
-import { GardenError, WorkflowScriptError } from "../exceptions"
+import { formatGardenErrorWithDetail, GardenError, WorkflowScriptError } from "../exceptions"
 import {
   WorkflowConfigContext,
   WorkflowStepConfigContext,
@@ -28,7 +28,7 @@ import Bluebird from "bluebird"
 import { getDurationMsec, toEnvVars } from "../util/util"
 import { runScript } from "../util/util"
 import { ExecaError } from "execa"
-import { LogLevel, formatGardenErrorWithDetail } from "../logger/logger"
+import { LogLevel } from "../logger/logger"
 import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, StringParameter } from "../cli/params"

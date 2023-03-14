@@ -16,7 +16,7 @@ import { parseEnvironment } from "../config/project"
 import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger"
 import { dedent, deline } from "../util/string"
 import chalk = require("chalk")
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 import { resolve } from "path"
 import { isArray } from "lodash"
 import { gardenEnv } from "../constants"

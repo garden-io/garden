@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deserializeValues } from "../../util/util"
+import { deserializeValues } from "../../util/serialization"
 import { KubeApi } from "./api"
 import { ContainerTestAction } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"

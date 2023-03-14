@@ -7,7 +7,7 @@
  */
 
 import { TestGarden, TestGardenOpts } from "@garden-io/core/build/src/util/testing"
-import { uuidv4 } from "@garden-io/core/build/src/util/util"
+import { uuidv4 } from "@garden-io/core/build/src/util/random"
 import { Logger, LogLevel } from "@garden-io/core/build/src/logger/logger"
 
 export { TestGarden, getLogMessages } from "@garden-io/core/build/src/util/testing"

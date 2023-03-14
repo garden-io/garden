@@ -10,7 +10,7 @@ import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, uuidv4, getPlatform, getArchitecture, isDarwinARM } from "./util"
+import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 import { Log } from "../logger/log-entry"
@@ -24,6 +24,7 @@ import { parse } from "url"
 import AsyncLock from "async-lock"
 import { PluginContext } from "../plugin-context"
 import { LogLevel } from "../logger/logger"
+import { uuidv4 } from "./random"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()

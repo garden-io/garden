@@ -17,7 +17,7 @@ import { getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src
 import { Log } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 import { deline } from "../../../../src/util/string"
-import { uuidv4 } from "../../../../src/util/util"
+import { uuidv4 } from "../../../../src/util/random"
 
 // Overriding this to make sure any ignorefile name is respected
 const defaultIgnoreFilename = ".testignore"
