@@ -59,7 +59,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const imageId = getDeployedImageId(action, k8sCtx.provider)
 
   const status = await k8sGetContainerDeployStatus(params)
-  const specChangedResourceKeys: string[] = (status.detail?.detail.selectorChangedResourceKeys) || []
+  const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
   if (specChangedResourceKeys.length > 0) {
     const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
     await handleChangedSelector({
@@ -253,19 +253,6 @@ export async function createContainerManifests({
     production,
   })
   const kubeServices = await createServiceResources(action, namespace)
-  const mode = action.mode()
-  const localModeSpec = action.getSpec("localMode")
-
-  if (mode === "local" && localModeSpec) {
-    await configureLocalMode({
-      ctx,
-      spec: localModeSpec,
-      targetResource: workload,
-      action,
-      log,
-    })
-  }
-
   const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
@@ -505,7 +492,13 @@ export async function createWorkloadManifest({
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && localModeSpec) {
-    // no op here, local mode will be configured later after all manifests are ready
+    await configureLocalMode({
+      ctx,
+      spec: localModeSpec,
+      targetResource: workload,
+      action,
+      log,
+    })
   } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
 
