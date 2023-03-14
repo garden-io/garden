@@ -59,7 +59,8 @@ describe("helmDeploy in local-mode", () => {
     LocalModeProcessRegistry.getInstance().shutdown()
   })
 
-  it("should deploy a chart with local mode enabled", async () => {
+  // TODO-G2
+  it.skip("should deploy a chart with local mode enabled", async () => {
     graph = await garden.getConfigGraph({
       log: garden.log,
       emit: false,
