@@ -34,7 +34,7 @@ import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
 import { flatten, fromPairs, isString, omit, sortBy } from "lodash"
-import { ActionConfigContext } from "../config/template-contexts/actions"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
 import {
@@ -225,7 +225,7 @@ export const baseActionConfigSchema = createSchema({
       .object()
       .unknown(true)
       .description("The spec for the specific action type.")
-      .meta({ templateContext: ActionConfigContext }),
+      .meta({ templateContext: ActionSpecContext }),
   },
 })
 
