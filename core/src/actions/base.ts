@@ -574,7 +574,7 @@ export abstract class RuntimeAction<
   getBuildAction<T extends BuildAction>() {
     const buildName = this.getConfig("build")
     if (buildName) {
-      const buildAction = this.graph.getBuild(buildName)
+      const buildAction = this.graph.getBuild(buildName, { includeDisabled: true })
       return <T>buildAction
     } else {
       return null
