@@ -559,14 +559,14 @@ export function getAllProcessedTaskNames(results: GraphResultMapWithoutTask) {
 }
 
 /**
- * Returns a map of all task results including dependencies from a GraphResultMap.
+ * Returns a map of all Run results including dependencies from a GraphResultMap.
  */
-export function getAllTaskResults(results: GraphResultMapWithoutTask) {
+export function getAllRunResults(results: GraphResultMapWithoutTask) {
   const all = { ...results }
 
   for (const r of Object.values(results)) {
     if (r?.dependencyResults) {
-      for (const [key, result] of Object.entries(getAllTaskResults(r.dependencyResults))) {
+      for (const [key, result] of Object.entries(getAllRunResults(r.dependencyResults))) {
         all[key] = result
       }
     }

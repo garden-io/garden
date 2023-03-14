@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { it } from "mocha"
 import { expect } from "chai"
 import { PublishCommand } from "../../../../src/commands/publish"
-import { withDefaultGlobalOpts, makeTestGarden, getAllTaskResults, getDataDir } from "../../../helpers"
+import { withDefaultGlobalOpts, makeTestGarden, getAllRunResults, getDataDir } from "../../../helpers"
 import { taskResultOutputs } from "../../../helpers"
 import { cloneDeep } from "lodash"
 import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
@@ -161,7 +161,7 @@ describe("PublishCommand", () => {
       }),
     })
 
-    const allResults = getAllTaskResults(result?.graphResults!)
+    const allResults = getAllRunResults(result?.graphResults!)
 
     expect(allResults["build.module-a"]?.processed).to.be.true
     expect(allResults["build.module-b"]?.processed).to.be.true

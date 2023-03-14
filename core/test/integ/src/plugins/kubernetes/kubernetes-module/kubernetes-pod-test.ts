@@ -14,7 +14,7 @@ import { getKubernetesTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
-import { KubernetesTestAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/test"
+import { KubernetesPodTestAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
 
 describe("kubernetes-type pod Test", () => {
   let garden: TestGarden
@@ -94,7 +94,7 @@ describe("kubernetes-type pod Test", () => {
     // We also verify that, despite the test failing, its result was still saved.
     const result = await actions.test.getResult({
       log: garden.log,
-      action: await garden.resolveAction<KubernetesTestAction>({ action, log: garden.log, graph }),
+      action: await garden.resolveAction<KubernetesPodTestAction>({ action, log: garden.log, graph }),
       graph,
     })
 

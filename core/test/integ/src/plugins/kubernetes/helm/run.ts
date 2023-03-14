@@ -16,7 +16,7 @@ import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
 
-describe.only("Helm Pod Run", () => {
+describe("Helm Pod Run", () => {
   let garden: TestGarden
   let graph: ConfigGraph
 
@@ -28,7 +28,7 @@ describe.only("Helm Pod Run", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  it("should run a basic task and store its result", async () => {
+  it("should run a basic Run and store its result", async () => {
     const action = graph.getRun("echo-task")
 
     const testTask = new RunTask({
@@ -40,7 +40,7 @@ describe.only("Helm Pod Run", () => {
       forceBuild: false,
     })
 
-    // Clear any existing task result
+    // Clear any existing Run result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearRunResult({ ctx, log: garden.log, action })
@@ -65,7 +65,7 @@ describe.only("Helm Pod Run", () => {
     expect(storedResult).to.exist
   })
 
-  it("should not store task results if cacheResult=false", async () => {
+  it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
     action.getConfig().spec.cacheResult = false
 
@@ -78,7 +78,7 @@ describe.only("Helm Pod Run", () => {
       forceBuild: false,
     })
 
-    // Clear any existing task result
+    // Clear any existing Run result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearRunResult({ ctx, log: garden.log, action })

@@ -15,7 +15,7 @@ import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
-import { KubernetesRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/run"
+import { KubernetesPodRunAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
 
 describe("kubernetes-type pod Run", () => {
   let garden: TestGarden
@@ -29,7 +29,7 @@ describe("kubernetes-type pod Run", () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   })
 
-  it("should run a basic task and store its result", async () => {
+  it("should run a basic Run and store its result", async () => {
     const action = graph.getRun("echo-task")
 
     const testTask = new RunTask({
@@ -41,7 +41,7 @@ describe("kubernetes-type pod Run", () => {
       forceBuild: false,
     })
 
-    // Clear any existing task result
+    // Clear any existing Run result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearRunResult({ ctx, log: garden.log, action })
@@ -59,14 +59,14 @@ describe("kubernetes-type pod Run", () => {
     const actions = await garden.getActionRouter()
     const storedResult = await actions.run.getResult({
       log: garden.log,
-      action: await garden.resolveAction<KubernetesRunAction>({ action, log: garden.log, graph }),
+      action: await garden.resolveAction<KubernetesPodRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
     expect(storedResult).to.exist
   })
 
-  it("should not store task results if cacheResult=false", async () => {
+  it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
     action.getConfig().spec.cacheResult = false
 
@@ -79,7 +79,7 @@ describe("kubernetes-type pod Run", () => {
       forceBuild: false,
     })
 
-    // Clear any existing task result
+    // Clear any existing Run result
     const provider = await garden.resolveProvider(garden.log, "local-kubernetes")
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     await clearRunResult({ ctx, log: garden.log, action })
@@ -90,7 +90,7 @@ describe("kubernetes-type pod Run", () => {
     const actions = await garden.getActionRouter()
     const storedResult = await actions.run.getResult({
       log: garden.log,
-      action: await garden.resolveAction<KubernetesRunAction>({ action, log: garden.log, graph }),
+      action: await garden.resolveAction<KubernetesPodRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
@@ -141,7 +141,7 @@ describe("kubernetes-type pod Run", () => {
     // We also verify that, despite the task failing, its result was still saved.
     const result = await actions.run.getResult({
       log: garden.log,
-      action: await garden.resolveAction<KubernetesRunAction>({ action, log: garden.log, graph }),
+      action: await garden.resolveAction<KubernetesPodRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 

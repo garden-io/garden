@@ -20,9 +20,9 @@ import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
 import { TestActionHandler } from "../../plugin/action-types"
-import { KubernetesTestAction } from "./kubernetes-type/test"
 import { runResultToActionState } from "../../actions/base"
 import { HelmPodTestAction } from "./helm/config"
+import { KubernetesTestAction } from "./kubernetes-type/config"
 
 // TODO-G2: figure out how to get rid of the any case
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {

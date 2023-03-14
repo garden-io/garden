@@ -26,9 +26,8 @@ import { DEFAULT_RUN_TIMEOUT } from "../../../constants"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
 import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
-import { KubernetesRunAction } from "./run"
-import { KubernetesTestAction } from "./test"
 import { Resolved } from "../../../actions/types"
+import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -45,7 +44,7 @@ export async function getManifests({
   ctx: PluginContext
   api: KubeApi
   log: Log
-  action: Resolved<KubernetesDeployAction | KubernetesRunAction | KubernetesTestAction>
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
   defaultNamespace: string
   readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
@@ -99,7 +98,7 @@ const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
  */
 export async function readManifests(
   ctx: PluginContext,
-  action: Resolved<KubernetesDeployAction | KubernetesRunAction | KubernetesTestAction>,
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
   log: Log,
   readFromSrcDir = false
 ) {
@@ -184,7 +183,7 @@ export function convertServiceResource(
 export async function runOrTestWithPod(
   params: CommonRunParams & {
     ctx: KubernetesPluginContext
-    action: Resolved<KubernetesRunAction | KubernetesTestAction>
+    action: Resolved<KubernetesPodRunAction | KubernetesPodTestAction>
     log: Log
     namespace: string
   }

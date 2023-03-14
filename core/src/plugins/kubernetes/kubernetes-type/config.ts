@@ -19,9 +19,10 @@ import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import type { KubernetesResource } from "../types"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { defaultTargetSchema } from "../helm/config"
-import type { KubernetesRunActionConfig } from "./run"
-import type { KubernetesTestActionConfig } from "./test"
+import type { KubernetesPodRunAction, KubernetesPodRunActionConfig, KubernetesPodTestAction, KubernetesPodTestActionConfig } from "./kubernetes-pod"
 import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
+import { containerRunOutputSchema } from "../../container/config"
+import { KubernetesExecRunAction, KubernetesExecRunActionConfig, KubernetesExecTestAction, KubernetesExecTestActionConfig } from "./kubernetes-exec"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -86,6 +87,20 @@ export const kubernetesDeploySchema = () =>
       localMode: kubernetesLocalModeSchema(),
     })
     .rename("devMode", "sync")
+
+export interface KubernetesRunOutputs {
+  log: string
+}
+export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
+
+export type KubernetesRunActionConfig = KubernetesPodRunActionConfig | KubernetesExecRunActionConfig
+export type KubernetesRunAction = KubernetesPodRunAction  | KubernetesExecRunAction
+
+export interface KubernetesTestOutputs extends KubernetesRunOutputs {}
+export const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
+
+export type KubernetesTestActionConfig = KubernetesPodTestActionConfig | KubernetesExecTestActionConfig
+export type KubernetesTestAction = KubernetesPodTestAction | KubernetesExecTestAction
 
 export type KubernetesActionConfig =
   | KubernetesDeployActionConfig
