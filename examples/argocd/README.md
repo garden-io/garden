@@ -73,7 +73,7 @@ In the current example; A dedicated `values-prod.yaml` file has been created per
   helm repo update
   helm -n argocd install argocd argo/argo-cd --version 5.13.5 --create-namespace
   ```
-- Create [argocd-applications](https://github.com/garden-io-testing/gitops-demo/tree/main/argocd-applications) which contains all the manifests that will help with sync'ing apps on prod cluster via ArgoCD
+- Create [argocd-applications](https://github.com/garden-io/garden/tree/main/examples/argocd/argocd-applications) which contains all the manifests that will help with sync'ing apps on prod cluster via ArgoCD
 - (Optional) Install ingress-nginx controller
 - Apply necessary annotations to the ArgoCD app, in this case for the `api` and `web` so that argocd-image-updater looks for newest image builds on container repo that match the `update-strategy`. Example configuration for `api` Argocd Application is as below:
   ```yaml
