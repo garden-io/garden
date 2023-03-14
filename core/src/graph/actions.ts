@@ -33,10 +33,9 @@ import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "..
 import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run"
 import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test"
 import { noTemplateFields } from "../config/base"
-import { ActionReference, describeSchema, parseActionReference } from "../config/common"
+import { ActionReference, describeSchema, JoiDescription, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { ProjectConfigContext } from "../config/template-contexts/project"
 import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError, ValidationError } from "../exceptions"
 import type { Garden } from "../garden"
@@ -337,11 +336,11 @@ export async function executeAction<T extends Action>({
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
-const getActionConfigContextKeys = memoize(() => {
+const getBuiltinConfigContextKeys = memoize(() => {
   const schema = buildActionConfigSchema()
   const configKeys = schema.describe().keys
   return Object.entries(configKeys)
-    .map(([k, v]) => ((<any>v).meta?.templateContext === ProjectConfigContext ? k : null))
+    .map(([k, v]) => ((<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext) ? k : null))
     .filter(isString)
 })
 
@@ -373,13 +372,13 @@ async function preprocessActionConfig({
   router: ActionRouter
   log: Log
 }) {
-  const projectContextKeys = getActionConfigContextKeys()
+  const builtinConfigKeys = getBuiltinConfigContextKeys()
   const builtinFieldContext = new ActionConfigContext(garden)
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
     // TODO-G2: better error messages when something goes wrong here
-    const resolvedBuiltin = resolveTemplateStrings(pick(config, projectContextKeys), builtinFieldContext, {
+    const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: false,
     })
     config = { ...config, ...resolvedBuiltin }
@@ -414,7 +413,7 @@ async function preprocessActionConfig({
 
     // Partially resolve other fields
     // TODO-G2: better error messages when something goes wrong here
-    const resolvedOther = resolveTemplateStrings(omit(config, projectContextKeys), builtinFieldContext, {
+    const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: true,
     })
     config = { ...config, ...resolvedOther }

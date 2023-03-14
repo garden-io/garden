@@ -86,6 +86,9 @@ export interface JoiDescription extends Joi.Description {
     presence?: string
     only?: boolean
   }
+  metas?: {
+    [key: string]: object
+  }[]
 }
 
 // Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).
