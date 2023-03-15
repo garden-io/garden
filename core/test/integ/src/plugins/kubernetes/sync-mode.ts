@@ -30,7 +30,7 @@ import { ContainerDeployActionConfig } from "../../../../../src/plugins/containe
 import { resolveAction } from "../../../../../src/graph/actions"
 import { DeployTask } from "../../../../../src/tasks/deploy"
 
-describe.only("sync mode deployments and sync behavior", () => {
+describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden
   let graph: ConfigGraph
   let ctx: KubernetesPluginContext
