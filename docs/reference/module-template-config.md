@@ -5,7 +5,7 @@ title: Module Template Configuration
 
 # Module Template Configuration Reference
 
-Below is the schema reference for `ModuleTemplate` configuration files. To learn more about module templates, see the [Module Templates guide](../using-garden/module-templates.md).
+Below is the schema reference for `ConfigTemplate` configuration files. To learn more about config templates, see the [Config Templates guide](../using-garden/config-templates.md).
 
 The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the config YAML schema
@@ -21,7 +21,7 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-kind: ModuleTemplate
+kind: ConfigTemplate
 
 # The name of the template.
 name:
@@ -134,7 +134,7 @@ modules:
     # generate (and template) any supporting files needed for the module.
     generateFiles:
       - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-        # ModuleTemplate configuration file if one is being applied).
+        # ConfigTemplate configuration file if one is being applied).
         # This file may contain template strings, much like any other field in the configuration.
         sourcePath:
 
@@ -195,9 +195,9 @@ The schema version of this config (currently not used).
 
 ### `kind`
 
-| Type     | Allowed Values   | Default            | Required |
-| -------- | ---------------- | ------------------ | -------- |
-| `string` | "ModuleTemplate" | `"ModuleTemplate"` | Yes      |
+| Type     | Allowed Values                     | Default            | Required |
+| -------- | ---------------------------------- | ------------------ | -------- |
+| `string` | "ConfigTemplate", "ModuleTemplate" | `"ConfigTemplate"` | Yes      |
 
 ### `name`
 
@@ -473,7 +473,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [modules](#modules) > [generateFiles](#modulesgeneratefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |

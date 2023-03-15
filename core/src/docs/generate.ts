@@ -21,7 +21,7 @@ import { renderProviderReference } from "./provider"
 import { defaultEnvironment, defaultNamespace } from "../config/project"
 import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
-import { moduleTemplateSchema } from "../config/module-template"
+import { configTemplateSchema } from "../config/config-template"
 import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
 import { DEFAULT_API_VERSION } from "../constants"
@@ -154,5 +154,5 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
 
   await renderConfigTemplate("project", renderProjectConfigReference())
   await renderConfigTemplate("workflow", renderConfigReference(workflowConfigSchema()))
-  await renderConfigTemplate("module-template", renderConfigReference(moduleTemplateSchema()))
+  await renderConfigTemplate("module-template", renderConfigReference(configTemplateSchema()))
 }

@@ -26,7 +26,7 @@
 * [Tasks](./using-garden/tasks.md)
 * [Workflows](./using-garden/workflows.md)
 * [Variables and templating](./using-garden/variables-and-templating.md)
-* [Module Templates](./using-garden/module-templates.md)
+* [Config Templates](./using-garden/config-templates.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
 ## 🌿 Kubernetes Plugins

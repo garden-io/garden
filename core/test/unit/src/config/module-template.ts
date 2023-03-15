@@ -10,16 +10,17 @@ import { expect } from "chai"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { expectError, TestGarden, getDataDir, makeTestGarden } from "../../../helpers"
 import {
-  ModuleTemplateResource,
-  resolveModuleTemplate,
-  ModuleTemplateConfig,
+  ConfigTemplateResource,
+  resolveConfigTemplate,
+  ConfigTemplateConfig,
   resolveTemplatedModule,
-} from "../../../../src/config/module-template"
+} from "../../../../src/config/config-template"
 import { resolve } from "path"
 import { joi } from "../../../../src/config/common"
 import { pathExists, remove } from "fs-extra"
 import { TemplatedModuleConfig } from "../../../../src/plugins/templated"
 import { cloneDeep } from "lodash"
+import { configTemplateKind } from "../../../../src/config/base"
 
 describe("module templates", () => {
   let garden: TestGarden
@@ -34,7 +35,7 @@ describe("module templates", () => {
     before(() => {
       defaults = {
         apiVersion: DEFAULT_API_VERSION,
-        kind: "ModuleTemplate",
+        kind: configTemplateKind,
         name: "test",
         path: garden.projectRoot,
         configPath: resolve(garden.projectRoot, "templates.garden.yml"),
@@ -42,16 +43,16 @@ describe("module templates", () => {
     })
 
     it("resolves template strings for fields other than modules and files", async () => {
-      const config: ModuleTemplateResource = {
+      const config: ConfigTemplateResource = {
         ...defaults,
         inputsSchemaPath: "${project.name}.json",
       }
-      const resolved = await resolveModuleTemplate(garden, config)
+      const resolved = await resolveConfigTemplate(garden, config)
       expect(resolved.inputsSchemaPath).to.eql("module-templates.json")
     })
 
     it("ignores template strings in modules", async () => {
-      const config: ModuleTemplateResource = {
+      const config: ConfigTemplateResource = {
         ...defaults,
         modules: [
           {
@@ -60,7 +61,7 @@ describe("module templates", () => {
           },
         ],
       }
-      const resolved = await resolveModuleTemplate(garden, config)
+      const resolved = await resolveConfigTemplate(garden, config)
       expect(resolved.modules).to.eql(config.modules)
     })
 
@@ -69,16 +70,16 @@ describe("module templates", () => {
         ...defaults,
         foo: "bar",
       }
-      await expectError(() => resolveModuleTemplate(garden, config), {
-        contains: 'Error validating ModuleTemplate (templates.garden.yml): key "foo" is not allowed at path [foo]',
+      await expectError(() => resolveConfigTemplate(garden, config), {
+        contains: 'Error validating ConfigTemplate (templates.garden.yml): key "foo" is not allowed at path [foo]',
       })
     })
 
     it("defaults to an empty object schema for inputs", async () => {
-      const config: ModuleTemplateResource = {
+      const config: ConfigTemplateResource = {
         ...defaults,
       }
-      const resolved = await resolveModuleTemplate(garden, config)
+      const resolved = await resolveConfigTemplate(garden, config)
       expect((<any>resolved.inputsSchema)._rules[0].args.jsonSchema.schema).to.eql({
         type: "object",
         additionalProperties: false,
@@ -86,46 +87,46 @@ describe("module templates", () => {
     })
 
     it("parses a valid JSON inputs schema", async () => {
-      const config: ModuleTemplateResource = {
+      const config: ConfigTemplateResource = {
         ...defaults,
         inputsSchemaPath: "module-templates.json",
       }
-      const resolved = await resolveModuleTemplate(garden, config)
+      const resolved = await resolveConfigTemplate(garden, config)
       expect(resolved.inputsSchema).to.exist
     })
 
     it("throws if inputs schema cannot be found", async () => {
-      const config: ModuleTemplateResource = {
+      const config: ConfigTemplateResource = {
         ...defaults,
         inputsSchemaPath: "foo.json",
       }
       const path = resolve(config.path, config.inputsSchemaPath!)
-      await expectError(() => resolveModuleTemplate(garden, config), {
-        contains: `Unable to read inputs schema for ModuleTemplate test: Error: ENOENT: no such file or directory, open '${path}'`,
+      await expectError(() => resolveConfigTemplate(garden, config), {
+        contains: `Unable to read inputs schema for ConfigTemplate test: Error: ENOENT: no such file or directory, open '${path}'`,
       })
     })
 
     it("throws if an invalid JSON schema is provided", async () => {
-      const config: ModuleTemplateResource = {
+      const config: ConfigTemplateResource = {
         ...defaults,
         inputsSchemaPath: "invalid.json",
       }
-      await expectError(() => resolveModuleTemplate(garden, config), {
-        contains: `Inputs schema for ModuleTemplate test has type string, but should be "object".`,
+      await expectError(() => resolveConfigTemplate(garden, config), {
+        contains: `Inputs schema for ConfigTemplate test has type string, but should be "object".`,
       })
     })
   })
 
   describe("resolveTemplatedModule", () => {
-    let template: ModuleTemplateConfig
+    let template: ConfigTemplateConfig
     let defaults: TemplatedModuleConfig
 
-    const templates: { [name: string]: ModuleTemplateConfig } = {}
+    const templates: { [name: string]: ConfigTemplateConfig } = {}
 
     before(() => {
       template = {
         apiVersion: DEFAULT_API_VERSION,
-        kind: "ModuleTemplate",
+        kind: configTemplateKind,
         name: "test",
         path: garden.projectRoot,
         configPath: resolve(garden.projectRoot, "modules.garden.yml"),
@@ -384,7 +385,7 @@ describe("module templates", () => {
       }
       await expectError(() => resolveTemplatedModule(garden, config, _templates), {
         contains:
-          "ModuleTemplate test returned an invalid module (named foo) for templated module test: Error validating module (modules.garden.yml): key .type must be a string",
+          "ConfigTemplate test returned an invalid module (named foo) for templated module test: Error validating module (modules.garden.yml): key .type must be a string",
       })
     })
 
@@ -405,7 +406,7 @@ describe("module templates", () => {
       }
       await expectError(() => resolveTemplatedModule(garden, config, _templates), {
         contains:
-          "ModuleTemplate test returned an invalid module (named 123) for templated module test: Error validating module (modules.garden.yml): key .name must be a string",
+          "ConfigTemplate test returned an invalid module (named 123) for templated module test: Error validating module (modules.garden.yml): key .name must be a string",
       })
     })
 
@@ -472,7 +473,7 @@ describe("module templates", () => {
 
       await expectError(() => resolveTemplatedModule(garden, config, _templates), {
         contains: [
-          'ModuleTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/.',
+          'ConfigTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/.',
           "Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.",
         ],
       })

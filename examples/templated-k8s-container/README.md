@@ -1,8 +1,8 @@
 # templated-k8s-container example
 
-This example demonstrates the module templating feature, which allows users to define templates that generate multiple templated modules—and even supporting files by defining a ModuleTemplate and a `templated` module that references that template.
+This example demonstrates the module templating feature, which allows users to define templates that generate multiple templated modules—and even supporting files by defining a ConfigTemplate and a `templated` module that references that template.
 
-In this example we define a `ModuleTemplate` in [template/garden.yml](template/garden.yml), and use that template in [module/garden.yml](module/garden.yml) to generate a `container` module to build a container image, and a `kubernetes` module that deploys that image.
+In this example we define a `ConfigTemplate` in [template/garden.yml](template/garden.yml), and use that template in [module/garden.yml](module/garden.yml) to generate a `container` module to build a container image, and a `kubernetes` module that deploys that image.
 
 This allows teams to reduce the boilerplate in their projects, as well as to tailor deployments to their specific needs.
 

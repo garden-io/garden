@@ -14,6 +14,7 @@ import {
   prepareProjectResource,
   noTemplateFields,
   validateRawConfig,
+  configTemplateKind,
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
@@ -265,7 +266,7 @@ describe("loadConfigResources", () => {
         apiVersion: DEFAULT_API_VERSION,
         configPath,
         path: projectPath,
-        kind: "ModuleTemplate",
+        kind: configTemplateKind,
         name: "combo",
         inputsSchemaPath: "module-templates.json",
         modules: [
