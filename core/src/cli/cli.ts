@@ -27,9 +27,9 @@ import {
   pickCommand,
   parseCliArgs,
   optionsWithAliasValues,
-  getCliStyles,
   checkRequirements,
   renderCommandErrors,
+  cliStyles,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import {
@@ -129,8 +129,6 @@ export class GardenCli {
   }
 
   async renderHelp(workingDir: string) {
-    const cliStyles = getCliStyles()
-
     const commands = Object.values(this.commands)
       .sort()
       .filter((cmd) => cmd.getPath().length === 1)

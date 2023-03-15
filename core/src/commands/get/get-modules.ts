@@ -23,8 +23,8 @@ import { deepMap } from "../../util/objects"
 
 const getModulesArgs = {
   modules: new StringsParameter({
-    help:
-      "Specify module(s) to list. Use comma as a separator to specify multiple modules. Skip to return all modules.",
+    help: "Specify module(s) to list. You may specify multiple modules, separated by spaces. Skip to return all modules.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.moduleConfigs)
     },
