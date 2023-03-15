@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { cloneDeep, isEmpty, omit, partition, uniq } from "lodash"
+import { isEmpty, omit, partition, uniq } from "lodash"
 import type { NamespaceStatus } from "../../../types/namespace"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
 import { ServiceStatus } from "../../../types/service"
@@ -28,7 +28,6 @@ import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import type { ExecBuildConfig } from "../../exec/config"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
-import { getTargetResource } from "../util"
 import type { Log } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
@@ -475,45 +474,16 @@ async function configureSpecialModesForManifests({
   // Local mode always takes precedence over sync mode
   if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
     // TODO-G2: Support multiple local processes+targets
-    const query = spec.localMode.target || spec.defaultTarget
-
-    if (!query) {
-      log.warn({
-        section: action.key(),
-        symbol: "warning",
-        msg: "Neither `localMode.target` nor `defaultTarget` is configured. Cannot Deploy in local mode.",
-      })
-      return { updated: [], manifests }
-    }
-
-    const target = cloneDeep(
-      await getTargetResource({
-        ctx,
-        log,
-        provider: ctx.provider,
-        action,
-        manifests,
-        query,
-      })
-    )
-
     // The "local-mode" annotation is set in `configureLocalMode`.
-    const configured = await configureLocalMode({
+    return await configureLocalMode({
       ctx,
       spec: spec.localMode,
       defaultTarget: spec.defaultTarget,
-      manifest: target,
+      manifest: undefined,
       manifests,
       action,
       log,
     })
-
-    // Replace the original resource with the modified spec
-    const preparedManifests = manifests
-      .filter((m) => !(m.kind === target!.kind && target?.metadata.name === m.metadata.name))
-      .concat(<KubernetesResource<BaseResource>>target)
-
-    return { updated: configured.updated, manifests: preparedManifests }
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     // The "sync-mode" annotation is set in `configureDevMode`.
     return configureSyncMode({

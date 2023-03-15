@@ -8,7 +8,7 @@
 
 import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { remove, set } from "lodash"
+import { cloneDeep, remove, set } from "lodash"
 import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
 import {
@@ -18,7 +18,7 @@ import {
   PROXY_CONTAINER_USER_NAME,
 } from "./constants"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { getResourceContainer, getResourceKey, prepareEnvVars } from "./util"
+import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util"
 import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
 import { Log } from "../../logger/log-entry"
@@ -85,7 +85,7 @@ export const kubernetesLocalModeSchema = () =>
 interface BaseLocalModeParams {
   ctx: PluginContext
   spec: KubernetesLocalModeSpec
-  manifest: SyncableResource
+  manifest: SyncableResource | undefined
   manifests: KubernetesResource[]
   action: Resolved<SyncableRuntimeAction>
   log: Log
@@ -97,9 +97,10 @@ interface ConfigureLocalModeParams extends BaseLocalModeParams {
 
 interface StartLocalModeParams extends BaseLocalModeParams {
   namespace: string
+  manifest: SyncableResource
 }
 
-interface ConfiguredLocalMode {
+export interface ConfiguredLocalMode {
   updated: SyncableResource[]
   manifests: KubernetesResource<BaseResource, string>[]
 }
@@ -425,10 +426,37 @@ function patchSyncableManifest(
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
 export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<ConfiguredLocalMode> {
-  // TODO-G2: ensure immutability of the input data, allow multiple manifests configuration
-  const { ctx, spec, manifest, manifests, action, log } = configParams
+  // TODO-G2: allow multiple manifests configuration
+  const { ctx, spec, defaultTarget, action, log } = configParams
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = k8sCtx.provider
 
-  const containerName = spec.target?.containerName
+  let { manifests, manifest } = configParams
+
+  // Make sure we don't modify inputs in-place
+  manifests = cloneDeep(manifests)
+  manifest = cloneDeep(manifest)
+
+  const query = spec.target || defaultTarget
+  if (!query) {
+    log.warn({
+      section: action.key(),
+      symbol: "warning",
+      msg: "Neither `localMode.target` nor `defaultTarget` is configured. Cannot Deploy in local mode.",
+    })
+    return { updated: [] , manifests }
+  }
+
+  const resolvedTarget =
+    manifest ||
+    (await getTargetResource({
+      ctx,
+      log,
+      provider,
+      action,
+      manifests,
+      query,
+    }))
 
   const section = action.key()
 
@@ -440,7 +468,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     ),
   })
 
-  set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
+  set(resolvedTarget, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
 
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, action.key())
   log.debug({
@@ -448,14 +476,20 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
-  const targetContainer = getResourceContainer(manifest, containerName)
+  const containerName = spec.target?.containerName
+  const targetContainer = getResourceContainer(resolvedTarget, containerName)
   const portSpecs = validateContainerPorts(targetContainer, spec)
   const localModeEnvVars = await prepareLocalModeEnvVars(portSpecs, keyPair)
   const localModePorts = prepareLocalModePorts()
 
-  patchSyncableManifest(manifest, targetContainer.name, localModeEnvVars, localModePorts)
+  patchSyncableManifest(resolvedTarget, targetContainer.name, localModeEnvVars, localModePorts)
 
-  return { updated: [manifest], manifests }
+  // Replace the original resource with the modified spec
+  const preparedManifests = manifests
+    .filter((m) => !(m.kind === resolvedTarget!.kind && resolvedTarget?.metadata.name === m.metadata.name))
+    .concat(<KubernetesResource<BaseResource>>resolvedTarget)
+
+  return { updated: [resolvedTarget], manifests: preparedManifests }
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {
