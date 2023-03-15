@@ -11,18 +11,19 @@ import { platform, release } from "os"
 import ci = require("ci-info")
 import { uniq } from "lodash"
 import { AnalyticsGlobalConfig } from "../config-store/global"
-import { getPackageVersion, sleep } from "../util/util"
+import { getPackageVersion, sleep, getDurationMsec } from "../util/util"
 import { SEGMENT_PROD_API_KEY, SEGMENT_DEV_API_KEY, gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import hasha = require("hasha")
 import { Garden } from "../garden"
-import { AnalyticsType } from "./analytics-types"
+import { AnalyticsCommandResult, AnalyticsEventType } from "./analytics-types"
 import dedent from "dedent"
 import { getGitHubUrl } from "../docs/common"
 import { Profile } from "../util/profiling"
 import { ModuleConfig } from "../config/module"
 import { UserResult } from "@garden-io/platform-api-types"
 import { uuidv4 } from "../util/random"
+import { GardenBaseError } from "../exceptions"
 
 const API_KEY = process.env.ANALYTICS_DEV ? SEGMENT_DEV_API_KEY : SEGMENT_PROD_API_KEY
 const CI_USER = "ci-user"
@@ -116,19 +117,19 @@ interface PropertiesBase {
 }
 
 interface EventBase {
-  type: AnalyticsType
+  type: AnalyticsEventType
   properties: PropertiesBase
 }
 
 interface CommandEvent extends EventBase {
-  type: AnalyticsType.COMMAND
+  type: "Run Command"
   properties: PropertiesBase & {
     name: string
   }
 }
 
 interface ApiEvent extends EventBase {
-  type: AnalyticsType.CALL_API
+  type: "Call API"
   properties: PropertiesBase & {
     path: string
     command: string
@@ -136,8 +137,18 @@ interface ApiEvent extends EventBase {
   }
 }
 
+interface CommandResultEvent extends EventBase {
+  type: "Command Result"
+  properties: PropertiesBase & {
+    name: string
+    durationMsec: number
+    result: AnalyticsCommandResult
+    errors: string[] // list of GardenBaseError types
+  }
+}
+
 interface ConfigErrorEvent extends EventBase {
-  type: AnalyticsType.MODULE_CONFIG_ERROR
+  type: "Module Configuration Error"
   properties: PropertiesBase & {
     moduleName: string
     moduleType: string
@@ -145,14 +156,14 @@ interface ConfigErrorEvent extends EventBase {
 }
 
 interface ProjectErrorEvent extends EventBase {
-  type: AnalyticsType.PROJECT_CONFIG_ERROR
+  type: "Project Configuration Error"
   properties: PropertiesBase & {
     fields: Array<string>
   }
 }
 
 interface ValidationErrorEvent extends EventBase {
-  type: AnalyticsType.VALIDATION_ERROR
+  type: "Validation Error"
   properties: PropertiesBase & {
     fields: Array<string>
   }
@@ -178,12 +189,18 @@ interface ApiRequestBody {
   command: string
 }
 
-type AnalyticsEvent = CommandEvent | ApiEvent | ConfigErrorEvent | ProjectErrorEvent | ValidationErrorEvent
+type AnalyticsEvent =
+  | CommandEvent
+  | CommandResultEvent
+  | ApiEvent
+  | ConfigErrorEvent
+  | ProjectErrorEvent
+  | ValidationErrorEvent
 
 export interface SegmentEvent {
   userId?: string
   anonymousId?: string
-  event: AnalyticsType
+  event: AnalyticsEventType
   properties: AnalyticsEvent["properties"]
 }
 
@@ -533,9 +550,29 @@ export class AnalyticsHandler {
    */
   trackCommand(commandName: string) {
     return this.track({
-      type: AnalyticsType.COMMAND,
+      type: "Run Command",
       properties: {
         name: commandName,
+        ...this.getBasicAnalyticsProperties(),
+      },
+    })
+  }
+
+  /**
+   * Track a command result.
+   */
+  trackCommandResult(commandName: string, errors: GardenBaseError[], startTime: Date) {
+    const result: AnalyticsCommandResult = errors.length > 0 ? "failure" : "success"
+
+    const durationMsec = getDurationMsec(startTime, new Date())
+
+    return this.track({
+      type: "Command Result",
+      properties: {
+        name: commandName,
+        durationMsec,
+        result,
+        errors: errors.map((e) => e.type),
         ...this.getBasicAnalyticsProperties(),
       },
     })
@@ -555,7 +592,7 @@ export class AnalyticsHandler {
     }
 
     return this.track({
-      type: AnalyticsType.CALL_API,
+      type: "Call API",
       properties,
     })
   }
@@ -575,7 +612,7 @@ export class AnalyticsHandler {
     moduleName: string
   }) {
     return this.track(<ConfigErrorEvent>{
-      type: AnalyticsType.MODULE_CONFIG_ERROR,
+      type: "Module Configuration Error",
       properties: {
         ...this.getBasicAnalyticsProperties(),
         kind,
@@ -597,7 +634,7 @@ export class AnalyticsHandler {
   trackModuleConfigError(name: string, moduleType: string) {
     const moduleName = hasha(name, { algorithm: "sha256" })
     return this.track({
-      type: AnalyticsType.MODULE_CONFIG_ERROR,
+      type: "Module Configuration Error",
       properties: {
         ...this.getBasicAnalyticsProperties(),
         moduleName,
@@ -611,7 +648,7 @@ export class AnalyticsHandler {
    */
   trackProjectConfigError(fields: Array<string>) {
     return this.track({
-      type: AnalyticsType.PROJECT_CONFIG_ERROR,
+      type: "Project Configuration Error",
       properties: {
         ...this.getBasicAnalyticsProperties(),
         fields,
@@ -624,7 +661,7 @@ export class AnalyticsHandler {
    */
   trackConfigValidationError(fields: Array<string>) {
     return this.track({
-      type: AnalyticsType.VALIDATION_ERROR,
+      type: "Validation Error",
       properties: {
         ...this.getBasicAnalyticsProperties(),
         fields,
