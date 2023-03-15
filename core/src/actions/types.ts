@@ -98,8 +98,23 @@ export interface ActionConfigTypes {
   Test: TestActionConfig<string, any>
 }
 
-// See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
-export const actionStateTypes = ["getting-status", "ready", "not-ready", "processing", "failed", "unknown"] as const
+/**
+ * These are the states returned from actions.
+ *
+ * See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
+ */
+export const actionStateTypes = ["ready", "not-ready", "processing", "failed", "unknown"] as const
+export type ActionState = typeof actionStateTypes[number]
+
+/**
+ * These are the states emitted in status events. Here, we include additional states to help distinguish status event
+ * emitted around status/cache checks VS statuses emitted around the execution after a failed status check.
+ */
+export const actionStateTypesForEvent = [
+  ...actionStateTypes,
+  "getting-status",
+  "cached",
+] as const
 /**
  * This type represents the lifecycle of an individual action execution.
  *
@@ -110,7 +125,7 @@ export const actionStateTypes = ["getting-status", "ready", "not-ready", "proces
  * initial state: "getting-status"
  * final state: "ready" or "failed"
  *
- * "getting-status" -> "ready" | "not-ready"
+ * "getting-status" -> "cached" | "not-ready"
  * "not-ready" -> "processing"
  * "processing" -> "ready" | "failed"
  * ```
@@ -125,10 +140,13 @@ export const actionStateTypes = ["getting-status", "ready", "not-ready", "proces
  *   - Or for a Kubernetes deployment, this might involve checking if the requested resources are already live and up
  *     to date.
  *
- * - `"ready"`: An up-to-date result exists for the action.
- *   - This state can be reached by a status check that returned a successful cache hit (e.g. an up-to-date build
- *     artifact / deployed resource / test result / run result already exists), or by successfully processing the
- *     action after getting a `"not-ready"` state from the status check.
+ * - `"cached"`: This state indicates a cache hit. An up-to-date result exists for the action.
+ *   - This state can be reached e.g. when a status check indicates that an up-to-date build artifact / deployed
+ *     resource / test result / run result already exists.
+ *
+ * - `"ready"`: The action was executed successfully, and an up-to-date result exists for the action.
+ *   - This state can be reached by successfully processing the action after getting a `"not-ready"` state from the
+ *     status check.
  *
  * - `"not-ready"`: No result (or no healthy result) for the action exists with the requested version.
  *   - This state is reached by a status check that doesn't find an up-to-date result (e.g. no up-to-date container
@@ -140,7 +158,11 @@ export const actionStateTypes = ["getting-status", "ready", "not-ready", "proces
  * - `"failed"`: The action was executed, but a failure or error occurred, so no up-to-date result was created for
  *   the action.
  */
-export type ActionState = typeof actionStateTypes[number]
+export type ActionStateForEvent = typeof actionStateTypesForEvent[number]
+
+export const stateForCacheStatusEvent = (state: ActionState): ActionStateForEvent => {
+  return state === "ready" ? "cached" : state
+}
 
 export interface ActionStatus<
   T extends BaseAction = BaseAction,

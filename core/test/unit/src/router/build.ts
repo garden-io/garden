@@ -64,7 +64,7 @@ describe("build actions", () => {
       expect(event2.name).to.eql("buildStatus")
       expect(event2.payload.moduleName).to.eql("module-a")
       expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
-      expect(event2.payload.state).to.eql("ready")
+      expect(event2.payload.state).to.eql("cached")
       expect(event2.payload.status.state).to.eql("fetched")
     })
   })

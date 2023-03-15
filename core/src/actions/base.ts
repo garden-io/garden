@@ -59,7 +59,7 @@ import { PickTypeByKind } from "../graph/config-graph"
 import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
-import { uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
 
 // TODO-G2: split this file
 

@@ -11,9 +11,8 @@ import chalk from "chalk"
 import { renderOutputStream } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BaseRouterParams, createActionRouter } from "./base"
-import { ActionState } from "../actions/types"
+import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
-import { uuidv4 } from "../util/random"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Build", baseParams, {
@@ -42,14 +41,15 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         handlerType: "getStatus",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
+      const { state } = status
 
       // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", status.outputs)
       garden.events.emit("buildStatus", {
         ...payloadAttrs,
         completedAt: new Date().toISOString(),
-        state: status.state,
-        status: { state: status.state === "ready" ? "fetched" : "outdated" },
+        state: stateForCacheStatusEvent(state),
+        status: { state: state === "ready" ? "fetched" : "outdated" },
       })
       return status
     },

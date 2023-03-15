@@ -25,7 +25,7 @@ import { ExecLogsFollower } from "./logs"
 import { PluginContext } from "../../plugin-context"
 import { ExecDeploy } from "./config"
 import { DeployActionHandler } from "../../plugin/action-types"
-import { DeployStatus } from "../../plugin/handlers/Deploy/get-status"
+import { deployStateToActionState, DeployStatus } from "../../plugin/handlers/Deploy/get-status"
 import { Resolved } from "../../actions/types"
 import { convertCommandSpec, execRun, getDefaultEnvVars } from "./common"
 import { kill } from "process"
@@ -50,7 +50,7 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
     const state = result.exitCode === 0 ? "ready" : "outdated"
 
     return {
-      state,
+      state: deployStateToActionState(state),
       detail: {
         state,
         version: action.versionString(),
@@ -64,7 +64,7 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
     const state = "unknown"
 
     return {
-      state,
+      state: deployStateToActionState(state),
       detail: { state, version: action.versionString(), detail: {} },
       outputs: {
         log: "",
