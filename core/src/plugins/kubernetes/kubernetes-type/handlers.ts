@@ -513,7 +513,7 @@ async function configureSpecialModesForManifests({
       .filter((m) => !(m.kind === target!.kind && target?.metadata.name === m.metadata.name))
       .concat(<KubernetesResource<BaseResource>>target)
 
-    return { updated: [configured.updated], manifests: preparedManifests }
+    return { updated: configured.updated, manifests: preparedManifests }
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     // The "sync-mode" annotation is set in `configureDevMode`.
     return configureSyncMode({

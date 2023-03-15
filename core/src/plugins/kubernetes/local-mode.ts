@@ -100,7 +100,7 @@ interface StartLocalModeParams extends BaseLocalModeParams {
 }
 
 interface ConfiguredLocalMode {
-  updated: SyncableResource
+  updated: SyncableResource[]
   manifests: KubernetesResource<BaseResource, string>[]
 }
 
@@ -455,7 +455,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
 
   patchSyncableManifest(manifest, targetContainer.name, localModeEnvVars, localModePorts)
 
-  return { updated: manifest, manifests }
+  return { updated: [manifest], manifests }
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {

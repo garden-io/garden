@@ -508,7 +508,7 @@ export async function createWorkloadManifest({
       log,
     })
 
-    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated
+    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
   } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
     const configured = await configureSyncMode({

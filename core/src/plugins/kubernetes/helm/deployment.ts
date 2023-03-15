@@ -136,7 +136,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       action,
       log,
     })
-    await apply({ log, ctx, api, provider, manifests: [configured.updated], namespace })
+    await apply({ log, ctx, api, provider, manifests: configured.updated, namespace })
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     const configured = await configureSyncMode({
       ctx,
