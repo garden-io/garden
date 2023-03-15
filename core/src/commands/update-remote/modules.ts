@@ -23,7 +23,8 @@ import { StringsParameter, ParameterValues } from "../../cli/params"
 
 const updateRemoteModulesArguments = {
   modules: new StringsParameter({
-    help: "The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.",
+    help: "The name(s) of the remote module(s) to update. You may specify multiple modules, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.moduleConfigs)
     },

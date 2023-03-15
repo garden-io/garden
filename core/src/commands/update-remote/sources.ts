@@ -22,7 +22,8 @@ import { StringsParameter, ParameterValues } from "../../cli/params"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
-    help: "The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.",
+    help: "The name(s) of the remote source(s) to update. You may specify multiple sources, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return configDump.sources.map((s) => s.name)
     },

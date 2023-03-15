@@ -33,23 +33,19 @@ import { DeepPrimitiveMap } from "../config/common"
 import { validateGitInstall } from "../vcs/vcs"
 import { FileWriter } from "../logger/writers/file-writer"
 
-let _cliStyles: any
+export const cliStyles = {
+  heading: (str: string) => chalk.white.bold(str),
+  commandPlaceholder: () => chalk.blueBright("<command>"),
+  optionsPlaceholder: () => chalk.yellowBright("[options]"),
+  hints: (str: string) => chalk.gray(str),
+  usagePositional: (key: string, required: boolean, spread: boolean) => {
+    if (spread) {
+      key += " ..."
+    }
 
-export function getCliStyles() {
-  if (_cliStyles) {
-    return _cliStyles
-  }
-
-  _cliStyles = {
-    heading: (str: string) => chalk.white.bold(str),
-    commandPlaceholder: () => chalk.blueBright("<command>"),
-    optionsPlaceholder: () => chalk.yellowBright("[options]"),
-    hints: (str: string) => chalk.gray(str),
-    usagePositional: (key: string, required: boolean) => chalk.cyan(required ? `<${key}>` : `[${key}]`),
-    usageOption: (str: string) => chalk.cyan(`<${str}>`),
-  }
-
-  return _cliStyles
+    return chalk.cyan(required ? `<${key}>` : `[${key}]`)
+  },
+  usageOption: (str: string) => chalk.cyan(`<${str}>`),
 }
 
 /**
@@ -261,18 +257,28 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     }
   }
 
-  // TODO: support variadic arguments
+  let lastKey: string | undefined
+  let lastSpec: Parameter<any> | undefined
+
   for (const idx of range(parsedArgs._.length)) {
-    const argKey = argKeys[idx]
     const argVal = parsedArgs._[idx]
-    const spec = argSpec[argKey]
 
-    if (!spec) {
-      if (command.allowUndefinedArguments) {
-        continue
-      }
+    let spread = false
+    let argKey = argKeys[idx]
+    let spec = argSpec[argKey]
 
+    if (argKey) {
+      lastKey = argKey
+      lastSpec = spec
+    } else if (lastKey && lastSpec?.spread) {
+      spread = true
+      argKey = lastKey
+      spec = lastSpec
+    } else if (command.allowUndefinedArguments) {
+      continue
+    } else {
       const expected = argKeys.length > 0 ? "only " + naturalList(argKeys.map((key) => chalk.white.bold(key))) : "none"
+
       throw new ParameterError(`Unexpected positional argument "${argVal}" (expected ${expected})`, {
         expectedKeys: argKeys,
         extraValue: argVal,
@@ -280,7 +286,16 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
     }
 
     try {
-      processedArgs[argKey] = spec.validate(spec.coerce(argVal))
+      const validated = spec.validate(spec.coerce(argVal))
+
+      if (spread && validated) {
+        if (!processedArgs[argKey]) {
+          processedArgs[argKey] = []
+        }
+        processedArgs[argKey].push(...validated)
+      } else {
+        processedArgs[argKey] = validated
+      }
     } catch (error) {
       throw new ParameterError(`Invalid value for argument ${chalk.white.bold(argKey)}: ${error.message}`, {
         error,
@@ -420,8 +435,7 @@ export function renderCommands(commands: Command[]) {
 
 export function renderArguments(params: Parameters) {
   return renderParameters(params, (name, param) => {
-    const cliStyles = getCliStyles()
-    return " " + cliStyles.usagePositional(name, param.required)
+    return " " + cliStyles.usagePositional(name, param.required, param.spread)
   })
 }
 

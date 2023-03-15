@@ -27,8 +27,8 @@ const migrateOpts = {
 }
 
 const migrateArgs = {
-  configPaths: new StringsParameter({
-    help: "Specify the path to a `garden.yml` file to convert. Use comma as a separator to specify multiple files.",
+  "config-paths": new StringsParameter({
+    help: "Specify the path to a `garden.yml` file to convert. You may specify multiple files by setting this flag multiple times.",
   }),
 }
 
@@ -84,8 +84,8 @@ export class MigrateCommand extends Command<Args, Opts> {
     const updatedConfigs: { path: string; specs: any[] }[] = []
 
     let configPaths: string[] = []
-    if (args.configPaths && args.configPaths.length > 0) {
-      configPaths = args.configPaths.map((path) => resolve(root, path))
+    if (args["config-paths"] && args["config-paths"].length > 0) {
+      configPaths = args["config-paths"].map((path) => resolve(root, path))
     } else {
       const vcs = new GitHandler({
         garden,

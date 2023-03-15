@@ -22,7 +22,7 @@ import { ProcessResults } from "../process"
 import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
-import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
+import { renderOptions, renderCommands, renderArguments, cliStyles } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenCli } from "../cli/cli"
 import { CommandLine } from "../cli/command-line"
@@ -287,8 +287,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   renderHelp() {
-    const cliStyles = getCliStyles()
-
     let out = this.description ? `${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n` : ""
 
     out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
@@ -296,7 +294,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     if (this.arguments) {
       out +=
         Object.entries(this.arguments)
-          .map(([name, param]) => cliStyles.usagePositional(name, param.required))
+          .map(([name, param]) => cliStyles.usagePositional(name, param.required, param.spread))
           .join(" ") + " "
     }
 
@@ -355,7 +353,6 @@ export abstract class CommandGroup extends Command {
   }
 
   renderHelp() {
-    const cliStyles = getCliStyles()
     const commands = this.subCommands.map((c) => new c(this))
 
     return `

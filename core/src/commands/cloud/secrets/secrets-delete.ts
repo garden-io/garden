@@ -16,7 +16,8 @@ import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult
 
 export const secretsDeleteArgs = {
   ids: new StringsParameter({
-    help: deline`The IDs of the secrets to delete.`,
+    help: deline`The ID(s) of the secrets to delete.`,
+    spread: true,
   }),
 }
 
@@ -30,7 +31,7 @@ export class SecretsDeleteCommand extends Command<Args> {
     which you which you can get from the \`garden cloud secrets list\` command.
 
     Examples:
-        garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
+        garden cloud secrets delete 1 2 3   # delete secrets with IDs 1, 2, and 3.
   `
 
   arguments = secretsDeleteArgs

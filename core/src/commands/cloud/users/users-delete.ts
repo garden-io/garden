@@ -17,6 +17,7 @@ import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult
 export const usersDeleteArgs = {
   ids: new StringsParameter({
     help: deline`The IDs of the users to delete.`,
+    spread: true,
   }),
 }
 
@@ -30,7 +31,7 @@ export class UsersDeleteCommand extends Command<Args> {
     which you which you can get from the \`garden cloud users list\` command.
 
     Examples:
-        garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
+        garden cloud users delete 1 2 3   # delete users with IDs 1, 2, and 3.
   `
 
   arguments = usersDeleteArgs

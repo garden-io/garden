@@ -23,14 +23,14 @@ const pageLimit = 100
 
 export const secretsListOpts = {
   "filter-envs": new StringsParameter({
-    help: deline`Filter on environment. Use comma as a separator to filter on multiple environments.
+    help: deline`Filter on environment. You may filter on multiple environments by setting this flag multiple times.
     Accepts glob patterns."`,
   }),
   "filter-user-ids": new StringsParameter({
-    help: deline`Filter on user ID. Use comma as a separator to filter on multiple user IDs. Accepts glob patterns.`,
+    help: deline`Filter on user ID. You may filter on multiple user IDs by setting this flag multiple times. Accepts glob patterns.`,
   }),
   "filter-names": new StringsParameter({
-    help: deline`Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.`,
+    help: deline`Filter on secret name. You may filter on multiple secret names by setting this flag multiple times. Accepts glob patterns.`,
   }),
 }
 

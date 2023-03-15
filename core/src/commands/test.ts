@@ -27,9 +27,10 @@ export const testArgs = {
   names: new StringsParameter({
     help: deline`
       The name(s) of the Test action(s) to test (skip to run all tests in the project).
-      Use comma as a separator to specify multiple tests.
+      You may specify multiple test names, separated by spaces.
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Test)
     },

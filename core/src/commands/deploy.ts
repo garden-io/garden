@@ -32,7 +32,8 @@ import { ActionModeMap } from "../actions/types"
 export const deployArgs = {
   names: new StringsParameter({
     help: deline`The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything).
-      Use comma as a separator to specify multiple names.`,
+      You may specify multiple names, separated by spaces.`,
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
@@ -45,7 +46,7 @@ export const deployOpts = {
   "watch": watchParameter,
   "sync": new StringsParameter({
     help: deline`The name(s) of the deploys to deploy with sync enabled.
-      Use comma as a separator to specify multiple names. Use * to deploy all
+      You may specify multiple names by setting this flag multiple times. Use * to deploy all
       supported deployments with sync enabled.
     `,
     aliases: ["dev", "dev-mode"],
@@ -55,7 +56,7 @@ export const deployOpts = {
   }),
   "local-mode": new StringsParameter({
     help: deline`[EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled.
-    Use comma as a separator to specify multiple deploys. Use * to deploy all
+    You may specify multiple deploys by setting this flag multiple times. Use * to deploy all
     deploys with local mode enabled. When this option is used,
     the command is run in persistent mode.
 
