@@ -699,6 +699,7 @@ export class KubeApi {
    * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
    */
   async execInPod({
+    log,
     buffer,
     namespace,
     podName,
@@ -710,6 +711,7 @@ export class KubeApi {
     tty,
     timeoutSec,
   }: {
+    log: LogEntry
     buffer: boolean
     namespace: string
     podName: string
@@ -768,8 +770,6 @@ export class KubeApi {
       }
     }
 
-    const execHandler = new Exec(this.config)
-
     return new Promise(async (resolve, reject) => {
       let done = false
 
@@ -786,6 +786,24 @@ export class KubeApi {
         }
       }
 
+      const execWithRetry = () => {
+        const execHandler = new Exec(this.config)
+
+        return requestWithRetry(log, "Kubernetes API: exec", () => execHandler.exec(
+          namespace,
+          podName,
+          containerName,
+          command,
+          _stdout,
+          _stderr,
+          stdin || null,
+          tty,
+          (status) => {
+            finish(false, getExecExitCode(status))
+          }
+        ))
+      }
+
       if (timeoutSec) {
         setTimeout(() => {
           if (!done) {
@@ -795,21 +813,7 @@ export class KubeApi {
       }
 
       try {
-        const ws = attachWebsocketKeepalive(
-          await execHandler.exec(
-            namespace,
-            podName,
-            containerName,
-            command,
-            _stdout,
-            _stderr,
-            stdin || null,
-            tty,
-            (status) => {
-              finish(false, getExecExitCode(status))
-            }
-          )
-        )
+        const ws = attachWebsocketKeepalive(await execWithRetry())
 
         ws.on("error", (err) => {
           done = true
