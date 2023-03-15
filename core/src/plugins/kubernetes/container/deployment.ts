@@ -502,7 +502,6 @@ export async function createWorkloadManifest({
       ctx,
       spec: localModeSpec,
       defaultTarget: getDefaultWorkloadTarget(workload),
-      manifest: workload,
       manifests: [workload],
       action,
       log,

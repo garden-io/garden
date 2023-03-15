@@ -479,7 +479,6 @@ async function configureSpecialModesForManifests({
       ctx,
       spec: spec.localMode,
       defaultTarget: spec.defaultTarget,
-      manifest: undefined,
       manifests,
       action,
       log,

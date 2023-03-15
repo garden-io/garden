@@ -85,7 +85,6 @@ export const kubernetesLocalModeSchema = () =>
 interface BaseLocalModeParams {
   ctx: PluginContext
   spec: KubernetesLocalModeSpec
-  manifest: SyncableResource | undefined
   manifests: KubernetesResource[]
   action: Resolved<SyncableRuntimeAction>
   log: Log
@@ -431,11 +430,10 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
 
-  let { manifests, manifest } = configParams
+  let { manifests } = configParams
 
   // Make sure we don't modify inputs in-place
   manifests = cloneDeep(manifests)
-  manifest = cloneDeep(manifest)
 
   const query = spec.target || defaultTarget
   if (!query) {
@@ -444,19 +442,17 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
       symbol: "warning",
       msg: "Neither `localMode.target` nor `defaultTarget` is configured. Cannot Deploy in local mode.",
     })
-    return { updated: [] , manifests }
+    return { updated: [], manifests }
   }
 
-  const resolvedTarget =
-    manifest ||
-    (await getTargetResource({
-      ctx,
-      log,
-      provider,
-      action,
-      manifests,
-      query,
-    }))
+  const resolvedTarget = await getTargetResource({
+    ctx,
+    log,
+    provider,
+    action,
+    manifests,
+    query,
+  })
 
   const section = action.key()
 

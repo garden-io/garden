@@ -116,7 +116,6 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       ctx,
       spec: spec.localMode,
       defaultTarget: spec.defaultTarget,
-      manifest: undefined,
       manifests,
       action,
       log,
