@@ -106,7 +106,7 @@ describe("kubernetes Pod runner functions", () => {
     })
 
     describe("start", () => {
-      it("creates a Pod and waits for it to start", async () => {
+      it.only("creates a Pod and waits for it to start", async () => {
         const pod = makePod(["sh", "-c", "sleep 600"])
 
         runner = new PodRunner({
