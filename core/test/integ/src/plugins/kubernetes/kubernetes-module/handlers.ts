@@ -230,7 +230,7 @@ describe("kubernetes-module handlers", () => {
       expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
     })
 
-    it.only("should handle local mode", async () => {
+    it("should handle local mode", async () => {
       const localData = await getTestData("with-source-module", {
         local: ["deploy.with-source-module"],
       })
