@@ -65,8 +65,8 @@ export async function processActions({
   // If any task indicates it's running persistently, we set persistent=true and keep the process alive.
   // Used for e.g. exec Deploy actions with spec.persistent=true
   for (const result of results.results.getAll()) {
-    if (result?.persistent) {
-      log.info(`${result.task.getDescription()} is running a persistent process`)
+    if (result?.attached) {
+      log.verbose(`${result.task.getDescription()} is running a persistent process until Garden exits`)
       persistent = true
     }
   }

@@ -29,6 +29,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const spec = action.getSpec()
+  let attached = false
 
   const api = await KubeApi.factory(log, ctx, provider)
 
@@ -176,6 +177,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespace,
       log,
     })
+    attached = true
   } else if (mode === "sync" && spec.sync?.paths?.length) {
     await startSyncs({
       ctx: k8sCtx,
@@ -188,6 +190,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       manifests,
       syncs: spec.sync.paths,
     })
+    attached = true
   }
 
   return {
@@ -199,6 +202,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       detail: { remoteResources: statuses.map((s) => s.resource) },
       namespaceStatuses: [namespaceStatus],
     },
+    attached,
     // TODO-G2
     outputs: {},
   }

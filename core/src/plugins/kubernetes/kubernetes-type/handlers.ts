@@ -232,6 +232,8 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
 
+  let attached = false
+
   const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
     log,
@@ -309,6 +311,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         namespace,
         log,
       })
+      attached = true
     } else if (mode === "sync" && spec.sync?.paths?.length) {
       await startSyncs({
         ctx: k8sCtx,
@@ -321,6 +324,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         manifests: preparedManifests,
         syncs: spec.sync.paths,
       })
+      attached = true
     }
   }
 
@@ -345,6 +349,8 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       ...status.detail!,
       namespaceStatuses,
     },
+    // Tell the framework that the mutagen process is attached, if applicable
+    attached,
   }
 }
 

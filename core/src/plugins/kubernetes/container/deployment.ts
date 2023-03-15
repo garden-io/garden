@@ -92,6 +92,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
       status: postDeployStatus.detail!,
       action,
     })
+    postDeployStatus.attached = true
   }
 
   if (mode === "local") {
@@ -101,6 +102,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
       status: postDeployStatus.detail!,
       action,
     })
+    postDeployStatus.attached = true
   }
 
   return postDeployStatus
