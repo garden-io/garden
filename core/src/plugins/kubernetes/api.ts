@@ -59,6 +59,7 @@ import { PluginContext } from "../../plugin-context"
 import { Writable, Readable, PassThrough } from "stream"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
+import pRetry = require("p-retry")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -789,26 +790,51 @@ export class KubeApi {
       const execWithRetry = () => {
         const execHandler = new Exec(this.config)
 
-        const apiDescription = "Pod exec"
-        return requestWithRetry(log, `Kubernetes API: ${apiDescription}`, () => {
-          try {
-            return execHandler.exec(
-              namespace,
-              podName,
-              containerName,
-              command,
-              _stdout,
-              _stderr,
-              stdin || null,
-              tty,
-              (status) => {
-                finish(false, getExecExitCode(status))
+        const description = "Pod exec"
+
+        let retryLog: LogEntry | undefined
+
+        return pRetry(
+          () => {
+            try {
+              return execHandler.exec(
+                namespace,
+                podName,
+                containerName,
+                command,
+                _stdout,
+                _stderr,
+                stdin || null,
+                tty,
+                (status) => {
+                  finish(false, getExecExitCode(status))
+                }
+              )
+            } catch (err) {
+              throw wrapError(description, err)
+            }
+          },
+          {
+            retries: 5,
+            minTimeout: 1000,
+            onFailedAttempt(error) {
+              if (error.cause instanceof KubernetesError && error.cause.statusCode) {
+                // only retry if the error is recoverable and there is no risk that the command will be executed twice.
+                if ([500, 502, 503, 429].includes(error.cause.statusCode)) {
+                  retryLog = retryLog || log.debug("")
+                  retryLog.setState(deline`
+                  ${description} failed with error ${error.cause.message}.
+                  HTTP status code ${error.cause.statusCode} is recoverable:
+                  Retrying after backoff (${error.attemptNumber}/${error.retriesLeft})
+                `)
+                  return
+                }
               }
-            )
-          } catch (err) {
-            throw wrapError(apiDescription, err)
+
+              throw error
+            },
           }
-        })
+        )
       }
 
       if (timeoutSec) {
