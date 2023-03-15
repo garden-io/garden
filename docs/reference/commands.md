@@ -227,8 +227,9 @@ deployStatuses:
     outputs:
       <name>:
 
-    # Set to true if the action handler is running a process persistently after returning.
-    persistent:
+    # Set to true if the action handler is running a process persistently and attached to the Garden process after
+    # returning.
+    attached:
 
     detail:
       # When the service was first deployed by the provider.
@@ -357,8 +358,9 @@ When this flag is not used, all services in the project are cleaned up simultane
   outputs:
     <name>:
 
-  # Set to true if the action handler is running a process persistently after returning.
-  persistent:
+  # Set to true if the action handler is running a process persistently and attached to the Garden process after
+  # returning.
+  attached:
 
   detail:
     # When the service was first deployed by the provider.
@@ -2550,8 +2552,9 @@ actions:
       outputs:
         <name>:
 
-      # Set to true if the action handler is running a process persistently after returning.
-      persistent:
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
   # A map of statuses for each configured Deploy.
   Deploy:
@@ -2564,8 +2567,9 @@ actions:
       outputs:
         <name>:
 
-      # Set to true if the action handler is running a process persistently after returning.
-      persistent:
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
       detail:
         # When the service was first deployed by the provider.
@@ -2660,8 +2664,9 @@ actions:
       outputs:
         <name>:
 
-      # Set to true if the action handler is running a process persistently after returning.
-      persistent:
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
       detail:
         # Whether the module was successfully run.
@@ -2699,8 +2704,9 @@ actions:
       outputs:
         <name>:
 
-      # Set to true if the action handler is running a process persistently after returning.
-      persistent:
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
       detail:
         # Whether the module was successfully run.
@@ -2789,8 +2795,9 @@ state:
 outputs:
   <name>:
 
-# Set to true if the action handler is running a process persistently after returning.
-persistent:
+# Set to true if the action handler is running a process persistently and attached to the Garden process after
+# returning.
+attached:
 
 detail:
   # Whether the module was successfully run.
@@ -2849,8 +2856,9 @@ state:
 outputs:
   <name>:
 
-# Set to true if the action handler is running a process persistently after returning.
-persistent:
+# Set to true if the action handler is running a process persistently and attached to the Garden process after
+# returning.
+attached:
 
 detail:
   # Whether the module was successfully run.
@@ -3175,8 +3183,9 @@ published:
     outputs:
       <name>:
 
-    # Set to true if the action handler is running a process persistently after returning.
-    persistent:
+    # Set to true if the action handler is running a process persistently and attached to the Garden process after
+    # returning.
+    attached:
 
     detail:
       # Set to true if the build was published.

@@ -268,9 +268,11 @@ export const actionStatusSchema = createSchema({
       .allow(null)
       .description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
-    persistent: joi
+    attached: joi
       .boolean()
-      .description("Set to true if the action handler is running a process persistently after returning."),
+      .description(
+        "Set to true if the action handler is running a process persistently and attached to the Garden process after returning."
+      ),
   },
 })
 
