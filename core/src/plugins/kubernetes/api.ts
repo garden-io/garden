@@ -32,6 +32,7 @@ import {
   Log,
   NetworkingV1Api,
   ApiextensionsV1Api,
+  HttpError,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -787,17 +788,17 @@ export class KubeApi {
         }
       }
 
-      const execWithRetry = () => {
+      const execWithRetry = async () => {
         const execHandler = new Exec(this.config)
 
         const description = "Pod exec"
 
         let retryLog: LogEntry | undefined
 
-        return pRetry(
-          () => {
-            try {
-              return execHandler.exec(
+        try {
+          return await pRetry(
+            () =>
+              execHandler.exec(
                 namespace,
                 podName,
                 containerName,
@@ -809,32 +810,31 @@ export class KubeApi {
                 (status) => {
                   finish(false, getExecExitCode(status))
                 }
-              )
-            } catch (err) {
-              throw wrapError(description, err)
-            }
-          },
-          {
-            retries: 5,
-            minTimeout: 1000,
-            onFailedAttempt(error) {
-              if (error.cause instanceof KubernetesError && error.cause.statusCode) {
-                // only retry if the error is recoverable and there is no risk that the command will be executed twice.
-                if ([500, 502, 503, 429].includes(error.cause.statusCode)) {
-                  retryLog = retryLog || log.debug("")
-                  retryLog.setState(deline`
-                  ${description} failed with error ${error.cause.message}.
-                  HTTP status code ${error.cause.statusCode} is recoverable:
-                  Retrying after backoff (${error.attemptNumber}/${error.retriesLeft})
-                `)
-                  return
+              ),
+            {
+              retries: 5,
+              minTimeout: 1000,
+              onFailedAttempt(error) {
+                if (error.cause instanceof HttpError && error.cause.statusCode) {
+                  // only retry if there is no risk that the command will be executed twice.
+                  const recoverableStatusCodes = [500, 502, 503, 429]
+                  if (recoverableStatusCodes.includes(error.cause.statusCode)) {
+                    retryLog = retryLog || log.debug("")
+                    retryLog.setState(deline`
+                      ${description} failed with error ${error.cause.message}.
+                      HTTP status code ${error.cause.statusCode} is recoverable:
+                      Retrying after backoff (${error.attemptNumber}/${error.retriesLeft})`)
+                    return
+                  }
                 }
-              }
 
-              throw error
-            },
-          }
-        )
+                throw error
+              },
+            }
+          )
+        } catch (err) {
+          throw wrapError(description, err)
+        }
       }
 
       if (timeoutSec) {
