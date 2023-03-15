@@ -789,19 +789,26 @@ export class KubeApi {
       const execWithRetry = () => {
         const execHandler = new Exec(this.config)
 
-        return requestWithRetry(log, "Kubernetes API: exec", () => execHandler.exec(
-          namespace,
-          podName,
-          containerName,
-          command,
-          _stdout,
-          _stderr,
-          stdin || null,
-          tty,
-          (status) => {
-            finish(false, getExecExitCode(status))
+        const apiDescription = "Pod exec"
+        return requestWithRetry(log, `Kubernetes API: ${apiDescription}`, () => {
+          try {
+            return execHandler.exec(
+              namespace,
+              podName,
+              containerName,
+              command,
+              _stdout,
+              _stderr,
+              stdin || null,
+              tty,
+              (status) => {
+                finish(false, getExecExitCode(status))
+              }
+            )
+          } catch (err) {
+            throw wrapError(apiDescription, err)
           }
-        ))
+        })
       }
 
       if (timeoutSec) {
