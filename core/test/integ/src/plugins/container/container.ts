@@ -14,7 +14,6 @@ import { expectError, getDataDir, getPropertyName, makeTestGarden, TestGarden } 
 import { Log } from "../../../../../src/logger/log-entry"
 import { expect } from "chai"
 import { ContainerBuildAction, ContainerBuildActionSpec } from "../../../../../src/plugins/container/moduleConfig"
-import { resolve } from "path"
 import { cloneDeep } from "lodash"
 import { publishContainerBuild } from "../../../../../src/plugins/container/publish"
 import { Executed } from "../../../../../src/actions/types"
@@ -24,7 +23,6 @@ import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
-  const modulePath = resolve(projectRoot, "module-a")
 
   const baseConfig: BuildActionConfig<"container", ContainerBuildActionSpec> = {
     name: "test",
