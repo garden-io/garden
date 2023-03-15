@@ -1,6 +1,7 @@
-kind: ModuleTemplate
+kind: ConfigTemplate
 name: k8s-container
 inputsSchemaPath: schema.json
+# TODO-G2: convert to actions
 modules:
   - type: container
     name: ${parent.name}-image

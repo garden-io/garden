@@ -47,7 +47,7 @@ import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
-import { loadConfigResources, findProjectConfig, GardenResource, moduleTemplateKind } from "./config/base"
+import { loadConfigResources, findProjectConfig, GardenResource, configTemplateKind } from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi, allowUnknown } from "./config/common"
 import { GlobalConfigStore } from "./config-store/global"
 import { LocalConfigStore, LinkedSource } from "./config-store/local"
@@ -106,11 +106,11 @@ import {
 import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
 import { PluginTool, PluginTools } from "./util/ext-tools"
 import {
-  ModuleTemplateResource,
-  resolveModuleTemplate,
+  ConfigTemplateResource,
+  resolveConfigTemplate,
   resolveTemplatedModule,
-  ModuleTemplateConfig,
-} from "./config/module-template"
+  ConfigTemplateConfig,
+} from "./config/config-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildStagingRsync } from "./build-staging/rsync"
 import {
@@ -234,7 +234,7 @@ export class Garden {
   public readonly cache: TreeCache
   public readonly events: EventBus
   private tools: { [key: string]: PluginTool }
-  public moduleTemplates: { [name: string]: ModuleTemplateConfig }
+  public moduleTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
 
   public readonly production: boolean
@@ -1191,10 +1191,10 @@ export class Garden {
 
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
-      const rawModuleTemplateResources = (groupedResources[moduleTemplateKind] as ModuleTemplateResource[]) || []
+      const rawModuleTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
 
       // Resolve module templates
-      const moduleTemplates = await Bluebird.map(rawModuleTemplateResources, (r) => resolveModuleTemplate(this, r))
+      const moduleTemplates = await Bluebird.map(rawModuleTemplateResources, (r) => resolveConfigTemplate(this, r))
       // -> detect duplicate templates
       const duplicateTemplates = duplicatesByKey(moduleTemplates, "name")
 
@@ -1207,7 +1207,7 @@ export class Garden {
               )}`
           )
           .join("\n")
-        throw new ConfigurationError(`Found duplicate names of ${moduleTemplateKind}s:\n${messages}`, {
+        throw new ConfigurationError(`Found duplicate names of ${configTemplateKind}s:\n${messages}`, {
           duplicateTemplates,
         })
       }

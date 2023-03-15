@@ -1,9 +1,9 @@
 ---
 order: 90
-title: Module Templates
+title: Config Templates
 ---
 
-# Module Templates
+# Config Templates
 
 You can create customized templates for modules or sets of modules, and render them using `templated` modules. These templates allow you to define your own schemas and abstractions, that are then translated at runtime to one or more modules, even including any supporting files (such as Kubernetes manifests, common configuration files, Dockerfiles etc.).
 
@@ -22,7 +22,7 @@ We'll use the [`templated-k8s-container example`](https://github.com/garden-io/g
 The template is defined like this:
 
 ```yaml
-kind: ModuleTemplate
+kind: ConfigTemplate
 name: k8s-container
 inputsSchemaPath: module-templates.json
 modules:
@@ -51,7 +51,7 @@ inputs:
   servicePort: 80
 ```
 
-First off, notice that we have a `kind: ModuleTemplate`, which defines the template, and then a module with `type: templated` which references and uses the `ModuleTemplate` via the `template` field. You can have any number of modules referencing the same template.
+First off, notice that we have a `kind: ConfigTemplate`, which defines the template, and then a module with `type: templated` which references and uses the `ConfigTemplate` via the `template` field. You can have any number of modules referencing the same template.
 
 The sections below describe the example in more detail.
 
@@ -64,7 +64,7 @@ Each template should include one or more modules under the `modules` key. The sc
 
 ### Defining and referencing inputs
 
-On the `ModuleTemplate`, the `inputsSchemaPath` field points to a standard [JSON Schema](https://json-schema.org/) file, which describes the schema for the `inputs` field on every module that references the template. In our example, it looks like this:
+On the `ConfigTemplate`, the `inputsSchemaPath` field points to a standard [JSON Schema](https://json-schema.org/) file, which describes the schema for the `inputs` field on every module that references the template. In our example, it looks like this:
 
 ```json
 {
@@ -142,7 +142,7 @@ _Note that for a reference like this to work, that module also needs to be speci
 
 If you have multiple projects it can be useful to have a central repository containing module templates, that can then be used in all your projects.
 
-To do that, simply place your `ModuleTemplate` configs in a repository (called something like `garden-templates`) and reference it as a remote source in your projects:
+To do that, simply place your `ConfigTemplate` configs in a repository (called something like `garden-templates`) and reference it as a remote source in your projects:
 
 ```yaml
 kind: Project
@@ -156,7 +156,7 @@ Garden will then scan that repo when starting up, and you can reference the temp
 
 ## Further reading
 
-- [ModuleTemplate reference docs](../reference/module-template-config.md).
+- [ConfigTemplate reference docs](../reference/module-template-config.md).
 - [`templated` module type reference docs](../reference/module-types/templated.md).
 - [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container).
 

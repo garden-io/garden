@@ -9,7 +9,7 @@
 import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema, createSchema } from "./common"
 import { baseModuleSpecSchema, BaseModuleSpec, ModuleConfig } from "./module"
 import { dedent, deline } from "../util/string"
-import { GardenResource, moduleTemplateKind, prepareModuleResource } from "./base"
+import { GardenResource, configTemplateKind, prepareModuleResource } from "./base"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
@@ -24,28 +24,28 @@ import { ModuleTemplateConfigContext } from "./template-contexts/module"
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
-const moduleTemplateNameTemplate = "${template.name}"
+const templateNameTemplate = "${template.name}"
 const moduleTemplateReferenceUrl = "./template-strings/modules.md"
 
-export type ModuleTemplateKind = typeof moduleTemplateKind
+export type ConfigTemplateKind = typeof configTemplateKind
 
 interface TemplatedModuleSpec extends Partial<BaseModuleSpec> {
   type: string
 }
 
-export interface ModuleTemplateResource extends GardenResource {
+export interface ConfigTemplateResource extends GardenResource {
   inputsSchemaPath?: string
   modules?: TemplatedModuleSpec[]
 }
 
-export interface ModuleTemplateConfig extends ModuleTemplateResource {
+export interface ConfigTemplateConfig extends ConfigTemplateResource {
   inputsSchema: CustomObjectSchema
 }
 
-export async function resolveModuleTemplate(
+export async function resolveConfigTemplate(
   garden: Garden,
-  resource: ModuleTemplateResource
-): Promise<ModuleTemplateConfig> {
+  resource: ConfigTemplateResource
+): Promise<ConfigTemplateConfig> {
   // Resolve template strings, minus module templates and files
   const partial = {
     ...resource,
@@ -60,9 +60,9 @@ export async function resolveModuleTemplate(
   const validated = validateWithPath({
     config: resolved,
     path: resource.configPath || resource.path,
-    schema: moduleTemplateSchema(),
+    schema: configTemplateSchema(),
     projectRoot: garden.projectRoot,
-    configType: moduleTemplateKind,
+    configType: configTemplateKind,
   })
 
   // Read and validate the JSON schema, if specified
@@ -80,7 +80,7 @@ export async function resolveModuleTemplate(
       inputsJsonSchema = JSON.parse((await readFile(path)).toString())
     } catch (error) {
       throw new ConfigurationError(
-        `Unable to read inputs schema for ${moduleTemplateKind} ${validated.name}: ${error}`,
+        `Unable to read inputs schema for ${configTemplateKind} ${validated.name}: ${error}`,
         {
           path,
           error,
@@ -92,7 +92,7 @@ export async function resolveModuleTemplate(
 
     if (type !== "object") {
       throw new ConfigurationError(
-        `Inputs schema for ${moduleTemplateKind} ${validated.name} has type ${type}, but should be "object".`,
+        `Inputs schema for ${configTemplateKind} ${validated.name} has type ${type}, but should be "object".`,
         { path, type }
       )
     }
@@ -109,7 +109,7 @@ export async function resolveModuleTemplate(
 export async function resolveTemplatedModule(
   garden: Garden,
   config: TemplatedModuleConfig,
-  templates: { [name: string]: ModuleTemplateConfig }
+  templates: { [name: string]: ConfigTemplateConfig }
 ) {
   // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later
   // when resolving the resolving the resulting modules. Inputs that are used in module names must however be resolvable
@@ -187,7 +187,7 @@ export async function resolveTemplatedModule(
       }
 
       throw new ConfigurationError(
-        `${moduleTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${resolved.name}: ${msg}`,
+        `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${resolved.name}: ${msg}`,
         {
           moduleSpec: spec,
           parent: resolvedSpec,
@@ -219,14 +219,14 @@ export async function resolveTemplatedModule(
   return { resolvedSpec, modules }
 }
 
-export const moduleTemplateSchema = createSchema({
-  name: "ModuleTemplate",
+export const configTemplateSchema = createSchema({
+  name: configTemplateKind,
   keys: () => ({
     apiVersion: apiVersionSchema(),
-    kind: joi.string().allow(moduleTemplateKind).only().default(moduleTemplateKind),
+    kind: joi.string().allow(configTemplateKind, "ModuleTemplate").only().default(configTemplateKind),
     name: joiUserIdentifier().description("The name of the template."),
-    path: joi.string().description(`The directory path of the ${moduleTemplateKind}.`).meta({ internal: true }),
-    configPath: joi.string().description(`The path of the ${moduleTemplateKind} config file.`).meta({ internal: true }),
+    path: joi.string().description(`The directory path of the ${configTemplateKind}.`).meta({ internal: true }),
+    configPath: joi.string().description(`The path of the ${configTemplateKind} config file.`).meta({ internal: true }),
     inputsSchemaPath: joi
       .posixPath()
       .relativeOnly()
@@ -240,9 +240,9 @@ export const moduleTemplateSchema = createSchema({
         dedent`
         A list of modules this template will output. The schema for each is the same as when you create modules normally in configuration files, with the addition of a \`path\` field, which allows you to specify a sub-directory to set as the module root.
 
-        In addition to any template strings you can normally use for modules (see [the reference](${moduleTemplateReferenceUrl})), you can reference the inputs described by the inputs schema for the template, using ${inputTemplatePattern} template strings, as well as ${parentNameTemplate} and ${moduleTemplateNameTemplate}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the \`files\` key.
+        In addition to any template strings you can normally use for modules (see [the reference](${moduleTemplateReferenceUrl})), you can reference the inputs described by the inputs schema for the template, using ${inputTemplatePattern} template strings, as well as ${parentNameTemplate} and ${templateNameTemplate}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the \`files\` key.
 
-        **Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputTemplatePattern}, ${parentNameTemplate} and ${moduleTemplateNameTemplate} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](${moduleTemplateReferenceUrl})).**
+        **Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputTemplatePattern}, ${parentNameTemplate} and ${templateNameTemplate} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](${moduleTemplateReferenceUrl})).**
         `
       ),
   }),

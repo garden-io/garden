@@ -19,7 +19,7 @@ import { ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
-import { ModuleTemplateKind } from "./module-template"
+import { ConfigTemplateKind } from "./config-template"
 import { isTruthy } from "../util/util"
 import { PrimitiveMap } from "./common"
 import { emitNonRepeatableWarning } from "../warnings"
@@ -27,7 +27,7 @@ import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
 import { Log } from "../logger/log-entry"
 
-export const moduleTemplateKind = "ModuleTemplate"
+export const configTemplateKind = "ConfigTemplate"
 export const noTemplateFields = ["apiVersion", "kind", "type", "name", "description"]
 
 export const varfileDescription = `
@@ -48,7 +48,7 @@ export interface GardenResource {
   configPath?: string
 }
 
-export type ConfigKind = "Module" | "Workflow" | "Project" | ModuleTemplateKind | ActionKind
+export type ConfigKind = "Module" | "Workflow" | "Project" | ConfigTemplateKind | ActionKind
 
 /**
  * Attempts to parse content as YAML, and applies a linter to produce more informative error messages when
@@ -178,7 +178,11 @@ function prepareResource({
     return prepareProjectResource(log, spec)
   } else if (actionKinds.includes(kind)) {
     return prepareActionResource(spec, configPath, relPath)
-  } else if (kind === "Command" || kind === "Workflow" || kind === moduleTemplateKind) {
+  } else if (kind === "ModuleTemplate") {
+    // Allow this for backwards compatibility
+    spec.kind = configTemplateKind
+    return spec
+  } else if (kind === "Command" || kind === "Workflow" || kind === configTemplateKind) {
     return spec
   } else if (kind === "Module") {
     return prepareModuleResource(spec, configPath, projectRoot)

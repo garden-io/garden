@@ -7,9 +7,9 @@ tocTitle: "`templated`"
 
 ## Description
 
-A special module type, for rendering [module templates](../../using-garden/module-templates.md). See the [Module Templates guide](../../using-garden/module-templates.md) for more information.
+A special module type, for rendering [module templates](../../using-garden/module-templates.md). See the [Config Templates guide](../../using-garden/module-templates.md) for more information.
 
-Specify the name of a ModuleTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
+Specify the name of a ConfigTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
 
 Note that the following common Module configuration fields are disallowed for this module type:
 `build`, `description`, `include`, `exclude`, `repositoryUrl`, `allowPublish`, `generateFiles`, `variables` and `varfile`
@@ -113,7 +113,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -156,10 +156,10 @@ variables:
 # varfiles exist).
 varfile:
 
-# The ModuleTemplate to use to generate the sub-modules of this module.
+# The ConfigTemplate to use to generate the sub-modules of this module.
 template:
 
-# A map of inputs to pass to the ModuleTemplate. These must match the inputs schema of the ModuleTemplate.
+# A map of inputs to pass to the ConfigTemplate. These must match the inputs schema of the ConfigTemplate.
 #
 # Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting
 # module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference
@@ -387,7 +387,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -463,7 +463,7 @@ varfile: "my-module.env"
 
 ### `template`
 
-The ModuleTemplate to use to generate the sub-modules of this module.
+The ConfigTemplate to use to generate the sub-modules of this module.
 
 | Type     | Required |
 | -------- | -------- |
@@ -471,7 +471,7 @@ The ModuleTemplate to use to generate the sub-modules of this module.
 
 ### `inputs`
 
-A map of inputs to pass to the ModuleTemplate. These must match the inputs schema of the ModuleTemplate.
+A map of inputs to pass to the ConfigTemplate. These must match the inputs schema of the ConfigTemplate.
 
 Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference other modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate module identifiers.
 
