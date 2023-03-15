@@ -18,9 +18,9 @@ import type { CommandInfo } from "./plugin-context"
 import type { ActionReference } from "./config/common"
 import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
-import { sanitizeValue } from "./util/logging"
-import { ActionState } from "./actions/types"
 import { BuildState } from "./plugin/handlers/Build/get-status"
+import { ActionStateForEvent } from "./actions/types"
+import { sanitizeValue } from "./util/logging"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -109,7 +109,7 @@ export interface ActionStatusPayload<S = {}> {
   moduleName: string | null // DEPRECATED: Remove in 0.14
   startedAt: string
   completedAt?: string
-  state: ActionState
+  state: ActionStateForEvent
   status: S
 }
 

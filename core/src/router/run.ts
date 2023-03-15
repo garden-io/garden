@@ -9,7 +9,7 @@
 import { realpath } from "fs-extra"
 import normalizePath from "normalize-path"
 import tmp from "tmp-promise"
-import { ActionState } from "../actions/types"
+import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatusForEventPayload } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
@@ -124,7 +124,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       garden.events.emit("runStatus", {
         ...payloadAttrs,
-        state: result.state,
+        state: stateForCacheStatusEvent(result.state),
         completedAt: new Date().toISOString(),
         status: runStatusForEventPayload(result.detail),
       })

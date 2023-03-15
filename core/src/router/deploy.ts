@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import { omit } from "lodash"
-import { ActionState } from "../actions/types"
+import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { DeployState } from "../types/service"
 import { renderOutputStream } from "../util/util"
@@ -159,7 +159,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("deployStatus", {
         ...payloadAttrs,
         completedAt: new Date().toISOString(),
-        state: result.state,
+        state: stateForCacheStatusEvent(result.state),
         status: omit(result.detail, "detail")
       })
 
