@@ -1,0 +1,10 @@
+kind: Deploy
+name: details
+description: Details service container
+type: container
+dependencies: [deploy.istio-gateway]
+spec:
+  image: istio/examples-bookinfo-details-v1:1.8.0
+  ports:
+    - name: http
+      containerPort: 9080
