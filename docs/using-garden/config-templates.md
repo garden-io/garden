@@ -5,45 +5,49 @@ title: Config Templates
 
 # Config Templates
 
-You can create customized templates for modules or sets of modules, and render them using `templated` modules. These templates allow you to define your own schemas and abstractions, that are then translated at runtime to one or more modules, even including any supporting files (such as Kubernetes manifests, common configuration files, Dockerfiles etc.).
+You can create customized templates for actions, workflows and modules, and render them using `kind: RenderTemplate` resources. These templates allow you to define your own schemas and abstractions, that are then translated at runtime to one or more resources.
 
 This provides a powerful yet easy-to-use mechanism to tailor Garden's functionality to your needs, improve governance, reduce boilerplate, and to provide higher-level abstractions to application developers.
 
 These templates can be defined within a project, or in a separate repository that can be shared across multiple projects (using remote sources).
 
 {% hint style="info" %}
-This feature was introduced in Garden 0.12.7. Please make sure you have an up-to-date version installed.
+This feature has been updated in 0.13 to support actions and workflows, in addition to modules. The `ModuleTemplate` resource kind has been renamed to `ConfigTemplate`, and instead of `templated` _Modules_, there is now a specific `RenderTemplate` kind to render the templates. The older declarations will still work until version 0.14, and are converted at runtime.
 {% endhint %}
 
 ## How it works
 
-We'll use the [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container) to illustrate how module templates work. This example has a `k8s-container` template, that generates one `container` module for building an image, and one `kubernetes` module for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
+We'll use the [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container) to illustrate how templates work. This example has a `k8s-container` template, that generates one `container` module for building an image, and one `kubernetes` module for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
 
 The template is defined like this:
 
 ```yaml
 kind: ConfigTemplate
 name: k8s-container
-inputsSchemaPath: module-templates.json
-modules:
-  - type: container
+inputsSchemaPath: schema.json
+
+configs:
+  - kind: Build
+    type: container
     name: ${parent.name}-image
     description: ${parent.name} image
-  - type: kubernetes
-    name: ${parent.name}-manifests
-    build:
-      dependencies: ["${parent.name}-image"]
-    files: [.manifests.yml]
-    generateFiles:
-      - sourcePath: manifests.yml
-        targetPath: .manifests.yml
+
+  - kind: Deploy
+    type: kubernetes
+    name: ${parent.name}
+    description: ${parent.name} manifests
+
+    dependencies:
+      - build.${parent.name}
+
+    manifests:
+      ...
 ```
 
 And it's used like this:
 
 ```yaml
-kind: Module
-type: templated
+kind: RenderTemplate
 template: k8s-container
 name: my-service
 inputs:
@@ -51,16 +55,16 @@ inputs:
   servicePort: 80
 ```
 
-First off, notice that we have a `kind: ConfigTemplate`, which defines the template, and then a module with `type: templated` which references and uses the `ConfigTemplate` via the `template` field. You can have any number of modules referencing the same template.
+First off, notice that we have a `kind: ConfigTemplate`, which defines the template, and then a `kind: RenderTemplate` which references and uses the `ConfigTemplate` via the `template` field. You can have any number of instances referencing the same template.
 
 The sections below describe the example in more detail.
 
-### Defining modules
+### Defining actions and workflows
 
-Each template should include one or more modules under the `modules` key. The schema for each module is exactly the same as for normal [Modules](./modules.md) with just a couple of differences:
+Each template can include one or more actions (`Build`, `Deploy`, `Test` or `Run`) or workflows (`kind: Workflow`) under the `actions` key. The schema for each action is exactly the same as for normal actions or workflows with just a couple of differences:
 
-- In addition to any other template strings available when defining modules, you additionally have `${parent.name}`, `${template.name}` and `${inputs.*}` (more on inputs in the next section). **It's important that you use one of these for the names of the modules, so that every generated module has a unique name.**.
-- You can set a `path` field on the module to any subdirectory relative to the templated module directory. The module directory will be created if necessary.
+- In addition to any other template strings available when defining modules, you additionally have `${parent.name}`, `${template.name}` and `${inputs.*}` (more on inputs in the next section). **It's important that you use one of these for the names of the actions, so that every generated action has a unique name.**.
+- You can set a `path` field on each config to any subdirectory relative to the directory where the `RenderTemplate` config is placed.
 
 ### Defining and referencing inputs
 
@@ -90,9 +94,65 @@ On the `ConfigTemplate`, the `inputsSchemaPath` field points to a standard [JSON
 
 This simple schema says the `containerPort` and `servicePort` inputs are required, and that you can optionally set a `replicas` value as well. Any JSON Schema with `"type": "object"` is supported, and users can add any parameters that templated modules should specify. These could be ingress hostnames, paths, or really any flags that need to be customizable per module.
 
-These values can then be referenced using `${inputs.*}` template strings, anywhere under the `modules` field, as well as in any files specified under `modules[].generateFiles[].sourcePath`.
+These values can then be referenced using `${inputs.*}` template strings, anywhere under the `configs` and `modules` fields.
 
-### Generating files
+_Note that special care needs to be taken when using template strings in the `inputs` field in a `RenderTemplate` config. Fields in the resulting configs from the template may need to be resolvable at different times, and using e.g. action references in input values may not work in all cases._
+
+#### Escaping template strings
+
+Sometimes you may want to pass template strings through when generating files, instead of having Garden resolve them. This could for example be handy when templating a Terraform configuration file which uses a similar templating syntax.
+
+To do this, simply add an additional `$` in front of the template string, e.g. `$${var.dont-resolve-me}`.
+
+### Action references within a templated action
+
+In many cases, it's important for the different actions in a single template to depend on one another, and to reference outputs from one another. You do this basically the same way as in normal actions, but because action names in a template are generally templated themselves, it's helpful to look at how to use templates in action references.
+
+Here's a section from the manifests in our example:
+
+```yaml
+...
+      containers:
+        - name: main
+          image: ${action.build["${parent.name}"].outputs.deployment-image-id}
+          imagePullPolicy: "Always"
+          ports:
+            - name: http
+              containerPort: ${inputs.containerPort}
+```
+
+Notice the `image` field above. We use bracket notation to template the action name, whose outputs we want to reference: `${action.build["${parent.name}"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}` Build in the same template.
+
+_Note that for a reference like this to work, that action also needs to be specified as a dependency._
+
+### Sharing templates
+
+If you have multiple projects it can be useful to have a central repository containing module templates, that can then be used in all your projects.
+
+To do that, simply place your `ConfigTemplate` configs in a repository (called something like `garden-templates`) and reference it as a remote source in your projects:
+
+```yaml
+kind: Project
+...
+sources:
+  - name: templates
+    repositoryUrl: https://github.com/my-org/garden-templates:stable
+```
+
+Garden will then scan that repo when starting up, and you can reference the templates from it across your project.
+
+### Defining modules
+
+{% hint style="warning" %}
+Modules are deprecated and this feature will be removed in version 0.14.
+{% endhint %}
+
+Each template can include one or more modules under the `modules` key. The schema for each module is exactly the same as for normal [Modules](./modules.md) with just a couple of differences:
+
+- In addition to any other template strings available when defining modules, you additionally have `${parent.name}`, `${template.name}` and `${inputs.*}` (more on inputs in the next section). **It's important that you use one of these for the names of the modules, so that every generated module has a unique name.**.
+- You can set a `path` field on the module to any subdirectory relative to the templated module directory. The module directory will be created if necessary.
+
+#### Generating files
 
 You can specify files that should be generated as modules are resolved, using the `modules[].generateFiles` field. These files can include any of the same template strings as when [defining modules](#defining-modules).
 
@@ -111,13 +171,7 @@ This reads a source file from `template/manifests.yml` (the `sourcePath` is rela
 
 Instead of specifying `sourcePath`, you can also specify `value` to provide the file contents directly as a string.
 
-#### Escaping template strings
-
-Sometimes you may want to pass template strings through when generating files, instead of having Garden resolve them. This could for example be handy when templating a Terraform configuration file which uses a similar templating syntax.
-
-To do this, simply add an additional `$` in front of the template string, e.g. `$${var.dont-resolve-me}`.
-
-### Module references within a templated module
+#### Module references within a templated module
 
 In many cases, it's important for the different modules in a single template to depend on one another, and to reference outputs from one another. You do this basically the same way as in normal modules, but because module names in a template are generally templated themselves, it's helpful to look at how to use templates in module references.
 
@@ -138,26 +192,10 @@ Notice the `image` field above. We use bracket notation to template the module 
 
 _Note that for a reference like this to work, that module also needs to be specified as a build dependency._
 
-### Sharing templates
-
-If you have multiple projects it can be useful to have a central repository containing module templates, that can then be used in all your projects.
-
-To do that, simply place your `ConfigTemplate` configs in a repository (called something like `garden-templates`) and reference it as a remote source in your projects:
-
-```yaml
-kind: Project
-...
-sources:
-  - name: templates
-    repositoryUrl: https://github.com/my-org/garden-templates:stable
-```
-
-Garden will then scan that repo when starting up, and you can reference the templates from it across your project.
-
 ## Further reading
 
-- [ConfigTemplate reference docs](../reference/module-template-config.md).
-- [`templated` module type reference docs](../reference/module-types/templated.md).
+- [ConfigTemplate reference docs](../reference/config-template-config.md).
+- [RenderTemplate reference docs](../reference/render-template-config.md).
 - [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container).
 
 ## Next steps

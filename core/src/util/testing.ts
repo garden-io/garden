@@ -261,11 +261,12 @@ export class TestGarden extends Garden {
     }
     actionConfigs.forEach((ac) => {
       this.addActionConfig({
-        internal: {
-          basePath: this.projectRoot,
-        },
         spec: {},
         ...ac,
+        internal: {
+          basePath: this.projectRoot,
+          ...ac.internal,
+        },
       })
     })
   }

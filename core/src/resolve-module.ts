@@ -325,7 +325,7 @@ export class ModuleResolver {
     const templateName = config.templateName
 
     if (templateName) {
-      const template = this.garden.moduleTemplates[templateName]
+      const template = this.garden.configTemplates[templateName]
 
       inputs = resolveTemplateStrings(
         inputs,
@@ -816,6 +816,9 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   }
   if (module.templateName) {
     action.internal.templateName = module.templateName
+  }
+  if (module.inputs) {
+    action.internal.inputs = module.inputs
   }
   if (isBuildActionConfig(action) && !module.allowPublish) {
     action.allowPublish = false

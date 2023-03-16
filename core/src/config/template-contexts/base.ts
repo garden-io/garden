@@ -15,7 +15,7 @@ import {
   TemplateStringMissingKeyException,
   TemplateStringPassthroughException,
 } from "../../template-string/template-string"
-import { CustomObjectSchema, isPrimitive, joi } from "../common"
+import { CustomObjectSchema, isPrimitive, joi, joiIdentifier } from "../common"
 import { KeyedSet } from "../../util/keyed-set"
 import { naturalList } from "../../util/string"
 
@@ -301,6 +301,26 @@ export class ErrorContext extends ConfigContext {
 
   resolve({}): ContextResolveOutput {
     throw new ConfigurationError(this.message, {})
+  }
+}
+
+export class ParentContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the parent config.`))
+  public name: string
+
+  constructor(root: ConfigContext, name: string) {
+    super(root)
+    this.name = name
+  }
+}
+
+export class TemplateContext extends ConfigContext {
+  @schema(joiIdentifier().description(`The name of the template.`))
+  public name: string
+
+  constructor(root: ConfigContext, name: string) {
+    super(root)
+    this.name = name
   }
 }
 

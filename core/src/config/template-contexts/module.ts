@@ -14,8 +14,7 @@ import { joi } from "../common"
 import { deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { GardenModule } from "../../types/module"
-import { ConfigContext, schema, ErrorContext } from "./base"
-import { ProjectConfigContext, ProjectConfigContextParams } from "./project"
+import { ConfigContext, schema, ErrorContext, ParentContext, TemplateContext } from "./base"
 import { ProviderConfigContext } from "./provider"
 import { GraphResults } from "../../graph/results"
 
@@ -180,50 +179,6 @@ class RuntimeConfigContext extends ConfigContext {
     // This ensures that any template string containing runtime.* references is returned unchanged when
     // there is no or limited runtime context available.
     this._alwaysAllowPartial = allowPartial
-  }
-}
-
-export class ParentContext extends ConfigContext {
-  @schema(joiIdentifier().description(`The name of the parent module.`))
-  public name: string
-
-  constructor(root: ConfigContext, name: string) {
-    super(root)
-    this.name = name
-  }
-}
-
-export class TemplateContext extends ConfigContext {
-  @schema(joiIdentifier().description(`The name of the template.`))
-  public name: string
-
-  constructor(root: ConfigContext, name: string) {
-    super(root)
-    this.name = name
-  }
-}
-
-export class ModuleTemplateConfigContext extends ProjectConfigContext {
-  @schema(ParentContext.getSchema().description(`Information about the templated config being resolved.`))
-  public parent: ParentContext
-
-  @schema(TemplateContext.getSchema().description(`Information about the template used when generating the config.`))
-  public template: TemplateContext
-
-  @schema(
-    joiVariables().description(`The inputs provided when resolving the template.`).meta({
-      keyPlaceholder: "<input-key>",
-    })
-  )
-  public inputs: DeepPrimitiveMap
-
-  constructor(
-    params: { parentName: string; templateName: string; inputs: DeepPrimitiveMap } & ProjectConfigContextParams
-  ) {
-    super(params)
-    this.parent = new ParentContext(this, params.parentName)
-    this.template = new TemplateContext(this, params.templateName)
-    this.inputs = params.inputs
   }
 }
 

@@ -25,6 +25,7 @@ import { configTemplateSchema } from "../config/config-template"
 import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
 import { DEFAULT_API_VERSION } from "../constants"
+import { renderTemplateConfigSchema } from "../config/render-template"
 
 /* eslint-disable no-console */
 
@@ -154,5 +155,6 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
 
   await renderConfigTemplate("project", renderProjectConfigReference())
   await renderConfigTemplate("workflow", renderConfigReference(workflowConfigSchema()))
-  await renderConfigTemplate("module-template", renderConfigReference(configTemplateSchema()))
+  await renderConfigTemplate("config-template", renderConfigReference(configTemplateSchema()))
+  await renderConfigTemplate("render-template", renderConfigReference(renderTemplateConfigSchema()))
 }

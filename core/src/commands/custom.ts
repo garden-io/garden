@@ -125,7 +125,7 @@ export class CustomCommandWrapper extends Command {
       const exec = validateWithPath({
         config: resolveTemplateStrings(this.spec.exec, commandContext),
         schema: customCommandExecSchema(),
-        path: this.spec.path,
+        path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `exec field in custom Command '${this.name}'`,
       })
@@ -169,7 +169,7 @@ export class CustomCommandWrapper extends Command {
       let gardenCommand = validateWithPath({
         config: resolveTemplateStrings(this.spec.gardenCommand, commandContext),
         schema: customCommandGardenCommandSchema(),
-        path: this.spec.path,
+        path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `gardenCommand field in custom Command '${this.name}'`,
       })
@@ -265,7 +265,7 @@ export async function getCustomCommands(log: Log, projectRoot: string) {
           exec: joi.any(),
           gardenCommand: joi.any(),
         }),
-        path: config.path,
+        path: (<CommandResource>config).internal.basePath,
         projectRoot,
         configType: `custom Command '${config.name}'`,
       })

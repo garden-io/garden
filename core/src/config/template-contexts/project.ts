@@ -11,10 +11,12 @@ import chalk from "chalk"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "../common"
 import { joi } from "../common"
 import { deline, dedent } from "../../util/string"
-import { schema, ConfigContext, ContextKeySegment, EnvironmentContext } from "./base"
+import { schema, ConfigContext, ContextKeySegment, EnvironmentContext, ParentContext, TemplateContext } from "./base"
 import { CommandInfo } from "../../plugin-context"
 import { Garden } from "../../garden"
 import { VcsInfo } from "../../vcs/vcs"
+import type { ActionConfig } from "../../actions/types"
+import type { WorkflowConfig } from "../workflow"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -409,5 +411,35 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
+  }
+}
+
+export class TemplatableConfigContext extends RemoteSourceConfigContext {
+  @schema(
+    joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
+      keyPlaceholder: "<input-key>",
+    })
+  )
+  public inputs: DeepPrimitiveMap
+
+  @schema(
+    ParentContext.getSchema().description(
+      `Information about the config parent, if any (usually a template, if applicable).`
+    )
+  )
+  public parent?: ParentContext
+
+  @schema(
+    TemplateContext.getSchema().description(
+      `Information about the template used when generating the config, if applicable.`
+    )
+  )
+  public template?: TemplateContext
+
+  constructor(garden: Garden, config: ActionConfig | WorkflowConfig) {
+    super(garden, garden.variables)
+    this.inputs = config.internal.inputs || {}
+    this.parent = config.internal.parentName ? new ParentContext(this, config.internal.parentName) : undefined
+    this.template = config.internal.templateName ? new TemplateContext(this, config.internal.templateName) : undefined
   }
 }

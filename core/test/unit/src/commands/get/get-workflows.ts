@@ -19,7 +19,9 @@ describe("GetWorkflowsCommand", () => {
     kind: "Workflow" as "Workflow",
     envVars: {},
     resources: defaultWorkflowResources,
-    path: projectRoot,
+    internal: {
+      basePath: projectRoot,
+    },
     steps: [],
   }
 

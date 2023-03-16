@@ -47,7 +47,13 @@ import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
 import { getLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
-import { loadConfigResources, findProjectConfig, GardenResource, configTemplateKind } from "./config/base"
+import {
+  loadConfigResources,
+  findProjectConfig,
+  GardenResource,
+  configTemplateKind,
+  renderTemplateKind,
+} from "./config/base"
 import { DeepPrimitiveMap, StringMap, PrimitiveMap, treeVersionSchema, joi, allowUnknown } from "./config/common"
 import { GlobalConfigStore } from "./config-store/global"
 import { LocalConfigStore, LinkedSource } from "./config-store/local"
@@ -103,14 +109,9 @@ import {
   resolveTemplateString,
   resolveTemplateStrings,
 } from "./template-string/template-string"
-import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig } from "./config/workflow"
+import { WorkflowConfig, WorkflowConfigMap, resolveWorkflowConfig, isWorkflowConfig } from "./config/workflow"
 import { PluginTool, PluginTools } from "./util/ext-tools"
-import {
-  ConfigTemplateResource,
-  resolveConfigTemplate,
-  resolveTemplatedModule,
-  ConfigTemplateConfig,
-} from "./config/config-template"
+import { ConfigTemplateResource, resolveConfigTemplate, ConfigTemplateConfig } from "./config/config-template"
 import { TemplatedModuleConfig } from "./plugins/templated"
 import { BuildStagingRsync } from "./build-staging/rsync"
 import {
@@ -135,13 +136,14 @@ import {
   ActionModeMap,
   BaseActionConfig,
 } from "./actions/types"
-import { actionReferenceToString } from "./actions/base"
+import { actionReferenceToString, isActionConfig } from "./actions/base"
 import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
 import { ActionTypeDefinition } from "./plugin/action-types"
 import { Task } from "./tasks/base"
 import { GraphResultFromTask, GraphResults } from "./graph/results"
 import { uuidv4 } from "./util/random"
+import { convertTemplatedModuleToRender, RenderTemplateConfig, renderConfigTemplate } from "./config/render-template"
 
 const defaultLocalAddress = "localhost"
 
@@ -234,7 +236,7 @@ export class Garden {
   public readonly cache: TreeCache
   public readonly events: EventBus
   private tools: { [key: string]: PluginTool }
-  public moduleTemplates: { [name: string]: ConfigTemplateConfig }
+  public configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
 
   public readonly production: boolean
@@ -306,6 +308,7 @@ export class Garden {
     this.commandInfo = params.opts.commandInfo
     this.cache = params.cache
     this.isGarden = true
+    this.configTemplates = {}
 
     this.asyncLock = new AsyncLock()
 
@@ -1191,19 +1194,22 @@ export class Garden {
 
       let rawModuleConfigs = [...((groupedResources.Module as ModuleConfig[]) || [])]
       const rawWorkflowConfigs = (groupedResources.Workflow as WorkflowConfig[]) || []
-      const rawModuleTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
+      const rawConfigTemplateResources = (groupedResources[configTemplateKind] as ConfigTemplateResource[]) || []
 
-      // Resolve module templates
-      const moduleTemplates = await Bluebird.map(rawModuleTemplateResources, (r) => resolveConfigTemplate(this, r))
+      // Resolve config templates
+      const configTemplates = await Bluebird.map(rawConfigTemplateResources, (r) => resolveConfigTemplate(this, r))
+      const templatesByName = keyBy(configTemplates, "name")
       // -> detect duplicate templates
-      const duplicateTemplates = duplicatesByKey(moduleTemplates, "name")
+      const duplicateTemplates = duplicatesByKey(configTemplates, "name")
 
       if (duplicateTemplates.length > 0) {
         const messages = duplicateTemplates
           .map(
             (d) =>
               `Name ${d.value} is used at ${naturalList(
-                d.duplicateItems.map((i) => relative(this.projectRoot, i.configPath || i.path))
+                d.duplicateItems.map((i) =>
+                  relative(this.projectRoot, i.internal.configFilePath || i.internal.basePath)
+                )
               )}`
           )
           .join("\n")
@@ -1212,15 +1218,33 @@ export class Garden {
         })
       }
 
-      // Resolve templated modules
-      const templatesByKey = keyBy(moduleTemplates, "name")
-      const rawTemplated = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
+      // Convert type:templated modules to Render configs
+      // TODO: remove in 0.14
+      const rawTemplatedModules = rawModuleConfigs.filter((m) => m.type === "templated") as TemplatedModuleConfig[]
+      // -> removed templated modules from the module config list
       rawModuleConfigs = rawModuleConfigs.filter((m) => m.type !== "templated")
-      const resolvedTemplated = await Bluebird.map(rawTemplated, (r) => resolveTemplatedModule(this, r, templatesByKey))
 
-      rawModuleConfigs.push(...resolvedTemplated.flatMap((c) => c.modules))
+      const renderConfigs = [
+        ...(groupedResources[renderTemplateKind] || []),
+        ...rawTemplatedModules.map(convertTemplatedModuleToRender),
+      ] as RenderTemplateConfig[]
 
-      // TODO-G2: GroupTemplates
+      // Resolve Render configs
+      const renderResults = await Bluebird.map(renderConfigs, (config) =>
+        renderConfigTemplate({ garden: this, log: this.log, config, templates: templatesByName })
+      )
+      const actionsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isActionConfig))
+      const modulesFromTemplates = renderResults.flatMap((r) => r.modules)
+      const workflowsFromTemplates = renderResults.flatMap((r) => r.configs.filter(isWorkflowConfig))
+
+      if (renderConfigs.length) {
+        this.log.silly(
+          `Rendered ${actionsFromTemplates.length} actions, ${modulesFromTemplates.length} modules, and ${workflowsFromTemplates.length} workflows from templates`
+        )
+      }
+
+      rawModuleConfigs.push(...modulesFromTemplates)
+      rawWorkflowConfigs.push(...workflowsFromTemplates)
 
       // Add all the configs
       rawModuleConfigs.map((c) => this.addModuleConfig(c))
@@ -1235,12 +1259,16 @@ export class Garden {
         }
       }
 
+      for (const config of actionsFromTemplates) {
+        this.addActionConfig(config)
+      }
+
       this.log.debug(
         `Scanned and found ${actionsCount} actions, ${rawWorkflowConfigs.length} workflows and ${rawModuleConfigs.length} modules`
       )
 
       this.configsScanned = true
-      this.moduleTemplates = keyBy(moduleTemplates, "name")
+      this.configTemplates = { ...this.configTemplates, ...keyBy(configTemplates, "name") }
     })
   }
 
@@ -1303,7 +1331,7 @@ export class Garden {
     const existing = this.workflowConfigs[key]
 
     if (existing) {
-      const paths = [existing.configPath || existing.path, config.path]
+      const paths = [existing.internal.configFilePath || existing.internal.basePath, config.internal.basePath]
       const [pathA, pathB] = paths.map((path) => relative(this.projectRoot, path)).sort()
 
       throw new ConfigurationError(`Workflow ${key} is declared multiple times (in '${pathA}' and '${pathB}')`, {
@@ -1320,7 +1348,7 @@ export class Garden {
    *
    * @param configPath Path to a garden config file
    */
-  private async loadResources(configPath: string): Promise<GardenResource[]> {
+  private async loadResources(configPath: string): Promise<(GardenResource | ModuleConfig)[]> {
     configPath = resolve(this.projectRoot, configPath)
     this.log.silly(`Load configs from ${configPath}`)
     const resources = await loadConfigResources(this.log, this.projectRoot, configPath)

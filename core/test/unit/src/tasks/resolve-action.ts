@@ -9,6 +9,7 @@
 import { expect } from "chai"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { ActionKind, ActionModeMap } from "../../../../src/actions/types"
+import { configTemplateKind } from "../../../../src/config/base"
 import { joi } from "../../../../src/config/common"
 import { Log } from "../../../../src/logger/log-entry"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
@@ -457,6 +458,45 @@ describe("ResolveActionTask", () => {
       const resolved = result!.outputs.resolvedAction
 
       expect(resolved.getSpec("deployCommand")).to.eql(["echo", "echo foo"])
+    })
+
+    it("resolves template inputs and names", async () => {
+      garden.configTemplates = {
+        template: {
+          kind: configTemplateKind,
+          name: "template",
+          inputsSchema: joi.object(),
+          internal: {
+            basePath: garden.projectRoot,
+          },
+        },
+      }
+
+      garden.setActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          internal: {
+            basePath: garden.projectRoot,
+            parentName: "parent",
+            templateName: "template",
+            inputs: {
+              foo: "bar",
+            },
+          },
+          spec: {
+            deployCommand: ["echo", "${parent.name}", "${template.name}", "${inputs.foo}"],
+          },
+        },
+      ])
+
+      const task = await getTask("Deploy", "foo")
+
+      const result = await garden.processTask(task, log, { throwOnError: true })
+      const resolved = result!.outputs.resolvedAction
+
+      expect(resolved.getSpec("deployCommand")).to.eql(["echo", "parent", "template", "bar"])
     })
   })
 })

@@ -163,7 +163,9 @@
 * [Glossary](./reference/glossary.md)
 * [Commands](./reference/commands.md)
 * [Project Configuration](./reference/project-config.md)
+* [ConfigTemplate Reference](./reference/config-template-config.md)
 * [Module Template Configuration](./reference/module-template-config.md)
+* [RenderTemplate Reference](./reference/render-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
 
 ## 🎋 Misc

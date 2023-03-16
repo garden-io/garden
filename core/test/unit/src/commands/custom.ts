@@ -30,7 +30,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test A",
       },
@@ -54,7 +56,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test A",
       },
@@ -84,7 +88,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short,
         long,
@@ -104,7 +110,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -145,7 +153,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -178,7 +188,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -211,7 +223,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -241,7 +255,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -272,7 +288,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -318,7 +336,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -346,7 +366,9 @@ describe("CustomCommandWrapper", () => {
       apiVersion: DEFAULT_API_VERSION,
       kind: "Command",
       name: "test",
-      path: "/tmp",
+      internal: {
+        basePath: "/tmp",
+      },
       description: {
         short: "Test",
       },
@@ -371,13 +393,15 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("throws on invalid argument type", () => {
-    expectError(
+    void expectError(
       () =>
         new CustomCommandWrapper({
           apiVersion: DEFAULT_API_VERSION,
           kind: "Command",
           name: "test",
-          path: "/tmp",
+          internal: {
+            basePath: "/tmp",
+          },
           description: {
             short: "Test",
           },
@@ -393,13 +417,15 @@ describe("CustomCommandWrapper", () => {
   })
 
   it("throws on invalid option type", () => {
-    expectError(
+    void expectError(
       () =>
         new CustomCommandWrapper({
           apiVersion: DEFAULT_API_VERSION,
           kind: "Command",
           name: "test",
-          path: "/tmp",
+          internal: {
+            basePath: "/tmp",
+          },
           description: {
             short: "Test",
           },

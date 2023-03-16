@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { isString, mapValues, memoize, omit, pick } from "lodash"
+import { cloneDeep, isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
 import {
   Action,
   ActionConfig,
@@ -25,6 +25,7 @@ import {
 import {
   actionReferenceToString,
   addActionDependency,
+  baseRuntimeActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
 } from "../actions/base"
@@ -45,14 +46,20 @@ import { getActionTypeBases } from "../plugins"
 import type { ActionRouter } from "../router/router"
 import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
-import { getActionTemplateReferences, resolveTemplateStrings } from "../template-string/template-string"
-import { dedent } from "../util/string"
+import {
+  getActionTemplateReferences,
+  maybeTemplateString,
+  resolveTemplateString,
+  resolveTemplateStrings,
+} from "../template-string/template-string"
+import { dedent, naturalList } from "../util/string"
 import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 import chalk from "chalk"
 import type { MaybeUndefined } from "../util/util"
 import minimatch from "minimatch"
+import { ConfigContext } from "../config/template-contexts/base"
 
 export async function actionConfigsToGraph({
   garden,
@@ -152,7 +159,8 @@ export async function actionConfigsToGraph({
         chalk.redBright(
           `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
         ) + chalk.red(error.message),
-        { error, config }
+        { config },
+        error
       )
     }
   })
@@ -182,13 +190,18 @@ export async function actionFromConfig({
   let action: Action
 
   // Call configure handler and validate
-  const { config, supportedModes } = await preprocessActionConfig({ garden, config: inputConfig, router, log })
+  const { config, supportedModes, templateContext } = await preprocessActionConfig({
+    garden,
+    config: inputConfig,
+    router,
+    log,
+  })
 
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
   const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
 
-  const dependencies = dependenciesFromActionConfig(config, configsByKey, definition)
+  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
 
   const variables = await resolveVariables({
@@ -341,11 +354,19 @@ export async function executeAction<T extends Action>({
 }
 
 const getBuiltinConfigContextKeys = memoize(() => {
-  const schema = buildActionConfigSchema()
-  const configKeys = schema.describe().keys
-  return Object.entries(configKeys)
-    .map(([k, v]) => ((<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext) ? k : null))
-    .filter(isString)
+  const keys: string[] = []
+
+  for (const schema of [buildActionConfigSchema(), baseRuntimeActionConfigSchema()]) {
+    const configKeys = schema.describe().keys
+
+    for (const [k, v] of Object.entries(configKeys)) {
+      if ((<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext)) {
+        keys.push(k)
+      }
+    }
+  }
+
+  return uniq(keys)
 })
 
 function getActionSchema(kind: ActionKind) {
@@ -376,12 +397,47 @@ async function preprocessActionConfig({
   router: ActionRouter
   log: Log
 }) {
+  const description = describeActionConfig(config)
+  const templateName = config.internal.templateName
+
+  if (templateName) {
+    // Partially resolve inputs
+    const partiallyResolvedInputs = resolveTemplateStrings(
+      config.internal.inputs || {},
+      new ActionConfigContext(garden, { ...config, internal: { ...config.internal, inputs: {} } }),
+      {
+        allowPartial: true,
+      }
+    )
+
+    const template = garden.configTemplates[templateName]
+
+    // Note: This shouldn't happen in normal user flows
+    if (!template) {
+      throw new InternalError(
+        `${description} references template '${
+          config.internal.templateName
+        }' which cannot be found. Available templates: ${naturalList(Object.keys(garden.configTemplates)) || "(none)"}`,
+        { templateName }
+      )
+    }
+
+    // Validate inputs schema
+    config.internal.inputs = validateWithPath({
+      config: cloneDeep(partiallyResolvedInputs),
+      configType: `inputs for ${description}`,
+      path: config.internal.basePath,
+      schema: template.inputsSchema,
+      projectRoot: garden.projectRoot,
+    })
+  }
+
   const builtinConfigKeys = getBuiltinConfigContextKeys()
-  const builtinFieldContext = new ActionConfigContext(garden)
+  const builtinFieldContext = new ActionConfigContext(garden, config)
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
-    // TODO-G2: better error messages when something goes wrong here
+    // TODO-G2: better error messages when something goes wrong here (missing inputs for example)
     const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: false,
     })
@@ -389,6 +445,7 @@ async function preprocessActionConfig({
     const { spec = {}, variables = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
+    // TODO-G2: better error messages when something goes wrong here
     config = validateWithPath({
       config: {
         ...config,
@@ -416,7 +473,7 @@ async function preprocessActionConfig({
     // }
 
     // Partially resolve other fields
-    // TODO-G2: better error messages when something goes wrong here
+    // TODO-G2: better error messages when something goes wrong here (missing inputs for example)
     const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: true,
     })
@@ -425,16 +482,14 @@ async function preprocessActionConfig({
 
   resolveTemplates()
 
-  const description = describeActionConfig(config)
-
   const { config: updatedConfig, supportedModes } = await router.configureAction({ config, log })
 
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {
-    if (config[field] !== updatedConfig[field]) {
+    if (!isEqual(config[field], updatedConfig[field])) {
       throw new PluginError(
         `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
-        { config, field }
+        { config, field, original: config[field], modified: updatedConfig[field] }
       )
     }
   }
@@ -452,13 +507,15 @@ async function preprocessActionConfig({
     )
   }
 
-  return { config, supportedModes }
+  return { config, supportedModes, templateContext: builtinFieldContext }
 }
 
 function dependenciesFromActionConfig(
+  log: Log,
   config: ActionConfig,
   configsByKey: ActionConfigsByKey,
-  definition: MaybeUndefined<ActionTypeDefinition<any>>
+  definition: MaybeUndefined<ActionTypeDefinition<any>>,
+  templateContext: ConfigContext
 ) {
   const description = describeActionConfig(config)
 
@@ -518,6 +575,17 @@ function dependenciesFromActionConfig(
     let needsExecuted = false
 
     const outputKey = ref.fullRef[4]
+
+    if (maybeTemplateString(ref.name)) {
+      try {
+        ref.name = resolveTemplateString(ref.name, templateContext, { allowPartial: false })
+      } catch (err) {
+        log.warn(
+          `Unable to infer dependency from action reference in ${description}, because template string '${ref.name}' could not be resolved. Either fix the dependency or specify it explicitly.`
+        )
+        continue
+      }
+    }
 
     if (ref.fullRef[3] === "outputs" && outputKey && !staticKeys?.includes(<string>outputKey)) {
       needsExecuted = true

@@ -7,25 +7,31 @@
  */
 
 import { joi, apiVersionSchema, joiUserIdentifier, CustomObjectSchema, createSchema } from "./common"
-import { baseModuleSpecSchema, BaseModuleSpec, ModuleConfig } from "./module"
-import { dedent, deline } from "../util/string"
-import { GardenResource, configTemplateKind, prepareModuleResource } from "./base"
+import { baseModuleSpecSchema, BaseModuleSpec } from "./module"
+import { dedent, naturalList } from "../util/string"
+import { configTemplateKind, renderTemplateKind, BaseGardenResource, baseInternalFieldsSchema } from "./base"
 import { resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { Garden } from "../garden"
 import { ConfigurationError } from "../exceptions"
 import { resolve, posix, dirname } from "path"
-import { readFile, ensureDir } from "fs-extra"
-import Bluebird from "bluebird"
-import { TemplatedModuleConfig, templatedModuleSpecSchema } from "../plugins/templated"
-import { omit } from "lodash"
-import { ProjectConfigContext, EnvironmentConfigContext } from "./template-contexts/project"
-import { ModuleTemplateConfigContext } from "./template-contexts/module"
+import { readFile } from "fs-extra"
+import { ProjectConfigContext } from "./template-contexts/project"
+import { ActionConfig, actionKinds } from "../actions/types"
+import { WorkflowConfig } from "./workflow"
 
 const inputTemplatePattern = "${inputs.*}"
 const parentNameTemplate = "${parent.name}"
 const templateNameTemplate = "${template.name}"
+const templateReferenceUrl = "./template-strings/README.md"
 const moduleTemplateReferenceUrl = "./template-strings/modules.md"
+
+export const templateNoTemplateFields = ["apiVersion", "kind"]
+export const templatableKinds = [...actionKinds, "Workflow"]
+
+// Note: Deliberately excludes Modules, which are kept in a different flow
+export type TemplatableConfig = ActionConfig | WorkflowConfig
+export type TemplatableConfigWithPath = TemplatableConfig & { path?: string }
 
 export type ConfigTemplateKind = typeof configTemplateKind
 
@@ -33,9 +39,10 @@ interface TemplatedModuleSpec extends Partial<BaseModuleSpec> {
   type: string
 }
 
-export interface ConfigTemplateResource extends GardenResource {
+export interface ConfigTemplateResource extends BaseGardenResource {
   inputsSchemaPath?: string
   modules?: TemplatedModuleSpec[]
+  configs?: TemplatableConfigWithPath[]
 }
 
 export interface ConfigTemplateConfig extends ConfigTemplateResource {
@@ -50,16 +57,18 @@ export async function resolveConfigTemplate(
   const partial = {
     ...resource,
     modules: [],
+    configs: [],
   }
   const loggedIn = !!garden.cloudApi
   const enterpriseDomain = garden.cloudApi?.domain
   const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
   const resolved = resolveTemplateStrings(partial, context)
+  const configPath = resource.internal.configFilePath
 
   // Validate the partial config
   const validated = validateWithPath({
     config: resolved,
-    path: resource.configPath || resource.path,
+    path: configPath || resource.internal.basePath,
     schema: configTemplateSchema(),
     projectRoot: garden.projectRoot,
     configType: configTemplateKind,
@@ -72,7 +81,7 @@ export async function resolveConfigTemplate(
     additionalProperties: false,
   }
 
-  const configDir = resource.configPath ? dirname(resource.configPath) : resource.path
+  const configDir = configPath ? dirname(configPath) : resource.internal.basePath
 
   if (validated.inputsSchemaPath) {
     const path = resolve(configDir, ...validated.inputsSchemaPath.split(posix.sep))
@@ -103,120 +112,8 @@ export async function resolveConfigTemplate(
     ...validated,
     inputsSchema: joi.object().jsonSchema(inputsJsonSchema),
     modules: resource.modules,
+    configs: resource.configs,
   }
-}
-
-export async function resolveTemplatedModule(
-  garden: Garden,
-  config: TemplatedModuleConfig,
-  templates: { [name: string]: ConfigTemplateConfig }
-) {
-  // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later
-  // when resolving the resolving the resulting modules. Inputs that are used in module names must however be resolvable
-  // immediately.
-  const loggedIn = !!garden.cloudApi
-  const enterpriseDomain = garden.cloudApi?.domain
-  const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
-  const resolvedWithoutInputs = resolveTemplateStrings(
-    { ...config, spec: omit(config.spec, "inputs") },
-    templateContext
-  )
-  const partiallyResolvedInputs = resolveTemplateStrings(config.spec.inputs || {}, templateContext, {
-    allowPartial: true,
-  })
-  const resolved = {
-    ...resolvedWithoutInputs,
-    spec: { ...resolvedWithoutInputs.spec, inputs: partiallyResolvedInputs },
-  }
-
-  const configType = "templated module " + resolved.name
-
-  let resolvedSpec = omit(resolved.spec, "build")
-
-  // Return immediately if module is disabled
-  if (resolved.disabled) {
-    return { resolvedSpec, modules: [] }
-  }
-
-  // Validate the module spec
-  resolvedSpec = validateWithPath({
-    config: resolvedSpec,
-    configType,
-    path: resolved.configPath || resolved.path,
-    schema: templatedModuleSpecSchema(),
-    projectRoot: garden.projectRoot,
-  })
-
-  const template = templates[resolvedSpec.template]
-
-  if (!template) {
-    const availableTemplates = Object.keys(templates)
-    throw new ConfigurationError(
-      deline`
-      Templated module ${resolved.name} references template ${resolvedSpec.template},
-      which cannot be found. Available templates: ${availableTemplates.join(", ")}
-      `,
-      { availableTemplates }
-    )
-  }
-
-  // Prepare modules and resolve templated names
-  const context = new ModuleTemplateConfigContext({
-    ...garden,
-    loggedIn: !!garden.cloudApi,
-    enterpriseDomain,
-    parentName: resolved.name,
-    templateName: template.name,
-    inputs: partiallyResolvedInputs,
-  })
-
-  const modules = await Bluebird.map(template.modules || [], async (m) => {
-    // Run a partial template resolution with the parent+template info
-    const spec = resolveTemplateStrings(m, context, { allowPartial: true })
-
-    let moduleConfig: ModuleConfig
-
-    try {
-      moduleConfig = prepareModuleResource(spec, resolved.configPath || resolved.path, garden.projectRoot)
-    } catch (error) {
-      let msg = error.message
-
-      if (spec.name && spec.name.includes && spec.name.includes("${")) {
-        msg +=
-          ". Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used."
-      }
-
-      throw new ConfigurationError(
-        `${configTemplateKind} ${template.name} returned an invalid module (named ${spec.name}) for templated module ${resolved.name}: ${msg}`,
-        {
-          moduleSpec: spec,
-          parent: resolvedSpec,
-          error,
-        }
-      )
-    }
-
-    // Resolve the file source path to an absolute path, so that it can be used during module resolution
-    moduleConfig.generateFiles = (moduleConfig.generateFiles || []).map((f) => ({
-      ...f,
-      sourcePath: f.sourcePath && resolve(template.path, ...f.sourcePath.split(posix.sep)),
-    }))
-
-    // If a path is set, resolve the path and ensure that directory exists
-    if (spec.path) {
-      moduleConfig.path = resolve(resolved.path, ...spec.path.split(posix.sep))
-      await ensureDir(moduleConfig.path)
-    }
-
-    // Attach metadata
-    moduleConfig.parentName = resolved.name
-    moduleConfig.templateName = template.name
-    moduleConfig.inputs = partiallyResolvedInputs
-
-    return moduleConfig
-  })
-
-  return { resolvedSpec, modules }
 }
 
 export const configTemplateSchema = createSchema({
@@ -225,14 +122,16 @@ export const configTemplateSchema = createSchema({
     apiVersion: apiVersionSchema(),
     kind: joi.string().allow(configTemplateKind, "ModuleTemplate").only().default(configTemplateKind),
     name: joiUserIdentifier().description("The name of the template."),
-    path: joi.string().description(`The directory path of the ${configTemplateKind}.`).meta({ internal: true }),
-    configPath: joi.string().description(`The path of the ${configTemplateKind} config file.`).meta({ internal: true }),
+
+    internal: baseInternalFieldsSchema,
+
     inputsSchemaPath: joi
       .posixPath()
       .relativeOnly()
       .description(
         "Path to a JSON schema file describing the expected inputs for the template. Must be an object schema. If none is provided, no inputs will be accepted and an error thrown if attempting to do so."
       ),
+    // TODO: remove in 0.14
     modules: joi
       .array()
       .items(moduleSchema())
@@ -243,6 +142,27 @@ export const configTemplateSchema = createSchema({
         In addition to any template strings you can normally use for modules (see [the reference](${moduleTemplateReferenceUrl})), you can reference the inputs described by the inputs schema for the template, using ${inputTemplatePattern} template strings, as well as ${parentNameTemplate} and ${templateNameTemplate}, to reference the name of the module using the template, and the name of the template itself, respectively. This also applies to file contents specified under the \`files\` key.
 
         **Important: Make sure you use templates for any identifiers that must be unique, such as module names, service names and task names. Otherwise you'll inevitably run into configuration errors. The module names can reference the ${inputTemplatePattern}, ${parentNameTemplate} and ${templateNameTemplate} keys. Other identifiers can also reference those, plus any other keys available for module templates (see [the module context reference](${moduleTemplateReferenceUrl})).**
+        `
+      ),
+    configs: joi
+      .array()
+      .items(templatedResourceSchema())
+      .description(
+        dedent`
+        A list of Garden configs this template will output, e.g. a set of actions. The schema for each is the same as when you create resources normally in configuration files, with the addition of a \`path\` field, which allows you to specify a sub-directory to set as the root location of the resource.
+
+        The following resource kinds are allowed: ${naturalList(templatableKinds.map((f) => "`" + f + "`"))}
+
+        __Note that you may _not_ specify Module resources here. Those need to be specified in the \`modules\` field.__
+
+        In addition to any template strings you can normally use for the given configurations (see [the reference](${templateReferenceUrl})), you can reference the inputs described by the inputs schema for the template, using ${inputTemplatePattern} template strings, as well as ${parentNameTemplate} and ${templateNameTemplate}, to reference the name of the \`${renderTemplateKind}\` resource being rendered, and the name of the template itself, respectively.
+
+        **Important: Make sure you use templates for any identifiers that must be unique, such as action names.**
+        Otherwise you'll inevitably run into configuration errors when re-using the template. The names can reference the ${inputTemplatePattern}, ${parentNameTemplate} and ${templateNameTemplate} keys, and must be resolvable when parsing the template (meaning no action or runtime references etc.). Other identifiers can also reference those, plus any other keys available for templates in the given configs (see [the reference](${templateReferenceUrl})).
+
+        Also note that template strings are not allowed in the following fields: ${naturalList(
+          templateNoTemplateFields.map((f) => "`" + f + "`")
+        )}
         `
       ),
   }),
@@ -258,3 +178,18 @@ const moduleSchema = () =>
         "POSIX-style path of a sub-directory to set as the module root. If the directory does not exist, it is automatically created."
       ),
   })
+
+// Note: Further validation is performed with more specific schemas after parsing
+const templatedResourceSchema = createSchema({
+  name: "templated-resource",
+  keys: {
+    apiVersion: apiVersionSchema,
+    kind: joi
+      .string()
+      .allow(...templatableKinds)
+      .only()
+      .description("The kind of resource to create."),
+    name: joiUserIdentifier().description("The name of the resource."),
+    unknown: true,
+  },
+})

@@ -9,6 +9,7 @@
 import { isEmpty, isString } from "lodash"
 import { stringify } from "yaml"
 import { withoutInternalFields, sanitizeValue } from "./util/logging"
+import { testFlags } from "./util/util"
 
 export interface GardenError<D extends object = any> {
   type: string
@@ -19,11 +20,24 @@ export interface GardenError<D extends object = any> {
 
 export abstract class GardenBaseError<D extends object = any> extends Error implements GardenError<D> {
   abstract type: string
-  readonly detail: D
 
-  constructor(message: string, detail: D) {
+  constructor(message: string, public readonly detail: D, public readonly wrappedError?: Error) {
     super(message)
     this.detail = detail
+  }
+
+  toString() {
+    if (testFlags.expandErrors) {
+      let str = super.toString()
+
+      if (this.wrappedError) {
+        str += "\n\nWrapped error:\n\n" + this.wrappedError
+      }
+
+      return str
+    } else {
+      return super.toString()
+    }
   }
 
   toSanitizedValue() {

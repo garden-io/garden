@@ -10,6 +10,8 @@ import { expect } from "chai"
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
 import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
 import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
+import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
+import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -74,6 +76,19 @@ describe("WorkflowConfigContext", () => {
 describe("WorkflowStepConfigContext", () => {
   let garden: TestGarden
 
+  const workflow: WorkflowConfig = {
+    apiVersion: DEFAULT_API_VERSION,
+    kind: "Workflow",
+    name: "test",
+    steps: [],
+    envVars: {},
+    resources: defaultWorkflowResources,
+
+    internal: {
+      basePath: "/tmp",
+    },
+  }
+
   before(async () => {
     garden = await makeTestGardenA()
   })
@@ -81,6 +96,7 @@ describe("WorkflowStepConfigContext", () => {
   it("should successfully resolve an output from a prior resolved step", () => {
     const c = new WorkflowStepConfigContext({
       garden,
+      workflow,
       allStepNames: ["step-1", "step-2"],
       resolvedSteps: {
         "step-1": {
@@ -99,6 +115,7 @@ describe("WorkflowStepConfigContext", () => {
   it("should successfully resolve the log from a prior resolved step", () => {
     const c = new WorkflowStepConfigContext({
       garden,
+      workflow,
       allStepNames: ["step-1", "step-2"],
       resolvedSteps: {
         "step-1": {
@@ -115,11 +132,12 @@ describe("WorkflowStepConfigContext", () => {
   it("should throw error when attempting to reference a following step", () => {
     const c = new WorkflowStepConfigContext({
       garden,
+      workflow,
       allStepNames: ["step-1", "step-2"],
       resolvedSteps: {},
       stepName: "step-1",
     })
-    expectError(() => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }), {
+    void expectError(() => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }), {
       contains:
         "Step step-2 is referenced in a template for step step-1, but step step-2 is later in the execution order. Only previous steps in the workflow can be referenced.",
     })
@@ -128,11 +146,12 @@ describe("WorkflowStepConfigContext", () => {
   it("should throw error when attempting to reference current step", () => {
     const c = new WorkflowStepConfigContext({
       garden,
+      workflow,
       allStepNames: ["step-1", "step-2"],
       resolvedSteps: {},
       stepName: "step-1",
     })
-    expectError(() => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }), {
+    void expectError(() => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }), {
       contains: "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced.",
     })
   })

@@ -1,5 +1,4 @@
-kind: Module
-type: templated
+kind: RenderTemplate
 template: k8s-container
 name: my-service
 inputs:

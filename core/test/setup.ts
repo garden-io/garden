@@ -22,6 +22,7 @@ exports.mochaHooks = {
   async beforeAll() {
     getDefaultProfiler().setEnabled(true)
     gardenEnv.GARDEN_DISABLE_ANALYTICS = true
+    testFlags.expandErrors = true
     testFlags.disableShutdown = true
   },
 

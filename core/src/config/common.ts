@@ -490,6 +490,7 @@ export interface CreateSchemaParams {
   meta?: MetadataKeys
   allowUnknown?: boolean
   required?: boolean
+  or?: string[]
   xor?: string[]
 }
 
@@ -560,6 +561,9 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
       }
       if (spec.required) {
         schema = schema.required()
+      }
+      if (spec.or) {
+        schema = schema.or(...spec.or)
       }
       if (spec.xor) {
         schema = schema.xor(...spec.xor)

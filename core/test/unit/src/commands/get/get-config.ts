@@ -91,7 +91,9 @@ describe("GetConfigCommand", () => {
         kind: "Workflow",
         keepAliveHours: 48,
         limits: defaultContainerLimits,
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         steps: [{ command: ["run", "foo"] }],

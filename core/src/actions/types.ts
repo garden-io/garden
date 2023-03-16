@@ -18,6 +18,7 @@ import type { ActionKind } from "../plugin/action-types"
 import type { GraphResults } from "../graph/results"
 import type { BaseAction } from "./base"
 import type { ValidResultType } from "../tasks/base"
+import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base"
 
 // TODO-G2: split this file
 
@@ -42,7 +43,8 @@ export interface ActionSourceSpec {
  *
  * See inline comments below for information on what templating is allowed on different fields.
  */
-export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any> {
+export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string, Spec = any>
+  extends BaseGardenResource {
   // Basics
   // -> No templating is allowed on these.
   apiVersion?: string
@@ -57,15 +59,9 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
 
   // Internal metadata
   // -> No templating is allowed on these.
-  internal: {
-    basePath: string
-    configFilePath?: string
+  internal: GardenResourceInternalFields & {
     groupName?: string
     resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
-    // -> set by templates
-    inputs?: DeepPrimitiveMap
-    parentName?: string
-    templateName?: string
     // For backwards-compatibility, applied on actions returned from module conversion handlers
     moduleName?: string
     moduleVersion?: ModuleVersion
@@ -104,17 +100,13 @@ export interface ActionConfigTypes {
  * See https://melvingeorge.me/blog/convert-array-into-string-literal-union-type-typescript
  */
 export const actionStateTypes = ["ready", "not-ready", "processing", "failed", "unknown"] as const
-export type ActionState = typeof actionStateTypes[number]
+export type ActionState = (typeof actionStateTypes)[number]
 
 /**
  * These are the states emitted in status events. Here, we include additional states to help distinguish status event
  * emitted around status/cache checks VS statuses emitted around the execution after a failed status check.
  */
-export const actionStateTypesForEvent = [
-  ...actionStateTypes,
-  "getting-status",
-  "cached",
-] as const
+export const actionStateTypesForEvent = [...actionStateTypes, "getting-status", "cached"] as const
 /**
  * This type represents the lifecycle of an individual action execution.
  *
@@ -158,7 +150,7 @@ export const actionStateTypesForEvent = [
  * - `"failed"`: The action was executed, but a failure or error occurred, so no up-to-date result was created for
  *   the action.
  */
-export type ActionStateForEvent = typeof actionStateTypesForEvent[number]
+export type ActionStateForEvent = (typeof actionStateTypesForEvent)[number]
 
 export const stateForCacheStatusEvent = (state: ActionState): ActionStateForEvent => {
   return state === "ready" ? "cached" : state
@@ -220,6 +212,7 @@ export interface ResolveActionParams<C extends BaseActionConfig, Outputs extends
   resolvedDependencies: ResolvedAction[]
   spec: C["spec"]
   staticOutputs: Outputs
+  inputs: DeepPrimitiveMap
   variables: DeepPrimitiveMap
 }
 

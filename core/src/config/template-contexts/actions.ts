@@ -22,19 +22,15 @@ import {
   PrimitiveMap,
 } from "../common"
 import { ProviderMap } from "../provider"
-import { ConfigContext, ErrorContext, schema } from "./base"
-import { exampleVersion, OutputConfigContext, ParentContext, TemplateContext } from "./module"
-import { RemoteSourceConfigContext } from "./project"
+import { ConfigContext, ErrorContext, schema, ParentContext, TemplateContext } from "./base"
+import { exampleVersion, OutputConfigContext } from "./module"
+import { TemplatableConfigContext } from "./project"
 
 /**
  * This is available to built-in fields on action configs. See ActionSpecContext below for the context available
  * for action spec and variables.
  */
-export class ActionConfigContext extends RemoteSourceConfigContext {
-  constructor(garden: Garden) {
-    super(garden, garden.variables)
-  }
-}
+export class ActionConfigContext extends TemplatableConfigContext {}
 
 interface ActionReferenceContextParams {
   root: ConfigContext
@@ -200,12 +196,14 @@ export interface ActionSpecContextParams {
   resolvedDependencies: ResolvedAction[]
   executedDependencies: ExecutedAction[]
   variables: DeepPrimitiveMap
+  inputs: DeepPrimitiveMap
 }
 
 /**
  * Used to resolve action spec and variables.
  */
 export class ActionSpecContext extends OutputConfigContext {
+  // TODO-G2: rename to actions (to allow using action singular in certain contexts + match the modules field)
   @schema(
     ActionReferencesContext.getSchema().description(
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."
@@ -241,9 +239,10 @@ export class ActionSpecContext extends OutputConfigContext {
   public this: ActionReferenceContext
 
   constructor(params: ActionSpecContextParams) {
-    const { action, garden, partialRuntimeResolution, variables, resolvedDependencies, executedDependencies } = params
+    const { action, garden, partialRuntimeResolution, variables, inputs, resolvedDependencies, executedDependencies } =
+      params
 
-    const { internal } = action.getConfig()
+    const internal = action.getInternal()
 
     const mergedVariables: DeepPrimitiveMap = {}
     merge(mergedVariables, garden.variables)
@@ -276,7 +275,7 @@ export class ActionSpecContext extends OutputConfigContext {
       this.parent = new ParentContext(this, parentName)
       this.template = new TemplateContext(this, templateName)
     }
-    this.inputs = internal?.inputs || {}
+    this.inputs = inputs
 
     this.runtime = this.action
 

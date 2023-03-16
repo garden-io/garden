@@ -54,7 +54,7 @@ import {
   ResolvedAction,
   ResolvedActionWrapperParams,
 } from "./types"
-import { varfileDescription } from "../config/base"
+import { baseInternalFieldsSchema, varfileDescription } from "../config/base"
 import { PickTypeByKind } from "../graph/config-graph"
 import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
@@ -62,6 +62,18 @@ import { RunAction } from "./run"
 import { uuidv4 } from "../util/random"
 
 // TODO-G2: split this file
+
+const actionInternalFieldsSchema = createSchema({
+  name: "action-config-internal-fields",
+  extend: baseInternalFieldsSchema,
+  keys: {
+    groupName: joi.string().optional().meta({ internal: true }),
+    moduleName: joi.string().optional().meta({ internal: true }),
+    resolved: joi.boolean().optional().meta({ internal: true }),
+  },
+  allowUnknown: true,
+  meta: { internal: true },
+})
 
 const actionSourceSpecSchema = () =>
   joi
@@ -122,20 +134,7 @@ export const baseActionConfigSchema = createSchema({
     description: joi.string().description("A description of the action.").meta({ templateContext: null }),
 
     // Internal metadata fields (these are rejected in `loadConfigResources()` if specified by users)
-    internal: joi
-      .object()
-      .keys({
-        basePath: joi.string().required().meta({ internal: true }),
-        configFilePath: joi.string().optional().meta({ internal: true }),
-        groupName: joi.string().optional().meta({ internal: true }),
-        moduleName: joi.string().optional().meta({ internal: true }),
-        resolved: joi.boolean().optional().meta({ internal: true }),
-        inputs: joi.object().optional().meta({ internal: true }),
-        parentName: joi.string().optional().meta({ internal: true }),
-        templateName: joi.string().optional().meta({ internal: true }),
-      })
-      .unknown(true)
-      .meta({ internal: true }),
+    internal: actionInternalFieldsSchema,
 
     // Location
     source: actionSourceSpecSchema(),
@@ -526,6 +525,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return this.getFullVersion().versionString
   }
 
+  getInternal(): BaseActionConfig["internal"] {
+    return { ...this.getConfig("internal") }
+  }
+
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
@@ -634,7 +637,8 @@ export abstract class ResolvedRuntimeAction<
     Outputs extends {} = any
   >
   extends RuntimeAction<Config, Outputs>
-  implements ResolvedActionExtension<Config, Outputs> {
+  implements ResolvedActionExtension<Config, Outputs>
+{
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<Config>
   protected readonly resolved: true
@@ -652,6 +656,7 @@ export abstract class ResolvedRuntimeAction<
     this.resolvedDependencies = params.resolvedDependencies
     this._staticOutputs = params.staticOutputs
     this._config.spec = params.spec
+    this._config.internal.inputs = params.inputs
   }
 
   /**

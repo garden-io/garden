@@ -73,6 +73,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     dependencyResults,
   }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
     const action = this.action
+    const config = action.getConfig()
 
     // Collect dependencies
     const resolvedDependencies: ResolvedAction[] = []
@@ -95,6 +96,20 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       }
     }
 
+    // Resolve template inputs
+    const inputsContext = new ActionSpecContext({
+      garden: this.garden,
+      resolvedProviders: await this.garden.resolveProviders(this.log),
+      action,
+      modules: this.graph.getModules(),
+      partialRuntimeResolution: false,
+      resolvedDependencies,
+      executedDependencies,
+      variables: {},
+      inputs: {},
+    })
+    const inputs = resolveTemplateStrings(config.internal.inputs || {}, inputsContext, { allowPartial: false })
+
     // Resolve variables
     let groupVariables: DeepPrimitiveMap = {}
     const groupName = action.groupName()
@@ -104,20 +119,9 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
       groupVariables = resolveTemplateStrings(
         await resolveVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
-        new ActionSpecContext({
-          garden: this.garden,
-          resolvedProviders: await this.garden.resolveProviders(this.log),
-          action,
-          modules: this.graph.getModules(),
-          partialRuntimeResolution: false,
-          resolvedDependencies,
-          executedDependencies,
-          variables: {},
-        })
+        inputsContext
       )
     }
-
-    const config = action.getConfig()
 
     const actionVariables = resolveTemplateStrings(
       await resolveVariables({
@@ -134,6 +138,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         resolvedDependencies,
         executedDependencies,
         variables: groupVariables,
+        inputs,
       })
     )
 
@@ -154,6 +159,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         resolvedDependencies,
         executedDependencies,
         variables,
+        inputs,
       })
     )
 
@@ -173,6 +179,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       executedDependencies,
       resolvedDependencies,
       variables,
+      inputs,
       spec,
       staticOutputs: {},
     }) as Resolved<T>

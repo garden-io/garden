@@ -7,7 +7,9 @@ tocTitle: "`templated`"
 
 ## Description
 
-A special module type, for rendering [module templates](../../using-garden/module-templates.md). See the [Config Templates guide](../../using-garden/module-templates.md) for more information.
+**[DEPRECATED] Please use the new `RenderTemplate` config kind instead.**
+
+A special module type, for rendering [module templates](../../using-garden/config-templates.md). See the [Config Templates guide](../../using-garden/config-templates.md) for more information.
 
 Specify the name of a ConfigTemplate with the `template` field, and provide any expected inputs using the `inputs` field. The generated modules becomes sub-modules of this module.
 
@@ -59,18 +61,7 @@ build:
 # A description of the module.
 description:
 
-# Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
-# This can be handy when you only need certain modules for specific environments, e.g. only for development.
-#
-# Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also
-# means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which
-# case building this module is necessary for the dependant to be built).
-#
-# If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden will
-# automatically ignore those dependency declarations. Note however that template strings referencing the module's
-# service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so you need to make
-# sure to provide alternate values for those if you're using them, using conditional expressions.
+# Set to true to skip rendering this template.
 disabled: false
 
 # Specify a list of POSIX-style paths or globs that should be regarded as the source files for this module. Files that
@@ -162,10 +153,10 @@ template:
 # A map of inputs to pass to the ConfigTemplate. These must match the inputs schema of the ConfigTemplate.
 #
 # Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting
-# module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference
-# other modules or runtime variables. See the [environment configuration context
+# config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference
+# other actions, modules or runtime variables. See the [environment configuration context
 # reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to
-# generate module identifiers.
+# generate config identifiers.
 inputs:
 ```
 
@@ -301,11 +292,7 @@ A description of the module.
 
 ### `disabled`
 
-Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
-
-Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
-
-If you disable the module, and its services, tasks or tests are referenced as _runtime_ dependencies, Garden will automatically ignore those dependency declarations. Note however that template strings referencing the module's service or task outputs (i.e. runtime outputs) will fail to resolve when the module is disabled, so you need to make sure to provide alternate values for those if you're using them, using conditional expressions.
+Set to true to skip rendering this template.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
@@ -473,7 +460,7 @@ The ConfigTemplate to use to generate the sub-modules of this module.
 
 A map of inputs to pass to the ConfigTemplate. These must match the inputs schema of the ConfigTemplate.
 
-Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference other modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate module identifiers.
+Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting config names and other top-level identifiers must be resolvable when scanning for configs, and thus cannot reference other actions, modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate config identifiers.
 
 | Type     | Required |
 | -------- | -------- |

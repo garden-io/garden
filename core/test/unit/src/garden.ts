@@ -2334,7 +2334,7 @@ describe("Garden", () => {
       }
     })
 
-    it("should resolve module templates and any modules referencing them", async () => {
+    it("should resolve modules from config templates and any modules referencing them", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "module-templates"))
       await garden.scanAndAddConfigs()
 
@@ -2409,12 +2409,72 @@ describe("Garden", () => {
       })
     })
 
-    it("should throw on duplicate module template names", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-module-templates"))
+    it("should resolve actions from config templates", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
+      await garden.scanAndAddConfigs()
+
+      const configs = await garden.getRawActionConfigs()
+
+      const build = configs.Build["foo-test"]
+      const deploy = configs.Deploy["foo-test"]
+      const test = configs.Test["foo-test"]
+
+      const internal = {
+        basePath: garden.projectRoot,
+        configFilePath: join(garden.projectRoot, "actions.garden.yml"),
+        parentName: "foo",
+        templateName: "combo",
+        inputs: {
+          name: "test",
+          envName: "${environment.name}", // <- resolved later
+          providerKey: "${providers.test-plugin.outputs.testKey}", // <- resolved later
+        },
+      }
+
+      expect(build).to.exist
+      expect(deploy).to.exist
+      expect(test).to.exist
+
+      expect(build.type).to.equal("test")
+      expect(build.spec.command).to.eql(["${inputs.value}"]) // <- resolved later
+      expect(build.internal).to.eql(internal)
+
+      expect(deploy["build"]).to.equal("${parent.name}-${inputs.name}") // <- resolved later
+      expect(deploy.internal).to.eql(internal)
+
+      expect(test.dependencies).to.eql(["build.${parent.name}-${inputs.name}"]) // <- resolved later
+      expect(test.spec.command).to.eql(["echo", "${inputs.envName}", "${inputs.providerKey}"]) // <- resolved later
+      expect(test.internal).to.eql(internal)
+    })
+
+    it("should resolve a workflow from a template", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
+      await garden.scanAndAddConfigs()
+
+      const workflow = await garden.getRawWorkflowConfig("foo-test")
+
+      const internal = {
+        basePath: garden.projectRoot,
+        configFilePath: join(garden.projectRoot, "workflows.garden.yml"),
+        parentName: "foo",
+        templateName: "workflows",
+        inputs: {
+          name: "test",
+          envName: "${environment.name}", // <- resolved later
+        },
+      }
+
+      expect(workflow).to.exist
+      expect(workflow.steps).to.eql([{ script: 'echo "${inputs.envName}"' }]) // <- resolved later
+      expect(workflow.internal).to.eql(internal)
+    })
+
+    it("should throw on duplicate config template names", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-config-templates"))
 
       await expectError(() => garden.scanAndAddConfigs(), {
         contains: [
-          "Found duplicate names of ModuleTemplates:",
+          "Found duplicate names of ConfigTemplates:",
           "Name combo is used at templates.garden.yml and templates.garden.yml",
         ],
       })
@@ -3542,6 +3602,36 @@ describe("Garden", () => {
   })
 
   describe("getConfigGraph", () => {
+    it("should resolve actions from config templates", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const build = graph.getBuild("foo-test")
+      const deploy = graph.getDeploy("foo-test")
+      const test = graph.getTest("foo-test")
+
+      const internal = {
+        basePath: garden.projectRoot,
+        configFilePath: join(garden.projectRoot, "actions.garden.yml"),
+        parentName: "foo",
+        templateName: "combo",
+        inputs: {
+          name: "test",
+          envName: "local", // <- should be resolved
+          providerKey: "${providers.test-plugin.outputs.testKey}", // <- not resolvable now
+        },
+      }
+
+      expect(build.type).to.equal("test")
+      expect(build.getInternal()).to.eql(internal)
+
+      expect(deploy.getBuildAction()?.name).to.equal("foo-test") // <- should be resolved
+      expect(deploy.getInternal()).to.eql(internal)
+
+      expect(test.getDependencies().map((a) => a.key())).to.eql(["build.foo-test"]) // <- should be resolved
+      expect(test.getInternal()).to.eql(internal)
+    })
+
     it("should throw an error if modules have circular build dependencies", async () => {
       const garden = await TestGarden.factory(pathFoo, {
         config: createProjectConfig({
