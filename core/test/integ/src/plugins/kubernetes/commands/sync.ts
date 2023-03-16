@@ -54,7 +54,7 @@ describe("sync plugin commands", () => {
       log,
       action,
       force: true,
-      forceBuild: false,
+      forceBuild: true,
     })
 
     await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })
