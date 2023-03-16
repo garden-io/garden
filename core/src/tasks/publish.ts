@@ -89,6 +89,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         partialRuntimeResolution: false,
         resolvedDependencies: action.getResolvedDependencies(),
         executedDependencies: action.getExecutedDependencies(),
+        inputs: action.getInternal().inputs || {},
         variables: action.getVariables(),
       })
 

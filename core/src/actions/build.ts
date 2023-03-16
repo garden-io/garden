@@ -200,6 +200,7 @@ export class ResolvedBuildAction<
     this.resolved = true
     this._staticOutputs = params.staticOutputs
     this._config.spec = params.spec
+    this._config.internal.inputs = params.inputs
   }
   getExecutedDependencies() {
     return this.executedDependencies

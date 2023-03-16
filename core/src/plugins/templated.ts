@@ -8,10 +8,13 @@
 
 import { createGardenPlugin } from "../plugin/plugin"
 import { ModuleConfig, ModuleSpec, baseModuleSpecKeys, baseBuildSpecSchema } from "../config/module"
-import { configTemplateKind } from "../config/base"
-import { joiIdentifier, joi, DeepPrimitiveMap } from "../config/common"
+import { configTemplateKind, renderTemplateKind } from "../config/base"
+import { DeepPrimitiveMap } from "../config/common"
 import { dedent, naturalList } from "../util/string"
 import { omit } from "lodash"
+import { templatedModuleSpecSchema } from "../config/render-template"
+
+// TODO: remove in 0.14, replaced with Render kind
 
 export interface TemplatedModuleSpec extends ModuleSpec {
   template: string
@@ -21,21 +24,6 @@ export interface TemplatedModuleSpec extends ModuleSpec {
 export interface TemplatedModuleConfig extends ModuleConfig<TemplatedModuleSpec> {
   modules: ModuleConfig[]
 }
-
-export const templatedModuleSpecSchema = () =>
-  joi.object().keys({
-    disabled: baseModuleSpecKeys().disabled,
-    template: joiIdentifier()
-      .required()
-      .description(`The ${configTemplateKind} to use to generate the sub-modules of this module.`),
-    inputs: joi.object().description(
-      dedent`
-      A map of inputs to pass to the ${configTemplateKind}. These must match the inputs schema of the ${configTemplateKind}.
-
-      Note: You can use template strings for the inputs, but be aware that inputs that are used to generate the resulting module names and other top-level identifiers must be resolvable when scanning for modules, and thus cannot reference other modules or runtime variables. See the [environment configuration context reference](../template-strings/environments.md) to see template strings that are safe to use for inputs used to generate module identifiers.
-      `
-    ),
-  })
 
 // Note: This module type is currently special-cased when resolving modules in Garden.resolveModules()
 export const gardenPlugin = () => {
@@ -48,7 +36,9 @@ export const gardenPlugin = () => {
       {
         name: "templated",
         docs: dedent`
-          A special module type, for rendering [module templates](../../using-garden/module-templates.md). See the [Config Templates guide](../../using-garden/module-templates.md) for more information.
+          **[DEPRECATED] Please use the new \`${renderTemplateKind}\` config kind instead.**
+
+          A special module type, for rendering [module templates](../../using-garden/config-templates.md). See the [Config Templates guide](../../using-garden/config-templates.md) for more information.
 
           Specify the name of a ${configTemplateKind} with the \`template\` field, and provide any expected inputs using the \`inputs\` field. The generated modules becomes sub-modules of this module.
 
@@ -65,7 +55,6 @@ export const gardenPlugin = () => {
             moduleConfig.include = []
             return { moduleConfig }
           },
-          // TODO-G2: test for this
         },
       },
     ],

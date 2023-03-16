@@ -80,6 +80,7 @@ const MAX_BUFFER_SIZE = 1024 * 1024
 
 // Used to control process-level operations during testing
 export const testFlags = {
+  expandErrors: false,
   disableShutdown: false,
 }
 

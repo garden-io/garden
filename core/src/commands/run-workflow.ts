@@ -151,6 +151,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         garden,
         resolvedSteps: result.steps,
         stepName,
+        workflow,
       })
 
       const stepStartedAt = new Date()

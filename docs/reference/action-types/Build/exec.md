@@ -199,7 +199,7 @@ spec:
   # The command to run to perform the build.
   #
   # _Note: You may omit this if all you need is for other implicit actions to happen, like copying files from build
-  # dependencies, generating files specified with `generateFiles` etc._
+  # dependencies etc._
   #
   # By default, the command is run inside the Garden build directory (under .garden/build/<build-name>). If the top
   # level `buildAtSource` directive is set to `true`, the command runs in the action source directory instead. Please
@@ -518,7 +518,7 @@ We recommend against using this option since it is:
 
 The command to run to perform the build.
 
-_Note: You may omit this if all you need is for other implicit actions to happen, like copying files from build dependencies, generating files specified with `generateFiles` etc._
+_Note: You may omit this if all you need is for other implicit actions to happen, like copying files from build dependencies etc._
 
 By default, the command is run inside the Garden build directory (under .garden/build/<build-name>). If the top level `buildAtSource` directive is set to `true`, the command runs in the action source directory instead. Please see the docs for that field for more information and potential implications. Also note that other `exec` actions that reference this build via the `build` field will then also run from this action's source directory.
 

@@ -128,7 +128,7 @@ describe("loadConfigResources", () => {
     await expectError(
       async () =>
         await loadConfigResources(log, projectPath, resolve(projectPath, "invalid-config-kind", "garden.yml")),
-      { contains: "Unknown config kind banana in invalid-config-kind/garden.yml" }
+      { contains: "Unknown kind banana in config at invalid-config-kind/garden.yml" }
     )
   })
 
@@ -258,16 +258,20 @@ describe("loadConfigResources", () => {
 
   it("should load and parse a module template", async () => {
     const projectPath = getDataDir("test-projects", "module-templates")
-    const configPath = resolve(projectPath, "templates.garden.yml")
-    const parsed: any = await loadConfigResources(log, projectPath, configPath)
+    const configFilePath = resolve(projectPath, "templates.garden.yml")
+    const parsed: any = await loadConfigResources(log, projectPath, configFilePath)
 
     expect(parsed).to.eql([
       {
         apiVersion: DEFAULT_API_VERSION,
-        configPath,
-        path: projectPath,
         kind: configTemplateKind,
         name: "combo",
+
+        internal: {
+          basePath: projectPath,
+          configFilePath,
+        },
+
         inputsSchemaPath: "module-templates.json",
         modules: [
           {

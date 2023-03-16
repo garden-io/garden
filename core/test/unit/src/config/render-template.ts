@@ -8,28 +8,30 @@
 
 import { expect } from "chai"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
-import { expectError, TestGarden, getDataDir, makeTestGarden } from "../../../helpers"
+import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import {
   ConfigTemplateResource,
   resolveConfigTemplate,
   ConfigTemplateConfig,
-  resolveTemplatedModule,
 } from "../../../../src/config/config-template"
 import { resolve } from "path"
 import { joi } from "../../../../src/config/common"
 import { pathExists, remove } from "fs-extra"
-import { TemplatedModuleConfig } from "../../../../src/plugins/templated"
 import { cloneDeep } from "lodash"
-import { configTemplateKind } from "../../../../src/config/base"
+import { configTemplateKind, renderTemplateKind } from "../../../../src/config/base"
+import { RenderTemplateConfig, renderConfigTemplate } from "../../../../src/config/render-template"
+import { Log } from "../../../../src/logger/log-entry"
 
-describe("module templates", () => {
+describe("config templates", () => {
   let garden: TestGarden
+  let log: Log
 
   before(async () => {
     garden = await makeTestGarden(getDataDir("test-projects", "module-templates"))
+    log = garden.log
   })
 
-  describe("resolveModuleTemplate", () => {
+  describe("resolveConfigTemplate", () => {
     let defaults: any
 
     before(() => {
@@ -37,8 +39,11 @@ describe("module templates", () => {
         apiVersion: DEFAULT_API_VERSION,
         kind: configTemplateKind,
         name: "test",
-        path: garden.projectRoot,
-        configPath: resolve(garden.projectRoot, "templates.garden.yml"),
+
+        internal: {
+          basePath: garden.projectRoot,
+          configFilePath: resolve(garden.projectRoot, "templates.garden.yml"),
+        },
       }
     })
 
@@ -100,7 +105,7 @@ describe("module templates", () => {
         ...defaults,
         inputsSchemaPath: "foo.json",
       }
-      const path = resolve(config.path, config.inputsSchemaPath!)
+      const path = resolve(config.internal.basePath, config.inputsSchemaPath!)
       await expectError(() => resolveConfigTemplate(garden, config), {
         contains: `Unable to read inputs schema for ConfigTemplate test: Error: ENOENT: no such file or directory, open '${path}'`,
       })
@@ -117,9 +122,9 @@ describe("module templates", () => {
     })
   })
 
-  describe("resolveTemplatedModule", () => {
+  describe("renderConfigTemplate", () => {
     let template: ConfigTemplateConfig
-    let defaults: TemplatedModuleConfig
+    let defaults: RenderTemplateConfig
 
     const templates: { [name: string]: ConfigTemplateConfig } = {}
 
@@ -128,8 +133,10 @@ describe("module templates", () => {
         apiVersion: DEFAULT_API_VERSION,
         kind: configTemplateKind,
         name: "test",
-        path: garden.projectRoot,
-        configPath: resolve(garden.projectRoot, "modules.garden.yml"),
+        internal: {
+          basePath: garden.projectRoot,
+          configFilePath: resolve(garden.projectRoot, "modules.garden.yml"),
+        },
         inputsSchema: joi.object().keys({
           foo: joi.string(),
         }),
@@ -139,36 +146,26 @@ describe("module templates", () => {
 
       defaults = {
         apiVersion: DEFAULT_API_VERSION,
-        kind: "Module",
+        kind: renderTemplateKind,
         name: "test",
-        type: "templated",
-        path: garden.projectRoot,
-        configPath: resolve(garden.projectRoot, "modules.garden.yml"),
-        spec: {
-          template: "test",
+        internal: {
+          basePath: garden.projectRoot,
+          configFilePath: resolve(garden.projectRoot, "modules.garden.yml"),
         },
-        allowPublish: false,
-        build: { dependencies: [] },
+        template: "test",
         disabled: false,
-        modules: [],
-        serviceConfigs: [],
-        taskConfigs: [],
-        testConfigs: [],
       }
     })
 
     it("resolves template strings on the templated module config", async () => {
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
-        spec: {
-          ...defaults.spec,
-          inputs: {
-            foo: "${project.name}",
-          },
+        inputs: {
+          foo: "${project.name}",
         },
       }
-      const { resolvedSpec } = await resolveTemplatedModule(garden, config, templates)
-      expect(resolvedSpec.inputs?.foo).to.equal("module-templates")
+      const { resolved } = await renderConfigTemplate({ garden, log, config, templates })
+      expect(resolved.inputs?.foo).to.equal("module-templates")
     })
 
     it("resolves all parent, template and input template strings, ignoring others", async () => {
@@ -187,17 +184,14 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
-        spec: {
-          ...defaults.spec,
-          inputs: {
-            foo: "bar",
-          },
+        inputs: {
+          foo: "bar",
         },
       }
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
       const module = resolved.modules[0]
 
       expect(module.name).to.equal("test-test-bar")
@@ -205,26 +199,23 @@ describe("module templates", () => {
       expect(module.spec.image).to.equal("${modules.foo.outputs.bar || inputs.foo}")
     })
 
-    it("throws if module is invalid", async () => {
+    it("throws if config is invalid", async () => {
       const config: any = {
         ...defaults,
-        spec: {
-          ...defaults.spec,
-          foo: "bar",
-        },
+        foo: "bar",
       }
-      await expectError(() => resolveTemplatedModule(garden, config, templates), {
-        contains: 'Error validating templated module test (modules.garden.yml): key "foo" is not allowed at path [foo]',
+      await expectError(() => renderConfigTemplate({ garden, log, config, templates }), {
+        contains: 'Error validating Render test (modules.garden.yml): key "foo" is not allowed',
       })
     })
 
     it("throws if template cannot be found", async () => {
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
-        spec: { ...defaults.spec, template: "foo" },
+        template: "foo",
       }
-      await expectError(() => resolveTemplatedModule(garden, config, templates), {
-        contains: "Templated module test references template foo, which cannot be found. Available templates: test",
+      await expectError(() => renderConfigTemplate({ garden, log, config, templates }), {
+        contains: "Render test references template foo, which cannot be found. Available templates: test",
       })
     })
 
@@ -241,19 +232,16 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
-        spec: {
-          ...defaults.spec,
-          inputs: {
-            foo: "bar",
-          },
+        inputs: {
+          foo: "bar",
         },
       }
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 
-      const absPath = resolve(config.path, "foo", "bar.txt")
+      const absPath = resolve(config.internal.basePath, "foo", "bar.txt")
       expect(resolved.modules[0].generateFiles![0].sourcePath).to.equal(absPath)
     })
 
@@ -273,17 +261,14 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
-        spec: {
-          ...defaults.spec,
-          inputs: {
-            foo: "bar",
-          },
+        inputs: {
+          foo: "bar",
         },
       }
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
       const module = resolved.modules[0]
 
       expect(module.path).to.equal(absPath)
@@ -302,21 +287,18 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
-        spec: {
-          ...defaults.spec,
-          inputs: {
-            foo: "bar",
-          },
+        inputs: {
+          foo: "bar",
         },
       }
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 
       expect(resolved.modules[0].parentName).to.equal(config.name)
       expect(resolved.modules[0].templateName).to.equal(template.name)
-      expect(resolved.modules[0].inputs).to.eql(config.spec.inputs)
+      expect(resolved.modules[0].inputs).to.eql(config.inputs)
     })
 
     it("resolves template strings in template module names", async () => {
@@ -331,17 +313,14 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
-        spec: {
-          ...defaults.spec,
-          inputs: {
-            foo: "bar",
-          },
+        inputs: {
+          foo: "bar",
         },
       }
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 
       expect(resolved.modules[0].name).to.equal("bar")
     })
@@ -358,12 +337,12 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
         disabled: true,
       }
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 
       expect(resolved.modules.length).to.equal(0)
     })
@@ -380,12 +359,14 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
       }
-      await expectError(() => resolveTemplatedModule(garden, config, _templates), {
-        contains:
-          "ConfigTemplate test returned an invalid module (named foo) for templated module test: Error validating module (modules.garden.yml): key .type must be a string",
+      await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
+        contains: [
+          "ConfigTemplate test returned an invalid module (named foo) for templated module test",
+          "Error validating module (modules.garden.yml): key .type must be a string",
+        ],
       })
     })
 
@@ -401,10 +382,10 @@ describe("module templates", () => {
           ],
         },
       }
-      const config: TemplatedModuleConfig = {
+      const config: RenderTemplateConfig = {
         ...defaults,
       }
-      await expectError(() => resolveTemplatedModule(garden, config, _templates), {
+      await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
         contains:
           "ConfigTemplate test returned an invalid module (named 123) for templated module test: Error validating module (modules.garden.yml): key .name must be a string",
       })
@@ -423,11 +404,11 @@ describe("module templates", () => {
         },
       }
 
-      const config: TemplatedModuleConfig = cloneDeep(defaults)
-      config.spec.inputs = { name: "${var.test}" }
+      const config: RenderTemplateConfig = cloneDeep(defaults)
+      config.inputs = { name: "${var.test}" }
       garden.variables.test = "test-value"
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 
       expect(resolved.modules[0].name).to.equal("test-value-test")
     })
@@ -447,10 +428,10 @@ describe("module templates", () => {
 
       const templateString = "version-${modules.foo.version}"
 
-      const config: TemplatedModuleConfig = cloneDeep(defaults)
-      config.spec.inputs = { version: templateString }
+      const config: RenderTemplateConfig = cloneDeep(defaults)
+      config.inputs = { version: templateString }
 
-      const resolved = await resolveTemplatedModule(garden, config, _templates)
+      const resolved = await renderConfigTemplate({ garden, log, config, templates: _templates })
 
       expect(resolved.modules[0].inputs?.version).to.equal(templateString)
     })
@@ -468,10 +449,10 @@ describe("module templates", () => {
         },
       }
 
-      const config: TemplatedModuleConfig = cloneDeep(defaults)
-      config.spec.inputs = { name: "module-${modules.foo.version}" }
+      const config: RenderTemplateConfig = cloneDeep(defaults)
+      config.inputs = { name: "module-${modules.foo.version}" }
 
-      await expectError(() => resolveTemplatedModule(garden, config, _templates), {
+      await expectError(() => renderConfigTemplate({ garden, log, config, templates: _templates }), {
         contains: [
           'ConfigTemplate test returned an invalid module (named module-${modules.foo.version}-test) for templated module test: Error validating module (modules.garden.yml): key .name with value "module-${modules.foo.version}-test" fails to match the required pattern: /^(?!garden)(?=.{1,63}$)[a-z][a-z0-9]*(-[a-z0-9]+)*$/.',
           "Note that if a template string is used in the name of a module in a template, then the template string must be fully resolvable at the time of module scanning. This means that e.g. references to other modules or runtime outputs cannot be used.",

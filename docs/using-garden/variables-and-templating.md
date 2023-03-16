@@ -181,7 +181,7 @@ You can also skip the `$else` key to default the conditional to _no value_ (i.e
 
 ### Multi-line if/else blocks in strings
 
-You can use if/else blocks in strings. These are particularly handy when templating multi-line strings and generated files in [module templates](./module-templates.md).
+You can use if/else blocks in strings. These are particularly handy when templating multi-line strings and generated files in [module templates](./config-templates.md).
 
 The syntax is `${if <expression>}<content>[${else}]<alternative content>${endif}`, where `<expression>` is any expression you'd put in a normal template string.
 

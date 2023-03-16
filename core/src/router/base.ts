@@ -246,7 +246,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
-    const templateContext = new ActionConfigContext(this.garden)
+    const templateContext = new ActionConfigContext(this.garden, config)
 
     const commonParams = await this.commonParams(handler, log, templateContext, undefined)
 
@@ -297,9 +297,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           modules: graph.getModules(),
           resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),
+          inputs: action.getInternal().inputs || {},
           variables: action.getVariables(),
         })
-      : new ActionConfigContext(this.garden)
+      : new ActionConfigContext(this.garden, action.getConfig())
 
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext, params.events)),

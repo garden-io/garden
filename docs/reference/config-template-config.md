@@ -1,9 +1,9 @@
 ---
 order: 43
-title: Module Template Configuration
+title: ConfigTemplate Reference
 ---
 
-# Module Template Configuration Reference
+# ConfigTemplate Reference
 
 Below is the schema reference for `ConfigTemplate` configuration files. To learn more about config templates, see the [Config Templates guide](../using-garden/config-templates.md).
 
@@ -11,7 +11,7 @@ The reference is divided into two sections:
 * [YAML Schema](#yaml-schema) contains the config YAML schema
 * [Configuration keys](#configuration-keys) describes each individual schema key for the configuration files.
 
-Also check out the [`templated` module type reference](./module-types/templated.md).
+Also check out the [`RenderTemplate` reference](./render-template-config.md).
 
 ## YAML Schema
 
@@ -192,7 +192,7 @@ modules:
 # In addition to any template strings you can normally use for the given configurations (see [the
 # reference](./template-strings/README.md)), you can reference the inputs described by the inputs schema for the
 # template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name
-# of the `Render` resource being rendered, and the name of the template itself, respectively.
+# of the `RenderTemplate` resource being rendered, and the name of the template itself, respectively.
 #
 # **Important: Make sure you use templates for any identifiers that must be unique, such as action names.**
 # Otherwise you'll inevitably run into configuration errors when re-using the template. The names can reference the
@@ -602,7 +602,7 @@ The following resource kinds are allowed: `Build`, `Deploy`, `Run`, `Test` and `
 
 __Note that you may _not_ specify Module resources here. Those need to be specified in the `modules` field.__
 
-In addition to any template strings you can normally use for the given configurations (see [the reference](./template-strings/README.md)), you can reference the inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the `Render` resource being rendered, and the name of the template itself, respectively.
+In addition to any template strings you can normally use for the given configurations (see [the reference](./template-strings/README.md)), you can reference the inputs described by the inputs schema for the template, using ${inputs.*} template strings, as well as ${parent.name} and ${template.name}, to reference the name of the `RenderTemplate` resource being rendered, and the name of the template itself, respectively.
 
 **Important: Make sure you use templates for any identifiers that must be unique, such as action names.**
 Otherwise you'll inevitably run into configuration errors when re-using the template. The names can reference the ${inputs.*}, ${parent.name} and ${template.name} keys, and must be resolvable when parsing the template (meaning no action or runtime references etc.). Other identifiers can also reference those, plus any other keys available for templates in the given configs (see [the reference](./template-strings/README.md)).

@@ -379,6 +379,52 @@ Example:
 my-variable: ${environment.namespace}
 ```
 
+### `${inputs.*}`
+
+The inputs provided to the config through a template, if applicable.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${inputs.<input-key>}`
+
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
+
+### `${parent.*}`
+
+Information about the config parent, if any (usually a template, if applicable).
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${parent.name}`
+
+The name of the parent config.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${template.*}`
+
+Information about the template used when generating the config, if applicable.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${template.name}`
+
+The name of the template.
+
+| Type     |
+| -------- |
+| `string` |
+
 ### `${steps.*}`
 
 Reference previous steps in a workflow. Only available in the `steps[].command` and `steps[].script` fields.

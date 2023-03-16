@@ -10,13 +10,11 @@ import { expect } from "chai"
 import { join } from "path"
 import { keyBy } from "lodash"
 import { ConfigContext } from "../../../../../src/config/template-contexts/base"
-import { expectError, makeTestGardenA, TestGarden } from "../../../../helpers"
-import { resolveTemplateString } from "../../../../../src/template-string/template-string"
+import { makeTestGardenA, TestGarden } from "../../../../helpers"
 import { ModuleConfigContext } from "../../../../../src/config/template-contexts/module"
-import { WorkflowConfigContext, WorkflowStepConfigContext } from "../../../../../src/config/template-contexts/workflow"
+import { WorkflowConfigContext } from "../../../../../src/config/template-contexts/workflow"
 import { GardenModule } from "../../../../../src/types/module"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { DeployAction } from "../../../../../src/actions/deploy"
 
 type TestValue = string | ConfigContext | TestValues | TestValueFunction
 type TestValueFunction = () => TestValue | Promise<TestValue>
@@ -187,73 +185,6 @@ describe("WorkflowConfigContext", () => {
       expect(c.resolve({ key: ["secrets", "someSecret"], nodePath: [], opts: {} })).to.eql({
         resolved: "someSecretValue",
       })
-    })
-  })
-})
-
-describe("WorkflowStepConfigContext", () => {
-  let garden: TestGarden
-
-  before(async () => {
-    garden = await makeTestGardenA()
-  })
-
-  it("should successfully resolve an output from a prior resolved step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {
-        "step-1": {
-          log: "bla",
-          number: 1,
-          outputs: { some: "value" },
-        },
-      },
-      stepName: "step-2",
-    })
-    expect(c.resolve({ key: ["steps", "step-1", "outputs", "some"], nodePath: [], opts: {} }).resolved).to.equal(
-      "value"
-    )
-  })
-
-  it("should successfully resolve the log from a prior resolved step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {
-        "step-1": {
-          log: "bla",
-          number: 1,
-          outputs: {},
-        },
-      },
-      stepName: "step-2",
-    })
-    expect(c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }).resolved).to.equal("bla")
-  })
-
-  it("should throw error when attempting to reference a following step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {},
-      stepName: "step-1",
-    })
-    expectError(() => c.resolve({ key: ["steps", "step-2", "log"], nodePath: [], opts: {} }), {
-      contains:
-        "Step step-2 is referenced in a template for step step-1, but step step-2 is later in the execution order. Only previous steps in the workflow can be referenced.",
-    })
-  })
-
-  it("should throw error when attempting to reference current step", () => {
-    const c = new WorkflowStepConfigContext({
-      garden,
-      allStepNames: ["step-1", "step-2"],
-      resolvedSteps: {},
-      stepName: "step-1",
-    })
-    expectError(() => c.resolve({ key: ["steps", "step-1", "log"], nodePath: [], opts: {} }), {
-      contains: "Step step-1 references itself in a template. Only previous steps in the workflow can be referenced.",
     })
   })
 })

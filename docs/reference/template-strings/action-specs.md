@@ -1943,7 +1943,7 @@ Information about the config parent, if any (usually a template, if applicable).
 
 ### `${parent.name}`
 
-The name of the parent module.
+The name of the parent config.
 
 | Type     |
 | -------- |
