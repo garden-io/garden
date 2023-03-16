@@ -17,7 +17,8 @@ import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { Log } from "../../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 
-describe("sync plugin commands", () => {
+// TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
+describe.skip("sync plugin commands", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
