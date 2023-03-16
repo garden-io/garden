@@ -48,15 +48,15 @@ export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseR
       name: string
     }
   } & Omit<T, "apiVersion" | "kind" | "metadata"> &
-    // Make sure these are required if they're on the provided type
     {
+      // Make sure these are required if they're on the provided type
       [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
     }
 
 // Server-side resources always have some fields set if they're in the schema, e.g. status
 export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> = KubernetesResource<T> &
-  // Make sure these are required if they're on the provided type
   {
+    // Make sure these are required if they're on the provided type
     [P in Extract<keyof T, "status">]: Exclude<T[P], undefined>
   }
 
