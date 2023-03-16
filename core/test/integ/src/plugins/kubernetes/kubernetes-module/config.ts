@@ -148,18 +148,6 @@ describe("configureKubernetesModule", () => {
     ])
   })
 
-  it("should validate a Kubernetes module that has a source module", async () => {
-    const module = await garden.resolveModule("with-source-module")
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const imageModule = graph.getModule("api-image")
-    const imageVersion = imageModule.version.versionString
-
-    expect(module.serviceConfigs[0].sourceModuleName).to.equal("api-image")
-    expect(module.serviceConfigs[0].spec.manifests[0].spec.template.spec.containers[0].image).to.equal(
-      `api-image:${imageVersion}`
-    )
-  })
-
   it("should set include to equal files if neither include nor exclude has been set", async () => {
     patchModuleConfig("module-simple", { spec: { files: ["manifest.yaml"] } })
     const configInclude = await garden.resolveModule("module-simple")

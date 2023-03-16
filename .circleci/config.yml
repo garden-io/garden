@@ -973,11 +973,11 @@ workflows:
       # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      # - test-minikube:
-      #     name: vm-1.22-minikube
-      #     requires: [build]
-      #     kubernetesVersion: "1.22.2"
-      #     minikubeVersion: "v1.25.2"
+      - test-minikube:
+          name: vm-1.22-minikube
+          requires: [build]
+          kubernetesVersion: "1.22.2"
+          minikubeVersion: "v1.25.2"
       # - test-minikube:
       #     name: vm-1.23-minikube
       #     requires: [build]

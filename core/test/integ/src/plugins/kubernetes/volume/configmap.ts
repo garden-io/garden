@@ -82,9 +82,9 @@ describe("configmap module", () => {
       graph,
     })
 
-    const remoteResources = status.detail["remoteResources"]
+    const remoteResources = status.test.detail?.detail.remoteResources
 
-    expect(status.state.state === "ready")
+    expect(status.test.state === "ready")
     expect(remoteResources.length).to.equal(1)
     expect(
       isSubset(remoteResources[0], {
