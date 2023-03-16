@@ -110,6 +110,7 @@ describe("KubeApi", () => {
 
       try {
         const res = await api.execInPod({
+          log: garden.log,
           namespace,
           podName,
           containerName,
@@ -143,6 +144,7 @@ describe("KubeApi", () => {
 
       try {
         const res = await api.execInPod({
+          log: garden.log,
           namespace,
           podName,
           containerName,
@@ -176,6 +178,7 @@ describe("KubeApi", () => {
 
       try {
         const res = await api.execInPod({
+          log: garden.log,
           namespace,
           podName,
           containerName: "main",

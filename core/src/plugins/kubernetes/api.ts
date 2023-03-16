@@ -32,6 +32,7 @@ import {
   Log,
   NetworkingV1Api,
   ApiextensionsV1Api,
+  HttpError,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -59,6 +60,7 @@ import { PluginContext } from "../../plugin-context"
 import { Writable, Readable, PassThrough } from "stream"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
+import pRetry = require("p-retry")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -699,6 +701,7 @@ export class KubeApi {
    * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
    */
   async execInPod({
+    log,
     buffer,
     namespace,
     podName,
@@ -710,6 +713,7 @@ export class KubeApi {
     tty,
     timeoutSec,
   }: {
+    log: LogEntry
     buffer: boolean
     namespace: string
     podName: string
@@ -768,8 +772,6 @@ export class KubeApi {
       }
     }
 
-    const execHandler = new Exec(this.config)
-
     return new Promise(async (resolve, reject) => {
       let done = false
 
@@ -786,6 +788,55 @@ export class KubeApi {
         }
       }
 
+      const execWithRetry = async () => {
+        const execHandler = new Exec(this.config)
+
+        const description = "Pod exec"
+
+        let retryLog: LogEntry | undefined
+
+        try {
+          return await pRetry(
+            () =>
+              execHandler.exec(
+                namespace,
+                podName,
+                containerName,
+                command,
+                _stdout,
+                _stderr,
+                stdin || null,
+                tty,
+                (status) => {
+                  finish(false, getExecExitCode(status))
+                }
+              ),
+            {
+              retries: 5,
+              minTimeout: 1000,
+              onFailedAttempt(error) {
+                if (error.cause instanceof HttpError && error.cause.statusCode) {
+                  // only retry if there is no risk that the command will be executed twice.
+                  const recoverableStatusCodes = [500, 502, 503, 429]
+                  if (recoverableStatusCodes.includes(error.cause.statusCode)) {
+                    retryLog = retryLog || log.debug("")
+                    retryLog.setState(deline`
+                      ${description} failed with error ${error.cause.message}.
+                      HTTP status code ${error.cause.statusCode} is recoverable:
+                      Retrying after backoff (${error.attemptNumber}/${error.retriesLeft})`)
+                    return
+                  }
+                }
+
+                throw error
+              },
+            }
+          )
+        } catch (err) {
+          throw wrapError(description, err)
+        }
+      }
+
       if (timeoutSec) {
         setTimeout(() => {
           if (!done) {
@@ -795,21 +846,7 @@ export class KubeApi {
       }
 
       try {
-        const ws = attachWebsocketKeepalive(
-          await execHandler.exec(
-            namespace,
-            podName,
-            containerName,
-            command,
-            _stdout,
-            _stderr,
-            stdin || null,
-            tty,
-            (status) => {
-              finish(false, getExecExitCode(status))
-            }
-          )
-        )
+        const ws = attachWebsocketKeepalive(await execWithRetry())
 
         ws.on("error", (err) => {
           done = true
