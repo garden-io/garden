@@ -45,14 +45,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const version = action.versionString()
 
-    const syncMode = action.mode() === "sync"
-    const localMode = action.mode() === "local"
-
     const router = await this.garden.getActionRouter()
-
-    // TODO-G2: move status check entirely to getStatus()
-    const syncModeSkipRedeploy = status.detail?.mode === "sync" && syncMode
-    const localModeSkipRedeploy = status.detail?.mode === "local" && localMode
 
     const log = this.log
       .makeNewLogContext({
@@ -60,28 +53,19 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       })
       .info(`Deploying version ${version}...`)
 
-    if (
-      !this.force &&
-      status.state === "ready" &&
-      (version === status.detail?.version || syncModeSkipRedeploy || localModeSkipRedeploy)
-    ) {
-      // already deployed and ready
-      log.setSuccess(chalk.green("Already deployed"))
-    } else {
-      try {
-        status = await router.deploy.deploy({
-          graph: this.graph,
-          action,
-          log,
-          force: this.force,
-        })
-      } catch (err) {
-        log.error(`Error deploying ${action.name}`)
-        throw err
-      }
-
-      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    try {
+      status = await router.deploy.deploy({
+        graph: this.graph,
+        action,
+        log,
+        force: this.force,
+      })
+    } catch (err) {
+      log.error(`Error deploying ${action.name}`)
+      throw err
     }
+
+    log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
 
     const executedAction = resolvedActionToExecuted(action, { status })
 

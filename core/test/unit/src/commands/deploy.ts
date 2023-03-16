@@ -12,19 +12,14 @@ import {
   taskResultOutputs,
   withDefaultGlobalOpts,
   makeTestGarden,
-  getRuntimeStatusEventsWithoutTimestamps,
   customizedTestPlugin,
   testDeploySchema,
   testTestSchema,
   getAllProcessedTaskNames,
   getDataDir,
-  expectError,
 } from "../../../helpers"
-import { sortBy } from "lodash"
 import { getLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
-import { makeDummyGarden } from "../../../../src/cli/cli"
-import { ActionStatusPayload } from "../../../../src/events"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -159,24 +154,7 @@ describe("DeployCommand", () => {
 
     const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
 
-    const sortedEvents = sortBy(
-      getRuntimeStatusEventsWithoutTimestamps(garden.events.eventLog),
-      (e) => `${e.name}.${e.payload.actionName}.${e.payload.status.state}`
-    )
-
-    const getActionUid = (actionName: string): string => {
-      const event = sortedEvents.find((e: { payload: ActionStatusPayload<{}> }) => {
-        return e.payload.actionName === actionName && !!e.payload.actionUid
-      })
-      if (!event) {
-        throw new Error(`No event with an actionUid found for action name ${actionName}`)
-      }
-      return event.payload.actionUid
-    }
-
-    const getModuleVersion = (moduleName: string) => graph.getModule(moduleName).version.versionString
     const getDeployVersion = (serviceName: string) => graph.getDeploy(serviceName).versionString()
-    const getRunVersion = (taskName: string) => graph.getRun(taskName).versionString()
 
     for (const graphResult of Object.values(deployResults)) {
       expect(graphResult).to.exist
@@ -199,7 +177,6 @@ describe("DeployCommand", () => {
       expect(res.state).to.equal("ready")
       expect(res.outputs).to.eql({})
     }
-
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
