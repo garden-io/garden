@@ -10,7 +10,7 @@ chart: "cert-manager"
 version: v1.11.0
 chartPath: .
 values:
-  installCRDs: ${var.CERT_MANAGER_INSTALL_CRDS} # Should be true for the first time, false for subsequent runs
+  installCRDs: ${var.CERT_MANAGER_INSTALL_CRDS}
 ---
 # External-DNS Helm Chart
 kind: Module

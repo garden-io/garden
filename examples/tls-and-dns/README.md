@@ -105,7 +105,7 @@ After a couple of minutes you should be able to see your environment was deploye
 
 ![DNS records in Cloudflare dashboard](https://res.cloudinary.com/djp21wtxm/image/upload/v1676713413/i1600x105-9w7fM9ZAJjwR_wqzhmx.png)
 
-If you check your certificates with `kubectl get cert`, there should be a new certificate for staging (because we deployed with `GENERATE_PROD_CERTS=false`
+If you check your certificates with `kubectl get cert`, there should be a new certificate for staging (because we deployed with `GENERATE_PROD_CERTS=false`)
 
 ![Staging certificate](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712336/i1167x182-iL4-rXCneopO_ubbzy2.png)
 
