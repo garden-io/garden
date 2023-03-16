@@ -252,13 +252,19 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
 
     const statusTask = this.getNode("status", this.task)
+    // TODO-G2: make this more type-safe
     const result = this.getDependencyResult(statusTask)
-    const status = result === undefined ? undefined : <ActionStatus>result.result
+    const status: ActionStatus | undefined = result === undefined ? undefined : result.result
 
     if (status === undefined) {
       throw new InternalError(`Attempted to execute ${this.describe()} before resolving status.`, {
         nodeKey: this.getKey(),
       })
+    }
+
+    if (!this.task.force && status?.state === "ready") {
+      this.task.log.info(`${this.task.getDescription()} is ready, nothing to do.`)
+      return status
     }
 
     const dependencyResults = this.getDependencyResults()
