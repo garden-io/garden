@@ -238,7 +238,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
       dedent`
       Unable to connect to Kubernetes cluster. Got error:
 
-      ${err.message}
+      ${err.stack}
     `,
       { providerConfig: k8sCtx.provider.config }
     )

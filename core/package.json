@@ -26,7 +26,7 @@
   "dependencies": {
     "@codenamize/codenamize": "^1.1.1",
     "@hapi/joi": "git+https://github.com/garden-io/joi.git#master",
-    "@kubernetes/client-node": "^0.18",
+    "@kubernetes/client-node": "=0.18.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "analytics-node": "3.5.0",
