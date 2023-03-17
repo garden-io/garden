@@ -20,7 +20,7 @@ import {
   KubernetesObject,
   Log as K8sLog,
   NetworkingV1Api,
-  PolicyV1beta1Api,
+  PolicyV1Api,
   RbacAuthorizationV1Api,
   V1APIGroup,
   V1APIResource,
@@ -86,7 +86,7 @@ type K8sApi =
   | CoreApi
   | CoreV1Api
   | NetworkingV1Api
-  | PolicyV1beta1Api
+  | PolicyV1Api
   | RbacAuthorizationV1Api
 type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
 
@@ -97,7 +97,7 @@ const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
   coreApi: CoreApi,
   extensions: ApiextensionsV1Api,
   networking: NetworkingV1Api,
-  policy: PolicyV1beta1Api,
+  policy: PolicyV1Api,
   rbac: RbacAuthorizationV1Api,
 }
 
@@ -191,7 +191,7 @@ export class KubeApi {
   public coreApi: WrappedApi<CoreApi>
   public extensions: WrappedApi<ApiextensionsV1Api>
   public networking: WrappedApi<NetworkingV1Api>
-  public policy: WrappedApi<PolicyV1beta1Api>
+  public policy: WrappedApi<PolicyV1Api>
   public rbac: WrappedApi<RbacAuthorizationV1Api>
 
   constructor(
