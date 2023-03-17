@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { getLogger, Logger } from "./logger/logger"
+import { Logger, LogLevel } from "./logger/logger"
 import chalk from "chalk"
 
 interface LoggerContext {
@@ -25,7 +25,11 @@ export function emitNonRepeatableWarning(message: string) {
   }
 
   if (!loggerContext.logger) {
-    loggerContext.logger = getLogger()
+    loggerContext.logger = Logger.initialize({
+      level: LogLevel.info,
+      type: "default",
+      storeEntries: false,
+    })
   }
   const log = loggerContext.logger.makeNewLogContext()
   log.warn({
