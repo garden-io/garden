@@ -237,13 +237,9 @@ commands:
       - checkout
       - npm_install
       - *attach-workspace
-      - run:
-          # Need this to make sure pkg cache is scoped to specific pkg version
-          name: Get pkg version
-          command: jq '.devDependencies.pkg' cli/package.json > .pkgversion
       - restore_cache:
           keys:
-            - pkg-v1-{{ checksum ".pkgversion" }}
+            - pkg-v2-{{ checksum "yarn.lock" }}
       - run:
           name: Run dist script
           command: yarn run dist --version "<<parameters.version>>"
@@ -254,7 +250,7 @@ commands:
             # Needed for the alpine docker build
             - tmp/pkg/
       - save_cache:
-          key: pkg-v1-{{ checksum ".pkgversion" }}
+          key: pkg-v2-{{ checksum "yarn.lock" }}
           paths:
             - tmp/pkg-fetch
       - run:
