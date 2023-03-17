@@ -5,7 +5,7 @@
     "type": "git",
     "url": "git+https://github.com/garden-io/garden.git"
   },
-  "version": "0.12.52",
+  "version": "0.12.53",
   "author": "Garden Technologies, Inc. <info@garden.io>",
   "license": "MPL-2.0",
   "homepage": "https://github.com/garden-io/garden",
@@ -39,7 +39,7 @@
     "husky": "^4.2.5",
     "lodash": "^4.17.15",
     "markdown-link-check": "^3.9.3",
-    "minimatch": "^3.0.4",
+    "minimatch": "^3.0.5",
     "minimist": "^1.2.6",
     "node-jsonl": "^0.1.0",
     "npm-license-crawler": "^0.2.1",

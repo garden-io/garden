@@ -1,0 +1,30 @@
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+spec:
+  syncPolicy:
+    automated: {}
+  destination:
+    namespace: argocd
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: 0.8.1
+    chart: argocd-image-updater
+    helm:
+      version: v3
+      values: |
+        image:
+          tag: latest
+        config:
+          registries:
+          - name: Docker Hub
+            prefix: docker.io
+            api_url: https://registry-1.docker.io
+            default: true
+          gitCommitTemplate: |
+            [skip ci] build: automatic update of {{ .AppName }}

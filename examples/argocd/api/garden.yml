@@ -1,0 +1,20 @@
+kind: Module
+type: container
+description: Image for the API backend for the voting UI
+name: api-image
+include: ["."]
+
+---
+kind: Module
+description: The API backend for the voting UI
+type: helm
+name: api
+chartPath: "./chart"
+serviceResource:
+  containerModule: api-image
+values:
+  name: api
+  image:
+    repository: ${modules.api-image.outputs.deployment-image-name}
+    tag: ${modules.api-image.version}
+  healthCheckPath: /api

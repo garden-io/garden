@@ -690,6 +690,8 @@ ${renderCommands(commands)}
 
     this.processRecord = processRecord!
 
+    const commandStartTime = new Date()
+
     try {
       const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir })
       commandResult = runResults.result
@@ -700,12 +702,14 @@ ${renderCommands(commands)}
 
     errors.push(...(commandResult.errors || []))
 
+    const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
+
+    analytics?.trackCommandResult(command.getFullName(), gardenErrors, commandStartTime)
+
     // Flushes the Analytics events queue in case there are some remaining events.
     if (analytics) {
       await analytics.flush()
     }
-
-    const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
     // --output option set
     if (argv.output) {

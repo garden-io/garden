@@ -1036,6 +1036,7 @@ export class PodRunner extends PodRunnerParams {
     log.debug(`Execing command in ${this.namespace}/Pod/${this.podName}/${containerName}: ${command.join(" ")}`)
 
     const result = await this.api.execInPod({
+      log,
       namespace: this.namespace,
       podName: this.podName,
       containerName,
