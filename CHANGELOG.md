@@ -1,4 +1,21 @@
 
+<a name="0.12.53"></a>
+## [0.12.53](https://github.com/garden-io/garden/compare/0.12.52...0.12.53) (2023-03-17)
+
+### Bug Fixes
+
+* **docs:** fix broken links ([3f143d2b5](https://github.com/garden-io/garden/commit/3f143d2b5))
+* **k8s:** retry exec attempts in PodRunner ([#3956](https://github.com/garden-io/garden/issues/3956)) ([5076ed58b](https://github.com/garden-io/garden/commit/5076ed58b))
+* **k8s:** more stable & performant log streaming ([#3730](https://github.com/garden-io/garden/issues/3730)) ([04c4a4ac5](https://github.com/garden-io/garden/commit/04c4a4ac5))
+
+### Features
+
+* **examples:** add GitOps example based on ArgoCD ([4f0076803](https://github.com/garden-io/garden/commit/4f0076803))
+
+### Improvements
+
+* track the command run result and duration ([#3837](https://github.com/garden-io/garden/issues/3837)) ([a86d967ea](https://github.com/garden-io/garden/commit/a86d967ea))
+
 <a name="0.12.52"></a>
 ## [0.12.52](https://github.com/garden-io/garden/compare/0.12.51...0.12.52) (2023-02-25)
 
