@@ -75,6 +75,7 @@
     "ink-divider": "^3.0.0",
     "inquirer": "^7.3.3",
     "ip": "^1.1.8",
+    "isomorphic-ws": "4.0.1",
     "is-glob": "^4.0.3",
     "is-url": "^1.2.4",
     "js-yaml": "^3.14.1",
