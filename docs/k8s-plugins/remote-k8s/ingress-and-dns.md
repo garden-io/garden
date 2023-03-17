@@ -616,10 +616,39 @@ Now we are ready to deploy our `garden project` for the first time,
 First of all, we need to deploy the necessary plugins in our cluster that will allow Garden to run successfully.
 
 ````bash
-garden --env=prod plugins kubernetes cluster-init
+garden plugins kubernetes cluster-init
 ````
 
-After creating the plugins, make sure that you have the following configuration in your `project.garden.yml` file.
+````bash
+garden plugins kubernetes cluster-init
+Plugins ⚙️
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍  Running in namespace default in environment prod
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Initializing/updating cluster-wide services for prod environment ⚙️
+
+ℹ providers                 → Getting status...
+ℹ providers                 → Getting status...
+✔ providers                 → Getting status... → Done
+ℹ graph                     → Resolving 11 modules...
+✔ graph                     → Resolving 11 modules... → Done
+✔ providers                 → Getting status... → Done
+
+ℹ providers                 → Getting status...
+✔ providers                 → Getting status... → Cached
+ℹ providers                 → Run with --force-refresh to force a refresh of provider statuses.
+ℹ graph                     → Resolving 11 modules...
+✔ graph                     → Resolving 11 modules... → Done
+All services already initialized!
+Cleaning up old resources...
+
+Done!
+````
+
+After creating the plugins, make sure that you have the following variables configured in your `project.garden.yml` file.
 
 ````yaml
 variables:
@@ -651,7 +680,6 @@ garden deploy --yes
 
 This should give us the following result:
 
-![Successful deployment message](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712270/i1563x1137-YBwTDWQW1SRN_jvtug7.png)
 
 ### WIP
 

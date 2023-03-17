@@ -12,7 +12,7 @@ environments:
 providers:
   - name: kubernetes
     environments: [prod]
-    context: arn:aws:eks:eu-central-1:431328314483:cluster/cluster-8 # Make sure to change this to your own context
+    context: garden-cluster-1 # Make sure to change this to your own context
     namespace: ${var.DEFAULT_NAMESPACE}
     setupIngressController: nginx
     # tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
