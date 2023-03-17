@@ -101,6 +101,9 @@ providers:
     context: your-k8s-context # Change this to your Kubernetes Context!
     namespace: ${var.DEFAULT_NAMESPACE}
     setupIngressController: nginx
+    buildMode: kaniko
+    kaniko:
+      namespace: null
     # tlsCertificates:
     #   - name: staging-cert
     #     secretRef:
@@ -191,6 +194,9 @@ providers:
     context: arn:aws:eks:eu-central-1:431328314483:cluster/cluster-8
     namespace: ${var.DEFAULT_NAMESPACE}
     setupIngressController: nginx
+    buildMode: kaniko
+    kaniko:
+      namespace: null
     # tlsCertificates:
     #   - name: staging-cert
     #     secretRef:
@@ -605,11 +611,9 @@ tests:
 
 ````
 
-### Recap
-
 To this point we have successfully created and configured the whole Garden project and we are ready to start deploying it 🚀.
 
-## Deploy
+## Deploy 🚀
 
 Now we are ready to deploy our `garden project` for the first time,
 
@@ -680,8 +684,177 @@ garden deploy --yes
 
 This should give us the following result:
 
+````bash
+garden deploy --yes
+Deploy 🚀
 
-### WIP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍  Running in namespace default in environment prod
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Need to re-run the project in order to replace the images with actual text/logs.
+✔ providers                 → Preparing environment... → Cached
+   ✔ providers                 → Getting status... → Cached
+      ℹ Run with --force-refresh to force a refresh of provider statuses.
+   ✔ graph                     → Resolving 11 modules... → Done
+   ✔ kubernetes                → Configuring... → Ready
+   ℹ Run with --force-refresh to force a refresh of provider statuses.
+✔ graph                     → Resolving 4 modules... → Done
+✔ cluster-issuers           → Building version v-7e466ae4e3... → Done (took 0 sec)
+✔ cert-manager              → Building version v-0b43e69fd6... → Done (took 0.6 sec)
+✔ external-dns              → Building version v-ec953ac304... → Done (took 1.1 sec)
+✔ react-app                 → Getting build status for v-8323dd9f4c... → Already built
+✔ cert-manager              → Deploying version v-010a92e8da... → Done (took 37 sec)
+   ℹ cert-manager              → Resources ready
+✔ external-dns              → Deploying version v-11221c2d8c... → Done (took 12.9 sec)
+   ℹ external-dns              → Resources ready
+✔ cluster-issuers           → Deploying version v-e67a273f4c... → Already deployed
+✔ frontend                  → Deploying version v-ac87f68175... → Already deployed
+   Ingress: http://react.shankyjs.com
 
+Done! ✔️
+````
+
+Also something to note is that our website is now up, but without a certificate; because ExternalDNS already provisioned our DNS but we still haven't generated any Certificate for our frontend application.
+
+![Frontend application without HTTPs certificate](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712587/i1600x744-DlhjPIr3f0XI_aut50k.png)
+
+### Issuing our first certificate (Staging)
+
+A good practice whenever experimenting with certificates is to use the Staging Certificate Authority to issue our first certificates, by doing this we can easily debug and identify any issues with our certificates without affecting our limited `Production` limits.
+
+In order to generate our first staging-certificate we need to do the following:
+
+Edit `project.garden.yaml` and set `GENERATE_STG_CERTS: true` (line 41).
+
+Your variables should look something like the following:
+
+````yaml
+variables:
+  ...
+  # Cert-Manager variables
+  CERT_MANAGER_INSTALL_CRDS: true
+  GENERATE_PROD_CERTS: false # Set this to true if you want to generate production certificates
+  GENERATE_STG_CERTS: true # Set this to true if you want to generate staging certificates
+  ...
+
+````
+
+And then proceed to do another deployment,
+
+````bash
+garden deploy --yes
+````
+
+You might have to wait for a couple of minutes while the DNS01 challenge is completed in cert-manager side, if you get the certificates you are going to be able to see that staging-cert is already issued and ready to be used.
+
+````bash
+kubectl get cert
+NAME           READY   SECRET         AGE
+staging-cert   True    staging-cert   4m23s
+````
+
+Now let's use the staging certificate in our React Application, to do this you only have to uncomment the ``tlsCertificates` object (from line 21 to 24 in your `project.garden.yml`).
+
+````yaml
+providers:
+  - name: kubernetes
+    ...
+    kaniko:
+      namespace: null
+    tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
+      - name: staging-cert
+        secretRef:
+          name: staging-cert
+    ...
+````
+
+Let's deploy one more time with `garden deploy --yes`
+
+Now go back to your React Application using your browser, the URL is going to be react.${your-domain}.
+
+And! Surprise 🎉
+
+![Your connection is not private alert](https://res.cloudinary.com/djp21wtxm/image/upload/v1676834933/i1425x1036-pyYqS8azWa2P_ccsaez.png)
+
+If you see the "Your connection is not private" alert, this means that we are on track, because this alert means that our browser doesn't trust the certificate generated by the Staging CA, however it means that the Certificate was provisioned successfully in our Ingress.
+
+If you click "Advanced" in your web browser and then proceed to `react.${your-domain-termination}`" you will be able to view your fancy Hello Garden 🌸 landing page using the staging Let's Encrypt certificate.
+
+![Describing our certificate (Staging)](https://res.cloudinary.com/djp21wtxm/image/upload/v1676835016/i1600x1085-R-nlUNxT6bML_eangbo.png)
+
+### Issuing our Production Certificate 🎉
+
+This is the last part of this demo, run this part after you already experimented with Staging enough. Remember that the API Limits and Quotas from Production Letsencrypt are lower, so you shouldn't be generating excessive amounts of certificates in a short-span of time.
+
+In order to generate our production-certificate we need to do the following:
+
+Edit `project.garden.yaml` and set `GENERATE_PROD_CERTS: true` (line 40).
+
+Your variables should look something like the following:
+
+````yaml
+variables:
+  ...
+  # Cert-Manager variables
+  CERT_MANAGER_INSTALL_CRDS: true
+  GENERATE_PROD_CERTS: true # Set this to true if you want to generate production certificates
+  GENERATE_STG_CERTS: true # Set this to true if you want to generate staging certificates
+  ...
+````
+
+Then deploy one more time with `garden deploy --yes`
+
+After a couple of minutes, you certificate should be ready, if it's not, make sure to `kubectl describe production-cert` to try to figure out what went wrong.
+
+If the certificate was generated correctly you should get the following result:
+
+````bash
+kubectl get cert
+NAME              READY   SECRET            AGE
+production-cert   True    production-cert   116s
+staging-cert      True    staging-cert      24m
+````
+
+Now the final step would be to change lines 22 and 24 of `project.garden.yml` file, by simply replacing the `staging` word for `production`, the end result should be something like the following:
+
+````yaml
+providers:
+  - name: kubernetes
+    ...
+    kaniko:
+      namespace: null
+    tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
+      - name: production-cert
+        secretRef:
+          name: production-cert
+    ...
+````
+
+And let's deploy for the last time `garden deploy --yes`
+
+Annnnnd **voilà**! we can see the desired 🔒️ in our website, if you got into this point this that our certificate is being correctly used by our Ingress Controller and we are using the Production certificate for a valid, secured, HTTPS endpoint 🕺.
+
+![Landing page with valid HTTPs certificate](https://res.cloudinary.com/djp21wtxm/image/upload/v1676835652/i1600x904-LLQLXx-TtGww_va4xkf.png)
+
+## Conclusions
+
+- We adopted Garden as our automation tool of choice to streamline and automate our manual processes.
+- We deployed cert-manager and external-dns Kubernetes Helm charts to automate the management and issuance of TLS certificates and enable dynamic DNS provisioning.
+- By deploying these two tools, we have significantly reduced manual effort and improved the security and reliability of their infrastructure.
+- The project structure, prerequisites, setup, and usage were explained in detail in this post.
+- With Garden and Helm charts, it is possible to automate and simplify complex processes and improve efficiency when managing infrastructure.
+
+## Common errors
+
+- If you get an error saying `Cannot find Secret production-cert` or `... staging-cert`.
+
+  ````bash
+  Failed getting status for service 'frontend' (from module 'react-app'). Here is the output:
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Cannot find Secret staging-cert configured for TLS certificate staging-cert
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ````
+
+  - Make sure you deployed your frontend service to the `default` namespace, to make things easier for us we deployed the service there as the secrets live there.
+  - Your certificates might not be ready or deployed, you can deploy only the prerequisites by using the following command: `garden deploy external-dns,cert-manager,cluster-issuers --yes`
+  - After checking that your certificate is available and you are deploying your service to the default namespace you can trigger a deployment again to resolve with `garden deploy --yes`.
