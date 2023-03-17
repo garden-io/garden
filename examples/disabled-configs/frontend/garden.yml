@@ -1,28 +1,53 @@
-kind: Module
+kind: Build
+name: frontend
+description: Frontend service container image
+type: container
+
+---
+kind: Deploy
 name: frontend
 description: Frontend service container
 type: container
-services:
-  - name: frontend
-    ports:
-      - name: http
-        containerPort: 8080
-    healthCheck:
-      httpGet:
-        path: /hello-frontend
-        port: http
-    ingresses:
-      - path: /hello-frontend
-        port: http
-      - path: /call-backend
-        port: http
-    dependencies:
-      - backend
-tests:
-  - name: unit
-    args: [npm, test]
-  - name: integ
-    args: [npm, run, integ]
-    disabled: ${environment.name == "local"}
-    dependencies:
-      - frontend
+
+build: frontend
+dependencies:
+  - deploy.backend
+
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
+  ingresses:
+    - path: /hello-frontend
+      port: http
+    - path: /call-backend
+      port: http
+
+---
+kind: Test
+name: frontend-unit
+description: Frontend service unit tests
+type: container
+
+build: frontend
+
+spec:
+  command: [ npm, test ]
+
+---
+kind: Test
+name: frontend-integ
+description: Frontend service integration tests
+type: container
+
+build: frontend
+dependencies:
+  - deploy.frontend
+disabled: ${environment.name == "local"}
+
+spec:
+  command: [ npm, run, integ ]

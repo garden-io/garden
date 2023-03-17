@@ -12,7 +12,7 @@ import semver from "semver"
 import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { spawn, splitLast, SpawnOutput, splitFirst } from "../../util/util"
+import { spawn, SpawnOutput } from "../../util/util"
 import {
   ContainerRegistryConfig,
   defaultTag as _defaultTag,
@@ -26,7 +26,7 @@ import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
-import { deline, stripQuotes } from "../../util/string"
+import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/vcs"
 import { SpawnParams } from "../../util/ext-tools"

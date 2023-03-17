@@ -25,10 +25,8 @@ import type {
   ContainerRunAction,
   ContainerTestAction,
 } from "../container/config"
-import type { HelmDeployAction } from "./helm/config"
-import type { KubernetesDeployAction } from "./kubernetes-type/config"
-import { KubernetesRunAction } from "./kubernetes-type/run"
-import { KubernetesTestAction } from "./kubernetes-type/test"
+import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config"
+import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config"
 
 export interface BaseResource {
   apiVersion: string
@@ -98,12 +96,14 @@ export type SyncableResource = KubernetesWorkload | KubernetesPod
 export type SyncableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 export const syncableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
+export type HelmRuntimeAction = HelmDeployAction | HelmPodRunAction | HelmPodTestAction
+
 export type SupportedRuntimeActions =
   | ContainerBuildAction
   | ContainerDeployAction
   | ContainerTestAction
   | ContainerRunAction
-  | HelmDeployAction
+  | HelmRuntimeAction
   | KubernetesDeployAction
   | KubernetesRunAction
   | KubernetesTestAction

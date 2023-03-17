@@ -48,34 +48,40 @@ describe("deploy actions", () => {
         log,
         action: resolvedDeployAction,
         graph,
-        syncMode: false,
-
-        localMode: false,
       })
       expect(result).to.eql({
-        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {} },
+        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {}, mode: "default" },
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
     })
 
-    it("should emit a serviceStatus event", async () => {
+    it("should emit serviceStatus events", async () => {
       garden.events.eventLog = []
       await actionRouter.deploy.getStatus({
         log,
         action: resolvedDeployAction,
         graph,
-        syncMode: false,
-        localMode: false,
       })
-      const event = garden.events.eventLog[0]
-      expect(event).to.exist
-      expect(event.name).to.eql("serviceStatus")
-      expect(event.payload.serviceName).to.eql("service-a")
-      expect(event.payload.actionVersion).to.eql(resolvedDeployAction.versionString())
-      expect(event.payload.serviceVersion).to.eql(resolvedDeployAction.versionString())
-      expect(event.payload.actionUid).to.be.undefined
-      expect(event.payload.status.state).to.eql("ready")
+      const event1 = garden.events.eventLog[0]
+      const event2 = garden.events.eventLog[1]
+
+      expect(event1).to.exist
+      expect(event2).to.exist
+
+      expect(event1.name).to.eql("deployStatus")
+      expect(event1.payload.actionVersion).to.eql(resolvedDeployAction.versionString())
+      expect(event1.payload.moduleName).to.eql("module-a")
+      expect(event1.payload.actionUid).to.be.ok
+      expect(event1.payload.state).to.eql("getting-status")
+      expect(event1.payload.status.state).to.eql("unknown")
+
+      expect(event2.name).to.eql("deployStatus")
+      expect(event2.payload.actionVersion).to.eql(resolvedDeployAction.versionString())
+      expect(event2.payload.moduleName).to.eql("module-a")
+      expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
+      expect(event2.payload.state).to.eql("cached")
+      expect(event2.payload.status.state).to.eql("ready")
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
@@ -86,8 +92,6 @@ describe("deploy actions", () => {
             log,
             action: resolvedDeployAction,
             graph,
-            syncMode: false,
-            localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
       )
@@ -101,11 +105,9 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        syncMode: false,
-        localMode: false,
       })
       expect(result).to.eql({
-        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {} },
+        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {}, mode: "default" },
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
@@ -118,27 +120,21 @@ describe("deploy actions", () => {
         action: resolvedDeployAction,
         graph,
         force: true,
-        syncMode: false,
-        localMode: false,
       })
       const moduleVersion = resolvedDeployAction.moduleVersion().versionString
       const event1 = garden.events.eventLog[0]
       const event2 = garden.events.eventLog[1]
       expect(event1).to.exist
-      expect(event1.name).to.eql("serviceStatus")
-      expect(event1.payload.serviceName).to.eql("service-a")
+      expect(event1.name).to.eql("deployStatus")
       expect(event1.payload.moduleName).to.eql("module-a")
-      expect(event1.payload.moduleVersion).to.eql(moduleVersion)
-      expect(event1.payload.serviceVersion).to.eql(resolvedDeployAction.versionString())
       expect(event1.payload.actionUid).to.be.ok
+      expect(event1.payload.state).to.eql("processing")
       expect(event1.payload.status.state).to.eql("deploying")
       expect(event2).to.exist
-      expect(event2.name).to.eql("serviceStatus")
-      expect(event2.payload.serviceName).to.eql("service-a")
+      expect(event2.name).to.eql("deployStatus")
       expect(event2.payload.moduleName).to.eql("module-a")
-      expect(event2.payload.moduleVersion).to.eql(moduleVersion)
-      expect(event2.payload.serviceVersion).to.eql(resolvedDeployAction.versionString())
       expect(event2.payload.actionUid).to.eql(event2.payload.actionUid)
+      expect(event2.payload.state).to.eql("ready")
       expect(event2.payload.status.state).to.eql("ready")
     })
 
@@ -151,8 +147,6 @@ describe("deploy actions", () => {
             action: resolvedDeployAction,
             graph,
             force: true,
-            syncMode: false,
-            localMode: false,
           }),
         { contains: "Error validating runtime action outputs from Deploy 'service-a': key .foo must be a string." }
       )
@@ -169,6 +163,7 @@ describe("deploy actions", () => {
           outputs: {},
           detail: {},
           state: "ready",
+          mode: "default",
         },
         outputs: {},
       })

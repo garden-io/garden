@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { CommandError, ConfigurationError, CloudApiError } from "../../../exceptions"
 import { CreateSecretResponse } from "@garden-io/platform-api-types"
 import { readFile } from "fs-extra"
 
@@ -22,8 +22,9 @@ import { getCloudDistributionName } from "../../../util/util"
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
     help: deline`The names and values of the secrets to create, separated by '='.
-      Use comma as a separator to specify multiple secret name/value pairs. Note
+      You may specify multiple secret name/value pairs, separated by spaces. Note
       that you can also leave this empty and have Garden read the secrets from file.`,
+    spread: true,
   }),
 }
 
@@ -59,7 +60,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     You can optionally read the secrets from a file.
 
     Examples:
-        garden cloud secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
+        garden cloud secrets create DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two secrets
         garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
         garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
         garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
@@ -129,18 +130,18 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     const project = await api.getProject()
 
     if (!project) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         {}
       )
     }
 
-    let environmentId: number | undefined
+    let environmentId: string | undefined
 
     if (envName) {
       const environment = project.environments.find((e) => e.name === envName)
       if (!environment) {
-        throw new EnterpriseApiError(`Environment with name ${envName} not found in project`, {
+        throw new CloudApiError(`Environment with name ${envName} not found in project`, {
           environmentName: envName,
           availableEnvironmentNames: project.environments.map((e) => e.name),
         })
@@ -152,7 +153,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     if (userId) {
       const user = await api.get(`/users/${userId}`)
       if (!user) {
-        throw new EnterpriseApiError(`User with ID ${userId} not found.`, {
+        throw new CloudApiError(`User with ID ${userId} not found.`, {
           userId,
         })
       }

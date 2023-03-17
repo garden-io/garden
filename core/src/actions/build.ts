@@ -75,6 +75,8 @@ export const copyFromSchema = createSchema({
 
 export const buildActionConfigSchema = () =>
   baseActionConfigSchema().keys({
+    kind: joi.string().allow("Build").only(),
+
     allowPublish: joi
       .boolean()
       .default(true)

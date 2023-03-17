@@ -14,7 +14,7 @@ import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { getContainerTestGarden } from "./container"
-import { clearTaskResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { ContainerRunAction } from "../../../../../../src/plugins/container/config"
 
@@ -36,7 +36,7 @@ describe("runContainerTask", () => {
     await garden.close()
   })
 
-  it("should run a basic task and emit log events", async () => {
+  it("should run a basic Run and emit log events", async () => {
     const action = graph.getRun("echo-task-with-sleep")
 
     const testTask = new RunTask({
@@ -46,19 +46,16 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     garden.events.eventLog = []
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     const results = await garden.processTasks({ tasks: [testTask], throwOnError: true })
     const result = results.results.getResult(testTask)
-    const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "task")
+    const logEvent = garden.events.eventLog.find((l) => l.name === "log")
 
     expect(result).to.exist
     expect(result!.result).to.exist
@@ -79,7 +76,7 @@ describe("runContainerTask", () => {
     expect(storedResult).to.exist
   })
 
-  it("should not store task results if cacheResult=false", async () => {
+  it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
     action.getConfig().spec.cacheResult = false
 
@@ -90,13 +87,10 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
@@ -123,13 +117,10 @@ describe("runContainerTask", () => {
       log: garden.log,
       force: true,
       forceBuild: false,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
-    await clearTaskResult({ ctx, log: garden.log, action })
+    await clearRunResult({ ctx, log: garden.log, action })
 
     await expectError(
       async () => await garden.processTasks({ tasks: [testTask], throwOnError: true }),
@@ -158,9 +149,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -181,9 +169,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
       await emptyDir(garden.artifactsPath)
 
@@ -205,9 +190,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -228,9 +210,6 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -250,14 +229,9 @@ describe("runContainerTask", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
-
-      const key = "task.missing-tar-task"
 
       expect(result.results.getAll()[0]?.name).to.eql("missing-tar-task")
       expect(result.error).to.exist

@@ -10,7 +10,7 @@ import Bluebird from "bluebird"
 import { cloneDeep, isEmpty, omit, partition, uniq } from "lodash"
 import type { NamespaceStatus } from "../../../types/namespace"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
-import { serviceStateToActionState, ServiceStatus } from "../../../types/service"
+import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
@@ -20,7 +20,7 @@ import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getK8sIngresses } from "../status/ingress"
-import { compareDeployedResources, isConfiguredForLocalMode, waitForResources } from "../status/status"
+import { compareDeployedResources, waitForResources } from "../status/status"
 import type { BaseResource, KubernetesResource, KubernetesServerResource, SyncableResource } from "../types"
 import { convertServiceResource, gardenNamespaceAnnotationValue, getManifests } from "./common"
 import { configureKubernetesModule, KubernetesModule } from "./module-config"
@@ -31,6 +31,7 @@ import type { DeployActionHandler } from "../../../plugin/action-types"
 import { getTargetResource } from "../util"
 import type { Log } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -46,6 +47,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const service = services[0] // There is always exactly one service in kubernetes modules
     const serviceResource = module.spec.serviceResource
 
+    const files = module.spec.files || []
+    const manifests = module.spec.manifests || []
+
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
       type: "kubernetes",
@@ -59,8 +63,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
-        files: module.spec.files || [],
-        manifests: module.spec.manifests || [],
+        files,
+        manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
     }
@@ -95,6 +99,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          files,
+          manifests,
           namespace: module.spec.namespace
         },
       })
@@ -121,6 +127,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
+          files,
+          manifests,
           namespace: module.spec.namespace
         },
       })
@@ -146,8 +154,9 @@ interface KubernetesStatusDetail {
 export type KubernetesServiceStatus = ServiceStatus<KubernetesStatusDetail>
 
 export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", KubernetesDeployAction> = async (params) => {
-  const { ctx, action, log, syncMode, localMode } = params
+  const { ctx, action, log } = params
   const spec = action.getSpec()
+  const mode = action.mode()
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -169,8 +178,6 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     ctx: k8sCtx,
     log,
     action,
-    syncMode,
-    localMode,
     manifests,
   })
   const preparedManifests = prepareResult.manifests
@@ -178,33 +185,17 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   let {
     state,
     remoteResources,
-    deployedWithSyncMode,
-    deployedWithLocalMode,
+    mode: deployedMode,
   } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
 
   // Local mode has its own port-forwarding configuration
-  const forwardablePorts = deployedWithLocalMode ? [] : getForwardablePorts(remoteResources, action)
+  const forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(remoteResources, action)
 
   if (state === "ready") {
     // Local mode always takes precedence over sync mode
-    if (localMode && spec.localMode) {
-      const targetSpec = spec.localMode.target || spec.defaultTarget
-
-      if (targetSpec) {
-        const target = await getTargetResource({
-          ctx: k8sCtx,
-          log,
-          provider: k8sCtx.provider,
-          action,
-          manifests: remoteResources,
-          query: targetSpec,
-        })
-
-        if (!isConfiguredForLocalMode(target)) {
-          state = "outdated"
-        }
-      }
-    } else if (syncMode && spec.sync?.paths) {
+    if (mode === "local" && spec.localMode && deployedMode !== "local") {
+      state = "outdated"
+    } else if (mode === "sync" && spec.sync?.paths) {
       // Need to start the sync here, since the deployment handler won't be called with state=ready.
       await startSyncs({
         ctx: k8sCtx,
@@ -217,18 +208,21 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
         manifests: preparedManifests,
         syncs: spec.sync.paths,
       })
+
+      if (deployedMode !== "sync") {
+        state = "outdated"
+      }
     }
   }
 
   return {
-    state: serviceStateToActionState(state),
+    state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
       state,
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
-      syncMode: deployedWithSyncMode,
-      localMode: deployedWithLocalMode,
+      mode: deployedMode,
       namespaceStatuses: [namespaceStatus],
       ingresses: getK8sIngresses(remoteResources),
     },
@@ -238,13 +232,15 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
 }
 
 export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAction> = async (params) => {
-  const { ctx, action, log, syncMode, localMode } = params
+  const { ctx, action, log } = params
 
   const spec = action.getSpec()
 
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, ctx, provider)
+
+  let attached = false
 
   const namespaceStatus = await getActionNamespaceStatus({
     ctx: k8sCtx,
@@ -277,16 +273,15 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
   let modifiedResources: SyncableResource[] = []
   let preparedManifests = manifests
 
+  const mode = action.mode()
   const pruneLabels = { [gardenAnnotationKey("service")]: action.name }
 
   if (otherManifests.length > 0) {
-    if ((syncMode && spec.sync) || (localMode && spec.localMode)) {
+    if ((mode === "sync" && spec.sync) || (mode === "local" && spec.localMode)) {
       const configured = await configureSpecialModesForManifests({
         ctx: k8sCtx,
         log,
         action,
-        syncMode,
-        localMode,
         manifests,
       })
       preparedManifests = configured.manifests
@@ -314,7 +309,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
 
   if (modifiedResources.length > 0) {
     // Local mode always takes precedence over sync mode
-    if (localMode && spec.localMode) {
+    if (mode === "local" && spec.localMode) {
       await startServiceInLocalMode({
         ctx,
         spec: spec.localMode,
@@ -324,7 +319,8 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         namespace,
         log,
       })
-    } else if (syncMode && spec.sync?.paths?.length) {
+      attached = true
+    } else if (mode === "sync" && spec.sync?.paths?.length) {
       await startSyncs({
         ctx: k8sCtx,
         log,
@@ -336,6 +332,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         manifests: preparedManifests,
         syncs: spec.sync.paths,
       })
+      attached = true
     }
   }
 
@@ -360,6 +357,8 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       ...status.detail!,
       namespaceStatuses,
     },
+    // Tell the framework that the mutagen process is attached, if applicable
+    attached,
   }
 }
 
@@ -462,21 +461,18 @@ async function configureSpecialModesForManifests({
   ctx,
   log,
   action,
-  syncMode,
-  localMode,
   manifests,
 }: {
   ctx: KubernetesPluginContext
   log: Log
   action: Resolved<KubernetesDeployAction>
-  syncMode: boolean
-  localMode: boolean
   manifests: KubernetesResource<BaseResource>[]
 }) {
   const spec = action.getSpec()
+  const mode = action.mode()
 
   // Local mode always takes precedence over sync mode
-  if (localMode && spec.localMode && !isEmpty(spec.localMode)) {
+  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
     // TODO-G2: Support multiple local processes+targets
     const query = spec.localMode.target || spec.defaultTarget
 
@@ -516,7 +512,7 @@ async function configureSpecialModesForManifests({
       .concat(<KubernetesResource<BaseResource>>target)
 
     return { updated: [target], manifests: preparedManifests }
-  } else if (syncMode && spec.sync && !isEmpty(spec.sync)) {
+  } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     // The "sync-mode" annotation is set in `configureDevMode`.
     return configureSyncMode({
       ctx,

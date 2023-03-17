@@ -9,8 +9,6 @@
 import { diffString } from "json-diff"
 import { DeploymentError } from "../../../exceptions"
 import { PluginContext } from "../../../plugin-context"
-import { ServiceState, combineStates } from "../../../types/service"
-import { sleep, deepMap } from "../../../util/util"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
@@ -35,9 +33,13 @@ import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
 import { SyncableResource } from "../types"
 import { LogLevel } from "../../../logger/logger"
+import { ActionMode } from "../../../actions/types"
+import { deepMap } from "../../../util/objects"
+import { DeployState, combineStates } from "../../../types/service"
+import { sleep } from "../../../util/util"
 
 export interface ResourceStatus<T extends BaseResource | KubernetesObject = BaseResource> {
-  state: ServiceState
+  state: DeployState
   resource: KubernetesServerResource<T>
   lastMessage?: string
   warning?: true
@@ -56,7 +58,7 @@ interface StatusHandler<T extends BaseResource | KubernetesObject = BaseResource
   (params: StatusHandlerParams<T>): Promise<ResourceStatus<T>>
 }
 
-const pvcPhaseMap: { [key: string]: ServiceState } = {
+const pvcPhaseMap: { [key: string]: DeployState } = {
   Available: "ready",
   Bound: "ready",
   Released: "stopped",
@@ -74,7 +76,7 @@ const objHandlers: { [kind: string]: StatusHandler } = {
 
   PersistentVolumeClaim: async ({ resource }: StatusHandlerParams<V1PersistentVolumeClaim>) => {
     const pvc = <KubernetesServerResource<V1PersistentVolumeClaim>>resource
-    const state: ServiceState = pvcPhaseMap[pvc.status.phase!] || "unknown"
+    const state: DeployState = pvcPhaseMap[pvc.status.phase!] || "unknown"
     return { state, resource }
   },
 
@@ -141,7 +143,7 @@ export async function checkResourceStatus(api: KubeApi, namespace: string, manif
     resourceVersion = parseInt(resource.metadata.resourceVersion!, 10)
   } catch (err) {
     if (err.statusCode === 404) {
-      return { state: <ServiceState>"missing", resource: manifest }
+      return { state: <DeployState>"missing", resource: manifest }
     } else {
       throw err
     }
@@ -276,10 +278,9 @@ export async function waitForResources({
 }
 
 interface ComparisonResult {
-  state: ServiceState
+  state: DeployState
   remoteResources: KubernetesResource[]
-  deployedWithSyncMode: boolean
-  deployedWithLocalMode: boolean
+  mode: ActionMode
   /**
    * These resources have changes in `spec.selector`, and would need to be deleted before redeploying (since Kubernetes
    * doesn't allow updates to immutable fields).
@@ -312,16 +313,13 @@ export async function compareDeployedResources(
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
-    deployedWithSyncMode: false,
-    deployedWithLocalMode: false,
+    mode: "default",
     selectorChangedResourceKeys: detectChangedSpecSelector(manifestsMap, deployedMap),
   }
 
   const logDescription = (resource: KubernetesResource) => getResourceKey(resource)
 
-  const missingObjectNames = manifestKeys
-    .filter((k) => !deployedMap[k])
-    .map((k) => logDescription(manifestsMap[k]))
+  const missingObjectNames = manifestKeys.filter((k) => !deployedMap[k]).map((k) => logDescription(manifestsMap[k]))
 
   if (missingObjectNames.length === manifests.length) {
     // All resources missing.
@@ -377,10 +375,10 @@ export async function compareDeployedResources(
 
     if (isWorkloadResource(manifest)) {
       if (isConfiguredForSyncMode(manifest)) {
-        result.deployedWithSyncMode = true
+        result.mode = "sync"
       }
       if (isConfiguredForLocalMode(manifest)) {
-        result.deployedWithLocalMode = true
+        result.mode = "local"
       }
     }
 
@@ -467,15 +465,20 @@ export async function compareDeployedResources(
 }
 
 export function isConfiguredForSyncMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("sync-mode")] === "true"
+  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "sync"
 }
 
 export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
-  return resource.metadata.annotations?.[gardenAnnotationKey("local-mode")] === "true"
+  return resource.metadata.annotations?.[gardenAnnotationKey("mode")] === "local"
 }
 
 function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {
-  return resource.kind === "Deployment" || resource.kind === "DaemonSet" || resource.kind === "StatefulSet" || resource.kind === "ReplicaSet"
+  return (
+    resource.kind === "Deployment" ||
+    resource.kind === "DaemonSet" ||
+    resource.kind === "StatefulSet" ||
+    resource.kind === "ReplicaSet"
+  )
 }
 
 type KubernetesResourceMap = { [key: string]: KubernetesResource }
@@ -487,10 +490,10 @@ function detectChangedSpecSelector(manifestsMap: KubernetesResourceMap, deployed
     const manifest = manifestsMap[k]
     const deployedResource = deployedMap[k]
     if (
-      deployedResource // If no corresponding resource to the local manifest has been deployed, this will be undefined.
-      && isWorkloadResource(manifest)
-      && isWorkloadResource(deployedResource)
-      && !isEqual(manifest.spec.selector, deployedResource.spec.selector)
+      deployedResource && // If no corresponding resource to the local manifest has been deployed, this will be undefined.
+      isWorkloadResource(manifest) &&
+      isWorkloadResource(deployedResource) &&
+      !isEqual(manifest.spec.selector, deployedResource.spec.selector)
     ) {
       changedKeys.push(getResourceKey(manifest))
     }

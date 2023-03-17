@@ -12,18 +12,19 @@ import { moduleSchema, GardenModule } from "../../types/module"
 import { keyBy, omit, sortBy } from "lodash"
 import { joiIdentifierMap, StringMap, createSchema } from "../../config/common"
 import { printEmoji, printHeader, renderDivider } from "../../logger/util"
-import { withoutInternalFields } from "../../logger/logger"
+import { withoutInternalFields } from "../../util/logging"
 import chalk from "chalk"
 import { renderTable, dedent, deline } from "../../util/string"
 import { relative, sep } from "path"
 import { Garden } from "../.."
 import { Log } from "../../logger/log-entry"
-import { deepMap, highlightYaml, safeDumpYaml } from "../../util/util"
+import { highlightYaml, safeDumpYaml } from "../../util/serialization"
+import { deepMap } from "../../util/objects"
 
 const getModulesArgs = {
   modules: new StringsParameter({
-    help:
-      "Specify module(s) to list. Use comma as a separator to specify multiple modules. Skip to return all modules.",
+    help: "Specify module(s) to list. You may specify multiple modules, separated by spaces. Skip to return all modules.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.moduleConfigs)
     },

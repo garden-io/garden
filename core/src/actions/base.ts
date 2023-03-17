@@ -34,7 +34,7 @@ import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
 import { flatten, fromPairs, isString, omit, sortBy } from "lodash"
-import { ActionConfigContext } from "../config/template-contexts/actions"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
 import {
@@ -42,6 +42,8 @@ import {
   ActionConfig,
   ActionDependency,
   actionKinds,
+  ActionMode,
+  ActionModes,
   ActionReferenceMap,
   actionStateTypes,
   ActionStatus,
@@ -57,6 +59,7 @@ import { PickTypeByKind } from "../graph/config-graph"
 import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
+import { uuidv4 } from "../util/random"
 
 // TODO-G2: split this file
 
@@ -223,7 +226,7 @@ export const baseActionConfigSchema = createSchema({
       .object()
       .unknown(true)
       .description("The spec for the specific action type.")
-      .meta({ templateContext: ActionConfigContext }),
+      .meta({ templateContext: ActionSpecContext }),
   },
 })
 
@@ -266,6 +269,11 @@ export const actionStatusSchema = createSchema({
       .allow(null)
       .description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
+    attached: joi
+      .boolean()
+      .description(
+        "Set to true if the action handler is running a process persistently and attached to the Garden process after returning."
+      ),
   },
 })
 
@@ -320,7 +328,9 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   protected readonly graph: ConfigGraph
   protected readonly _moduleName?: string // TODO: remove in 0.14
   protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
+  protected readonly _mode: ActionMode
   protected readonly projectRoot: string
+  protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
   protected readonly variables: DeepPrimitiveMap
 
@@ -334,8 +344,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.graph = params.graph
     this._moduleName = params.moduleName
     this._moduleVersion = params.moduleVersion
+    this._mode = params.mode
     this._config = params.config
     this.projectRoot = params.projectRoot
+    this._supportedModes = params.supportedModes
     this._treeVersion = params.treeVersion
     this.variables = params.variables
     this.resolved = false
@@ -489,6 +501,14 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   /**
+   * We use memoization to lazy-generate the uid to avoid unnecessary overhead when initializing every action.
+   */
+  @Memoize()
+  getUid() {
+    return uuidv4()
+  }
+
+  /**
    * Returns a map of commonly used environment variables for the action.
    */
   getEnvVars() {
@@ -512,12 +532,32 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return key ? this._config[key] : this._config
   }
 
+  /**
+   * Returns true if this action is compatible with the given action type.
+   */
   isCompatible(type: string) {
     return this.compatibleTypes.includes(type)
   }
 
+  /**
+   * Returns true if this action matches the given action reference.
+   */
   matchesRef(ref: ActionReference) {
     return actionRefMatches(ref, this)
+  }
+
+  /**
+   * Return the mode that the action should be executed in.
+   * Returns "default" if the action is not configured for the mode or the type does not support it.
+   *
+   * Note: A warning is emitted during action resolution if an unsupported mode is explicitly requested for it.
+   */
+  mode(): ActionMode {
+    return this.supportsMode(this._mode) ? this._mode : "default"
+  }
+
+  supportsMode(mode: ActionMode) {
+    return mode === "default" || !!this._supportedModes[mode]
   }
 
   describe(): ActionDescription {
@@ -548,7 +588,7 @@ export abstract class RuntimeAction<
   getBuildAction<T extends BuildAction>() {
     const buildName = this.getConfig("build")
     if (buildName) {
-      const buildAction = this.graph.getBuild(buildName)
+      const buildAction = this.graph.getBuild(buildName, { includeDisabled: true })
       return <T>buildAction
     } else {
       return null

@@ -118,8 +118,7 @@ export class ActionRouter extends BaseRouter {
           graph,
           log,
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
+
           forceActions: [],
         })
     )
@@ -140,9 +139,6 @@ export class ActionRouter extends BaseRouter {
           action,
           force,
           forceActions: forceBuild ? graph.getBuilds() : [],
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
     )
 
@@ -176,8 +172,6 @@ export class ActionRouter extends BaseRouter {
         deleteDeployNames: deploys.map((d) => d.name),
         force: false,
         forceActions: [],
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
     })
 

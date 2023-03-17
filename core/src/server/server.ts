@@ -25,7 +25,7 @@ import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
 import { EventName, Events, EventBus, GardenEventListener } from "../events"
-import { uuidv4, ValueOf } from "../util/util"
+import type { ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
@@ -36,7 +36,8 @@ import { clientRequestNames, ClientRequestType, ClientRouter } from "./client-ro
 import { EventEmitter } from "eventemitter3"
 import { ServeCommand } from "../commands/serve"
 import { getBuiltinCommands } from "../commands/commands"
-import { sanitizeValue } from "../logger/logger"
+import { sanitizeValue } from "../util/logging"
+import { uuidv4 } from "../util/random"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -255,7 +256,7 @@ export class GardenServer extends EventEmitter {
       const persistent = command.isPersistent(prepareParams)
 
       if (persistent) {
-        ctx.throw(400, "Attempted to run persistent command (e.g. a watch/follow command). Aborting.")
+        ctx.throw(400, "Attempted to run persistent command (e.g. a dev/follow command). Aborting.")
       }
 
       await command.prepare(prepareParams)

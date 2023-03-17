@@ -8,7 +8,7 @@
 
 import { readlink, copyFile, constants, utimes } from "fs"
 import readdir from "@jsdevtools/readdir-enhanced"
-import { splitLast } from "../util/util"
+import { splitLast } from "../util/string"
 import { Minimatch } from "minimatch"
 import { promisify } from "bluebird"
 import { isAbsolute, parse, basename, resolve } from "path"

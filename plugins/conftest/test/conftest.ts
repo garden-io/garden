@@ -51,8 +51,6 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -88,8 +86,6 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -116,8 +112,6 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()
@@ -147,8 +141,6 @@ describe("conftest provider", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const key = testTask.getKey()

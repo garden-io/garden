@@ -9,7 +9,7 @@
 import type { BaseTask, Task } from "../tasks/base"
 import type { Log } from "../logger/log-entry"
 import { GardenBaseError, toGardenError } from "../exceptions"
-import { uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
 import { DependencyGraph, metadataForLog } from "./common"
 import { Profile } from "../util/profiling"
 import { TypedEventEmitter } from "../util/events"
@@ -19,7 +19,7 @@ import { gardenEnv } from "../constants"
 import type { Garden } from "../garden"
 import { GraphResultEventPayload, toGraphResultEventPayload } from "../events"
 import { renderDivider, renderMessageWithDivider } from "../logger/util"
-import { formatGardenErrorWithDetail } from "../logger/logger"
+import { formatGardenErrorWithDetail } from "../exceptions"
 import chalk from "chalk"
 import {
   CompleteTaskParams,

@@ -186,7 +186,7 @@ portForwards:
     # not available, a warning is shown and a random port chosen instead.
     localPort:
 
-# Optionally override the release name used when installing (defaults to the module name).
+# Optionally override the release name used when installing (defaults to the Deploy name).
 releaseName:
 
 # Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
@@ -203,8 +203,8 @@ values: {}
 # If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
 # of this list, so they will take precedence over other files listed here.
 #
-# Note that the paths here should be relative to the _module_ root, and the files should be contained in
-# your module directory.
+# Note that the paths here should be relative to the _config_ root, and the files should be contained in
+# this action config's directory.
 valueFiles: []
 
 # The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart across multiple
@@ -972,7 +972,7 @@ The _preferred_ local port to forward from. If none is set, a random port is cho
 
 ### `releaseName`
 
-Optionally override the release name used when installing (defaults to the module name).
+Optionally override the release name used when installing (defaults to the Deploy name).
 
 | Type     | Required |
 | -------- | -------- |
@@ -1003,8 +1003,8 @@ this list will have the highest precedence.
 If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
 of this list, so they will take precedence over other files listed here.
 
-Note that the paths here should be relative to the _module_ root, and the files should be contained in
-your module directory.
+Note that the paths here should be relative to the _config_ root, and the files should be contained in
+this action config's directory.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
@@ -2042,7 +2042,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -2056,7 +2056,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -2064,7 +2064,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |

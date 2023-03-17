@@ -22,9 +22,10 @@ const runArgs = {
   names: new StringsParameter({
     help: deline`
       The name(s) of the Run action(s) to perform.
-      Use comma as a separator to specify multiple names.
+      You may specify multiple names, separated by spaces.
       Accepts glob patterns (e.g. init* would run both 'init' and 'initialize').
     `,
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Run)
     },
@@ -221,8 +222,7 @@ export class RunCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
+
           skipRuntimeDependencies,
           // interactive: opts.interactive,
         })

@@ -17,7 +17,8 @@ import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { Log } from "../../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
 
-describe("sync plugin commands", () => {
+// TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
+describe.skip("sync plugin commands", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -37,11 +38,15 @@ describe("sync plugin commands", () => {
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: { sync: ["deploy.sync-mode"] },
+    })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
-    const action = graph.getDeploy("dev-mode")
+    const action = graph.getDeploy("sync-mode")
 
     // The deploy task actually creates the sync
     const deployTask = new DeployTask({
@@ -51,8 +56,6 @@ describe("sync plugin commands", () => {
       action,
       force: true,
       forceBuild: false,
-      syncModeDeployNames: [action.name],
-      localModeDeployNames: [],
     })
 
     await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })

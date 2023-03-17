@@ -1,0 +1,37 @@
+kind: Module
+description: The voting UI
+name: web-image
+type: container
+include: [.]
+
+tests:
+  - name: unit
+    args: [npm, run, test:unit]
+
+---
+kind: Module
+description: The voting web UI
+type: helm
+name: web
+chartPath: "./chart"
+serviceResource:
+  containerModule: web-image
+values:
+  name: web
+  image:
+    repository: ${modules.web-image.outputs.deployment-image-name}
+    tag: ${modules.web-image.version}
+  healthCheckPath: /
+
+---
+kind: Module
+type: container
+name: e2e-runner
+image: ${modules.web-image.outputs.deployment-image-id}
+disabled: true
+include: []
+tests:
+  - name: e2e
+    args: [npm, run, test:e2e]
+    dependencies:
+      - web

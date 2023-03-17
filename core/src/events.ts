@@ -10,16 +10,17 @@ import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
 import type { LogEntryEventPayload } from "./cloud/buffered-event-stream"
 import type { ServiceStatus } from "./types/service"
-import type { RunStatus } from "./plugin/base"
+import type { RunStatusForEventPayload } from "./plugin/base"
 import type { Omit } from "./util/util"
 import type { AuthTokenResponse } from "./cloud/api"
 import type { RenderedActionGraph } from "./graph/config-graph"
 import type { CommandInfo } from "./plugin-context"
-import type { BuildState } from "./plugin/handlers/Build/get-status"
 import type { ActionReference } from "./config/common"
 import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
-import { sanitizeValue } from "./logger/logger"
+import { BuildState } from "./plugin/handlers/Build/get-status"
+import { ActionStateForEvent } from "./actions/types"
+import { sanitizeValue } from "./util/logging"
 
 export type GardenEventListener<T extends EventName> = (payload: Events[T]) => void
 
@@ -60,27 +61,12 @@ export class EventBus extends EventEmitter2 {
 /**
  * Supported logger events and their interfaces.
  */
-export interface LoggerEvents {
-  _test: any
-  logEntry: LogEntryEventPayload
-}
-
-export type LoggerEventName = keyof LoggerEvents
 
 export type GraphResultEventPayload = Omit<GraphResult, "task" | "dependencyResults" | "error"> & {
   error: string | null
 }
 
-export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
-  /**
-   * ISO format date string
-   */
-  deployStartedAt?: string
-  /**
-   * ISO format date string
-   */
-  deployCompletedAt?: string
-}
+export type DeployStatusForEventPayload = Omit<ServiceStatus, "detail">
 
 export interface CommandInfoPayload extends CommandInfo {
   // Contains additional context for the command info available during init
@@ -116,10 +102,21 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
   return payload
 }
 
+export interface ActionStatusPayload<S = {}> {
+  actionName: string
+  actionVersion: string
+  actionUid: string
+  moduleName: string | null // DEPRECATED: Remove in 0.14
+  startedAt: string
+  completedAt?: string
+  state: ActionStateForEvent
+  status: S
+}
+
 /**
  * Supported Garden events and their interfaces.
  */
-export interface Events extends LoggerEvents {
+export interface Events {
   // Internal test/control events
   _exit: {}
   _restart: {}
@@ -168,16 +165,10 @@ export interface Events extends LoggerEvents {
   // Stack Graph events
   stackGraph: RenderedActionGraph
 
+
+  // TODO: Remove these once the Cloud UI no longer uses them.
+
   // TaskGraph events
-  taskPending: {
-    /**
-     * ISO format date string
-     */
-    addedAt: string
-    key: string
-    type: string
-    name: string
-  }
   taskProcessing: {
     /**
      * ISO format date string
@@ -212,110 +203,48 @@ export interface Events extends LoggerEvents {
     completedAt: string
   }
   watchingForChanges: {}
+  /**
+   * Line-by-line action log events. These are emitted by the `PluginEventBroker` instance passed to action handlers.
+   *
+   * This is in contrast with the `logEntry` event below, which represents framework-level logs emitted by the logger.
+   *
+   * TODO: Instead of having two event types (`log` and `logEntry`), we may want to unify the two.
+   */
   log: {
     /**
      * ISO format date string
      */
     timestamp: string
     actionUid: string
-    entity: {
-      moduleName: string | null
-      type: string
-      key: string
-    }
+    actionName: string
+    moduleName: string | null
+    origin: string
     data: string
   }
+  logEntry: LogEntryEventPayload
 
-  // Status events
+  // Action status events
 
   /**
-   * In the `buildStatus`, `taskStatus`, `testStatus` and `serviceStatus` events, the optional `actionUid` field
-   * identifies a single build/deploy/run.
+   * In the `buildStatus`, `runStatus`, `testStatus` and `deployStatus` events, the optional `actionUid` field
+   * identifies a single build/run/test/deploy.
    *
-   * The `build`/`testModule`/`runTask`/`deployService` actions emit two events: One before the plugin handler is
-   * called (a "building"/"running"/"deploying" event), and another one after the handler finishes successfully or
-   * throws an error.
+   * The `ActionRouter.build.build`/`ActionRouter.test.test`/`ActionRouter.run.run`/`ActionRouter.deploy.deploy`
+   * actions emit two events: One before the plugin handler is called (a "building"/"running"/"deploying" event), and
+   * another one after the handler finishes successfully or throws an error.
    *
    * When logged in, the `actionUid` is used by the Garden Cloud backend to group these two events for each of these
    * action invocations.
    *
-   * No `actionUid` is set for the corresponding "get status" actions (e.g. `getBuildStatus` or `getServiceStatus`),
-   * since those actions don't result in a build/deploy/run (so there are no associated logs or timestamps to track).
+   * No `actionUid` is set for the corresponding "get status/result" actions (e.g. `ActionRouter.build.getStatus` or
+   * `ActionRouter.test.getResult`), since those actions don't result in a build/deploy/run being executed (so there
+   * are no associated logs or timestamps to track).
    */
 
-  buildStatus: {
-    actionName: string
-    actionVersion: string
-
-    // DEPRECATED: remove in 0.14
-    moduleName: string | null
-    moduleVersion: string
-    /**
-     * `actionUid` should only be defined if `state = "building" | "built" | "failed"` (and not if `state = "fetched",
-     * since in that case, no build took place and there are no logs/timestamps to view).
-     */
-    actionUid?: string
-    status: {
-      state: BuildState
-      /**
-       * ISO format date string
-       */
-      startedAt?: string
-      /**
-       * ISO format date string
-       */
-      completedAt?: string
-    }
-  }
-  taskStatus: {
-    actionName: string
-    actionVersion: string
-
-    // DEPRECATED: remove in 0.14
-    taskName: string
-    moduleName: string | null
-    moduleVersion: string
-    taskVersion: string
-    /**
-     * `actionUid` should only be defined if the task was run , i.e. if `state = "running" | "succeeded" | "failed"`
-     * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
-     * logs/timestamps to view).
-     */
-    actionUid?: string
-    status: RunStatus
-  }
-  testStatus: {
-    actionName: string
-    actionVersion: string
-
-    // DEPRECATED: remove in 0.14
-    testName: string
-    moduleName: string | null
-    moduleVersion: string
-    testVersion: string
-    /**
-     * `actionUid` should only be defined if the test was run, i.e. if `state = "running" | "succeeded" | "failed"`
-     * (and not if `state = "outdated" | "not-implemented, since in that case, no run took place and there are no
-     * logs/timestamps to view).
-     */
-    actionUid?: string
-    status: RunStatus
-  }
-  serviceStatus: {
-    actionName: string
-    actionVersion: string
-
-    // DEPRECATED: remove in 0.14
-    serviceName: string
-    moduleName: string | null
-    moduleVersion: string
-    serviceVersion: string
-    /**
-     * `actionUid` should only be defined if a deploy took place (i.e. when emitted from the `deployService` action).
-     */
-    actionUid?: string
-    status: ServiceStatusPayload
-  }
+  buildStatus: ActionStatusPayload<{ state: BuildState }>
+  runStatus: ActionStatusPayload<RunStatusForEventPayload>
+  testStatus: ActionStatusPayload<RunStatusForEventPayload>
+  deployStatus: ActionStatusPayload<DeployStatusForEventPayload>
   namespaceStatus: NamespaceStatus
 
   // Workflow events
@@ -363,17 +292,16 @@ export const pipedEventNames: EventName[] = [
   "actionSourcesChanged",
   "namespaceStatus",
   "projectConfigChanged",
-  "serviceStatus",
+  "deployStatus",
   "stackGraph",
   "taskCancelled",
   "taskComplete",
   "taskError",
   "taskGraphComplete",
   "taskGraphProcessing",
-  "taskPending",
   "taskProcessing",
   "buildStatus",
-  "taskStatus",
+  "runStatus",
   "testStatus",
   "watchingForChanges",
   "workflowComplete",

@@ -38,7 +38,7 @@ import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
 
-import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
+import { Omit, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
 import {
@@ -59,6 +59,7 @@ import { Writable, Readable, PassThrough } from "stream"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 import { LogLevel } from "../../logger/logger"
+import { safeDumpYaml } from "../../util/serialization"
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup

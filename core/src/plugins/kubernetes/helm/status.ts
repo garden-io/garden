@@ -9,8 +9,7 @@
 import {
   ForwardablePort,
   ServiceIngress,
-  ServiceState,
-  serviceStateToActionState,
+  DeployState,
   ServiceStatus,
 } from "../../../types/service"
 import { Log } from "../../../logger/log-entry"
@@ -28,11 +27,12 @@ import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
-import { Resolved } from "../../../actions/types"
+import { ActionMode, Resolved } from "../../../actions/types"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
-const helmStatusMap: { [status: string]: ServiceState } = {
+const helmStatusMap: { [status: string]: DeployState } = {
   unknown: "unknown",
   deployed: "ready",
   deleted: "missing",
@@ -48,14 +48,14 @@ interface HelmStatusDetail {
 export type HelmServiceStatus = ServiceStatus<HelmStatusDetail>
 
 export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAction> = async (params) => {
-  const { ctx, action, log, syncMode, localMode } = params
+  const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
   const releaseName = getReleaseName(action)
 
   const detail: HelmStatusDetail = {}
-  let state: ServiceState
+  let state: DeployState
   let helmStatus: ServiceStatus
 
   const namespaceStatus = await getActionNamespaceStatus({
@@ -65,14 +65,13 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
     provider,
   })
 
-  let deployedWithSyncMode: boolean | undefined
-  let deployedWithLocalMode: boolean | undefined
+  const mode = action.mode()
+  let deployedMode: ActionMode = "default"
 
   try {
-    helmStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, syncMode, localMode })
+    helmStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
     state = helmStatus.state
-    deployedWithSyncMode = helmStatus.syncMode
-    deployedWithLocalMode = helmStatus.localMode
+    deployedMode = helmStatus.mode || "default"
   } catch (err) {
     state = "missing"
   }
@@ -85,12 +84,12 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   if (state !== "missing") {
     const deployedResources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
 
-    forwardablePorts = !!deployedWithLocalMode ? [] : getForwardablePorts(deployedResources, action)
+    forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(deployedResources, action)
     ingresses = getK8sIngresses(deployedResources)
 
     if (state === "ready") {
       // Local mode always takes precedence over sync mode
-      if (localMode && spec.localMode) {
+      if (mode === "local" && spec.localMode) {
         const query = spec.localMode.target || spec.defaultTarget
 
         // If no target is set, a warning is emitted during deployment
@@ -108,7 +107,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
             state = "outdated"
           }
         }
-      } else if (syncMode && spec.sync?.paths) {
+      } else if (mode === "sync" && spec.sync?.paths) {
         // Need to start the sync here, since the deployment handler won't be called.
 
         // First make sure we don't fail if resources arent't actually properly configured (we don't want to throw in
@@ -137,14 +136,13 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   }
 
   return {
-    state: serviceStateToActionState(state),
+    state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
       state,
       version: state === "ready" ? action.versionString() : undefined,
       detail,
-      syncMode: deployedWithSyncMode,
-      localMode: deployedWithLocalMode,
+      mode: deployedMode,
       namespaceStatuses: [namespaceStatus],
       ingresses,
     },
@@ -187,15 +185,11 @@ export async function getReleaseStatus({
   action,
   releaseName,
   log,
-  syncMode,
-  localMode,
 }: {
   ctx: KubernetesPluginContext
   action: Resolved<HelmDeployAction>
   releaseName: string
   log: Log
-  syncMode: boolean
-  localMode: boolean
 }): Promise<ServiceStatus> {
   try {
     log.silly(`Getting the release status for ${releaseName}`)
@@ -220,8 +214,7 @@ export async function getReleaseStatus({
     let state = helmStatusMap[res.info.status] || "unknown"
     let values = {}
 
-    let syncModeEnabled = false
-    let localModeEnabled = false
+    let deployedMode: ActionMode = "default"
 
     if (state === "ready") {
       // Make sure the right version is deployed
@@ -236,17 +229,10 @@ export async function getReleaseStatus({
         })
       )
 
-      const deployedVersion = values[".garden"] && values[".garden"].version
-      syncModeEnabled = values[".garden"] && values[".garden"].syncMode === true
-      localModeEnabled = values[".garden"] && values[".garden"].localMode === true
+      const deployedVersion = values[".garden"]?.version
+      deployedMode = values[".garden"]?.mode
 
-      if (
-        (syncMode && !syncModeEnabled) ||
-        (localMode && !localModeEnabled) ||
-        (!localMode && localModeEnabled) || // this is still a valid case for local-mode
-        !deployedVersion ||
-        deployedVersion !== action.versionString()
-      ) {
+      if (action.mode() !== deployedMode || !deployedVersion || deployedVersion !== action.versionString()) {
         state = "outdated"
       }
 
@@ -260,9 +246,7 @@ export async function getReleaseStatus({
 
     return {
       state,
-      detail: { ...res, values },
-      syncMode: syncModeEnabled,
-      localMode: localModeEnabled,
+      detail: { ...res, values, mode: deployedMode },
     }
   } catch (err) {
     if (err.message.includes("release: not found")) {

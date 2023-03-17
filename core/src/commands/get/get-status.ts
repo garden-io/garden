@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { fromPairs } from "lodash"
-import { deepFilter } from "../../util/util"
+import { deepFilter } from "../../util/objects"
 import { Command, CommandResult, CommandParams } from "../base"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
 import { Log } from "../../logger/log-entry"
@@ -23,7 +23,7 @@ import { getTestResultSchema, TestStatusMap } from "../../plugin/handlers/Test/g
 import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/Run/get-result"
 import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status"
 import { ActionRouter } from "../../router/router"
-import { sanitizeValue } from "../../logger/logger"
+import { sanitizeValue } from "../../util/logging"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {

@@ -109,8 +109,8 @@ export class DeleteEnvironmentCommand extends Command<{}, DeleteEnvironmentOpts>
 
 const deleteDeployArgs = {
   names: new StringsParameter({
-    help:
-      "The name(s) of the deploy(s) (or services if using modules) to delete. Use comma as a separator to specify multiple names.",
+    help: "The name(s) of the deploy(s) (or services if using modules) to delete. You may specify multiple names, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
@@ -196,8 +196,6 @@ export class DeleteDeployCommand extends Command<DeleteDeployArgs, DeleteDeployO
         dependantsFirst,
         force: false,
         forceActions: [],
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
     })
 

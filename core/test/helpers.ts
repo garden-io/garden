@@ -8,10 +8,28 @@
 
 import td from "testdouble"
 import { join, relative, resolve } from "path"
-import { cloneDeep, extend, get, intersection, isString, mapValues, merge, omit, pick, uniq } from "lodash"
+import {
+  cloneDeep,
+  extend,
+  forOwn,
+  get,
+  intersection,
+  isArray,
+  isNull,
+  isObject,
+  isString,
+  isUndefined,
+  mapValues,
+  merge,
+  omit,
+  pick,
+  pull,
+  uniq,
+} from "lodash"
 import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { buildExecAction, convertExecModule } from "../src/plugins/exec/exec"
+import { buildExecAction } from "../src/plugins/exec/exec"
+import { convertExecModule } from "../src/plugins/exec/convert"
 import { createSchema, joi, joiArray } from "../src/config/common"
 import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginParam } from "../src/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
@@ -49,9 +67,8 @@ import { GetRunResult } from "../src/plugin/handlers/Run/get-result"
 import { defaultEnvironment, defaultNamespace, ProjectConfig } from "../src/config/project"
 import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
-import { GraphResultMapWithoutTask } from "../src/graph/results"
 import { localConfigFilename } from "../src/config-store/local"
-import _ from "lodash"
+import { GraphResultMapWithoutTask } from "../src/graph/results"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -254,6 +271,9 @@ export const testPlugin = () =>
           docs: "Test Deploy action",
           schema: testDeploySchema(),
           handlers: {
+            configure: async ({ config }) => {
+              return { config, supportedModes: { sync: !!config.spec.syncMode, local: true } }
+            },
             deploy: async ({}) => {
               return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
@@ -371,7 +391,7 @@ export const getDefaultProjectConfig = (): ProjectConfig =>
     defaultEnvironment,
     dotIgnoreFile: defaultDotIgnoreFile,
     environments: [{ name: "default", defaultNamespace, variables: {} }],
-    providers: [],
+    providers: [{ name: "test-plugin", dependencies: [] }],
     variables: {},
   })
 
@@ -539,14 +559,14 @@ export function getAllProcessedTaskNames(results: GraphResultMapWithoutTask) {
 }
 
 /**
- * Returns a map of all task results including dependencies from a GraphResultMap.
+ * Returns a map of all Run results including dependencies from a GraphResultMap.
  */
-export function getAllTaskResults(results: GraphResultMapWithoutTask) {
+export function getAllRunResults(results: GraphResultMapWithoutTask) {
   const all = { ...results }
 
   for (const r of Object.values(results)) {
     if (r?.dependencyResults) {
-      for (const [key, result] of Object.entries(getAllTaskResults(r.dependencyResults))) {
+      for (const [key, result] of Object.entries(getAllRunResults(r.dependencyResults))) {
         all[key] = result
       }
     }
@@ -663,16 +683,16 @@ const skipGroups = gardenEnv.GARDEN_SKIP_TESTS.split(" ")
  */
 export function pruneEmpty(obj) {
   return (function prune(current) {
-    _.forOwn(current, function (value, key) {
-      if (_.isObject(value)) {
+    forOwn(current, function (value, key) {
+      if (isObject(value)) {
         prune(value)
-      } else if (_.isUndefined(value) || _.isNull(value)) {
+      } else if (isUndefined(value) || isNull(value)) {
         delete current[key]
       }
     })
     // remove any leftover undefined values from the delete operation on an array
-    if (_.isArray(current)) {
-      _.pull(current, undefined)
+    if (isArray(current)) {
+      pull(current, undefined)
     }
     return current
   })(obj)
@@ -754,12 +774,13 @@ export async function enableAnalytics(garden: TestGarden) {
   return resetConfig
 }
 
-export function getRuntimeStatusEvents(eventLog: EventLogEntry[]) {
-  const runtimeEventNames = ["taskStatus", "testStatus", "serviceStatus"]
+export function getRuntimeStatusEventsWithoutTimestamps(eventLog: EventLogEntry[]) {
+  const runtimeEventNames = ["runStatus", "testStatus", "deployStatus"]
   return eventLog
     .filter((e) => runtimeEventNames.includes(e.name))
     .map((e) => {
       const cloned = { ...e }
+      cloned.payload = omit(cloned.payload, "startedAt", "completedAt")
       cloned.payload.status = pick(cloned.payload.status, ["state"])
       return cloned
     })

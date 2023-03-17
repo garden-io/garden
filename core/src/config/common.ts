@@ -9,8 +9,7 @@
 import Joi, { SchemaLike } from "@hapi/joi"
 import Ajv from "ajv"
 import addFormats from "ajv-formats"
-import { splitLast } from "../util/util"
-import { deline, dedent, naturalList, titleize } from "../util/string"
+import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
@@ -87,6 +86,9 @@ export interface JoiDescription extends Joi.Description {
     presence?: string
     only?: boolean
   }
+  metas?: {
+    [key: string]: object
+  }[]
 }
 
 // Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).

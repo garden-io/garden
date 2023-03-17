@@ -16,7 +16,7 @@ import { ConfigDump, Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
 import { TypedEventEmitter } from "../util/events"
-import { uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
 import { Autocompleter, AutocompleteSuggestion } from "./autocomplete"
 import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
 import { GlobalOptions, ParameterValues } from "./params"
@@ -487,6 +487,7 @@ ${renderDivider({ width, char, color })}
     this.renderCommandLine()
 
     // Prepare args and opts
+    // TODO-G2: gracefully handle errors here
     const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
     const { args, opts } = processCliArgs({
       log: this.log,

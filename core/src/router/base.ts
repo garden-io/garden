@@ -237,7 +237,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
 
     // TODO-G2B: work out why this cast is needed
     const defaultHandler: any = async (params) => {
-      return { config: params.config }
+      return { config: params.config, supportedModes: {} }
     }
 
     const handler = await this.getHandler({

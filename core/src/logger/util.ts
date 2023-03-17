@@ -7,7 +7,7 @@
  */
 
 import chalk, { Chalk } from "chalk"
-import { Log } from "./log-entry"
+import type { Log } from "./log-entry"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
 import stringWidth from "string-width"

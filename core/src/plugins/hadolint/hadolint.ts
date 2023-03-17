@@ -194,7 +194,7 @@ export const gardenPlugin = () =>
                 config.include.push(dockerfilePath)
               }
 
-              return { config }
+              return { config, supportedModes: {} }
             },
 
             run: async ({ ctx, log, action }) => {
@@ -342,8 +342,7 @@ export const gardenPlugin = () =>
 
               include: [module.spec.dockerfilePath],
 
-              // TODO-G2 schema validation fails if the timeout is defined
-              // timeout: 10,
+              timeout: 10,
 
               spec: {
                 dockerfilePath: module.spec.dockerfilePath,

@@ -66,7 +66,7 @@ export const gardenPlugin = () =>
                 config.spec.version = provider.config.version
               }
 
-              return { config }
+              return { config, supportedModes: {} }
             },
 
             validate: async ({ action }) => {

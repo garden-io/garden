@@ -24,9 +24,6 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -151,6 +148,8 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
+kind:
+
 spec:
   # If `true`, runs file inside of a shell. Uses `/bin/sh` on UNIX and `cmd.exe` on Windows. A different shell can be
   # specified as a string. The shell should understand the `-c` switch on UNIX or `/d /s /c` on Windows.
@@ -164,6 +163,15 @@ spec:
   # - slower, because of the additional shell interpretation.
   # - unsafe, potentially allowing command injection.
   shell:
+
+  # Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is
+  # manually terminated.
+  #
+  # This replaces the previously supported `devMode` from `exec` modules.
+  #
+  # If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy
+  # is considered to be immediately ready once the `deployCommand` is started.
+  persistent: false
 
   # The command to run to perform the deployment.
   #
@@ -179,6 +187,8 @@ spec:
   # If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify
   # this command if possible.
   #
+  # If `persistent: true`, Garden will run this command at an interval until it returns a zero exit code or times out.
+  #
   # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that
   # Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
@@ -191,40 +201,15 @@ spec:
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
   cleanupCommand:
 
-  # The maximum duration (in seconds) to wait for a local script to exit.
+  # The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
   timeout:
+
+  # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no
+  # `statusCommand` is set.
+  statusTimeout: 10
 
   # Environment variables to set when running the deploy and status commands.
   env: {}
-
-  syncMode:
-    # The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a
-    # persistent process and does not wait for it return. The logs from the process can be retrieved via the `garden
-    # logs` command as usual.
-    #
-    # If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering the
-    # deployment ready. Otherwise it considers it immediately ready.
-    #
-    # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for
-    # that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source
-    # directory of the Build action. If no `build` reference is set, the command is run from the source directory of
-    # this action.
-    command:
-
-    # Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command
-    # at an interval until it returns a zero exit code or times out.
-    #
-    # If no `statusCommand` is set, Garden will consider the deploy ready as soon as it has started the process.
-    #
-    # Note that if a Build is referenced in the `build` field, the command will be run from the build directory for
-    # that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source
-    # directory of the Build action. If no `build` reference is set, the command is run from the source directory of
-    # this action.
-    statusCommand:
-
-    # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if
-    # no `statusCommand` is set.
-    timeout: 10
 ```
 
 ## Configuration Keys
@@ -236,14 +221,6 @@ The schema version of this config (currently not used).
 | Type     | Allowed Values | Default          | Required |
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
 
 ### `type`
 
@@ -448,6 +425,12 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `string` | No       |
 
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Deploy"       | Yes      |
+
 ### `spec`
 
 | Type     | Required |
@@ -472,6 +455,20 @@ We recommend against using this option since it is:
 | --------- | -------- |
 | `boolean` | No       |
 
+### `spec.persistent`
+
+[spec](#spec) > persistent
+
+Set this to true if the `deployCommand` is not expected to return, and should run until the Garden command is manually terminated.
+
+This replaces the previously supported `devMode` from `exec` modules.
+
+If this is set to true, it is highly recommended to also define `statusCommand` if possible. Otherwise the Deploy is considered to be immediately ready once the `deployCommand` is started.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `spec.deployCommand[]`
 
 [spec](#spec) > deployCommand
@@ -491,6 +488,8 @@ Note that if a Build is referenced in the `build` field, the command will be run
 Optionally set a command to check the status of the deployment. If this is specified, it is run before the `deployCommand`. If the command runs successfully and returns exit code of 0, the deployment is considered already deployed and the `deployCommand` is not run.
 
 If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify this command if possible.
+
+If `persistent: true`, Garden will run this command at an interval until it returns a zero exit code or times out.
 
 Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
 
@@ -514,11 +513,21 @@ Note that if a Build is referenced in the `build` field, the command will be run
 
 [spec](#spec) > timeout
 
-The maximum duration (in seconds) to wait for a local script to exit.
+The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
 
 | Type     | Required |
 | -------- | -------- |
 | `number` | No       |
+
+### `spec.statusTimeout`
+
+[spec](#spec) > statusTimeout
+
+The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no `statusCommand` is set.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `10`    | No       |
 
 ### `spec.env`
 
@@ -530,61 +539,37 @@ Environment variables to set when running the deploy and status commands.
 | -------- | ------- | -------- |
 | `object` | `{}`    | No       |
 
-### `spec.syncMode`
-
-[spec](#spec) > syncMode
-
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
-
-### `spec.syncMode.command[]`
-
-[spec](#spec) > [syncMode](#specsyncmode) > command
-
-The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the `garden logs` command as usual.
-
-If a `statusCommand` is set, Garden will wait until it returns a zero exit code before considering the deployment ready. Otherwise it considers it immediately ready.
-
-Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.syncMode.statusCommand[]`
-
-[spec](#spec) > [syncMode](#specsyncmode) > statusCommand
-
-Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
-
-If no `statusCommand` is set, Garden will consider the deploy ready as soon as it has started the process.
-
-Note that if a Build is referenced in the `build` field, the command will be run from the build directory for that Build action. If that Build has `buildAtSource: true` set, the command will be run from the source directory of the Build action. If no `build` reference is set, the command is run from the source directory of this action.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-### `spec.syncMode.timeout`
-
-[spec](#spec) > [syncMode](#specsyncmode) > timeout
-
-The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no `statusCommand` is set.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `10`    | No       |
-
 
 ## Outputs
 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `exec`
 modules.
 
+### `${actions.deploy.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.deploy.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.deploy.my-deploy.disabled}
+```
+
 ### `${actions.deploy.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -596,17 +581,9 @@ Example:
 my-variable: ${actions.deploy.my-deploy.buildPath}
 ```
 
-### `${actions.deploy.<name>.name}`
+### `${actions.deploy.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.deploy.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -615,33 +592,33 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.deploy.my-deploy.path}
+my-variable: ${actions.deploy.my-deploy.sourcePath}
+```
+
+### `${actions.deploy.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.deploy.my-deploy.mode}
 ```
 
 ### `${actions.deploy.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.deploy.<name>.var.<variable-name>}`
+### `${actions.deploy.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.deploy.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.deploy.my-deploy.version}
-```

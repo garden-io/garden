@@ -28,10 +28,9 @@ const gardenAnnotationPrefix = "garden.io/"
 export type GardenAnnotationKey =
   | "actionType"
   | "action"
-  | "sync-mode"
+  | "mode"
   | "generated"
   | "helm-migrated"
-  | "local-mode"
   | "manifest-hash"
   | "module"
   | "moduleVersion"
@@ -178,4 +177,20 @@ export function stripQuotes(string: string) {
 
 export function titleize(string: string) {
   return _titleize(string)
+}
+
+/**
+ * Splits the input string on the first occurrence of `delimiter`.
+ */
+export function splitFirst(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts[0], parts.slice(1).join(delimiter)]
+}
+
+/**
+ * Splits the input string on the last occurrence of `delimiter`.
+ */
+export function splitLast(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts.slice(0, parts.length - 1).join(delimiter), parts[parts.length - 1]]
 }

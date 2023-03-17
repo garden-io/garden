@@ -24,9 +24,6 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -111,6 +108,8 @@ variables:
 #
 # If a listed varfile cannot be found, it is ignored.
 varfiles: []
+
+kind:
 
 # When false, disables publishing this build to remote registries via the publish command.
 allowPublish: true
@@ -222,14 +221,6 @@ The schema version of this config (currently not used).
 | Type     | Allowed Values | Default          | Required |
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
 
 ### `type`
 
@@ -379,6 +370,12 @@ Example:
 varfiles:
   "my-action.env"
 ```
+
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Build"        | Yes      |
 
 ### `allowPublish`
 
@@ -556,9 +553,31 @@ Key/value map of environment variables. Keys must be valid POSIX environment var
 The following keys are available via the `${actions.build.<name>}` template string key for `exec`
 modules.
 
+### `${actions.build.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.build.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.build.my-build.disabled}
+```
+
 ### `${actions.build.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -570,17 +589,9 @@ Example:
 my-variable: ${actions.build.my-build.buildPath}
 ```
 
-### `${actions.build.<name>.name}`
+### `${actions.build.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.build.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -589,33 +600,33 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.build.my-build.path}
+my-variable: ${actions.build.my-build.sourcePath}
+```
+
+### `${actions.build.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.build.my-build.mode}
 ```
 
 ### `${actions.build.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.build.<name>.var.<variable-name>}`
+### `${actions.build.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.build.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.build.my-build.version}
-```

@@ -28,7 +28,8 @@ import { watchParameter, watchRemovedWarning } from "./helpers"
 
 const buildArgs = {
   names: new StringsParameter({
-    help: "Specify builds to run. Use comma as a separator to specify multiple names.",
+    help: "Specify builds to run. You may specify multiple names, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Build)
     },
@@ -63,8 +64,9 @@ export class BuildCommand extends Command<Args, Opts> {
 
     Examples:
 
-        garden build            # build everything in the project
-        garden build my-image   # only build my-image
+        garden build                   # build everything in the project
+        garden build my-image          # only build my-image
+        garden build image-a image-b   # build image-a and image-b
         garden build --force    # force re-builds, even if builds had already been performed at current version
   `
 
@@ -112,8 +114,6 @@ export class BuildCommand extends Command<Args, Opts> {
             action,
             force: opts.force,
             forceActions: [],
-            syncModeDeployNames: [],
-            localModeDeployNames: [],
           })
       )
     )

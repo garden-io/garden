@@ -21,9 +21,9 @@ import {
   isPodResource,
   SupportedRuntimeActions,
 } from "./types"
-import { splitLast, serializeValues, findByName, exec } from "../../util/util"
+import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify } from "../../util/string"
+import { gardenAnnotationKey, base64, deline, stableStringify, splitLast } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
@@ -40,6 +40,7 @@ import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
 import { Resolved } from "../../actions/types"
+import { serializeValues } from "../../util/serialization"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -638,22 +639,8 @@ export async function getTargetResource({
   }
 
   // No manifests provided, need to look up in the remote namespace
-  if (!targetName) {
-    // This should be caught in config/schema validation
-    throw new InternalError(`Must specify name in resource/target query`, { query })
-  }
-
   try {
-    if (targetKind === "Deployment") {
-      target = await api.apps.readNamespacedDeployment(targetName, namespace)
-    } else if (targetKind === "DaemonSet") {
-      target = await api.apps.readNamespacedDaemonSet(targetName, namespace)
-    } else if (targetKind === "StatefulSet") {
-      target = await api.apps.readNamespacedStatefulSet(targetName, namespace)
-    } else {
-      // This should be caught in config/schema validation
-      throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
-    }
+    target = await readTargetResource({ api, namespace, query })
     return target
   } catch (err) {
     if (err.statusCode === 404) {
@@ -666,6 +653,35 @@ export async function getTargetResource({
     } else {
       throw err
     }
+  }
+}
+
+export async function readTargetResource({
+  api,
+  namespace,
+  query
+}: {
+  api: KubeApi
+  namespace: string
+  query: KubernetesTargetResourceSpec
+}): Promise<SyncableResource> {
+  const targetKind = query.kind
+  let targetName = query.name
+
+  if (!targetName) {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Must specify name in resource/target query`, { query })
+  }
+
+  if (targetKind === "Deployment") {
+    return api.apps.readNamespacedDeployment(targetName, namespace)
+  } else if (targetKind === "DaemonSet") {
+    return api.apps.readNamespacedDaemonSet(targetName, namespace)
+  } else if (targetKind === "StatefulSet") {
+    return api.apps.readNamespacedStatefulSet(targetName, namespace)
+  } else {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
   }
 }
 

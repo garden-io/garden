@@ -29,19 +29,14 @@ import {
   createProjectConfig,
   makeModuleConfig,
 } from "../../helpers"
-import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
+import { getNames, findByName, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store/local"
 import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
-import { createGardenPlugin, PluginDependency, ProviderActionName } from "../../../src/plugin/plugin"
+import { createGardenPlugin, ProviderActionName } from "../../../src/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
-import {
-  ModuleConfig,
-  baseModuleSpecSchema,
-  baseBuildSpecSchema,
-  defaultBuildTimeout,
-} from "../../../src/config/module"
+import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
 import { DEFAULT_API_VERSION, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit } from "lodash"
@@ -53,9 +48,10 @@ import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
-import { convertExecModule } from "../../../src/plugins/exec/exec"
+import { convertExecModule } from "../../../src/plugins/exec/convert"
 import { getLogMessages } from "../../../src/util/testing"
 import { TreeCache } from "../../../src/cache"
+import { omitUndefined } from "../../../src/util/objects"
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -3553,6 +3549,7 @@ describe("Garden", () => {
           path: pathFoo,
           providers: [],
         }),
+        plugins: [testPlugin()],
       })
 
       garden.setModuleConfigs([

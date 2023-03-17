@@ -8,13 +8,13 @@
 
 import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
 import { cloneDeep, isEqual, keyBy, set, mapValues } from "lodash"
-import { Garden, GardenOpts, GardenParams, resolveGardenParams } from "../garden"
+import { Garden, GardenOpts, GardenParams, GetConfigGraphParams, resolveGardenParams } from "../garden"
 import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, isPromise, uuidv4, ValueOf } from "./util"
+import { findByName, getNames, isPromise, ValueOf } from "./util"
 import { GardenBaseError, GardenError, InternalError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
@@ -34,6 +34,7 @@ import { BuiltinArgs, Command, CommandResult } from "../commands/base"
 import { validateSchema } from "../config/validation"
 import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
+import { uuidv4 } from "./random"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -202,12 +203,11 @@ export class TestGarden extends Garden {
   /**
    * Override to cache the config graph.
    */
-  async getConfigGraph(params: {
-    log: Log
-    graphResults?: GraphResults
-    emit: boolean
-    noCache?: boolean
-  }): Promise<ConfigGraph> {
+  async getConfigGraph(
+    params: GetConfigGraphParams & {
+      noCache?: boolean
+    }
+  ): Promise<ConfigGraph> {
     // TODO-G2: re-instate this after we're done refactoring
     // let cacheKey: string | undefined = undefined
 

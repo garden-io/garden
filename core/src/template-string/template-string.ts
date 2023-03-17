@@ -32,11 +32,12 @@ import {
 } from "../config/common"
 import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, titleize, truncate } from "../util/string"
-import { deepMap, ObjectWithName } from "../util/util"
+import type { ObjectWithName } from "../util/util"
 import { Log } from "../logger/log-entry"
 import type { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
 import { ActionKind, actionKindsLower } from "../actions/types"
+import { deepMap } from "../util/objects"
 
 export type StringOrStringPromise = Promise<string> | string
 

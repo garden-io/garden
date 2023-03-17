@@ -77,21 +77,19 @@ describe("persistentvolumeclaim", () => {
       action,
       force: true,
       forceBuild: false,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     await garden.processTasks({ tasks: [deployTask], throwOnError: true })
 
     const actions = await garden.getActionRouter()
-    const status = await actions.getDeployStatuses({
+    const statuses = await actions.getDeployStatuses({
       log: garden.log,
       graph,
     })
 
-    const remoteResources = status.detail["remoteResources"]
+    const remoteResources = statuses.test.detail?.detail.remoteResources
 
-    expect(status.state.state === "ready")
+    expect(statuses.test.state === "ready")
     expect(remoteResources.length).to.equal(1)
     expect(
       isSubset(remoteResources[0], {

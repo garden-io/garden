@@ -37,8 +37,8 @@ import {
   getNames,
   findByNames,
   duplicatesByKey,
-  uuidv4,
   getCloudDistributionName,
+  getCloudLogSectionName,
 } from "./util/util"
 import { ConfigurationError, PluginError, RuntimeError } from "./exceptions"
 import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vcs/vcs"
@@ -118,7 +118,7 @@ import {
   ProjectConfigContext,
   RemoteSourceConfigContext,
 } from "./config/template-contexts/project"
-import { CloudApi, CloudProject, EnterpriseApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
+import { CloudApi, CloudProject, CloudApiDuplicateProjectsError, getGardenCloudDomain } from "./cloud/api"
 import { OutputConfigContext } from "./config/template-contexts/module"
 import { ProviderConfigContext } from "./config/template-contexts/provider"
 import { getSecrets } from "./cloud/get-secrets"
@@ -126,13 +126,22 @@ import { ConfigContext } from "./config/template-contexts/base"
 import { validateSchema, validateWithPath } from "./config/validation"
 import { pMemoizeDecorator } from "./lib/p-memoize"
 import { ModuleGraph } from "./graph/modules"
-import { Action, ActionConfigMap, ActionConfigsByKey, ActionKind, actionKinds, BaseActionConfig } from "./actions/types"
+import {
+  Action,
+  ActionConfigMap,
+  ActionConfigsByKey,
+  ActionKind,
+  actionKinds,
+  ActionModeMap,
+  BaseActionConfig,
+} from "./actions/types"
 import { actionReferenceToString } from "./actions/base"
 import { GraphSolver, SolveOpts, SolveParams, SolveResult } from "./graph/solver"
 import { actionConfigsToGraph, actionFromConfig, executeAction, resolveAction, resolveActions } from "./graph/actions"
 import { ActionTypeDefinition } from "./plugin/action-types"
 import { Task } from "./tasks/base"
 import { GraphResultFromTask, GraphResults } from "./graph/results"
+import { uuidv4 } from "./util/random"
 
 const defaultLocalAddress = "localhost"
 
@@ -857,7 +866,7 @@ export class Garden {
    * When implementing a new command that calls this method and also streams events, make sure that the first
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
-  async getConfigGraph({ log, graphResults, emit }: GetConfigGraphParams): Promise<ConfigGraph> {
+  async getConfigGraph({ log, graphResults, emit, actionModes = {} }: GetConfigGraphParams): Promise<ConfigGraph> {
     // TODO-G2: split this out of the Garden class
     await this.scanAndAddConfigs()
 
@@ -934,6 +943,7 @@ export class Garden {
       groupConfigs: moduleGroups,
       log: graphLog,
       moduleGraph,
+      actionModes,
     })
 
     // TODO-G2: detect overlap on Build actions
@@ -979,6 +989,8 @@ export class Garden {
           config.internal.basePath = this.projectRoot
         }
 
+        const key = actionReferenceToString(config)
+
         const action = await actionFromConfig({
           garden: this,
           graph,
@@ -986,8 +998,11 @@ export class Garden {
           router,
           log: graphLog,
           configsByKey: actionConfigs,
+          mode: actionModes[key] || "default",
         })
+
         graph.addAction(action)
+        actionConfigs[key] = config
 
         updated = true
       })
@@ -1215,7 +1230,7 @@ export class Garden {
 
       for (const kind of actionKinds) {
         for (const config of groupedResources[kind] || []) {
-          this.addActionConfig((config as unknown) as BaseActionConfig)
+          this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
       }
@@ -1537,8 +1552,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   let secrets: StringMap = {}
   const cloudApi = opts.cloudApi || null
   // fall back to get the domain from config if the cloudApi instance failed
-  // to login or was not defined
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config?.domain)
+  // to login or was not defined.
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
@@ -1546,7 +1561,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
-    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
+    const section = getCloudLogSectionName(distroName)
     const cloudLog = log.makeNewLogContext({ section })
     cloudLog.info("Initializing...")
 
@@ -1570,7 +1585,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       try {
         project = await cloudApi.getOrCreateProject(projectName)
       } catch (err) {
-        if (err instanceof EnterpriseApiDuplicateProjectsError) {
+        if (err instanceof CloudApiDuplicateProjectsError) {
           cloudLog.warn(chalk.yellow(wordWrap(err.message, 120)))
         } else {
           cloudLog.debug(`Creating a new cloud project failed with error: ${err.message}`)
@@ -1599,8 +1614,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
       cloudLog.info(
         chalk.yellow(
           wordWrap(
-            deline`Logged in to ${distroName} at ${cloudDomain}, but failed to configure a project.
-            Continuing without ${distroName} features ...`,
+            deline`Logged in to ${cloudDomain}, but could not find the project '${projectName}'.
+            Command results for this command run will not be available in ${distroName}.`,
             120
           )
         )
@@ -1730,8 +1745,9 @@ export interface ConfigDump {
   sources: SourceConfig[]
 }
 
-interface GetConfigGraphParams {
+export interface GetConfigGraphParams {
   log: Log
   graphResults?: GraphResults
   emit: boolean
+  actionModes?: ActionModeMap
 }

@@ -14,7 +14,7 @@ import { Garden } from "../../../../../src/garden"
 import { join } from "path"
 import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
-import { safeDumpYaml } from "../../../../../src/util/util"
+import { safeDumpYaml } from "../../../../../src/util/serialization"
 import stripAnsi = require("strip-ansi")
 import { getModuleTypes } from "../../../../../src/plugins"
 import { getSupportedPlugins } from "../../../../../src/plugins/plugins"

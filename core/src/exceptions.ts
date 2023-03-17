@@ -6,7 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isString } from "lodash"
+import { isEmpty, isString } from "lodash"
+import { stringify } from "yaml"
+import { withoutInternalFields, sanitizeValue } from "./util/logging"
 
 export interface GardenError<D extends object = any> {
   type: string
@@ -23,27 +25,18 @@ export abstract class GardenBaseError<D extends object = any> extends Error impl
     super(message)
     this.detail = detail
   }
-}
 
-interface ErrorEvent {
-  error: any
-  message: string
-}
+  toSanitizedValue() {
+    return {
+      type: this.type,
+      message: this.message,
+      stack: this.stack,
+      detail: filterErrorDetail(this.detail),
+    }
+  }
 
-export function toGardenError(err: Error | ErrorEvent | GardenBaseError | string): GardenBaseError {
-  if (err instanceof GardenBaseError) {
-    return err
-  } else if (err instanceof Error) {
-    const out = new RuntimeError(err.message, err)
-    out.stack = err.stack
-    return out
-  } else if (!isString(err) && err.message && err.error) {
-    return new RuntimeError(err.message, err)
-  } else if (isString(err)) {
-    return new RuntimeError(err, {})
-  } else {
-    const msg = err["message"]
-    return new RuntimeError(msg, err)
+  formatWithDetail() {
+    return formatGardenErrorWithDetail(this)
   }
 }
 
@@ -119,10 +112,54 @@ export class WorkflowScriptError extends GardenBaseError {
   type = "workflow-script"
 }
 
-export class EnterpriseApiError extends GardenBaseError {
-  type = "enterprise-api"
+export class CloudApiError extends GardenBaseError {
+  type = "cloud-api"
 }
 
 export class TemplateStringError extends GardenBaseError {
   type = "template-string"
+}
+
+interface ErrorEvent {
+  error: any
+  message: string
+}
+
+export function toGardenError(err: Error | ErrorEvent | GardenBaseError | string): GardenBaseError {
+  if (err instanceof GardenBaseError) {
+    return err
+  } else if (err instanceof Error) {
+    const out = new RuntimeError(err.message, err)
+    out.stack = err.stack
+    return out
+  } else if (!isString(err) && err.message && err.error) {
+    return new RuntimeError(err.message, err)
+  } else if (isString(err)) {
+    return new RuntimeError(err, {})
+  } else {
+    const msg = err["message"]
+    return new RuntimeError(msg, err)
+  }
+}
+
+function filterErrorDetail(detail: any) {
+  return withoutInternalFields(sanitizeValue(detail))
+}
+
+export function formatGardenErrorWithDetail(error: GardenError) {
+  const { detail, message, stack } = error
+  let out = stack || message || ""
+
+  // We sanitize and recursively filter out internal fields (i.e. having names starting with _).
+  const filteredDetail = filterErrorDetail(detail)
+
+  if (!isEmpty(filteredDetail)) {
+    try {
+      const yamlDetail = stringify(filteredDetail, { blockQuote: "literal", lineWidth: 0 })
+      out += `\n\nError Details:\n\n${yamlDetail}`
+    } catch (err) {
+      out += `\n\nUnable to render error details:\n${err.message}`
+    }
+  }
+  return out
 }

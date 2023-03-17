@@ -16,7 +16,7 @@ import { parseEnvironment } from "../config/project"
 import { getLogLevelChoices, LOGGER_TYPES, LogLevel } from "../logger/logger"
 import { dedent, deline } from "../util/string"
 import chalk = require("chalk")
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 import { resolve } from "path"
 import { isArray } from "lodash"
 import { gardenEnv } from "../constants"
@@ -48,7 +48,7 @@ interface GetSuggestionsParams {
 
 type GetSuggestionsCallback = (params: GetSuggestionsParams) => string[]
 
-export interface ParameterConstructor<T> {
+export interface ParameterConstructorParams<T> {
   help: string
   required?: boolean
   aliases?: string[]
@@ -100,7 +100,7 @@ export abstract class Parameter<T> {
     spread,
     suggestionPriority,
     getSuggestions,
-  }: ParameterConstructor<T>) {
+  }: ParameterConstructorParams<T>) {
     this.help = help
     this.required = required || false
     this.aliases = aliases
@@ -124,7 +124,7 @@ export abstract class Parameter<T> {
   }
 
   coerce(input?: string): T {
-    return (input as unknown) as T
+    return input as unknown as T
   }
 
   getDefaultValue(cli: boolean) {
@@ -152,9 +152,9 @@ export class StringOption extends Parameter<string | undefined> {
   schema = joi.string()
 }
 
-export interface StringsConstructor extends ParameterConstructor<string[]> {
+export interface StringsConstructorParams extends ParameterConstructorParams<string[]> {
   delimiter?: string
-  variadic?: boolean
+  spread?: boolean
 }
 
 export class StringsParameter extends Parameter<string[] | undefined> {
@@ -162,14 +162,12 @@ export class StringsParameter extends Parameter<string[] | undefined> {
   schema = joi.array().items(joi.string())
 
   delimiter: string | RegExp
-  variadic: boolean
 
-  constructor(args: StringsConstructor) {
+  constructor(args: StringsConstructorParams) {
     super(args)
 
     // The default delimiter splits on commas, ignoring commas between double quotes
     this.delimiter = args.delimiter || /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/
-    this.variadic = !!args.variadic
   }
 
   coerce(input?: string | string[]): string[] {
@@ -259,7 +257,7 @@ export class IntegerParameter extends Parameter<number> {
   }
 }
 
-export interface ChoicesConstructor extends ParameterConstructor<string> {
+export interface ChoicesConstructor extends ParameterConstructorParams<string> {
   choices: string[]
 }
 
@@ -300,7 +298,7 @@ export class BooleanParameter extends Parameter<boolean> {
   type = "boolean"
   schema = joi.boolean()
 
-  constructor(args: ParameterConstructor<boolean>) {
+  constructor(args: ParameterConstructorParams<boolean>) {
     super(args)
     this.defaultValue = args.defaultValue || false
   }

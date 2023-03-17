@@ -15,19 +15,20 @@ import { resolve } from "path"
 import { defaultDotIgnoreFile, findConfigPathsInPath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
-import { exec, safeDumpYaml } from "../util/util"
+import { exec } from "../util/util"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml, findProjectConfig } from "../config/base"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { TreeCache } from "../cache"
+import { safeDumpYaml } from "../util/serialization"
 
 const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),
 }
 
 const migrateArgs = {
-  configPaths: new StringsParameter({
-    help: "Specify the path to a `garden.yml` file to convert. Use comma as a separator to specify multiple files.",
+  "config-paths": new StringsParameter({
+    help: "Specify the path to a `garden.yml` file to convert. You may specify multiple files by setting this flag multiple times.",
   }),
 }
 
@@ -83,8 +84,8 @@ export class MigrateCommand extends Command<Args, Opts> {
     const updatedConfigs: { path: string; specs: any[] }[] = []
 
     let configPaths: string[] = []
-    if (args.configPaths && args.configPaths.length > 0) {
-      configPaths = args.configPaths.map((path) => resolve(root, path))
+    if (args["config-paths"] && args["config-paths"].length > 0) {
+      configPaths = args["config-paths"].map((path) => resolve(root, path))
     } else {
       const vcs = new GitHandler({
         garden,

@@ -19,7 +19,7 @@ import { KubernetesResource } from "../types"
 import { kubernetesDeploy, getKubernetesDeployStatus } from "../kubernetes-type/handlers"
 import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
 import { DeployActionDefinition } from "../../../plugin/action-types"
-import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { Resolved } from "../../../actions/types"
 
@@ -60,14 +60,13 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
     configure: async ({ config }) => {
       config.include = []
       config.spec.accessModes = ["ReadOnlyMany"]
-      return { config }
+      return { config, supportedModes: {} }
     },
 
     deploy: async (params) => {
       const result = await kubernetesDeploy({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -77,7 +76,6 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
       const result = await getKubernetesDeployStatus({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -174,8 +172,9 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
     },
   }
 
-  return new DeployAction<KubernetesDeployActionConfig, {}>({
+  return new ResolvedDeployAction<KubernetesDeployActionConfig, {}>({
     ...action["params"],
     config,
+    spec: config.spec
   })
 }

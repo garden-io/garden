@@ -26,7 +26,7 @@ import { dedent } from "../../util/string"
 const execPathDoc = dedent`
   Note that if a Build is referenced in the \`build\` field, the command will be run from the build directory for that Build action. If that Build has \`buildAtSource: true\` set, the command will be run from the source directory of the Build action. If no \`build\` reference is set, the command is run from the source directory of this action.
 `
-const localProcDefaultTimeoutSec = 10
+export const defaultStatusTimeout = 10
 
 interface ExecOutputs {
   log: string
@@ -86,18 +86,19 @@ export const execBuildActionSchema = createSchema({
 
 // DEPLOY //
 
-export interface ExecDevModeSpec {
+export interface ExecSyncModeSpec {
   command: string[]
   timeout: number
   statusCommand?: string[]
 }
 
 export interface ExecDeployActionSpec extends CommonKeys {
+  persistent?: boolean
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  syncMode?: ExecDevModeSpec
   timeout?: number
+  statusTimeout: number
   env: StringMap
 }
 
@@ -121,6 +122,18 @@ export const execDeployActionSchema = createSchema({
   name: "exec:Deploy",
   extend: execCommonSchema,
   keys: () => ({
+    persistent: joi
+      .boolean()
+      .default(false)
+      .description(
+        dedent`
+        Set this to true if the \`deployCommand\` is not expected to return, and should run until the Garden command is manually terminated.
+
+        This replaces the previously supported \`devMode\` from \`exec\` modules.
+
+        If this is set to true, it is highly recommended to also define \`statusCommand\` if possible. Otherwise the Deploy is considered to be immediately ready once the \`deployCommand\` is started.
+        `
+      ),
     deployCommand: execDeployCommandSchema().required(),
     statusCommand: joi
       .sparseArray()
@@ -130,6 +143,8 @@ export const execDeployActionSchema = createSchema({
         Optionally set a command to check the status of the deployment. If this is specified, it is run before the \`deployCommand\`. If the command runs successfully and returns exit code of 0, the deployment is considered already deployed and the \`deployCommand\` is not run.
 
         If this is not specified, the deployment is always reported as "unknown", so it's highly recommended to specify this command if possible.
+
+        If \`persistent: true\`, Garden will run this command at an interval until it returns a zero exit code or times out.
 
         ${execPathDoc}
         `
@@ -146,39 +161,12 @@ export const execDeployActionSchema = createSchema({
       ),
     // TODO: Set a default in v0.13.
     timeout: joi.number().description(dedent`
-      The maximum duration (in seconds) to wait for a local script to exit.
+      The maximum duration (in seconds) to wait for \`deployCommand\` to exit. Ignored if \`persistent: false\`.
+    `),
+    statusTimeout: joi.number().default(defaultStatusTimeout).description(dedent`
+      The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero exit code. Ignored if no \`statusCommand\` is set.
     `),
     env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
-    // TODO-G2: We should just use a `persistent: true` flag here, since there is no actual sync semantic here
-    syncMode: joi.object().keys({
-      command: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-            The command to run to deploy in sync mode. When deploying in sync mode, Garden assumes that the command starts a persistent process and does not wait for it return. The logs from the process can be retrieved via the \`garden logs\` command as usual.
-
-            If a \`statusCommand\` is set, Garden will wait until it returns a zero exit code before considering the deployment ready. Otherwise it considers it immediately ready.
-
-            ${execPathDoc}
-          `
-        ),
-      statusCommand: joi
-        .sparseArray()
-        .items(joi.string().allow(""))
-        .description(
-          dedent`
-            Optionally set a command to check the status of the deployment in sync mode. Garden will run the status command at an interval until it returns a zero exit code or times out.
-
-            If no \`statusCommand\` is set, Garden will consider the deploy ready as soon as it has started the process.
-
-            ${execPathDoc}
-            `
-        ),
-      timeout: joi.number().default(localProcDefaultTimeoutSec).description(dedent`
-        The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero exit code. Ignored if no \`statusCommand\` is set.
-      `),
-    }),
   }),
 })
 

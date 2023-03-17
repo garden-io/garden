@@ -21,7 +21,7 @@ import yaml from "js-yaml"
 import { checkResourceStatuses } from "../status/status"
 import { KubernetesServerResource } from "../types"
 import { V1Pod } from "@kubernetes/client-node"
-import { ServiceState } from "../../../types/service"
+import { DeployState } from "../../../types/service"
 import { EnvironmentStatus } from "../../../plugin/handlers/Provider/getEnvironmentStatus"
 import { PrimitiveMap } from "../../../config/common"
 import chalk from "chalk"
@@ -163,7 +163,7 @@ export async function getAllCertificates(
  *
  * @export
  * @param {*} { provider, log, namespace = "cert-manager" }
- * @returns {Promise<ServiceState>}
+ * @returns {Promise<DeployState>}
  */
 export async function checkCertManagerStatus({
   ctx,
@@ -175,7 +175,7 @@ export async function checkCertManagerStatus({
   ctx: PluginContext
   provider: KubernetesProvider
   namespace?: string
-}): Promise<ServiceState> {
+}): Promise<DeployState> {
   const api = await KubeApi.factory(log, ctx, provider)
   const systemPods = await api.core.listNamespacedPod(namespace)
   const certManagerPods: KubernetesServerResource<V1Pod>[] = []

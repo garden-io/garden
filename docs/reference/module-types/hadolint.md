@@ -473,7 +473,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -487,7 +487,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -495,7 +495,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |

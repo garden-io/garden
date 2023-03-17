@@ -25,10 +25,11 @@ import { SyncableResource } from "../types"
 import { getTargetResource } from "../util"
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
-  const { ctx, action, log, force, syncMode, localMode } = params
+  const { ctx, action, log, force } = params
   const k8sCtx = ctx as KubernetesPluginContext
   const provider = k8sCtx.provider
   const spec = action.getSpec()
+  let attached = false
 
   const api = await KubeApi.factory(log, ctx, provider)
 
@@ -47,14 +48,14 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   })
   const { reference } = preparedTemplates
   const releaseName = getReleaseName(action)
-  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log, syncMode, localMode })
+  const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
 
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
     spec.timeout.toString(10) + "s",
-    ...(await getValueArgs({ action, syncMode, localMode, valuesPath: preparedTemplates.valuesPath })),
+    ...(await getValueArgs({ action, valuesPath: preparedTemplates.valuesPath })),
   ]
 
   if (spec.atomicInstall) {
@@ -102,16 +103,16 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     ctx: k8sCtx,
     log,
     action,
-    syncMode,
-    localMode,
     ...preparedTemplates,
   })
   const manifests = await filterManifests(preparedManifests)
 
+  const mode = action.mode()
+
   const localModeTargetSpec = spec.localMode?.target || spec.defaultTarget
   let localModeTarget: SyncableResource | undefined = undefined
 
-  if (localMode && localModeTargetSpec) {
+  if (mode === "local" && localModeTargetSpec) {
     localModeTarget = await getTargetResource({
       ctx,
       log,
@@ -125,7 +126,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
   // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
   // Local mode always takes precedence over sync mode.
-  if (localMode && spec.localMode && !isEmpty(spec.localMode) && localModeTarget) {
+  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode) && localModeTarget) {
     await configureLocalMode({
       ctx,
       spec: spec.localMode,
@@ -135,7 +136,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       containerName: spec.localMode.target?.containerName,
     })
     await apply({ log, ctx, api, provider, manifests: [localModeTarget], namespace })
-  } else if (syncMode && spec.sync && !isEmpty(spec.sync)) {
+  } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     const configured = await configureSyncMode({
       ctx,
       log,
@@ -161,13 +162,13 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   })
 
   // Local mode has its own port-forwarding configuration
-  const forwardablePorts = localMode && spec.localMode ? [] : getForwardablePorts(manifests, action)
+  const forwardablePorts = mode === "local" && spec.localMode ? [] : getForwardablePorts(manifests, action)
 
   // Make sure port forwards work after redeployment
   killPortForwards(action, forwardablePorts || [], log)
 
   // Local mode always takes precedence over sync mode.
-  if (localMode && spec.localMode && localModeTarget) {
+  if (mode === "local" && spec.localMode && localModeTarget) {
     await startServiceInLocalMode({
       ctx,
       spec: spec.localMode,
@@ -176,7 +177,8 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespace,
       log,
     })
-  } else if (syncMode && spec.sync?.paths?.length) {
+    attached = true
+  } else if (mode === "sync" && spec.sync?.paths?.length) {
     await startSyncs({
       ctx: k8sCtx,
       log,
@@ -188,6 +190,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       manifests,
       syncs: spec.sync.paths,
     })
+    attached = true
   }
 
   return {
@@ -199,6 +202,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       detail: { remoteResources: statuses.map((s) => s.resource) },
       namespaceStatuses: [namespaceStatus],
     },
+    attached,
     // TODO-G2
     outputs: {},
   }

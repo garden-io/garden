@@ -44,8 +44,8 @@ import { getActionNamespace } from "../../../../../src/plugins/kubernetes/namesp
 import { GardenModule } from "../../../../../src/types/module"
 import { V1Container, V1Pod, V1PodSpec } from "@kubernetes/client-node"
 import { getResourceRequirements } from "../../../../../src/plugins/kubernetes/container/util"
-import { ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
-import { KubernetesRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/run"
+import { ContainerBuildAction, ContainerResourcesSpec } from "../../../../../src/plugins/container/moduleConfig"
+import { KubernetesPodRunActionSpec } from "../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
 import { Resolved } from "../../../../../src/actions/types"
 import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
 import { executeAction } from "../../../../../src/graph/actions"
@@ -554,6 +554,7 @@ describe("kubernetes Pod runner functions", () => {
     let helmContainer: V1Container
     let helmNamespace: string
     let helmAction: Resolved<HelmDeployAction>
+    let apiImageBuildAction: Resolved<ContainerBuildAction>
     const resources: ContainerResourcesSpec = {
       cpu: {
         min: 123,
@@ -581,13 +582,18 @@ describe("kubernetes Pod runner functions", () => {
         log: helmLog,
         graph: helmGraph,
       })
+      apiImageBuildAction = await helmGarden.resolveAction({
+        log: helmLog,
+        graph: helmGraph,
+        action: helmGraph.getBuild("api-image"),
+      })
       await executeAction({ action: helmAction, graph: helmGraph, garden: helmGarden, log: helmGarden.log })
 
       helmManifests = await getChartResources({
         ctx: helmCtx,
-        syncMode: false,
+
         action: helmAction,
-        localMode: false,
+
         log: helmLog,
       })
       helmBaseModule = getBaseModule(helmModule)
@@ -853,7 +859,7 @@ describe("kubernetes Pod runner functions", () => {
         containers: [
           {
             name: "api",
-            image: "api-image:v-4d59656b5e",
+            image: "api-image:" + apiImageBuildAction.versionString(),
             imagePullPolicy: "IfNotPresent",
             args: ["python", "app.py"],
             ports: [
@@ -1089,7 +1095,7 @@ describe("kubernetes Pod runner functions", () => {
     context("artifacts are specified", () => {
       it("should copy artifacts out of the container", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         const result = await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1113,7 +1119,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should clean up the created Pod", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
         const podName = makePodName("test", action.name)
 
         await runAndCopy({
@@ -1140,7 +1146,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should handle globs when copying artifacts out of the container", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("globs-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1163,7 +1169,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should not throw when an artifact is missing", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         await runAndCopy({
           ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
@@ -1236,7 +1242,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should return with logs and success=false when command exceeds timeout", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         const timeout = 3
         const result = await runAndCopy({
@@ -1263,7 +1269,7 @@ describe("kubernetes Pod runner functions", () => {
 
       it("should copy artifacts out of the container even when task times out", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("artifacts-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         const timeout = 3
         const result = await runAndCopy({
@@ -1287,91 +1293,9 @@ describe("kubernetes Pod runner functions", () => {
         expect(result.success).to.be.false
       })
 
-      it("should throw when container doesn't contain sh", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-sh-task"), log, graph })
-        const _image = action._outputs["deployment-image-id"]
-        const spec = action.getSpec() as KubernetesRunActionSpec
-
-        // TODO-SG2 I don't think this is needed
-        // const router = await garden.getActionRouter()
-        // await garden.buildStaging.syncFromSrc(module, garden.log)
-        // await router.build.build({
-        //   module,
-        //   log: garden.log,
-        //   graph,
-        // })
-
-        await expectError(
-          async () =>
-            runAndCopy({
-              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-              log: garden.log,
-              command: ["sh", "-c", "echo ok"],
-              args: [],
-              interactive: false,
-              action,
-              namespace,
-
-              artifacts: spec.artifacts,
-              artifactsPath: tmpDir.path,
-              description: "Foo",
-              image: _image,
-              timeout: 20000,
-              version: action.versionString(),
-            }),
-          (err) =>
-            expect(err.message).to.equal(deline`
-              Foo specifies artifacts to export, but the image doesn't
-              contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
-              to be installed in the image.
-            `)
-        )
-      })
-
-      it("should throw when container doesn't contain tar", async () => {
-        const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
-        const _image = action._outputs["deployment-image-id"]
-        const spec = action.getSpec() as KubernetesRunActionSpec
-
-        // TODO-SG2 I don't think this is needed
-        // const actions = await garden.getActionRouter()
-        // await garden.buildStaging.syncFromSrc(module, garden.log)
-        // await actions.build.build({
-        //   module,
-        //   log: garden.log,
-        //   graph,
-        // })
-
-        await expectError(
-          async () =>
-            runAndCopy({
-              ctx: await garden.getPluginContext({ provider, templateContext: undefined, events: undefined }),
-              log: garden.log,
-              command: ["sh", "-c", "echo ok"],
-              args: [],
-              interactive: false,
-              action,
-              namespace,
-
-              artifacts: spec.artifacts,
-              artifactsPath: tmpDir.path,
-              description: "Foo",
-              image: _image,
-              timeout: 20000,
-              version: action.versionString(),
-            }),
-          (err) =>
-            expect(err.message).to.equal(deline`
-              Foo specifies artifacts to export, but the image doesn't
-              contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
-              to be installed in the image.
-            `)
-        )
-      })
-
       it("should throw when no command is specified", async () => {
         const action = await garden.resolveAction({ action: graph.getRun("missing-tar-task"), log, graph })
-        const spec = action.getSpec() as KubernetesRunActionSpec
+        const spec = action.getSpec() as KubernetesPodRunActionSpec
 
         await expectError(
           async () =>

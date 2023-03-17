@@ -11,7 +11,7 @@ import { join } from "path"
 import { actionConfigsToGraph } from "../../../../src/graph/actions"
 import { ModuleGraph } from "../../../../src/graph/modules"
 import { Log } from "../../../../src/logger/log-entry"
-import { dumpYaml } from "../../../../src/util/util"
+import { dumpYaml } from "../../../../src/util/serialization"
 import { expectError, makeTempGarden, TempDirectory, TestGarden } from "../../../helpers"
 
 describe("actionConfigsToGraph", () => {
@@ -43,6 +43,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const actions = graph.getActions()
@@ -71,6 +72,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const actions = graph.getActions()
@@ -99,6 +101,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const actions = graph.getActions()
@@ -127,6 +130,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const actions = graph.getActions()
@@ -162,6 +166,7 @@ describe("actionConfigsToGraph", () => {
       ],
       configs: [],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const actions = graph.getActions()
@@ -200,6 +205,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("bar")
@@ -243,6 +249,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getDeploy("bar")
@@ -287,6 +294,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("bar")
@@ -332,6 +340,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("bar")
@@ -366,6 +375,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("foo")
@@ -390,6 +400,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("bar")
@@ -417,6 +428,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("foo")
@@ -448,6 +460,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("foo")
@@ -484,12 +497,164 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      actionModes: {},
     })
 
     const action = graph.getBuild("foo")
     const vars = action["variables"]
 
     expect(vars).to.eql({ foo: "FOO", bar: "BAR", baz: "baz" })
+  })
+
+  it("sets sync mode correctly if explicitly set in actionModes", async () => {
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          variables: {},
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {
+            // Set so that sync comes up as a supported mode
+            syncMode: {
+              deployCommand: ["echo"],
+            },
+          },
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      actionModes: {
+        sync: ["deploy.foo"],
+      },
+    })
+
+    const action = graph.getDeploy("foo")
+
+    expect(action.mode()).to.equal("sync")
+  })
+
+  it("sets local mode correctly if explicitly set in actionModes", async () => {
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          variables: {},
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      actionModes: {
+        local: ["deploy.foo"],
+      },
+    })
+
+    const action = graph.getDeploy("foo")
+
+    expect(action.mode()).to.equal("local")
+  })
+
+  it("prefers local mode over sync mode", async () => {
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          variables: {},
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {
+            // Set so that sync comes up as a supported mode
+            syncMode: {
+              deployCommand: ["echo"],
+            },
+          },
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      actionModes: {
+        local: ["deploy.foo"],
+        sync: ["deploy.foo"],
+      },
+    })
+
+    const action = graph.getDeploy("foo")
+
+    expect(action.mode()).to.equal("local")
+  })
+
+  it("sets mode if matched in full wildcard", async () => {
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          variables: {},
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      actionModes: {
+        local: ["*"],
+      },
+    })
+
+    const action = graph.getDeploy("foo")
+
+    expect(action.mode()).to.equal("local")
+  })
+
+  it("sets mode if matched in partial wildcard", async () => {
+    const graph = await actionConfigsToGraph({
+      garden,
+      log,
+      groupConfigs: [],
+      configs: [
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          variables: {},
+          internal: {
+            basePath: tmpDir.path,
+          },
+          spec: {},
+        },
+      ],
+      moduleGraph: new ModuleGraph([], {}),
+      actionModes: {
+        local: ["deploy.f*"],
+      },
+    })
+
+    const action = graph.getDeploy("foo")
+
+    expect(action.mode()).to.equal("local")
   })
 
   it("throws if an unknown action kind is given", async () => {
@@ -511,6 +676,7 @@ describe("actionConfigsToGraph", () => {
             },
           ],
           moduleGraph: new ModuleGraph([], {}),
+          actionModes: {},
         }),
       (err) => expect(err.message).to.equal("Unknown action kind: Boop")
     )
@@ -544,6 +710,7 @@ describe("actionConfigsToGraph", () => {
             },
           ],
           moduleGraph: new ModuleGraph([], {}),
+          actionModes: {},
         }),
       {
         contains: ["Found two actions of the same name and kind:"],

@@ -176,18 +176,26 @@ export class Autocompleter {
     const parsed = parseCliArgs({ stringArgs, command, cli: true })
     const argIndex = parsed._.length
     const argSpecs = <Parameter<any>[]>Object.values(command.arguments || {})
-    const argSpec = argSpecs[argIndex]
+
+    let argSpec = argSpecs[argIndex]
 
     if (!argSpec) {
       // No more positional args
-      return []
+      const lastSpec = argSpecs[argSpecs.length - 1]
+
+      if (lastSpec?.spread) {
+        // There is a spread argument
+        argSpec = lastSpec
+      } else {
+        return []
+      }
     }
 
     const prefix = rest.length === 0 ? "" : rest[rest.length - 1]
     const argSuggestions = argSpec.getSuggestions({ configDump })
 
     return argSuggestions
-      .filter((s) => s.startsWith(prefix))
+      .filter((s) => s.startsWith(prefix) && !rest.includes(s))
       .map((s) => {
         const split = [...matchedPath, ...rest]
 

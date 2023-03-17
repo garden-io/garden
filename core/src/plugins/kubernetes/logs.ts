@@ -19,12 +19,13 @@ import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
 import { PluginContext } from "../../plugin-context"
 import { checkPodStatus, getPodLogs } from "./status/pod"
-import { splitFirst, isValidDateInstance, sleep } from "../../util/util"
+import { isValidDateInstance, sleep } from "../../util/util"
 import { Writable } from "stream"
 import request from "request"
 import { LogLevel } from "../../logger/logger"
 import { clearTimeout } from "timers"
 import { HttpError } from "@kubernetes/client-node"
+import { splitFirst } from "../../util/string"
 
 // When not following logs, the entire log is read into memory and sorted.
 // We therefore set a maximum on the number of lines we fetch.

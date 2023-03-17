@@ -15,7 +15,7 @@ import cryptoRandomString = require("crypto-random-string")
 import { PluginContext } from "../../../plugin-context"
 import { Log } from "../../../logger/log-entry"
 import { getActionNamespace } from "../namespace"
-import { KubernetesResource } from "../types"
+import { HelmRuntimeAction, KubernetesResource } from "../types"
 import { loadAll } from "js-yaml"
 import { helm } from "./helm-cli"
 import { HelmModule } from "./module-config"
@@ -25,7 +25,7 @@ import { flattenResources, getAnnotation } from "../util"
 import { KubernetesPluginContext } from "../config"
 import { RunResult } from "../../../plugin/base"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../constants"
-import { safeDumpYaml } from "../../../util/util"
+import { safeDumpYaml } from "../../../util/serialization"
 import { HelmDeployAction } from "./config"
 import { Resolved } from "../../../actions/types"
 
@@ -48,14 +48,11 @@ async function dependencyUpdate(ctx: KubernetesPluginContext, log: Log, namespac
 
 interface PrepareTemplatesParams {
   ctx: KubernetesPluginContext
-  action: Resolved<HelmDeployAction>
+  action: Resolved<HelmRuntimeAction>
   log: Log
 }
 
-interface GetChartResourcesParams extends PrepareTemplatesParams {
-  syncMode: boolean
-  localMode: boolean
-}
+interface GetChartResourcesParams extends PrepareTemplatesParams {}
 
 /**
  * Render the template in the specified Helm module (locally), and return all the resources in the chart.
@@ -68,7 +65,7 @@ export async function getChartResources(params: GetChartResourcesParams) {
  * Renders the given Helm module and returns a multi-document YAML string.
  */
 export async function renderTemplates(params: GetChartResourcesParams): Promise<string> {
-  const { ctx, action, syncMode, localMode, log } = params
+  const { ctx, action, log } = params
   const prepareResult = await prepareTemplates(params)
 
   log.debug("Preparing chart...")
@@ -76,8 +73,6 @@ export async function renderTemplates(params: GetChartResourcesParams): Promise<
   return await prepareManifests({
     ctx,
     action,
-    syncMode,
-    localMode,
     log,
     ...prepareResult,
   })
@@ -160,8 +155,8 @@ export async function prepareTemplates({ ctx, action, log }: PrepareTemplatesPar
 type PrepareManifestsParams = GetChartResourcesParams & PrepareTemplatesOutput
 
 export async function prepareManifests(params: PrepareManifestsParams): Promise<string> {
-  const { ctx, action, syncMode, localMode, log, namespace, releaseName, valuesPath, reference } = params
-  const timeout = action.getSpec("timeout")
+  const { ctx, action, log, namespace, releaseName, valuesPath, reference } = params
+  const timeout = action.getSpec().timeout
 
   const res = await helm({
     ctx,
@@ -179,7 +174,7 @@ export async function prepareManifests(params: PrepareManifestsParams): Promise<
       "json",
       "--timeout",
       timeout.toString(10) + "s",
-      ...(await getValueArgs({ action, syncMode, localMode, valuesPath })),
+      ...(await getValueArgs({ action, valuesPath })),
     ],
     // do not send JSON output to Garden Cloud or CLI verbose log
     emitLogEvents: false,
@@ -243,8 +238,8 @@ export function getBaseModule(module: HelmModule): HelmModule | undefined {
 /**
  * Get the full absolute path to the chart, within the action build path, if applicable.
  */
-export async function getChartPath(action: Resolved<HelmDeployAction>) {
-  const chartSpec = action.getSpec("chart") || {}
+export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
+  const chartSpec = action.getSpec().chart || {}
   const chartPath = chartSpec.path || "."
   const chartDir = resolve(action.getBuildPath(), chartPath)
   const yamlPath = resolve(chartDir, helmChartYamlFilename)
@@ -278,30 +273,18 @@ export async function getChartPath(action: Resolved<HelmDeployAction>) {
  */
 export async function getValueArgs({
   action,
-  syncMode,
-  localMode,
-  valuesPath,
-}: {
-  action: Resolved<HelmDeployAction>
-  syncMode: boolean
-  localMode: boolean
-  valuesPath: string
-}) {
+  valuesPath
+}: { action: Resolved<HelmRuntimeAction>; valuesPath: string }) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
   const valueFiles = action
-    .getSpec("valueFiles")
+    .getSpec().valueFiles
     .map((f) => resolve(action.getBuildPath(), f))
     .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
 
-  // Local mode always takes precedence over sync mode
-  if (localMode) {
-    args.push("--set", "\\.garden.localMode=true")
-  } else if (syncMode) {
-    args.push("--set", "\\.garden.syncMode=true")
-  }
+  args.push("--set", "\\.garden.mode=" + action.mode())
 
   return args
 }
@@ -309,8 +292,8 @@ export async function getValueArgs({
 /**
  * Get the release name to use for the module/chart (the module name, unless overridden in config).
  */
-export function getReleaseName(action: Resolved<HelmDeployAction>) {
-  return action.getSpec("releaseName") || action.name
+export function getReleaseName(action: Resolved<HelmRuntimeAction>) {
+  return action.getSpec().releaseName || action.name
 }
 
 /**
@@ -369,7 +352,7 @@ export async function renderHelmTemplateString({
           "--namespace",
           namespace,
           "--dependency-update",
-          ...(await getValueArgs({ action, syncMode: false, localMode: false, valuesPath })),
+          ...(await getValueArgs({ action, valuesPath })),
           "--show-only",
           relPath,
           ...reference,

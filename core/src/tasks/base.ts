@@ -44,8 +44,6 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   log: Log
   action: T
   graph: ConfigGraph
-  syncModeDeployNames: string[]
-  localModeDeployNames: string[]
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
   skipRuntimeDependencies?: boolean
@@ -194,8 +192,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
   action: T
   graph: ConfigGraph
-  syncModeDeployNames: string[]
-  localModeDeployNames: string[]
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
 
@@ -204,8 +200,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     super({ ...params })
     this.action = action
     this.graph = params.graph
-    this.syncModeDeployNames = params.syncModeDeployNames
-    this.localModeDeployNames = params.localModeDeployNames
     this.forceActions = params.forceActions || []
     this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
 
@@ -280,8 +274,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       garden: this.garden,
       log: this.log,
       graph: this.graph,
-      syncModeDeployNames: this.syncModeDeployNames,
-      localModeDeployNames: this.localModeDeployNames,
       forceActions: this.forceActions,
       skipDependencies: this.skipDependencies,
       skipRuntimeDependencies: this.skipRuntimeDependencies,

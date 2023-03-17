@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
-import { ActionKind } from "../../../../src/actions/types"
+import { ActionKind, ActionModeMap } from "../../../../src/actions/types"
 import { joi } from "../../../../src/config/common"
 import { Log } from "../../../../src/logger/log-entry"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
@@ -18,7 +18,7 @@ import {
   makeTestGarden,
   getDataDir,
   expectError,
-  getAllTaskResults,
+  getAllRunResults,
   getDefaultProjectConfig,
 } from "../../../helpers"
 
@@ -33,8 +33,8 @@ describe("ResolveActionTask", () => {
     log = garden.log
   })
 
-  async function getTask(kind: ActionKind, name: string) {
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+  async function getTask(kind: ActionKind, name: string, actionModes: ActionModeMap = {}) {
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true, actionModes })
     const action = graph.getActionByRef({ kind, name })
 
     return new ResolveActionTask({
@@ -42,8 +42,6 @@ describe("ResolveActionTask", () => {
       log,
       graph,
       action,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
       force: false,
     })
   }
@@ -194,6 +192,27 @@ describe("ResolveActionTask", () => {
       expect(variables).to.eql({ foo: garden.projectName })
     })
 
+    it("resolves action mode", async () => {
+      garden.setActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          spec: {
+            deployCommand: ["${this.mode}"],
+          },
+        },
+      ])
+
+      const task = await getTask("Deploy", "foo", { local: ["deploy.foo"] })
+      const result = await garden.processTask(task, log, { throwOnError: true })
+
+      const resolved = result!.outputs.resolvedAction
+      const spec = resolved.getSpec()
+
+      expect(spec.deployCommand).to.eql(["local"])
+    })
+
     it("correctly merges action and CLI variables", async () => {
       garden.setActionConfigs([
         {
@@ -246,7 +265,7 @@ describe("ResolveActionTask", () => {
       const task = await getTask("Deploy", "foo")
       const result = await garden.processTask(task, log, { throwOnError: true })
 
-      const all = getAllTaskResults(result?.dependencyResults!)
+      const all = getAllRunResults(result?.dependencyResults!)
 
       const resolvedBuild = all["resolve-action.build.foo"]!.outputs.resolvedAction
       const buildVersion = resolvedBuild.versionString()

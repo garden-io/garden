@@ -62,6 +62,15 @@ export async function processActions({
 
   const results = await garden.processTasks({ tasks: initialTasks, log })
 
+  // If any task indicates it's running persistently, we set persistent=true and keep the process alive.
+  // Used for e.g. exec Deploy actions with spec.persistent=true
+  for (const result of results.results.getAll()) {
+    if (result?.attached) {
+      log.verbose(`${result.task.getDescription()} is running a persistent process until Garden exits`)
+      persistent = true
+    }
+  }
+
   if (!persistent) {
     return {
       graphResults: results.results,
@@ -140,7 +149,7 @@ export async function registerProcess(
   return record
 }
 
-function isRunning(pid: number) {
+export function isRunning(pid: number) {
   // Taken from https://stackoverflow.com/a/21296291. Doesn't actually kill the process.
   try {
     process.kill(pid, 0)

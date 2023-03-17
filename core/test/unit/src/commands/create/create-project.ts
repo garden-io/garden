@@ -14,7 +14,7 @@ import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
-import { safeDumpYaml } from "../../../../../src/util/util"
+import { safeDumpYaml } from "../../../../../src/util/serialization"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()

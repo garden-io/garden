@@ -31,6 +31,10 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   task: BaseTask
   processed: boolean
   success: boolean
+  // Set to true if the action indicates that it's persistently running after task execution
+  // and attached to the Garden process. Not necessary for e.g. normal deployments that keep
+  // running but outside of the Garden process.
+  attached: boolean
 }
 
 export type GraphResultWithoutTask<T extends Task = Task> = Omit<GraphResultFromTask<T>, "task">

@@ -28,9 +28,6 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -155,6 +152,8 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
+kind:
+
 spec:
   # Specify how to build the module. Note that plugins may define additional keys on this object.
   build:
@@ -270,14 +269,6 @@ The schema version of this config (currently not used).
 | Type     | Allowed Values | Default          | Required |
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
 
 ### `type`
 
@@ -481,6 +472,12 @@ This would mean that instead of looking for manifest files relative to this acti
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Deploy"       | Yes      |
 
 ### `spec`
 
@@ -748,9 +745,31 @@ The name of the pulumi stack to use. Defaults to the current environment name.
 The following keys are available via the `${actions.deploy.<name>}` template string key for `pulumi`
 modules.
 
+### `${actions.deploy.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.deploy.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.deploy.my-deploy.disabled}
+```
+
 ### `${actions.deploy.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -762,17 +781,9 @@ Example:
 my-variable: ${actions.deploy.my-deploy.buildPath}
 ```
 
-### `${actions.deploy.<name>.name}`
+### `${actions.deploy.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.deploy.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -781,36 +792,36 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.deploy.my-deploy.path}
+my-variable: ${actions.deploy.my-deploy.sourcePath}
+```
+
+### `${actions.deploy.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.deploy.my-deploy.mode}
 ```
 
 ### `${actions.deploy.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.deploy.<name>.var.<variable-name>}`
+### `${actions.deploy.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.deploy.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.deploy.my-deploy.version}
-```
 
 ### `${actions.deploy.<name>.outputs.*}`
 

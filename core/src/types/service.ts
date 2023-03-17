@@ -26,7 +26,7 @@ import { uniq } from "lodash"
 import { getEntityVersion } from "../vcs/vcs"
 import { NamespaceStatus, namespaceStatusesSchema } from "./namespace"
 import type { LogLevel } from "../logger/logger"
-import type { ActionState } from "../actions/types"
+import type { ActionMode } from "../actions/types"
 import type { ModuleGraph } from "../graph/modules"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
@@ -73,26 +73,12 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
 }
 
 export const serviceStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
-export type ServiceState = typeof serviceStates[number]
-
-const serviceStateMap: { [key in ServiceState]: ActionState } = {
-  ready: "ready",
-  deploying: "not-ready",
-  stopped: "not-ready",
-  unhealthy: "failed",
-  unknown: "unknown",
-  outdated: "outdated",
-  missing: "not-ready",
-}
-
-export function serviceStateToActionState(state: ServiceState): ActionState {
-  return serviceStateMap[state]
-}
+export type DeployState = typeof serviceStates[number]
 
 /**
  * Given a list of states, return a single state representing the list.
  */
-export function combineStates(states: ServiceState[]): ServiceState {
+export function combineStates(states: DeployState[]): DeployState {
   const unique = uniq(states)
 
   if (unique.length === 1) {
@@ -198,8 +184,7 @@ const forwardablePortSchema = createSchema({
 export interface ServiceStatus<D = any, O = PrimitiveMap> {
   createdAt?: string
   detail: D
-  syncMode?: boolean
-  localMode?: boolean
+  mode?: ActionMode
   namespaceStatuses?: NamespaceStatus[]
   externalId?: string
   externalVersion?: string
@@ -209,7 +194,7 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   lastError?: string
   outputs?: O
   runningReplicas?: number
-  state: ServiceState
+  state: DeployState
   updatedAt?: string
   version?: string
 }
@@ -224,8 +209,7 @@ export const serviceStatusSchema = () =>
     .keys({
       createdAt: joi.string().description("When the service was first deployed by the provider."),
       detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
-      syncMode: joi.boolean().description("Whether the service was deployed with sync enabled."),
-      localMode: joi.boolean().description("Whether the service was deployed with local mode enabled."),
+      mode: joi.string().default("default").description("The mode the action is deployed in."),
       namespaceStatuses: namespaceStatusesSchema().optional(),
       externalId: joi
         .string()

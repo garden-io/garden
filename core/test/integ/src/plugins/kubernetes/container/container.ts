@@ -133,15 +133,12 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       garden.events.eventLog = []
 
       const result = await garden.processTasks({ tasks: [testTask], throwOnError: true })
-      const logEvent = garden.events.eventLog.find((l) => l.name === "log" && l.payload["entity"]["type"] === "test")
+      const logEvent = garden.events.eventLog.find((l) => l.name === "log")
 
       expect(result.error).to.be.null
       const task = result.results.getResult(testTask)!
@@ -162,9 +159,6 @@ describe("kubernetes container module handlers", () => {
         log: garden.log,
         force: true,
         forceBuild: false,
-
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await expectError(
@@ -202,9 +196,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -225,9 +216,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -250,9 +238,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -273,9 +258,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })
@@ -294,9 +276,6 @@ describe("kubernetes container module handlers", () => {
           log: garden.log,
           force: true,
           forceBuild: false,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const result = await garden.processTasks({ tasks: [testTask], throwOnError: false })

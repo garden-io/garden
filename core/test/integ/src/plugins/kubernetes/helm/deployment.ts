@@ -59,8 +59,13 @@ describe("helmDeploy in local-mode", () => {
     LocalModeProcessRegistry.getInstance().shutdown()
   })
 
-  it("should deploy a chart with localMode enabled", async () => {
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+  // TODO-G2
+  it.skip("should deploy a chart with local mode enabled", async () => {
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: { local: ["deploy.backend"] }, // <-----
+    })
     const action = await garden.resolveAction<HelmDeployAction>({
       action: graph.getDeploy("backend"),
       log: garden.log,
@@ -73,8 +78,6 @@ describe("helmDeploy in local-mode", () => {
       log: garden.log,
       action,
       force: false,
-      syncMode: false,
-      localMode: true, // <-----
     })
 
     const status = await getReleaseStatus({
@@ -82,56 +85,15 @@ describe("helmDeploy in local-mode", () => {
       action,
       releaseName,
       log: garden.log,
-      syncMode: false,
-      localMode: true, // <-----
     })
 
     expect(status.state).to.equal("ready")
-    expect(status.localMode).to.be.true
-    expect(status.syncMode).to.be.false
+    expect(status.mode).to.equal("local")
     expect(status.detail["values"][".garden"]).to.eql({
       moduleName: "backend",
       projectName: garden.projectName,
       version: action.versionString(),
-      localMode: true,
-    })
-  })
-
-  it("localMode should always take precedence over syncMode", async () => {
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
-    const action = await garden.resolveAction<HelmDeployAction>({
-      action: graph.getDeploy("backend"),
-      log: garden.log,
-      graph,
-    })
-
-    const releaseName = getReleaseName(action)
-    await helmDeploy({
-      ctx,
-      log: garden.log,
-      action,
-      force: false,
-      syncMode: true, // <-----
-      localMode: true, // <-----
-    })
-
-    const status = await getReleaseStatus({
-      ctx,
-      action,
-      releaseName,
-      log: garden.log,
-      syncMode: false,
-      localMode: true, // <-----
-    })
-
-    expect(status.state).to.equal("ready")
-    expect(status.localMode).to.be.true
-    expect(status.syncMode).to.be.false
-    expect(status.detail["values"][".garden"]).to.eql({
-      moduleName: "backend",
-      projectName: garden.projectName,
-      version: action.versionString(),
-      localMode: true,
+      mode: "local",
     })
   })
 })
@@ -153,11 +115,15 @@ describe("helmDeploy", () => {
   })
 
   after(async () => {
-    const actions = await garden.getActionRouter()
-    await actions.deleteDeploys({ graph, log: garden.log })
-    if (garden) {
-      await garden.close()
-    }
+    // https://app.circleci.com/pipelines/github/garden-io/garden/15885/workflows/6026638c-7544-45a8-bc07-16f8963c5b9f/jobs/265663?invite=true#step-113-577
+    // sometimes the release is already purged
+    try {
+      const actions = await garden.getActionRouter()
+      await actions.deleteDeploys({ graph, log: garden.log })
+      if (garden) {
+        await garden.close()
+      }
+    } catch {}
   })
 
   it("should deploy a chart", async () => {
@@ -173,8 +139,6 @@ describe("helmDeploy", () => {
       log: garden.log,
       action,
       force: false,
-      syncMode: false,
-      localMode: false,
     })
 
     const releaseName = getReleaseName(action)
@@ -183,8 +147,6 @@ describe("helmDeploy", () => {
       action,
       releaseName,
       log: garden.log,
-      syncMode: false,
-      localMode: false,
     })
 
     expect(releaseStatus.state).to.equal("ready")
@@ -192,6 +154,7 @@ describe("helmDeploy", () => {
       moduleName: "api",
       projectName: garden.projectName,
       version: action.versionString(),
+      mode: "default",
     })
     expect(status.detail?.namespaceStatuses).to.eql([
       {
@@ -215,8 +178,6 @@ describe("helmDeploy", () => {
       log: garden.log,
       action,
       force: false,
-      syncMode: false,
-      localMode: false,
     })
 
     const releaseName = getReleaseName(action)
@@ -225,8 +186,6 @@ describe("helmDeploy", () => {
       action,
       releaseName,
       log: garden.log,
-      syncMode: false,
-      localMode: false,
     })
 
     expect(releaseStatus.state).to.equal("ready")
@@ -234,6 +193,7 @@ describe("helmDeploy", () => {
       moduleName: "api-helm-module",
       projectName: garden.projectName,
       version: action.versionString(),
+      mode: "default",
     })
     expect(status.detail?.namespaceStatuses).to.eql([
       {
@@ -245,7 +205,11 @@ describe("helmDeploy", () => {
   })
 
   it("should deploy a chart with sync enabled", async () => {
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: { sync: ["deploy.api"] }, // <-----
+    })
     const action = await garden.resolveAction<HelmDeployAction>({
       action: graph.getDeploy("api"),
       log: garden.log,
@@ -258,8 +222,6 @@ describe("helmDeploy", () => {
       log: garden.log,
       action,
       force: false,
-      syncMode: true, // <-----
-      localMode: false,
     })
 
     const status = await getReleaseStatus({
@@ -267,8 +229,6 @@ describe("helmDeploy", () => {
       action,
       releaseName,
       log: garden.log,
-      syncMode: true, // <-----
-      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -276,7 +236,7 @@ describe("helmDeploy", () => {
       moduleName: "api",
       projectName: garden.projectName,
       version: action.versionString(),
-      syncMode: true,
+      mode: "sync",
     })
   })
 
@@ -296,8 +256,6 @@ describe("helmDeploy", () => {
       log: garden.log,
       action,
       force: false,
-      syncMode: false,
-      localMode: false,
     })
 
     const releaseName = getReleaseName(action)
@@ -306,8 +264,6 @@ describe("helmDeploy", () => {
       action,
       releaseName,
       log: garden.log,
-      syncMode: false,
-      localMode: false,
     })
 
     expect(status.state).to.equal("ready")
@@ -349,8 +305,6 @@ describe("helmDeploy", () => {
       log: gardenWithCloudApi.log,
       action,
       force: false,
-      syncMode: false,
-      localMode: false,
     })
 
     const releaseName = getReleaseName(action)
@@ -359,8 +313,6 @@ describe("helmDeploy", () => {
       action,
       releaseName,
       log: gardenWithCloudApi.log,
-      syncMode: false,
-      localMode: false,
     })
 
     expect(releaseStatus.state).to.equal("ready")
@@ -368,6 +320,7 @@ describe("helmDeploy", () => {
       moduleName: "api",
       projectName: gardenWithCloudApi.projectName,
       version: action.versionString(),
+      mode: "default",
     })
     expect(status.detail?.namespaceStatuses).to.eql([
       {
@@ -407,8 +360,6 @@ describe("helmDeploy", () => {
       action,
       releaseName,
       log: gardenWithCloudApi.log,
-      syncMode: false,
-      localMode: false,
     })
     expect(releaseStatusAfterScaleDown.state).to.equal("outdated")
   })

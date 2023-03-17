@@ -10,30 +10,30 @@ import { dedent } from "../../../util/string"
 import { logEntrySchema, PluginActionContextParams } from "../../../plugin/base"
 import { joi } from "../../../config/common"
 import { Log } from "../../../logger/log-entry"
-import { BaseActionConfig } from "../../../actions/types"
-import { baseActionConfigSchema, baseRuntimeActionConfigSchema } from "../../../actions/base"
+import { ActionModes, BaseActionConfig } from "../../../actions/types"
+import { baseActionConfigSchema } from "../../../actions/base"
 import { ActionTypeHandlerSpec } from "./base"
 import { pluginContextSchema } from "../../../plugin-context"
 import { noTemplateFields } from "../../../config/base"
+import { actionConfigSchema } from "../../../actions/helpers"
 
 interface ConfigureActionConfigParams<T extends BaseActionConfig> extends PluginActionContextParams {
   log: Log
   config: T
-  // dependencies: BaseActionConfig[]
 }
 
 export interface ConfigureActionConfigResult<T extends BaseActionConfig> {
   config: T
+  supportedModes: ActionModes
 }
 
-// TODO-G2B: maybe rename to transform?
 export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig> extends ActionTypeHandlerSpec<
   any,
   ConfigureActionConfigParams<T>,
   ConfigureActionConfigResult<T>
 > {
   description = dedent`
-    Apply transformation to the given action configuration, at resolution time.
+    Apply transformation to the given action configuration, at resolution time. Should also indicate whether the resulting action supports sync or local modes.
 
     Be aware that the \`spec\` and \`variables\` fields on the action config will *not* be fully resolved when passed to this handler, so referencing those fields in the handler must be done with care.
 
@@ -53,18 +53,18 @@ export class ConfigureActionConfig<T extends BaseActionConfig = BaseActionConfig
         .description(
           "The config for the action, with all built-in fields fully resolved, and the `spec` field partially resolved (excluding references to other actions)."
         ),
-      // dependencies: joi
-      //   .object()
-      //   .pattern(identifierRegex, baseActionConfigSchema())
-      //   .description(
-      //     "A list of configs for every dependency of this action, transitively
-      //      (i.e. including dependencies of dependencies etc.)."
-      //   ),
     })
 
   resultSchema = () =>
     joi.object().keys({
-      // Using runtime action schema here because it's a superset of baseActionSchema
-      config: baseRuntimeActionConfigSchema(),
+      config: actionConfigSchema().required(),
+      supportedModes: joi
+        .object()
+        .keys({
+          local: joi.boolean(),
+          sync: joi.boolean(),
+        })
+        .description("Indicate which modes (e.g. sync or local) the action may be run in.")
+        .required(),
     })
 }
