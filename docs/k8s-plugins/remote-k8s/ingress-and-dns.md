@@ -789,9 +789,7 @@ If you click "Advanced" in your web browser and then proceed to `react.${your-do
 
 This is the last part of this demo, run this part after you already experimented with Staging enough. Remember that the API Limits and Quotas from Production Letsencrypt are lower, so you shouldn't be generating excessive amounts of certificates in a short-span of time.
 
-In order to generate our production-certificate we need to do the following:
-
-Edit `project.garden.yaml` and set `GENERATE_PROD_CERTS: true` (line 40).
+In order to generate our production-certificate we need to do the following: edit `project.garden.yaml` and set `GENERATE_PROD_CERTS: true` (line 40).
 
 Your variables should look something like the following:
 
