@@ -162,10 +162,10 @@ variables:
 
 The variables that are required to be modified according to your environment are:
 
-- registryHostname: Add your registry, in this example we are going to be using Docker Hub.
-- registryNamespace: Your registry namespace, in Dockerhub this will be your username.
-- CF_DOMAIN: Add the DNS you will be using for this project in the form of an array.
-- CF_EMAIL: Add the email address that should get notifications from Letsencrypt/Cloudflare.
+- `registryHostname`: Add your registry, in this example we are going to be using Docker Hub.
+- `registryNamespace`: Your registry namespace, in Dockerhub this will be your username.
+- `CF_DOMAIN`: Add the DNS you will be using for this project in the form of an array.
+- `CF_EMAIL`: Add the email address that should get notifications from Letsencrypt/Cloudflare.
 
 There is also one secret that we require you to have `exported` at the OS level.
 
