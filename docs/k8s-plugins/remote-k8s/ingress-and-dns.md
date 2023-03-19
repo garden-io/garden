@@ -238,7 +238,10 @@ Now we are going to start setting up the [Helm modules](https://docs.garden.io/r
 
 #### Configuring Cert-Manager module
 
+Let's edit our `./garden.yml` file to define a Helm module that handles the installation of the `cert-manager` operator, in charge of creating and
+```suggestion
 Let's edit our `./garden.yml` file, and paste the following content, which handles the installation of the `cert-manager` operator, who is going to be in charge of creating/renewing our certificates.
+``` renewing our certificates.
 
 For this Helm Chart we only require 1 value called `installCRDs` that is in charge of installing the [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) in our Kubernetes Cluster.
 
