@@ -246,7 +246,7 @@ Let's edit our `./garden.yml` file to define a Helm module that handles the inst
 Let's edit our `./garden.yml` file, and paste the following content, which handles the installation of the `cert-manager` operator, who is going to be in charge of creating/renewing our certificates.
 ``` renewing our certificates.
 
-For this Helm Chart we only require 1 value called `installCRDs` that is in charge of installing the [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) in our Kubernetes Cluster.
+For this Helm Chart we only require setting 1 value, `installCRDs`, in charge of installing the [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) in our Kubernetes Cluster.
 
 Also, something to note is that we are starting to use the environment variables that we set previously at the `garden.project.yml` level.
 
