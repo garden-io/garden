@@ -296,7 +296,7 @@ values:
     apiToken: ${local.env.CF_API_TOKEN}
 ````
 
-This module requires more variables/configuration because the Helm Chart is more complex as it needs the correct Zone Details and values in order to be configured correctly, for a full list of the possible values you can set see the [Helm Chart documentation](https://artifacthub.io/packages/helm/bitnami/external-dns).
+This module requires more configuration because it needs the correct Zone Details and values. For a full list of the possible values you can set see the [Helm Chart documentation](https://artifacthub.io/packages/helm/bitnami/external-dns?modal=values)
 
 #### Configuring cluster-issuers module
 
