@@ -71,7 +71,7 @@ First, let's make our new folder a repository.
 git init
 ```
 
-And then it's time to configure the hearth of our `Garden configuration` which is the `project`.
+Now it's time to configure the heart of any Garden configuration, the `project`.
 
 Edit the `project.garden.yml` with your favorite editor and let's add the following code into it.
 
