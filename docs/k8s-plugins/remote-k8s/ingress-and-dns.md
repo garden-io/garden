@@ -5,7 +5,7 @@ order: 3
 
 # 3. Set Up Ingress, TLS and DNS
 
-Starting from version 0.13 Garden will no longer support the cert-manager extension (previously built-in Garden by default), this means that you will need to implement a custom solution to get it deploy into your cluster and get your certificates generated.
+Starting from version 0.13 Garden will no longer support the cert-manager extension (previously built-in Garden by default), this means that you will need to implement your own certificate management solution if you're not using the your cloud provider's.
 
 But don't worry! We got you covered, in this document we are going to be building a `garden configuration` that will allow us to deploy `cert-manager`, `external-dns` (generating DNS automatically on CloudFlare) and a hello-world React application that will help us to test our certificates strategy.
 
