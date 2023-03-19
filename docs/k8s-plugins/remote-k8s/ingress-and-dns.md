@@ -20,7 +20,7 @@ This project deploys a small React service in a Kubernetes Cluster and exposes i
 
 By using a combination of `container` and `helm` modules supported by Garden and with minimal manual intervention, we are able to rapidly deploy and provision our cluster with everything it needs for automatic TLS and DNS.
 
-This project was developed and battle tested using `Garden v0.12.52`.
+This project was developed and battle-tested using `Garden v0.12.52`.
 
 ## Prerequisites
 
