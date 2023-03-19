@@ -127,7 +127,10 @@ Now you can copy and paste your context to your `provider.context` parameter.
 
 At this stage of the demo we are going to leave the `tlsCertificates` block commented out and we will revisit it later in a different section of this project.
 
+For the `deploymentRegistry` and `imagePullSecrets` we require that you already have a Docker Registry (prerequisite #5). If you already have a Docker registry on e.g. Docker Hub or Qua
+```suggestion
 For the `deploymentRegistry` and `imagePullSecrets` we require that you already have a Docker Registry (prerequisite #5). If you already own one, please create a secret with your credentials using the following command:
+```y, please create a secret with your credentials using the following command:
 
 ```bash
 kubectl create secret generic regcred \
