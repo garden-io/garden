@@ -75,7 +75,7 @@ Now it's time to configure the heart of any Garden configuration, the `project`.
 
 Edit or create the `project.garden.yml` with your favorite editor and add the following code into it.
 
-First, the project and environment configuration. In this project we are just going to have 1 environment called `prod` so let's add the configuration for it.
+First, the project and environment configuration. In this example, we specify just one environment, `prod. 
 
 ```YAML
 kind: Project
