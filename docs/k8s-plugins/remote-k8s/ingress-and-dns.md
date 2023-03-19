@@ -773,7 +773,7 @@ providers:
 
 Let's deploy one more time with `garden deploy --yes`
 
-Now go back to your React Application using your browser, the URL is going to be react.${your-domain}.
+Now go back to your React Application using your browser: the URL is react.${your-domain}.
 
 And! Surprise 🎉
 
