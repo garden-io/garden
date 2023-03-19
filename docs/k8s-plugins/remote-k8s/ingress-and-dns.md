@@ -7,7 +7,7 @@ order: 3
 
 Starting from version 0.13 Garden will no longer support the cert-manager extension (previously built-in Garden by default), this means that you will need to implement your own certificate management solution if you're not using the your cloud provider's.
 
-But don't worry! We got you covered, in this document we are going to be building a `garden configuration` that will allow us to deploy `cert-manager`, `external-dns` (generating DNS automatically on CloudFlare) and a hello-world React application that will help us to test our certificates strategy.
+But don't worry! We got you covered. In this tutorial, we will use two Helm charts to deploy `cert-manager`, and `external-dns` with automatic DNS record creation on CloudFlare. We will also deploy a "Hello, World!" React application that will help us test our certificates strategy.
 
 ## About
 
