@@ -73,7 +73,7 @@ git init
 
 Now it's time to configure the heart of any Garden configuration, the `project`.
 
-Edit the `project.garden.yml` with your favorite editor and let's add the following code into it.
+Edit or create the `project.garden.yml` with your favorite editor and add the following code into it.
 
 First, the project and environment configuration. In this project we are just going to have 1 environment called `prod` so let's add the configuration for it.
 
