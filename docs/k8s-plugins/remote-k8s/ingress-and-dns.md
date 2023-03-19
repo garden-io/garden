@@ -61,7 +61,7 @@ After creating those files and directories you should have the following project
 ├── project.garden.yml <- Contains the project configuration/env-vars.
 ```
 
-⚠️ This project is available under our examples folder, if you have any questions or want to check if you are following the step-by-step guide correctly you can always check the source code. [examples/tls-and-dns](https://github.com/garden-io/garden/tree/main/examples)
+⚠️ For your convenience, this project is also available as a [full-code example.](https://github.com/garden-io/garden/tree/main/examples)
 
 ### Creating our Garden Project
 
