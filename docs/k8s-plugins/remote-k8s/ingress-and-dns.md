@@ -127,16 +127,17 @@ Now you can copy and paste your context to your `provider.context` parameter.
 
 At this stage of the demo we are going to leave the `tlsCertificates` block commented out and we will revisit it later in a different section of this project.
 
-For the `deploymentRegistry` and `imagePullSecrets` we require that you already have a Docker Registry (prerequisite #5). If you already have a Docker registry on e.g. Docker Hub or Qua
-```suggestion
-For the `deploymentRegistry` and `imagePullSecrets` we require that you already have a Docker Registry (prerequisite #5). If you already own one, please create a secret with your credentials using the following command:
-```y, please create a secret with your credentials using the following command:
+For the `deploymentRegistry` and `imagePullSecrets` we require that you already have a Docker Registry (prerequisite #5). If you already have a Docker registry on e.g. Docker Hub or Qua please create a secret with your credentials using the following command:
 
 ```bash
-kubectl create secret generic regcred \
-    --from-file=.dockerconfigjson=$HOME/.docker/config.json \
-    --type=kubernetes.io/dockerconfigjson
+kubectl create secret docker-registry regcred \
+  --docker-username=user \
+  --docker-password=password \
+  --docker-email=docker-email@email.com \
+  --docker-server=your-docker-server-url
 ```
+
+Or, you can also follow this awesome guide from the official [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/). Make sure to name your secret `regcred` and keep it in the `default` namespace.
 
 If you decide to setup the secret with a different name make sure to update it in the `imagePullSecrets` configuration.
 
@@ -221,7 +222,7 @@ variables:
   CERT_MANAGER_INSTALL_CRDS: true
   GENERATE_PROD_CERTS: false
   GENERATE_STG_CERTS: false
-  # External-DNS variables
+  # ExternalDNS variables
   CF_DNS_PROVIDER: cloudflare
   CF_DOMAIN: [ shankyjs.com ]
   CF_UPDATE_STRATEGY: sync
@@ -235,16 +236,10 @@ variables:
 ### Creating our Helm Modules 🔨
 
 Now we create [Helm modules](https://docs.garden.io/reference/module-types/helm) responsible for deploying our Helm Charts to our Kubernetes Cluster.
-``
-```suggestion
-Now we are going to start setting up the [Helm modules](https://docs.garden.io/reference/module-types/helm) that are going to be in charge of deploying our Helm Charts to our Kubernetes Cluster.
 
 #### Configuring Cert-Manager module
 
-Let's edit our `./garden.yml` file to define a Helm module that handles the installation of the `cert-manager` operator, in charge of creating and
-```suggestion
-Let's edit our `./garden.yml` file, and paste the following content, which handles the installation of the `cert-manager` operator, who is going to be in charge of creating/renewing our certificates.
-``` renewing our certificates.
+Let's edit our `./garden.yml` file to define a Helm module that handles the installation of the `cert-manager` operator, in charge of creating and renewing our certificates.
 
 For this Helm Chart we only require setting 1 value, `installCRDs`, in charge of installing the [Custom Resource Definitions](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) in our Kubernetes Cluster.
 
@@ -269,14 +264,14 @@ values:
 
 #### Configuring ExternalDNS module ☁️
 
-External-DNS is the operator who is going to be in charge of creating our DNS entries into our CloudFlare account in an automated way.
+ExternalDNS is the operator that is going to be in charge of creating our DNS entries into our CloudFlare account in an automated way.
 
 The combination of ExternalDNS + Cert-Manager is a powerful and production ready solution to manage and deploy certificates. 🚀
 
 Add the following to your `garden.yml`:
 
 ````yaml
-# External-DNS Helm Chart
+# ExternalDNS Helm Chart
 kind: Module
 type: helm
 name: external-dns
@@ -345,7 +340,7 @@ chartPath: .
 values:
   installCRDs: ${var.CERT_MANAGER_INSTALL_CRDS}
 ---
-# External-DNS Helm Chart
+# ExternalDNS Helm Chart
 kind: Module
 type: helm
 name: external-dns
@@ -674,7 +669,7 @@ variables:
   CERT_MANAGER_INSTALL_CRDS: true
   GENERATE_PROD_CERTS: false
   GENERATE_STG_CERTS: false
-  # External-DNS variables
+  # ExternalDNS variables
   CF_DNS_PROVIDER: cloudflare
   CF_DOMAIN: [ shankyjs.com ]
   CF_UPDATE_STRATEGY: sync
