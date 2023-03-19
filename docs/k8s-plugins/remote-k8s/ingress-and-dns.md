@@ -160,7 +160,7 @@ variables:
   CF_PROXIED: false
 ```
 
-The variables that are required to be modified according to your environment at this moment are:
+The variables that are required to be modified according to your environment are:
 
 - registryHostname: Add your registry, in this example we are going to be using Docker Hub.
 - registryNamespace: Your registry namespace, in Dockerhub this will be your username.
