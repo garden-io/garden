@@ -818,7 +818,7 @@ production-cert   True    production-cert   116s
 staging-cert      True    staging-cert      24m
 ````
 
-Now the final step would be to change lines 22 and 24 of `project.garden.yml` file, by simply replacing the `staging` word for `production`, the end result should be something like the following:
+Now the final step would be to change lines 22 and 24 of `project.garden.yml` file, by simply replacing the `staging` word for `production`. The end result should be something like the following:
 
 ````yaml
 providers:
