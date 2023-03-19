@@ -231,6 +231,9 @@ variables:
 
 ### Creating our Helm Modules 🔨
 
+Now we create [Helm modules](https://docs.garden.io/reference/module-types/helm) responsible for deploying our Helm Charts to our Kubernetes Cluster.
+``
+```suggestion
 Now we are going to start setting up the [Helm modules](https://docs.garden.io/reference/module-types/helm) that are going to be in charge of deploying our Helm Charts to our Kubernetes Cluster.
 
 #### Configuring Cert-Manager module
