@@ -835,7 +835,7 @@ providers:
 
 And let's deploy for the last time `garden deploy --yes`
 
-Annnnnd **voilà**! we can see the desired 🔒️ in our website, if you got into this point this that our certificate is being correctly used by our Ingress Controller and we are using the Production certificate for a valid, secured, HTTPS endpoint 🕺.
+Annnnnd **voilà**! we can see the desired 🔒️ in our website, if you've made it this far your certificate is correctly used by our Ingress Controller and we are using the Production certificate for a valid, secured, HTTPS endpoint 🕺.
 
 ![Landing page with valid HTTPs certificate](https://res.cloudinary.com/djp21wtxm/image/upload/v1676835652/i1600x904-LLQLXx-TtGww_va4xkf.png)
 
