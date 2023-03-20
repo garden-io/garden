@@ -159,7 +159,8 @@ async function readAndExec({
     namespace,
      workload: target,
      command: args,
-     interactive: false
+     interactive: false,
+     streamLogs: true
   })
   const completedAt = new Date()
   const execLog = res.output ||""
