@@ -26,7 +26,7 @@ import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
 import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { ConfigurationError, DeploymentError } from "../../../exceptions"
@@ -59,7 +59,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const imageId = getDeployedImageId(action, k8sCtx.provider)
 
   const status = await k8sGetContainerDeployStatus(params)
-  const specChangedResourceKeys: string[] = (status.detail?.detail.selectorChangedResourceKeys) || []
+  const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
   if (specChangedResourceKeys.length > 0) {
     const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
     await handleChangedSelector({
@@ -185,6 +185,7 @@ export async function startLocalMode({
     ctx,
     spec: localModeSpec,
     targetResource,
+    manifests: status.detail.remoteResources,
     action,
     namespace,
     log,
@@ -253,19 +254,6 @@ export async function createContainerManifests({
     production,
   })
   const kubeServices = await createServiceResources(action, namespace)
-  const mode = action.mode()
-  const localModeSpec = action.getSpec("localMode")
-
-  if (mode === "local" && localModeSpec) {
-    await configureLocalMode({
-      ctx,
-      spec: localModeSpec,
-      targetResource: workload,
-      action,
-      log,
-    })
-  }
-
   const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
@@ -288,6 +276,11 @@ interface CreateDeploymentParams {
   log: Log
   production: boolean
 }
+
+const getDefaultWorkloadTarget = (w: KubernetesResource<V1Deployment | V1DaemonSet>) => ({
+  kind: <SyncableKind>w.kind,
+  name: w.metadata.name,
+})
 
 export async function createWorkloadManifest({
   ctx,
@@ -501,22 +494,28 @@ export async function createWorkloadManifest({
   }
 
   const syncSpec = convertContainerSyncSpec(ctx, action)
-  const localModeSpec = spec.localMode
+  const localModeSpec = convertContainerLocalModeSpec(ctx, action)
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && localModeSpec) {
-    // no op here, local mode will be configured later after all manifests are ready
+    const configured = await configureLocalMode({
+      ctx,
+      spec: localModeSpec,
+      defaultTarget: getDefaultWorkloadTarget(workload),
+      manifests: [workload],
+      action,
+      log,
+    })
+
+    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
   } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
-
-    const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
-
     const configured = await configureSyncMode({
       ctx,
       log,
       provider,
       action,
-      defaultTarget: target,
+      defaultTarget: getDefaultWorkloadTarget(workload),
       manifests: [workload],
       spec: syncSpec,
     })
@@ -769,18 +768,31 @@ export async function handleChangedSelector({
   production: boolean
   force: boolean
 }) {
-  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white("spec.selector")} and needs to be deleted before redeploying.`
+  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white(
+    "spec.selector"
+  )} and needs to be deleted before redeploying.`
   if (production && !force) {
     throw new DeploymentError(
-      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white("--force")} flag when deploying e.g. with the ${chalk.white("garden deploy")} command. You can also delete the resource from your cluster manually and try again.`, {
+      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
+        "--force"
+      )} flag when deploying e.g. with the ${chalk.white(
+        "garden deploy"
+      )} command. You can also delete the resource from your cluster manually and try again.`,
+      {
         deployName: action.name,
       }
     )
   } else {
     if (production && force) {
-      log.warn(chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`))
+      log.warn(
+        chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
+      )
     } else if (!production) {
-      log.warn(chalk.yellow(`${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`))
+      log.warn(
+        chalk.yellow(
+          `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
+        )
+      )
     }
     await deleteResourceKeys({
       ctx,

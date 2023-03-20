@@ -8,8 +8,8 @@
 
 import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { remove, set } from "lodash"
-import { SyncableResource } from "./types"
+import { cloneDeep, remove, set } from "lodash"
+import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
 import {
   k8sReverseProxyImageName,
@@ -18,7 +18,7 @@ import {
   PROXY_CONTAINER_USER_NAME,
 } from "./constants"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { getResourceContainer, getResourceKey, prepareEnvVars } from "./util"
+import { getResourceContainer, getResourceKey, getTargetResource, prepareEnvVars } from "./util"
 import { V1Container, V1ContainerPort } from "@kubernetes/client-node"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, targetResourceSpecSchema } from "./config"
 import { Log } from "../../logger/log-entry"
@@ -32,10 +32,9 @@ import { kubectl } from "./kubectl"
 import { OsCommand, ProcessMessage, RecoverableProcess, RetryInfo } from "../../util/recoverable-process"
 import { isConfiguredForLocalMode } from "./status/status"
 import { exec, registerCleanupFunction, shutdown } from "../../util/util"
-import { HelmDeployAction } from "./helm/config"
-import { KubernetesDeployAction } from "./kubernetes-type/config"
 import getPort = require("get-port")
 import touch = require("touch")
+import { Resolved } from "../../actions/types"
 
 export const localModeGuideLink = "https://docs.garden.io/guides/running-service-in-local-mode"
 
@@ -48,6 +47,20 @@ const portForwardRetryTimeoutMs = 5000
 
 export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
   target?: KubernetesTargetResourceSpec
+}
+
+export function convertContainerLocalModeSpec(
+  ctx: KubernetesPluginContext,
+  action: Resolved<ContainerDeployAction>
+): KubernetesLocalModeSpec | undefined {
+  const spec = action.getSpec()
+  const localModeSpec = spec.localMode
+
+  if (!localModeSpec) {
+    return
+  }
+
+  return { ...localModeSpec }
 }
 
 export const kubernetesLocalModeSchema = () =>
@@ -71,18 +84,24 @@ export const kubernetesLocalModeSchema = () =>
 
 interface BaseLocalModeParams {
   ctx: PluginContext
-  spec: ContainerLocalModeSpec
-  targetResource: SyncableResource
-  action: ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
+  spec: KubernetesLocalModeSpec
+  manifests: KubernetesResource[]
+  action: Resolved<SyncableRuntimeAction>
   log: Log
 }
 
 interface ConfigureLocalModeParams extends BaseLocalModeParams {
-  containerName?: string
+  defaultTarget: KubernetesTargetResourceSpec | undefined
 }
 
 interface StartLocalModeParams extends BaseLocalModeParams {
   namespace: string
+  targetResource: SyncableResource
+}
+
+export interface ConfiguredLocalMode {
+  updated: SyncableResource[]
+  manifests: KubernetesResource<BaseResource, string>[]
 }
 
 export class KeyPair {
@@ -405,8 +424,35 @@ function patchSyncableManifest(
 /**
  * Configures the specified Deployment, DaemonSet or StatefulSet for local mode.
  */
-export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<void> {
-  const { ctx, spec, targetResource, action, log, containerName } = configParams
+export async function configureLocalMode(configParams: ConfigureLocalModeParams): Promise<ConfiguredLocalMode> {
+  // TODO-G2: allow multiple manifests configuration
+  const { ctx, spec, defaultTarget, action, log } = configParams
+  const k8sCtx = ctx as KubernetesPluginContext
+  const provider = k8sCtx.provider
+
+  let { manifests } = configParams
+
+  // Make sure we don't modify inputs in-place
+  manifests = cloneDeep(manifests)
+
+  const query = spec.target || defaultTarget
+  if (!query) {
+    log.warn({
+      section: action.key(),
+      symbol: "warning",
+      msg: "Neither `localMode.target` nor `defaultTarget` is configured. Cannot Deploy in local mode.",
+    })
+    return { updated: [], manifests }
+  }
+
+  const resolvedTarget = await getTargetResource({
+    ctx,
+    log,
+    provider,
+    action,
+    manifests,
+    query,
+  })
 
   const section = action.key()
 
@@ -418,7 +464,7 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     ),
   })
 
-  set(targetResource, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
+  set(resolvedTarget, ["metadata", "annotations", gardenAnnotationKey("mode")], "local")
 
   const keyPair = await ProxySshKeystore.getInstance(log).getKeyPair(ctx.gardenDirPath, action.key())
   log.debug({
@@ -426,12 +472,20 @@ export async function configureLocalMode(configParams: ConfigureLocalModeParams)
     msg: `Created ssh key pair for proxy container: "${keyPair.publicKeyPath}" and "${keyPair.privateKeyPath}".`,
   })
 
-  const targetContainer = getResourceContainer(targetResource, containerName)
+  const containerName = spec.target?.containerName
+  const targetContainer = getResourceContainer(resolvedTarget, containerName)
   const portSpecs = validateContainerPorts(targetContainer, spec)
   const localModeEnvVars = await prepareLocalModeEnvVars(portSpecs, keyPair)
   const localModePorts = prepareLocalModePorts()
 
-  patchSyncableManifest(targetResource, targetContainer.name, localModeEnvVars, localModePorts)
+  patchSyncableManifest(resolvedTarget, targetContainer.name, localModeEnvVars, localModePorts)
+
+  // Replace the original resource with the modified spec
+  const preparedManifests = manifests
+    .filter((m) => !(m.kind === resolvedTarget!.kind && resolvedTarget?.metadata.name === m.metadata.name))
+    .concat(<KubernetesResource<BaseResource>>resolvedTarget)
+
+  return { updated: [resolvedTarget], manifests: preparedManifests }
 }
 
 const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): string => {
@@ -811,9 +865,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
 
   // Validate the target
   if (!isConfiguredForLocalMode(targetResource)) {
-    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, {
-      targetResource,
-    })
+    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, { targetResource })
   }
 
   const section = action.key()
