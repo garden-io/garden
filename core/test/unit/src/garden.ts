@@ -45,7 +45,7 @@ import { defaultDotIgnoreFile, makeTempDir } from "../../../src/util/fs"
 import { realpath, writeFile, readFile, remove, pathExists, mkdirp, copy } from "fs-extra"
 import { dedent, randomString } from "../../../src/util/string"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
-import { safeDump } from "js-yaml"
+import { dump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
 import { convertExecModule } from "../../../src/plugins/exec/convert"
@@ -258,7 +258,7 @@ describe("Garden", () => {
         providers: [{ name: "foo" }],
       })
       config.environments = [] // this is omitted later to simulate a config where envs are not set
-      config = (omit(config, "environments") as any) as ProjectConfig
+      config = omit(config, "environments") as any as ProjectConfig
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
         contains: "Error validating project environments: value is required",
       })
@@ -3351,7 +3351,7 @@ describe("Garden", () => {
           ],
         }
 
-        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), safeDump(moduleConfig))
+        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), dump(moduleConfig))
         await exec("git", ["add", "."], { cwd: tmpRepo.path })
         await exec("git", ["commit", "-m", "add module"], { cwd: tmpRepo.path })
 
@@ -3402,7 +3402,7 @@ describe("Garden", () => {
           ],
         }
 
-        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), safeDump(moduleConfig))
+        await writeFile(join(tmpRepo.path, "module-a.garden.yml"), dump(moduleConfig))
         await exec("git", ["add", "."], { cwd: tmpRepo.path })
         await exec("git", ["commit", "-m", "add module"], { cwd: tmpRepo.path })
 

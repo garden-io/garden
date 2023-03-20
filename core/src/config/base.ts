@@ -8,7 +8,7 @@
 
 import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
-import { safeLoad, safeLoadAll } from "js-yaml"
+import { load, loadAll } from "js-yaml"
 import { lint } from "yaml-lint"
 import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
@@ -58,7 +58,7 @@ export type ConfigKind = "Module" | "Workflow" | "Project" | ModuleTemplateKind 
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
   try {
-    return safeLoadAll(content) || []
+    return loadAll(content) || []
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
@@ -70,7 +70,10 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
       )
     }
     // ... but default to throwing a generic error, in case the error wasn't caught by yaml-lint.
-    throw new ConfigurationError(`Could not parse ${basename(path)} in directory ${path} as valid YAML.`, err)
+    throw new ConfigurationError(
+      `Could not parse ${basename(path)} in directory ${path} as valid YAML. Error: ${err.message}`,
+      err
+    )
   }
 }
 
@@ -389,7 +392,7 @@ export async function loadVarfile({
       }
       return parsed
     } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = safeLoad(data.toString())
+      const parsed = load(data.toString())
       if (!isPlainObject(parsed)) {
         throw new ConfigurationError(`Configured variable file ${relPath} must be a single plain YAML mapping`, {
           parsed,

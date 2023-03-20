@@ -515,7 +515,7 @@ spec:
   ...
   args:
     - rake
-    - 'db:migrate'
+    - db:migrate
 ```
 
 ### `spec.env`

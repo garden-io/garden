@@ -707,8 +707,8 @@ Example:
 spec:
   ...
   stackReferences:
-    - '${runtime.services.some-pulumi-module.outputs.ip-address}'
-    - '${runtime.services.some-other-pulumi-module.outputs.database-url}'
+    - ${runtime.services.some-pulumi-module.outputs.ip-address}
+    - ${runtime.services.some-other-pulumi-module.outputs.database-url}
 ```
 
 ### `spec.deployFromPreview`

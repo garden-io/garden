@@ -273,13 +273,16 @@ export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
  */
 export async function getValueArgs({
   action,
-  valuesPath
-}: { action: Resolved<HelmRuntimeAction>; valuesPath: string }) {
+  valuesPath,
+}: {
+  action: Resolved<HelmRuntimeAction>
+  valuesPath: string
+}) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
   const valueFiles = action
-    .getSpec().valueFiles
-    .map((f) => resolve(action.getBuildPath(), f))
+    .getSpec()
+    .valueFiles.map((f) => resolve(action.getBuildPath(), f))
     .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))
@@ -371,15 +374,11 @@ export async function renderHelmTemplateString({
  * Helm templates can include duplicate keys, e.g. because of a mistake in the remote chart repo.
  * We therefore load the template with `{ json: true }`, so that duplicate keys in a mapping will override values rather
  * than throwing an error.
- *
- * However, this behavior is broken for the `safeLoadAll` function, see: https://github.com/nodeca/js-yaml/issues/456.
- * We therefore need to use the `loadAll` function. See the following link for a conversation on using
- * `loadAll` in this context: https://github.com/kubeapps/kubeapps/issues/636.
  */
 export function loadTemplate(template: string) {
   return loadAll(template || "", undefined, { json: true })
     .filter((obj) => obj !== null)
-    .map((obj) => {
+    .map((obj: any) => {
       if (isPlainObject(obj)) {
         if (!obj.metadata) {
           obj.metadata = {}

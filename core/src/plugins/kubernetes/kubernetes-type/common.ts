@@ -10,7 +10,7 @@ import { resolve } from "path"
 import { readFile } from "fs-extra"
 import Bluebird from "bluebird"
 import { flatten, set } from "lodash"
-import { safeLoadAll } from "js-yaml"
+import { loadAll } from "js-yaml"
 
 import { KubernetesModule } from "./module-config"
 import { KubernetesResource } from "../types"
@@ -112,7 +112,7 @@ export async function readManifests(
       log.debug(`Reading manifest for module ${action.name} from path ${absPath}`)
       const str = (await readFile(absPath)).toString()
       const resolved = ctx.resolveTemplateStrings(str, { allowPartial: true, unescape: true })
-      return safeLoadAll(resolved)
+      return loadAll(resolved)
     })
   )
 
@@ -141,7 +141,7 @@ export async function readManifests(
         log,
         args: ["build", spec.kustomize.path, ...extraArgs],
       })
-      kustomizeManifests = safeLoadAll(kustomizeOutput)
+      kustomizeManifests = loadAll(kustomizeOutput)
     } catch (error) {
       throw new PluginError(`Failed resolving kustomize manifests: ${error.message}`, {
         error,

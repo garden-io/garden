@@ -185,7 +185,7 @@ describe("GetDebugInfoCommand", () => {
       expect(await pathExists(systemInfoFilePath)).to.equal(true)
 
       // Check structure of systemInfoFile
-      const systemInfoFile = yaml.safeLoad(await readFile(systemInfoFilePath, "utf8"))
+      const systemInfoFile = yaml.load(await readFile(systemInfoFilePath, "utf8"))
       expect(systemInfoFile).to.have.property("gardenVersion")
       expect(systemInfoFile).to.have.property("platform")
       expect(systemInfoFile).to.have.property("platformVersion")

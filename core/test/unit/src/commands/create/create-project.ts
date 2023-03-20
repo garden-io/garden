@@ -13,7 +13,7 @@ import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { Garden } from "../../../../../src/garden"
 import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
-import { safeLoadAll } from "js-yaml"
+import { loadAll } from "js-yaml"
 import { safeDumpYaml } from "../../../../../src/util/serialization"
 
 describe("CreateProjectCommand", () => {
@@ -53,7 +53,7 @@ describe("CreateProjectCommand", () => {
     expect(await pathExists(configPath)).to.be.true
     expect(await pathExists(ignoreFilePath)).to.be.true
 
-    const parsed = safeLoadAll((await readFile(configPath)).toString())
+    const parsed = loadAll((await readFile(configPath)).toString())
 
     expect(parsed).to.eql([
       {
@@ -130,7 +130,7 @@ describe("CreateProjectCommand", () => {
     const { name, configPath } = result!
 
     expect(name).to.equal("foo")
-    const parsed = safeLoadAll((await readFile(configPath)).toString())
+    const parsed = loadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
         kind: "Project",
@@ -164,7 +164,7 @@ describe("CreateProjectCommand", () => {
     })
     const { name, configPath } = result!
 
-    const parsed = safeLoadAll((await readFile(configPath)).toString())
+    const parsed = loadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       existing,
       {

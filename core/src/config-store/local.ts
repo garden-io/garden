@@ -11,7 +11,7 @@ import { joi } from "../config/common"
 import { ConfigStore } from "./base"
 import { z } from "zod"
 import { readFile } from "fs-extra"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { keyBy } from "lodash"
 
 export const legacyLocalConfigFilename = "local-config.yml"
@@ -75,7 +75,7 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
     // Try to migrate part of the legacy config, if it's there
     try {
       const legacyData = await readFile(join(this.gardenDirPath, legacyLocalConfigFilename))
-      const parsed: any = safeLoad(legacyData.toString())
+      const parsed: any = load(legacyData.toString())
       if (parsed?.analytics?.projectId) {
         config.analytics.projectId = parsed?.analytics?.projectId
       }

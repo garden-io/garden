@@ -13,7 +13,7 @@ import { makeDummyGarden } from "../../../../../src/cli/cli"
 import { Garden } from "../../../../../src/garden"
 import { join } from "path"
 import { pathExists, readFile, writeFile, mkdirp } from "fs-extra"
-import { safeLoadAll } from "js-yaml"
+import { loadAll } from "js-yaml"
 import { safeDumpYaml } from "../../../../../src/util/serialization"
 import stripAnsi = require("strip-ansi")
 import { getModuleTypes } from "../../../../../src/plugins"
@@ -60,7 +60,7 @@ describe("CreateModuleCommand", () => {
     expect(configPath).to.equal(join(dir, "garden.yml"))
     expect(await pathExists(configPath)).to.be.true
 
-    const parsed = safeLoadAll((await readFile(configPath)).toString())
+    const parsed = loadAll((await readFile(configPath)).toString())
 
     expect(parsed).to.eql([
       {
@@ -110,7 +110,7 @@ describe("CreateModuleCommand", () => {
     const { name, configPath } = result!
 
     expect(name).to.equal("test")
-    const parsed = safeLoadAll((await readFile(configPath)).toString())
+    const parsed = loadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       {
         kind: "Module",
@@ -144,7 +144,7 @@ describe("CreateModuleCommand", () => {
     })
     const { name, configPath } = result!
 
-    const parsed = safeLoadAll((await readFile(configPath)).toString())
+    const parsed = loadAll((await readFile(configPath)).toString())
     expect(parsed).to.eql([
       existing,
       {

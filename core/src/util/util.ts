@@ -29,7 +29,7 @@ import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
 import chalk from "chalk"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
 import { Readable, Writable } from "stream"
@@ -439,7 +439,7 @@ export function getEnumKeys(Enum) {
 
 export async function loadYamlFile(path: string): Promise<any> {
   const fileData = await readFile(path)
-  return safeLoad(fileData.toString())
+  return load(fileData.toString())
 }
 
 export interface ObjectWithName {

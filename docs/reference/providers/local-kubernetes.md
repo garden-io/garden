@@ -213,7 +213,7 @@ providers:
       extraFlags:
 
       # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-      image: 'gcr.io/kaniko-project/executor:v1.8.1-debug'
+      image: gcr.io/kaniko-project/executor:v1.8.1-debug
 
       # Choose the namespace where the Kaniko pods will be run. Defaults to the project namespace.
       namespace:

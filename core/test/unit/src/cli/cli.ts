@@ -30,9 +30,8 @@ import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
 import { Logger, getLogger } from "../../../../src/logger/logger"
-import { safeLoad } from "js-yaml"
+import { load } from "js-yaml"
 import { startServer, GardenServer } from "../../../../src/server/server"
-import { TerminalWriter } from "../../../../src/logger/writers/terminal-writer"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
@@ -896,7 +895,7 @@ describe("cli", () => {
       cli.addCommand(command)
 
       const { consoleOutput } = await cli.run({ args: ["test-command", "--output=yaml"], exitOnError: false })
-      expect(safeLoad(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
+      expect(load(consoleOutput!)).to.eql({ result: { some: "output" }, success: true })
     })
 
     it("should disable port forwards if --disable-port-forwards is set", async () => {
