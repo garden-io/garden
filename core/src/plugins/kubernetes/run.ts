@@ -711,7 +711,7 @@ interface StartParams {
   timeoutSec?: number
 }
 
-type ExecParams = StartParams & {
+export type PodRunnerExecParams = StartParams & {
   command: string[]
   containerName?: string
   stdout?: Writable
@@ -1016,7 +1016,7 @@ export class PodRunner extends PodRunnerParams {
    * @throws {TimeoutError}
    * @throws {PodRunnerError}
    */
-  async exec(params: ExecParams) {
+  async exec(params: PodRunnerExecParams) {
     const { command, containerName: container, timeoutSec, tty = false, log, buffer = true } = params
     let { stdout, stderr, stdin } = params
 
