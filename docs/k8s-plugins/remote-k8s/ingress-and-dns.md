@@ -724,7 +724,7 @@ Also something to note is that our website is now up, but without a certificate;
 
 ### Issuing our first certificate (Staging)
 
-A good practice whenever experimenting with certificates is to use the Staging Certificate Authority to issue our first certificates, by doing this we can easily debug and identify any issues with our certificates without affecting our limited `Production` limits.
+A good practice whenever experimenting with certificates is to use the Staging Certificate Authority to issue our first certificates. By doing this we can easily debug and identify any issues with our certificates without affecting our limited `Production` limits.
 
 In order to generate our first staging-certificate we need to do the following:
 
