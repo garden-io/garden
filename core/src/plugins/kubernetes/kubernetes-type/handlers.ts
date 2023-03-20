@@ -313,7 +313,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         ctx,
         spec: spec.localMode,
         // TODO-G2: Support multiple processes+targets.
-        manifest: modifiedResources[0],
+        targetResource: modifiedResources[0],
         manifests: preparedManifests,
         action,
         namespace,

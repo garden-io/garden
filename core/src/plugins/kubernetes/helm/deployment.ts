@@ -157,7 +157,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     await startServiceInLocalMode({
       ctx,
       spec: spec.localMode,
-      manifest: configuredLocalMode.updated[0],
+      targetResource: configuredLocalMode.updated[0],
       manifests,
       action,
       namespace,

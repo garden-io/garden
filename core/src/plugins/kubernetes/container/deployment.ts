@@ -184,7 +184,7 @@ export async function startLocalMode({
   await startServiceInLocalMode({
     ctx,
     spec: localModeSpec,
-    manifest: targetResource,
+    targetResource,
     manifests: status.detail.remoteResources,
     action,
     namespace,

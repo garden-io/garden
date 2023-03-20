@@ -96,7 +96,7 @@ interface ConfigureLocalModeParams extends BaseLocalModeParams {
 
 interface StartLocalModeParams extends BaseLocalModeParams {
   namespace: string
-  manifest: SyncableResource
+  targetResource: SyncableResource
 }
 
 export interface ConfiguredLocalMode {
@@ -860,12 +860,12 @@ function composeSshTunnelProcessTree(
  *   3. Starts reverse port forwarding from the proxy's containerPort to the local app port.
  */
 export async function startServiceInLocalMode(configParams: StartLocalModeParams): Promise<void> {
-  const { manifest, action, namespace, log } = configParams
-  const targetResourceId = getResourceKey(manifest)
+  const { targetResource, action, namespace, log } = configParams
+  const targetResourceId = getResourceKey(targetResource)
 
   // Validate the target
-  if (!isConfiguredForLocalMode(manifest)) {
-    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, { manifest })
+  if (!isConfiguredForLocalMode(targetResource)) {
+    throw new ConfigurationError(`Resource ${targetResourceId} is not deployed in local mode`, { targetResource })
   }
 
   const section = action.key()
@@ -908,7 +908,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     }
   }
 
-  const targetNamespace = manifest.metadata.namespace || namespace
+  const targetNamespace = targetResource.metadata.namespace || namespace
   const kubectlPortForward = await getKubectlPortForwardProcess(
     configParams,
     localSshPort,
