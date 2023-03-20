@@ -749,7 +749,7 @@ And then proceed to do another deployment,
 garden deploy --yes
 ````
 
-You might have to wait for a couple of minutes while the DNS01 challenge is completed in cert-manager side, if you get the certificates you are going to be able to see that staging-cert is already issued and ready to be used.
+You might have to wait for a couple of minutes while the DNS01 challenge is completed in cert-manager side: if you get the certificates you are going to be able to see that staging-cert is already issued and ready to be used.
 
 ````bash
 kubectl get cert
