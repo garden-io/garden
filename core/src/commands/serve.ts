@@ -173,6 +173,11 @@ const autocompleteArguments = {
 
 type AutocompleteArguments = typeof autocompleteArguments
 
+interface AutocompleteResult {
+  input: string
+  suggestions: AutocompleteSuggestion[]
+}
+
 class AutocompleteCommand extends InteractiveCommand<AutocompleteArguments> {
   name = "autocomplete"
   help = "Given an input string, provide a list of suggestions for available Garden commands."
@@ -184,9 +189,14 @@ class AutocompleteCommand extends InteractiveCommand<AutocompleteArguments> {
     super()
   }
 
-  async action({ args }: CommandParams<AutocompleteArguments>): Promise<CommandResult<AutocompleteSuggestion[]>> {
+  async action({ args }: CommandParams<AutocompleteArguments>): Promise<CommandResult<AutocompleteResult>> {
+    const { input } = args
+
     return {
-      result: this.serverCommand.getAutocompleteSuggestions(args.input),
+      result: {
+        input,
+        suggestions: this.serverCommand.getAutocompleteSuggestions(input),
+      },
     }
   }
 }

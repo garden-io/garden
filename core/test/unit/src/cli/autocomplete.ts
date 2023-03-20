@@ -47,7 +47,10 @@ describe("Autocompleter", () => {
     expect(result[0]).to.eql({
       type: "command",
       line: "build",
-      command: ["build"],
+      command: {
+        name: ["build"],
+        cliOnly: false,
+      },
       priority: 1,
     })
   })
@@ -73,6 +76,33 @@ describe("Autocompleter", () => {
     const result = ac.getSuggestions("build --f")
     const lines = result.map((s) => s.line)
     expect(lines).to.eql(["build --force", "build --force-refresh"])
+  })
+
+  it("returns the command itself when matched verbatim", () => {
+    const result = ac.getSuggestions("build")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("build")
+  })
+
+  it("returns the input with command info on full match with option flag", () => {
+    const result = ac.getSuggestions("build --force")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("build --force")
+  })
+
+  it("deduplicates matched command names, preferring canonical ones", () => {
+    const result = ac.getSuggestions("clean")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("cleanup namespace")
+    expect(lines).to.not.include("cleanup ns")
+  })
+
+  it("deduplicates matched aliases, preferring shorter ones", () => {
+    const result = ac.getSuggestions("del")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("del ns")
+    expect(lines).to.not.include("delete namespace")
+    expect(lines).to.not.include("delete ns")
   })
 
   context("without config dump", () => {
@@ -129,6 +159,12 @@ describe("Autocompleter", () => {
       for (const s of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
         expect(lines).to.include("build " + s)
       }
+    })
+
+    it("returns the input with command info on full match with positional argument", () => {
+      const result = ac.getSuggestions("build module-a")
+      const lines = result.map((s) => s.line)
+      expect(lines).to.include("build module-a")
     })
 
     it("returns more (unique) suggestions for variadic args after first arg", () => {
