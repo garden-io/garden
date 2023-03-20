@@ -17,7 +17,10 @@ export interface AutocompleteSuggestion {
   // What's being suggested in the last item in the split array
   type: "command" | "argument" | "option"
   line: string
-  command: string[]
+  command: {
+    name: string[]
+    cliOnly: boolean
+  }
   priority: number
 }
 
@@ -67,6 +70,11 @@ export class Autocompleter {
         const commands = command.getSubCommands()
         output.push(...this.matchCommandNames(commands, input))
       } else {
+        // Include the command itself if matching exact string
+        if (rest.length === 0) {
+          output.push(...this.matchCommandNames([command], input))
+        }
+
         output.push(
           ...this.getCommandArgSuggestions({
             command,
@@ -106,25 +114,54 @@ export class Autocompleter {
   }
 
   private matchCommandNames(commands: Command[], input: string) {
+    interface CommandMatch {
+      matchedString: string
+      matchedPath: string[]
+      command: Command
+    }
+
+    const matches: { [key: string]: CommandMatch } = {}
+
     const output: AutocompleteSuggestion[] = []
 
-    for (const c of commands) {
+    for (const command of commands) {
       // TODO: should we maybe skip deprecated aliases?
-      // TODO: skip aliases that are just prefixes of the full name
-      for (const path of c.getPaths()) {
+      for (const path of command.getPaths()) {
         const fullName = path.join(" ")
         if (fullName.startsWith(input)) {
-          output.push({
-            type: "command",
-            line: fullName,
-            command: path,
-            priority: 1,
-          })
+          const key = command.getFullName()
+          const existing = matches[key]
+
+          if (
+            !existing ||
+            // Prefer match on canonical command name
+            key === fullName ||
+            // followed by shorter match
+            (existing.matchedString !== key && existing.matchedString.length > fullName.length)
+          ) {
+            matches[key] = {
+              matchedString: fullName,
+              matchedPath: path,
+              command,
+            }
+          }
         }
       }
     }
 
-    this.debug(`Matched commands to input '${input}': ${output.map((s) => s.command.join(" "))}`)
+    for (const match of Object.values(matches)) {
+      output.push({
+        type: "command",
+        line: match.matchedString,
+        command: {
+          name: match.matchedPath,
+          cliOnly: match.command.cliOnly,
+        },
+        priority: 1,
+      })
+    }
+
+    this.debug(`Matched commands to input '${input}': ${output.map((s) => s.command.name.join(" "))}`)
 
     return output
   }
@@ -171,7 +208,6 @@ export class Autocompleter {
       return []
     }
 
-    // TODO: handle variadic args
     const stringArgs = input[input.length - 1] === " " ? rest.slice(0, -1) : rest
     const parsed = parseCliArgs({ stringArgs, command, cli: true })
     const argIndex = parsed._.length
@@ -195,7 +231,7 @@ export class Autocompleter {
     const argSuggestions = argSpec.getSuggestions({ configDump })
 
     return argSuggestions
-      .filter((s) => s.startsWith(prefix) && !rest.includes(s))
+      .filter((s) => prefix === s || (s.startsWith(prefix) && !rest.includes(s)))
       .map((s) => {
         const split = [...matchedPath, ...rest]
 
@@ -208,7 +244,10 @@ export class Autocompleter {
         return <AutocompleteSuggestion>{
           type: "argument",
           line: split.join(" "),
-          command: command.getPath(),
+          command: {
+            name: command.getPath(),
+            cliOnly: command.cliOnly,
+          },
           priority: 1000, // Rank these above option flags
         }
       })
@@ -248,7 +287,10 @@ export class Autocompleter {
       return <AutocompleteSuggestion>{
         type: "option",
         line: split.join(" "),
-        command: command.getPath(),
+        command: {
+          name: command.getPath(),
+          cliOnly: command.cliOnly,
+        },
         // prefer command-specific flags
         priority: globalOptions[k] ? 1 : 2,
       }
