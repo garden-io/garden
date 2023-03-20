@@ -581,7 +581,7 @@ mv -f garden-cra-demo frontend
 
 This folder has the `garden.yml` and `Dockerfile` ready, so you are ready to go to the next step.
 
-Just to document what it's the content of the `garden.yml` to configure our React App, we are going to use the following configuration, the most important part in this configuration is the ingresses block, as it's where we are setting the hostname for the application `Ex. react.shankyjs.com`.
+The most important part of this configuration is the ingresses block, as it's where we set the hostname for the application `Ex. react.shankyjs.com`.
 
 ````yaml
 kind: Module
