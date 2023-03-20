@@ -678,7 +678,7 @@ variables:
 
 ````
 
-This means that in the first run we are not going to generate certificates, by doing this we should give enough time to `external-dns` so it can create the DNS for us.
+In the first run we don't generate certificates. By doing this we give enough time for `external-dns` to generate DNS records.
 
 Now we can deploy for the first time 🎉
 
