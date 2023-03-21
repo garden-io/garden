@@ -566,7 +566,7 @@ After creating our files, our Helm Chart is now ready to be deployed with Garden
 
 ### Creating our Frontend
 
-To showcase our certificates we decided to use a sample react-application, the code for that React Application is hosted in this [repository](https://github.com/ShankyJS/garden-cra-demo).
+To showcase our certificates we decided to use a sample react-application, the code for that React Application is hosted in our examples folder in the main `Garden` repository [tls-and-dns](https://github.com/garden-io/garden/tree/main/examples/tls-and-dns/frontend).
 
 You can simply clone that repository; and move the code to the folder called `frontend` in your example.
 
@@ -575,13 +575,15 @@ You can simply clone that repository; and move the code to the folder called `fr
 The following commands needs to be executed from your root (next to where the `project.garden.yml` file is.)
 
 ````bash
-git clone git@github.com:ShankyJS/garden-cra-demo.git
-mv -f garden-cra-demo frontend
+git clone git@github.com:garden-io/garden.git
+mv -f examples/tls-and-dns/frontend ./frontend
 ````
 
 This folder has the `garden.yml` and `Dockerfile` ready, so you are ready to go to the next step.
 
 The most important part of this configuration is the ingresses block, as it's where we set the hostname for the application `Ex. react.shankyjs.com`.
+
+This block of code represents the garden.yml in the `frontend` folder.
 
 ````yaml
 kind: Module
@@ -615,11 +617,11 @@ tests:
 
 ````
 
-To this point we have successfully created and configured the whole Garden project and we are ready to start deploying it 🚀.
+We have successfully created and configured the whole Garden project and we are ready to start deploying it 🚀.
 
 ## Deploy 🚀
 
-Now we are ready to deploy our `garden project` for the first time,
+We are ready to deploy our `garden project` for the first time,
 
 First of all, we need to deploy the necessary plugins in our cluster that will allow Garden to run successfully.
 
@@ -718,7 +720,7 @@ Deploy 🚀
 Done! ✔️
 ````
 
-Also something to note is that our website is now up, but without a certificate; because ExternalDNS already provisioned our DNS but we still haven't generated any Certificate for our frontend application.
+Our website is now up, but without a certificate; because ExternalDNS already provisioned our DNS records, but we still haven't generated any Certificate for our frontend application.
 
 ![Frontend application without HTTPs certificate](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712587/i1600x744-DlhjPIr3f0XI_aut50k.png)
 
