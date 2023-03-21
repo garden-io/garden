@@ -151,7 +151,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("deployStatus", {
         ...payloadAttrs,
         state: "getting-status",
-        status: { state: "unknown" },
+        status: { state: "unknown" },
       })
 
       const result = await router.callHandler({ params, handlerType: "getStatus" })
@@ -160,7 +160,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         ...payloadAttrs,
         completedAt: new Date().toISOString(),
         state: stateForCacheStatusEvent(result.state),
-        status: omit(result.detail, "detail")
+        status: omit(result.detail, "detail"),
       })
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
