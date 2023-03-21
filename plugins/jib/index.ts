@@ -180,7 +180,7 @@ export const gardenPlugin = () =>
                 openJdkPath = await openJdk.getPath(log)
               }
 
-              const statusLine = log.makeNewLogContext({ level: LogLevel.verbose, fixLevel: true })
+              const statusLine = log.makeNewLogContext({ fixLevel: LogLevel.verbose })
 
               let projectType = spec.projectType
 
@@ -193,7 +193,7 @@ export const gardenPlugin = () =>
 
               const logEventContext: PluginEventLogContext = {
                 origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
-                log: log.makeNewLogContext({ level: LogLevel.verbose }),
+                log: log.makeNewLogContext({ fixLevel: LogLevel.verbose }),
               }
 
               const outputStream = split2()

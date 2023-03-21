@@ -154,7 +154,7 @@ export class CliWrapper {
 
     const logEventContext = {
       origin: this.name,
-      log: log.makeNewLogContext({ level: LogLevel.verbose }),
+      log: log.makeNewLogContext({ fixLevel: LogLevel.verbose }),
     }
 
     logStream.on("data", (line: Buffer) => {
@@ -300,7 +300,7 @@ export class PluginTool extends CliWrapper {
       const downloadLog = log.makeNewLogContext({}).info(`Fetching ${this.name}...`)
       const debug = downloadLog
         .makeNewLogContext({
-          level: LogLevel.debug,
+          fixLevel: LogLevel.debug,
         })
         .info(`Downloading ${this.buildSpec.url}...`)
 

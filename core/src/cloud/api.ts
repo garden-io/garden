@@ -515,7 +515,7 @@ export class CloudApi {
               // Intentionally skipping search params in case they contain tokens or sensitive data.
               const href = options.url.origin + options.url.pathname
               const description = retryDescription || `Request`
-              retryLog = retryLog || this.log.makeNewLogContext({ level: LogLevel.debug })
+              retryLog = retryLog || this.log.makeNewLogContext({ fixLevel: LogLevel.debug })
               const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
               retryLog.info(deline`
                 ${description} failed with error ${error.message}${statusCodeDescription},

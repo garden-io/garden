@@ -18,6 +18,7 @@ import uniqid from "uniqid"
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
 
+// TODO @eysi: Would be good to get rid of this
 export interface LogEntryMetadata {
   task?: TaskMetadata
   workflowStep?: WorkflowStepMetadata
@@ -47,6 +48,7 @@ interface LogParams extends LogCommonParams {
   /**
    * The log entry section. By default inherited from parent log context
    * but can optionally be overwritten here.
+   * TODO @eysi: In fact, lets remove in favour of context
    */
   section?: string
   symbol?: LogSymbol
@@ -59,25 +61,59 @@ interface CreateLogEntryParams extends LogParams {
   level: LogLevel
 }
 
-export interface LogEntry extends CreateLogEntryParams {
-  type: "logEntry"
+interface LogContext {
+  name: string
+}
+
+// TODO @eysi: What other data would we nee here?
+interface ActionLogContext {
+  actionName: string
+  actionKind: string
+}
+
+// TODO @eysi: Consider nesting the message data (msg, section, symbol etc) under a "message" field.
+interface LogEntryBase extends CreateLogEntryParams {
+  type: "logEntry" | "actionLogEntry"
   timestamp: string
-  metadata?: LogEntryMetadata
+  /**
+   * A unique ID that's assigned to the entry when it's created.
+   */
   key: string
   level: LogLevel
-  id?: string
+  /**
+   * The root logger is attached to the LogEntry for convenience.
+   * TODO: Consider removing so that the log entry is just a POJO.
+   */
   root: Logger
+  /**
+   * Metadata about the context in which the log was created.
+   * Used for rendering contextual information alongside the actual message.
+   */
+  context: LogContext | ActionLogContext
+}
+
+export interface LogEntry extends LogEntryBase {
+  type: "logEntry"
+  metadata?: LogEntryMetadata
+}
+
+export interface ActionLogEntry extends LogEntryBase {
+  type: "actionLogEntry"
+  context: ActionLogContext
 }
 
 export interface LogConstructor extends LogCommonParams {
   section?: string
-  level: LogLevel
   root: Logger
   parent?: Log
   /**
-   * If set to true, all log entries inherit the level of their parent log context.
+   * Fix the level of all log entries created by this Log such that they're
+   * geq to this value.
+   *  
+   *  Useful to enforce the level in a given log context, e.g.:
+   *  const debugLog = log.makeNewLogContext({ fixLevel: LogLevel.debug })
    */
-  fixLevel?: boolean
+  fixLevel?: LogLevel
 }
 
 function resolveCreateParams(level: LogLevel, params: string | LogParams): CreateLogEntryParams {
@@ -100,7 +136,7 @@ function resolveCreateParams(level: LogLevel, params: string | LogParams): Creat
  * Example:
  *
  * const buildLog = log.makeNewLogContext({ section: "build.api" })
- * const debugBuildLog = buildLog.makeNewLogContext({ level: LogLevel.debug, fixLevel: true })
+ * const debugBuildLog = buildLog.makeNewLogContext({ fixLevel: LogLevel.verbose })
  * buildLog.info("hello")
  */
 export class Log {
@@ -110,10 +146,9 @@ export class Log {
   public readonly key: string
   // TODO @eysi: It doesn't really make sense to have a level on the Log class itself
   // unless 'fixLevel' is also set. Consider merging the two.
-  public readonly level: LogLevel
   public readonly root: Logger
   public readonly section?: string
-  public readonly fixLevel?: boolean
+  public readonly fixLevel?: LogLevel
   public readonly id?: string
   public readonly type: "log"
   public entries: LogEntry[]
@@ -122,7 +157,6 @@ export class Log {
     this.key = uniqid()
     this.entries = []
     this.timestamp = new Date().toISOString()
-    this.level = params.level
     this.parent = params.parent
     this.id = params.id
     this.root = params.root
@@ -139,10 +173,7 @@ export class Log {
   }
 
   private createLogEntry(params: CreateLogEntryParams) {
-    // If fixLevel is set to true, all children must have a level geq to the level
-    // of the parent entry that set the flag.
-    const parentWithPreserveFlag = findParentLogContext(this, (log) => !!log.fixLevel)
-    const level = parentWithPreserveFlag ? Math.max(parentWithPreserveFlag.level, params.level) : params.level
+    const level = this.fixLevel ? Math.max(this.fixLevel, params.level)  : params.level
     const section = params.section || this.section
 
     let metadata: LogEntryMetadata | undefined = undefined
@@ -160,6 +191,10 @@ export class Log {
       metadata,
       key: uniqid(),
       root: this.root,
+      // TODO
+      context: {
+        name: ""
+      }
     }
 
     return logEntry
@@ -176,10 +211,10 @@ export class Log {
 
   /**
    * Create a new logger with same context, optionally overwriting some fields.
+   * TODO @eysi: Do not use Partial<> here.
    */
   makeNewLogContext(params: Partial<LogConstructor>) {
     return new Log({
-      level: params.level || this.level,
       section: params.section || this.section,
       parent: this,
       root: this.root,
@@ -230,13 +265,6 @@ export class Log {
 
   getAllLogEntries() {
     return this.root.getLogEntries()
-  }
-
-  /**
-   * Get the log level of the entry as a string.
-   */
-  getStringLevel(): string {
-    return logLevelMap[this.level]
   }
 
   /**

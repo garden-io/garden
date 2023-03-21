@@ -105,7 +105,7 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const logEventContext = {
     origin: "buildkit",
-    log: log.makeNewLogContext({ level: LogLevel.verbose }),
+    log: log.makeNewLogContext({ fixLevel: LogLevel.verbose }),
   }
 
   const outputStream = split2()

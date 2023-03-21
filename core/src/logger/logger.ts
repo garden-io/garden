@@ -233,16 +233,13 @@ export class Logger {
    * Creates a new log context from the root Logger.
    */
   makeNewLogContext({
-    level = LogLevel.info,
     metadata,
     fixLevel,
   }: {
-    level?: LogLevel
     metadata?: LogEntryMetadata
-    fixLevel?: boolean
+    fixLevel?: LogLevel
   } = {}) {
     return new Log({
-      level,
       fixLevel,
       metadata,
       root: this,

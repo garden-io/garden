@@ -80,9 +80,9 @@ describe("Log", () => {
       expect(childLog.metadata).to.eql(undefined)
     })
   })
-  context("fixLevel=true", () => {
+  context("fixLevel=verbose", () => {
     it("should create a log whose child logs and entries inherit the level", () => {
-      const logVerbose = logger.makeNewLogContext({ fixLevel: true, level: LogLevel.verbose })
+      const logVerbose = logger.makeNewLogContext({ fixLevel: LogLevel.verbose })
       const verboseEntryInfo = logVerbose.info("").getLatestEntry()
       const verboseEntryError = logVerbose.error("").getLatestEntry()
       const verboseEntrySilly = logVerbose.silly("").getLatestEntry()
@@ -91,12 +91,12 @@ describe("Log", () => {
       const childEntryError = childLog.error("").getLatestEntry()
       const childEntrySilly = childLog.silly("").getLatestEntry()
 
-      expect(logVerbose.level).to.eql(LogLevel.verbose)
+      expect(logVerbose.fixLevel).to.eql(LogLevel.verbose)
       expect(verboseEntryInfo.level).to.eql(LogLevel.verbose)
       expect(verboseEntryError.level).to.eql(LogLevel.verbose)
       expect(verboseEntrySilly.level).to.eql(LogLevel.silly)
 
-      expect(childLog.level).to.eql(LogLevel.verbose)
+      expect(childLog.fixLevel).to.eql(LogLevel.verbose)
       expect(childEntryInfo.level).to.eql(LogLevel.verbose)
       expect(childEntryError.level).to.eql(LogLevel.verbose)
       expect(childEntrySilly.level).to.eql(LogLevel.silly)
