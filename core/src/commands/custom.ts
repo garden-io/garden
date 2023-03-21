@@ -32,6 +32,7 @@ import { customMinimist } from "../lib/minimist"
 import { removeSlice } from "../util/util"
 import { join } from "path"
 import { getBuiltinCommands } from "./commands"
+import { Log } from "../logger/log-entry"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -227,12 +228,12 @@ export class CustomCommandWrapper extends Command {
   }
 }
 
-export async function getCustomCommands(projectRoot: string) {
+export async function getCustomCommands(log: Log, projectRoot: string) {
   // Look for Command resources in the project root directory
   const rootFiles = await listDirectory(projectRoot, { recursive: false })
   const paths = rootFiles.filter(isConfigFilename).map((p) => join(projectRoot, p))
 
-  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(projectRoot, path)))
+  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(log, projectRoot, path)))
 
   const builtinNames = getBuiltinCommands().flatMap((c) => c.getPaths().map((p) => p.join(" ")))
 

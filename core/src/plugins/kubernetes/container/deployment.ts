@@ -59,7 +59,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const imageId = getDeployedImageId(action, k8sCtx.provider)
 
   const status = await k8sGetContainerDeployStatus(params)
-  const specChangedResourceKeys: string[] = (status.detail?.detail.selectorChangedResourceKeys) || []
+  const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
   if (specChangedResourceKeys.length > 0) {
     const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
     await handleChangedSelector({
@@ -75,6 +75,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
 
   if (deploymentStrategy === "blue-green") {
     emitNonRepeatableWarning(
+      log,
       "The deploymentStrategy configuration option has been deprecated and has no effect. It will be removed iin 0.14. The 'rolling' deployment strategy will be applied."
     )
   }
@@ -769,18 +770,31 @@ export async function handleChangedSelector({
   production: boolean
   force: boolean
 }) {
-  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white("spec.selector")} and needs to be deleted before redeploying.`
+  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white(
+    "spec.selector"
+  )} and needs to be deleted before redeploying.`
   if (production && !force) {
     throw new DeploymentError(
-      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white("--force")} flag when deploying e.g. with the ${chalk.white("garden deploy")} command. You can also delete the resource from your cluster manually and try again.`, {
+      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
+        "--force"
+      )} flag when deploying e.g. with the ${chalk.white(
+        "garden deploy"
+      )} command. You can also delete the resource from your cluster manually and try again.`,
+      {
         deployName: action.name,
       }
     )
   } else {
     if (production && force) {
-      log.warn(chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`))
+      log.warn(
+        chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
+      )
     } else if (!production) {
-      log.warn(chalk.yellow(`${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`))
+      log.warn(
+        chalk.yellow(
+          `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
+        )
+      )
     }
     await deleteResourceKeys({
       ctx,

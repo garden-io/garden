@@ -109,7 +109,7 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
 
     // Throw if a project config already exists in the config path
     if (await pathExists(configPath)) {
-      const configs = await loadConfigResources(configDir, configPath)
+      const configs = await loadConfigResources(log, configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Project").length > 0) {
         throw new CreateError(`A Garden project already exists in ${configPath}`, { configDir, configPath })

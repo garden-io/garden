@@ -143,7 +143,7 @@ export class ServeCommand<
 
   async getCommands(garden: Garden) {
     const builtinCommands = getBuiltinCommands()
-    const customCommands = await getCustomCommands(garden.projectRoot)
+    const customCommands = await getCustomCommands(garden.log, garden.projectRoot)
 
     return [
       ...builtinCommands,

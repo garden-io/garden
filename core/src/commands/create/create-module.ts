@@ -158,7 +158,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Throw if module with same name already exists
     if (await pathExists(configPath)) {
-      const configs = await loadConfigResources(configDir, configPath)
+      const configs = await loadConfigResources(log, configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Module" && c.name === name).length > 0) {
         throw new CreateError(
@@ -208,7 +208,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Warn if module type is defined by provider that isn't configured OR if not in a project, ask to make sure
     // it is configured in the project that will use the module.
-    const projectConfig = await findProjectConfig(configDir)
+    const projectConfig = await findProjectConfig(log, configDir)
     const pluginName = definition.plugin.name
 
     if (!fixedPlugins.includes(pluginName)) {

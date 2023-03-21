@@ -6,32 +6,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Logger, LogLevel } from "./logger/logger"
 import chalk from "chalk"
+import { Log } from "./logger/log-entry"
 
 interface LoggerContext {
   readonly history: Set<string>
-  logger: Logger | undefined
 }
 
 const loggerContext: LoggerContext = {
   history: new Set<string>(),
-  logger: undefined,
 }
 
-export function emitNonRepeatableWarning(message: string) {
+export function emitNonRepeatableWarning(log: Log, message: string) {
   if (loggerContext.history.has(message)) {
     return
   }
 
-  if (!loggerContext.logger) {
-    loggerContext.logger = Logger.initialize({
-      level: LogLevel.info,
-      type: "default",
-      storeEntries: false,
-    })
-  }
-  const log = loggerContext.logger.makeNewLogContext()
   log.warn({
     symbol: "warning",
     msg: chalk.yellow(message),

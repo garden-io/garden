@@ -1323,7 +1323,7 @@ export class Garden {
   private async loadResources(configPath: string): Promise<GardenResource[]> {
     configPath = resolve(this.projectRoot, configPath)
     this.log.silly(`Load configs from ${configPath}`)
-    const resources = await loadConfigResources(this.projectRoot, configPath)
+    const resources = await loadConfigResources(this.log, this.projectRoot, configPath)
     this.log.silly(`Loaded configs from ${configPath}`)
     return resources.filter((r) => r.kind && r.kind !== "Project")
   }
@@ -1481,9 +1481,10 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   opts: GardenOpts
 ): Promise<GardenParams> {
   let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
+  const log = opts.log || getLogger().makeNewLogContext()
 
   if (!config) {
-    config = await findProjectConfig(currentDirectory)
+    config = await findProjectConfig(log, currentDirectory)
 
     if (!config) {
       throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
@@ -1500,7 +1501,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   const _username = (await username()) || ""
   const projectName = config.name
-  const log = opts.log || getLogger().makeNewLogContext()
 
   const { sources: projectSources, path: projectRoot } = config
   const commandInfo = opts.commandInfo
