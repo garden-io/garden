@@ -131,6 +131,35 @@ describe("Autocompleter", () => {
       }
     })
 
+    it("returns more (unique) suggestions for variadic args after first arg", () => {
+      const input = "build module-a "
+      const result = ac.getSuggestions(input)
+
+      const lines = result.map((s) => s.line)
+
+      for (const s of ["module-b", "module-c", ...flags]) {
+        expect(lines).to.include(input + s)
+      }
+
+      // Should not suggest already entered suggestions
+      expect(lines).to.not.include(input + "module-a")
+    })
+
+    it("returns more (unique) suggestions for variadic args after second arg", () => {
+      const input = "build module-a module-b "
+      const result = ac.getSuggestions(input)
+
+      const lines = result.map((s) => s.line)
+
+      for (const s of ["module-c", ...flags]) {
+        expect(lines).to.include(input + s)
+      }
+
+      // Should not suggest already entered suggestions
+      expect(lines).to.not.include(input + "module-a")
+      expect(lines).to.not.include(input + "module-b")
+    })
+
     it("returns nothing if typing a positional argument that matches no suggested value", () => {
       const result = ac.getSuggestions("build z")
       expect(result).to.eql([])

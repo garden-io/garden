@@ -16,7 +16,8 @@ import { StringsParameter, BooleanParameter } from "../../cli/params"
 
 const unlinkSourceArguments = {
   sources: new StringsParameter({
-    help: "The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.",
+    help: "The name(s) of the source(s) to unlink. You may specify multiple sources, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return configDump.sources.map((s) => s.name)
     },

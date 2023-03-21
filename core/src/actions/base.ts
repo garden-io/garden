@@ -59,6 +59,7 @@ import { PickTypeByKind } from "../graph/config-graph"
 import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
+import { uuidv4 } from "../util/random"
 
 // TODO-G2: split this file
 
@@ -497,6 +498,14 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   @Memoize()
   configVersion() {
     return versionStringPrefix + hashStrings([this.stringifyConfig()])
+  }
+
+  /**
+   * We use memoization to lazy-generate the uid to avoid unnecessary overhead when initializing every action.
+   */
+  @Memoize()
+  getUid() {
+    return uuidv4()
   }
 
   /**

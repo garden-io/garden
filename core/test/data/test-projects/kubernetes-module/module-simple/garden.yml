@@ -41,3 +41,29 @@ tests:
 tasks:
   - name: echo-task
     command: [sh, -c, "echo ok"]
+
+---
+
+kind: Run
+name: echo-run-exec
+type: kubernetes-exec
+dependencies:
+  - deploy.module-simple
+spec:
+  resource:
+    kind: Deployment
+    name: busybox-deployment
+  args: [echo, ok]
+
+---
+
+kind: Test
+name: echo-test-exec
+type: kubernetes-exec
+dependencies:
+  - deploy.module-simple
+spec:
+  resource:
+    kind: Deployment
+    name: busybox-deployment
+  args: [echo, ok]

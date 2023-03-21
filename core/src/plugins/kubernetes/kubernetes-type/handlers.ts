@@ -7,10 +7,10 @@
  */
 
 import Bluebird from "bluebird"
-import { cloneDeep, isEmpty, omit, partition, uniq } from "lodash"
+import { isEmpty, omit, partition, uniq } from "lodash"
 import type { NamespaceStatus } from "../../../types/namespace"
 import type { ModuleActionHandlers } from "../../../plugin/plugin"
-import { serviceStateToActionState, ServiceStatus } from "../../../types/service"
+import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
@@ -28,9 +28,9 @@ import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import type { ExecBuildConfig } from "../../exec/config"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
-import { getTargetResource } from "../util"
 import type { Log } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
+import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
 export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>> = {
   configure: configureKubernetesModule,
@@ -46,6 +46,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
     const service = services[0] // There is always exactly one service in kubernetes modules
     const serviceResource = module.spec.serviceResource
 
+    const files = module.spec.files || []
+    const manifests = module.spec.manifests || []
+
     const deployAction: KubernetesDeployActionConfig = {
       kind: "Deploy",
       type: "kubernetes",
@@ -59,8 +62,8 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
-        files: module.spec.files || [],
-        manifests: module.spec.manifests || [],
+        files,
+        manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
       },
     }
@@ -95,7 +98,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
-          namespace: module.spec.namespace
+          files,
+          manifests,
+          namespace: module.spec.namespace,
         },
       })
     }
@@ -121,7 +126,9 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
-          namespace: module.spec.namespace
+          files,
+          manifests,
+          namespace: module.spec.namespace,
         },
       })
     }
@@ -208,7 +215,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   }
 
   return {
-    state: serviceStateToActionState(state),
+    state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
       state,
@@ -307,6 +314,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         spec: spec.localMode,
         // TODO-G2: Support multiple processes+targets.
         targetResource: modifiedResources[0],
+        manifests: preparedManifests,
         action,
         namespace,
         log,
@@ -466,44 +474,15 @@ async function configureSpecialModesForManifests({
   // Local mode always takes precedence over sync mode
   if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
     // TODO-G2: Support multiple local processes+targets
-    const query = spec.localMode.target || spec.defaultTarget
-
-    if (!query) {
-      log.warn({
-        section: action.key(),
-        symbol: "warning",
-        msg: "Neither `localMode.target` nor `defaultTarget` is configured. Cannot Deploy in local mode.",
-      })
-      return { updated: [], manifests }
-    }
-
-    const target = cloneDeep(
-      await getTargetResource({
-        ctx,
-        log,
-        provider: ctx.provider,
-        action,
-        manifests,
-        query,
-      })
-    )
-
     // The "local-mode" annotation is set in `configureLocalMode`.
-    await configureLocalMode({
+    return await configureLocalMode({
       ctx,
       spec: spec.localMode,
-      targetResource: target,
+      defaultTarget: spec.defaultTarget,
+      manifests,
       action,
       log,
-      containerName: spec.localMode.target?.containerName,
     })
-
-    // Replace the original resource with the modified spec
-    const preparedManifests = manifests
-      .filter((m) => !(m.kind === target!.kind && target?.metadata.name === m.metadata.name))
-      .concat(<KubernetesResource<BaseResource>>target)
-
-    return { updated: [target], manifests: preparedManifests }
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     // The "sync-mode" annotation is set in `configureDevMode`.
     return configureSyncMode({

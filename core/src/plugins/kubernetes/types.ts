@@ -25,10 +25,8 @@ import type {
   ContainerRunAction,
   ContainerTestAction,
 } from "../container/config"
-import type { HelmDeployAction } from "./helm/config"
-import type { KubernetesDeployAction } from "./kubernetes-type/config"
-import { KubernetesRunAction } from "./kubernetes-type/run"
-import { KubernetesTestAction } from "./kubernetes-type/test"
+import type { HelmDeployAction, HelmPodRunAction, HelmPodTestAction } from "./helm/config"
+import type { KubernetesDeployAction, KubernetesRunAction, KubernetesTestAction } from "./kubernetes-type/config"
 
 export interface BaseResource {
   apiVersion: string
@@ -50,15 +48,15 @@ export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseR
       name: string
     }
   } & Omit<T, "apiVersion" | "kind" | "metadata"> &
-    // Make sure these are required if they're on the provided type
     {
+      // Make sure these are required if they're on the provided type
       [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
     }
 
 // Server-side resources always have some fields set if they're in the schema, e.g. status
 export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> = KubernetesResource<T> &
-  // Make sure these are required if they're on the provided type
   {
+    // Make sure these are required if they're on the provided type
     [P in Extract<keyof T, "status">]: Exclude<T[P], undefined>
   }
 
@@ -98,12 +96,16 @@ export type SyncableResource = KubernetesWorkload | KubernetesPod
 export type SyncableKind = "Deployment" | "DaemonSet" | "StatefulSet"
 export const syncableKinds: string[] = ["Deployment", "DaemonSet", "StatefulSet"]
 
+export type SyncableRuntimeAction = ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
+
+export type HelmRuntimeAction = HelmDeployAction | HelmPodRunAction | HelmPodTestAction
+
 export type SupportedRuntimeActions =
   | ContainerBuildAction
   | ContainerDeployAction
   | ContainerTestAction
   | ContainerRunAction
-  | HelmDeployAction
+  | HelmRuntimeAction
   | KubernetesDeployAction
   | KubernetesRunAction
   | KubernetesTestAction

@@ -8,12 +8,11 @@
 
 import { realpath } from "fs-extra"
 import normalizePath from "normalize-path"
-import { ActionState } from "../actions/types"
+import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
-import { runStatus } from "../plugin/base"
+import { runStatusForEventPayload } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
 import { makeTempDir } from "../util/fs"
-import { uuidv4 } from "../util/random"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
@@ -24,24 +23,24 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
       const tmpDir = await makeTempDir()
       const artifactsPath = normalizePath(await realpath(tmpDir.path))
-      const actionUid = uuidv4()
+      const actionUid = action.getUid()
 
       const actionName = action.name
       const actionVersion = action.versionString()
-      const testName = actionName
-      const testVersion = actionVersion
       const moduleName = action.moduleName()
-      const moduleVersion = action.moduleVersion().versionString
 
-      garden.events.emit("testStatus", {
+      const payloadAttrs = {
         actionName,
         actionVersion,
-        testName,
         moduleName,
-        moduleVersion,
-        testVersion,
         actionUid,
-        status: { state: "running", startedAt: new Date() },
+        startedAt: new Date().toISOString(),
+      }
+
+      garden.events.emit("testStatus", {
+        ...payloadAttrs,
+        state: "processing",
+        status: { state: "running" },
       })
 
       params.events = params.events || new PluginEventBroker()
@@ -55,15 +54,12 @@ export const testRouter = (baseParams: BaseRouterParams) =>
             log.info(renderOutputStream(data.toString(), origin))
           }
           // stream logs to Garden Cloud
-          // TODO: consider sending origin as well
           garden.events.emit("log", {
             timestamp,
             actionUid,
-            entity: {
-              type: "test",
-              key: `${moduleName}.${testName}`,
-              moduleName,
-            },
+            actionName,
+            moduleName,
+            origin,
             data: data.toString(),
           })
         })
@@ -74,14 +70,10 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
         // Emit status
         garden.events.emit("testStatus", {
-          actionName,
-          actionVersion,
-          testName,
-          moduleName,
-          moduleVersion,
-          testVersion,
-          actionUid,
-          status: runStatus(result.detail),
+          ...payloadAttrs,
+          completedAt: new Date().toISOString(),
+          state: result.state,
+          status: runStatusForEventPayload(result.detail),
         })
         // TODO-G2: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
@@ -105,23 +97,34 @@ export const testRouter = (baseParams: BaseRouterParams) =>
     getResult: async (params) => {
       const { garden, router, action } = params
 
+      const actionName = action.name
+      const actionVersion = action.versionString()
+
+      const payloadAttrs = {
+        actionName,
+        actionVersion,
+        moduleName: action.moduleName(),
+        actionUid: action.getUid(),
+        startedAt: new Date().toISOString(),
+      }
+
+      garden.events.emit("testStatus", {
+        ...payloadAttrs,
+        state: "getting-status",
+        status: { state: "unknown" },
+      })
+
       const result = await router.callHandler({
         params,
         handlerType: "getResult",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
       })
 
-      const actionName = action.name
-      const actionVersion = action.versionString()
-
       garden.events.emit("testStatus", {
-        actionName,
-        actionVersion,
-        testName: actionName,
-        moduleName: action.moduleName(),
-        moduleVersion: action.moduleVersion().versionString,
-        testVersion: actionVersion,
-        status: runStatus(result.detail),
+        ...payloadAttrs,
+        state: stateForCacheStatusEvent(result.state),
+        completedAt: new Date().toISOString(),
+        status: runStatusForEventPayload(result.detail),
       })
 
       if (result) {

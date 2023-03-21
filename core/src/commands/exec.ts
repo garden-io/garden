@@ -10,7 +10,7 @@ import chalk from "chalk"
 import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
-import { StringParameter, BooleanParameter, ParameterValues } from "../cli/params"
+import { StringParameter, BooleanParameter, ParameterValues, StringsParameter } from "../cli/params"
 import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/Deploy/exec"
 import { executeAction } from "../graph/actions"
 
@@ -22,10 +22,10 @@ const execArgs = {
       return Object.keys(configDump.actionConfigs.Deploy)
     },
   }),
-  // TODO: make this variadic
-  command: new StringParameter({
+  command: new StringsParameter({
     help: "The command to run.",
     required: true,
+    spread: true,
   }),
 }
 
@@ -95,6 +95,6 @@ export class ExecCommand extends Command<Args, Opts> {
   }
 
   private getCommand(args: ParameterValues<Args>) {
-    return args.command.split(" ") || []
+    return args.command || []
   }
 }

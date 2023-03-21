@@ -44,8 +44,9 @@ Optionally stays running and automatically builds when sources (or dependencies'
 
 Examples:
 
-    garden build            # build everything in the project
-    garden build my-image   # only build my-image
+    garden build                   # build everything in the project
+    garden build my-image          # only build my-image
+    garden build image-a image-b   # build image-a and image-b
     garden build --force    # force re-builds, even if builds had already been performed at current version
 
 #### Usage
@@ -56,7 +57,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify builds to run. Use comma as a separator to specify multiple names.
+  | `names` | No | Specify builds to run. You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -335,7 +336,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to delete. Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to delete. You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -479,7 +480,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything). Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -487,8 +488,8 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
-  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled. Use comma as a separator to specify multiple names. Use * to deploy all supported deployments with sync enabled.
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple deploys. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
+  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled. You may specify multiple names by setting this flag multiple times. Use * to deploy all supported deployments with sync enabled.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. You may specify multiple deploys by setting this flag multiple times. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
 This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
   | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
@@ -572,9 +573,9 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--filter-envs` |  | array:string | Filter on environment. Use comma as a separator to filter on multiple environments. Accepts glob patterns.&quot;
-  | `--filter-user-ids` |  | array:string | Filter on user ID. Use comma as a separator to filter on multiple user IDs. Accepts glob patterns.
-  | `--filter-names` |  | array:string | Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.
+  | `--filter-envs` |  | array:string | Filter on environment. You may filter on multiple environments by setting this flag multiple times. Accepts glob patterns.&quot;
+  | `--filter-user-ids` |  | array:string | Filter on user ID. You may filter on multiple user IDs by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on secret name. You may filter on multiple secret names by setting this flag multiple times. Accepts glob patterns.
 
 
 ### garden cloud secrets create
@@ -590,7 +591,7 @@ To scope secrets to a user, you will need the user's ID which you can get from t
 You can optionally read the secrets from a file.
 
 Examples:
-    garden cloud secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
+    garden cloud secrets create DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two secrets
     garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
     garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
     garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
@@ -603,7 +604,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. Use comma as a separator to specify multiple secret name/value pairs. Note that you can also leave this empty and have Garden read the secrets from file.
+  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret name/value pairs, separated by spaces. Note that you can also leave this empty and have Garden read the secrets from file.
 
 #### Options
 
@@ -622,7 +623,7 @@ Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to 
 which you which you can get from the `garden cloud secrets list` command.
 
 Examples:
-    garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
+    garden cloud secrets delete 1 2 3   # delete secrets with IDs 1, 2, and 3.
 
 #### Usage
 
@@ -632,7 +633,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `ids` | No | The IDs of the secrets to delete.
+  | `ids` | No | The ID(s) of the secrets to delete.
 
 
 
@@ -655,8 +656,8 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on user name. Use comma as a separator to filter on multiple names. Accepts glob patterns.
-  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.
 
 
 ### garden cloud users create
@@ -676,7 +677,7 @@ fatema_m="Fatema M"
 gordon99="Gordon G"
 
 Examples:
-    garden cloud users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
+    garden cloud users create fatema_m="Fatema M" gordon99="Gordon G"  # create two users
     garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
     garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
 
@@ -688,13 +689,13 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. Use comma as a separator to specify multiple VCS username/name pairs. Note that you can also leave this empty and have Garden read the users from file.
+  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple VCS username/name pairs, separated by spaces. Note that you can also leave this empty and have Garden read the users from file.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. Use comma as a separator to add the user to multiple groups.
+  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. You may add the user to multiple groups by setting this flag multiple times.
   | `--from-file` |  | path | Read the users from the file at the given path. The file should have standard &quot;dotenv&quot; format (as defined by [dotenv](https://github.com/motdotla/dotenv#rules)) where the VCS username is the key and the name is the value.
 
 
@@ -706,7 +707,7 @@ Delete users in Garden Cloud. You will nee the IDs of the users you want to dele
 which you which you can get from the `garden cloud users list` command.
 
 Examples:
-    garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
+    garden cloud users delete 1 2 3   # delete users with IDs 1, 2, and 3.
 
 #### Usage
 
@@ -739,7 +740,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on group name. Use comma as a separator to filter on multiple names. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on group name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
 
 
 ### garden get graph
@@ -2195,7 +2196,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | Specify module(s) to list. Use comma as a separator to specify multiple modules. Skip to return all modules.
+  | `modules` | No | Specify module(s) to list. You may specify multiple modules, separated by spaces. Skip to return all modules.
 
 #### Options
 
@@ -2747,7 +2748,7 @@ actions:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify run(s)/task(s) to list. Use comma as a separator to specify multiple names.
+  | `names` | No | Specify run(s)/task(s) to list. You may specify multiple names, separated by spaces.
 
 
 
@@ -2764,7 +2765,7 @@ actions:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify tests(s) to list. Use comma as a separator to specify multiple tests.
+  | `names` | No | Specify tests(s) to list. You may specify multiple test names, separated by spaces.
 
 
 
@@ -2824,7 +2825,7 @@ detail:
 
     state:
 
-# Local file paths to any exported artifacts from the task run.
+# Local file paths to any exported artifacts from the Run's execution.
 artifacts:
 ```
 
@@ -2925,7 +2926,7 @@ Note that this may include sensitive data, depending on the provider and your co
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `workflows` | No | Specify workflow(s) to list. Use comma as a separator to specify multiple workflows.
+  | `workflows` | No | Specify workflow(s) to list. You may specify multiple workflows, separated by spaces.
 
 
 
@@ -3025,7 +3026,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -3059,13 +3060,13 @@ Examples:
 
 #### Usage
 
-    garden migrate [configPaths] [options]
+    garden migrate [config-paths] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `configPaths` | No | Specify the path to a &#x60;garden.yml&#x60; file to convert. Use comma as a separator to specify multiple files.
+  | `config-paths` | No | Specify the path to a &#x60;garden.yml&#x60; file to convert. You may specify multiple files by setting this flag multiple times.
 
 #### Options
 
@@ -3151,7 +3152,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the builds (or modules) to publish (skip to publish every build). Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the builds (or modules) to publish (skip to publish every build). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -3225,7 +3226,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the Run action(s) to perform. Use comma as a separator to specify multiple names. Accepts glob patterns (e.g. init* would run both &#x27;init&#x27; and &#x27;initialize&#x27;).
+  | `names` | No | The name(s) of the Run action(s) to perform. You may specify multiple names, separated by spaces. Accepts glob patterns (e.g. init* would run both &#x27;init&#x27; and &#x27;initialize&#x27;).
 
 #### Options
 
@@ -3336,7 +3337,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the Test action(s) to test (skip to run all tests in the project). Use comma as a separator to specify multiple tests. Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `names` | No | The name(s) of the Test action(s) to test (skip to run all tests in the project). You may specify multiple test names, separated by spaces. Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 
 #### Options
 
@@ -3427,7 +3428,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the source(s) to unlink. You may specify multiple sources, separated by spaces.
 
 #### Options
 
@@ -3456,7 +3457,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the module(s) to unlink. You may specify multiple modules, separated by spaces.
 
 #### Options
 
@@ -3485,7 +3486,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the remote source(s) to update. You may specify multiple sources, separated by spaces.
 
 #### Options
 
@@ -3527,7 +3528,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the remote module(s) to update. You may specify multiple modules, separated by spaces.
 
 #### Options
 

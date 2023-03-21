@@ -841,7 +841,7 @@ describe("exec plugin", () => {
           expect(detail.detail.statusCommandOutput).to.equal("already deployed")
         })
 
-        it("returns 'outdated' if statusCommand returns non-zero exit code", async () => {
+        it("returns 'not-ready' if statusCommand returns non-zero exit code", async () => {
           const actionName = "touch"
           const rawAction = graph.getDeploy(actionName)
           const router = await garden.getActionRouter()
@@ -853,8 +853,9 @@ describe("exec plugin", () => {
           })
 
           const actionRes = res[actionName]
-          expect(actionRes.state).to.equal("outdated")
+          expect(actionRes.state).to.equal("not-ready")
           const detail = actionRes.detail!
+          // The deploy state is different (has more states) than the action state
           expect(detail.state).to.equal("outdated")
           expect(detail.version).to.equal(action.versionString())
           expect(detail.detail.statusCommandOutput).to.be.empty

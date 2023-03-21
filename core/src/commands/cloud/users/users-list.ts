@@ -20,10 +20,10 @@ import { getCloudDistributionName } from "../../../util/util"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
-    help: deline`Filter on user name. Use comma as a separator to filter on multiple names. Accepts glob patterns.`,
+    help: deline`Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.`,
   }),
   "filter-groups": new StringsParameter({
-    help: deline`Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.`,
+    help: deline`Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.`,
   }),
 }
 

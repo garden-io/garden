@@ -181,7 +181,7 @@ spec:
       # not available, a warning is shown and a random port chosen instead.
       localPort:
 
-  # Optionally override the release name used when installing (defaults to the module name).
+  # Optionally override the release name used when installing (defaults to the Deploy name).
   releaseName:
 
   # Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
@@ -198,11 +198,11 @@ spec:
   # If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
   # of this list, so they will take precedence over other files listed here.
   #
-  # Note that the paths here should be relative to the _module_ root, and the files should be contained in
-  # your module directory.
+  # Note that the paths here should be relative to the _config_ root, and the files should be contained in
+  # this action config's directory.
   valueFiles: []
 
-  # Specify the Helm chart to deploy.
+  # Specify the Helm chart to use.
   #
   # If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be
   # detected. If the chart is in the source tree but in a sub-directory, you should set `chart.path` to the directory
@@ -741,7 +741,7 @@ The _preferred_ local port to forward from. If none is set, a random port is cho
 
 [spec](#spec) > releaseName
 
-Optionally override the release name used when installing (defaults to the module name).
+Optionally override the release name used when installing (defaults to the Deploy name).
 
 | Type     | Required |
 | -------- | -------- |
@@ -778,8 +778,8 @@ this list will have the highest precedence.
 If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
 of this list, so they will take precedence over other files listed here.
 
-Note that the paths here should be relative to the _module_ root, and the files should be contained in
-your module directory.
+Note that the paths here should be relative to the _config_ root, and the files should be contained in
+this action config's directory.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
@@ -789,7 +789,7 @@ your module directory.
 
 [spec](#spec) > chart
 
-Specify the Helm chart to deploy.
+Specify the Helm chart to use.
 
 If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set `chart.path` to the directory path, relative to the action directory.
 

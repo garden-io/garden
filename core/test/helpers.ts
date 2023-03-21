@@ -559,14 +559,14 @@ export function getAllProcessedTaskNames(results: GraphResultMapWithoutTask) {
 }
 
 /**
- * Returns a map of all task results including dependencies from a GraphResultMap.
+ * Returns a map of all Run results including dependencies from a GraphResultMap.
  */
-export function getAllTaskResults(results: GraphResultMapWithoutTask) {
+export function getAllRunResults(results: GraphResultMapWithoutTask) {
   const all = { ...results }
 
   for (const r of Object.values(results)) {
     if (r?.dependencyResults) {
-      for (const [key, result] of Object.entries(getAllTaskResults(r.dependencyResults))) {
+      for (const [key, result] of Object.entries(getAllRunResults(r.dependencyResults))) {
         all[key] = result
       }
     }
@@ -774,12 +774,13 @@ export async function enableAnalytics(garden: TestGarden) {
   return resetConfig
 }
 
-export function getRuntimeStatusEvents(eventLog: EventLogEntry[]) {
-  const runtimeEventNames = ["taskStatus", "testStatus", "serviceStatus"]
+export function getRuntimeStatusEventsWithoutTimestamps(eventLog: EventLogEntry[]) {
+  const runtimeEventNames = ["runStatus", "testStatus", "deployStatus"]
   return eventLog
     .filter((e) => runtimeEventNames.includes(e.name))
     .map((e) => {
       const cloned = { ...e }
+      cloned.payload = omit(cloned.payload, "startedAt", "completedAt")
       cloned.payload.status = pick(cloned.payload.status, ["state"])
       return cloned
     })

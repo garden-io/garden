@@ -15,6 +15,7 @@ import { BuildActionHandler } from "../../plugin/action-types"
 import { ContainerBuildAction, ContainerBuildOutputs, defaultDockerfileName } from "./config"
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
+import dedent from "dedent"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
@@ -47,8 +48,10 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   // make sure we can build the thing
   if (!hasDockerfile) {
     throw new ConfigurationError(
-      `Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
-      Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.`,
+      dedent`
+      Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
+      Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.
+    `,
       { spec }
     )
   }

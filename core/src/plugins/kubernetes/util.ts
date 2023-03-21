@@ -23,7 +23,7 @@ import {
 } from "./types"
 import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
-import { gardenAnnotationKey, base64, deline, stableStringify, splitLast } from "../../util/string"
+import { gardenAnnotationKey, base64, deline, stableStringify, splitLast, truncate } from "../../util/string"
 import { MAX_CONFIGMAP_DATA_SIZE } from "./constants"
 import { ContainerEnvVars } from "../container/moduleConfig"
 import { ConfigurationError, DeploymentError, InternalError, PluginError } from "../../exceptions"
@@ -35,12 +35,14 @@ import { KubernetesModule } from "./kubernetes-type/module-config"
 import { prepareTemplates, renderHelmTemplateString } from "./helm/common"
 import { SyncableResource } from "./types"
 import { ProviderMap } from "../../config/provider"
-import { PodRunner } from "./run"
+import { PodRunner, PodRunnerExecParams } from "./run"
 import { isSubset } from "../../util/is-subset"
 import { checkPodStatus } from "./status/pod"
 import { getActionNamespace } from "./namespace"
 import { Resolved } from "../../actions/types"
 import { serializeValues } from "../../util/serialization"
+import { PassThrough } from "stream"
+import { LogLevel } from "../../logger/logger"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -248,6 +250,7 @@ export async function execInWorkload({
   namespace,
   workload,
   command,
+  streamLogs = false,
   interactive,
 }: {
   ctx: PluginContext
@@ -256,6 +259,7 @@ export async function execInWorkload({
   namespace: string
   workload: KubernetesWorkload | KubernetesPod
   command: string[]
+  streamLogs?: boolean
   interactive: boolean
 }) {
   const api = await KubeApi.factory(log, ctx, provider)
@@ -270,6 +274,32 @@ export async function execInWorkload({
     })
   }
 
+  const execParams: PodRunnerExecParams = {
+    log,
+    command,
+    timeoutSec: 999999,
+    tty: interactive,
+    buffer: true,
+  }
+
+  if (streamLogs) {
+    const logEventContext = {
+      // To avoid an awkwardly long prefix for the log lines when rendered, we set a max length here.
+      origin: truncate(command.join(" "), 25),
+      log: log.makeNewLogContext({ level: LogLevel.verbose }),
+    }
+
+    const outputStream = new PassThrough()
+    outputStream.on("error", () => {})
+    outputStream.on("data", (line: Buffer) => {
+      // For some reason, we're getting extra newlines for each line here, so we trim them.
+      const data = Buffer.from(line.toString().trimEnd(), "utf-8")
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
+    })
+    execParams.stdout = outputStream
+    execParams.stderr = outputStream
+  }
+
   const runner = new PodRunner({
     api,
     ctx,
@@ -278,13 +308,7 @@ export async function execInWorkload({
     pod,
   })
 
-  const res = await runner.exec({
-    log,
-    command,
-    timeoutSec: 999999,
-    tty: interactive,
-    buffer: true,
-  })
+  const res = await runner.exec(execParams)
 
   return { code: res.exitCode, output: res.log }
 }
@@ -639,22 +663,8 @@ export async function getTargetResource({
   }
 
   // No manifests provided, need to look up in the remote namespace
-  if (!targetName) {
-    // This should be caught in config/schema validation
-    throw new InternalError(`Must specify name in resource/target query`, { query })
-  }
-
   try {
-    if (targetKind === "Deployment") {
-      target = await api.apps.readNamespacedDeployment(targetName, namespace)
-    } else if (targetKind === "DaemonSet") {
-      target = await api.apps.readNamespacedDaemonSet(targetName, namespace)
-    } else if (targetKind === "StatefulSet") {
-      target = await api.apps.readNamespacedStatefulSet(targetName, namespace)
-    } else {
-      // This should be caught in config/schema validation
-      throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
-    }
+    target = await readTargetResource({ api, namespace, query })
     return target
   } catch (err) {
     if (err.statusCode === 404) {
@@ -667,6 +677,35 @@ export async function getTargetResource({
     } else {
       throw err
     }
+  }
+}
+
+export async function readTargetResource({
+  api,
+  namespace,
+  query
+}: {
+  api: KubeApi
+  namespace: string
+  query: KubernetesTargetResourceSpec
+}): Promise<SyncableResource> {
+  const targetKind = query.kind
+  let targetName = query.name
+
+  if (!targetName) {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Must specify name in resource/target query`, { query })
+  }
+
+  if (targetKind === "Deployment") {
+    return api.apps.readNamespacedDeployment(targetName, namespace)
+  } else if (targetKind === "DaemonSet") {
+    return api.apps.readNamespacedDaemonSet(targetName, namespace)
+  } else if (targetKind === "StatefulSet") {
+    return api.apps.readNamespacedStatefulSet(targetName, namespace)
+  } else {
+    // This should be caught in config/schema validation
+    throw new InternalError(`Unsupported kind specified in resource/target query`, { query })
   }
 }
 

@@ -26,7 +26,7 @@ import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
 import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { ConfigurationError, DeploymentError } from "../../../exceptions"
@@ -186,6 +186,7 @@ export async function startLocalMode({
     ctx,
     spec: localModeSpec,
     targetResource,
+    manifests: status.detail.remoteResources,
     action,
     namespace,
     log,
@@ -254,19 +255,6 @@ export async function createContainerManifests({
     production,
   })
   const kubeServices = await createServiceResources(action, namespace)
-  const mode = action.mode()
-  const localModeSpec = action.getSpec("localMode")
-
-  if (mode === "local" && localModeSpec) {
-    await configureLocalMode({
-      ctx,
-      spec: localModeSpec,
-      targetResource: workload,
-      action,
-      log,
-    })
-  }
-
   const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
@@ -289,6 +277,11 @@ interface CreateDeploymentParams {
   log: Log
   production: boolean
 }
+
+const getDefaultWorkloadTarget = (w: KubernetesResource<V1Deployment | V1DaemonSet>) => ({
+  kind: <SyncableKind>w.kind,
+  name: w.metadata.name,
+})
 
 export async function createWorkloadManifest({
   ctx,
@@ -502,22 +495,28 @@ export async function createWorkloadManifest({
   }
 
   const syncSpec = convertContainerSyncSpec(ctx, action)
-  const localModeSpec = spec.localMode
+  const localModeSpec = convertContainerLocalModeSpec(ctx, action)
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && localModeSpec) {
-    // no op here, local mode will be configured later after all manifests are ready
+    const configured = await configureLocalMode({
+      ctx,
+      spec: localModeSpec,
+      defaultTarget: getDefaultWorkloadTarget(workload),
+      manifests: [workload],
+      action,
+      log,
+    })
+
+    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
   } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
-
-    const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
-
     const configured = await configureSyncMode({
       ctx,
       log,
       provider,
       action,
-      defaultTarget: target,
+      defaultTarget: getDefaultWorkloadTarget(workload),
       manifests: [workload],
       spec: syncSpec,
     })

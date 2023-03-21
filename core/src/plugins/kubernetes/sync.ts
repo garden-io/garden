@@ -30,7 +30,14 @@ import {
   getTargetResource,
   labelSelectorToString,
 } from "./util"
-import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
+import {
+  KubernetesResource,
+  SupportedRuntimeActions,
+  SyncableKind,
+  syncableKinds,
+  SyncableResource,
+  SyncableRuntimeAction,
+} from "./types"
 import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common"
@@ -304,7 +311,7 @@ export async function configureSyncMode({
   ctx: PluginContext
   log: Log
   provider: KubernetesProvider
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SyncableRuntimeAction>
   defaultTarget: KubernetesTargetResourceSpec | undefined
   manifests: KubernetesResource[]
   spec: KubernetesDeploySyncSpec

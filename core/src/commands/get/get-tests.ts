@@ -15,7 +15,8 @@ import { ActionDescriptionMap } from "../../actions/base"
 
 const getTestsArgs = {
   names: new StringsParameter({
-    help: "Specify tests(s) to list. Use comma as a separator to specify multiple tests.",
+    help: "Specify tests(s) to list. You may specify multiple test names, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Test)
     },

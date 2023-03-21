@@ -26,7 +26,8 @@ export const publishArgs = {
   names: new StringsParameter({
     help:
       "The name(s) of the builds (or modules) to publish (skip to publish every build). " +
-      "Use comma as a separator to specify multiple names.",
+      "You may specify multiple names, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Build)
     },

@@ -17,12 +17,10 @@ import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { configureSyncMode, startSyncs } from "../sync"
 import { KubeApi } from "../api"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { ConfiguredLocalMode, configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
 import { isEmpty } from "lodash"
-import { SyncableResource } from "../types"
-import { getTargetResource } from "../util"
 
 export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async (params) => {
   const { ctx, action, log, force } = params
@@ -109,33 +107,20 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
 
   const mode = action.mode()
 
-  const localModeTargetSpec = spec.localMode?.target || spec.defaultTarget
-  let localModeTarget: SyncableResource | undefined = undefined
-
-  if (mode === "local" && localModeTargetSpec) {
-    localModeTarget = await getTargetResource({
-      ctx,
-      log,
-      provider,
-      action,
-      manifests,
-      query: localModeTargetSpec,
-    })
-  }
-
   // Because we need to modify the Deployment, and because there is currently no reliable way to do that before
   // installing/upgrading via Helm, we need to separately update the target here for sync-mode/local-mode.
   // Local mode always takes precedence over sync mode.
-  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode) && localModeTarget) {
-    await configureLocalMode({
+  let configuredLocalMode: ConfiguredLocalMode | undefined = undefined
+  if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
+    configuredLocalMode = await configureLocalMode({
       ctx,
       spec: spec.localMode,
-      targetResource: localModeTarget,
+      defaultTarget: spec.defaultTarget,
+      manifests,
       action,
       log,
-      containerName: spec.localMode.target?.containerName,
     })
-    await apply({ log, ctx, api, provider, manifests: [localModeTarget], namespace })
+    await apply({ log, ctx, api, provider, manifests: configuredLocalMode.updated, namespace })
   } else if (mode === "sync" && spec.sync && !isEmpty(spec.sync)) {
     const configured = await configureSyncMode({
       ctx,
@@ -168,11 +153,12 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   killPortForwards(action, forwardablePorts || [], log)
 
   // Local mode always takes precedence over sync mode.
-  if (mode === "local" && spec.localMode && localModeTarget) {
+  if (mode === "local" && spec.localMode && configuredLocalMode && configuredLocalMode.updated?.length) {
     await startServiceInLocalMode({
       ctx,
       spec: spec.localMode,
-      targetResource: localModeTarget,
+      targetResource: configuredLocalMode.updated[0],
+      manifests,
       action,
       namespace,
       log,
