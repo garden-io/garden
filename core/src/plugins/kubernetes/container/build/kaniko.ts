@@ -374,7 +374,7 @@ async function runKaniko({
 
   const logEventContext = {
     origin: "kaniko",
-    log: log.makeNewLogContext({ level: LogLevel.verbose }),
+    log: log.makeNewLogContext({ fixLevel: LogLevel.verbose }),
   }
 
   const runner = new PodRunner({

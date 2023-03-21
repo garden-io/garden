@@ -107,7 +107,7 @@ export async function helm({
 
   const logEventContext = {
     origin: "helm",
-    log: log.makeNewLogContext({ level: LogLevel.verbose }),
+    log: log.makeNewLogContext({ fixLevel: LogLevel.verbose }),
   }
 
   const outputStream = split2()
