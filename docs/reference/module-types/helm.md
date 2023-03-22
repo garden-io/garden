@@ -283,20 +283,23 @@ sync:
   # workload is used.
   containerName:
 
-# Configures the local application which will send and receive network requests instead of the target resource
-# specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for
-# the action.
+# [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
+# resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local
+# mode for the action.
 #
 # The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
 # server to proxy requests.
 # Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 #
-# Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+# Local mode is enabled by setting the `--local` option on the `garden deploy` command.
 # Local mode always takes the precedence over sync mode if there are any conflicting service names.
 #
 # Health checks are disabled for services running in local mode.
 #
 # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+#
+# Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+# release.
 localMode:
   # The reverse port-forwards configuration for the local application.
   ports:
@@ -1223,17 +1226,19 @@ Optionally specify the name of a specific container to sync to. If not specified
 
 ### `localMode`
 
-Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
 
 The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
 Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
-Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode is enabled by setting the `--local` option on the `garden deploy` command.
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
 
 See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
 | Type     | Required |
 | -------- | -------- |

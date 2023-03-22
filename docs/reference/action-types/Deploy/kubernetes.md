@@ -213,10 +213,11 @@ spec:
   # The maximum duration (in seconds) to wait for resources to deploy and become healthy.
   timeout: 300
 
-  # Specify a default resource in the deployment to use for syncs, and for the `garden exec` command.
+  # Specify a default resource in the deployment to use for syncs, local mode, and for the `garden exec` command.
   #
   # Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this
-  # action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
+  # action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing or local
+  # mode).
   #
   # Set `containerName` to specify a container to connect to in the remote Pod. By default the first container in the
   # Pod is used.
@@ -371,20 +372,23 @@ spec:
         # Override the args in the matched container.
         args:
 
-  # Configures the local application which will send and receive network requests instead of the target resource
-  # specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for
-  # the action.
+  # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
+  # resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local
+  # mode for the action.
   #
   # The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
   # server to proxy requests.
   # Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
   #
-  # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+  # Local mode is enabled by setting the `--local` option on the `garden deploy` command.
   # Local mode always takes the precedence over sync mode if there are any conflicting service names.
   #
   # Health checks are disabled for services running in local mode.
   #
   # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+  #
+  # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+  # release.
   localMode:
     # The reverse port-forwards configuration for the local application.
     ports:
@@ -811,9 +815,9 @@ The maximum duration (in seconds) to wait for resources to deploy and become hea
 
 [spec](#spec) > defaultTarget
 
-Specify a default resource in the deployment to use for syncs, and for the `garden exec` command.
+Specify a default resource in the deployment to use for syncs, local mode, and for the `garden exec` command.
 
-Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
+Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing or local mode).
 
 Set `containerName` to specify a container to connect to in the remote Pod. By default the first container in the Pod is used.
 
@@ -1231,17 +1235,19 @@ Override the args in the matched container.
 
 [spec](#spec) > localMode
 
-Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
 
 The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
 Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
-Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode is enabled by setting the `--local` option on the `garden deploy` command.
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
 
 See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
 | Type     | Required |
 | -------- | -------- |
