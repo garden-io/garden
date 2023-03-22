@@ -83,6 +83,7 @@ interface LoggerConfigBase {
   storeEntries?: boolean
   showTimestamps?: boolean
   useEmoji?: boolean
+  type: LoggerType
 }
 
 interface LoggerConfig extends LoggerConfigBase {
@@ -114,6 +115,7 @@ export class Logger {
    * Whether or not the log entries are stored in-memory on the logger instance. Useful for testing.
    */
   public storeEntries: boolean
+  public type: LoggerType
 
   private writers: Writer[]
   private static instance?: Logger
@@ -198,6 +200,7 @@ export class Logger {
     this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
     this.storeEntries = config.storeEntries
+    this.type = config.type
   }
 
   toSanitizedValue() {
@@ -264,7 +267,7 @@ export class Logger {
  */
 export class VoidLogger extends Logger {
   constructor() {
-    super({ writers: [], level: LogLevel.error, storeEntries: false })
+    super({ writers: [], level: LogLevel.error, storeEntries: false, type: "default" })
   }
 }
 
