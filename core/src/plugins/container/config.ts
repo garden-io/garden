@@ -369,7 +369,7 @@ export const containerLocalModeSchema = () =>
     The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
     Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
 
-    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` command.
     Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
     Health checks are disabled for services running in local mode.
