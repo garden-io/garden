@@ -268,6 +268,7 @@ describe("AnalyticsHandler", () => {
         level: LogLevel.info,
         writers: [],
         storeEntries: false,
+        type: "basic",
       })
       const cloudApi = await FakeCloudApi.factory({ log: logger.placeholder() })
       garden = await makeTestGardenA(undefined, { cloudApi })

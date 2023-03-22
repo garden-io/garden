@@ -83,10 +83,10 @@ export interface LoggerConfigBase {
   storeEntries?: boolean
   showTimestamps?: boolean
   useEmoji?: boolean
+  type: LoggerType
 }
 
 export interface LoggerConfig extends LoggerConfigBase {
-  type: LoggerType
   storeEntries: boolean
 }
 
@@ -135,6 +135,7 @@ export class Logger implements LogNode {
    * is required. Otherwise useful for testing.
    */
   public storeEntries: boolean
+  public type: LoggerType
 
   private writers: Writer[]
   private static instance?: Logger
@@ -216,6 +217,7 @@ export class Logger implements LogNode {
     this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
     this.storeEntries = config.storeEntries
+    this.type = config.type
   }
 
   private addNode(params: CreateNodeParams): LogEntry {
@@ -313,7 +315,7 @@ export class Logger implements LogNode {
  */
 export class VoidLogger extends Logger {
   constructor() {
-    super({ writers: [], level: LogLevel.error, storeEntries: false })
+    super({ writers: [], level: LogLevel.error, storeEntries: false, type: "basic" })
   }
 }
 

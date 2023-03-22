@@ -144,7 +144,6 @@ export class GardenServer {
       } while (!this.server)
     }
 
-    this.log.info("")
     this.statusLog = this.log.placeholder()
   }
 
@@ -157,10 +156,15 @@ export class GardenServer {
   }
 
   showUrl(url?: string) {
-    this.statusLog.setState({
-      emoji: "sunflower",
-      msg: chalk.cyan("Garden dashboard running at ") + chalk.blueBright(url || this.getUrl()),
-    })
+    const msg = chalk.white("Garden dashboard running at ") + chalk.blueBright(url || this.getUrl())
+    if (this.statusLog.root.type === "fancy") {
+      this.statusLog.setState({
+        emoji: "sunflower",
+        msg,
+      })
+    } else {
+      this.statusLog.info({ section: "garden", msg })
+    }
   }
 
   async close() {
