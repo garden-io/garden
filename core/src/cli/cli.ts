@@ -288,13 +288,12 @@ ${renderCommands(commands)}
 
     // Init Cloud API
     let cloudApi: CloudApi | null = null
-    let distroName: string = ""
 
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(log, workingDir)
 
-      const cloudDomain: string = getGardenCloudDomain(config)
-      distroName = getCloudDistributionName(cloudDomain)
+      const cloudDomain = getGardenCloudDomain(config)
+      const distroName = getCloudDistributionName(cloudDomain)
 
       try {
         cloudApi = await CloudApi.factory({ log, cloudDomain, globalConfigStore })
@@ -362,7 +361,6 @@ ${renderCommands(commands)}
       footerLog,
       args: parsedArgs,
       opts: parsedOpts,
-      // Commands that start a Garden server and want to open a websocket connection to the platform use this param.
       cloudApi: cloudApi || undefined,
     }
 
@@ -374,8 +372,6 @@ ${renderCommands(commands)}
 
     contextOpts.persistent = persistent
     const { streamEvents, streamLogEntries } = command
-    // Print header log before we know the namespace to prevent content from
-    // jumping.
     // TODO: Link to Cloud namespace page here.
     const nsLog = headerLog.makeNewLogContext({})
 
@@ -431,29 +427,19 @@ ${renderCommands(commands)}
             })
           }
 
-          let namespaceUrl: string | undefined
-
-          if (cloudApi && garden.projectId && cloudApi.environmentId && cloudApi.namespaceId) {
-            const project = await cloudApi.getProject()
-
-            if (project) {
-              const user = await cloudApi.getProfile()
-              const path = `/projects/${project.id}?sessionId=${sessionId}&userId=${user.id}`
-              const url = new URL(path, cloudApi.domain)
-              namespaceUrl = url.href
-            }
-          }
-
-          // Print a specific header and footer when connected to Garden Cloud.
-          if (namespaceUrl) {
+          if (cloudApi?.sessionRegistered) {
+            const distroName = getCloudDistributionName(cloudApi.domain)
+            const userId = (await cloudApi.getProfile()).id
+            const commandResultUrl = cloudApi.getCommandResultUrl({ sessionId, userId }).href
             const msg = dedent`
               \n${printEmoji("🌩️", log)}   ${chalk.cyan(
-              `Connected to ${distroName}! Click the link below to view logs and more.`
+              `Connected to ${distroName}! Click the link below to view logs and command results.`
             )}
-              ${printEmoji("🔗", log)}  ${chalk.blueBright.underline(namespaceUrl)}
+              ${printEmoji("🔗", log)}  ${chalk.blueBright.underline(commandResultUrl)}
             `
             footerLog.info(msg)
           }
+
         }
 
         if (cloudApi && garden.projectId) {

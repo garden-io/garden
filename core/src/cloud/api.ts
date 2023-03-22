@@ -640,7 +640,7 @@ export class CloudApi {
 
   async getProject(): Promise<CloudProject | undefined> {
     if (!this.projectId) {
-      this.log.debug(`Could not retrieve a project which has not yet been configured`)
+      this.log.debug(`No project ID set. Will not fetch project.`)
       return
     }
 
@@ -692,5 +692,14 @@ export class CloudApi {
     }
     this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
     return valid
+  }
+
+  getProjectUrl() {
+    return new URL(`/projects/${this.projectId}`, this.domain)
+  }
+
+  getCommandResultUrl({ sessionId, userId }: { sessionId: string; userId: string }) {
+    const path = `/projects/${this.projectId}?sessionId=${sessionId}&userId=${userId}`
+    return new URL(path, this.domain)
   }
 }

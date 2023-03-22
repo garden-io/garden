@@ -86,6 +86,7 @@ describe("Logger", () => {
         level: LogLevel.info,
         writers: [],
         storeEntries: false,
+        type: "default",
       })
       const log = logWriterB.makeNewLogContext()
 

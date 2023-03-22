@@ -358,7 +358,7 @@ export async function compareDeployedResources(
     return result
   }
 
-  log.verbose(`Comparing expected and deployed resources...`)
+  log.debug(`Comparing expected and deployed resources...`)
 
   for (const key of Object.keys(manifestsMap)) {
     let manifest = cloneDeep(manifestsMap[key])
@@ -446,7 +446,7 @@ export async function compareDeployedResources(
 
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
-        log.verbose(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
+        log.debug(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
         log.silly(diffString(deployedResource, manifest))
       }
       // console.log(JSON.stringify(resource, null, 4))
@@ -458,7 +458,7 @@ export async function compareDeployedResources(
     }
   }
 
-  log.verbose(`All resources match.`)
+  log.debug(`All resources match.`)
 
   result.state = "ready"
   return result
