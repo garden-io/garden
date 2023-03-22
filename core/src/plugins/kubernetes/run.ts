@@ -550,7 +550,10 @@ async function runWithArtifacts({
             deline`
               ${description} specifies artifacts to export, but the image doesn't
               contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
-              be installed in the image.`,
+              be installed in the image.
+
+              Original error message:
+              ${message}`,
             errorMetadata
           )
         } else {
@@ -1176,7 +1179,7 @@ export class PodRunner extends PodRunnerParams {
   }) {
     // Some types and predicates to identify known errors
     const knownErrorTypes = ["out-of-memory", "not-found", "timeout", "pod-runner", "kubernetes"] as const
-    type KnownErrorType = typeof knownErrorTypes[number]
+    type KnownErrorType = (typeof knownErrorTypes)[number]
     // A known error is always an instance of a subclass of GardenBaseError
     type KnownError = Error & {
       message: string
