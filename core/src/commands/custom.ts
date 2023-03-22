@@ -72,6 +72,7 @@ export class CustomCommandWrapper extends Command {
   help = ""
 
   allowUndefinedArguments = true
+  noProject = true
 
   constructor(public spec: CommandResource) {
     super()

@@ -1330,9 +1330,6 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     }
 
     if (project) {
-      const projectUrl = new URL(`/projects/${project.id}`, cloudDomain)
-      cloudLog.info({ symbol: "info", msg: `Visit project at ${projectUrl.href}` })
-
       if (cloudApi.projectId) {
         // ensure we use the fetched/created project ID
         cloudProjectId = cloudApi.projectId

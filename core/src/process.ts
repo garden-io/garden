@@ -19,8 +19,9 @@ import { LogEntry } from "./logger/log-entry"
 import { ConfigGraph } from "./config-graph"
 import { dedent } from "./util/string"
 import { ConfigurationError } from "./exceptions"
-import { uniqByName } from "./util/util"
+import { getCloudDistributionName, getCloudLogSectionName, uniqByName } from "./util/util"
 import { renderDivider } from "./logger/util"
+import { renderCloudLinkForBasicLogger } from "./cli/helpers"
 
 export type ProcessHandler = (graph: ConfigGraph, module: GardenModule) => Promise<BaseTask[]>
 
@@ -92,7 +93,9 @@ export async function processModules({
 
     garden.events.on("taskGraphProcessing", () => {
       taskErrorDuringLastProcess = false
-      statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
+      if (log.root.type === "fancy") {
+        statusLine.setState({ emoji: "hourglass_flowing_sand", msg: "Processing..." })
+      }
     })
   }
 
@@ -145,12 +148,28 @@ export async function processModules({
     }
   }
 
+  // FIXME: This is a bit clumsy and the user should just be available on the Garden or CloudApi class.
+  const cloudUserId = garden.cloudApi ? (await garden.cloudApi.getProfile()).id : null
   const waiting = () => {
     if (!!statusLine) {
-      statusLine.setState({
-        emoji: "clock2",
-        msg: chalk.gray(overRideWatchStatusLine || "Waiting for code changes..."),
-      })
+      if (log.root.type === "fancy") {
+        statusLine.setState({
+          emoji: "clock2",
+          msg: chalk.gray(overRideWatchStatusLine || "Waiting for code changes..."),
+        })
+      } else {
+        if (garden.cloudApi && cloudUserId) {
+          const commandResultUrl = garden.cloudApi.getCommandResultUrl({
+            sessionId: garden.sessionId,
+            userId: cloudUserId,
+          }).href
+          const distroName = getCloudDistributionName(garden.cloudApi.domain || "")
+          const section = getCloudLogSectionName(distroName)
+          const msg = renderCloudLinkForBasicLogger({ commandResultUrl, distroName })
+          log.info({ section, msg })
+        }
+        log.info({ symbol: "success", section: "garden", msg: chalk.green("Ready! Waiting for code changes...\n") })
+      }
     }
 
     garden.events.emit("watchingForChanges", {})

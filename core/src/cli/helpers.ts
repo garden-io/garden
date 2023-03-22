@@ -25,12 +25,13 @@ import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import { got } from "../util/http"
 import minimist = require("minimist")
-import { renderTable, tablePresets, naturalList } from "../util/string"
+import { renderTable, tablePresets, naturalList, dedent } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
 import { validateGitInstall } from "../vcs/vcs"
 import { validateRsyncInstall } from "../build-staging/rsync"
+import { emoji as nodeEmoji } from "node-emoji"
 
 let _cliStyles: any
 
@@ -422,4 +423,16 @@ function renderParameters(params: Parameters, formatName: (name: string, param: 
     ...tablePresets["no-borders"],
     colWidths: [nameColWidth, textColWidth],
   })
+}
+
+export function renderCloudLinkForBasicLogger({
+  commandResultUrl,
+  distroName,
+}: {
+  commandResultUrl: string
+  distroName: string
+}) {
+  return dedent`${
+    nodeEmoji.cherry_blossom
+  } Connected to ${distroName}  View logs and command results at: \n\n${chalk.cyan(commandResultUrl)}\n`
 }

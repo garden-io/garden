@@ -166,6 +166,7 @@ describe("Logger", () => {
         level: LogLevel.info,
         writers: [],
         storeEntries: false,
+        type: "basic",
       })
 
       loggerB.error("error")

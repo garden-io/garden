@@ -141,13 +141,15 @@ export class DevCommand extends Command<DevCommandArgs, DevCommandOpts> {
 
   async prepare({ headerLog, footerLog }: PrepareParams<DevCommandArgs, DevCommandOpts>) {
     // print ANSI banner image
-    if (chalk.supportsColor && chalk.supportsColor.level > 2) {
-      const data = await readFile(ansiBannerPath)
-      headerLog.info(data.toString())
-    }
+    if (headerLog.root.type === "fancy") {
+      if (chalk.supportsColor && chalk.supportsColor.level > 2) {
+        const data = await readFile(ansiBannerPath)
+        headerLog.info(data.toString())
+      }
 
-    headerLog.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...`))
-    headerLog.info("")
+      headerLog.info(chalk.gray.italic(`Good ${getGreetingTime()}! Let's get your environment wired up...`))
+      headerLog.info("")
+    }
 
     this.server = await startServer({ log: footerLog })
   }

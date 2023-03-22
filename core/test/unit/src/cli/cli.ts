@@ -37,11 +37,12 @@ import { startServer, GardenServer } from "../../../../src/server/server"
 import { FancyTerminalWriter } from "../../../../src/logger/writers/fancy-terminal-writer"
 import { BasicTerminalWriter } from "../../../../src/logger/writers/basic-terminal-writer"
 import { envSupportsEmoji } from "../../../../src/logger/util"
-import { expectError } from "../../../../src/util/testing"
+import { expectError, getLogMessages } from "../../../../src/util/testing"
 import { GlobalConfigStore, RequirementsCheck } from "../../../../src/config-store"
 import { ExecConfigStore } from "../config-store"
 import tmp from "tmp-promise"
 import { CloudCommand } from "../../../../src/commands/cloud/cloud"
+import { LogEntry } from "../../../../src/logger/log-entry"
 
 describe("cli", () => {
   let cli: GardenCli
@@ -545,8 +546,11 @@ describe("cli", () => {
 
       await cli.run({ args, exitOnError: false })
 
-      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
-      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${cmd.server!.getUrl()}`)
+      const serverStatus = getLogMessages(
+        cmd.server!["statusLog"],
+        (e: LogEntry) => e.getLatestMessage().msg?.includes("Garden dashboard running at") || false
+      )
+      expect(stripAnsi(serverStatus[0])).to.equal(`Garden dashboard running at ${cmd.server!.getUrl()}`)
     })
 
     it("shows the URL of an external dashboard if applicable, instead of the built-in server URL", async () => {
@@ -601,8 +605,11 @@ describe("cli", () => {
         await server.close()
       }
 
-      const serverStatus = cmd.server!["statusLog"].getLatestMessage().msg!
-      expect(stripAnsi(serverStatus)).to.equal(`Garden dashboard running at ${server.getUrl()}`)
+      const serverStatus = getLogMessages(
+        cmd.server!["statusLog"],
+        (e: LogEntry) => e.getLatestMessage().msg?.includes("Garden dashboard running at") || false
+      )
+      expect(stripAnsi(serverStatus[0])).to.equal(`Garden dashboard running at ${server.getUrl()}`)
     })
 
     it("picks and runs a subcommand in a group", async () => {

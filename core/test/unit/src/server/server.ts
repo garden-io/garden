@@ -15,8 +15,9 @@ import { deepOmitUndefined, uuidv4, sleep } from "../../../../src/util/util"
 import request = require("supertest")
 import getPort = require("get-port")
 import WebSocket = require("ws")
-import stripAnsi = require("strip-ansi")
 import { authTokenHeader } from "../../../../src/cloud/api"
+import { getLogMessages } from "../../../../src/util/testing"
+import { LogEntry } from "../../../../src/logger/log-entry"
 
 describe("GardenServer", () => {
   let garden: Garden
@@ -36,6 +37,7 @@ describe("GardenServer", () => {
   })
 
   beforeEach(() => {
+    gardenServer["statusLog"].children = []
     gardenServer.setGarden(garden)
   })
 
@@ -51,8 +53,14 @@ describe("GardenServer", () => {
     })
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
-    const status = stripAnsi(line.getLatestMessage().msg || "")
-    expect(status).to.equal(`Garden dashboard running at ${gardenServer.getUrl()}`)
+    const msgs = getLogMessages(
+      line,
+      (e: LogEntry) => e.getLatestMessage().msg?.includes("Garden dashboard running at") || false
+    )
+    expect(msgs).to.eql([
+      `Garden dashboard running at http://foo`,
+      `Garden dashboard running at ${gardenServer.getUrl()}`,
+    ])
   })
 
   it("should update dashboard URL with new one if another is started", async () => {
@@ -62,8 +70,14 @@ describe("GardenServer", () => {
     })
     const line = gardenServer["statusLog"]
     await sleep(1) // This is enough to let go of the control loop
-    const status = stripAnsi(line.getLatestMessage().msg || "")
-    expect(status).to.equal(`Garden dashboard running at http://localhost:9800?key=foo`)
+    const msgs = getLogMessages(
+      line,
+      (e: LogEntry) => e.getLatestMessage().msg?.includes("Garden dashboard running at") || false
+    )
+    expect(msgs).to.eql([
+      `Garden dashboard running at http://foo`,
+      `Garden dashboard running at http://localhost:9800?key=foo`,
+    ])
   })
 
   describe("GET /", () => {

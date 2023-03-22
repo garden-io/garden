@@ -19,6 +19,7 @@ import {
   uuidv4,
   registerCleanupFunction,
   getCloudDistributionName,
+  getCloudLogSectionName,
 } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
@@ -36,6 +37,7 @@ import {
   optionsWithAliasValues,
   getCliStyles,
   checkRequirements,
+  renderCloudLinkForBasicLogger,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import {
@@ -285,13 +287,12 @@ ${renderCommands(commands)}
 
     // Init Cloud API
     let cloudApi: CloudApi | null = null
-    let distroName: string = ""
 
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
 
-      const cloudDomain: string = getGardenCloudDomain(config)
-      distroName = getCloudDistributionName(cloudDomain)
+      const cloudDomain = getGardenCloudDomain(config)
+      const distroName = getCloudDistributionName(cloudDomain)
 
       try {
         cloudApi = await CloudApi.factory({ log, cloudDomain })
@@ -359,12 +360,10 @@ ${renderCommands(commands)}
       footerLog,
       args: parsedArgs,
       opts: parsedOpts,
-      // Commands that start a Garden server and want to open a websocket connection to the platform use this param.
       cloudApi: cloudApi || undefined,
     }
 
     const persistent = command.isPersistent(prepareParams)
-
     await command.prepare(prepareParams)
 
     contextOpts.persistent = persistent
@@ -372,7 +371,7 @@ ${renderCommands(commands)}
     // Print header log before we know the namespace to prevent content from
     // jumping.
     // TODO: Link to Cloud namespace page here.
-    const nsLog = headerLog.info("")
+    const nsLog = headerLog.placeholder()
 
     do {
       try {
@@ -381,7 +380,16 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
+          if (logger.type === "fancy") {
+            nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
+          } else {
+            log.info({
+              section: "garden",
+              msg: `Running in namespace ${chalk.cyan(garden.namespace)} in environment ${chalk.cyan(
+                garden.environmentName
+              )}`,
+            })
+          }
 
           if (!cloudApi && garden.projectId) {
             log.warn({
@@ -430,31 +438,25 @@ ${renderCommands(commands)}
             })
           }
 
-          let namespaceUrl: string | undefined
-
-          if (cloudApi && garden.projectId && cloudApi.environmentId && cloudApi.namespaceId) {
-            const project = await cloudApi.getProject()
-
-            if (project) {
-              const user = await cloudApi.getProfile()
-              const path = `/projects/${project.id}?sessionId=${sessionId}&userId=${user.id}`
-              const url = new URL(path, cloudApi.domain)
-              namespaceUrl = url.href
+          // Print a specific header and footer when connected to Garden Cloud.
+          if (cloudApi?.sessionRegistered) {
+            const distroName = getCloudDistributionName(cloudApi.domain)
+            const userId = (await cloudApi.getProfile()).id
+            const commandResultUrl = cloudApi.getCommandResultUrl({ sessionId, userId }).href
+            if (logger.type === "fancy") {
+              const msg = dedent`
+                \n${nodeEmoji.cherry_blossom}   ${chalk.cyan(
+                `Connected to ${distroName}! Click the link below to view logs and command results.`
+              )}
+                ${nodeEmoji.link}  ${chalk.blueBright.underline(commandResultUrl)}
+              `
+              footerLog.setState(msg)
+            } else {
+              const msg = renderCloudLinkForBasicLogger({ commandResultUrl, distroName })
+              log.info({ section: getCloudLogSectionName(distroName), msg })
             }
           }
 
-          // Print a specific header and footer when connected to Garden Cloud.
-          if (namespaceUrl) {
-            const msg = dedent`
-              \n${nodeEmoji.lightning}   ${chalk.cyan(
-              `Connected to ${distroName}! Click the link below to view logs and more.`
-            )}
-              ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
-            `
-            footerLog.setState(msg)
-          }
-
-          // TODO: "Tone down" dashboard link when connected to Garden Cloud.
           if (persistent && command.server) {
             // If there is an explicit `garden dashboard` process running for the current project+env, and a server
             // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
