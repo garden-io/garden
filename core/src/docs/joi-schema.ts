@@ -101,7 +101,7 @@ export class JoiKeyDescription extends BaseKeyDescription {
         const metas: any = extend({}, ...(objSchema.metas || []))
         childDescriptions.push(
           new JoiKeyDescription({
-            joiDescription: (objSchema.patterns[0].rule as JoiDescription) as JoiDescription,
+            joiDescription: objSchema.patterns[0].rule as JoiDescription as JoiDescription,
             name: metas.keyPlaceholder || "<name>",
             level: nextLevel,
             parent,

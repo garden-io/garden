@@ -273,13 +273,16 @@ export async function getChartPath(action: Resolved<HelmRuntimeAction>) {
  */
 export async function getValueArgs({
   action,
-  valuesPath
-}: { action: Resolved<HelmRuntimeAction>; valuesPath: string }) {
+  valuesPath,
+}: {
+  action: Resolved<HelmRuntimeAction>
+  valuesPath: string
+}) {
   // The garden-values.yml file (which is created from the `values` field in the module config) takes precedence,
   // so it's added to the end of the list.
   const valueFiles = action
-    .getSpec().valueFiles
-    .map((f) => resolve(action.getBuildPath(), f))
+    .getSpec()
+    .valueFiles.map((f) => resolve(action.getBuildPath(), f))
     .concat([valuesPath])
 
   const args = flatten(valueFiles.map((f) => ["--values", f]))

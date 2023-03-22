@@ -13,6 +13,8 @@ import { renderTable, tablePresets } from "./string"
 import chalk from "chalk"
 import { isPromise } from "./util"
 
+const skipProfiling = process.env.GARDEN_SKIP_TEST_PROFILING
+
 const maxReportRows = 60
 
 // Just storing the invocation duration for now
@@ -42,6 +44,10 @@ export class Profiler {
   }
 
   report() {
+    if (skipProfiling) {
+      return
+    }
+
     function formatKey(key: string) {
       const split = key.split("#")
 

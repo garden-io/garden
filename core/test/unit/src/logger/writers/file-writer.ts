@@ -23,16 +23,16 @@ beforeEach(() => {
 describe("FileWriter", () => {
   describe("render", () => {
     it("should render message without ansi characters", () => {
-      const entry = logger.makeNewLogContext().info(chalk.red("hello")).getLatestEntry()
+      const entry = logger.createLog().info(chalk.red("hello")).getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal("hello")
     })
     it("should render error message if entry level is error", () => {
-      const entry = logger.makeNewLogContext().error("error").getLatestEntry()
+      const entry = logger.createLog().error("error").getLatestEntry()
       const expectedOutput = stripAnsi(renderError(entry))
       expect(render(LogLevel.info, entry)).to.equal(expectedOutput)
     })
     it("should return null if entry level is geq to writer level", () => {
-      const entry = logger.makeNewLogContext().silly("silly").getLatestEntry()
+      const entry = logger.createLog().silly("silly").getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal(null)
     })
   })

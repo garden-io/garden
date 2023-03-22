@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { find } from "lodash"
 import minimatch from "minimatch"
 
@@ -62,8 +61,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     const testResult = status?.detail
 
     if (testResult && testResult.success) {
-      const passedEntry = this.log.makeNewLogContext({ section: action.key() }).info(chalk.green("Already passed"))
-      passedEntry.setSuccess(chalk.green("Already passed"))
+      this.log.createLog().success("Already passed")
       return {
         ...status,
         version: action.versionString(),
@@ -77,11 +75,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const taskLog = this.log
-      .makeNewLogContext({
-        section: action.key(),
-      })
-      .info(`Running...`)
+    const taskLog = this.log.createLog().info(`Running...`)
 
     const router = await this.garden.getActionRouter()
 
@@ -100,7 +94,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       throw err
     }
     if (status.detail?.success) {
-      taskLog.setSuccess(chalk.green(`Success (took ${taskLog.getDuration(1)} sec)`))
+      taskLog.success(`Success`)
     } else {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`

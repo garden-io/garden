@@ -20,7 +20,13 @@ import { RunActionDefinition, TestActionDefinition } from "../../../plugin/actio
 import { RunResult } from "../../../plugin/base"
 import { dedent, deline } from "../../../util/string"
 import { KubeApi } from "../api"
-import { kubernetesCommonRunSchemaKeys, KubernetesCommonRunSpec, KubernetesPluginContext, KubernetesTargetResourceSpec, runPodResourceSchema } from "../config"
+import {
+  kubernetesCommonRunSchemaKeys,
+  KubernetesCommonRunSpec,
+  KubernetesPluginContext,
+  KubernetesTargetResourceSpec,
+  runPodResourceSchema,
+} from "../config"
 import { getActionNamespaceStatus } from "../namespace"
 import { k8sGetRunResult } from "../run-results"
 import { SyncableResource } from "../types"
@@ -66,7 +72,7 @@ export const kubernetesExecRunDefinition = (): RunActionDefinition<KubernetesExe
   handlers: {
     run: async (params) => {
       const { ctx, log, action } = params
-      const result = await readAndExec({ ctx, log, action})
+      const result = await readAndExec({ ctx, log, action })
       // Note: We don't store a result for this action type, since there's no clear underlying version to use.
       return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
     },
@@ -93,7 +99,7 @@ export const kubernetesExecTestDefinition = (): TestActionDefinition<KubernetesE
   handlers: {
     run: async (params) => {
       const { ctx, log, action } = params
-      const result = await readAndExec({ ctx, log, action})
+      const result = await readAndExec({ ctx, log, action })
       // Note: We don't store a result for this action type, since there's no clear underlying version to use.
       return { state: runResultToActionState(result), detail: result, outputs: { log: result.log } }
     },
@@ -102,13 +108,12 @@ export const kubernetesExecTestDefinition = (): TestActionDefinition<KubernetesE
   },
 })
 
-
 // helpers //
 
 async function readAndExec({
   ctx,
   log,
-  action
+  action,
 }: {
   ctx: PluginContext
   log: Log
@@ -133,7 +138,7 @@ async function readAndExec({
     target = await readTargetResource({
       api,
       namespace,
-      query: resource
+      query: resource,
     })
   } catch (err) {
     if (err.statusCode === 404) {
@@ -157,13 +162,13 @@ async function readAndExec({
     provider,
     log,
     namespace,
-     workload: target,
-     command: args,
-     interactive: false,
-     streamLogs: true
+    workload: target,
+    command: args,
+    interactive: false,
+    streamLogs: true,
   })
   const completedAt = new Date()
-  const execLog = res.output ||""
+  const execLog = res.output || ""
 
   return {
     success: res.code === 0,

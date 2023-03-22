@@ -19,10 +19,20 @@ import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import type { KubernetesResource } from "../types"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { defaultTargetSchema } from "../helm/config"
-import type { KubernetesPodRunAction, KubernetesPodRunActionConfig, KubernetesPodTestAction, KubernetesPodTestActionConfig } from "./kubernetes-pod"
+import type {
+  KubernetesPodRunAction,
+  KubernetesPodRunActionConfig,
+  KubernetesPodTestAction,
+  KubernetesPodTestActionConfig,
+} from "./kubernetes-pod"
 import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
 import { containerRunOutputSchema } from "../../container/config"
-import { KubernetesExecRunAction, KubernetesExecRunActionConfig, KubernetesExecTestAction, KubernetesExecTestActionConfig } from "./kubernetes-exec"
+import {
+  KubernetesExecRunAction,
+  KubernetesExecRunActionConfig,
+  KubernetesExecTestAction,
+  KubernetesExecTestActionConfig,
+} from "./kubernetes-exec"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -60,13 +70,13 @@ const kubernetesResourceSchema = () =>
 
 export const kubernetesFilesSchema = () =>
   joiSparseArray(joi.posixPath().subPathOnly()).description(
-      "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
-    )
+    "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
+  )
 
 export const kubernetesManifestsSchema = () =>
   joiSparseArray(kubernetesResourceSchema()).description(
-      "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
-    )
+    "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
+  )
 
 export const kubernetesCommonDeploySpecKeys = () => ({
   files: kubernetesFilesSchema(),
@@ -94,7 +104,7 @@ export interface KubernetesRunOutputs {
 export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
 
 export type KubernetesRunActionConfig = KubernetesPodRunActionConfig | KubernetesExecRunActionConfig
-export type KubernetesRunAction = KubernetesPodRunAction  | KubernetesExecRunAction
+export type KubernetesRunAction = KubernetesPodRunAction | KubernetesExecRunAction
 
 export interface KubernetesTestOutputs extends KubernetesRunOutputs {}
 export const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()

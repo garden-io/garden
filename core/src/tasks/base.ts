@@ -9,7 +9,7 @@
 import { GraphResults } from "../graph/results"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
-import { Log as Log } from "../logger/log-entry"
+import { ActionLog, createActionLog, Log as Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import type { Action, ActionState, Executed, Resolved } from "../actions/types"
 import { ConfigGraph, GraphError } from "../graph/config-graph"
@@ -90,7 +90,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   concurrencyLimit = 10
 
   public readonly garden: Garden
-  public readonly log: Log
+  public readonly log: Log | ActionLog
   public readonly uid: string
   public readonly force: boolean
   public readonly skipDependencies: boolean
@@ -197,10 +197,12 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
   startSyncs: boolean
+  log: ActionLog
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
-    super({ ...params, log: params.log.makeNewLogContext({ section: action.key() }) })
+    super({ ...params })
+    this.log = createActionLog({ log: params.log, actionName: action.name, actionKind: action.kind })
     this.action = action
     this.graph = params.graph
     this.forceActions = params.forceActions || []

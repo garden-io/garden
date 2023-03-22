@@ -43,7 +43,7 @@ import { ServeCommand } from "../../../../src/commands/serve"
 describe("cli", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
-  const log = getLogger().makeNewLogContext()
+  const log = getLogger().createLog()
 
   beforeEach(() => {
     cli = new GardenCli()
@@ -255,7 +255,7 @@ describe("cli", () => {
 
         const logger = getLogger()
         const writers = logger.getWriters()
-        expect(writers.map((w) => w.type)).to.include("basic")
+        expect(writers.terminal.type).to.equal("default")
       })
     })
 
@@ -1064,7 +1064,7 @@ describe("cli", () => {
     describe("validateRuntimeRequirementsCached", () => {
       let config: GlobalConfigStore
       let tmpDir
-      const log = getLogger().makeNewLogContext()
+      const log = getLogger().createLog()
 
       before(async () => {
         tmpDir = await tmp.dir({ unsafeCleanup: true })

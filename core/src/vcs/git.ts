@@ -252,7 +252,7 @@ export class GitHandler extends VcsHandler {
     }
 
     const gitLog = log
-      .makeNewLogContext({})
+      .createLog({})
       .debug(
         `Scanning ${pathDescription} at ${path}\n→ Includes: ${include || "(none)"}\n→ Excludes: ${exclude || "(none)"}`
       )
@@ -579,7 +579,7 @@ export class GitHandler extends VcsHandler {
     const isCloned = await pathExists(absPath)
 
     if (!isCloned) {
-      const gitLog = log.makeNewLogContext({ section: name }).info(`Fetching from ${url}`)
+      const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
       const { repositoryUrl, hash } = parseGitUrl(url)
 
       try {
@@ -592,7 +592,7 @@ export class GitHandler extends VcsHandler {
         })
       }
 
-      gitLog.setSuccess()
+      gitLog.success("Done")
     }
 
     return absPath
@@ -605,7 +605,7 @@ export class GitHandler extends VcsHandler {
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
-    const gitLog = log.makeNewLogContext({ section: name }).info("Getting remote state")
+    const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
     await git("remote", "update")
 
     const localCommitId = (await git("rev-parse", "HEAD"))[0]
@@ -629,9 +629,9 @@ export class GitHandler extends VcsHandler {
         })
       }
 
-      gitLog.setSuccess("Source updated")
+      gitLog.success("Source updated")
     } else {
-      gitLog.setSuccess("Source already up to date")
+      gitLog.success("Source already up to date")
     }
   }
 

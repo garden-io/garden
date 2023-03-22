@@ -799,7 +799,7 @@ export function initTestLogger() {
     Logger.initialize({
       level: LogLevel.info,
       storeEntries: true,
-      type: "quiet",
+      terminalWriterType: "quiet",
     })
   } catch (_) {}
 }

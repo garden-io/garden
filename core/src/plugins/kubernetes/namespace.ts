@@ -273,7 +273,7 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
     const nsNames = await getAllNamespaces(api)
     if (intersection(nsNames, namespaces).length === 0) {
       if (log) {
-        log.setSuccess()
+        log.success("Done")
       }
       break
     }

@@ -146,7 +146,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
   await setWorkspace(params)
   await tfValidate(params)
 
-  const statusLog = log.makeNewLogContext({ section: "terraform" }).info("Running plan...")
+  const statusLog = log.createLog({ section: "terraform" }).info("Running plan...")
 
   const plan = await terraform(ctx, provider).exec({
     log,
@@ -166,7 +166,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
 
   if (plan.exitCode === 0) {
     // Stack is up-to-date
-    statusLog.setSuccess(chalk.green("Stack up-to-date"))
+    statusLog.success(chalk.green("Stack up-to-date"))
     return "up-to-date"
   } else if (plan.exitCode === 1) {
     // Error from terraform. This can, for example, happen if variables are missing or there are errors in the tf files.
@@ -195,7 +195,7 @@ export async function applyStack(params: TerraformParamsWithVariables) {
   const args = ["apply", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
   const proc = await terraform(ctx, provider).spawn({ log, args, cwd: root })
 
-  const statusLine = log.makeNewLogContext({}).info("→ Applying Terraform stack...")
+  const statusLine = log.createLog({}).info("→ Applying Terraform stack...")
   const logStream = split2()
 
   let stdout: string = ""

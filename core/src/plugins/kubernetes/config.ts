@@ -981,7 +981,7 @@ export const kubernetesCommonRunSchemaKeys = () => ({
 
 export const runPodResourceSchema = (kind: string) =>
   targetResourceSpecSchema().description(
-      dedent`
+    dedent`
         Specify a Kubernetes resource to derive the Pod spec from for the ${kind}.
 
         This resource will be selected from the manifests provided in this ${kind}'s \`files\` or \`manifests\` config field.
@@ -989,7 +989,7 @@ export const runPodResourceSchema = (kind: string) =>
         The following fields from the Pod will be used (if present) when executing the ${kind}:
         ${runPodSpecWhitelistDescription()}
         `
-    )
+  )
 
 // Need to use a sync read to avoid having to refactor createGardenPlugin()
 // The `podspec-v1.json` file is copied from the handy
@@ -997,17 +997,18 @@ export const runPodResourceSchema = (kind: string) =>
 const jsonSchema = () => JSON.parse(readFileSync(join(STATIC_DIR, "kubernetes", "podspec-v1.json")).toString())
 
 // TODO: allow reading the pod spec from a file
-export const runPodSpecSchema = (kind: string) => joi
-  .object()
-  .jsonSchema({ ...jsonSchema(), type: "object" })
-  .description(
-    dedent`
+export const runPodSpecSchema = (kind: string) =>
+  joi
+    .object()
+    .jsonSchema({ ...jsonSchema(), type: "object" })
+    .description(
+      dedent`
     Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the ${kind}, including overriding with other fields you may set here (such as \`args\` and \`env\`), and removing certain fields that are not supported.
 
     The following Pod spec fields from the selected \`resource\` will be used (if present) when executing the ${kind}:
     ${runPodSpecWhitelistDescription()}
   `
-  )
+    )
 
 export const kubernetesTaskSchema = () =>
   baseTaskSpecSchema()

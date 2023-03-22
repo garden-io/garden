@@ -6,7 +6,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { createSchema, DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
+import {
+  createSchema,
+  DeepPrimitiveMap,
+  joi,
+  joiIdentifier,
+  joiPrimitive,
+  joiSparseArray,
+} from "../../../config/common"
 import {
   kubernetesCommonRunSchemaKeys,
   KubernetesCommonRunSpec,
@@ -62,20 +69,23 @@ const parameterValueSchema = () =>
     )
     .id("parameterValue")
 
-const helmReleaseNameSchema = () => joiIdentifier().description(
+const helmReleaseNameSchema = () =>
+  joiIdentifier().description(
     "Optionally override the release name used when installing (defaults to the Deploy name)."
   )
 
-const helmValuesSchema = () => joi
-  .object()
-  .pattern(/.+/, parameterValueSchema())
-  .default(() => ({})).description(deline`
+const helmValuesSchema = () =>
+  joi
+    .object()
+    .pattern(/.+/, parameterValueSchema())
+    .default(() => ({})).description(deline`
     Map of values to pass to Helm when rendering the templates. May include arrays and nested objects.
     When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
     in \`valueFiles\`).
   `)
 
-const helmValueFilesSchema = () => joiSparseArray(joi.posixPath()).description(dedent`
+const helmValueFilesSchema = () =>
+  joiSparseArray(joi.posixPath()).description(dedent`
     Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
     bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
     this list will have the highest precedence.
@@ -135,26 +145,27 @@ export const defaultTargetSchema = () =>
     `
   )
 
-const helmChartSpecSchema = () => joi
-  .object()
-  .keys({
-    name: helmChartNameSchema(),
-    path: joi
-      .posixPath()
-      .subPathOnly()
-      .description(
-        "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
-      ),
-    repo: helmChartRepoSchema(),
-    url: joi.string().uri().description("An absolute URL to a packaged URL."),
-    version: helmChartVersionSchema(),
-  })
-  .with("name", ["version"])
-  .without("path", ["name", "repo", "version", "url"])
-  .without("url", ["name", "repo", "version", "path"])
-  .xor("name", "path", "url")
-  .description(
-    dedent`
+const helmChartSpecSchema = () =>
+  joi
+    .object()
+    .keys({
+      name: helmChartNameSchema(),
+      path: joi
+        .posixPath()
+        .subPathOnly()
+        .description(
+          "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
+        ),
+      repo: helmChartRepoSchema(),
+      url: joi.string().uri().description("An absolute URL to a packaged URL."),
+      version: helmChartVersionSchema(),
+    })
+    .with("name", ["version"])
+    .without("path", ["name", "repo", "version", "url"])
+    .without("url", ["name", "repo", "version", "path"])
+    .xor("name", "path", "url")
+    .description(
+      dedent`
   Specify the Helm chart to use.
 
   If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
@@ -165,7 +176,7 @@ const helmChartSpecSchema = () => joi
 
   One of \`chart.name\`, \`chart.path\` or \`chart.url\` must be specified.
   `
-  )
+    )
 
 export const helmDeploySchema = () =>
   joi
@@ -206,8 +217,9 @@ export const helmPodRunSchema = (kind: string) => {
     name: `${kind}:helm-pod`,
     keys: () => ({
       ...kubernetesCommonRunSchemaKeys(),
-      releaseName: helmReleaseNameSchema()
-        .description(`Optionally override the release name used when rendering the templates (defaults to the ${kind} name).`),
+      releaseName: helmReleaseNameSchema().description(
+        `Optionally override the release name used when rendering the templates (defaults to the ${kind} name).`
+      ),
       chart: helmChartSpecSchema(),
       values: helmValuesSchema(),
       valueFiles: helmValueFilesSchema(),
@@ -217,7 +229,7 @@ export const helmPodRunSchema = (kind: string) => {
         .integer()
         .default(defaultHelmTimeout)
         .description("Time in seconds to wait for Helm to render templates."),
-      }),
+    }),
     xor: ["resource", "podSpec"],
   })()
   runSchemas[name] = schema

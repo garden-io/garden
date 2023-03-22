@@ -27,7 +27,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   }
 
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
-    const log = this.log
+    const log = this.log.createLog({})
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     const router = await this.garden.getActionRouter()
@@ -60,7 +60,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const router = await this.garden.getActionRouter()
 
-    const log = this.log
+    const log = this.log.createLog().info(`Deploying version ${version}...`)
     log.info(`Deploying version ${version}...`)
 
     try {
@@ -76,7 +76,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       throw err
     }
 
-    log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    log.success(`Done`)
 
     const executedAction = resolvedActionToExecuted(action, { status })
 

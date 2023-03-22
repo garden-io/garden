@@ -202,7 +202,7 @@ export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> =
   // Wait for resources to terminate
   await deleteResources({ log, ctx, provider, resources, namespace })
 
-  log.setSuccess("Service deleted")
+  log.success("Service deleted")
 
   return { state: "not-ready", outputs: {}, detail: { state: "missing", detail: { remoteResources: [] } } }
 }

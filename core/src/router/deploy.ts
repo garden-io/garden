@@ -74,11 +74,12 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return output
     },
 
+    // TODO @eysi: The type here should explictly be ActionLog
     delete: async (params) => {
       const { action, router, handlers } = params
 
       const log = params.log
-        .makeNewLogContext({
+        .createLog({
           section: action.key(),
         })
         .info("Deleting...")
@@ -87,7 +88,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const status = statusOutput.result
 
       if (status.detail?.state === "missing") {
-        log.setSuccess({
+        log.success({
           section: action.key(),
           msg: "Not found",
         })
@@ -110,7 +111,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(output.result.detail?.namespaceStatuses)
 
-      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+      // TODO @eysi: Validate that timestamp gets printed
+      log.success(`Done`)
 
       return output
     },

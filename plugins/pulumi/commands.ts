@@ -266,11 +266,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
-    const log = this.log
-      .makeNewLogContext({
-        section: this.action.key(),
-      })
-      .info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
+    const log = this.log.createLog().info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
 
     const params = { ...this.pulumiParams, action: this.getResolvedAction(this.action, dependencyResults) }
 
@@ -283,7 +279,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
         graph: this.graph,
       })
       const result = await this.runFn({ ...params, ctx: ctxForService })
-      log.setSuccess({
+      log.success({
         msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
       })
       return result

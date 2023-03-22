@@ -161,7 +161,7 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst?: boolean
     names?: string[]
   }): Promise<DeployStatusMap> {
-    const servicesLog = log.makeNewLogContext({}).info(chalk.white("Deleting deployments..."))
+    const servicesLog = log.createLog({}).info(chalk.white("Deleting deployments..."))
     const deploys = graph.getDeploys({ names })
 
     const tasks = deploys.map((action) => {
@@ -181,7 +181,7 @@ export class ActionRouter extends BaseRouter {
 
     const serviceStatuses = deletedDeployStatuses(results)
 
-    servicesLog.setSuccess()
+    servicesLog.success("Done")
 
     return serviceStatuses
   }

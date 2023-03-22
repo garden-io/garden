@@ -140,7 +140,7 @@ export function handleBulkOperationResult<T>({
       ${errorMsgs}\n
     `)
   } else {
-    cmdLog.setSuccess()
+    cmdLog.success("Done")
   }
 
   if (successCount > 0) {

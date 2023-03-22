@@ -56,19 +56,24 @@ Let's get your development environment wired up.
     )
   }
 
-  getLoggerType(): LoggerType {
+  getTerminalWriterType(): LoggerType {
     return "ink"
   }
 
   async action(params: ActionParams): Promise<CommandResult> {
-    const logger = params.log.root
-    const writers = logger.getWriters()
-    const inkWriter = writers.find((w) => w.type === "ink") as InkTerminalWriter
+    const logger = getLogger()
+    const terminalWriter = logger.getWriters().terminal
 
+    let inkWriter: InkTerminalWriter
     // TODO: maybe enforce this elsewhere
-    if (!inkWriter) {
+    if (terminalWriter.type === "ink") {
+      inkWriter = terminalWriter as InkTerminalWriter
+    } else {
       throw new ParameterError(`This command can only be used with the ink logger type`, {
-        writerTypes: writers.map((w) => w.type),
+        writerTypes: {
+          terminalWriter: terminalWriter.type,
+          fileWriters: logger.getWriters().file.map((w) => w.type),
+        },
       })
     }
 

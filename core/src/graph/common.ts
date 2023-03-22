@@ -18,7 +18,7 @@ import Bluebird from "bluebird"
 import { loadVarfile } from "../config/base"
 import { DeepPrimitiveMap } from "../config/common"
 import { Task } from "../tasks/base"
-import { LogEntryMetadata, TaskLogStatus } from "../logger/log-entry"
+import { LogMetadata, TaskLogStatus } from "../logger/log-entry"
 
 // Shared type used by ConfigGraph and TaskGraph to facilitate circular dependency detection
 export type DependencyGraphNode = {
@@ -215,7 +215,7 @@ export function nodeKey(type: ActionKind | ModuleDependencyGraphNodeKind, name: 
   return `${type}.${name}`
 }
 
-export function metadataForLog(task: Task, status: TaskLogStatus, outputVersion?: string): LogEntryMetadata {
+export function metadataForLog(task: Task, status: TaskLogStatus, outputVersion?: string): LogMetadata {
   return {
     task: {
       type: task.type,

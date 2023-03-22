@@ -62,7 +62,7 @@ export const pullImage: PluginCommand = {
 
     await pullBuilds(k8sCtx, Object.values(resolvedBuilds), log)
 
-    log.setSuccess(chalk.green("\nDone!"))
+    log.success("\nDone!")
 
     return { result }
   },

@@ -28,7 +28,7 @@ export class AuthRedirectServer {
   constructor(enterpriseDomain: string, events: EventEmitter2, log: Log, public port?: number) {
     this.enterpriseDomain = enterpriseDomain
     this.events = events
-    this.log = log.makeNewLogContext({})
+    this.log = log.createLog({})
   }
 
   async start() {

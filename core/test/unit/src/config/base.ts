@@ -30,7 +30,7 @@ const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
-const log = getLogger().makeNewLogContext()
+const log = getLogger().createLog()
 
 // TODO: remove this describe block in 0.14
 describe("prepareProjectResource", () => {

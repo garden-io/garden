@@ -6,12 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  ForwardablePort,
-  ServiceIngress,
-  DeployState,
-  ServiceStatus,
-} from "../../../types/service"
+import { ForwardablePort, ServiceIngress, DeployState, ServiceStatus } from "../../../types/service"
 import { Log } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { getReleaseName, loadTemplate } from "./common"
