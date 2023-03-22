@@ -165,7 +165,6 @@ export interface Events {
   // Stack Graph events
   stackGraph: RenderedActionGraph
 
-
   // TODO: Remove these once the Cloud UI no longer uses them.
 
   // TaskGraph events

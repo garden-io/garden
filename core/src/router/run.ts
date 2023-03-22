@@ -34,7 +34,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         actionVersion,
         moduleName,
         actionUid,
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
       }
 
       garden.events.emit("runStatus", {
@@ -108,13 +108,13 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         actionVersion,
         moduleName,
         actionUid: action.getUid(),
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
       }
 
       garden.events.emit("runStatus", {
         ...payloadAttrs,
         state: "getting-status",
-        status: { state: "unknown" }
+        status: { state: "unknown" },
       })
 
       const output = await router.callHandler({

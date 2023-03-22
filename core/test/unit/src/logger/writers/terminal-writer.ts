@@ -22,21 +22,15 @@ describe("TerminalWriter", () => {
   describe("render", () => {
     it("should return a formatted message if level is geq than entry level", () => {
       const writer = new TerminalWriter()
-      const entry = logger.makeNewLogContext().info("hello logger").getLatestEntry()
-      const out = writer.render(entry, logger)
-      expect(out).to.eql(formatForTerminal(entry))
+      const entry = logger.createLog().info("hello logger").getLatestEntry()
+      const out = writer.write(entry, logger)
+      expect(out).to.eql(formatForTerminal(entry, logger))
     })
     it("should return a new line if message is an empty string", () => {
       const writer = new TerminalWriter()
-      const entry = logger.makeNewLogContext().info("").getLatestEntry()
-      const out = writer.render(entry, logger)
+      const entry = logger.createLog().info("").getLatestEntry()
+      const out = writer.write(entry, logger)
       expect(out).to.eql("\n")
-    })
-    it("should return null if entry level is geq to writer level", () => {
-      const writer = new TerminalWriter()
-      const entry = logger.makeNewLogContext().verbose("abc").getLatestEntry()
-      const out = writer.render(entry, logger)
-      expect(out).to.eql(null)
     })
   })
 })

@@ -168,7 +168,7 @@ export class TestGarden extends Garden {
     if (cacheKey && paramCache[cacheKey]) {
       params = cloneDeep(paramCache[cacheKey])
       // Need to do these separately to avoid issues around cloning
-      params.log = opts?.log || getLogger().makeNewLogContext()
+      params.log = opts?.log || getLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })

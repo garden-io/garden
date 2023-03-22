@@ -122,7 +122,7 @@ describe("util", () => {
 
     it("should optionally pipe stdout to an output stream", async () => {
       const logger = getLogger()
-      const log = logger.makeNewLogContext()
+      const log = logger.createLog()
 
       await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
@@ -131,7 +131,7 @@ describe("util", () => {
 
     it("should optionally pipe stderr to an output stream", async () => {
       const logger = getLogger()
-      const log = logger.makeNewLogContext()
+      const log = logger.createLog()
 
       await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(log) })
 
@@ -140,7 +140,7 @@ describe("util", () => {
 
     it("should buffer outputs when piping to stream", async () => {
       const logger = getLogger()
-      const log = logger.makeNewLogContext()
+      const log = logger.createLog()
 
       const res = await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 

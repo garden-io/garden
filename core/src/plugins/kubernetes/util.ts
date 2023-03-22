@@ -286,7 +286,7 @@ export async function execInWorkload({
     const logEventContext = {
       // To avoid an awkwardly long prefix for the log lines when rendered, we set a max length here.
       origin: truncate(command.join(" "), 25),
-      log: log.makeNewLogContext({ fixLevel: LogLevel.verbose }),
+      log: log.createLog({ fixLevel: LogLevel.verbose }),
     }
 
     const outputStream = new PassThrough()
@@ -683,7 +683,7 @@ export async function getTargetResource({
 export async function readTargetResource({
   api,
   namespace,
-  query
+  query,
 }: {
   api: KubeApi
   namespace: string

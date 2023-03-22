@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { BaseTask, CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
@@ -366,7 +365,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       this.log.info(`Preparing environment...`)
 
       const envLogEntry = this.log
-        .makeNewLogContext({
+        .createLog({
           section: pluginName,
         })
         .info("Configuring...")
@@ -381,7 +380,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
       status = result.status
 
-      envLogEntry.setSuccess({ msg: chalk.green("Ready") })
+      envLogEntry.success("Ready")
     }
 
     if (!status.ready) {

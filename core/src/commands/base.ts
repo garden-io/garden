@@ -184,7 +184,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     }
   }
 
-  getLoggerType(_: CommandParamsBase<A, O>): LoggerType {
+  getTerminalWriterType(_: CommandParamsBase<A, O>): LoggerType {
     return "default"
   }
 

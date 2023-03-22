@@ -200,7 +200,7 @@ export async function waitForResources({
 
   const logEventContext = {
     origin: "kubernetes-plugin",
-    log: log.makeNewLogContext({ fixLevel: LogLevel.verbose }),
+    log: log.createLog({ fixLevel: LogLevel.verbose }),
   }
 
   const emitLog = (msg: string) =>
@@ -208,7 +208,7 @@ export async function waitForResources({
 
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log
-    .makeNewLogContext({
+    .createLog({
       section: actionName,
     })
     .info(waitingMsg)

@@ -10,6 +10,8 @@ import { expect } from "chai"
 import { getLogger, Logger, LogLevel } from "../../../../src/logger/logger"
 import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
+import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
+import chalk from "chalk"
 
 const logger: Logger = getLogger()
 
@@ -32,7 +34,7 @@ describe("Logger", () => {
     describe("log", () => {
       it("should emit a loggerEvent event when an entry is created", () => {
         const now = freezeTime()
-        const log = logger.makeNewLogContext()
+        const log = logger.createLog()
         log.info({
           msg: "hello",
           section: "80",
@@ -69,7 +71,7 @@ describe("Logger", () => {
   })
   describe("log", () => {
     it("should collect entries if storeEntries=true", () => {
-      const log = logger.makeNewLogContext()
+      const log = logger.createLog()
       log.error("error")
       log.warn("warn")
       log.info("info")
@@ -79,16 +81,18 @@ describe("Logger", () => {
 
       expect(logger.entries).to.have.lengthOf(6)
       const messages = logger.entries.map((e) => e.msg)
-      expect(messages).to.eql(["error", "warn", "info", "verbose", "debug", "silly"])
+      expect(messages).to.eql([chalk.red("error"), "warn", "info", "verbose", "debug", "silly"])
     })
-    it("should not store entires if storeEntries=false", () => {
-      const logWriterB = new Logger({
+    it("should not store entries if storeEntries=false", () => {
+      const logWriterB = Logger._createInstanceForTests({
         level: LogLevel.info,
-        writers: [],
+        writers: {
+          terminal: new QuietWriter({ level: LogLevel.info }),
+          file: [],
+        },
         storeEntries: false,
-        type: "default",
       })
-      const log = logWriterB.makeNewLogContext()
+      const log = logWriterB.createLog()
 
       log.error("error")
       log.warn("warn")
@@ -101,7 +105,7 @@ describe("Logger", () => {
   })
   describe("getLogEntries", () => {
     it("should return the list of log entries", () => {
-      const log = logger.makeNewLogContext()
+      const log = logger.createLog()
       log.error("error")
       log.warn("warn")
       log.info("info")

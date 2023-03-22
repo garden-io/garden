@@ -278,11 +278,9 @@ export interface ResolvedActionTypeHandlerDescription<N = string> extends Resolv
 }
 
 export type ResolvedActionTypeHandlerDescriptions = {
-  [K in ActionKind]: Required<
-    {
-      [H in keyof ActionTypeClasses<K>]: ResolvedActionTypeHandlerDescription<H>
-    }
-  >
+  [K in ActionKind]: Required<{
+    [H in keyof ActionTypeClasses<K>]: ResolvedActionTypeHandlerDescription<H>
+  }>
 }
 
 // It takes a short while to resolve all these schemas, so we cache the result

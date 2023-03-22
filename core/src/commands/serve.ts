@@ -239,9 +239,10 @@ class LogLevelCommand extends InteractiveCommand<LogLevelArguments> {
 
     const logger = log.root
 
-    for (const writer of logger.getWriters()) {
+    const writers = logger.getWriters()
+    for (const writer of [writers.terminal, ...writers.file]) {
       if (displayWriterTypes.includes(writer.type)) {
-        writer.level = (level as unknown) as LogLevel
+        writer.level = level as unknown as LogLevel
       }
     }
 

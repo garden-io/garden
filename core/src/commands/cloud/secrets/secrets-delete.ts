@@ -57,7 +57,7 @@ export class SecretsDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "secrets"), {})
     }
 
-    const cmdLog = log.makeNewLogContext({ section: "secrets-command" })
+    const cmdLog = log.createLog({ section: "secrets-command" })
     cmdLog.info("Deleting secrets...")
 
     let count = 1

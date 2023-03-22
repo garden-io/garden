@@ -57,8 +57,7 @@ export const testOpts = {
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of any Build dependencies encountered." }),
   "interactive": new BooleanParameter({
-    help:
-      "Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
+    help: "Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
     aliases: ["i"],
     cliOnly: true,
   }),

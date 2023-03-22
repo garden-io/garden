@@ -258,7 +258,7 @@ describe("Garden", () => {
         providers: [{ name: "foo" }],
       })
       config.environments = [] // this is omitted later to simulate a config where envs are not set
-      config = (omit(config, "environments") as any) as ProjectConfig
+      config = omit(config, "environments") as any as ProjectConfig
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
         contains: "Error validating project environments: value is required",
       })
@@ -4654,7 +4654,7 @@ describe("Garden", () => {
 
     describe("emitWarning", () => {
       it("should log a warning if the key has not been hidden", async () => {
-        const log = garden.log.makeNewLogContext({})
+        const log = garden.log.createLog({})
         const message = "Oh noes!"
         await garden.emitWarning({ key, log, message })
         const logs = getLogMessages(log)
@@ -4663,7 +4663,7 @@ describe("Garden", () => {
       })
 
       it("should not log a warning if the key has been hidden", async () => {
-        const log = garden.log.makeNewLogContext({})
+        const log = garden.log.createLog({})
         const message = "Oh noes!"
         await garden.hideWarning(key)
         await garden.emitWarning({ key, log, message })

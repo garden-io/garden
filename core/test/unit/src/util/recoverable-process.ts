@@ -75,7 +75,7 @@ describe("validateRetryConfig", () => {
 
 describe("RecoverableProcess", async () => {
   initTestLogger()
-  const log = getLogger().makeNewLogContext()
+  const log = getLogger().createLog()
 
   const doNothingForeverOsCommand = { command: "tail -f /dev/null" }
   const badOsCommand = { command: "bad_os_command_which_does_not_exists_and_must_fail_the_process" }

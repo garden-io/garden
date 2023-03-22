@@ -24,7 +24,6 @@ import { V1Pod } from "@kubernetes/client-node"
 import { DeployState } from "../../../types/service"
 import { EnvironmentStatus } from "../../../plugin/handlers/Provider/getEnvironmentStatus"
 import { PrimitiveMap } from "../../../config/common"
-import chalk from "chalk"
 import { defaultIngressClass } from "../constants"
 
 /**
@@ -95,7 +94,7 @@ export async function waitForResourcesWith({
   const startTime = new Date().getTime()
 
   const statusLine = log
-    .makeNewLogContext({
+    .createLog({
       section: resourcesType,
     })
     .info(`Waiting for resources to be ready...`)
@@ -216,7 +215,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
   const { systemCertManagerReady, systemManagedCertificatesReady } = status.detail
 
   if (!systemCertManagerReady || !systemManagedCertificatesReady) {
-    const certsLog = log.makeNewLogContext({ section: "cert-manager" })
+    const certsLog = log.createLog({ name: "cert-manager", showDuration: true })
     certsLog.info(`Verifying installation...`)
     // const certsLog = log.info({
     //   section: "cert-manager",
@@ -298,7 +297,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
         certsLog.info("No certificates found...")
       }
     }
-    certsLog.setSuccess(chalk.green(`Done (took ${certsLog.getDuration(1)} sec)`))
+    certsLog.success(`Done`)
   }
 }
 

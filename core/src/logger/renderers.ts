@@ -19,7 +19,7 @@ import { highlightYaml, safeDumpYaml } from "../util/serialization"
 import { Logger, logLevelMap, LogLevel } from "./logger"
 import { toGardenError, formatGardenErrorWithDetail } from "../exceptions"
 
-type RenderFn = (entry: LogEntry) => string
+type RenderFn = (entry: LogEntry, logger: Logger) => string
 
 /*** STYLE HELPERS ***/
 
@@ -38,8 +38,8 @@ export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
 /**
  * Combines the render functions and returns a string with the output value
  */
-export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
-  return renderers.map((renderer) => renderer(entry)).join("")
+export function combineRenders(entry: LogEntry, logger: Logger, renderers: RenderFn[]): string {
+  return renderers.map((renderer) => renderer(entry, logger)).join("")
 }
 
 export function renderError(entry: LogEntry): string {
@@ -52,6 +52,8 @@ export function renderError(entry: LogEntry): string {
 }
 
 export function renderSymbol(entry: LogEntry): string {
+  const section = renderSection(entry)
+
   let symbol = entry.symbol
 
   if (symbol === "empty") {
@@ -59,15 +61,15 @@ export function renderSymbol(entry: LogEntry): string {
   }
 
   // Always show symbol with sections
-  if (!symbol && entry.section) {
+  if (!symbol && (entry.type === "actionLogEntry" || section)) {
     symbol = "info"
   }
 
   return symbol ? `${logSymbols[symbol]} ` : ""
 }
 
-export function renderTimestamp(entry: LogEntry): string {
-  if (!entry.root.showTimestamps) {
+export function renderTimestamp(entry: LogEntry, logger: Logger): string {
+  if (!logger.showTimestamps) {
     return ""
   }
   return `[${getTimestamp(entry)}] `
@@ -106,6 +108,12 @@ export function renderSection(entry: LogEntry): string {
   const { msg } = entry
   let { section } = entry
 
+  if (entry.type === "actionLogEntry") {
+    section = `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
+  } else if (entry.context.name) {
+    section = entry.context.name
+  }
+
   // For log levels higher than "info" we print the log level name.
   // This should technically happen when we render the symbol but it's harder
   // to deal with the padding that way and we'll be re-doing most of this anyway
@@ -137,22 +145,22 @@ export function renderSection(entry: LogEntry): string {
 /**
  * Formats entries for the terminal writer.
  */
-export function formatForTerminal(entry: LogEntry): string {
-  const { msg, section, symbol, data, error } = entry
+export function formatForTerminal(entry: LogEntry, logger: Logger): string {
+  const { msg: msg, section, symbol, data } = entry
   const empty = [msg, section, symbol, data].every((val) => val === undefined)
 
   if (empty) {
     return ""
   }
 
-  let out = combineRenders(entry, [renderTimestamp, renderSymbol, renderSection, renderMsg, renderData])
-
-  // If no data or msg is set, only error, render the error (which is normally only sent to error log file)
-  if (error && !data && !msg) {
-    out += renderError(entry)
-  }
-
-  return out + "\n"
+  return combineRenders(entry, logger, [
+    renderTimestamp,
+    renderSymbol,
+    renderSection,
+    renderMsg,
+    renderData,
+    () => "\n",
+  ])
 }
 
 export function cleanForJSON(input?: string | string[]): string {
@@ -166,13 +174,6 @@ export function cleanForJSON(input?: string | string[]): string {
 
 export function cleanWhitespace(str: string) {
   return str.replace(/\s+/g, " ")
-}
-
-export function render(entry: LogEntry, logger: Logger): string | null {
-  if (logger.level >= entry.level) {
-    return formatForTerminal(entry)
-  }
-  return null
 }
 
 // TODO: Include individual message states with timestamp

@@ -96,7 +96,7 @@ export class GraphResults<B extends Task = Task> {
   }
 
   filterForGraphResult<T extends Task = Task>(): GraphResultMapWithoutTask<T> {
-    return mapResults(this.results, (v) => v ? { ...omit(v, "task") } : null)
+    return mapResults(this.results, (v) => (v ? { ...omit(v, "task") } : null))
   }
 
   /**
@@ -126,7 +126,7 @@ export class GraphResults<B extends Task = Task> {
 function mapResults<T extends Task = Task, R extends object = {}>(
   results: Map<string, GraphResultWithoutTask<T> | null> | GraphResultMapWithoutTask<T> | null,
   fn: (val: GraphResultWithoutTask<T> | null) => R | null
-): { [key: string]: R | null} {
+): { [key: string]: R | null } {
   if (!results) {
     return {}
   }
@@ -165,7 +165,7 @@ function prepareForExport(graphResult: GraphResultWithoutTask | null) {
       "version",
       "processed",
       "success",
-      "version",
+      "version"
     ),
     result: filterResultForExport(result),
     error: filterErrorForExport(error),
@@ -186,7 +186,7 @@ function filterResultForExport(result: any) {
     "fresh",
     "buildLog",
     "log",
-    "message",
+    "message"
   )
   return {
     ...pick(
@@ -218,7 +218,7 @@ function filterResultForExport(result: any) {
       "exitCode",
       "startedAt",
       "completedAt",
-      "namespaceStatus",
+      "namespaceStatus"
     ),
     detail: filteredDetail,
   }
@@ -244,10 +244,10 @@ function filterErrorForExport(error: any) {
     "name",
     "processed",
     "success",
-    "type",
+    "type"
   )
   return {
     ...pick(error, "message", "type", "stack"),
-    detail: filteredDetail
+    detail: filteredDetail,
   }
 }

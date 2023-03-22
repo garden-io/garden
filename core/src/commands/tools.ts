@@ -76,11 +76,11 @@ export class ToolsCommand extends Command<Args, Opts> {
 
   printHeader() {}
 
-  async prepare({ log }) {
+  async prepare({ log }: { log: Log }) {
     // Override the logger output, to output to stderr instead of stdout, to avoid contaminating command output
-    const basicWriter = log.root.writers.find((w) => w.type === "basic")
-    if (basicWriter) {
-      basicWriter.output = process.stderr
+    const terminalWriter = log.root.getWriters().terminal
+    if (terminalWriter.type === "default" || terminalWriter.type === "basic") {
+      terminalWriter.output = process.stderr
     }
   }
 

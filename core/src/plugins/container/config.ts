@@ -118,7 +118,7 @@ interface Annotations {
 }
 
 const deploymentStrategies = ["RollingUpdate", "Recreate"] as const
-export type DeploymentStrategy = typeof deploymentStrategies[number]
+export type DeploymentStrategy = (typeof deploymentStrategies)[number]
 export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
 
 export const commandExample = ["/bin/sh", "-c"]

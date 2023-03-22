@@ -250,31 +250,29 @@ const helpers = {
   /**
    * Retrieves the docker client and server version.
    */
-  getDockerVersion: pMemoize(
-    async (cliPath = "docker"): Promise<DockerVersion> => {
-      const results = await Bluebird.map(["client", "server"], async (key) => {
-        let res: SpawnOutput
+  getDockerVersion: pMemoize(async (cliPath = "docker"): Promise<DockerVersion> => {
+    const results = await Bluebird.map(["client", "server"], async (key) => {
+      let res: SpawnOutput
 
-        try {
-          res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
-        } catch (err) {
-          return [key, undefined]
-        }
+      try {
+        res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
+      } catch (err) {
+        return [key, undefined]
+      }
 
-        const output = res.stdout.trim()
+      const output = res.stdout.trim()
 
-        if (!output) {
-          throw new RuntimeError(`Unexpected docker version output: ${res.all.trim()}`, {
-            output,
-          })
-        }
+      if (!output) {
+        throw new RuntimeError(`Unexpected docker version output: ${res.all.trim()}`, {
+          output,
+        })
+      }
 
-        return [key, output]
-      })
+      return [key, output]
+    })
 
-      return fromPairs(results)
-    }
-  ),
+    return fromPairs(results)
+  }),
 
   /**
    * Asserts that the specified docker client version meets the minimum requirements.

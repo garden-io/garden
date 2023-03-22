@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { render } from "../renderers"
+import { formatForTerminal } from "../renderers"
 import { LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { BaseWriterParams, Writer } from "./base"
@@ -30,7 +30,7 @@ export class InkTerminalWriter extends Writer {
   }
 
   write(entry: LogEntry, logger: Logger) {
-    const out = render(entry, logger)
+    const out = formatForTerminal(entry, logger)
     if (out) {
       this.writeCallback(out)
     }

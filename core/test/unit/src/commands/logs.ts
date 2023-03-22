@@ -85,7 +85,7 @@ function getLogOutput(garden: TestGarden, msg: string, extraFilter: (e: LogEntry
     .getChildLogEntries()
     .filter(extraFilter)
     .filter((e) => e.msg?.includes(msg))!
-  return entries.map((e) => formatForTerminal(e).trim())
+  return entries.map((e) => formatForTerminal(e, garden.log.root).trim())
 }
 
 describe("LogsCommand", () => {

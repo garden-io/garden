@@ -9,17 +9,18 @@
 import logSymbols from "log-symbols"
 import { cloneDeep, round } from "lodash"
 
-import { LogLevel, logLevelMap } from "./logger"
+import { LogLevel } from "./logger"
 import { Omit } from "../util/util"
-import { findParentLogContext } from "./util"
+import { GardenError } from "../exceptions"
 import { Logger } from "./logger"
 import uniqid from "uniqid"
+import chalk from "chalk"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
 
-// TODO @eysi: Would be good to get rid of this
-export interface LogEntryMetadata {
+export interface LogMetadata {
+  // TODO Remove this in favour of reading the task data from the (action) context.
   task?: TaskMetadata
   workflowStep?: WorkflowStepMetadata
 }
@@ -38,169 +39,168 @@ export interface WorkflowStepMetadata {
   index: number
 }
 
-interface LogCommonParams {
-  id?: string
-  metadata?: LogEntryMetadata
+interface CoreLogContext {
+  name?: string
 }
 
-interface LogParams extends LogCommonParams {
-  msg?: string
-  /**
-   * The log entry section. By default inherited from parent log context
-   * but can optionally be overwritten here.
-   * TODO @eysi: In fact, lets remove in favour of context
-   */
-  section?: string
-  symbol?: LogSymbol
-  data?: any
-  dataFormat?: "json" | "yaml"
-  error?: Error
-}
-
-interface CreateLogEntryParams extends LogParams {
-  level: LogLevel
-}
-
-interface LogContext {
-  name: string
-}
-
-// TODO @eysi: What other data would we nee here?
 interface ActionLogContext {
   actionName: string
   actionKind: string
 }
 
-// TODO @eysi: Consider nesting the message data (msg, section, symbol etc) under a "message" field.
-interface LogEntryBase extends CreateLogEntryParams {
-  type: "logEntry" | "actionLogEntry"
+// Common Log config that the class implements and other interfaces pick / omit from.
+interface LogConfig {
+  /**
+   * A unique ID that's assigned to the config when it's created.
+   */
+  key: string
+  timestamp: string
+  type: "coreLog" | "actionLog"
+  /**
+   * Additional metadata to pass to the log context. The metadata gets added to
+   * all log entries which can optionally extend it.
+   */
+  metadata?: LogMetadata
+  section?: string
+  /**
+   * Fix the level of all log entries created by this Log such that they're
+   * geq to this value.
+   *
+   *  Useful to enforce the level in a given log context, e.g.:
+   *  const debugLog = log.createLog({ fixLevel: LogLevel.debug })
+   */
+  fixLevel?: LogLevel
+  context: CoreLogContext | ActionLogContext
+  /**
+   * Append the duration from when the log context was created and until the
+   * success or error methods or call to the message.
+   * E.g.: If calling `log.sucess(Done!)`, then the log message becomes "Done! (in 4 sec)".
+   */
+  showDuration?: boolean
+}
+
+interface LogConstructor extends Omit<LogConfig, "key" | "timestamp" | "type"> {
+  root: Logger
+  parentConfigs: LogConfig[]
+}
+interface CoreLogConstructor extends LogConstructor {
+  context: CoreLogContext
+}
+interface ActionLogConstructor extends Omit<LogConstructor, "showDuration"> {
+  context: ActionLogContext
+}
+
+interface CreateCoreLogParams extends Pick<LogConfig, "metadata" | "fixLevel" | "section" | "showDuration"> {
+  /**
+   * The name of the log context. Will be printed as the "section" part of the log lines
+   * belonging to this context.
+   * TODO @eysi: Replace section with name and remove.
+   */
+  name?: string
+}
+interface CreateActionLogParams extends Pick<LogConfig, "metadata" | "fixLevel"> {}
+
+interface LogEntryBase extends Pick<LogConfig, "metadata" | "section"> {
+  type: "coreLogEntry" | "actionLogEntry"
   timestamp: string
   /**
    * A unique ID that's assigned to the entry when it's created.
    */
   key: string
-  level: LogLevel
   /**
-   * The root logger is attached to the LogEntry for convenience.
-   * TODO: Consider removing so that the log entry is just a POJO.
+   * The unique ID of the log context that created the log entry.
    */
-  root: Logger
+  parentLogKey: string
+  level: LogLevel
   /**
    * Metadata about the context in which the log was created.
    * Used for rendering contextual information alongside the actual message.
    */
-  context: LogContext | ActionLogContext
+  context: LogContext
+  msg?: string
+  symbol?: LogSymbol
+  data?: any
+  dataFormat?: "json" | "yaml"
+  error?: GardenError
 }
-
-export interface LogEntry extends LogEntryBase {
-  type: "logEntry"
-  metadata?: LogEntryMetadata
+interface CoreLogEntry extends LogEntryBase {
+  type: "coreLogEntry"
+  context: CoreLogContext
 }
-
-export interface ActionLogEntry extends LogEntryBase {
+interface ActionLogEntry extends LogEntryBase {
   type: "actionLogEntry"
   context: ActionLogContext
 }
 
-export interface LogConstructor extends LogCommonParams {
-  section?: string
-  root: Logger
-  parent?: Log
-  /**
-   * Fix the level of all log entries created by this Log such that they're
-   * geq to this value.
-   *  
-   *  Useful to enforce the level in a given log context, e.g.:
-   *  const debugLog = log.makeNewLogContext({ fixLevel: LogLevel.debug })
-   */
-  fixLevel?: LogLevel
+interface LogParams
+  extends Pick<LogEntryBase, "metadata" | "section" | "msg" | "symbol" | "data" | "dataFormat" | "error"> {}
+interface CreateLogEntryParams extends LogParams {
+  level: LogLevel
 }
 
-function resolveCreateParams(level: LogLevel, params: string | LogParams): CreateLogEntryParams {
-  if (typeof params === "string") {
-    return { msg: params, level }
-  }
-  return { ...params, level }
+// Setting these utility union types so that it's easy to add more.
+export type LogEntry = CoreLogEntry | ActionLogEntry
+type LogContext = CoreLogContext | ActionLogContext
+type LogType = CoreLog | ActionLog
+type CreateLogParams = CreateCoreLogParams | CreateActionLogParams
+
+export function createActionLog({
+  log,
+  actionName,
+  actionKind,
+  metadata,
+}: {
+  log: Log
+  actionName: string
+  actionKind: string
+  metadata?: LogMetadata
+}) {
+  return new ActionLog({
+    parentConfigs: [...log.parentConfigs, log.getConfig()],
+    metadata,
+    root: log.root,
+    context: {
+      actionName,
+      actionKind,
+    },
+  })
 }
 
-/**
- * The 'Log' class exposes function for logging information at different levels.
- *
- * Each instance of the class holds some log context that its entries inherit.
- * Typically a 'log' instance corresponds to a given 'section' so that its log entries share
- * a common format.
- *
- * A new log context can be created from an existing one in which case the new context inherits
- * its parent config with optional overwrites.
- *
- * Example:
- *
- * const buildLog = log.makeNewLogContext({ section: "build.api" })
- * const debugBuildLog = buildLog.makeNewLogContext({ fixLevel: LogLevel.verbose })
- * buildLog.info("hello")
- */
-export class Log {
-  public readonly metadata?: LogEntryMetadata
-  public readonly parent?: Log
-  public readonly timestamp: string
+export abstract class Log implements LogConfig {
+  public readonly showDuration?: boolean
+  public readonly type: "coreLog" | "actionLog"
+  public readonly metadata?: LogMetadata
   public readonly key: string
-  // TODO @eysi: It doesn't really make sense to have a level on the Log class itself
-  // unless 'fixLevel' is also set. Consider merging the two.
+  public readonly parentConfigs: LogConfig[]
+  public readonly timestamp: string
   public readonly root: Logger
   public readonly section?: string
   public readonly fixLevel?: LogLevel
-  public readonly id?: string
-  public readonly type: "log"
-  public entries: LogEntry[]
+  public readonly entries: LogEntry[]
+  public readonly context: LogContext
 
   constructor(params: LogConstructor) {
     this.key = uniqid()
     this.entries = []
     this.timestamp = new Date().toISOString()
-    this.parent = params.parent
-    this.id = params.id
+    this.parentConfigs = params.parentConfigs || []
     this.root = params.root
     this.fixLevel = params.fixLevel
     this.metadata = params.metadata
-    this.id = params.id
     // Require section? (Won't be needed for ActionLog and PluginLog)
     this.section = params.section
+    this.context = params.context
+    this.showDuration = params.showDuration || false
   }
 
-  toSanitizedValue() {
-    // TODO: add a bit more info here
-    return "<Log>"
-  }
+  protected abstract createLogEntry(params: CreateLogEntryParams): LogEntry
 
-  private createLogEntry(params: CreateLogEntryParams) {
-    const level = this.fixLevel ? Math.max(this.fixLevel, params.level)  : params.level
-    const section = params.section || this.section
+  /**
+   * Create a new Log with the same context, optionally overwriting some fields.
+   */
+  abstract createLog(params: CreateLogParams): LogType
 
-    let metadata: LogEntryMetadata | undefined = undefined
-    if (this.metadata || params.metadata) {
-      metadata = { ...cloneDeep(this.metadata || {}), ...(params.metadata || {}) }
-    }
-
-    const logEntry: LogEntry = {
-      type: "logEntry",
-      section,
-      ...params,
-      error: params.error,
-      level,
-      timestamp: new Date().toISOString(),
-      metadata,
-      key: uniqid(),
-      root: this.root,
-      // TODO
-      context: {
-        name: ""
-      }
-    }
-
-    return logEntry
-  }
-
-  private log(params: CreateLogEntryParams): Log {
+  private log(params: CreateLogEntryParams) {
     const entry = this.createLogEntry(params)
     if (this.root.storeEntries) {
       this.entries.push(entry)
@@ -209,54 +209,93 @@ export class Log {
     return this
   }
 
-  /**
-   * Create a new logger with same context, optionally overwriting some fields.
-   * TODO @eysi: Do not use Partial<> here.
-   */
-  makeNewLogContext(params: Partial<LogConstructor>) {
-    return new Log({
-      section: params.section || this.section,
-      parent: this,
-      root: this.root,
-      fixLevel: params.fixLevel || this.fixLevel,
-      metadata: params.metadata || this.metadata,
-    })
+  private withDuration(params: CreateLogEntryParams) {
+    if (this.showDuration && params.msg) {
+      params.msg = params.msg + ` (in ${this.getDuration(1)} sec)`
+    }
+    return params
   }
 
-  silly(params: string | LogParams): Log {
-    return this.log(resolveCreateParams(LogLevel.silly, params))
+  protected createLogEntryBase(params: CreateLogEntryParams): Omit<LogEntry, "type"> {
+    const level = this.fixLevel ? Math.max(this.fixLevel, params.level) : params.level
+    const section = params.section || this.section
+
+    let metadata: LogMetadata | undefined = undefined
+    if (this.metadata || params.metadata) {
+      metadata = { ...cloneDeep(this.metadata || {}), ...(params.metadata || {}) }
+    }
+
+    return {
+      section,
+      ...params,
+      parentLogKey: this.key,
+      context: this.context,
+      level,
+      timestamp: new Date().toISOString(),
+      metadata,
+      key: uniqid(),
+    }
   }
 
-  debug(params: string | LogParams): Log {
-    return this.log(resolveCreateParams(LogLevel.debug, params))
+  private resolveCreateParams(level: LogLevel, params: string | LogParams): CreateLogEntryParams {
+    if (typeof params === "string") {
+      return { msg: params, level }
+    }
+    return { ...params, level }
   }
 
-  verbose(params: string | LogParams): Log {
-    return this.log(resolveCreateParams(LogLevel.verbose, params))
+  silly(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.silly, params))
   }
 
-  info(params: string | LogParams): Log {
-    return this.log(resolveCreateParams(LogLevel.info, params))
+  debug(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.debug, params))
   }
 
-  warn(params: string | LogParams): Log {
-    return this.log(resolveCreateParams(LogLevel.warn, params))
+  verbose(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.verbose, params))
   }
 
-  error(params: string | LogParams): Log {
-    return this.log(resolveCreateParams(LogLevel.error, params))
+  info(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.info, params))
+  }
+
+  warn(params: string | LogParams) {
+    return this.log(this.resolveCreateParams(LogLevel.warn, params))
+  }
+
+  error(params: string | LogParams) {
+    const config = {
+      ...this.resolveCreateParams(LogLevel.error, params || {}),
+      symbol: "error" as LogSymbol,
+    }
+    config.msg = chalk.red(this.withDuration(config).msg)
+    return this.log(config)
+  }
+
+  success(params: string | Omit<LogParams, "symbol">) {
+    const config = {
+      ...this.resolveCreateParams(LogLevel.info, params || {}),
+      symbol: "success" as LogSymbol,
+    }
+    config.msg = chalk.green(this.withDuration(config).msg)
+    return this.info(config)
+  }
+
+  getConfig(): LogConfig {
+    return {
+      context: this.context,
+      metadata: this.metadata,
+      timestamp: this.timestamp,
+      key: this.key,
+      section: this.section,
+      fixLevel: this.fixLevel,
+      type: this.type,
+    }
   }
 
   getLatestEntry() {
     return this.entries.slice(-1)[0]
-  }
-
-  // TODO: Keeping this for now, will update in a follow up PR
-  setSuccess(params?: string | Omit<LogParams, "symbol">): Log {
-    return this.info({
-      ...resolveCreateParams(LogLevel.info, params || {}),
-      symbol: "success",
-    })
   }
 
   getChildLogEntries() {
@@ -285,5 +324,83 @@ export class Log {
    */
   getDuration(precision: number = 2): number {
     return round((new Date().getTime() - new Date(this.timestamp).getTime()) / 1000, precision)
+  }
+
+  toSanitizedValue() {
+    // TODO: add a bit more info here
+    return "<Log>"
+  }
+}
+
+export class CoreLog extends Log {
+  public readonly type = "coreLog"
+  public entries: CoreLogEntry[]
+  public context: CoreLogContext
+
+  constructor(params: CoreLogConstructor) {
+    super(params)
+  }
+
+  createLogEntry(params: CreateLogEntryParams): CoreLogEntry {
+    return {
+      ...this.createLogEntryBase(params),
+      type: "coreLogEntry",
+      context: this.context,
+    }
+  }
+
+  /**
+   * Create a new CoreLog with the same context, optionally overwriting some fields.
+   *
+   * TODO @eysi: It's a little awkward that you can overwrite the context of CoreLogs
+   * but not others. Consider having a helper function for creating new CoreLogs and
+   * using this only for cloning the context like we do e.g. with the ActionLog.
+   */
+  createLog(params: CreateCoreLogParams = {}) {
+    return new CoreLog({
+      metadata: params.metadata || this.metadata,
+      fixLevel: params.fixLevel || this.fixLevel,
+      section: params.section || this.section,
+      // The name is passed directly to the function to simplify call sites.
+      context: {
+        name: params.name || this.context.name,
+      },
+      root: this.root,
+      parentConfigs: [...this.parentConfigs, this.getConfig()],
+      showDuration: params.showDuration,
+    })
+  }
+}
+
+export class ActionLog extends Log {
+  public readonly type = "actionLog"
+  public readonly showDuration = true
+  public readonly context: ActionLogContext
+  public readonly entries: ActionLogEntry[]
+
+  constructor(params: ActionLogConstructor) {
+    super(params)
+  }
+
+  createLogEntry(params: CreateLogEntryParams): ActionLogEntry {
+    return {
+      ...this.createLogEntryBase(params),
+      type: "actionLogEntry" as const,
+      context: this.context,
+    }
+  }
+
+  /**
+   * Create a new ActionLog with the same context, optionally overwriting some fields.
+   */
+  createLog(params: CreateActionLogParams = {}) {
+    return new ActionLog({
+      metadata: params.metadata || this.metadata,
+      fixLevel: params.fixLevel || this.fixLevel,
+      // Action log context is always inherited and does not get overwritten.
+      context: this.context,
+      root: this.root,
+      parentConfigs: [...this.parentConfigs, this.getConfig()],
+    })
   }
 }

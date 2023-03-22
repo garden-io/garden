@@ -820,7 +820,7 @@ async function getReversePortForwardProcesses(
             })
           },
           onMessage: (msg: ProcessMessage) => {
-            log.setSuccess({
+            log.success({
               section,
               msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
             })
@@ -831,7 +831,7 @@ async function getReversePortForwardProcesses(
           hasErrors: (_chunk: any) => false,
           onError: (_msg: ProcessMessage) => {},
           onMessage: (msg: ProcessMessage) => {
-            log.setSuccess({
+            log.success({
               section,
               msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
             })

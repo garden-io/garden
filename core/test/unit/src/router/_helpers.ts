@@ -20,13 +20,8 @@ import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src
 import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers"
 
 export async function getRouterTestData() {
-  const {
-    basePlugin,
-    dateUsedForCompleted,
-    returnWrongOutputsCfgKey,
-    testPluginA,
-    testPluginB,
-  } = getRouterUnitTestPlugins()
+  const { basePlugin, dateUsedForCompleted, returnWrongOutputsCfgKey, testPluginA, testPluginB } =
+    getRouterUnitTestPlugins()
   const garden = await makeTestGarden(projectRootA, {
     plugins: [basePlugin, testPluginA, testPluginB],
     config: createProjectConfig({
@@ -267,15 +262,8 @@ function getRouterUnitTestPlugins() {
           convert: async (params) => {
             validateParams(params, moduleActionDescriptions.convert.paramsSchema)
 
-            const {
-              module,
-              services,
-              tasks,
-              tests,
-              dummyBuild,
-              convertBuildDependency,
-              convertRuntimeDependencies,
-            } = params
+            const { module, services, tasks, tests, dummyBuild, convertBuildDependency, convertRuntimeDependencies } =
+              params
 
             const actions: (BuildActionConfig | BaseRuntimeActionConfig)[] = []
 

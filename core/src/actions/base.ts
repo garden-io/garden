@@ -723,7 +723,8 @@ export abstract class ExecutedRuntimeAction<
     O extends {} = any
   >
   extends ResolvedRuntimeAction<C, O>
-  implements ExecutedActionExtension<C, O> {
+  implements ExecutedActionExtension<C, O>
+{
   private readonly status: ActionStatus<this, any, O>
 
   constructor(params: ExecutedActionWrapperParams<C, O>) {

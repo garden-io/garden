@@ -262,7 +262,7 @@ export function getForwardablePorts(
       }
 
       for (const servicePort of service.spec?.ports || []) {
-        const serviceTargetPort = (servicePort.targetPort as any) as number
+        const serviceTargetPort = servicePort.targetPort as any as number
 
         if (serviceTargetPort && serviceTargetPort === portSpec.containerPort) {
           return true

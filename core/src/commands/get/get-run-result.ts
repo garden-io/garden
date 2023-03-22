@@ -45,8 +45,9 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
   outputsSchema = () =>
     getRunResultSchema()
       .keys({
-        artifacts: joiArray(joi.string())
-          .description("Local file paths to any exported artifacts from the Run's execution."),
+        artifacts: joiArray(joi.string()).description(
+          "Local file paths to any exported artifacts from the Run's execution."
+        ),
       })
       .description("The output from the Run. May also return null if no Run result is found.")
 
