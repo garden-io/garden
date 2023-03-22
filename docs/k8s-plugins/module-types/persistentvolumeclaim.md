@@ -3,7 +3,7 @@ title: PersistentVolumeClaim
 order: 5
 ---
 
-## PersitentVolumeClaim
+## PersistentVolumeClaim
 
 `container` services, tasks and tests can all mount volumes using this module type. To mount a volume, you need to define a volume module, and reference it using the `volumes` key on your services, tasks and/or tests.
 
@@ -43,3 +43,51 @@ You can do the same for tests and tasks using the [`tests.volumes`](../../refere
 
 Take a look at the [`persistentvolumeclaim`](../../reference/module-types/persistentvolumeclaim.md) and [`container` module](../../reference/module-types/container.md#servicesvolumes) reference docs for more details.
 
+### Shared volumes
+
+For a volume to be shared between multiple replicas, or multiple services, tasks and/or tests, it needs to be configured with a storage class (using the `storageClassName` field) that supports the `ReadWriteMany` (RWX) access mode. The available storage classes that support RWX vary by cloud providers and cluster setups, and in many cases you need to define a `StorageClass` or deploy a _storage class provisioner_ to your cluster.
+
+You can find a list of storage options and their supported access modes [here](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes). Here are a few commonly used RWX provisioners and storage classes:
+
+* [NFS Server Provisioner](https://github.com/helm/charts/tree/master/stable/nfs-server-provisioner)
+* [Azure File](https://docs.microsoft.com/en-us/azure/aks/azure-files-dynamic-pv)
+* [AWS EFS Provisioner](https://github.com/helm/charts/tree/master/stable/efs-provisioner)
+* [Ceph (via Rook)](https://rook.io/docs/rook/v1.2/ceph-filesystem.html)
+
+Once any of those is set up you can create a `persistentvolumeclaim` module that uses the configured storage class. Here, for example, is how you might use a shared volume with a configured `azurefile` storage class:
+
+```yaml
+kind: Module
+name: shared-volume
+type: persistentvolumeclaim
+spec:
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: azurefile
+---
+kind: Module
+name: my-module
+type: container
+services:
+  - name: my-service
+    volumes:
+      - &volume   # <- using a YAML anchor to re-use the volume spec in tasks and tests
+        name: shared-volume
+        module: shared-volume
+        containerPath: /volume
+    ...
+tasks:
+  - name: my-task
+    volumes:
+      - *volume
+    ...
+tests:
+  - name: my-test
+    volumes:
+      - *volume
+    ...
+```
+
+Here the same volume is used across a service, task and a test in the same module. You could similarly use the same volume across multiple container modules.
