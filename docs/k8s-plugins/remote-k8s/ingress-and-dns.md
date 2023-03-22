@@ -382,187 +382,51 @@ Make sure to review if your file matches this and correct if it's needed.
 
 ### Creating the cluster-issuers Helm Chart
 
-This chart is a custom Helm Chart that will create the following resources:
+Now that we have ExternalDNS and Cert-manager charts configured, we still have to configure our Cert-manager Custom Resources.
+
+In order to generate our certificates we need some components from cert-manager applied into our Kubernetes Cluster, these components are the following:
 
 - ClusterIssuers: A Cluster issuer is in charge of identifying which Certificate Authority (CA) cert-manager will use to issue a certificate.
 - Certificates: Represents a human readable definition of a certificate request that is created by an issuer. In order to generate a certificate you need a ClusterIssuer or an Issuer first.
 - Cloudflare-API-Token Secret: This Kubernetes secret is going to be used so `cert-manager` can do the DNS01 challenge using the CloudFlare API Token.
 
-In previous steps we created the Folder structure that we were going to use for this Helm Chart, however we didn't created the files, so let's start with that.
+To install those components you can either follow [this guide](https://cert-manager.io/docs/configuration/acme/dns01/cloudflare/) from cert-manager to create the ClusterIssuer and needed secrets.
+
+If you want to have this fully automated with Garden you'll need to create a Helm Chart (or any sort of manifest applying mechanism like Kustomize) to create and apply those manifests to your cluster.
+
+If you decide to go with the automated way we created a custom Helm Chart that is stored in our [tls-and-dns](https://github.com/garden-io/garden/tree/main/examples/tls-and-dns/charts/cluster-issuers) example folder.
+
+To use it just proceed to clone the repository and move the charts folder into your own repository
 
 ````bash
-# Creating the Templates (Kubernetes Manifests)
-mkdir ./charts/cluster-issuers/templates
-touch ./charts/cluster-issuers/templates/certificates.yaml
-touch ./charts/cluster-issuers/templates/cluster-issuers.yaml
-touch ./charts/cluster-issuers/templates/secret.yaml
-# Create main values files and Chart file
-touch ./charts/cluster-issuers/Chart.yaml
-touch ./charts/cluster-issuers/.helmignore
-touch ./charts/cluster-issuers/values.yaml
+git clone git@github.com:garden-io/garden.git
+cp -f examples/tls-and-dns/charts ./charts
 ````
 
-Your chart structure should look like the following:
-
-````bash
-./charts
-└── cluster-issuers
-    ├── Chart.yaml
-    ├── templates
-    │   ├── certificates.yaml
-    │   ├── cluster-issuers.yaml
-    │   └── secret.yaml
-    └── values.yaml
-````
-
-#### Chart.yaml
-
-The Chart.yaml file is the metadata for our Helm Chart, the content of this file is used to identify each Helm Chart.
-
-Add the following content to your Chart.yaml
+After you imported the `charts` folder make sure that you have the configuration for the module in the `garden.yml` file.
 
 ````yaml
-apiVersion: v2
+---
+# Cluster-issuers module configuration
+kind: Module
+type: helm
 name: cluster-issuers
-description: A Helm chart for needed resources for TLS and DNS
-type: application
-version: 0.1.0
-maintainers:
-- name: ShankyJS
-  email: your-email@email.com
+namespace: default
+description: This module installs cluster-issuers in our Kubernetes Cluster.
+chartPath: charts/cluster-issuers
+dependencies:
+  - cert-manager # This module depends on the cert-manager module (we need the CRDs to be installed)
+values:
+  cloudflare:
+    email: ${var.CF_EMAIL}
+    apiToken: ${local.env.CF_API_TOKEN}
+    cfDomain: ${var.CF_DOMAIN[0]} # For this example, at the moment we only support one domain.
+  generateStgCert: ${var.GENERATE_STG_CERTS}
+  generateProdCert: ${var.GENERATE_PROD_CERTS}
 
 ````
 
-#### values.yaml
-
-The values.yaml file is used to provide default values for our Helm Chart, usually you can leave some values by default but in this case we will need to make sure to override all of them. (The override happens at the Helm Chart Garden Module level).
-
-Add the following content to your values.yaml
-
-````yaml
-cloudflare:
-  email: default@letsencrypt.com
-  apiToken: replace-me # Cloudflare API Token
-  cfDomain: replace-me.com # Cloudflare Domain
-
-generateStgCert: false
-generateProdCert: false
-````
-
-#### cluster-issuers.yaml
-
-This file will have the ClusterIssuers that we are going to use in this demo.
-
-There are two servers that allow you to generate certificates with cert-manager.
-
-- staging-letsencrypt: `https://acme-staging-v02.api.letsencrypt.org/directory`
-- production-letsencrypt: `https://acme-v02.api.letsencrypt.org/directory`
-
-⚠️ Across this tutorial, we recommend testing with only staging certificates because the limits/rates from Let's Encrypt in the production CA are really low, so creating multiple certificates from the same DNS could have negative effects (as you can hit quotas and get blocked for weeks).
-
-Only generate production certificates after you are sure that your configuration is correct (After testing a couple of times with the staging CA).
-
-Add the following content to your cluster-issuers.yaml file:
-
-````yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-staging
-spec:
-  acme:
-    email: {{ .Values.cloudflare.email }}
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
-    privateKeySecretRef:
-      name: letsencrypt-staging
-    solvers:
-    - dns01:
-         cloudflare:
-           email: {{ .Values.cloudflare.email }}
-           apiTokenSecretRef:
-             name: cloudflare-api-token-secret
-             key: api-token
----
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-production
-spec:
-  acme:
-    email: {{ .Values.cloudflare.email }}
-    server: https://acme-v02.api.letsencrypt.org/directory
-    privateKeySecretRef:
-      name: letsencrypt-production
-    solvers:
-    - dns01:
-         cloudflare:
-           email: {{ .Values.cloudflare.email }}
-           apiTokenSecretRef:
-             name: cloudflare-api-token-secret
-             key: api-token
-
-````
-
-#### certificates.yaml
-
-This file contains the certificates that are going to be generated with cert-manager.
-
-As you can see we are just generating certificates for the `react` subdomain. If you will have multiple applications with certificates you'll need to modify this Helm Chart to be able to generate N certificates on demand.
-
-As this is only an example we decided to move forward with a single Frontend with a single certificate.
-
-Note that the Certificates are `feature-flagged` this means that in order to create this certificates first you will need to enable the environment variable `generateStgCert` or `generateProdCert` in your `project.garden.yml` file.
-
-````yaml
-{{ if .Values.generateStgCert }}
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: staging-cert
-spec:
-  dnsNames:
-  - "react.{{ .Values.cloudflare.cfDomain }}"
-  issuerRef:
-    name: letsencrypt-staging
-    kind: ClusterIssuer
-  secretName: staging-cert
-{{ end }}
----
-{{ if .Values.generateProdCert }}
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: production-cert
-spec:
-  dnsNames:
-  - "react.{{ .Values.cloudflare.cfDomain }}"
-  issuerRef:
-    name: letsencrypt-production
-    kind: ClusterIssuer
-  secretName: production-cert
-{{ end }}
-
-````
-
-#### secret.yaml
-
-This file will contain a secret that it's going to be filled with our environment variable `CF_API_TOKEN`, we need this token as cert-manager uses it to prove that we own the domain we are using to issue certificates.
-
-Add the following content to your secret.yaml
-
-````yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: cloudflare-api-token-secret
-  namespace: cert-manager
-type: Opaque
-stringData:
-  api-token: {{ .Values.cloudflare.apiToken }}
-
-````
-
-After creating our files, our Helm Chart is now ready to be deployed with Garden. 🪴
+After either importing our Helm Chart or creating the ClusterIssuers/Certificates manually, you are ready to move to the next step.
 
 ### Creating our Frontend
 
@@ -576,7 +440,7 @@ The following commands needs to be executed from your root (next to where the `p
 
 ````bash
 git clone git@github.com:garden-io/garden.git
-mv -f examples/tls-and-dns/frontend ./frontend
+cp -f examples/tls-and-dns/frontend ./frontend
 ````
 
 This folder has the `garden.yml` and `Dockerfile` ready, so you are ready to go to the next step.
