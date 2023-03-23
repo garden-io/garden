@@ -557,7 +557,10 @@ async function runWithArtifacts({
             deline`
               ${description} specifies artifacts to export, but the image doesn't
               contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need to
-              be installed in the image.`,
+              be installed in the image.
+
+              Original error message:
+              ${message}`,
             errorMetadata
           )
         } else {
