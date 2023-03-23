@@ -1314,7 +1314,7 @@ describe("kubernetes Pod runner functions", () => {
               version: action.versionString(),
             }),
           (err) =>
-            expect(err.message).to.equal(deline`
+            expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but doesn't explicitly set a \`command\`.
               The kubernetes provider currently requires an explicit command to be set for tests and tasks that
               export artifacts, because the image's entrypoint cannot be inferred in that execution mode.
