@@ -1,4 +1,4 @@
-# cluste-issuers helm chart
+# cluster-issuers helm chart
 
 This chart is a custom Helm Chart that will create the following resources:
 
