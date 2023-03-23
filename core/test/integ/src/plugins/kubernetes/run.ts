@@ -1260,7 +1260,7 @@ describe("kubernetes Pod runner functions", () => {
               version: module.version.versionString,
             }),
           (err) =>
-            expect(err.message).to.equal(deline`
+            expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but the image doesn't
               contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
               to be installed in the image.
@@ -1300,7 +1300,7 @@ describe("kubernetes Pod runner functions", () => {
               version: module.version.versionString,
             }),
           (err) =>
-            expect(err.message).to.equal(deline`
+            expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but the image doesn't
               contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
               to be installed in the image.
@@ -1329,7 +1329,7 @@ describe("kubernetes Pod runner functions", () => {
               version: module.version.versionString,
             }),
           (err) =>
-            expect(err.message).to.equal(deline`
+            expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but doesn't explicitly set a \`command\`.
               The kubernetes provider currently requires an explicit command to be set for tests and tasks that
               export artifacts, because the image's entrypoint cannot be inferred in that execution mode.

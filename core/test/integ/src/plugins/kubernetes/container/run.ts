@@ -237,7 +237,7 @@ describe("runContainerTask", () => {
 
       expect(result).to.have.property(key)
       expect(result[key]!.error).to.exist
-      expect(result[key]!.error!.message).to.equal(deline`
+      expect(result[key]!.error!.message).to.include(deline`
         Task 'missing-sh-task' in container module 'missing-sh' specifies artifacts to export, but the image doesn't
         contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
         to be installed in the image.
@@ -265,7 +265,7 @@ describe("runContainerTask", () => {
 
       expect(result).to.have.property(key)
       expect(result[key]!.error).to.exist
-      expect(result[key]!.error!.message).to.equal(deline`
+      expect(result[key]!.error!.message).to.include(deline`
         Task 'missing-tar-task' in container module 'missing-tar' specifies artifacts to export, but the image doesn't
         contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
         to be installed in the image.

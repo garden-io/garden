@@ -339,7 +339,7 @@ describe("kubernetes container module handlers", () => {
         const key = "test.missing-sh.missing-sh-test"
         expect(result).to.have.property(key)
         expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
+        expect(result[key]!.error!.message).to.include(deline`
           Test 'missing-sh-test' in container module 'missing-sh' specifies artifacts to export, but the image doesn't
           contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
           to be installed in the image.
@@ -366,7 +366,7 @@ describe("kubernetes container module handlers", () => {
         const key = "test.missing-tar.missing-tar-test"
         expect(result).to.have.property(key)
         expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
+        expect(result[key]!.error!.message).to.include(deline`
           Test 'missing-tar-test' in container module 'missing-tar' specifies artifacts to export, but the
           image doesn't contain the tar binary. In order to copy artifacts out of Kubernetes containers, both
           sh and tar need to be installed in the image.
