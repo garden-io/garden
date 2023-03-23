@@ -37,7 +37,7 @@ To execute this project successfully we assume the following:
 First, let's start by creating our project structure and files we are going to be using across our project.
 
 ```bash
-mkdir tls-and-dns && cd $_
+mkdir cert-manager-ext-dns && cd $_
 mkdir charts
 mkdir charts/cluster-issuers
 mkdir frontend
@@ -77,7 +77,7 @@ First, the project and environment configuration. In this example, we specify ju
 
 ```YAML
 kind: Project
-name: tls-and-dns
+name: cert-manager-ext-dns
 defaultEnvironment: prod
 
 environments:
@@ -180,7 +180,7 @@ If you followed the steps correctly your `project.garden.yml` should look someth
 
 ```YAML
 kind: Project
-name: tls-and-dns
+name: cert-manager-ext-dns
 defaultEnvironment: prod
 
 environments:
@@ -392,13 +392,13 @@ To install those components you can either follow [this guide](https://cert-mana
 
 If you want to have this fully automated with Garden you'll need to create a Helm Chart (or any sort of manifest applying mechanism like Kustomize) to create and apply those manifests to your cluster.
 
-If you decide to go with the automated way we created a custom Helm Chart that is stored in our [tls-and-dns](https://github.com/garden-io/garden/tree/main/examples/tls-and-dns/charts/cluster-issuers) example folder.
+If you decide to go with the automated way we created a custom Helm Chart that is stored in our [cert-manager-ext-dns](https://github.com/garden-io/garden/tree/main/examples/cert-manager-ext-dns/charts/cluster-issuers) example folder.
 
 To use it just proceed to clone the repository and move the charts folder into your own repository
 
 ````bash
 git clone git@github.com:garden-io/garden.git
-cp -f examples/tls-and-dns/charts ./charts
+cp -f examples/cert-manager-ext-dns/charts ./charts
 ````
 
 After you imported the `charts` folder make sure that you have the configuration for the module in the `garden.yml` file.
@@ -428,7 +428,7 @@ After either importing our Helm Chart or creating the ClusterIssuers/Certificate
 
 ### Creating our Frontend
 
-To showcase our certificates we decided to use a sample react-application, the code for that React Application is hosted in our examples folder in the main `Garden` repository [tls-and-dns](https://github.com/garden-io/garden/tree/main/examples/tls-and-dns/frontend).
+To showcase our certificates we decided to use a sample react-application, the code for that React Application is hosted in our examples folder in the main `Garden` repository [cert-manager-ext-dns](https://github.com/garden-io/garden/tree/main/examples/cert-manager-ext-dns/frontend).
 
 You can simply clone that repository; and move the code to the folder called `frontend` in your example.
 
@@ -438,7 +438,7 @@ The following commands needs to be executed from your root (next to where the `p
 
 ````bash
 git clone git@github.com:garden-io/garden.git
-cp -f examples/tls-and-dns/frontend ./frontend
+cp -f examples/cert-manager-ext-dns/frontend ./frontend
 ````
 
 This folder has the `garden.yml` and `Dockerfile` ready, so you are ready to go to the next step.

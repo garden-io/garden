@@ -1,5 +1,5 @@
 kind: Project
-name: tls-and-dns
+name: cert-manager-ext-dns
 defaultEnvironment: prod
 
 environments:

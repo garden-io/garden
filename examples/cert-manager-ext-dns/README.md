@@ -23,7 +23,7 @@ By using a combination of `container` and `helm` modules supported by Garden and
 
 ### Folder structure
 
-In the following block you will find the structure that we followed for this tls-and-dns example.
+In the following block you will find the structure that we followed for this cert-manager-ext-dns example.
 
 ````bash
 ├── charts
