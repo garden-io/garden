@@ -16,7 +16,7 @@ import { shutdown, sleep, getPackageVersion, registerCleanupFunction, getCloudDi
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
-import { getLogger, Logger, LoggerType, LogLevel, parseLogLevel } from "../logger/logger"
+import { Logger, LoggerType, LogLevel, parseLogLevel } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 
 import {
@@ -128,7 +128,7 @@ export class GardenCli {
     commands.forEach((command) => this.addCommand(command))
   }
 
-  async renderHelp(workingDir: string) {
+  async renderHelp(log: Log, workingDir: string) {
     const commands = Object.values(this.commands)
       .sort()
       .filter((cmd) => cmd.getPath().length === 1)
@@ -141,7 +141,7 @@ ${cliStyles.heading("COMMANDS")}
 ${renderCommands(commands)}
     `
 
-    const customCommands = await this.getCustomCommands(workingDir)
+    const customCommands = await this.getCustomCommands(log, workingDir)
 
     if (customCommands.length > 0) {
       msg += `\n${cliStyles.heading("CUSTOM COMMANDS")}\n${renderCommands(customCommands)}`
@@ -291,7 +291,7 @@ ${renderCommands(commands)}
     let distroName: string = ""
 
     if (!command.noProject) {
-      const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
+      const config: ProjectResource | undefined = await this.getProjectConfig(log, workingDir)
 
       const cloudDomain: string = getGardenCloudDomain(config)
       distroName = getCloudDistributionName(cloudDomain)
@@ -563,7 +563,6 @@ ${renderCommands(commands)}
   }): Promise<RunOutput> {
     let argv = parseCliArgs({ stringArgs: args, cli: true })
 
-    let logger: Logger
     const errors: (GardenBaseError | Error)[] = []
 
     // Note: Circumvents an issue where the process exits before the output is fully flushed.
@@ -598,12 +597,21 @@ ${renderCommands(commands)}
     // First look for native Garden commands
     let { command, rest, matchedPath } = pickCommand(Object.values(this.commands), argv._)
 
+    // Logger might not have been initialised if process exits early
+    const logger = Logger.initialize({
+      level: LogLevel.info,
+      type: "default",
+      storeEntries: false,
+    })
+
+    const log = logger.makeNewLogContext()
+
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {
-      projectConfig = await this.getProjectConfig(workingDir)
+      projectConfig = await this.getProjectConfig(log, workingDir)
 
       if (projectConfig) {
-        const customCommands = await this.getCustomCommands(workingDir)
+        const customCommands = await this.getCustomCommands(log, workingDir)
         const picked = pickCommand(customCommands, argv._)
         command = picked.command
         matchedPath = picked.matchedPath
@@ -613,7 +621,7 @@ ${renderCommands(commands)}
     // If we still haven't found a valid command, print help
     if (!command) {
       const exitCode = argv._.length === 0 || argv._[0] === "help" ? 0 : 1
-      return done(exitCode, await this.renderHelp(workingDir))
+      return done(exitCode, await this.renderHelp(log, workingDir))
     }
 
     // Parse the arguments again with the Command set, to fully validate, and to ensure boolean options are
@@ -700,17 +708,6 @@ ${renderCommands(commands)}
       }
     }
 
-    // Logger might not have been initialised if process exits early
-    try {
-      logger = getLogger()
-    } catch (_) {
-      logger = Logger.initialize({
-        level: LogLevel.info,
-        type: "default",
-        storeEntries: false,
-      })
-    }
-
     let code = 0
     if (gardenErrors.length > 0) {
       renderCommandErrors(logger, gardenErrors)
@@ -732,20 +729,20 @@ ${renderCommands(commands)}
   }
 
   @pMemoizeDecorator()
-  async getProjectConfig(workingDir: string): Promise<ProjectResource | undefined> {
-    return findProjectConfig(workingDir)
+  async getProjectConfig(log: Log, workingDir: string): Promise<ProjectResource | undefined> {
+    return findProjectConfig(log, workingDir)
   }
 
   @pMemoizeDecorator()
-  private async getCustomCommands(workingDir: string): Promise<Command[]> {
-    const projectConfig = await this.getProjectConfig(workingDir)
+  private async getCustomCommands(log: Log, workingDir: string): Promise<Command[]> {
+    const projectConfig = await this.getProjectConfig(log, workingDir)
     const projectRoot = projectConfig?.path
 
     if (!projectRoot) {
       return []
     }
 
-    return await getCustomCommands(projectRoot)
+    return await getCustomCommands(log, projectRoot)
   }
 }
 

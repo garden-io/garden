@@ -324,7 +324,7 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
 
   if (!command) {
     // Check for custom command
-    const customCommands = await getCustomCommands(garden.projectRoot)
+    const customCommands = await getCustomCommands(garden.log, garden.projectRoot)
     const picked = pickCommand(customCommands, rawArgs)
     command = picked.command
     rest = picked.rest

@@ -40,7 +40,7 @@ export class LoginCommand extends Command {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
     const globalConfigStore = garden.globalConfigStore
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(log, garden.projectRoot)
 
     // Fail if this is not run within a garden project
     if (!projectConfig) {

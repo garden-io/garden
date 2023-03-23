@@ -32,7 +32,6 @@ import { ToolsCommand } from "../../../../src/commands/tools"
 import { Logger, getLogger } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
 import { startServer, GardenServer } from "../../../../src/server/server"
-import { TerminalWriter } from "../../../../src/logger/writers/terminal-writer"
 import { envSupportsEmoji } from "../../../../src/logger/util"
 import { expectError } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
@@ -44,6 +43,7 @@ import { ServeCommand } from "../../../../src/commands/serve"
 describe("cli", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
+  const log = getLogger().makeNewLogContext()
 
   beforeEach(() => {
     cli = new GardenCli()
@@ -60,21 +60,21 @@ describe("cli", () => {
       const { code, consoleOutput } = await cli.run({ args: [], exitOnError: false })
 
       expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with default help text if -h option is set and no command", async () => {
       const { code, consoleOutput } = await cli.run({ args: ["-h"], exitOnError: false })
 
       expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with default help text if --help option is set and no command", async () => {
       const { code, consoleOutput } = await cli.run({ args: ["-h"], exitOnError: false })
 
       expect(code).to.equal(0)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("aborts with command help text if --help option is set and command is specified", async () => {
@@ -132,7 +132,7 @@ describe("cli", () => {
       const root = getDataDir("test-projects", "custom-commands")
 
       it("picks up all commands in project root", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         expect(commands.map((c) => c.name).sort()).to.eql(["combo", "echo", "run-task", "script"])
       })
@@ -144,28 +144,28 @@ describe("cli", () => {
       })
 
       it("warns and ignores custom command with same name as built-in command", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         // The plugin(s) commands are defined in nope.garden.yml
         expect(commands.map((c) => c.name)).to.not.include("plugins")
       })
 
       it("warns if a custom command is provided with same name as alias for built-in command", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         // The plugin(s) commands are defined in nope.garden.yml
         expect(commands.map((c) => c.name)).to.not.include("plugin")
       })
 
       it("doesn't pick up commands outside of project root", async () => {
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
 
         // The nope command is defined in the `nope` directory in the test project.
         expect(commands.map((c) => c.name)).to.not.include("nope")
       })
 
       it("prints custom commands in help text", async () => {
-        const helpText = stripAnsi(await cli.renderHelp(root))
+        const helpText = stripAnsi(await cli.renderHelp(log, root))
 
         expect(helpText).to.include("CUSTOM COMMANDS")
 
@@ -179,7 +179,7 @@ describe("cli", () => {
       it("prints help text for a custom command", async () => {
         const res = await cli.run({ args: ["combo", "--help"], exitOnError: false, cwd: root })
 
-        const commands = await cli["getCustomCommands"](root)
+        const commands = await cli["getCustomCommands"](log, root)
         const command = commands.find((c) => c.name === "combo")!
         const helpText = command.renderHelp()
 
@@ -289,14 +289,14 @@ describe("cli", () => {
       const { code, consoleOutput } = await cli.run({ args: ["nonexistent"], exitOnError: false })
 
       expect(code).to.equal(1)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("errors and shows general help if nonexistent command is given with --help", async () => {
       const { code, consoleOutput } = await cli.run({ args: ["nonexistent", "--help"], exitOnError: false })
 
       expect(code).to.equal(1)
-      expect(consoleOutput).to.equal(await cli.renderHelp("/"))
+      expect(consoleOutput).to.equal(await cli.renderHelp(log, "/"))
     })
 
     it("picks and runs a command", async () => {

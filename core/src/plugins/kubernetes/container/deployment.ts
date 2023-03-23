@@ -75,6 +75,7 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
 
   if (deploymentStrategy === "blue-green") {
     emitNonRepeatableWarning(
+      log,
       "The deploymentStrategy configuration option has been deprecated and has no effect. It will be removed iin 0.14. The 'rolling' deployment strategy will be applied."
     )
   }

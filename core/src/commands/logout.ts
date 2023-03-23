@@ -31,7 +31,7 @@ export class LogOutCommand extends Command {
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(log, garden.projectRoot)
     const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
 
     // Fail if this is not run within a garden project

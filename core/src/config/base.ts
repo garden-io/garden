@@ -25,6 +25,7 @@ import { PrimitiveMap } from "./common"
 import { emitNonRepeatableWarning } from "../warnings"
 import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
+import { Log } from "../logger/log-entry"
 
 export const moduleTemplateKind = "ModuleTemplate"
 export const noTemplateFields = ["apiVersion", "kind", "type", "name", "description"]
@@ -75,23 +76,32 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
 }
 
 export async function loadConfigResources(
+  log: Log,
   projectRoot: string,
   configPath: string,
   allowInvalid = false
 ): Promise<GardenResource[]> {
   const fileData = await readConfigFile(configPath, projectRoot)
 
-  const resources = await validateRawConfig({ rawConfig: fileData.toString(), configPath, projectRoot, allowInvalid })
+  const resources = await validateRawConfig({
+    log,
+    rawConfig: fileData.toString(),
+    configPath,
+    projectRoot,
+    allowInvalid,
+  })
 
   return resources
 }
 
 export async function validateRawConfig({
+  log,
   rawConfig,
   configPath,
   projectRoot,
   allowInvalid = false,
 }: {
+  log: Log
   rawConfig: string
   configPath: string
   projectRoot: string
@@ -103,7 +113,7 @@ export async function validateRawConfig({
   rawSpecs = rawSpecs.filter(Boolean)
 
   const resources = <GardenResource[]>(
-    rawSpecs.map((s) => prepareResource({ spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
+    rawSpecs.map((s) => prepareResource({ log, spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
   )
   return resources
 }
@@ -120,11 +130,13 @@ export async function readConfigFile(configPath: string, projectRoot: string) {
  * Each YAML document in a garden.yml file defines a project, a module or a workflow.
  */
 function prepareResource({
+  log,
   spec,
   configPath,
   projectRoot,
   allowInvalid = false,
 }: {
+  log: Log
   spec: any
   configPath: string
   projectRoot: string
@@ -163,7 +175,7 @@ function prepareResource({
   }
 
   if (kind === "Project") {
-    return prepareProjectResource(spec)
+    return prepareProjectResource(log, spec)
   } else if (actionKinds.includes(kind)) {
     return prepareActionResource(spec, configPath, relPath)
   } else if (kind === "Command" || kind === "Workflow" || kind === moduleTemplateKind) {
@@ -186,7 +198,7 @@ function prepareResource({
 }
 
 // TODO: remove this function in 0.14
-export function prepareProjectResource(spec: any): ProjectResource {
+export function prepareProjectResource(log: Log, spec: any): ProjectResource {
   const projectSpec = <ProjectResource>spec
 
   // If the project config has an explicitly defined `dotIgnoreFile` field,
@@ -208,6 +220,7 @@ export function prepareProjectResource(spec: any): ProjectResource {
 
   if (dotIgnoreFiles.length === 1) {
     emitNonRepeatableWarning(
+      log,
       "Multi-valued project configuration field `dotIgnoreFiles` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued `dotIgnoreFile` instead."
     )
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
@@ -322,14 +335,18 @@ export function prepareBuildDependencies(buildDependencies: any[]): BuildDepende
     .filter(isTruthy)
 }
 
-export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
+export async function findProjectConfig(
+  log: Log,
+  path: string,
+  allowInvalid = false
+): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
 
   for (let i = 0; i < sepCount; i++) {
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
 
     for (const configFile of configFiles) {
-      const resources = await loadConfigResources(path, join(path, configFile), allowInvalid)
+      const resources = await loadConfigResources(log, path, join(path, configFile), allowInvalid)
 
       const projectSpecs = resources.filter((s) => s.kind === "Project")
 

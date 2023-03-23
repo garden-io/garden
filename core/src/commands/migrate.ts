@@ -71,7 +71,7 @@ export class MigrateCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory
-    const projectConfig = await findProjectConfig(opts.root, true)
+    const projectConfig = await findProjectConfig(log, opts.root, true)
 
     if (!projectConfig) {
       throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${opts.root}`, {
