@@ -58,6 +58,20 @@ Once Minikube and the appropriate driver for your OS are installed, you can star
 minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
 ```
 
+In order to authenticate minikube with an image registry such as ECR, the `registry-creds` addon must be enabled. In order to do this, follow these steps:
+
+1.  Make sure Minikube is running by typing `minikube start`
+
+2.  Then run minikube `addons configure registry-creds`
+
+3.  Select applicable container registry 
+
+4.  Enter credentials
+
+5.  Make sure you run minikube `addons enable registry-creds`
+
+Minikube should now be able to authenticate with your chosen cloud provider.
+
 ### kind
 
 For kind installation instructions, see the [official docs](https://kind.sigs.k8s.io/docs/user/quick-start/).
