@@ -22,6 +22,8 @@ import {
 import { ConfigurationError } from "../../../exceptions"
 import { uniq } from "lodash"
 import { DOCS_BASE_URL } from "../../../constants"
+import { kubernetesStartSync } from "./sync"
+import { k8sContainerStopSync } from "../container/sync"
 
 export const kubernetesDeployDocs = dedent`
   Specify one or more Kubernetes manifests to deploy.
@@ -68,6 +70,9 @@ export const kubernetesDeployDefinition = (): DeployActionDefinition<KubernetesD
     exec: execInKubernetesDeploy,
     getLogs: getKubernetesDeployLogs,
     getStatus: getKubernetesDeployStatus,
+
+    startSync: kubernetesStartSync,
+    stopSync: k8sContainerStopSync,
 
     getPortForward: async (params) => {
       const { ctx, log, action } = params

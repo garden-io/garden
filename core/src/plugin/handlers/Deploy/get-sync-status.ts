@@ -8,33 +8,39 @@
 
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
-import { createSchema } from "../../../config/common"
+import { createSchema, joi, joiVariables } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Executed } from "../../../actions/types"
-import { actionStatusSchema } from "../../../actions/base"
 
 type GetSyncStatusParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 
-export const syncStatusDetailSchema = createSchema({
-  name: "sync-status-detail",
-  // TODO-G2: not sure yet which fields we need
-  keys: {},
-  allowUnknown: true,
-})
+export const syncStates = ["active", "not-active", "failed", "unknown"] as const
+export type SyncState = (typeof syncStates)[number]
+
+export interface GetSyncStatusResult<D extends object> {
+  state: SyncState
+  error?: string
+  detail?: D
+}
 
 export const getSyncStatusResultSchema = createSchema({
-  name: "get-sync-status",
+  name: "get-sync-status-result",
   keys: {
-    detail: syncStatusDetailSchema,
+    state: joi
+      .string()
+      .allow(...syncStates)
+      .only()
+      .required()
+      .description("Whether the sync is active."),
+    error: joi.string().description("Set to an error message if the sync is failed."),
+    detail: joiVariables().description("Any additional detail to be included and printed with status checks."),
   },
-  extend: actionStatusSchema,
 })
 
 export class GetSyncStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  GetSyncStatusParams<Executed<T>>,
-  {}
+  GetSyncStatusParams<T>,
+  GetSyncStatusResult<any>
 > {
   description = dedent`
     Get the sync status for the given Deploy.

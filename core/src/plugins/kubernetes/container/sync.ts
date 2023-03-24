@@ -13,6 +13,8 @@ import { KubernetesPluginContext } from "../config"
 import { startSyncs, stopSyncs } from "../sync"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { SyncableKind } from "../types"
+import { KubernetesDeployAction } from "../kubernetes-type/config"
+import { HelmDeployAction } from "../helm/config"
 
 export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDeployAction> = async (params) => {
   const { ctx, action, log } = params
@@ -28,9 +30,6 @@ export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDe
 
   log.info({
     section: action.name,
-    // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
-    // it's not rendered.
-    symbol: "info",
     msg: chalk.grey(`Starting syncs`),
   })
 
@@ -63,48 +62,18 @@ export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDe
   return {}
 }
 
-export const k8sContainerStopSync: DeployActionHandler<"stopSync", ContainerDeployAction> = async (params) => {
+// This works for kubernetes and helm Deploys as well
+export const k8sContainerStopSync: DeployActionHandler<
+  "stopSync",
+  ContainerDeployAction | KubernetesDeployAction | HelmDeployAction
+> = async (params) => {
   const { ctx, log, action } = params
   const k8sCtx = <KubernetesPluginContext>ctx
-  const status = action.getStatus()
-
-  const sync = action.getSpec("sync")
-  const workload = status.detail.detail.workload
-
-  if (!sync?.paths || !workload) {
-    return {}
-  }
-
-  log.info({
-    section: action.name,
-    // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
-    // it's not rendered.
-    symbol: "info",
-    msg: chalk.grey(`Stopping syncs`),
-  })
-
-  const defaultNamespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
-
-  const target = {
-    kind: <SyncableKind>workload.kind,
-    name: workload.metadata.name,
-  }
-
-  const syncs = sync.paths.map((s) => ({
-    ...s,
-    sourcePath: s.source,
-    containerPath: s.target,
-    target,
-  }))
 
   await stopSyncs({
     ctx: k8sCtx,
     log,
     action,
-    defaultNamespace,
-    defaultTarget: target,
-    manifests: status.detail.remoteResources,
-    syncs,
   })
 
   return {}

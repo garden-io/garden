@@ -11,15 +11,10 @@ import { dedent } from "../../../util/string"
 import { joi } from "../../../config/common"
 import { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
-import { Executed } from "../../../actions/types"
 
 type StopSyncParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 
-export class StopSync<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
-  "Deploy",
-  StopSyncParams<Executed<T>>,
-  {}
-> {
+export class StopSync<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<"Deploy", StopSyncParams<T>, {}> {
   description = dedent`
     Stop syncing to the given Deploy.
   `

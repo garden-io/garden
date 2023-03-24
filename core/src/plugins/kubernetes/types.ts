@@ -100,7 +100,7 @@ export type SyncableRuntimeAction = ContainerDeployAction | KubernetesDeployActi
 
 export type HelmRuntimeAction = HelmDeployAction | HelmPodRunAction | HelmPodTestAction
 
-export type SupportedRuntimeActions =
+export type SupportedRuntimeAction =
   | ContainerBuildAction
   | ContainerDeployAction
   | ContainerTestAction

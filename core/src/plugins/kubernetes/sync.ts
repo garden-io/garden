@@ -32,7 +32,7 @@ import {
 } from "./util"
 import {
   KubernetesResource,
-  SupportedRuntimeActions,
+  SupportedRuntimeAction,
   SyncableKind,
   syncableKinds,
   SyncableResource,
@@ -469,25 +469,28 @@ export async function configureSyncMode({
 interface SyncParamsBase {
   ctx: KubernetesPluginContext
   log: Log
-  action: Resolved<SupportedRuntimeActions>
-  defaultNamespace: string
-  manifests: KubernetesResource[]
 }
 
 interface StopSyncsParams extends SyncParamsBase {
-  defaultTarget: KubernetesTargetResourceSpec | undefined
-  syncs: KubernetesDeployDevModeSyncSpec[]
+  action: SupportedRuntimeAction
 }
 
 interface StartSyncsParams extends StopSyncsParams {
+  defaultTarget: KubernetesTargetResourceSpec | undefined
+  action: Resolved<SupportedRuntimeAction>
   basePath: string
   actionDefaults: SyncDefaults
+  manifests: KubernetesResource[]
+  defaultNamespace: string
+  syncs: KubernetesDeployDevModeSyncSpec[]
 }
 
 interface PrepareSyncParams extends SyncParamsBase {
+  action: Resolved<SupportedRuntimeAction>
   resourceSpec: KubernetesTargetResourceSpec
   spec: KubernetesDeployDevModeSyncSpec
   index: number
+  manifests: KubernetesResource[]
 }
 
 export function getLocalSyncPath(sourcePath: string, basePath: string) {
@@ -496,7 +499,7 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
 }
 
 export async function startSyncs(params: StartSyncsParams) {
-  const { ctx, log, basePath, manifests, action, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
+  const { ctx, log, basePath, action, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
 
   if (syncs.length === 0) {
     return
@@ -565,44 +568,25 @@ export async function startSyncs(params: StartSyncsParams) {
 }
 
 export async function stopSyncs(params: StopSyncsParams) {
-  const { ctx, log, action, defaultTarget, syncs } = params
-
-  if (syncs.length === 0) {
-    return
-  }
+  const { ctx, log, action } = params
 
   const mutagen = new Mutagen({ ctx, log })
 
-  return mutagen.configLock.acquire("start-sync", async () => {
-    for (const [i, s] of enumerate(syncs)) {
-      const resourceSpec = s.target || defaultTarget
+  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const syncs = allSyncs.filter((sync) => sync.name.startsWith(keyPrefix))
 
-      if (!resourceSpec) {
-        // This will have been caught and warned about elsewhere
-        continue
-      }
-
-      const { key, description } = await prepareSync({ ...params, resourceSpec, spec: s, index: i })
-
-      const mode = s.mode || defaultSyncMode
-
-      log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Stopping sync ${description} (${mode})`) })
-
-      await mutagen.terminateSync(log, key)
-    }
-  })
+  for (const sync of syncs) {
+    log.debug({ section: action.key(), msg: chalk.gray(`Terminating sync ${sync.name}`) })
+    await mutagen.terminateSync(log, sync.name)
+  }
 }
 
-async function prepareSync({
-  ctx,
-  log,
-  manifests,
-  action,
-  resourceSpec,
-  defaultNamespace,
-  spec,
-  index,
-}: PrepareSyncParams) {
+function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
+  return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
+}
+
+async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec, index }: PrepareSyncParams) {
   const provider = ctx.provider
 
   const target = await getTargetResource({
@@ -616,10 +600,7 @@ async function prepareSync({
 
   const resourceName = getResourceKey(target)
 
-  const namespace = target.metadata.namespace || defaultNamespace
-  const keyBase = `${target.kind}--${namespace}--${target.metadata.name}`
-
-  const key = `k8s-${ctx.environmentName}-${keyBase}-${index}`
+  const key = `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}--${index}`
 
   const localPathDescription = chalk.white(spec.sourcePath)
   const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`

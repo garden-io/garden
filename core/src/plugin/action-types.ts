@@ -38,6 +38,7 @@ import { ConfigureActionConfig } from "./handlers/base/configure"
 import { GetActionOutputs } from "./handlers/base/get-outputs"
 import { StartSync } from "./handlers/Deploy/start-sync"
 import { StopSync } from "./handlers/Deploy/stop-sync"
+import { GetSyncStatus } from "./handlers/Deploy/get-sync-status"
 
 // BASE //
 
@@ -86,6 +87,7 @@ const actionTypeClasses = {
     getLogs: new GetDeployLogs(),
     getPortForward: new GetDeployPortForward(),
     getStatus: new GetDeployStatus(),
+    getSyncStatus: new GetSyncStatus(),
     startSync: new StartSync(),
     stopPortForward: new StopDeployPortForward(),
     stopSync: new StopSync(),
@@ -169,6 +171,7 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
   getStatus: GetDeployStatus<C>
+  getSyncStatus: GetSyncStatus<C>
   startSync: StartSync<C>
   stopPortForward: StopDeployPortForward<C>
   stopSync: StopSync<C>

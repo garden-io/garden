@@ -47,6 +47,7 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
   skipRuntimeDependencies?: boolean
+  startSyncs?: boolean
 }
 
 export interface TaskProcessParams {
@@ -195,14 +196,16 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   graph: ConfigGraph
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
+  startSyncs: boolean
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
-    super({ ...params })
+    super({ ...params, log: params.log.makeNewLogContext({ section: action.key() }) })
     this.action = action
     this.graph = params.graph
     this.forceActions = params.forceActions || []
     this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
+    this.startSyncs = params.startSyncs || false
 
     if (params.forceBuild) {
       this.forceActions.push(...this.graph.getBuilds())
@@ -278,6 +281,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       forceActions: this.forceActions,
       skipDependencies: this.skipDependencies,
       skipRuntimeDependencies: this.skipRuntimeDependencies,
+      startSyncs: this.startSyncs,
     }
   }
 

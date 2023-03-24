@@ -25,7 +25,7 @@ import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
 import { ExecInPodResult, KubeApi, KubernetesError } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
-import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeActions } from "./types"
+import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeAction } from "./types"
 import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName, renderPodEvents } from "./util"
 import { dedent, deline, randomString } from "../../util/string"
@@ -132,7 +132,7 @@ export async function runAndCopy({
 }: BaseRunParams & {
   ctx: PluginContext
   log: Log
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   image: string
   container?: V1Container
   podName?: string
@@ -262,7 +262,7 @@ export async function prepareRunPodSpec({
   podSpec?: V1PodSpec
   getArtifacts: boolean
   log: Log
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   args: string[]
   command: string[] | undefined
   api: KubeApi
@@ -401,7 +401,7 @@ async function runWithoutArtifacts({
   log: Log
   api: KubeApi
   provider: KubernetesProvider
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   version: string
   podData: PodData
   run: BaseRunParams
@@ -504,7 +504,7 @@ async function runWithArtifacts({
 }: {
   ctx: PluginContext
   log: Log
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   mainContainerName: string
   api: KubeApi
   provider: KubernetesProvider
