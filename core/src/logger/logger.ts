@@ -138,8 +138,8 @@ export class Logger {
    * Initializes the logger as a singleton from config. Also ensures that the logger settings make sense
    * in the context of environment variables and writer types.
    */
-  static initialize(config: LoggerConfig): Logger {
-    if (Logger.instance) {
+  static initialize(config: LoggerConfig, force = false): Logger {
+    if (Logger.instance && !force) {
       return Logger.instance
     }
 

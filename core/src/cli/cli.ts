@@ -119,10 +119,12 @@ export class GardenCli {
   private plugins: GardenPluginReference[]
   private bufferedEventStream: BufferedEventStream | undefined
   private sessionFinished = false
+  private initLogger: boolean
   public processRecord: GardenProcess
 
-  constructor({ plugins }: { plugins?: GardenPluginReference[] } = {}) {
+  constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
     this.plugins = plugins || []
+    this.initLogger = initLogger
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
@@ -263,13 +265,17 @@ ${renderCommands(commands)}
       loggerType = "quiet"
     }
 
-    const logger = Logger.initialize({
-      level,
-      storeEntries: false,
-      type: loggerType,
-      useEmoji: emoji,
-      showTimestamps,
-    })
+    const logger = Logger.initialize(
+      {
+        level,
+        storeEntries: false,
+        type: loggerType,
+        useEmoji: emoji,
+        showTimestamps,
+      },
+      // May need to overwrite here
+      this.initLogger
+    )
 
     // Currently we initialise empty placeholder entries and pass those to the
     // framework as opposed to the logger itself. This is to give better control over where on
