@@ -19,7 +19,7 @@ import {
   KubernetesPod,
   KubernetesServerResource,
   isPodResource,
-  SupportedRuntimeActions,
+  SupportedRuntimeAction,
 } from "./types"
 import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
@@ -549,7 +549,7 @@ interface GetTargetResourceParams {
   log: Log
   provider: KubernetesProvider
   manifests?: KubernetesResource[]
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SupportedRuntimeAction>
   query: KubernetesTargetResourceSpec
 }
 

@@ -3313,6 +3313,78 @@ Examples:
   | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
 
 
+### garden sync start
+
+**Start any configured syncs to the given Deploy action(s).**
+
+Start a sync between your local project directory and one or more Deploys.
+
+Examples:
+    # start syncing to the 'api' Deploy, fail if it's not already deployed in sync mode
+    garden start sync api
+
+    # deploy 'api' in sync mode and dependencies if needed, then start syncing
+    garden start sync api --deploy
+
+    # start syncing to every Deploy already deployed in sync mode
+    garden start sync '*'
+
+    # start syncing to every Deploy that supports it, deploying if needed
+    garden start sync '*' --deploy
+
+    # start syncing to every Deploy that supports it, deploying if needed including runtime dependencies
+    garden start sync '*' --deploy --include-dependencies
+
+    # start syncing to the 'api' and 'worker' Deploys
+    garden start sync api worker
+
+    # start syncing to the 'api' Deploy and keep the process running, following sync status messages
+    garden start sync api -f
+
+#### Usage
+
+    garden sync start <names> [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | Yes | The name(s) of one or more deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--deploy` |  | boolean | Deploy the specified actions, if they&#x27;re out of date and/or not deployed in sync mode.
+  | `--with-dependencies` |  | boolean | When deploying actions, also include any runtime dependencies. Ignored if --deploy is not set.
+  | `--follow` |  | boolean | Keep the process running and print sync status logs after starting them.
+
+
+### garden sync stop
+
+**Stop any active syncs to the given Deploy action(s).**
+
+Stops one or more active syncs.
+
+Examples:
+    # stop syncing to the 'api' Deploy
+    garden stop sync api
+
+    # stop all active syncs
+    garden stop sync '*'
+
+#### Usage
+
+    garden sync stop <names> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | Yes | The name(s) of one or more deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+
+
+
 ### garden test
 
 **Run all or specified Test actions in the project.**
@@ -3629,6 +3701,25 @@ Hides the specified warning message. The command and key is generally provided a
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `key` | Yes | The key of the warning to hide (this will be shown along with relevant warning messages).
+
+
+
+### garden util mutagen
+
+**Run any Mutagen CLI command in the context of the current project.**
+
+The Mutagen tool is used for various functions in Garden, most notably syncs (formerly "dev mode") to containers. When experiencing issues with synchronization, it may be helpful to use the Mutagen CLI directly to troubleshoot or gather more information.
+
+This command simply runs the Mutagen CLI with environment variables appropriately set to interact with the syncs created in the context of this project. All arguments and flags are passed directly to Mutagen.
+
+Examples:
+
+    garden util mutagen sync list     # list all active syncs
+    garden util mutagen sync monitor  # continuously monitor all syncs
+
+#### Usage
+
+    garden util mutagen 
 
 
 

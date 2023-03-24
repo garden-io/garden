@@ -36,7 +36,7 @@ import {
   SyncableResource,
   KubernetesWorkload,
   KubernetesResource,
-  SupportedRuntimeActions,
+  SupportedRuntimeAction,
 } from "../types"
 import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 import { emitNonRepeatableWarning } from "../../../warnings"
@@ -588,7 +588,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
 }
 
 export function configureVolumes(
-  action: SupportedRuntimeActions,
+  action: SupportedRuntimeAction,
   podSpec: V1PodSpec,
   volumeSpecs: ContainerVolumeSpec[]
 ): void {

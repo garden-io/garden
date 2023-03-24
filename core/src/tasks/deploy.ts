@@ -27,7 +27,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   }
 
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
-    const log = this.log.makeNewLogContext({})
+    const log = this.log
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     const router = await this.garden.getActionRouter()
@@ -38,11 +38,16 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       log,
     })
 
+    if (status.state === "ready" && status.detail?.mode !== action.mode()) {
+      status.state = "not-ready"
+    }
+
     const executedAction = resolvedActionToExecuted(action, { status })
 
-    if (!statusOnly && status.state === "ready" && action.mode() === "sync") {
+    if (this.startSyncs && !statusOnly && status.state === "ready" && action.mode() === "sync") {
       // If the action is already deployed, we still need to make sure the sync is started
       // TODO-G2: instead, return outdated when sync is not already running?
+
       await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
     }
 
@@ -56,10 +61,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     const router = await this.garden.getActionRouter()
 
     const log = this.log
-      .makeNewLogContext({
-        section: action.name,
-      })
-      .info(`Deploying version ${version}...`)
+    log.info(`Deploying version ${version}...`)
 
     try {
       status = await router.deploy.deploy({
@@ -82,7 +84,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     }
 
     // Start syncing, if requested
-    if (action.mode() === "sync") {
+    if (this.startSyncs && action.mode() === "sync") {
       log.info(chalk.gray("Starting sync"))
       await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
     }

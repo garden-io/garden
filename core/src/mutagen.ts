@@ -295,8 +295,8 @@ export class Mutagen {
   private syncStatusLines: { [key: string]: Log }
   private activeSyncs: { [key: string]: ActiveSync }
   private monitorHandler: (session: SyncSession) => void
-
   public configLock: AsyncLock
+  private monitoring: boolean
 
   constructor({ ctx, log, dataDir }: MutagenDaemonParams) {
     this.log = log
@@ -304,6 +304,7 @@ export class Mutagen {
     this.dataDir = dataDir || join(ctx.gardenDirPath, MUTAGEN_DIR_NAME)
     this.activeSyncs = {}
     this.syncStatusLines = {}
+    this.monitoring = false
 
     // TODO: This is a little noisy atm. We could be a bit smarter and filter some superfluous messages out.
     this.monitorHandler = (session) => {
@@ -552,7 +553,7 @@ export class Mutagen {
   /**
    * List all Mutagen sync sessions.
    */
-  private async getActiveSyncSessions(log: Log): Promise<SyncSession[]> {
+  async getActiveSyncSessions(log: Log): Promise<SyncSession[]> {
     const res = await this.execCommand(log, ["sync", "list", "--template={{ json . }}"])
     return parseSyncListResult(res)
   }
@@ -605,14 +606,19 @@ export class Mutagen {
   }
 
   async startMonitoring() {
+    if (this.monitoring) {
+      return
+    }
     const monitor = this.getMonitor()
     await monitor.start()
+    this.monitoring = true
     monitor.on("status", this.monitorHandler)
   }
 
   stopMonitoring() {
     const monitor = this.getMonitor()
     monitor.off("status", this.monitorHandler)
+    this.monitoring = false
   }
 
   async killMonitor() {
@@ -713,7 +719,7 @@ export function getMutagenEnv(dataDir: string) {
   }
 }
 
-export async function parseSyncListResult(res: ExecaReturnValue) {
+export function parseSyncListResult(res: ExecaReturnValue): SyncSession[] {
   // TODO: validate further
   let parsed: any = []
 

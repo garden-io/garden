@@ -22,7 +22,7 @@ import type { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import type { NamespaceStatus } from "../../types/namespace"
-import type { KubernetesServerResource, SupportedRuntimeActions } from "./types"
+import type { KubernetesServerResource, SupportedRuntimeAction } from "./types"
 import type { Resolved } from "../../actions/types"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -296,7 +296,7 @@ export async function getActionNamespace({
 }: {
   ctx: KubernetesPluginContext
   log: Log
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SupportedRuntimeAction>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
@@ -319,7 +319,7 @@ export async function getActionNamespaceStatus({
 }: {
   ctx: KubernetesPluginContext
   log: Log
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SupportedRuntimeAction>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {

@@ -96,7 +96,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
   })
 
   // Sync using mutagen
-  const key = `k8s-build-sync-${ctx.environmentName}-${namespace}-${action.name}-${randomString(8)}`
+  const key = `k8s--build-sync--${ctx.environmentName}--${namespace}--${action.name}--${randomString(8)}`
   const targetPath = `/data/${ctx.workingCopyId}/${action.name}`
 
   const mutagen = new Mutagen({ ctx, log })

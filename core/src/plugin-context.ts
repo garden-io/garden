@@ -10,7 +10,7 @@ import { Garden } from "./garden"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/common"
+import { joi, joiVariables, joiStringMap, DeepPrimitiveMap, joiIdentifier } from "./config/common"
 import { PluginTool } from "./util/ext-tools"
 import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
@@ -27,6 +27,7 @@ type WrappedFromGarden = Pick<
   | "cloudApi"
   // TODO: remove this from the interface
   | "environmentName"
+  | "namespace"
   | "production"
   | "sessionId"
 >
@@ -66,6 +67,7 @@ export const pluginContextSchema = () =>
         })
         .description("Information about the command being executed, if applicable."),
       environmentName: environmentNameSchema(),
+      namespace: joiIdentifier().description("The active namespace."),
       events: joi.any().description("An event emitter, used for communication during handler execution."),
       gardenDirPath: joi.string().description(deline`
         The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
@@ -143,6 +145,7 @@ export async function createPluginContext({
     command,
     events: events || new PluginEventBroker(),
     environmentName: garden.environmentName,
+    namespace: garden.namespace,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,
     projectName: garden.projectName,

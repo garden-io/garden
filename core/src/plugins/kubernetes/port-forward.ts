@@ -17,7 +17,7 @@ import { getAppNamespace } from "./namespace"
 import { registerCleanupFunction, sleep } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { KubernetesResource, SupportedRuntimeActions } from "./types"
+import { KubernetesResource, SupportedRuntimeAction } from "./types"
 import { ForwardablePort } from "../../types/service"
 import { isBuiltIn, matchSelector } from "./util"
 import { Log } from "../../logger/log-entry"
@@ -57,7 +57,7 @@ export function killPortForward(targetResource: string, targetPort: number, log?
   }
 }
 
-export function killPortForwards(action: SupportedRuntimeActions, forwardablePorts: ForwardablePort[], log: Log) {
+export function killPortForwards(action: SupportedRuntimeAction, forwardablePorts: ForwardablePort[], log: Log) {
   for (const port of forwardablePorts) {
     const targetResource = getTargetResourceName(action, port.targetName)
     killPortForward(targetResource, port.targetPort, log)
@@ -210,7 +210,7 @@ export async function getPortForwardHandler(params: {
   }
 }
 
-function getTargetResourceName(action: SupportedRuntimeActions, targetName?: string) {
+function getTargetResourceName(action: SupportedRuntimeAction, targetName?: string) {
   return targetName || `Service/${action.name}`
 }
 

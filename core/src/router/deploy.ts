@@ -179,11 +179,53 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return params.router.callHandler({ params, handlerType: "stopPortForward" })
     },
 
+    getSyncStatus: async (params) => {
+      const { action, log } = params
+
+      return params.router.callHandler({
+        params,
+        handlerType: "getSyncStatus",
+        defaultHandler: async () => {
+          log.debug({
+            section: action.key(),
+            msg: `No getSyncStatus handler available for action type ${action.type}`,
+          })
+          return {
+            state: "unknown" as const,
+          }
+        },
+      })
+    },
+
     startSync: async (params) => {
-      return params.router.callHandler({ params, handlerType: "startSync" })
+      const { action, log } = params
+
+      return params.router.callHandler({
+        params,
+        handlerType: "startSync",
+        defaultHandler: async () => {
+          log.warn({
+            section: action.key(),
+            msg: chalk.yellow(`No startSync handler available for action type ${action.type}`),
+          })
+          return {}
+        },
+      })
     },
 
     stopSync: async (params) => {
-      return params.router.callHandler({ params, handlerType: "stopSync" })
+      const { action, log } = params
+
+      return params.router.callHandler({
+        params,
+        handlerType: "stopSync",
+        defaultHandler: async () => {
+          log.warn({
+            section: action.key(),
+            msg: chalk.yellow(`No stopSync handler available for action type ${action.type}`),
+          })
+          return {}
+        },
+      })
     },
   })
