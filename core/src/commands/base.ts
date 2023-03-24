@@ -288,7 +288,9 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   renderHelp() {
-    let out = this.description ? `${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n` : ""
+    let out = this.description
+      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n`
+      : ""
 
     out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
 
