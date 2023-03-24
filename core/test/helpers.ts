@@ -69,6 +69,7 @@ import { ConvertModuleParams } from "../src/plugin/handlers/Module/convert"
 import { baseServiceSpecSchema } from "../src/config/service"
 import { localConfigFilename } from "../src/config-store/local"
 import { GraphResultMapWithoutTask } from "../src/graph/results"
+import { dumpYaml } from "../src/util/serialization"
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError, expectFuzzyMatch } from "../src/util/testing"
@@ -526,7 +527,8 @@ export const makeTestGardenBuildDependants = profileAsync(async function _makeTe
  */
 export async function makeTempGarden(opts?: TestGardenOpts) {
   const tmpDir = await makeTempDir({ git: true })
-  const garden = await makeTestGarden(tmpDir.path, { config: getDefaultProjectConfig(), ...opts })
+  await dumpYaml(join(tmpDir.path, "project.garden.yml"), opts?.config || getDefaultProjectConfig())
+  const garden = await makeTestGarden(tmpDir.path, opts)
   return { tmpDir, garden }
 }
 
