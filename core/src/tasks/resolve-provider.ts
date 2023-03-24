@@ -211,7 +211,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       pluginName: providerName,
       log: this.log,
       config: resolvedConfig,
-      configStore: this.garden.configStore,
+      configStore: this.garden.localConfigStore,
       projectName: this.garden.projectName,
       projectRoot: this.garden.projectRoot,
       dependencies: resolvedProviders,

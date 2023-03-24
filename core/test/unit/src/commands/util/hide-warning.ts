@@ -35,7 +35,7 @@ describe("HideWarningCommand", () => {
       })
       expect(getLogMessages(log).length).to.equal(0)
     } finally {
-      await garden.configStore.delete("warnings", key)
+      await garden.localConfigStore.delete("warnings", key)
     }
   })
 })

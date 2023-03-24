@@ -49,7 +49,7 @@ describe("provider actions", async () => {
         pluginName: "test-plugin-a",
         log,
         config,
-        configStore: garden.configStore,
+        configStore: garden.localConfigStore,
         projectName: garden.projectName,
         projectRoot: garden.projectRoot,
         dependencies: {},

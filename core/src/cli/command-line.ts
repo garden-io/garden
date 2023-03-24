@@ -573,7 +573,7 @@ ${chalk.white.underline("Keys:")}
 
     // Update persisted history
     // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
-    this.garden.configStore.set("devCommandHistory", this.commandHistory).catch((error) => {
+    this.garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
       this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
     })
 

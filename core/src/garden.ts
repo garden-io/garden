@@ -193,6 +193,7 @@ export interface GardenParams {
   namespace: string
   gardenDirPath: string
   globalConfigStore?: GlobalConfigStore
+  localConfigStore?: LocalConfigStore
   log: Log
   moduleIncludePatterns?: string[]
   moduleExcludePatterns?: string[]
@@ -230,7 +231,7 @@ export class Garden {
   public readonly projectId?: string
   public readonly cloudDomain?: string
   public sessionId: string
-  public readonly configStore: LocalConfigStore
+  public readonly localConfigStore: LocalConfigStore
   public globalConfigStore: GlobalConfigStore
   public readonly vcs: VcsHandler
   public readonly cache: TreeCache
@@ -348,7 +349,7 @@ export class Garden {
 
     this.configsScanned = false
     // TODO: Support other VCS options.
-    this.configStore = new LocalConfigStore(this.gardenDirPath)
+    this.localConfigStore = params.localConfigStore || new LocalConfigStore(this.gardenDirPath)
     this.globalConfigStore = params.globalConfigStore || new GlobalConfigStore()
 
     this.actionConfigs = {
@@ -446,7 +447,7 @@ export class Garden {
   }
 
   async emitWarning({ key, log, message }: { key: string; log: Log; message: string }) {
-    const existing = await this.configStore.get("warnings", key)
+    const existing = await this.localConfigStore.get("warnings", key)
 
     if (!existing || !existing.hidden) {
       log.warn(
@@ -456,7 +457,7 @@ export class Garden {
   }
 
   async hideWarning(key: string) {
-    await this.configStore.set("warnings", key, { hidden: true })
+    await this.localConfigStore.set("warnings", key, { hidden: true })
   }
 
   // TODO: would be nice if this returned a type based on the input tasks
@@ -1552,7 +1553,14 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     projectRoot: config.path,
   })
 
-  const defaultEnvironmentName = resolveTemplateString(
+  const localConfigStore = new LocalConfigStore(gardenDirPath)
+  const localConfigDefaultEnv = await localConfigStore.get("defaultEnv")
+
+  if (localConfigDefaultEnv) {
+    log.debug(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
+  }
+
+  const defaultEnvironmentName = localConfigDefaultEnv || resolveTemplateString(
     config.defaultEnvironment,
     new DefaultEnvironmentContext({
       projectName,
@@ -1717,6 +1725,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     production,
     gardenDirPath,
     globalConfigStore: opts.globalConfigStore,
+    localConfigStore,
     opts,
     outputs: config.outputs || [],
     plugins,

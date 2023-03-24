@@ -137,7 +137,7 @@ Let's get your development environment wired up.
       commands: [...commands, new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       configDump: undefined, // This gets loaded later
       globalOpts: pick(opts, Object.keys(globalOptions)),
-      history: await garden.configStore.get("devCommandHistory"),
+      history: await garden.localConfigStore.get("devCommandHistory"),
     }))
 
     function quit() {
