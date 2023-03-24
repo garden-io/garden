@@ -35,7 +35,7 @@ export async function runCli({
 
   try {
     if (!cli) {
-      cli = new GardenCli({ plugins: getBundledPlugins() })
+      cli = new GardenCli({ plugins: getBundledPlugins(), initLogger: true })
     }
     // Note: We slice off the binary/script name from argv.
     result = await cli.run({ args, exitOnError })

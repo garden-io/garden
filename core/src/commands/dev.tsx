@@ -11,7 +11,7 @@ import { renderDivider } from "../logger/util"
 import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
-import { getLogger, LoggerType } from "../logger/logger"
+import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
@@ -35,7 +35,7 @@ type ActionParams = CommandParams<DevCommandArgs, DevCommandOpts>
 
 export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
   name = "dev"
-  help = "Starts the Garden interactive development environment."
+  help = "Starts the Garden interactive development console."
 
   protected = true
   cliOnly = true
@@ -61,7 +61,7 @@ Let's get your development environment wired up.
   }
 
   async action(params: ActionParams): Promise<CommandResult> {
-    const logger = getLogger()
+    const logger = params.log.root
     const writers = logger.getWriters()
     const inkWriter = writers.find((w) => w.type === "ink") as InkTerminalWriter
 
