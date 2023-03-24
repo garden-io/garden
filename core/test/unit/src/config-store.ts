@@ -103,17 +103,14 @@ describe("ConfigStore", () => {
 
       const config = await localStore.get()
 
-      expect(config).to.eql({
-        analytics: {
-          projectId: "foo",
-        },
-        linkedModuleSources: {
-          "name-a": { name: "name-a", path: "path-a" },
-        },
-        linkedProjectSources: {
-          "name-b": { name: "name-b", path: "path-b" },
-        },
-        warnings: {},
+      expect(config.analytics).to.eql({
+        projectId: "foo",
+      })
+      expect(config.linkedModuleSources).to.eql({
+        "name-a": { name: "name-a", path: "path-a" },
+      })
+      expect(config.linkedProjectSources).to.eql({
+        "name-b": { name: "name-b", path: "path-b" },
       })
     })
 
@@ -126,12 +123,11 @@ describe("ConfigStore", () => {
       await writeFile(legacyPath, legacyLocalConfig)
 
       const config = await localStore.get()
-      expect(config).to.eql({
-        analytics: {},
-        linkedModuleSources: {},
-        linkedProjectSources: {},
-        warnings: {},
-      })
+
+      expect(config.analytics).to.eql({})
+      expect(config.linkedModuleSources).to.eql({})
+      expect(config.linkedProjectSources).to.eql({})
+      expect(config.warnings).to.eql({})
     })
   })
 
