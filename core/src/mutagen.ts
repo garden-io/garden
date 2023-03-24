@@ -295,7 +295,7 @@ export class Mutagen {
   private syncStatusLines: { [key: string]: Log }
   private activeSyncs: { [key: string]: ActiveSync }
   private monitorHandler: (session: SyncSession) => void
-  public configLock: AsyncLock
+  private configLock: AsyncLock
   private monitoring: boolean
 
   constructor({ ctx, log, dataDir }: MutagenDaemonParams) {

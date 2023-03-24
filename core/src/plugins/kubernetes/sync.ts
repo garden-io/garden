@@ -58,7 +58,6 @@ import { resolve } from "path"
 import Bluebird from "bluebird"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
-import { enumerate } from "../../util/enumerate"
 import { joinWithPosix } from "../../util/fs"
 import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config"
 import { HelmModule, HelmService } from "./helm/module-config"
@@ -507,63 +506,64 @@ export async function startSyncs(params: StartSyncsParams) {
 
   const mutagen = new Mutagen({ ctx, log })
 
-  return mutagen.configLock.acquire("start-sync", async () => {
-    const provider = ctx.provider
-    const providerDefaults = provider.config.sync?.defaults || {}
+  const provider = ctx.provider
+  const providerDefaults = provider.config.sync?.defaults || {}
 
-    for (const [i, s] of enumerate(syncs)) {
-      const resourceSpec = s.target || defaultTarget
+  await Bluebird.map(syncs, async (s, i) => {
+    const resourceSpec = s.target || defaultTarget
 
-      if (!resourceSpec) {
-        // This will have been caught and warned about elsewhere
-        continue
-      }
-
-      const { key, description, sourceDescription, targetDescription, target, resourceName } = await prepareSync({
-        ...params,
-        resourceSpec,
-        spec: s,
-        index: i,
-      })
-
-      // Validate the target
-      if (!isConfiguredForSyncMode(target)) {
-        log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
-        continue
-      }
-
-      const containerName = s.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
-
-      if (!containerName) {
-        log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
-        continue
-      }
-
-      const namespace = target.metadata.namespace || defaultNamespace
-
-      const localPath = getLocalSyncPath(s.sourcePath, basePath)
-      const remoteDestination = await getKubectlExecDestination({
-        ctx,
-        log,
-        namespace,
-        containerName,
-        resourceName,
-        targetPath: s.containerPath,
-      })
-
-      const mode = s.mode || defaultSyncMode
-
-      log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
-
-      await mutagen.ensureSync({
-        log,
-        key,
-        logSection: action.name,
-        sourceDescription,
-        targetDescription,
-        config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
-      })
+    if (!resourceSpec) {
+      // This will have been caught and warned about elsewhere
+      return
     }
+
+    const { key, description, sourceDescription, targetDescription, target, resourceName } = await prepareSync({
+      ...params,
+      resourceSpec,
+      spec: s,
+      index: i,
+    })
+
+    // Validate the target
+    if (!isConfiguredForSyncMode(target)) {
+      log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
+      return
+    }
+
+    const containerName = s.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
+
+    if (!containerName) {
+      log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
+      return
+    }
+
+    const namespace = target.metadata.namespace || defaultNamespace
+
+    const localPath = getLocalSyncPath(s.sourcePath, basePath)
+    const remoteDestination = await getKubectlExecDestination({
+      ctx,
+      log,
+      namespace,
+      containerName,
+      resourceName,
+      targetPath: s.containerPath,
+    })
+
+    const mode = s.mode || defaultSyncMode
+
+    log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
+
+    await mutagen.ensureSync({
+      log,
+      key,
+      logSection: action.name,
+      sourceDescription,
+      targetDescription,
+      config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
+    })
+
+    // Wait for initial sync to complete
+    await mutagen.flushSync(log, key)
   })
 }
 
