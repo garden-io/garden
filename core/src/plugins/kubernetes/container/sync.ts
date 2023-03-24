@@ -20,7 +20,7 @@ export const k8sContainerStartSync: DeployActionHandler<"startSync", ContainerDe
   const status = action.getStatus()
 
   const sync = action.getSpec("sync")
-  const workload = status.detail.workload
+  const workload = status.detail.detail.workload
 
   if (!sync?.paths || !workload) {
     return {}
@@ -69,7 +69,7 @@ export const k8sContainerStopSync: DeployActionHandler<"stopSync", ContainerDepl
   const status = action.getStatus()
 
   const sync = action.getSpec("sync")
-  const workload = status.detail.workload
+  const workload = status.detail.detail.workload
 
   if (!sync?.paths || !workload) {
     return {}

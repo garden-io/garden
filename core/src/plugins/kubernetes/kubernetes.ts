@@ -37,7 +37,7 @@ import { defaultIngressClass } from "./constants"
 import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim"
 import { helm3Spec } from "./helm/helm-cli"
 import { isString } from "lodash"
-import { mutagenCliSpec } from "./mutagen"
+import { mutagenCliSpec } from "../../mutagen"
 import { configMapModuleDefinition, configmapDeployDefinition } from "./volumes/configmap"
 import {
   k8sContainerBuildExtension,
