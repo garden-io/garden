@@ -26,6 +26,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const actionUid = action.getUid()
 
       const actionName = action.name
+      const actionType = "test"
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
@@ -58,6 +59,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
             timestamp,
             actionUid,
             actionName,
+            actionType,
             moduleName,
             origin,
             data: data.toString(),

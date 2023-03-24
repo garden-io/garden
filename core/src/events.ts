@@ -216,6 +216,7 @@ export interface Events {
     timestamp: string
     actionUid: string
     actionName: string
+    actionType: string
     moduleName: string | null
     origin: string
     data: string

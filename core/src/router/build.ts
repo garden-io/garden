@@ -64,6 +64,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const startedAt = new Date().toISOString()
 
       const actionName = action.name
+      const actionType = "build"
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
@@ -75,6 +76,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           timestamp,
           actionUid,
           actionName,
+          actionType,
           moduleName,
           origin,
           data: data.toString(),
