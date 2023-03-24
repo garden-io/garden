@@ -72,7 +72,7 @@ describe("kubernetes configureProvider", () => {
       config,
       log: garden.log,
       dependencies: {},
-      configStore: garden.configStore,
+      configStore: garden.localConfigStore,
     })
   }
 

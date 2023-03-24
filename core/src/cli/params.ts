@@ -331,14 +331,14 @@ export class TagsOption extends Parameter<string[] | undefined> {
   }
 }
 
-export class EnvironmentOption extends StringParameter {
+export class EnvironmentParameter extends StringParameter {
   type = "string"
   schema = joi.environment()
 
-  constructor({ help = "The environment (and optionally namespace) to work against." } = {}) {
+  constructor({ help = "The environment (and optionally namespace) to work against.", required = false } = {}) {
     super({
       help,
-      required: false,
+      required,
       aliases: ["e"],
       getSuggestions: ({ configDump }) => {
         return configDump.allEnvironmentNames
@@ -386,7 +386,7 @@ export const globalOptions = {
     defaultValue: false,
     cliOnly: true,
   }),
-  "env": new EnvironmentOption(),
+  "env": new EnvironmentParameter(),
   "logger-type": new ChoicesParameter({
     choices: [...LOGGER_TYPES],
     help: deline`

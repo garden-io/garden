@@ -233,11 +233,11 @@ ${renderCommands(commands)}
     workingDir: string
     log: Log
   }) {
-    const {
+    let {
+      "env": environmentName,
       silent,
       output,
       "logger-type": loggerTypeOpt,
-      "env": environmentName,
       "force-refresh": forceRefresh,
       "var": cliVars,
       "disable-port-forwards": disablePortForwards,
@@ -364,9 +364,7 @@ ${renderCommands(commands)}
 
           nsLog.info({
             section: "garden",
-            msg: `Running in namespace ${chalk.cyan(garden.namespace)} in environment ${chalk.cyan(
-              garden.environmentName
-            )}`,
+            msg: `Running in Running in environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`,
           })
 
           if (!cloudApi && garden.projectId) {

@@ -32,6 +32,7 @@ const localSchema = z.object({
   analytics: analyticsSchema,
 
   devCommandHistory: z.array(z.string()).default([]),
+  defaultEnv: z.string().describe("An environment override, set with the `set env` command."),
 
   linkedModuleSources: z.record(linkedSourceSchema),
   linkedProjectSources: z.record(linkedSourceSchema),
@@ -66,6 +67,7 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
     let config: LocalConfig = {
       analytics: {},
       devCommandHistory: [],
+      defaultEnv: "",
       linkedModuleSources: {},
       linkedProjectSources: {},
       warnings: {},

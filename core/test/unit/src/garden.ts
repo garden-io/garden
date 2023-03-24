@@ -28,6 +28,7 @@ import {
   expectFuzzyMatch,
   createProjectConfig,
   makeModuleConfig,
+  makeTempGarden,
 } from "../../helpers"
 import { getNames, findByName, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store/local"
@@ -268,6 +269,52 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()] })
       expect(garden.gardenDirPath).to.eql(join(garden.projectRoot, ".garden"))
+    })
+
+    it("prefers default env set in local config over project default", async () => {
+      const config = createProjectConfig({
+        name: "test",
+        defaultEnvironment: "local",
+        environments: [
+          { name: "local", defaultNamespace: "default", variables: {} },
+          { name: "remote", defaultNamespace: "default", variables: {} },
+        ],
+        providers: [{ name: "test-plugin" }],
+      })
+
+      const { garden: _garden } = await makeTempGarden({
+        plugins: [testPlugin()],
+        config,
+      })
+
+      await _garden.localConfigStore.set("defaultEnv", "remote")
+
+      const garden = await TestGarden.factory(_garden.projectRoot, { config })
+
+      expect(garden.environmentName).to.equal("remote")
+    })
+
+    it("chooses directly set environmentName over default env in local config", async () => {
+      const config = createProjectConfig({
+        name: "test",
+        defaultEnvironment: "local",
+        environments: [
+          { name: "local", defaultNamespace: "default", variables: {} },
+          { name: "remote", defaultNamespace: "default", variables: {} },
+        ],
+        providers: [{ name: "test-plugin" }],
+      })
+
+      const { garden: _garden } = await makeTempGarden({
+        plugins: [testPlugin()],
+        config,
+      })
+
+      await _garden.localConfigStore.set("defaultEnv", "remote")
+
+      const garden = await TestGarden.factory(_garden.projectRoot, { config, environmentName: "local" })
+
+      expect(garden.environmentName).to.equal("local")
     })
 
     it("should optionally set a custom cache dir relative to project root", async () => {
@@ -4642,7 +4689,7 @@ describe("Garden", () => {
     describe("hideWarning", () => {
       it("should flag a warning key as hidden", async () => {
         await garden.hideWarning(key)
-        const record = await garden.configStore.get("warnings", key)
+        const record = await garden.localConfigStore.get("warnings", key)
         expect(record.hidden).to.be.true
       })
 

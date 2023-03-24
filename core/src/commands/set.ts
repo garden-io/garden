@@ -6,12 +6,53 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandGroup } from "./base"
+import { EnvironmentParameter } from "../cli/params"
+import { dedent } from "../util/string"
+import { Command, CommandGroup, CommandParams } from "./base"
 
 export class SetCommand extends CommandGroup {
   name = "set"
-  help = "Set or modify data."
+  help = "Set or modify data and configuration values."
   hidden = true
 
-  subCommands = []
+  subCommands = [SetDefaultEnvCommand]
+}
+
+const setDefaultEnvArgs = {
+  env: new EnvironmentParameter({
+    help: "The default environment to set for the current project",
+    required: true,
+  }),
+}
+
+type SetDefaultEnvArgs = typeof setDefaultEnvArgs
+
+export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
+  name = "default-env"
+
+  help = "Locally override the default environment for the project."
+
+  description = dedent`
+    Override the default environment for the project for this working copy.
+
+    Examples:
+
+      garden set default-env remote       # Set the default env to remote (with the configured default namespace)
+      garden set default-env dev.my-env   # Set the default env to dev.my-env
+      garden set default-env ''           # Clear any previously set override
+  `
+
+  arguments = setDefaultEnvArgs
+
+  async action({ garden, log, args }: CommandParams<SetDefaultEnvArgs, {}>) {
+    await garden.localConfigStore.set("defaultEnv", args.env)
+
+    if (args.env) {
+      log.info(`Set the default environment to ${args.env}`)
+    } else {
+      log.info("Cleared the default environment")
+    }
+
+    return {}
+  }
 }
