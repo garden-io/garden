@@ -24,7 +24,6 @@ import { GlobalOptions, ParameterValues } from "./params"
 const defaultMessageDuration = 2000
 const commandLinePrefix = chalk.yellow("🌼  > ")
 const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
-const inputChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789- _*!@$%&/="
 const inputHistoryLength = 100
 
 const styles = {
@@ -184,7 +183,34 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     if (handler) {
       handler(input, key)
+    } else if (this.isValidInputCharacter(input, key)) {
+      this.currentCommand =
+        this.currentCommand.substring(0, this.cursorPosition) +
+        input +
+        this.currentCommand.substring(this.cursorPosition)
+      this.moveCursor(this.cursorPosition + 1)
+      this.renderCommandLine()
     }
+  }
+
+  private isValidInputCharacter(input: string, key: Key) {
+    // TODO-G2: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
+    // FIXME: for one, typing an umlaut character does not appear to work on international English keyboards
+    return (
+      input.length === 1 &&
+      !key.backspace &&
+      !key.delete &&
+      !key.downArrow &&
+      !key.escape &&
+      !key.leftArrow &&
+      !key.meta &&
+      !key.pageDown &&
+      !key.pageUp &&
+      !key.return &&
+      !key.rightArrow &&
+      !key.tab &&
+      !key.upArrow
+    )
   }
 
   private setCommandLine(line: string) {
@@ -192,20 +218,6 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   private init() {
-    // Character input
-    const characterHandler: KeyHandler = (char) => {
-      this.currentCommand =
-        this.currentCommand.substring(0, this.cursorPosition) +
-        char +
-        this.currentCommand.substring(this.cursorPosition)
-      this.moveCursor(this.cursorPosition + 1)
-      this.renderCommandLine()
-    }
-
-    for (const char of inputChars.split("")) {
-      this.setKeyHandler(char, characterHandler)
-    }
-
     // Delete
     this.setKeyHandler("backspace", () => {
       if (this.cursorPosition > 0) {
