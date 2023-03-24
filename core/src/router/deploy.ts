@@ -23,6 +23,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       params.events = params.events || new PluginEventBroker()
 
       const actionName = action.name
+      const actionType = "deploy"
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
@@ -34,6 +35,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           timestamp,
           actionUid,
           actionName,
+          actionType,
           moduleName,
           origin,
           data: data.toString(),

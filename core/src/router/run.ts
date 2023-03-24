@@ -27,6 +27,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = "run"
       const moduleName = action.moduleName()
 
       const payloadAttrs = {
@@ -58,6 +59,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
             timestamp,
             actionUid,
             actionName,
+            actionType,
             moduleName,
             origin,
             data: data.toString(),
