@@ -7,7 +7,7 @@
  */
 
 import dotenv = require("dotenv")
-import { intersection, sortBy } from "lodash"
+import { intersection, mapValues, sortBy } from "lodash"
 import { resolve, join } from "path"
 import chalk from "chalk"
 import { pathExists } from "fs-extra"
@@ -439,7 +439,6 @@ ${renderCommands(commands)}
             `
             footerLog.info(msg)
           }
-
         }
 
         if (cloudApi && garden.projectId) {
@@ -635,13 +634,18 @@ ${renderCommands(commands)}
     let parsedArgs: BuiltinArgs & ParameterValues<any>
     let parsedOpts: ParameterValues<any>
 
-    try {
-      const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })
-      parsedArgs = parseResults.args
-      parsedOpts = parseResults.opts
-    } catch (err) {
-      errors.push(...(err.detail?.errors || []).map(toGardenError))
-      return done(1, err.message + "\n" + command.renderHelp())
+    if (command.ignoreOptions) {
+      parsedArgs = { $all: args }
+      parsedOpts = mapValues(globalOptions, (spec) => spec.getDefaultValue(true))
+    } else {
+      try {
+        const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })
+        parsedArgs = parseResults.args
+        parsedOpts = parseResults.opts
+      } catch (err) {
+        errors.push(...(err.detail?.errors || []).map(toGardenError))
+        return done(1, err.message + "\n" + command.renderHelp())
+      }
     }
 
     let commandResult: CommandResult<any> | undefined = undefined
