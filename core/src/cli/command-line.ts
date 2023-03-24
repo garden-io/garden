@@ -11,7 +11,7 @@ import { Key } from "ink"
 import { keyBy, max } from "lodash"
 import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
-import { Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
+import { BuiltinArgs, Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
 import { ConfigDump, Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
@@ -481,24 +481,33 @@ ${renderDivider({ width, char, color })}
     this.commandHistory = [...this.commandHistory.filter((cmd) => cmd !== this.currentCommand), this.currentCommand]
     this.historyIndex = this.commandHistory.length
 
+    // Prepare args and opts
+    let args: BuiltinArgs & ParameterValues<any> = {}
+    let opts: ParameterValues<any> = {}
+
+    try {
+      const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
+      const processed = processCliArgs({
+        log: this.log,
+        rawArgs,
+        parsedArgs,
+        command,
+        matchedPath,
+        cli: false,
+        inheritedOpts: this.globalOpts,
+        warnOnGlobalOpts: true,
+      })
+      args = processed.args
+      opts = processed.opts
+    } catch (error) {
+      this.flashError(error.message)
+      return
+    }
+
     // Update command line
     this.currentCommand = ""
     this.moveCursor(0)
     this.renderCommandLine()
-
-    // Prepare args and opts
-    // TODO-G2: gracefully handle errors here
-    const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
-    const { args, opts } = processCliArgs({
-      log: this.log,
-      rawArgs,
-      parsedArgs,
-      command,
-      matchedPath,
-      cli: false,
-      inheritedOpts: this.globalOpts,
-      warnOnGlobalOpts: true,
-    })
 
     const id = uuidv4()
     const width = this.getTermWidth()
