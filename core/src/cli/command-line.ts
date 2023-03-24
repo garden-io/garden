@@ -393,18 +393,39 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     return process.stdout?.columns || 100
   }
 
+  private printWithDividers(text: string, title: string) {
+    let width = max(text.split("\n").map((l) => stringWidth(l.trimEnd()))) || 0
+    width += 2
+    const termWidth = this.getTermWidth()
+    const minWidth = stringWidth(title) + 10
+
+    if (width > termWidth) {
+      width = termWidth
+    }
+
+    if (width < minWidth) {
+      width = minWidth
+    }
+
+    const char = "┈"
+    const color = chalk.bold
+
+    const wrapped = `
+${renderDivider({ title: chalk.bold(title), width, char, color })}
+${text}
+${renderDivider({ width, char, color })}
+`
+
+    this.log.info(wrapped)
+  }
+
   showHelp() {
     // TODO: group commands by category?
     const renderedCommands = renderCommands(
       this.commands.filter((c) => !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName())))
     )
 
-    const width = max(renderedCommands.split("\n").map((l) => stringWidth(l.trimEnd())))
-    const char = "┈"
-    const color = chalk.bold
-
     const helpText = `
-${renderDivider({ title: chalk.bold("help"), width, char, color })}
 ${chalk.white.underline("Available commands:")}
 
 ${renderedCommands}
@@ -412,10 +433,8 @@ ${renderedCommands}
 ${chalk.white.underline("Keys:")}
 
   ${chalk.gray(`[tab]: auto-complete  [up/down]: command history  [ctrl-d]: quit`)}
-${renderDivider({ width, char, color })}
 `
-
-    this.log.info(helpText)
+    this.printWithDividers(helpText, "help")
   }
 
   /**
@@ -479,6 +498,12 @@ ${renderDivider({ width, char, color })}
     }
   }
 
+  private clear() {
+    this.currentCommand = ""
+    this.moveCursor(0)
+    this.renderCommandLine()
+  }
+
   private handleReturn() {
     if (this.currentCommand.trim() === "") {
       return
@@ -498,6 +523,26 @@ ${renderDivider({ width, char, color })}
 
     try {
       const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
+
+      // Handle -h, --help, and subcommand listings
+      if (parsedArgs.h || parsedArgs.help || command instanceof CommandGroup) {
+        // Try to show specific help for given subcommand
+        if (command instanceof CommandGroup) {
+          for (const subCommand of command.subCommands) {
+            const sub = new subCommand()
+            if (sub.name === rest[0]) {
+              this.clear()
+              this.printWithDividers("\n" + sub.renderHelp(), `help — ${sub.getFullName()}`)
+              return
+            }
+          }
+          // If not found, falls through to general command help below
+        }
+        this.clear()
+        this.printWithDividers(command.renderHelp(), `help — ${command.getFullName()}`)
+        return
+      }
+
       const processed = processCliArgs({
         log: this.log,
         rawArgs,
@@ -523,9 +568,7 @@ ${renderDivider({ width, char, color })}
     this.historyIndex = this.commandHistory.length
 
     // Update command line
-    this.currentCommand = ""
-    this.moveCursor(0)
-    this.renderCommandLine()
+    this.clear()
 
     // Update persisted history
     // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
