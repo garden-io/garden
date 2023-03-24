@@ -298,7 +298,7 @@ ${renderCommands(commands)}
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(log, workingDir)
 
-      const cloudDomain = getGardenCloudDomain(config)
+      const cloudDomain = getGardenCloudDomain(config?.domain)
       const distroName = getCloudDistributionName(cloudDomain)
 
       try {

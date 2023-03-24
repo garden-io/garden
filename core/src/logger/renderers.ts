@@ -17,7 +17,7 @@ import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
 import { highlightYaml, safeDumpYaml } from "../util/serialization"
 import { Logger, logLevelMap, LogLevel } from "./logger"
-import { formatGardenErrorWithDetail } from "../exceptions"
+import { toGardenError, formatGardenErrorWithDetail } from "../exceptions"
 
 type RenderFn = (entry: LogEntry) => string
 
@@ -45,7 +45,7 @@ export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
 export function renderError(entry: LogEntry): string {
   const { error } = entry
   if (error) {
-    return formatGardenErrorWithDetail(error)
+    return formatGardenErrorWithDetail(toGardenError(error))
   }
 
   return entry.msg || ""
@@ -138,14 +138,21 @@ export function renderSection(entry: LogEntry): string {
  * Formats entries for the terminal writer.
  */
 export function formatForTerminal(entry: LogEntry): string {
-  const { msg: msg, section, symbol, data } = entry
+  const { msg, section, symbol, data, error } = entry
   const empty = [msg, section, symbol, data].every((val) => val === undefined)
 
   if (empty) {
     return ""
   }
 
-  return combineRenders(entry, [renderTimestamp, renderSymbol, renderSection, renderMsg, renderData, () => "\n"])
+  let out = combineRenders(entry, [renderTimestamp, renderSymbol, renderSection, renderMsg, renderData])
+
+  // If no data or msg is set, only error, render the error (which is normally only sent to error log file)
+  if (error && !data && !msg) {
+    out += renderError(entry)
+  }
+
+  return out + "\n"
 }
 
 export function cleanForJSON(input?: string | string[]): string {
@@ -171,7 +178,7 @@ export function render(entry: LogEntry, logger: Logger): string | null {
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
   const { msg, metadata, section } = entry
-  const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(entry.error) : undefined
+  const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
   const jsonLogEntry: JsonLogEntry = {
     msg: cleanForJSON(msg),
     data: entry.data,

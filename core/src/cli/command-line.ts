@@ -563,7 +563,8 @@ ${renderDivider({ width, char, color })}
           })
         }
       })
-      .catch(() => {
+      .catch((error: Error) => {
+        this.log.error({ error })
         this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
         this.flashError(failMessage)
       })
