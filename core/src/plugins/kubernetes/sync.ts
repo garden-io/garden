@@ -51,7 +51,7 @@ import {
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
 import { PluginContext } from "../../plugin-context"
-import { getKubectlExecDestination, mutagenAgentPath, MutagenDaemon, SyncConfig } from "./mutagen"
+import { mutagenAgentPath, Mutagen, SyncConfig } from "../../mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
@@ -63,6 +63,7 @@ import { joinWithPosix } from "../../util/fs"
 import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config"
 import { HelmModule, HelmService } from "./helm/module-config"
 import { convertServiceResource } from "./kubernetes-type/common"
+import { prepareConnectionOpts } from "./kubectl"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -501,8 +502,9 @@ export async function startSyncs(params: StartSyncsParams) {
     return
   }
 
-  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
-  return mutagenDaemon.configLock.acquire("start-sync", async () => {
+  const mutagen = new Mutagen({ ctx, log })
+
+  return mutagen.configLock.acquire("start-sync", async () => {
     const provider = ctx.provider
     const providerDefaults = provider.config.sync?.defaults || {}
 
@@ -550,7 +552,8 @@ export async function startSyncs(params: StartSyncsParams) {
 
       log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
 
-      await mutagenDaemon.ensureSync({
+      await mutagen.ensureSync({
+        log,
         key,
         logSection: action.name,
         sourceDescription,
@@ -568,8 +571,9 @@ export async function stopSyncs(params: StopSyncsParams) {
     return
   }
 
-  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
-  return mutagenDaemon.configLock.acquire("start-sync", async () => {
+  const mutagen = new Mutagen({ ctx, log })
+
+  return mutagen.configLock.acquire("start-sync", async () => {
     for (const [i, s] of enumerate(syncs)) {
       const resourceSpec = s.target || defaultTarget
 
@@ -584,7 +588,7 @@ export async function stopSyncs(params: StopSyncsParams) {
 
       log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Stopping sync ${description} (${mode})`) })
 
-      await mutagenDaemon.terminateSync(key)
+      await mutagen.terminateSync(log, key)
     }
   })
 }
@@ -615,7 +619,7 @@ async function prepareSync({
   const namespace = target.metadata.namespace || defaultNamespace
   const keyBase = `${target.kind}--${namespace}--${target.metadata.name}`
 
-  const key = `${keyBase}-${index}`
+  const key = `k8s-${ctx.environmentName}-${keyBase}-${index}`
 
   const localPathDescription = chalk.white(spec.sourcePath)
   const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
@@ -684,6 +688,45 @@ export function makeSyncConfig({
     defaultDirectoryMode,
     defaultFileMode,
   }
+}
+
+export async function getKubectlExecDestination({
+  ctx,
+  log,
+  namespace,
+  containerName,
+  resourceName,
+  targetPath,
+}: {
+  ctx: KubernetesPluginContext
+  log: Log
+  namespace: string
+  containerName: string
+  resourceName: string
+  targetPath: string
+}) {
+  const kubectl = ctx.tools["kubernetes.kubectl"]
+  const kubectlPath = await kubectl.getPath(log)
+
+  const connectionOpts = prepareConnectionOpts({
+    provider: ctx.provider,
+    namespace,
+  })
+
+  const command = [
+    kubectlPath,
+    "exec",
+    "-i",
+    ...connectionOpts,
+    "--container",
+    containerName,
+    resourceName,
+    "--",
+    mutagenAgentPath,
+    "synchronizer",
+  ]
+
+  return `exec:'${command.join(" ")}':${targetPath}`
 }
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"

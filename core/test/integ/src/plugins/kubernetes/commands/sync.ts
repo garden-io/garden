@@ -11,11 +11,13 @@ import { Garden } from "../../../../../../src/garden"
 import { getContainerTestGarden } from "../container/container"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { MutagenDaemon } from "../../../../../../src/plugins/kubernetes/mutagen"
+import { getMutagenMonitor } from "../../../../../../src/mutagen"
 import { syncPause, syncResume, syncStatus } from "../../../../../../src/plugins/kubernetes/commands/sync"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { Log } from "../../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
+import { join } from "path"
+import { MUTAGEN_DIR_NAME } from "../../../../../../src/constants"
 
 // TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
 describe.skip("sync plugin commands", () => {
@@ -32,7 +34,8 @@ describe.skip("sync plugin commands", () => {
   after(async () => {
     if (garden) {
       await garden.close()
-      await MutagenDaemon.clearInstance()
+      const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
+      await getMutagenMonitor({ log, dataDir }).stop()
     }
   })
 
@@ -59,8 +62,6 @@ describe.skip("sync plugin commands", () => {
     })
 
     await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })
-
-    await MutagenDaemon.start({ ctx, log })
   }
 
   describe("sync-status", () => {

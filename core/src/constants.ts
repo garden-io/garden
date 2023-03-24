@@ -17,7 +17,6 @@ export const GARDEN_CLI_ROOT = isPkg ? resolve(process.execPath, "..") : resolve
 export const STATIC_DIR = isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const MUTAGEN_DIR_NAME = "mutagen"
-export const LATEST_MUTAGEN_DATA_DIR_NAME = "latest"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"

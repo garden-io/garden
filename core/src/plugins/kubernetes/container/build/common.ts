@@ -26,7 +26,7 @@ import { Log } from "../../../../logger/log-entry"
 import { prepareDockerAuth } from "../../init"
 import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
-import { getKubectlExecDestination, MutagenDaemon } from "../../mutagen"
+import { Mutagen } from "../../../../mutagen"
 import { randomString } from "../../../../util/string"
 import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
@@ -36,6 +36,7 @@ import { BuildActionHandler, BuildActionResults } from "../../../../plugin/actio
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { Resolved } from "../../../../actions/types"
 import { stringifyResources } from "../util"
+import { getKubectlExecDestination } from "../../sync"
 
 export const utilContainerName = "util"
 export const utilRsyncPort = 8730
@@ -95,10 +96,10 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
   })
 
   // Sync using mutagen
-  const key = `build-sync-${action.name}-${randomString(8)}`
+  const key = `k8s-build-sync-${ctx.environmentName}-${namespace}-${action.name}-${randomString(8)}`
   const targetPath = `/data/${ctx.workingCopyId}/${action.name}`
 
-  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+  const mutagen = new Mutagen({ ctx, log })
 
   // Make sure the target path exists
   const runner = new PodRunner({
@@ -122,7 +123,8 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
 
     // -> Create the sync
-    await mutagenDaemon.ensureSync({
+    await mutagen.ensureSync({
+      log,
       key,
       logSection: action.name,
       sourceDescription: `Module ${action.name} build path`,
@@ -143,11 +145,11 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     })
 
     // -> Flush the sync once
-    await mutagenDaemon.flushSync(key)
+    await mutagen.flushSync(log, key)
     log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
   } finally {
     // -> Terminate the sync
-    await mutagenDaemon.terminateSync(key)
+    await mutagen.terminateSync(log, key)
     log.debug(`Sync connection terminated`)
   }
 

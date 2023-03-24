@@ -13,7 +13,7 @@ import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
 import { Log } from "../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
-import { MutagenDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
+import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
 import { dedent } from "../../../../../src/util/string"
@@ -29,6 +29,7 @@ import { TestGarden } from "../../../../helpers"
 import { ContainerDeployActionConfig } from "../../../../../src/plugins/container/moduleConfig"
 import { resolveAction } from "../../../../../src/graph/actions"
 import { DeployTask } from "../../../../../src/tasks/deploy"
+import { MUTAGEN_DIR_NAME } from "../../../../../src/constants"
 
 describe("sync mode deployments and sync behavior", () => {
   let garden: TestGarden
@@ -60,7 +61,8 @@ describe("sync mode deployments and sync behavior", () => {
   afterEach(async () => {
     if (garden) {
       await garden.close()
-      await MutagenDaemon.clearInstance()
+      const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
+      await getMutagenMonitor({ log: garden.log, dataDir }).stop()
     }
   })
 
@@ -183,8 +185,8 @@ describe("sync mode deployments and sync behavior", () => {
     await writeFile(join(actionPath, "nested", "prefix-b", "file"), "foo")
 
     await sleep(1000)
-    const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
-    await mutagenDaemon.flushAllSyncs()
+    const mutagen = new Mutagen({ ctx, log })
+    await mutagen.flushAllSyncs(log)
 
     const ignoreExecRes = await execInPod(["/bin/sh", "-c", "ls -a /tmp /tmp/nested"], log, workload)
     // Clean up the files we created locally
