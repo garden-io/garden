@@ -25,6 +25,7 @@ const defaultMessageDuration = 2000
 const commandLinePrefix = chalk.yellow("🌼  > ")
 const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
 const inputChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789- _*!@$%&/="
+const inputHistoryLength = 100
 
 const styles = {
   command: chalk.white.bold,
@@ -84,12 +85,14 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     commands,
     configDump,
     globalOpts,
+    history = [],
   }: {
     garden: Garden
     log: Log
     commands: Command[]
     configDump?: ConfigDump
     globalOpts: Partial<ParameterValues<GlobalOptions>>
+    history?: string[]
   }) {
     super()
 
@@ -101,10 +104,10 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.enabled = true
     this.currentCommand = ""
     this.cursorPosition = 0
-    this.historyIndex = 0
+    this.historyIndex = history.length
     this.suggestionIndex = -1
     this.autocompletingFrom = -1
-    this.commandHistory = []
+    this.commandHistory = history
     this.showCursor = true
     this.runningCommands = {}
 
@@ -477,10 +480,6 @@ ${renderDivider({ width, char, color })}
       return
     }
 
-    // Push the command to the top of the history
-    this.commandHistory = [...this.commandHistory.filter((cmd) => cmd !== this.currentCommand), this.currentCommand]
-    this.historyIndex = this.commandHistory.length
-
     // Prepare args and opts
     let args: BuiltinArgs & ParameterValues<any> = {}
     let opts: ParameterValues<any> = {}
@@ -504,10 +503,23 @@ ${renderDivider({ width, char, color })}
       return
     }
 
+    // Push the command to the top of the history
+    this.commandHistory = [
+      ...this.commandHistory.filter((cmd) => cmd !== this.currentCommand),
+      this.currentCommand,
+    ].slice(0, inputHistoryLength)
+    this.historyIndex = this.commandHistory.length
+
     // Update command line
     this.currentCommand = ""
     this.moveCursor(0)
     this.renderCommandLine()
+
+    // Update persisted history
+    // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
+    this.garden.configStore.set("devCommandHistory", this.commandHistory).catch((error) => {
+      this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
+    })
 
     const id = uuidv4()
     const width = this.getTermWidth()
@@ -564,6 +576,7 @@ ${renderDivider({ width, char, color })}
         }
       })
       .catch((error: Error) => {
+        // TODO-G2: improve error rendering
         this.log.error({ error })
         this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
         this.flashError(failMessage)
