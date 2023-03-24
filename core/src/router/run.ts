@@ -16,6 +16,8 @@ import { copyArtifacts, getArtifactKey } from "../util/artifacts"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
+const API_ACTION_TYPE = "run"
+
 export const runRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Run", baseParams, {
     run: async (params) => {
@@ -27,12 +29,13 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
-      const actionType = "run"
+      const actionType = API_ACTION_TYPE
       const moduleName = action.moduleName()
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
         startedAt: new Date().toISOString(),
@@ -103,11 +106,14 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = API_ACTION_TYPE
+
       const moduleName = action.moduleName()
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid: action.getUid(),
         startedAt: new Date().toISOString(),

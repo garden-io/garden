@@ -16,6 +16,8 @@ import { makeTempDir } from "../util/fs"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
+const API_ACTION_TYPE = "test"
+
 export const testRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Test", baseParams, {
     run: async (params) => {
@@ -26,13 +28,14 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const actionUid = action.getUid()
 
       const actionName = action.name
-      const actionType = "test"
+      const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
         startedAt: new Date().toISOString(),
@@ -102,10 +105,12 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = API_ACTION_TYPE
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName: action.moduleName(),
         actionUid: action.getUid(),
         startedAt: new Date().toISOString(),
