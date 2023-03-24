@@ -91,6 +91,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   isCustom: boolean = false // Used to identify custom commands
   isInteractive: boolean = false // Set to true for internal commands in interactive command-line commands
+  ignoreOptions: boolean = false // Completely ignore all option flags and pass all arguments directly to the command
 
   subscribers: DataCallback[]
   terminated: boolean
