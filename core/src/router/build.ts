@@ -14,10 +14,13 @@ import { BaseRouterParams, createActionRouter } from "./base"
 import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
 
+const API_ACTION_TYPE = "build"
+
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Build", baseParams, {
     getStatus: async (params) => {
       const { router, action, garden } = params
+      const actionType = API_ACTION_TYPE
 
       const startedAt = new Date().toISOString()
 
@@ -26,6 +29,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         moduleName: action.moduleName(),
         actionName: action.name,
+        actionType,
         actionUid: action.getUid(),
         actionVersion,
         startedAt,
@@ -63,7 +67,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const startedAt = new Date().toISOString()
 
       const actionName = action.name
-      const actionType = "build"
+      const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
@@ -84,6 +88,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
         startedAt,

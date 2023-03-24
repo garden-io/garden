@@ -14,6 +14,8 @@ import { DeployState } from "../types/service"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
+const API_ACTION_TYPE = "deploy"
+
 export const deployRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Deploy", baseParams, {
     deploy: async (params) => {
@@ -23,7 +25,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       params.events = params.events || new PluginEventBroker()
 
       const actionName = action.name
-      const actionType = "deploy"
+      const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
@@ -47,6 +49,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
         startedAt,
@@ -141,10 +144,12 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const { garden, router, action } = params
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = API_ACTION_TYPE
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         actionUid: action.getUid(),
         moduleName: action.moduleName(),
         startedAt: new Date().toISOString(),
