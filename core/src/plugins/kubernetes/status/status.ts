@@ -13,7 +13,19 @@ import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
 import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
-import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
+import {
+  zip,
+  isArray,
+  isPlainObject,
+  pickBy,
+  mapValues,
+  flatten,
+  cloneDeep,
+  omit,
+  isEqual,
+  keyBy,
+  differenceWith,
+} from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { Log } from "../../../logger/log-entry"
@@ -211,20 +223,28 @@ export async function waitForResources({
 
   const api = await KubeApi.factory(log, ctx, provider)
   let statuses: ResourceStatus[]
+  let printables: ResourceStatus[] = []
+  let readyAndPrinted: ResourceStatus[] = []
 
   while (true) {
     await sleep(2000 + 500 * loops)
     loops += 1
 
+    // Make sure to print "ready" state only once
     statuses = await checkResourceStatuses(api, namespace, resources, log)
+    printables = differenceWith(statuses, readyAndPrinted, isEqual)
 
-    for (const status of statuses) {
+    for (const status of printables) {
       const resource = status.resource
       const statusMessage = `${resource.kind} ${resource.metadata.name} is "${status.state}"`
 
       const statusLogMsg = `Status of ${statusMessage}`
       log.debug(statusLogMsg)
       emitLog(statusLogMsg)
+
+      if (status.state === "ready") {
+        readyAndPrinted.push(status)
+      }
 
       if (status.state === "unhealthy") {
         let msg = `Error deploying ${actionName || "resources"}: ${status.lastMessage || statusMessage}`
@@ -473,7 +493,12 @@ export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
 }
 
 function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {
-  return resource.kind === "Deployment" || resource.kind === "DaemonSet" || resource.kind === "StatefulSet" || resource.kind === "ReplicaSet"
+  return (
+    resource.kind === "Deployment" ||
+    resource.kind === "DaemonSet" ||
+    resource.kind === "StatefulSet" ||
+    resource.kind === "ReplicaSet"
+  )
 }
 
 type KubernetesResourceMap = { [key: string]: KubernetesResource }
@@ -485,10 +510,10 @@ function detectChangedSpecSelector(manifestsMap: KubernetesResourceMap, deployed
     const manifest = manifestsMap[k]
     const deployedResource = deployedMap[k]
     if (
-      deployedResource // If no corresponding resource to the local manifest has been deployed, this will be undefined.
-      && isWorkloadResource(manifest)
-      && isWorkloadResource(deployedResource)
-      && !isEqual(manifest.spec.selector, deployedResource.spec.selector)
+      deployedResource && // If no corresponding resource to the local manifest has been deployed, this will be undefined.
+      isWorkloadResource(manifest) &&
+      isWorkloadResource(deployedResource) &&
+      !isEqual(manifest.spec.selector, deployedResource.spec.selector)
     ) {
       changedKeys.push(getResourceKey(manifest))
     }
