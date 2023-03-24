@@ -150,12 +150,16 @@ describe("LoginCommand", () => {
       globalConfigStore,
     })
 
+    // Need to override the default because we're using DummyGarden
+    const cloudDomain = "http://example.invalid"
+    Object.assign(garden, { cloudDomain })
+
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
     await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, "http://example.invalid")
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)

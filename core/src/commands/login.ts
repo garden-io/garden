@@ -11,11 +11,12 @@ import { printHeader } from "../logger/util"
 import dedent = require("dedent")
 import { AuthTokenResponse, CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { Log } from "../logger/log-entry"
-import { ConfigurationError, InternalError } from "../exceptions"
+import { ConfigurationError, InternalError, TimeoutError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events"
 import { getCloudDistributionName } from "../util/util"
-import { ProjectResource } from "../config/project"
+
+const loginTimeoutSec = 60
 
 export class LoginCommand extends Command {
   name = "login"
@@ -40,16 +41,21 @@ export class LoginCommand extends Command {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
     const globalConfigStore = garden.globalConfigStore
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(log, garden.projectRoot)
 
-    // Fail if this is not run within a garden project
-    if (!projectConfig) {
-      throw new ConfigurationError(
-        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        {
-          root: garden.projectRoot,
-        }
-      )
+    let configuredDomain = garden.cloudDomain
+
+    if (!configuredDomain) {
+      const projectConfig = await cli?.getProjectConfig(log, garden.projectRoot)
+
+      // Fail if this is not run within a garden project
+      if (!projectConfig) {
+        throw new ConfigurationError(
+          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+          {
+            root: garden.projectRoot,
+          }
+        )
+      }
     }
 
     // Garden works by default without Garden Cloud. In order to use cloud, a domain
@@ -62,7 +68,7 @@ export class LoginCommand extends Command {
     //
     // If the fallback was used, we rely on the token to decide if the Cloud API instance
     // should use the default domain or not. The token lifecycle ends on logout.
-    let cloudDomain: string = getGardenCloudDomain(projectConfig)
+    let cloudDomain: string = getGardenCloudDomain(configuredDomain)
 
     const distroName = getCloudDistributionName(cloudDomain)
 
@@ -100,10 +106,22 @@ export async function login(log: Log, cloudDomain: string, events: EventBus) {
   const server = new AuthRedirectServer(cloudDomain, events, log)
   const distroName = getCloudDistributionName(cloudDomain)
   log.debug(`Redirecting to ${distroName} login page...`)
-  const response: AuthTokenResponse = await new Promise(async (resolve, _reject) => {
+  const response: AuthTokenResponse = await new Promise(async (resolve, reject) => {
     // The server resolves the promise with the new auth token once it's received the redirect.
     await server.start()
+
+    let timedOut = false
+
+    const timeout = setTimeout(() => {
+      timedOut = true
+      reject(new TimeoutError(`Timed out after ${loginTimeoutSec} seconds, waiting for web login response.`, {}))
+    }, loginTimeoutSec * 1000)
+
     events.once("receivedToken", (tokenResponse: AuthTokenResponse) => {
+      if (timedOut) {
+        return
+      }
+      clearTimeout(timeout)
       log.debug("Received client auth token.")
       resolve(tokenResponse)
     })

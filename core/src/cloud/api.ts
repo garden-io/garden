@@ -27,7 +27,6 @@ import { CommandInfo } from "../plugin-context"
 import { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
 import { LogLevel } from "../logger/logger"
-import { ProjectResource } from "../config/project"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -139,13 +138,13 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomain(projectConfig?: ProjectResource): string {
+export function getGardenCloudDomain(configuredDomain: string | undefined): string {
   let cloudDomain: string | undefined
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (projectConfig?.domain) {
-    cloudDomain = new URL(projectConfig.domain).origin
+  } else if (configuredDomain) {
+    cloudDomain = new URL(configuredDomain).origin
   }
 
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN

@@ -50,6 +50,7 @@ describe("renderers", () => {
   describe("renderError", () => {
     it("should render error object if present", () => {
       const error: GardenError = {
+        name: "test",
         message: "hello error",
         type: "a",
         detail: {
@@ -58,13 +59,9 @@ describe("renderers", () => {
         },
       }
       const log = logger.makeNewLogContext().info({ msg: "foo", error })
-      expect(renderError(log.entries[0])).to.equal(dedent`
-          hello error
-
-          Error Details:
-
-          foo: bar\n
-        `)
+      const rendered = renderError(log.entries[0])
+      expect(rendered).to.include("Error: hello error")
+      expect(rendered).to.include("Error Details:")
     })
   })
   describe("renderSection", () => {

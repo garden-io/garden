@@ -12,7 +12,6 @@ import { cloneDeep, round } from "lodash"
 import { LogLevel, logLevelMap } from "./logger"
 import { Omit } from "../util/util"
 import { findParentLogContext } from "./util"
-import { GardenError } from "../exceptions"
 import { Logger } from "./logger"
 import uniqid from "uniqid"
 
@@ -53,7 +52,7 @@ interface LogParams extends LogCommonParams {
   symbol?: LogSymbol
   data?: any
   dataFormat?: "json" | "yaml"
-  error?: GardenError
+  error?: Error
 }
 
 interface CreateLogEntryParams extends LogParams {
