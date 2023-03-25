@@ -570,6 +570,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
   const section = action.key()
 
   return new RecoverableProcess({
+    events: ctx.events,
     osCommand: localAppCmd,
     retryConfig: {
       maxRetries: configParams.spec.restart.max,
@@ -660,6 +661,7 @@ async function getKubectlPortForwardProcess(
   const section = action.key()
 
   return new RecoverableProcess({
+    events: ctx.events,
     osCommand: kubectlPortForwardCmd,
     retryConfig: {
       maxRetries: Number.POSITIVE_INFINITY,
@@ -756,6 +758,7 @@ async function getReversePortForwardProcesses(
   return reversePortForwardingCmds.map(
     (cmd) =>
       new RecoverableProcess({
+        events: ctx.events,
         osCommand: cmd,
         retryConfig: {
           maxRetries: Number.POSITIVE_INFINITY,
