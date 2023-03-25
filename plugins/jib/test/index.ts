@@ -85,7 +85,7 @@ describe("jib-container", function () {
 
         const router = await garden.getActionRouter()
 
-        const res = await router.build.build({
+        const { result: res } = await router.build.build({
           action,
           log: garden.log,
           graph,
@@ -102,7 +102,7 @@ describe("jib-container", function () {
 
         const router = await garden.getActionRouter()
 
-        const res = await router.build.build({
+        const { result: res } = await router.build.build({
           action,
           log: garden.log,
           graph,

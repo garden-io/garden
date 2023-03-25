@@ -91,12 +91,14 @@ export class ActionRouter extends BaseRouter {
   ): Promise<GetActionOutputsResult> {
     const router = this.getRouterForActionKind(params.action.kind)
 
-    return router.callHandler({
+    const output = await router.callHandler({
       handlerType: "getOutputs",
       // TODO-G2: figure out why the typing clashes here
       params: { ...params, action: <any>params.action, events: undefined },
       defaultHandler: async ({}) => ({ outputs: {} }),
     })
+
+    return output.result
   }
 
   async getDeployStatuses({

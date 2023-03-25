@@ -40,7 +40,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
 
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
     try {
-      const status = await router.run.getResult({
+      const { result: status } = await router.run.getResult({
         graph: this.graph,
         action,
         log: taskLog,
@@ -77,12 +77,13 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     let status: GetRunResult
 
     try {
-      status = await actions.run.run({
+      const output = await actions.run.run({
         graph: this.graph,
         action,
         log: taskLog,
         interactive: false,
       })
+      status = output.result
     } catch (err) {
       taskLog.error(`Failed running ${action.name}`)
       throw err

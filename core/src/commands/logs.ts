@@ -117,6 +117,11 @@ export class LogsCommand extends Command<Args, Opts> {
 
   private events?: PluginEventBroker
 
+  constructor() {
+    super()
+    this.events = new PluginEventBroker()
+  }
+
   printHeader({ headerLog }) {
     printHeader(headerLog, "Logs", "📜")
   }
@@ -126,6 +131,7 @@ export class LogsCommand extends Command<Args, Opts> {
   }
 
   terminate() {
+    super.terminate()
     this.events?.emit("abort")
   }
 
@@ -175,9 +181,9 @@ export class LogsCommand extends Command<Args, Opts> {
     if (actions.length === 0) {
       let msg: string
       if (args.names) {
-        msg = `Deploy(s) ${naturalList(
-          args.names.map((s) => `"${s}"`)
-        )} not found. Available Deploys: ${naturalList(allDeploys.map((s) => `"${s}"`))}.`
+        msg = `Deploy(s) ${naturalList(args.names.map((s) => `"${s}"`))} not found. Available Deploys: ${naturalList(
+          allDeploys.map((s) => `"${s}"`)
+        )}.`
       } else {
         msg = "No Deploys found in project."
       }
@@ -290,7 +296,6 @@ export class LogsCommand extends Command<Args, Opts> {
     })
 
     const router = await garden.getActionRouter()
-    this.events = new PluginEventBroker()
 
     const resolvedActions = await garden.resolveActions({ actions, graph, log })
 

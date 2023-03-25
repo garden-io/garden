@@ -399,7 +399,7 @@ describe("exec plugin", () => {
         const action = graph.getBuild("module-local")
         const actions = await garden.getActionRouter()
         const resolvedAction = await garden.resolveAction({ action, log, graph })
-        const res = await actions.build.build({ log, action: resolvedAction, graph })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         const expectedBuildLog = join(garden.projectRoot, "module-local")
         expect(res.detail).to.eql({ buildLog: expectedBuildLog, fresh: true })
@@ -413,7 +413,7 @@ describe("exec plugin", () => {
         action._config.spec.shell = false
 
         const resolvedAction = await garden.resolveAction({ log, graph, action })
-        const res = await actions.build.build({ log, action: resolvedAction, graph })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
       })
@@ -426,7 +426,7 @@ describe("exec plugin", () => {
         action._config.spec.shell = false
 
         const resolvedAction = await garden.resolveAction({ log, graph, action })
-        const res = await actions.build.build({ log, action: resolvedAction, graph })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
       })
@@ -461,7 +461,7 @@ describe("exec plugin", () => {
         })) as TestAction
 
         const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
-        const res = await router.test.run({
+        const { result: res } = await router.test.run({
           log,
           interactive: false,
           graph,
@@ -498,7 +498,7 @@ describe("exec plugin", () => {
           mode: "default",
         })) as TestAction
         const action = await garden.resolveAction({ action: rawAction, graph, log })
-        const res = await router.test.run({
+        const { result: res } = await router.test.run({
           log,
           action,
           interactive: true,
@@ -514,7 +514,7 @@ describe("exec plugin", () => {
         const actions = await garden.getActionRouter()
         const task = graph.getRun("pwd")
         const action = await garden.resolveAction({ action: task, graph, log })
-        const res = await actions.run.run({
+        const { result: res } = await actions.run.run({
           log,
           action,
           interactive: true,
@@ -533,7 +533,7 @@ describe("exec plugin", () => {
         action._config.spec.shell = true
         action._config.spec.command = ["echo", "$GARDEN_ACTION_VERSION"]
 
-        const res = await actions.run.run({
+        const { result: res } = await actions.run.run({
           log,
           action,
           interactive: true,
@@ -557,7 +557,7 @@ describe("exec plugin", () => {
           const rawAction = graph.getDeploy("echo")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ log, graph, action: rawAction })
-          const res = await router.deploy.deploy({
+          const { result: res } = await router.deploy.deploy({
             force: false,
 
             log,
@@ -573,7 +573,7 @@ describe("exec plugin", () => {
           const rawAction = graph.getDeploy("empty")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
-          const res = await router.deploy.deploy({
+          const { result: res } = await router.deploy.deploy({
             force: false,
 
             log,
@@ -641,7 +641,7 @@ describe("exec plugin", () => {
             const rawAction = graph.getDeploy("sync-mode")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const res = await router.deploy.deploy({
+            const { result: res } = await router.deploy.deploy({
               force: false,
               log,
               action,
@@ -657,7 +657,7 @@ describe("exec plugin", () => {
             const rawAction = graph.getDeploy("sync-mode-with-logs")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const res = await router.deploy.deploy({
+            const { result: res } = await router.deploy.deploy({
               force: false,
               log,
               action,
@@ -713,7 +713,7 @@ describe("exec plugin", () => {
             const rawAction = graph.getDeploy("sync-mode-with-empty-log-lines")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const res = await router.deploy.deploy({
+            const { result: res } = await router.deploy.deploy({
               force: false,
               log,
               action,
@@ -873,7 +873,7 @@ describe("exec plugin", () => {
             action,
             graph,
           })
-          const res = await router.deploy.delete({
+          const { result: res } = await router.deploy.delete({
             log,
             graph,
             action,
@@ -889,7 +889,7 @@ describe("exec plugin", () => {
           const rawAction = graph.getDeploy("echo")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
-          const res = await router.deploy.delete({
+          const { result: res } = await router.deploy.delete({
             log,
             graph,
             action,

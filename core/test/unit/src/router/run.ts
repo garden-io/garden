@@ -64,7 +64,7 @@ describe("run actions", () => {
 
   describe("run.getResult", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.run.getResult({
+      const { result } = await actionRouter.run.getResult({
         log,
         action: resolvedRunAction,
         graph,
@@ -107,7 +107,7 @@ describe("run actions", () => {
 
   describe("run.run", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.run.run({
+      const { result } = await actionRouter.run.run({
         log,
         action: resolvedRunAction,
         interactive: true,
