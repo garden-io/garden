@@ -86,14 +86,14 @@ describe("Helm Pod Run", () => {
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     // Verify that the result was not saved
-    const actions = await garden.getActionRouter()
-    const storedResult = await actions.run.getResult({
+    const router = await garden.getActionRouter()
+    const { result } = await router.run.getResult({
       log: garden.log,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
 
-    expect(storedResult.state).to.eql("not-ready")
+    expect(result.state).to.eql("not-ready")
   })
 
   it("should run a task in a different namespace, if configured", async () => {

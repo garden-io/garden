@@ -44,7 +44,7 @@ describe("deploy actions", () => {
 
   describe("deploy.getStatus", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.deploy.getStatus({
+      const { result } = await actionRouter.deploy.getStatus({
         log,
         action: resolvedDeployAction,
         graph,
@@ -100,7 +100,7 @@ describe("deploy actions", () => {
 
   describe("deploy.deploy", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.deploy.deploy({
+      const { result } = await actionRouter.deploy.deploy({
         log,
         action: resolvedDeployAction,
         graph,
@@ -155,7 +155,7 @@ describe("deploy actions", () => {
 
   describe("deploy.delete", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.deploy.delete({ log, action: resolvedDeployAction, graph })
+      const { result } = await actionRouter.deploy.delete({ log, action: resolvedDeployAction, graph })
       expect(result).to.eql({
         state: "ready",
         detail: {
@@ -173,7 +173,7 @@ describe("deploy actions", () => {
   describe("deploy.exec", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const executedAction = await garden.executeAction({ action: resolvedDeployAction, log, graph })
-      const result = await actionRouter.deploy.exec({
+      const { result } = await actionRouter.deploy.exec({
         log,
         action: executedAction,
         graph,
@@ -187,7 +187,7 @@ describe("deploy actions", () => {
   describe("deploy.getLogs", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const stream = new Stream<DeployLogEntry>()
-      const result = await actionRouter.deploy.getLogs({
+      const { result } = await actionRouter.deploy.getLogs({
         log,
         action: resolvedDeployAction,
         graph,

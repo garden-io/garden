@@ -42,7 +42,7 @@ describe("build actions", () => {
 
   describe("build.getStatus", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.build.getStatus({ log, action: resolvedBuildAction, graph })
+      const { result } = await actionRouter.build.getStatus({ log, action: resolvedBuildAction, graph })
       expect(result.outputs.foo).to.eql("bar")
     })
 
@@ -71,7 +71,7 @@ describe("build actions", () => {
 
   describe("build", () => {
     it("should correctly call the corresponding plugin handler", async () => {
-      const result = await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
+      const { result } = await actionRouter.build.build({ log, action: resolvedBuildAction, graph })
       expect(result).to.eql({
         detail: {},
         outputs: {

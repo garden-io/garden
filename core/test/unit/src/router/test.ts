@@ -66,7 +66,7 @@ describe("test actions", () => {
 
     it("should correctly call the corresponding plugin handler", async () => {
       const action = await getResolvedAction(actionConfig)
-      const result = await actionRouter.test.run({
+      const { result } = await actionRouter.test.run({
         log,
         action,
         interactive: true,
@@ -162,7 +162,7 @@ describe("test actions", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const action = await garden.resolveAction({ action: graph.getTest("module-a-unit"), log, graph })
 
-      const result = await actionRouter.test.getResult({
+      const { result } = await actionRouter.test.getResult({
         log,
         action,
         graph,

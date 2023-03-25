@@ -56,7 +56,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         status: { state: "deploying" },
       })
 
-      const result = await router.callHandler({ params, handlerType: "deploy" })
+      const output = await router.callHandler({ params, handlerType: "deploy" })
+      const result = output.result
 
       // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", result.outputs)
@@ -70,7 +71,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
-      return result
+      return output
     },
 
     delete: async (params) => {
@@ -82,17 +83,18 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         })
         .info("Deleting...")
 
-      const status = await handlers.getStatus({ ...params })
+      const statusOutput = await handlers.getStatus({ ...params })
+      const status = statusOutput.result
 
       if (status.detail?.state === "missing") {
         log.setSuccess({
           section: action.key(),
           msg: "Not found",
         })
-        return status
+        return statusOutput
       }
 
-      const result = await router.callHandler({
+      const output = await router.callHandler({
         params: { ...params, log },
         handlerType: "delete",
         defaultHandler: async (p) => {
@@ -106,11 +108,11 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         },
       })
 
-      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
+      router.emitNamespaceEvents(output.result.detail?.namespaceStatuses)
 
       log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
 
-      return result
+      return output
     },
 
     exec: async (params) => {
@@ -154,7 +156,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         status: { state: "unknown" },
       })
 
-      const result = await router.callHandler({ params, handlerType: "getStatus" })
+      const output = await router.callHandler({ params, handlerType: "getStatus" })
+      const result = output.result
 
       garden.events.emit("deployStatus", {
         ...payloadAttrs,
@@ -168,7 +171,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       // TODO-G2: only validate if state is not missing?
       await router.validateActionOutputs(action, "runtime", result.outputs)
 
-      return result
+      return output
     },
 
     getPortForward: async (params) => {

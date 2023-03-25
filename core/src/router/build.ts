@@ -36,11 +36,12 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         state: "getting-status",
         status: { state: "fetching" },
       })
-      const status = await router.callHandler({
+      const statusOutput = await router.callHandler({
         params,
         handlerType: "getStatus",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
+      const status = statusOutput.result
       const { state } = status
 
       // TODO-G2: only validate if state is ready?
@@ -51,7 +52,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         state: stateForCacheStatusEvent(state),
         status: { state: state === "ready" ? "fetched" : "outdated" },
       })
-      return status
+      return statusOutput
     },
 
     build: async (params) => {
@@ -105,17 +106,18 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       }
 
       try {
-        const result = await router.callHandler({
+        const output = await router.callHandler({
           params,
           handlerType: "build",
           defaultHandler: async () => ({ state: <ActionState>"unknown", outputs: {}, detail: {} }),
         })
+        const { result } = output
 
         // TODO-G2: only validate if state is ready?
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
         emitBuildStatusEvent("ready")
-        return result
+        return output
       } catch (err) {
         emitBuildStatusEvent("failed")
         throw err

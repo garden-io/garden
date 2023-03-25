@@ -885,7 +885,7 @@ describe("kubernetes container deployment handlers", () => {
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
-      const status = await router.deploy.getStatus({
+      const { result: status } = await router.deploy.getStatus({
         graph,
         action,
         log: garden.log,
@@ -913,7 +913,7 @@ describe("kubernetes container deployment handlers", () => {
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
-      const status = await router.deploy.getStatus({
+      const { result: status } = await router.deploy.getStatus({
         graph,
         action,
         log: garden.log,
@@ -941,7 +941,7 @@ describe("kubernetes container deployment handlers", () => {
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
-      const status = await router.deploy.getStatus({
+      const { result: status } = await router.deploy.getStatus({
         graph,
         action,
         log: garden.log,

@@ -476,7 +476,7 @@ describe("BaseActionRouter", () => {
         log: garden.log,
       })
 
-      const result = await router.callHandler({
+      const { result } = await router.callHandler({
         handlerType: "build",
         params: { graph, log: garden.log, action, events: undefined },
       })
@@ -570,7 +570,7 @@ describe("BaseActionRouter", () => {
         log: garden.log,
       })
 
-      const result = await router.callHandler({
+      const { result } = await router.callHandler({
         handlerType: "build",
         params: { graph, log: garden.log, action, events: undefined },
       })
@@ -610,7 +610,7 @@ describe("BaseActionRouter", () => {
         log: garden.log,
       })
 
-      const result = await router.callHandler({
+      const { result } = await router.callHandler({
         handlerType: "build",
         params: { graph, log: garden.log, action, events: undefined },
       })

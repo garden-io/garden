@@ -78,7 +78,7 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
 
     const resolved = await garden.resolveAction({ action, graph, log })
 
-    const res = await router.test.getResult({
+    const { result: res } = await router.test.getResult({
       log,
       graph,
       action: resolved,

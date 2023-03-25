@@ -53,7 +53,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
 
-    const status = await router.test.getResult({
+    const { result: status } = await router.test.getResult({
       log: this.log,
       graph: this.graph,
       action,
@@ -87,13 +87,14 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
 
     let status: GetTestResult<TestAction>
     try {
-      status = await router.test.run({
+      const output = await router.test.run({
         log: taskLog,
         action,
         graph: this.graph,
         silent: this.silent,
         interactive: this.interactive,
       })
+      status = output.result
     } catch (err) {
       taskLog.error(`Failed running test`)
       throw err

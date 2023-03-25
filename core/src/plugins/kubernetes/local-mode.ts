@@ -938,7 +938,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     log.warn({
       symbol: "warning",
       section,
-      msg: chalk.yellow("Unable to local mode ssh tunnels. Reason: rejected by the registry"),
+      msg: chalk.yellow("Unable to start local mode ssh tunnels. Reason: rejected by the registry"),
     })
   }
 }

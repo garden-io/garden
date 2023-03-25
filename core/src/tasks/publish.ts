@@ -109,7 +109,8 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
 
     let result: PublishActionResult
     try {
-      result = await router.build.publish({ action, log, graph: this.graph, tag })
+      const output = await router.build.publish({ action, log, graph: this.graph, tag })
+      result = output.result
     } catch (err) {
       log.error(`Failed publishing build ${action.name}`)
       throw err

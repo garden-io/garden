@@ -32,7 +32,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const router = await this.garden.getActionRouter()
 
-    const status = await router.deploy.getStatus({
+    const { result: status } = await router.deploy.getStatus({
       graph: this.graph,
       action,
       log,
@@ -64,12 +64,13 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     log.info(`Deploying version ${version}...`)
 
     try {
-      status = await router.deploy.deploy({
+      const output = await router.deploy.deploy({
         graph: this.graph,
         action,
         log,
         force: this.force,
       })
+      status = output.result
     } catch (err) {
       log.error(`Error deploying ${action.name}`)
       throw err
