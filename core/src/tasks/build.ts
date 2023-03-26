@@ -51,7 +51,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const files = action.getFullVersion().files
 
     if (files.length > 0) {
-      log.verbose(`Syncing module sources (${pluralize("file", files.length, true)})...`)
+      log.verbose(`Syncing sources (${pluralize("file", files.length, true)})...`)
     }
 
     await this.garden.buildStaging.syncFromSrc({
@@ -59,7 +59,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       log: log || this.log,
     })
 
-    log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    log.verbose(chalk.green(`Done syncing sources (took ${log.getDuration(1)} sec)`))
 
     await this.garden.buildStaging.syncDependencyProducts(action, log)
 
