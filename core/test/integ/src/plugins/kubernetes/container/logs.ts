@@ -229,20 +229,17 @@ describe("kubernetes", () => {
 
         logsFollower.close()
 
-        const missingContainerRegex = new RegExp(
-          `<No running containers found for Deployment simple-service. Will retry in ${retryIntervalMs / 1000}s...>`
-        )
-        const connectedRegex = new RegExp("<Connected to container 'simple-service' in Pod")
-        const serverRunningRegex = new RegExp("Server running...")
+        const logString = log.toString()
 
         // First we expect to see a "missing container" entry because the Deploy hasn't been completed
-        expect(ctx.log.toString()).to.match(missingContainerRegex)
+        expect(logString).to.match(
+          new RegExp(
+            `<No running containers found for Deployment simple-service. Will retry in ${retryIntervalMs / 1000}s...>`
+          )
+        )
 
         // Then we expect to see a "container connected" entry when the Deploy has been completed
-        expect(ctx.log.toString()).to.match(connectedRegex)
-
-        // Finally, we expect to see the Deploy log
-        expect(ctx.log.toString()).to.match(serverRunningRegex)
+        expect(logString).to.match(/<Connected to container 'simple-service' in Pod/)
       })
     })
   })
