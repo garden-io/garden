@@ -71,14 +71,22 @@ describe("SelfUpdateCommand", () => {
   }
 
   it(`detects the current installation directory if none is provided`, async () => {
-    const { result } = await action({ version: "" }, { "force": false, "install-dir": "", "platform": "" })
+    const { result } = await action(
+      { version: "" },
+      {
+        "force": false,
+        "install-dir": "",
+        "platform": "",
+        "version-scope": "patch",
+      }
+    )
     expect(result?.installationDirectory).to.equal(dirname(process.execPath))
   })
 
   it(`uses the specified --install-dir if set`, async () => {
     const { result } = await action(
       { version: "edge" },
-      { "force": false, "install-dir": tempDir.path, "platform": "" }
+      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
     )
 
     expect(result?.installationDirectory).to.equal(tempDir.path)
@@ -87,7 +95,7 @@ describe("SelfUpdateCommand", () => {
   it(`aborts if desired version is the same as the current version`, async () => {
     const { result } = await action(
       { version: getPackageVersion() },
-      { "force": false, "install-dir": "", "platform": "" }
+      { "force": false, "install-dir": "", "platform": "", "version-scope": "patch" }
     )
     expect(result?.installedVersion).to.be.undefined
     expect(result?.abortReason).to.equal("Version already installed")
@@ -96,7 +104,7 @@ describe("SelfUpdateCommand", () => {
   it(`proceeds if desired version is the same as the current version and --force is set`, async () => {
     const { result } = await action(
       { version: getPackageVersion() },
-      { "force": true, "install-dir": "", "platform": "" }
+      { "force": true, "install-dir": "", "platform": "", "version-scope": "patch" }
     )
     expect(result?.installedVersion).to.be.undefined
     // The command will abort because we're running a dev build
@@ -104,13 +112,29 @@ describe("SelfUpdateCommand", () => {
   })
 
   it(`aborts if trying to run from a dev build`, async () => {
-    const { result } = await action({ version: "" }, { "force": true, "install-dir": "", "platform": "" })
+    const { result } = await action(
+      { version: "" },
+      {
+        "force": true,
+        "install-dir": "",
+        "platform": "",
+        "version-scope": "patch",
+      }
+    )
     expect(result?.installedVersion).to.be.undefined
     expect(result?.abortReason).to.equal("Not running from binary installation")
   })
 
   it(`aborts cleanly if desired version isn't found`, async () => {
-    const { result } = await action({ version: "foo" }, { "force": true, "install-dir": tempDir.path, "platform": "" })
+    const { result } = await action(
+      { version: "foo" },
+      {
+        "force": true,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "version-scope": "patch",
+      }
+    )
     expect(result?.installedVersion).to.be.undefined
     expect(result?.abortReason).to.equal("Version not found")
   })
@@ -118,7 +142,7 @@ describe("SelfUpdateCommand", () => {
   it(`installs successfully to an empty --install-dir`, async () => {
     const { result } = await action(
       { version: "edge" },
-      { "force": false, "install-dir": tempDir.path, "platform": "" }
+      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
     )
     expect(result?.installedVersion).to.equal("edge")
     expect(result?.abortReason).to.be.undefined
@@ -129,10 +153,18 @@ describe("SelfUpdateCommand", () => {
   })
 
   it(`installs successfully to an --install-dir with a previous release and creates a backup`, async () => {
-    await action({ version: "edge" }, { "force": false, "install-dir": tempDir.path, "platform": "" })
+    await action(
+      { version: "edge" },
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "version-scope": "patch",
+      }
+    )
     const { result } = await action(
       { version: "edge" },
-      { "force": false, "install-dir": tempDir.path, "platform": "" }
+      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
     )
     expect(result?.installedVersion).to.equal("edge")
     expect(result?.abortReason).to.be.undefined
@@ -144,13 +176,29 @@ describe("SelfUpdateCommand", () => {
   })
 
   it(`installs successfully to an --install-dir with a previous release and overwrites a backup`, async () => {
-    await action({ version: "edge" }, { "force": false, "install-dir": tempDir.path, "platform": "" })
-    await action({ version: "edge" }, { "force": false, "install-dir": tempDir.path, "platform": "" })
+    await action(
+      { version: "edge" },
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "version-scope": "patch",
+      }
+    )
+    await action(
+      { version: "edge" },
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "version-scope": "patch",
+      }
+    )
     const { result } = await action(
       {
         version: "edge",
       },
-      { "force": false, "install-dir": tempDir.path, "platform": "" }
+      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
     )
     expect(result?.installedVersion).to.equal("edge")
     expect(result?.abortReason).to.be.undefined
@@ -162,7 +210,15 @@ describe("SelfUpdateCommand", () => {
   })
 
   it(`handles --platform=windows and zip archives correctly`, async () => {
-    await action({ version: "edge" }, { "force": false, "install-dir": tempDir.path, "platform": "windows" })
+    await action(
+      { version: "edge" },
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "windows",
+        "version-scope": "patch",
+      }
+    )
 
     const extracted = await readdir(tempDir.path)
     expect(extracted).to.include("garden.exe")
@@ -170,7 +226,15 @@ describe("SelfUpdateCommand", () => {
   })
 
   it(`handles --platform=macos and tar.gz archives correctly`, async () => {
-    await action({ version: "edge" }, { "force": false, "install-dir": tempDir.path, "platform": "macos" })
+    await action(
+      { version: "edge" },
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "macos",
+        "version-scope": "patch",
+      }
+    )
 
     const extracted = await readdir(tempDir.path)
     expect(extracted).to.include("garden")
