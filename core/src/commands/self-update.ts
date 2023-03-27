@@ -108,14 +108,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     log.info(chalk.white("Checking for latest version..."))
 
-    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
-    const latestVersion = latestVersionRes.tag_name
-
-    if (!latestVersion) {
-      throw new RuntimeError(`Unable to detect latest Garden version: ${latestVersionRes}`, {
-        response: latestVersionRes,
-      })
-    }
+    const latestVersion = await this.getLatestVersion()
 
     if (!desiredVersion) {
       desiredVersion = latestVersion
@@ -268,5 +261,20 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     } finally {
       await tempDir.cleanup()
     }
+  }
+
+  /**
+   * @return the latest version tag
+   * @throws {RuntimeError} if the latest version cannot be detected
+   */
+  private async getLatestVersion(): Promise<string> {
+    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
+    const latestVersion = latestVersionRes.tag_name
+    if (!latestVersion) {
+      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
+        response: latestVersionRes,
+      })
+    }
+    return latestVersionRes.tag_name
   }
 }
