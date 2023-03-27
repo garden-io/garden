@@ -345,7 +345,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       )
     }
 
-    const releasesPerPage = 10
+    const releasesPerPage = 100
     let page = 1
     let releaseList: any[]
     do {
