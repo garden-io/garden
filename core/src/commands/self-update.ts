@@ -9,7 +9,7 @@
 import tar from "tar"
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import { BooleanParameter, ChoicesParameter, StringParameter } from "../cli/params"
+import { BooleanParameter, ChoicesParameter, GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
 import { dedent } from "../util/string"
 import { basename, dirname, join, resolve } from "path"
 import chalk from "chalk"
@@ -31,7 +31,6 @@ const selfUpdateArgs = {
 
 const versionScopes = ["major", "minor", "patch"] as const
 type VersionScope = typeof versionScopes[number]
-const defaultVersionScope: VersionScope = "patch"
 
 const selfUpdateOpts = {
   "force": new BooleanParameter({
@@ -44,15 +43,37 @@ const selfUpdateOpts = {
     choices: ["macos", "linux", "windows"],
     help: `Override the platform, instead of detecting it automatically.`,
   }),
-  "version-scope": new ChoicesParameter({
-    choices: versionScopes.map(String),
-    defaultValue: defaultVersionScope,
-    help: `Install either the latest patch, or minor, or major version greater than the current one. Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
+  "major": new BooleanParameter({
+    defaultValue: false,
+    help: dedent`
+    Install the latest major version greater than the current one. Takes precedence over --minor flag if both are defined. Falls back to the current version if the greater major version does not exist.
+
+    The latest patch version will be installed if neither --major nor --minor flags are specified.
+
+    Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
+  }),
+  "minor": new BooleanParameter({
+    defaultValue: false,
+    help: dedent`Install the latest minor version greater than the current one. Falls back to the current version if the greater minor version does not exist.
+
+    The latest patch version will be installed if neither --major nor --minor flags are specified.
+
+    Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
   }),
 }
 
 export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
+
+function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
+  if (opts["major"]) {
+    return "major"
+  }
+  if (opts["minor"]) {
+    return "minor"
+  }
+  return "patch"
+}
 
 interface SelfUpdateResult {
   currentVersion: string
@@ -81,7 +102,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
        garden self-update          # update to the latest Garden CLI version
        garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
        garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
-       garden self-update --version-scope minor  # install the latest minor version greater than the current one
+       garden self-update --major  # install the latest major version (if it exists) greater than the current one
+       garden self-update --minor  # install the latest minor version (if it exists) greater than the current one
        garden self-update --force  # re-install even if the same version is detected
        garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
   `
@@ -120,7 +142,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     log.info(chalk.white("Checking for target and latest versions..."))
 
-    const versionScope: VersionScope = opts["version-scope"] as VersionScope
+    const versionScope: VersionScope = getVersionScope(opts)
     const targetVersion = await this.getTargetVersion(currentVersion, versionScope)
     const latestVersion = await this.getLatestVersion()
 

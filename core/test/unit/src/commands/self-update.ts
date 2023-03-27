@@ -77,7 +77,8 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": "",
         "platform": "",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
     expect(result?.installationDirectory).to.equal(dirname(process.execPath))
@@ -86,7 +87,13 @@ describe("SelfUpdateCommand", () => {
   it(`uses the specified --install-dir if set`, async () => {
     const { result } = await action(
       { version: "edge" },
-      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "major": false,
+        "minor": false,
+      }
     )
 
     expect(result?.installationDirectory).to.equal(tempDir.path)
@@ -95,7 +102,13 @@ describe("SelfUpdateCommand", () => {
   it(`aborts if desired version is the same as the current version`, async () => {
     const { result } = await action(
       { version: getPackageVersion() },
-      { "force": false, "install-dir": "", "platform": "", "version-scope": "patch" }
+      {
+        "force": false,
+        "install-dir": "",
+        "platform": "",
+        "major": false,
+        "minor": false,
+      }
     )
     expect(result?.installedVersion).to.be.undefined
     expect(result?.abortReason).to.equal("Version already installed")
@@ -104,7 +117,13 @@ describe("SelfUpdateCommand", () => {
   it(`proceeds if desired version is the same as the current version and --force is set`, async () => {
     const { result } = await action(
       { version: getPackageVersion() },
-      { "force": true, "install-dir": "", "platform": "", "version-scope": "patch" }
+      {
+        "force": true,
+        "install-dir": "",
+        "platform": "",
+        "major": false,
+        "minor": false,
+      }
     )
     expect(result?.installedVersion).to.be.undefined
     // The command will abort because we're running a dev build
@@ -118,7 +137,8 @@ describe("SelfUpdateCommand", () => {
         "force": true,
         "install-dir": "",
         "platform": "",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
@@ -132,7 +152,8 @@ describe("SelfUpdateCommand", () => {
         "force": true,
         "install-dir": tempDir.path,
         "platform": "",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
@@ -142,7 +163,13 @@ describe("SelfUpdateCommand", () => {
   it(`installs successfully to an empty --install-dir`, async () => {
     const { result } = await action(
       { version: "edge" },
-      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "major": false,
+        "minor": false,
+      }
     )
     expect(result?.installedVersion).to.equal("edge")
     expect(result?.abortReason).to.be.undefined
@@ -159,12 +186,19 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
     const { result } = await action(
       { version: "edge" },
-      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "major": false,
+        "minor": false,
+      }
     )
     expect(result?.installedVersion).to.equal("edge")
     expect(result?.abortReason).to.be.undefined
@@ -182,7 +216,8 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
     await action(
@@ -191,14 +226,21 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
     const { result } = await action(
       {
         version: "edge",
       },
-      { "force": false, "install-dir": tempDir.path, "platform": "", "version-scope": "patch" }
+      {
+        "force": false,
+        "install-dir": tempDir.path,
+        "platform": "",
+        "major": false,
+        "minor": false,
+      }
     )
     expect(result?.installedVersion).to.equal("edge")
     expect(result?.abortReason).to.be.undefined
@@ -216,7 +258,8 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "windows",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
 
@@ -232,7 +275,8 @@ describe("SelfUpdateCommand", () => {
         "force": false,
         "install-dir": tempDir.path,
         "platform": "macos",
-        "version-scope": "patch",
+        "major": false,
+        "minor": false,
       }
     )
 
