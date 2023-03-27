@@ -57,6 +57,7 @@ export type SelfUpdateOpts = typeof selfUpdateOpts
 interface SelfUpdateResult {
   currentVersion: string
   latestVersion: string
+  targetVersion: string
   installationDirectory: string
   installedBuild?: string
   installedVersion?: string
@@ -143,7 +144,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         result: {
           currentVersion,
           installationDirectory,
-          latestVersion: targetVersion,
+          latestVersion,
+          targetVersion,
           abortReason: "Version already installed",
         },
       }
@@ -163,7 +165,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         result: {
           currentVersion,
           installationDirectory,
-          latestVersion: targetVersion,
+          latestVersion,
+          targetVersion,
           abortReason: "Not running from binary installation",
         },
       }
@@ -217,7 +220,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           return {
             result: {
               currentVersion,
-              latestVersion: targetVersion,
+              latestVersion,
+              targetVersion,
               installationDirectory,
               abortReason: "Version not found",
             },
@@ -278,7 +282,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           currentVersion,
           installedVersion: desiredVersion,
           installedBuild: build,
-          latestVersion: targetVersion,
+          latestVersion,
+          targetVersion,
           installationDirectory,
         },
       }
