@@ -240,6 +240,10 @@ describe("kubernetes", () => {
 
         // Then we expect to see a "container connected" entry when the Deploy has been completed
         expect(logString).to.match(/<Connected to container 'simple-service' in Pod/)
+
+        const deployLog = entries.find((e) => e.msg.includes("Server running..."))
+        expect(deployLog).to.exist
+
       })
     })
   })
