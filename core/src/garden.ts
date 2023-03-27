@@ -876,7 +876,7 @@ export class Garden {
     const resolvedProviders = await this.resolveProviders(log)
     const rawModuleConfigs = await this.getRawModuleConfigs()
 
-    const graphLog = log.makeNewLogContext({ section: "graph" }).info(`Resolving actions and modules...`)
+    const graphLog = log.makeNewLogContext({ section: "graph" }).info(`Reading actions and modules...`)
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
