@@ -1,19 +1,44 @@
 ---
 name: 0.13 issue template
 about: Template for issues related with the 0.13 release
-title: '0.13: [Feature/Bug]: Describe here'
+title: '0.13: [Bug]: Describe here'
 labels: '0.13'
 assignees: ''
 
 ---
 
-This issue relates to the Bonsai (0.13) release of Garden core.
+## Garden Bonsai (0.13) Bug
 
-If it's a bug please describe how to reproduce it or even better link a reproducible example. That would allow as to get to the fix faster. Make sure you describe in detail the current and expected behavior. Also feel free to suggest workaround for the issue.
+### Current Behavior
 
-If it's a feature request please write out the motivation and benefits of the potential feature. We welcome implementation or api ideas. A workaround for people struggling with the lack of this feature would also be of help.
+<!-- If applicable, add screenshots to help explain your problem. -->
 
-Please fill the following fields if they are relevant:
-garden version:
-how I'm running kubernetes:
-os:
+### Expected behavior
+
+<!-- A clear and concise description of what you expected to happen. -->
+
+### Reproducible example
+
+<!-- Use one of our examples or link to a minimal example showing the issue -->
+<!-- Try to include commands run or output -->
+
+### Workaround
+
+<!-- If applicable, a way to work around the issue until it has been resolved. -->
+
+### Suggested solution(s)
+
+<!-- How could we solve this bug? What changes would need to made? -->
+
+### Additional context
+
+<!-- Add any other context about the problem here.  -->
+
+### Your environment
+
+<!-- PLEASE FILL THIS OUT -->
+* **OS:** <!-- which macOS, linux distro, Windows, etc. -->
+* **How I'm running Kubernetes:** <!-- e.g. minikube, GKE, EKS, other --> 
+
+<!-- Please run and copy and paste the results  -->
+`garden version`
