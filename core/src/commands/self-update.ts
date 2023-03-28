@@ -9,7 +9,7 @@
 import tar from "tar"
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import { BooleanParameter, ChoicesParameter, StringParameter } from "../cli/params"
+import { BooleanParameter, ChoicesParameter, GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
 import { dedent } from "../util/string"
 import { basename, dirname, join, resolve } from "path"
 import chalk from "chalk"
@@ -20,6 +20,7 @@ import { createReadStream, createWriteStream } from "fs"
 import { copy, mkdirp, move, readdir, remove } from "fs-extra"
 import { got } from "../util/http"
 import { promisify } from "node:util"
+import semver from "semver"
 import stream from "stream"
 
 const selfUpdateArgs = {
@@ -27,6 +28,9 @@ const selfUpdateArgs = {
     help: `Specify which version to switch/update to.`,
   }),
 }
+
+const versionScopes = ["major", "minor", "patch"] as const
+type VersionScope = typeof versionScopes[number]
 
 const selfUpdateOpts = {
   "force": new BooleanParameter({
@@ -39,14 +43,47 @@ const selfUpdateOpts = {
     choices: ["macos", "linux", "windows"],
     help: `Override the platform, instead of detecting it automatically.`,
   }),
+  "major": new BooleanParameter({
+    defaultValue: false,
+    // TODO Core 1.0 major release: add these notes:
+    //  "Takes precedence over --minor flag if both are defined."
+    //  "The latest patch version will be installed if neither --major nor --minor flags are specified."
+    help: dedent`
+    Install the latest major version greater than the current one. Falls back to the current version if the greater major version does not exist.
+
+    Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
+  }),
+  // TODO Core 1.0 major release: uncomment this:
+  // "minor": new BooleanParameter({
+  //   defaultValue: false,
+  //   help: dedent`Install the latest minor version greater than the current one.
+  //   Falls back to the current version if the greater minor version does not exist.
+  //
+  //   The latest patch version will be installed if neither --major nor --minor flags are specified.
+  //
+  //   Note! If you use a non-stable version (i.e. pre-release, or draft, or edge),
+  //   then the latest possible major version will be installed.`,
+  // }),
 }
 
 export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
+function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
+  if (opts["major"]) {
+    return "major"
+  }
+  // TODO Core 1.0 major release: uncomment this:
+  // if (opts["minor"]) {
+  //   return "minor"
+  // }
+  return "patch"
+}
+
 interface SelfUpdateResult {
   currentVersion: string
   latestVersion: string
+  targetVersion: string
   installationDirectory: string
   installedBuild?: string
   installedVersion?: string
@@ -60,6 +97,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   cliOnly = true
   noProject = true
 
+  // TODO Core 1.0 major release: add this example (after --major example):
+  //  garden self-update --minor  # install the latest minor version (if it exists) greater than the current one
   description = dedent`
     Updates your Garden CLI in-place.
 
@@ -70,6 +109,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
        garden self-update          # update to the latest Garden CLI version
        garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
        garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
+       garden self-update --major  # install the latest major version (if it exists) greater than the current one
        garden self-update --force  # re-install even if the same version is detected
        garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
   `
@@ -106,23 +146,19 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     installationDirectory = resolve(installationDirectory)
 
-    log.info(chalk.white("Checking for latest version..."))
+    log.info(chalk.white("Checking for target and latest versions..."))
 
-    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
-    const latestVersion = latestVersionRes.tag_name
-
-    if (!latestVersion) {
-      throw new RuntimeError(`Unable to detect latest Garden version: ${latestVersionRes}`, {
-        response: latestVersionRes,
-      })
-    }
+    const versionScope: VersionScope = getVersionScope(opts)
+    const targetVersion = await this.getTargetVersion(currentVersion, versionScope)
+    const latestVersion = await this.getLatestVersion()
 
     if (!desiredVersion) {
-      desiredVersion = latestVersion
+      desiredVersion = targetVersion
     }
 
     log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     log.info(chalk.white("Current Garden version: ") + chalk.cyan(currentVersion))
+    log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(targetVersion))
     log.info(chalk.white("Latest release version: ") + chalk.cyan(latestVersion))
 
     if (!opts.force && !opts["install-dir"] && desiredVersion === currentVersion) {
@@ -133,7 +169,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         )
       )
       return {
-        result: { currentVersion, installationDirectory, latestVersion, abortReason: "Version already installed" },
+        result: {
+          currentVersion,
+          installationDirectory,
+          latestVersion,
+          targetVersion,
+          abortReason: "Version already installed",
+        },
       }
     }
 
@@ -152,6 +194,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           currentVersion,
           installationDirectory,
           latestVersion,
+          targetVersion,
           abortReason: "Not running from binary installation",
         },
       }
@@ -203,7 +246,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           } catch {}
 
           return {
-            result: { currentVersion, latestVersion, installationDirectory, abortReason: "Version not found" },
+            result: {
+              currentVersion,
+              latestVersion,
+              targetVersion,
+              installationDirectory,
+              abortReason: "Version not found",
+            },
           }
         } else {
           throw err
@@ -262,11 +311,114 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           installedVersion: desiredVersion,
           installedBuild: build,
           latestVersion,
+          targetVersion,
           installationDirectory,
         },
       }
     } finally {
       await tempDir.cleanup()
     }
+  }
+
+  /**
+   * Returns either the latest patch, or minor, or major version greater than {@code currentVersion}
+   * depending on the {@code versionScope}.
+   * If the {@code currentVersion} is not a stable version (i.e. it's an edge or a pre-release),
+   * then the latest possible version tag will be returned.
+   *
+   * @param currentVersion the current version of Garden Core
+   * @param versionScope the SemVer version scope
+   *
+   * @return the matching version tag
+   * @throws {RuntimeError} if the desired version cannot be detected,
+   * or if the current version cannot be recognized as a valid release version
+   */
+  private async getTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
+    if (this.isEdgeVersion(currentVersion)) {
+      return this.getLatestVersion()
+    }
+
+    const currentSemVer = semver.parse(currentVersion)
+    const isCurrentPrerelease = currentSemVer?.prerelease.length || 0
+    if (isCurrentPrerelease) {
+      return this.getLatestVersion()
+    }
+
+    // The current version is necessary, it's not possible to proceed without its value
+    if (!currentSemVer) {
+      throw new RuntimeError(
+        `Unexpected current version: ${currentVersion}. ` +
+          `Please make sure it is either a valid (semver) release version.`,
+        {}
+      )
+    }
+
+    const releasesPerPage = 100
+    let page = 1
+    let releaseList: any[]
+    do {
+      releaseList = await got(
+        `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
+      ).json()
+      for (const release of releaseList) {
+        const tagName = release.tag_name
+        // skip pre-release, draft and edge tags
+        if (this.isEdgeVersion(tagName) || release.prerelease || release.draft) {
+          continue
+        }
+        const tagSemVer = semver.parse(tagName)
+        // skip any kind of unexpected tag versions, only stable releases should be processed here
+        if (!tagSemVer) {
+          continue
+        }
+        if (this.targetVersionMatches(tagSemVer, currentSemVer, versionScope)) {
+          return tagName
+        }
+      }
+      page++
+    } while (releaseList.length > 0)
+
+    throw new RuntimeError(
+      `Unable to detect the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
+      {}
+    )
+  }
+
+  private isEdgeVersion(version: string) {
+    return version === "edge" || version.startsWith("edge-")
+  }
+
+  private targetVersionMatches(tagSemVer: semver.SemVer, currentSemVer: semver.SemVer, versionScope: VersionScope) {
+    switch (versionScope) {
+      case "major":
+        return tagSemVer.major >= currentSemVer.major
+      case "minor":
+        return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
+      case "patch":
+        return (
+          tagSemVer.major === currentSemVer.major &&
+          tagSemVer.minor === currentSemVer.minor &&
+          tagSemVer.patch >= currentSemVer.patch
+        )
+      default: {
+        const _exhaustiveCheck: never = versionScope
+        return _exhaustiveCheck
+      }
+    }
+  }
+
+  /**
+   * @return the latest version tag
+   * @throws {RuntimeError} if the latest version cannot be detected
+   */
+  private async getLatestVersion(): Promise<string> {
+    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
+    const latestVersion = latestVersionRes.tag_name
+    if (!latestVersion) {
+      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
+        response: latestVersionRes,
+      })
+    }
+    return latestVersionRes.tag_name
   }
 }
