@@ -76,7 +76,7 @@ export async function getSystemGarden(
     commandInfo: ctx.command,
     log: log
       .createLog({
-        section: "garden system",
+        name: "garden system",
         fixLevel: LogLevel.debug,
       })
       .info("Initializing..."),

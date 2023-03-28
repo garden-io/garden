@@ -100,7 +100,7 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
   const env = spec.env
 
   if (spec.deployCommand.length === 0) {
-    log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
+    log.info("No deploy command found. Skipping.")
     return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
   } else if (spec.persistent) {
     return deployPersistentExecService({ action, log, ctx, env, deployName: action.name })
@@ -259,11 +259,7 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
       outputs: {},
     }
   } else {
-    log.warn({
-      section: action.key(),
-      symbol: "warning",
-      msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
-    })
+    log.warn(`Missing cleanupCommand, unable to clean up service`)
     return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
   }
 }

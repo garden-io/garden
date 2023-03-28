@@ -146,7 +146,7 @@ export async function getStackStatus(params: TerraformParamsWithVariables): Prom
   await setWorkspace(params)
   await tfValidate(params)
 
-  const statusLog = log.createLog({ section: "terraform" }).info("Running plan...")
+  const statusLog = log.createLog({ name: "terraform" }).info("Running plan...")
 
   const plan = await terraform(ctx, provider).exec({
     log,

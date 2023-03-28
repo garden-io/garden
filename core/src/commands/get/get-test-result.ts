@@ -17,6 +17,7 @@ import { ParameterError } from "../../exceptions"
 import { ConfigGraph } from "../../graph/config-graph"
 import { GardenModule, moduleTestNameToActionName } from "../../types/module"
 import { findByName, getNames } from "../../util/util"
+import { createActionLog } from "../../logger/log-entry"
 
 const getTestResultArgs = {
   name: new StringParameter({
@@ -72,9 +73,10 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
     const router = await garden.getActionRouter()
 
     const resolved = await garden.resolveAction({ action, graph, log })
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const { result: res } = await router.test.getResult({
-      log,
+      log: actionLog,
       graph,
       action: resolved,
     })

@@ -366,7 +366,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
       const envLogEntry = this.log
         .createLog({
-          section: pluginName,
+          name: pluginName,
         })
         .info("Configuring...")
 

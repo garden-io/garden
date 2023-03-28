@@ -463,10 +463,7 @@ export class Garden {
 
       if (!existing || !existing.hidden) {
         this.emittedWarnings.add(key)
-        log.warn({
-          symbol: "warning",
-          msg: message + `\n→ Run ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`,
-        })
+        log.warn(message + `\n→ Run ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
       }
     })
   }
@@ -1612,8 +1609,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
-    const section = getCloudLogSectionName(distroName)
-    const cloudLog = log.createLog({ section, showDuration: true })
+    const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName), showDuration: true })
     cloudLog.info(`Initializing ${distroName}...`)
 
     let project: CloudProject | undefined

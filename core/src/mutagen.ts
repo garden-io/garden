@@ -156,7 +156,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
   constructor({ log, dataDir }: MutagenMonitorParams) {
     super()
-    this.log = log
+    this.log = log.createLog({ name: mutagenLogSection })
     this.configLock = new AsyncLock()
     this.dataDir = dataDir
 
@@ -179,7 +179,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         return
       }
 
-      const log = this.log
+      const log = this.log.createLog({ name: mutagenLogSection })
 
       const mutagenPath = await mutagenCli.getPath(log)
       const dataDir = this.dataDir
@@ -208,11 +208,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       proc.on("exit", (code: number) => {
         if (code && code !== 0) {
-          log.warn({
-            symbol: "empty",
-            section: mutagenLogSection,
-            msg: chalk.yellow(`Synchronization monitor exited with code ${code}.`),
-          })
+          log.warn(`Synchronization monitor exited with code ${code}.`)
         }
       })
 
@@ -222,11 +218,11 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         // it'll basically work for the next 979 years :P.
         const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
         if (msg.includes("Unable") && lastDaemonError !== msg) {
-          log.warn({ symbol: "warning", section: mutagenLogSection, msg })
+          log.warn(msg)
           // Make sure we don't spam with repeated messages
           lastDaemonError = msg
         } else {
-          log.silly({ symbol: "empty", section: mutagenLogSection, msg })
+          log.silly({ symbol: "empty", msg })
         }
       }
 
@@ -259,7 +255,6 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
           if (resolved) {
             log.debug({
               symbol: "empty",
-              section: mutagenLogSection,
               msg: chalk.green("Mutagen monitor re-started"),
             })
           }
@@ -340,27 +335,23 @@ export class Mutagen {
       ]
 
       const { logSection: section } = activeSync
+      const syncLog = this.log.createLog({ name: section })
 
       for (const problem of problems) {
         if (!activeSync.lastProblems.includes(problem)) {
-          log.warn({ symbol: "warning", section, msg: chalk.yellow(problem) })
+          syncLog.warn(problem)
         }
       }
 
       if (session.alpha.connected && !activeSync.sourceConnected) {
-        log.info({
-          symbol: "info",
-          section,
-          msg: chalk.gray(`Connected to sync source ${sourceDescription}`),
-        })
+        syncLog.info(`Connected to sync source ${sourceDescription}`)
         activeSync.sourceConnected = true
       }
 
       if (session.beta.connected && !activeSync.targetConnected) {
-        log.info({
+        syncLog.info({
           symbol: "success",
-          section,
-          msg: chalk.gray(`Connected to sync target ${targetDescription}`),
+          msg: `Connected to sync target ${targetDescription}`,
         })
         activeSync.targetConnected = true
       }
@@ -373,9 +364,8 @@ export class Mutagen {
       // so we keep track of whether the initial sync has completed so that we
       // don't log it multiple times.
       if (syncCount > activeSync.lastSyncCount && !activeSync.initialSyncComplete) {
-        log.info({
+        syncLog.info({
           symbol: "success",
-          section,
           msg: chalk.white(`${syncLogPrefix} Completed initial sync ${description}`),
         })
         activeSync.initialSyncComplete = true
@@ -397,11 +387,7 @@ export class Mutagen {
       }
 
       if (statusMsg) {
-        log.info({
-          symbol: "info",
-          section,
-          msg: chalk.gray(`${syncLogPrefix} ${statusMsg}`),
-        })
+        syncLog.info(`${syncLogPrefix} ${statusMsg}`)
       }
 
       activeSync.lastSyncCount = syncCount
@@ -411,8 +397,8 @@ export class Mutagen {
     }
   }
 
-  async ensureDaemon(log: Log) {
-    await this.execCommand(log, ["daemon", "start"])
+  async ensureDaemon() {
+    await this.execCommand(["daemon", "start"])
   }
 
   /**
@@ -491,7 +477,7 @@ export class Mutagen {
       }
 
       // Might need to retry
-      await pRetry(() => this.execCommand(log, ["sync", "create", ...params]), {
+      await pRetry(() => this.execCommand(["sync", "create", ...params]), {
         retries: 5,
         minTimeout: 1000,
         onFailedAttempt: (err) => {
@@ -512,7 +498,7 @@ export class Mutagen {
     log.debug(`Terminating mutagen sync ${key}...`)
 
     try {
-      await this.execCommand(log, ["sync", "terminate", key])
+      await this.execCommand(["sync", "terminate", key])
       delete this.activeSyncs[key]
       log.debug(`Mutagen sync ${key} terminated.`)
     } catch (err) {
@@ -526,27 +512,25 @@ export class Mutagen {
   /**
    * Ensure a sync is completed.
    */
-  async flushSync(log: Log, key: string) {
-    await pRetry(() => this.execCommand(log, ["sync", "flush", key]), {
+  async flushSync(key: string) {
+    await pRetry(() => this.execCommand(["sync", "flush", key]), {
       retries: 5,
       minTimeout: 1000,
       onFailedAttempt: async (err) => {
         const unableToFlush = err.message.match(/unable to flush session/)
         if (unableToFlush) {
-          log.warn({
-            symbol: "empty",
-            section: mutagenLogSection,
-            msg: chalk.gray(
+          this.log.warn(
+            chalk.gray(
               `Could not flush synchronization changes, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
-            ),
-          })
+            )
+          )
         } else {
           throw err
         }
       },
     })
 
-    await this.execCommand(log, ["sync", "flush", key])
+    await this.execCommand(["sync", "flush", key])
   }
 
   /**
@@ -556,7 +540,7 @@ export class Mutagen {
     const active = await this.getActiveSyncSessions(log)
     await Bluebird.map(active, async (session) => {
       try {
-        await this.flushSync(log, session.name)
+        await this.flushSync(session.name)
       } catch (err) {
         log.warn(chalk.yellow(`Failed to flush sync '${session.name}: ${err.message}`))
       }
@@ -567,7 +551,7 @@ export class Mutagen {
    * List all Mutagen sync sessions.
    */
   async getActiveSyncSessions(log: Log): Promise<SyncSession[]> {
-    const res = await this.execCommand(log, ["sync", "list", "--template={{ json . }}"])
+    const res = await this.execCommand(["sync", "list", "--template={{ json . }}"])
     return parseSyncListResult(res)
   }
 
@@ -608,7 +592,7 @@ export class Mutagen {
    * Execute a Mutagen command with retries. Restarts the daemon process
    * between retries if Mutagen is unable to connect to it.
    */
-  private async execCommand(log: Log, args: string[]) {
+  private async execCommand(args: string[]) {
     let loops = 0
     const maxRetries = 10
     await ensureDataDir(this.dataDir)
@@ -618,7 +602,7 @@ export class Mutagen {
         const res = mutagenCli.exec({
           cwd: this.dataDir,
           args,
-          log,
+          log: this.log,
           env: getMutagenEnv(this.dataDir),
         })
         return res
@@ -626,12 +610,8 @@ export class Mutagen {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1
-          log.warn({
-            symbol: "empty",
-            section: mutagenLogSection,
-            msg: chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`),
-          })
-          await this.ensureDaemon(log)
+          this.log.warn(chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`))
+          await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {
           throw err
@@ -640,16 +620,16 @@ export class Mutagen {
     }
   }
 
-  async terminateSyncs(log: Log) {
+  async terminateSyncs() {
     await Bluebird.map(Object.keys(this.activeSyncs), async (key) => {
-      await this.execCommand(log, ["sync", "terminate", key])
+      await this.execCommand(["sync", "terminate", key])
       delete this.activeSyncs[key]
     })
   }
 
-  async restartDaemonProc(log: Log) {
-    await this.stopDaemonProc(log)
-    await this.ensureDaemon(log)
+  async restartDaemonProc() {
+    await this.stopDaemonProc()
+    await this.ensureDaemon()
   }
 
   async startMonitoring() {
@@ -677,9 +657,9 @@ export class Mutagen {
     return getMutagenMonitor({ dataDir: this.dataDir, log: this.log })
   }
 
-  private async stopDaemonProc(log: Log) {
+  private async stopDaemonProc() {
     try {
-      await this.execCommand(log, ["daemon", "stop"])
+      await this.execCommand(["daemon", "stop"])
     } catch {}
   }
 }

@@ -184,7 +184,7 @@ export async function ensureBuildkit({
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.createLog({})
+    const deployLog = log.createLog()
 
     // Make sure auth secret is in place
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({

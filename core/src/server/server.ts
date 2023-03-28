@@ -165,7 +165,7 @@ export class GardenServer extends EventEmitter {
     })
 
     this.log.info("")
-    this.statusLog = this.log.createLog({})
+    this.statusLog = this.log.createLog()
   }
 
   getBaseUrl() {

@@ -74,7 +74,7 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
 }
 
 export const deployStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
-export type DeployState = typeof deployStates[number]
+export type DeployState = (typeof deployStates)[number]
 
 export type DeployStatusForEventPayload = Omit<ServiceStatus, "detail">
 

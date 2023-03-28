@@ -141,9 +141,9 @@ export async function getDeployedChartResources({
   action: Resolved<HelmDeployAction>
 }): Promise<KubernetesResource[]> {
   const manifests = await getRenderedResources({ ctx, action, releaseName, log })
-  const deployedResources = (await Bluebird.map(manifests, (resource) =>
-    getDeployedResource(ctx, ctx.provider, resource, log)
-  )).filter(isTruthy)
+  const deployedResources = (
+    await Bluebird.map(manifests, (resource) => getDeployedResource(ctx, ctx.provider, resource, log))
+  ).filter(isTruthy)
   return deployedResources
 }
 

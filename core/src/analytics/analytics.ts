@@ -396,7 +396,7 @@ export class AnalyticsHandler {
       const msg = dedent`
         Thanks for installing Garden! We work hard to provide you with the best experience we can. We collect some anonymized usage data while you use Garden. If you'd like to know more about what we collect or if you'd like to opt out of telemetry, please read more at ${gitHubUrl}
       `
-      log.info({ symbol: "info", msg })
+      log.info(msg)
     }
 
     const anonymousUserId = getAnonymousUserId({ analyticsConfig: currentAnalyticsConfig, isCi: ciInfo.isCi })

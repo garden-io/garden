@@ -11,7 +11,7 @@ import td from "testdouble"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
 import { expectError, getDataDir, getPropertyName, makeTestGarden, TestGarden } from "../../../../helpers"
-import { Log } from "../../../../../src/logger/log-entry"
+import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
 import { expect } from "chai"
 import { ContainerBuildAction, ContainerBuildActionSpec } from "../../../../../src/plugins/container/moduleConfig"
 import { cloneDeep } from "lodash"
@@ -39,12 +39,12 @@ describe("plugins.container", () => {
 
   let garden: TestGarden
   let ctx: PluginContext
-  let log: Log
+  let log: ActionLog
   let containerProvider: ContainerProvider
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
-    log = garden.log
+    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)

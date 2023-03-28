@@ -158,6 +158,7 @@ ${renderCommands(commands)}
     if (this.fileWritersInitialized) {
       return
     }
+
     const { debugLogfileName, jsonLogfileName } = await prepareDebugLogfiles(
       log,
       join(gardenDirPath, LOGS_DIR_NAME),
@@ -355,7 +356,7 @@ ${renderCommands(commands)}
     contextOpts.persistent = persistent
     const { streamEvents, streamLogEntries } = command
     // TODO: Link to Cloud namespace page here.
-    const nsLog = log.createLog({})
+    const nsLog = log.createLog({ name: "garden" })
 
     do {
       try {
@@ -364,18 +365,12 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.info({
-            section: "garden",
-            msg: `Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`,
-          })
+          nsLog.info(`Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`)
 
           if (!cloudApi && garden.projectId) {
-            log.warn({
-              symbol: "warning",
-              msg: `You are not logged in into Garden Cloud. Please log in via the ${chalk.green(
-                "garden login"
-              )} command.`,
-            })
+            log.warn(
+              `You are not logged in into Garden Cloud. Please log in via the ${chalk.green("garden login")} command.`
+            )
             log.info("")
           }
 
@@ -416,11 +411,12 @@ ${renderCommands(commands)}
             const distroName = getCloudDistributionName(cloudApi.domain)
             const userId = (await cloudApi.getProfile()).id
             const commandResultUrl = cloudApi.getCommandResultUrl({ sessionId, userId }).href
+            const cloudLog = log.createLog({ name: getCloudLogSectionName(distroName) })
 
             const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
               commandResultUrl
             )}\n`
-            log.info({ section: getCloudLogSectionName(distroName), msg })
+            cloudLog.info(msg)
           }
         }
 

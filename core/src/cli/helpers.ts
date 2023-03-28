@@ -387,10 +387,7 @@ export function processCliArgs<A extends Parameters, O extends Parameters>({
         .map(([name, _]) => `--${name}`)
 
       if (usedGlobalOptions.length > 0) {
-        log.warn({
-          symbol: "warning",
-          msg: chalk.yellow(`Command includes global options that will be ignored: ${usedGlobalOptions.join(", ")}`),
-        })
+        log.warn(`Command includes global options that will be ignored: ${usedGlobalOptions.join(", ")}`)
       }
     }
   }

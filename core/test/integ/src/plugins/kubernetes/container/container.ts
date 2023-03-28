@@ -22,6 +22,7 @@ import { KubernetesResource } from "../../../../../../src/plugins/kubernetes/typ
 import { V1Secret } from "@kubernetes/client-node"
 import { clusterInit } from "../../../../../../src/plugins/kubernetes/commands/cluster-init"
 import { ContainerTestAction } from "../../../../../../src/plugins/container/config"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 const root = getDataDir("test-projects", "container")
 const defaultEnvironment = process.env.GARDEN_INTEG_TEST_MODE === "remote" ? "kaniko" : "local"
@@ -174,10 +175,15 @@ describe("kubernetes container module handlers", () => {
         graph,
       })
       const actions = await garden.getActionRouter()
+      const actionLog = createActionLog({
+        log: garden.log,
+        actionName: resolvedRuntimeAction.name,
+        actionKind: resolvedRuntimeAction.kind,
+      })
 
       // We also verify that, despite the test failing, its result was still saved.
       const result = await actions.test.getResult({
-        log: garden.log,
+        log: actionLog,
         graph,
         action: resolvedRuntimeAction,
       })

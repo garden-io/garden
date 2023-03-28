@@ -52,7 +52,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
   }
 
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
-    const log = this.log.createLog({})
+    const log = this.log.createLog()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     const router = await this.garden.getActionRouter()

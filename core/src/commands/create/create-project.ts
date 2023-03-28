@@ -195,15 +195,14 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
     const configFilesUrl = chalk.cyan.underline("https://docs.garden.io/using-garden/configuration-overview")
     const referenceUrl = chalk.cyan.underline(projectReferenceURL)
 
-    log.info({
-      symbol: "info",
-      msg: wordWrap(
+    log.info(
+      wordWrap(
         dedent`
         For more information about Garden configuration files, please check out ${configFilesUrl}, and for a detailed reference, take a look at ${referenceUrl}.
         `,
         120
-      ),
-    })
+      )
+    )
 
     log.info("")
 

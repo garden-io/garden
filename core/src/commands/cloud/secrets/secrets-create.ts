@@ -160,7 +160,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const secretsToCreate = Object.entries(secrets)
-    const cmdLog = log.createLog({ section: "secrets-command" })
+    const cmdLog = log.createLog({ name: "secrets-command" })
     cmdLog.info("Creating secrets...")
 
     let count = 1

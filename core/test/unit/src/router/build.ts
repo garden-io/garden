@@ -9,7 +9,7 @@
 import { expect } from "chai"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { Log } from "../../../../src/logger/log-entry"
+import { ActionLog } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { GardenModule } from "../../../../src/types/module"
 import { TestGarden } from "../../../helpers"
@@ -18,7 +18,7 @@ import { getRouterTestData } from "./_helpers"
 describe("build actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: Log
+  let log: ActionLog
   let actionRouter: ActionRouter
   // eslint-disable-next-line no-unused
   let returnWrongOutputsCfgKey: string

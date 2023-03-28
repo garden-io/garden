@@ -15,6 +15,7 @@ import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { KubernetesPodTestAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/kubernetes-pod"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("kubernetes-type pod Test", () => {
   let garden: TestGarden
@@ -91,8 +92,9 @@ describe("kubernetes-type pod Test", () => {
     const actions = await garden.getActionRouter()
 
     // We also verify that, despite the test failing, its result was still saved.
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
     const result = await actions.test.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction<KubernetesPodTestAction>({ action, log: garden.log, graph }),
       graph,
     })

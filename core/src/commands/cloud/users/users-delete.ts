@@ -58,7 +58,7 @@ export class UsersDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "user"), {})
     }
 
-    const cmdLog = log.createLog({ section: "users-command" })
+    const cmdLog = log.createLog({ name: "users-command" })
     cmdLog.info("Deleting users...")
 
     let count = 1

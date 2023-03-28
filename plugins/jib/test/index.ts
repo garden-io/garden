@@ -17,6 +17,7 @@ import { defaultDotIgnoreFile } from "@garden-io/core/build/src/util/fs"
 import { JibBuildAction } from "../util"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
 import { ResolvedConfigGraph } from "@garden-io/core/build/src/graph/config-graph"
+import { createActionLog } from "@garden-io/core/build/src/logger/log-entry"
 
 describe("jib-container", function () {
   // eslint-disable-next-line no-invalid-this
@@ -84,10 +85,11 @@ describe("jib-container", function () {
         action["spec"].tarOnly = true
 
         const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         const { result: res } = await router.build.build({
           action,
-          log: garden.log,
+          log: actionLog,
           graph,
         })
 
@@ -101,10 +103,11 @@ describe("jib-container", function () {
         action["spec"].tarOnly = true
 
         const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         const { result: res } = await router.build.build({
           action,
-          log: garden.log,
+          log: actionLog,
           graph,
         })
 
@@ -122,10 +125,11 @@ describe("jib-container", function () {
         action["spec"].tarOnly = false
 
         const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         await router.build.build({
           action,
-          log: garden.log,
+          log: actionLog,
           graph,
         })
       })
@@ -135,10 +139,11 @@ describe("jib-container", function () {
         action["spec"].tarOnly = false
 
         const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         await router.build.build({
           action,
-          log: garden.log,
+          log: actionLog,
           graph,
         })
       })
@@ -151,10 +156,11 @@ describe("jib-container", function () {
         action["spec"].dockerBuild = true
 
         const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         await router.build.build({
           action,
-          log: garden.log,
+          log: actionLog,
           graph,
         })
       })
@@ -165,10 +171,11 @@ describe("jib-container", function () {
         action["spec"].dockerBuild = true
 
         const router = await garden.getActionRouter()
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
         await router.build.build({
           action,
-          log: garden.log,
+          log: actionLog,
           graph,
         })
       })

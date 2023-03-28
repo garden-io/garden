@@ -157,6 +157,57 @@ interface LoggerInitParams extends LoggerConfigBase {
   force?: boolean
 }
 
+/**
+ * What follows is a fairly lengthy code comment on how logging in Garden works. As such it's
+ * liable to go out of date so don't hesitate to update this if you see anything wrong.
+ *
+ * ---
+ *
+ * There's a singleton "root" Logger instance which is the overall logs manager. It holds the "global"
+ * log config for the given Garden run, including  what writers are used. When a log line is written,
+ * the root Logger calls the registered writers and optionally stores the entry in memory which is useful for testing.
+ *
+ * The writers in turn call the renderers which are just helper functions for printing log lines
+ * for different contexts.
+ *
+ * The root Logger also creates the first Log instance which is what we pass around for writing
+ * logs.
+ *
+ * The Log instance itself contains the methods for writing logs (log.info, log.silly, etc)
+ * as well as some config and context that gets passed to the log entry proper.
+ *
+ * The Log instances are therefore responsible for holding log config for multiple entries
+ * over some period of execution.
+ *
+ * That is:
+ *   - Consumer calls log.info() which creates a log entry which inherits the log's context.
+ *   - The log then calls the root logger with the entry which calls the writers which render the entry.
+ *
+ * There are different Log classes, e.g. CoreLog and ActionLog which is to ensure a given log entry
+ * has the correct context in a type safe manner.
+ *
+ * Usage example:
+ *
+ * const firstLog = rootLogger.createLog({ name: "garden" }) // You could also do 'new CoreLog({ root })', createLog is just for convenience
+ * firstLog.info("Getting started...") // Prints: ℹ garden → Getting started...
+ *
+ * const graphLog = firstLog.createLog({ name: "graph" }) // Again you can also do 'new CoreLog({ ... })'
+ * graphLog.info("Resolving actions") // ℹ graph → Resolving actions...
+ *
+ * actionLog = new ActionLog({ actionName: "api", actionKind: "build" })
+ * actionLog.info("hello") // ℹ build.api → hello
+ *
+ * Some invariants:
+ *   You can't overwrite the action name and action kind for an ActionLog.
+ *   You can overwrite the name of a CoreLog.
+ *
+ * Other notes:
+ *   - The Log instances may apply some styling depending on the context. In general you should
+ *     not have to overwrite this and simply default to calling e.g. log.warn("oh noes")
+ *     as opposed to log.warn({ msg: chalk.yellow("oh noes"), symbol: "warning" })
+ *   - A Log instance contains all it's parent Log configs so conceptually we can rebuild
+ *     the entire log graph, e.g. for testing. We're not using this as of writing.
+ */
 export abstract class LoggerBase implements Logger {
   public events: EventBus
   public useEmoji: boolean
@@ -185,6 +236,13 @@ export abstract class LoggerBase implements Logger {
   }
 
   log(entry: LogEntry) {
+    if (entry.context.type === "actionLog") {
+      entry.context.actionKind
+    } else {
+      entry.context.name
+    }
+    // FIXME @eysi: We're storing entries on the roots and each individual log instance
+    // so basically duplicating them. Not a big deal since it's only used for testing atm.
     if (this.storeEntries) {
       this.entries.push(entry)
     }
@@ -202,12 +260,25 @@ export abstract class LoggerBase implements Logger {
   /**
    * Creates a new CoreLog context from the root Logger.
    */
-  createLog({ metadata, fixLevel, name }: CreateLogParams = {}) {
+  createLog({
+    metadata,
+    fixLevel,
+    name,
+  }: {
+    metadata?: LogMetadata
+    fixLevel?: LogLevel
+    /**
+     * The name of the log context. Will be printed as the "section" part of the log lines
+     * belonging to this context.
+     */
+    name?: string
+  } = {}): CoreLog {
     return new CoreLog({
       parentConfigs: [],
       fixLevel,
       metadata,
       context: {
+        type: "coreLog",
         name,
       },
       root: this,

@@ -49,7 +49,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       }
 
       if (status.state === "ready" && !statusOnly) {
-        this.log.info(chalk.green(`${action.longDescription()} already complete.`))
+        taskLog.info(chalk.green(`${action.longDescription()} already complete.`))
       }
 
       return {

@@ -261,19 +261,13 @@ export class GitHandler extends VcsHandler {
       const pathStats = await stat(path)
 
       if (!pathStats.isDirectory()) {
-        gitLog.warn({
-          symbol: "warning",
-          msg: chalk.gray(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`),
-        })
+        gitLog.warn(`Expected directory at ${path}, but found ${getStatsType(pathStats)}.`)
         return []
       }
     } catch (err) {
       // 128 = File no longer exists
       if (err.exitCode === 128 || err.code === "ENOENT") {
-        gitLog.warn({
-          symbol: "warning",
-          msg: chalk.gray(`Attempted to scan directory at ${path}, but it does not exist.`),
-        })
+        gitLog.warn(`Attempted to scan directory at ${path}, but it does not exist.`)
         return []
       } else {
         throw err
@@ -407,23 +401,15 @@ export class GitHandler extends VcsHandler {
 
             if (!pathStats.isDirectory()) {
               const pathType = getStatsType(pathStats)
-              gitLog.warn({
-                symbol: "warning",
-                msg: chalk.gray(
-                  `Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`
-                ),
-              })
+              gitLog.warn(`Expected submodule directory at ${path}, but found ${pathType}. ${submoduleErrorSuggestion}`)
               return
             }
           } catch (err) {
             // 128 = File no longer exists
             if (err.exitCode === 128 || err.code === "ENOENT") {
-              gitLog.warn({
-                symbol: "warning",
-                msg: chalk.yellow(
-                  `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
-                ),
-              })
+              gitLog.warn(
+                `Found reference to submodule at ${submoduleRelPath}, but the path could not be found. ${submoduleErrorSuggestion}`
+              )
               return
             } else {
               throw err

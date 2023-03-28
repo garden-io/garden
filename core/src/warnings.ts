@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { Log } from "./logger/log-entry"
 
 interface LoggerContext {
@@ -22,9 +21,6 @@ export function emitNonRepeatableWarning(log: Log, message: string) {
     return
   }
 
-  log.warn({
-    symbol: "warning",
-    msg: chalk.yellow(message),
-  })
+  log.warn(message)
   loggerContext.history.add(message)
 }

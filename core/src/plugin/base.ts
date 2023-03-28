@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { Log } from "../logger/log-entry"
+import type { ActionLog, Log } from "../logger/log-entry"
 import { PluginContext, pluginContextSchema } from "../plugin-context"
 import { GardenModule, moduleSchema } from "../types/module"
 import { createSchema, joi } from "../config/common"
@@ -78,18 +78,22 @@ export const actionParamsSchema = () =>
   })
 
 export interface PluginBuildActionParamsBase<T extends BuildAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 
 export interface PluginDeployActionParamsBase<T extends DeployAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 
 export interface PluginRunActionParamsBase<T extends RunAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 
 export interface PluginTestActionParamsBase<T extends TestAction<any, any>> extends PluginActionParamsBase {
+  log: ActionLog
   action: T
 }
 

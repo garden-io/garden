@@ -26,6 +26,7 @@ import { emitNonRepeatableWarning } from "../warnings"
 import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
 import { Log } from "../logger/log-entry"
+import { deline } from "../util/string"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -280,7 +281,7 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectResource) {
   if (dotIgnoreFiles.length === 1) {
     emitNonRepeatableWarning(
       log,
-      "Multi-valued project configuration field `dotIgnoreFiles` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued `dotIgnoreFile` instead."
+      deline`Multi-valued project configuration field \`dotIgnoreFiles\` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued \`dotIgnoreFile\` instead.`
     )
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
   }

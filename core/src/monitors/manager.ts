@@ -32,7 +32,7 @@ export class MonitorManager extends TypedEventEmitter<MonitorEvents> {
     this.monitors = new KeyedSet<Monitor>((monitor) => monitor.id())
     this.monitorStatuses = new Map()
 
-    this.log = garden.log.createLog({ section: "[monitors]" })
+    this.log = garden.log.createLog({ name: "[monitors]" })
 
     garden.events.on("_exit", () => this.stopAll())
     // TODO: see if we want this

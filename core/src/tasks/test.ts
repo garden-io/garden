@@ -61,7 +61,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     const testResult = status?.detail
 
     if (testResult && testResult.success) {
-      this.log.createLog().success("Already passed")
+      this.log.success("Already passed")
       return {
         ...status,
         version: action.versionString(),
@@ -75,14 +75,14 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   async process({ dependencyResults }: ActionTaskProcessParams<TestAction, GetTestResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const taskLog = this.log.createLog().info(`Running...`)
+    this.log.info(`Running...`)
 
     const router = await this.garden.getActionRouter()
 
     let status: GetTestResult<TestAction>
     try {
       const output = await router.test.run({
-        log: taskLog,
+        log: this.log,
         action,
         graph: this.graph,
         silent: this.silent,
@@ -90,15 +90,15 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       })
       status = output.result
     } catch (err) {
-      taskLog.error(`Failed running test`)
+      this.log.error(`Failed running test`)
       throw err
     }
     if (status.detail?.success) {
-      taskLog.success(`Success`)
+      this.log.success(`Success`)
     } else {
       const exitCode = status.detail?.exitCode
       const failedMsg = !!exitCode ? `Failed with code ${exitCode}!` : `Failed!`
-      taskLog.error(`${failedMsg} (took ${taskLog.getDuration(1)} sec)`)
+      this.log.error(failedMsg)
       throw new TestError(status.detail?.log)
     }
 

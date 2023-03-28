@@ -15,6 +15,7 @@ import { got } from "../util/http"
 import { LogLevel } from "../logger/logger"
 import { Garden } from "../garden"
 import { CloudApi, makeAuthHeader } from "./api"
+import { renderSection } from "../logger/renderers"
 
 export type StreamEvent = {
   name: EventName
@@ -22,9 +23,10 @@ export type StreamEvent = {
   timestamp: Date
 }
 
-type LogEntryMessage = Pick<LogEntry, "msg" | "section" | "symbol" | "data" | "dataFormat">
+type LogEntryMessage = Pick<LogEntry, "msg" | "symbol" | "data" | "dataFormat"> & {
+  section: string
+}
 
-// TODO: Remove data, section, timestamp and msg once we've updated GE (it's included in the message)
 export interface LogEntryEventPayload {
   key: string
   timestamp: string
@@ -33,17 +35,20 @@ export interface LogEntryEventPayload {
   metadata?: LogMetadata
 }
 
+// TODO @eysi: Add log context to payload
 export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayload {
+  // TODO @eysi: We're sending the section for backwards compatibility but it shouldn't really be needed.
+  const section = renderSection(entry)
   return {
     key: entry.key,
     metadata: entry.metadata,
     timestamp: entry.timestamp,
     level: entry.level,
     message: {
+      section,
       msg: entry.msg,
       symbol: entry.symbol,
       data: entry.data,
-      section: entry.section,
       dataFormat: entry.dataFormat,
     },
   }

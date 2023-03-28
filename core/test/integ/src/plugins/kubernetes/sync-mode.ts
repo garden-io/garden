@@ -11,7 +11,7 @@ import { mkdirp, pathExists, readFile, remove, writeFile } from "fs-extra"
 import { join } from "path"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { k8sGetContainerDeployStatus } from "../../../../../src/plugins/kubernetes/container/status"
-import { Log } from "../../../../../src/logger/log-entry"
+import { createActionLog, Log } from "../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
 import { getMutagenMonitor, Mutagen } from "../../../../../src/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
@@ -101,10 +101,12 @@ describe("sync mode deployments and sync behavior", () => {
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
+    const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+
     const status = await k8sGetContainerDeployStatus({
       ctx,
       action: resolvedAction,
-      log,
+      log: actionLog,
     })
     expect(status.detail?.mode).to.equal("sync")
 
@@ -126,7 +128,7 @@ describe("sync mode deployments and sync behavior", () => {
 
     // This is to make sure that the two-way sync doesn't recreate the local files we're about to delete here.
     const actions = await garden.getActionRouter()
-    await actions.deploy.delete({ graph, log: garden.log, action: resolvedAction })
+    await actions.deploy.delete({ graph, log: actionLog, action: resolvedAction })
 
     // Clean up the files we created locally
     for (const filename of ["made_locally", "made_in_pod"]) {
@@ -163,10 +165,11 @@ describe("sync mode deployments and sync behavior", () => {
       log: garden.log,
       graph: await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { sync: ["deploy.sync-mode"] } }),
     })
+    const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
     const status = await k8sGetContainerDeployStatus({
       ctx,
       action: resolvedAction,
-      log,
+      log: actionLog,
     })
 
     const workload = status.detail?.detail.workload!
