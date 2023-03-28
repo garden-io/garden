@@ -91,12 +91,14 @@ export class ActionRouter extends BaseRouter {
   ): Promise<GetActionOutputsResult> {
     const router = this.getRouterForActionKind(params.action.kind)
 
-    return router.callHandler({
+    const output = await router.callHandler({
       handlerType: "getOutputs",
       // TODO-G2: figure out why the typing clashes here
       params: { ...params, action: <any>params.action, events: undefined },
       defaultHandler: async ({}) => ({ outputs: {} }),
     })
+
+    return output.result
   }
 
   async getDeployStatuses({
@@ -159,7 +161,7 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst?: boolean
     names?: string[]
   }): Promise<DeployStatusMap> {
-    const servicesLog = log.makeNewLogContext({}).info(chalk.white("Deleting deployments..."))
+    const servicesLog = log.createLog({}).info(chalk.white("Deleting deployments..."))
     const deploys = graph.getDeploys({ names })
 
     const tasks = deploys.map((action) => {
@@ -179,7 +181,7 @@ export class ActionRouter extends BaseRouter {
 
     const serviceStatuses = deletedDeployStatuses(results)
 
-    servicesLog.setSuccess()
+    servicesLog.success("Done")
 
     return serviceStatuses
   }

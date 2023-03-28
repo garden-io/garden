@@ -120,7 +120,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "users"), {})
     }
 
-    const cmdLog = log.makeNewLogContext({ section: "users-command" })
+    const cmdLog = log.createLog({ section: "users-command" })
     cmdLog.info("Creating users...")
 
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({

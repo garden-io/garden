@@ -180,7 +180,7 @@ export async function getEnvironmentStatus({
   detail.deployStatuses = mapValues(systemServiceStatus.serviceStatuses, (s) => omit(s, "executedAction"))
   detail.systemServiceState = systemServiceStatus.state
 
-  sysGarden.log.setSuccess()
+  sysGarden.log.success("Done")
 
   return result
 }
@@ -329,7 +329,7 @@ export async function prepareSystem({
     names: systemServiceNames,
   })
 
-  sysGarden.log.setSuccess()
+  sysGarden.log.success("Done")
 
   return {}
 }
@@ -368,7 +368,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   }
 
   const entry = log
-    .makeNewLogContext({
+    .createLog({
       section: "kubernetes",
     })
     .info(`Deleting ${nsDescription} (this may take a while)`)

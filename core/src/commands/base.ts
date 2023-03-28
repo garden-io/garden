@@ -91,6 +91,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   isCustom: boolean = false // Used to identify custom commands
   isInteractive: boolean = false // Set to true for internal commands in interactive command-line commands
+  ignoreOptions: boolean = false // Completely ignore all option flags and pass all arguments directly to the command
 
   subscribers: DataCallback[]
   terminated: boolean
@@ -183,7 +184,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     }
   }
 
-  getLoggerType(_: CommandParamsBase<A, O>): LoggerType {
+  getTerminalWriterType(_: CommandParamsBase<A, O>): LoggerType {
     return "default"
   }
 
@@ -287,7 +288,9 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   renderHelp() {
-    let out = this.description ? `${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n` : ""
+    let out = this.description
+      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n`
+      : ""
 
     out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
 

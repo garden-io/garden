@@ -7,7 +7,7 @@
  */
 
 import { apply, merge } from "json-merge-patch"
-import { dedent, deline } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import {
   apiVersionSchema,
   createSchema,
@@ -543,12 +543,19 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   let environmentConfig = findByName(environments, environment)
 
   if (!environmentConfig) {
-    throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
-      projectName,
-      environmentName: environment,
-      namespace,
-      definedEnvironments: getNames(environments),
-    })
+    const definedEnvironments = getNames(environments)
+
+    throw new ParameterError(
+      `Project ${projectName} does not specify environment ${environment} (found ${naturalList(
+        definedEnvironments.map((e) => `'${e}'`)
+      )})`,
+      {
+        projectName,
+        environmentName: environment,
+        namespace,
+        definedEnvironments,
+      }
+    )
   }
 
   const projectVarfileVars = await loadVarfile({

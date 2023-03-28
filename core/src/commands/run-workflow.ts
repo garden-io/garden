@@ -74,7 +74,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
   }
 
   async action({ cli, garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
-    const outerLog = log.makeNewLogContext({})
+    const outerLog = log.createLog({})
     // Prepare any configured files before continuing
     const workflow = await garden.getWorkflowConfig(args.workflow)
 
@@ -112,9 +112,9 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       const metadata = {
         workflowStep: { index },
       }
-      const stepHeaderLog = outerLog.makeNewLogContext({ metadata })
-      const stepBodyLog = outerLog.makeNewLogContext({ metadata })
-      const stepFooterLog = outerLog.makeNewLogContext({ metadata })
+      const stepHeaderLog = outerLog.createLog({ metadata })
+      const stepBodyLog = outerLog.createLog({ metadata })
+      const stepFooterLog = outerLog.createLog({ metadata })
       garden.log.info({ metadata })
 
       if (step.skip) {

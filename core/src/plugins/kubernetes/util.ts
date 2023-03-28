@@ -19,7 +19,7 @@ import {
   KubernetesPod,
   KubernetesServerResource,
   isPodResource,
-  SupportedRuntimeActions,
+  SupportedRuntimeAction,
 } from "./types"
 import { findByName, exec } from "../../util/util"
 import { KubeApi, KubernetesError } from "./api"
@@ -286,7 +286,7 @@ export async function execInWorkload({
     const logEventContext = {
       // To avoid an awkwardly long prefix for the log lines when rendered, we set a max length here.
       origin: truncate(command.join(" "), 25),
-      log: log.makeNewLogContext({ level: LogLevel.verbose }),
+      log: log.createLog({ fixLevel: LogLevel.verbose }),
     }
 
     const outputStream = new PassThrough()
@@ -549,7 +549,7 @@ interface GetTargetResourceParams {
   log: Log
   provider: KubernetesProvider
   manifests?: KubernetesResource[]
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SupportedRuntimeAction>
   query: KubernetesTargetResourceSpec
 }
 
@@ -683,7 +683,7 @@ export async function getTargetResource({
 export async function readTargetResource({
   api,
   namespace,
-  query
+  query,
 }: {
   api: KubeApi
   namespace: string

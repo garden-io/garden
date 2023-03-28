@@ -11,7 +11,7 @@ import { renderDivider } from "../logger/util"
 import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
-import { getLogger, LoggerType } from "../logger/logger"
+import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
@@ -35,7 +35,7 @@ type ActionParams = CommandParams<DevCommandArgs, DevCommandOpts>
 
 export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
   name = "dev"
-  help = "Starts the Garden interactive development environment."
+  help = "Starts the Garden interactive development console."
 
   protected = true
   cliOnly = true
@@ -56,19 +56,24 @@ Let's get your development environment wired up.
     )
   }
 
-  getLoggerType(): LoggerType {
+  getTerminalWriterType(): LoggerType {
     return "ink"
   }
 
   async action(params: ActionParams): Promise<CommandResult> {
-    const logger = getLogger()
-    const writers = logger.getWriters()
-    const inkWriter = writers.find((w) => w.type === "ink") as InkTerminalWriter
+    const logger = params.log.root
+  const terminalWriter = logger.getWriters().terminal
 
+    let inkWriter: InkTerminalWriter
     // TODO: maybe enforce this elsewhere
-    if (!inkWriter) {
+    if (terminalWriter.type === "ink") {
+      inkWriter = terminalWriter as InkTerminalWriter
+    } else {
       throw new ParameterError(`This command can only be used with the ink logger type`, {
-        writerTypes: writers.map((w) => w.type),
+        writerTypes: {
+          terminalWriter: terminalWriter.type,
+          fileWriters: logger.getWriters().file.map((w) => w.type),
+        },
       })
     }
 
@@ -132,6 +137,7 @@ Let's get your development environment wired up.
       commands: [...commands, new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       configDump: undefined, // This gets loaded later
       globalOpts: pick(opts, Object.keys(globalOptions)),
+      history: await garden.configStore.get("devCommandHistory"),
     }))
 
     function quit() {

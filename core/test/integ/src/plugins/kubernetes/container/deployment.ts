@@ -62,7 +62,7 @@ describe("kubernetes container deployment handlers", () => {
 
   async function resolveDeployAction(name: string, mode: ActionMode = "default") {
     if (mode !== "default") {
-      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { [mode]: ["deploy." + name]} })
+      graph = await garden.getConfigGraph({ log: garden.log, emit: false, actionModes: { [mode]: ["deploy." + name] } })
     }
     return garden.resolveAction<ContainerDeployAction>({ action: graph.getDeploy(name), log: garden.log, graph })
   }
@@ -885,7 +885,7 @@ describe("kubernetes container deployment handlers", () => {
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
-      const status = await router.deploy.getStatus({
+      const { result: status } = await router.deploy.getStatus({
         graph,
         action,
         log: garden.log,
@@ -913,7 +913,7 @@ describe("kubernetes container deployment handlers", () => {
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
-      const status = await router.deploy.getStatus({
+      const { result: status } = await router.deploy.getStatus({
         graph,
         action,
         log: garden.log,
@@ -941,7 +941,7 @@ describe("kubernetes container deployment handlers", () => {
       await deploySpecChangedSimpleService(action)
       expect(await simpleServiceIsRunning(action)).to.eql(true)
 
-      const status = await router.deploy.getStatus({
+      const { result: status } = await router.deploy.getStatus({
         graph,
         action,
         log: garden.log,

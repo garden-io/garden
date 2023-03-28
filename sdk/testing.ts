@@ -19,7 +19,7 @@ export const makeTestGarden = async (projectRoot: string, opts: TestGardenOpts =
   try {
     Logger.initialize({
       level: LogLevel.info,
-      type: "quiet",
+      terminalWriterType: "quiet",
       storeEntries: true,
     })
   } catch (_) {}

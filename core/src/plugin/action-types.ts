@@ -36,6 +36,9 @@ import { templateStringLiteral } from "../docs/common"
 import { ValidateAction } from "./handlers/base/validate"
 import { ConfigureActionConfig } from "./handlers/base/configure"
 import { GetActionOutputs } from "./handlers/base/get-outputs"
+import { StartSync } from "./handlers/Deploy/start-sync"
+import { StopSync } from "./handlers/Deploy/stop-sync"
+import { GetSyncStatus } from "./handlers/Deploy/get-sync-status"
 
 // BASE //
 
@@ -84,7 +87,10 @@ const actionTypeClasses = {
     getLogs: new GetDeployLogs(),
     getPortForward: new GetDeployPortForward(),
     getStatus: new GetDeployStatus(),
+    getSyncStatus: new GetSyncStatus(),
+    startSync: new StartSync(),
     stopPortForward: new StopDeployPortForward(),
+    stopSync: new StopSync(),
   },
   Run: {
     ...baseActionTypeClasses,
@@ -165,7 +171,10 @@ type DeployActionDescriptions<C extends DeployAction = DeployAction> = BaseHandl
   getLogs: GetDeployLogs<C>
   getPortForward: GetDeployPortForward<C>
   getStatus: GetDeployStatus<C>
+  getSyncStatus: GetSyncStatus<C>
+  startSync: StartSync<C>
   stopPortForward: StopDeployPortForward<C>
+  stopSync: StopSync<C>
 }
 
 export type DeployActionHandler<
@@ -269,11 +278,9 @@ export interface ResolvedActionTypeHandlerDescription<N = string> extends Resolv
 }
 
 export type ResolvedActionTypeHandlerDescriptions = {
-  [K in ActionKind]: Required<
-    {
-      [H in keyof ActionTypeClasses<K>]: ResolvedActionTypeHandlerDescription<H>
-    }
-  >
+  [K in ActionKind]: Required<{
+    [H in keyof ActionTypeClasses<K>]: ResolvedActionTypeHandlerDescription<H>
+  }>
 }
 
 // It takes a short while to resolve all these schemas, so we cache the result

@@ -674,7 +674,9 @@ ${expectedIngressOutput}
           log,
           graph,
         })
-        log.entries = []
+
+        const l = log as any
+        l.entries = []
 
         await prepareTemplates({ ctx, log, action })
 

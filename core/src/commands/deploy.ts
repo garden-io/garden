@@ -184,6 +184,7 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const force = opts.force
+    const startSyncs = !!opts.sync
 
     const initialTasks = actions.map(
       (action) =>
@@ -195,6 +196,7 @@ export class DeployCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           skipRuntimeDependencies,
+          startSyncs,
         })
     )
 

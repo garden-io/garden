@@ -17,8 +17,7 @@ import { BooleanParameter } from "../../cli/params"
 
 export const updateRemoteSharedOptions = {
   parallel: new BooleanParameter({
-    help:
-      "Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.",
+    help: "Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.",
     defaultValue: false,
   }),
 }

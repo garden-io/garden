@@ -820,7 +820,7 @@ async function getReversePortForwardProcesses(
             })
           },
           onMessage: (msg: ProcessMessage) => {
-            log.setSuccess({
+            log.success({
               section,
               msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
             })
@@ -831,7 +831,7 @@ async function getReversePortForwardProcesses(
           hasErrors: (_chunk: any) => false,
           onError: (_msg: ProcessMessage) => {},
           onMessage: (msg: ProcessMessage) => {
-            log.setSuccess({
+            log.success({
               section,
               msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
             })
@@ -938,7 +938,7 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
     log.warn({
       symbol: "warning",
       section,
-      msg: chalk.yellow("Unable to local mode ssh tunnels. Reason: rejected by the registry"),
+      msg: chalk.yellow("Unable to start local mode ssh tunnels. Reason: rejected by the registry"),
     })
   }
 }

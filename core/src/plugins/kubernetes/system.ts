@@ -75,10 +75,9 @@ export async function getSystemGarden(
     },
     commandInfo: ctx.command,
     log: log
-      .makeNewLogContext({
+      .createLog({
         section: "garden system",
-        level: LogLevel.debug,
-        fixLevel: true,
+        fixLevel: LogLevel.debug,
       })
       .info("Initializing..."),
   })
@@ -97,7 +96,7 @@ export async function getSystemServiceStatus({ sysGarden, log, names }: GetSyste
   const graph = await sysGarden.getConfigGraph({ log, emit: false })
 
   const serviceStatuses = await actions.getDeployStatuses({
-    log: log.makeNewLogContext({ level: LogLevel.verbose, fixLevel: true }),
+    log: log.createLog({ fixLevel: LogLevel.verbose }),
     graph,
     names,
   })

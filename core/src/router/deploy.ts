@@ -14,6 +14,8 @@ import { DeployState } from "../types/service"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
+const API_ACTION_TYPE = "deploy"
+
 export const deployRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Deploy", baseParams, {
     deploy: async (params) => {
@@ -23,6 +25,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       params.events = params.events || new PluginEventBroker()
 
       const actionName = action.name
+      const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
@@ -34,6 +37,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           timestamp,
           actionUid,
           actionName,
+          actionType,
           moduleName,
           origin,
           data: data.toString(),
@@ -45,6 +49,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
         startedAt,
@@ -56,7 +61,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         status: { state: "deploying" },
       })
 
-      const result = await router.callHandler({ params, handlerType: "deploy" })
+      const output = await router.callHandler({ params, handlerType: "deploy" })
+      const result = output.result
 
       // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", result.outputs)
@@ -70,29 +76,31 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(result.detail?.namespaceStatuses)
 
-      return result
+      return output
     },
 
+    // TODO @eysi: The type here should explictly be ActionLog
     delete: async (params) => {
       const { action, router, handlers } = params
 
       const log = params.log
-        .makeNewLogContext({
+        .createLog({
           section: action.key(),
         })
         .info("Deleting...")
 
-      const status = await handlers.getStatus({ ...params })
+      const statusOutput = await handlers.getStatus({ ...params })
+      const status = statusOutput.result
 
       if (status.detail?.state === "missing") {
-        log.setSuccess({
+        log.success({
           section: action.key(),
           msg: "Not found",
         })
-        return status
+        return statusOutput
       }
 
-      const result = await router.callHandler({
+      const output = await router.callHandler({
         params: { ...params, log },
         handlerType: "delete",
         defaultHandler: async (p) => {
@@ -106,11 +114,12 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         },
       })
 
-      router.emitNamespaceEvents(result.detail?.namespaceStatuses)
+      router.emitNamespaceEvents(output.result.detail?.namespaceStatuses)
 
-      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+      // TODO @eysi: Validate that timestamp gets printed
+      log.success(`Done`)
 
-      return result
+      return output
     },
 
     exec: async (params) => {
@@ -139,10 +148,12 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const { garden, router, action } = params
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = API_ACTION_TYPE
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         actionUid: action.getUid(),
         moduleName: action.moduleName(),
         startedAt: new Date().toISOString(),
@@ -154,7 +165,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         status: { state: "unknown" },
       })
 
-      const result = await router.callHandler({ params, handlerType: "getStatus" })
+      const output = await router.callHandler({ params, handlerType: "getStatus" })
+      const result = output.result
 
       garden.events.emit("deployStatus", {
         ...payloadAttrs,
@@ -168,7 +180,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       // TODO-G2: only validate if state is not missing?
       await router.validateActionOutputs(action, "runtime", result.outputs)
 
-      return result
+      return output
     },
 
     getPortForward: async (params) => {
@@ -177,5 +189,55 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
     stopPortForward: async (params) => {
       return params.router.callHandler({ params, handlerType: "stopPortForward" })
+    },
+
+    getSyncStatus: async (params) => {
+      const { action, log } = params
+
+      return params.router.callHandler({
+        params,
+        handlerType: "getSyncStatus",
+        defaultHandler: async () => {
+          log.debug({
+            section: action.key(),
+            msg: `No getSyncStatus handler available for action type ${action.type}`,
+          })
+          return {
+            state: "unknown" as const,
+          }
+        },
+      })
+    },
+
+    startSync: async (params) => {
+      const { action, log } = params
+
+      return params.router.callHandler({
+        params,
+        handlerType: "startSync",
+        defaultHandler: async () => {
+          log.warn({
+            section: action.key(),
+            msg: chalk.yellow(`No startSync handler available for action type ${action.type}`),
+          })
+          return {}
+        },
+      })
+    },
+
+    stopSync: async (params) => {
+      const { action, log } = params
+
+      return params.router.callHandler({
+        params,
+        handlerType: "stopSync",
+        defaultHandler: async () => {
+          log.warn({
+            section: action.key(),
+            msg: chalk.yellow(`No stopSync handler available for action type ${action.type}`),
+          })
+          return {}
+        },
+      })
     },
   })

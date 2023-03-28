@@ -49,7 +49,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     // There's one service on helm modules expect when skipDeploy = true
-    const service: typeof services[0] | undefined = services[0]
+    const service: (typeof services)[0] | undefined = services[0]
 
     // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
     // for compatibility.
@@ -73,13 +73,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       actions.push(deployAction)
     }
 
-    const {
-      namespace,
-      releaseName,
-      timeout,
-      values,
-      valueFiles,
-    } = module.spec
+    const { namespace, releaseName, timeout, values, valueFiles } = module.spec
     const chart = {
       name: module.spec.chart,
       path: module.spec.chart ? undefined : module.spec.chartPath,

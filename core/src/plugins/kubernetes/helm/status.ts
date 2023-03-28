@@ -6,12 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import {
-  ForwardablePort,
-  ServiceIngress,
-  DeployState,
-  ServiceStatus,
-} from "../../../types/service"
+import { ForwardablePort, ServiceIngress, DeployState, ServiceStatus } from "../../../types/service"
 import { Log } from "../../../logger/log-entry"
 import { helm } from "./helm-cli"
 import { getReleaseName, loadTemplate } from "./common"
@@ -20,7 +15,6 @@ import { getForwardablePorts } from "../port-forward"
 import { KubernetesServerResource } from "../types"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getTargetResource, isWorkload } from "../util"
-import { startSyncs } from "../sync"
 import { isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
@@ -107,30 +101,9 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
             state = "outdated"
           }
         }
-      } else if (mode === "sync" && spec.sync?.paths) {
-        // Need to start the sync here, since the deployment handler won't be called.
-
-        // First make sure we don't fail if resources arent't actually properly configured (we don't want to throw in
-        // the status handler, generally)
-
-        const defaultNamespace = await getActionNamespace({
-          ctx: k8sCtx,
-          log,
-          action,
-          provider: k8sCtx.provider,
-        })
-
-        await startSyncs({
-          ctx: k8sCtx,
-          log,
-          action,
-          actionDefaults: spec.sync.defaults || {},
-          defaultTarget: spec.defaultTarget,
-          basePath: action.basePath(),
-          defaultNamespace,
-          manifests: deployedResources,
-          syncs: spec.sync.paths,
-        })
+      } else if (mode === "sync" && spec.sync?.paths && deployedMode !== mode) {
+        // TODO: might want to check every target resource here
+        state = "outdated"
       }
     }
   }

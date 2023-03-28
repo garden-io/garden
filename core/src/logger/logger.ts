@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Log, LogEntryMetadata, LogEntry } from "./log-entry"
+import { LogMetadata, LogEntry, CoreLog } from "./log-entry"
 import { Writer } from "./writers/base"
 import { CommandError, InternalError, ParameterError } from "../exceptions"
 import { TerminalWriter } from "./writers/terminal-writer"
@@ -17,6 +17,7 @@ import { gardenEnv } from "../constants"
 import { getEnumKeys } from "../util/util"
 import { range } from "lodash"
 import { InkTerminalWriter } from "./writers/ink-terminal-writer"
+import { QuietWriter } from "./writers/quiet-writer"
 
 export type LoggerType = "quiet" | "default" | "basic" | "json" | "ink"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "default", "basic", "json", "ink"])
@@ -34,14 +35,15 @@ const getLogLevelNames = () => getEnumKeys(LogLevel)
 const getNumericLogLevels = () => range(getLogLevelNames().length)
 // Allow string or numeric log levels as CLI choices
 export const getLogLevelChoices = () => [...getLogLevelNames(), ...getNumericLogLevels().map(String)]
+
 export function parseLogLevel(level: string): LogLevel {
   let lvl: LogLevel
   const parsed = parseInt(level, 10)
-  // Level is numeric
   if (parsed || parsed === 0) {
+    // Level is numeric
     lvl = parsed
-    // Level is a string
   } else {
+    // Level is a string
     lvl = LogLevel[level]
   }
   if (!getNumericLogLevels().includes(lvl)) {
@@ -64,7 +66,28 @@ export const logLevelMap = {
 
 const eventLogLevel = LogLevel.debug
 
-export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
+/**
+ * Return the logger type, depending on what command line args have been set
+ * and whether the commnad specifies a logger type.
+ */
+export function getTerminalWriterType({
+  silent,
+  output,
+  loggerTypeOpt,
+  commandLoggerType,
+}: {
+  silent: boolean
+  output: boolean
+  loggerTypeOpt: LoggerType | null
+  commandLoggerType: LoggerType | null
+}) {
+  if (silent || output) {
+    return "quiet"
+  }
+  return loggerTypeOpt || commandLoggerType || "default"
+}
+
+export function getTerminalWriterInstance(loggerType: LoggerType, level: LogLevel): Writer {
   switch (loggerType) {
     case "default":
     case "basic":
@@ -74,26 +97,39 @@ export function getWriterInstance(loggerType: LoggerType, level: LogLevel) {
     case "ink":
       return new InkTerminalWriter({ level })
     case "quiet":
-      return undefined
+      return new QuietWriter({ level })
   }
 }
 
 interface LoggerConfigBase {
+  /**
+   * The Garden log level. This get propagated to the actual writers which have their own
+   * levels which may in some cases overwrite this.
+   */
   level: LogLevel
+  /**
+   * Whether or not the log entries are stored in-memory on the logger instance. Useful for testing.
+   */
   storeEntries?: boolean
   showTimestamps?: boolean
   useEmoji?: boolean
-  type: LoggerType
 }
 
-interface LoggerConfig extends LoggerConfigBase {
-  type: LoggerType
-  storeEntries: boolean
+interface LoggerInitParams extends LoggerConfigBase {
+  /**
+   * The type of terminal writer to use. This is configurable by the user
+   * and exposed as a "logger type" which is a bit more user friendly.
+   *
+   * The logger also has a set of file writers that are set internally.
+   */
+  terminalWriterType: LoggerType
 }
 
 interface LoggerConstructor extends LoggerConfigBase {
-  writers: Writer[]
-  storeEntries: boolean
+  writers: {
+    terminal: Writer
+    file: Writer[]
+  }
 }
 
 /**
@@ -103,22 +139,31 @@ interface LoggerConstructor extends LoggerConfigBase {
  * Is initialized as a singleton class.
  *
  * Note that this class does not have methods for logging at different levels. Rather
- * thats handled by the 'Log' class which in turns calls the root Logger.
+ * that's handled by the 'Log' class which in turns calls the root Logger.
  */
-export class Logger {
+export class Logger implements Required<LoggerConfigBase> {
   public events: EventBus
   public useEmoji: boolean
   public showTimestamps: boolean
   public level: LogLevel
   public entries: LogEntry[]
-  /**
-   * Whether or not the log entries are stored in-memory on the logger instance. Useful for testing.
-   */
   public storeEntries: boolean
-  public type: LoggerType
 
-  private writers: Writer[]
+  private writers: {
+    terminal: Writer
+    file: Writer[]
+  }
   private static instance?: Logger
+
+  private constructor(config: LoggerConstructor) {
+    this.level = config.level
+    this.entries = []
+    this.writers = config.writers
+    this.useEmoji = config.useEmoji === false ? false : true
+    this.showTimestamps = !!config.showTimestamps
+    this.events = new EventBus()
+    this.storeEntries = config.storeEntries || false
+  }
 
   /**
    * Returns the already initialized Logger singleton instance.
@@ -138,7 +183,7 @@ export class Logger {
    * Initializes the logger as a singleton from config. Also ensures that the logger settings make sense
    * in the context of environment variables and writer types.
    */
-  static initialize(config: LoggerConfig): Logger {
+  static initialize(config: LoggerInitParams): Logger {
     if (Logger.instance) {
       return Logger.instance
     }
@@ -165,14 +210,18 @@ export class Logger {
         })
       }
 
-      config.type = loggerTypeFromEnv
+      config.terminalWriterType = loggerTypeFromEnv
     }
 
-    const writer = getWriterInstance(config.type, config.level)
+    const terminalWriter = getTerminalWriterInstance(config.terminalWriterType, config.level)
+    const writers = {
+      terminal: terminalWriter,
+      file: [],
+    }
 
-    instance = new Logger({ ...config, storeEntries: config.storeEntries, writers: writer ? [writer] : [] })
+    instance = new Logger({ ...config, storeEntries: config.storeEntries, writers })
 
-    const initLog = instance.makeNewLogContext()
+    const initLog = instance.createLog()
 
     if (gardenEnv.GARDEN_LOG_LEVEL) {
       initLog.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)
@@ -192,27 +241,26 @@ export class Logger {
     Logger.instance = undefined
   }
 
-  constructor(config: LoggerConstructor) {
-    this.level = config.level
-    this.entries = []
-    this.writers = config.writers || []
-    this.useEmoji = config.useEmoji === false ? false : true
-    this.showTimestamps = !!config.showTimestamps
-    this.events = new EventBus()
-    this.storeEntries = config.storeEntries
-    this.type = config.type
-  }
-
   toSanitizedValue() {
     return "<Logger>"
   }
 
-  addWriter(writer: Writer) {
-    this.writers.push(writer)
+  addFileWriter(writer: Writer) {
+    this.writers.file.push(writer)
   }
 
   getWriters() {
     return this.writers
+  }
+
+  /**
+   * Reset the default terminal writer that the logger was initialized with.
+   *
+   * This is required because when we initialize the logger we don't know what writer
+   * the command may require and we need to re-set it when we've resolved the command.
+   */
+  setTerminalWriter(type: LoggerType) {
+    this.writers.terminal = getTerminalWriterInstance(type, this.level)
   }
 
   log(entry: LogEntry) {
@@ -222,7 +270,8 @@ export class Logger {
     if (entry.level <= eventLogLevel) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
-    for (const writer of this.writers) {
+    const writers = [this.writers.terminal, ...this.writers.file]
+    for (const writer of writers) {
       if (entry.level <= writer.level) {
         writer.write(entry, this)
       }
@@ -230,21 +279,28 @@ export class Logger {
   }
 
   /**
-   * Creates a new log context from the root Logger.
+   * Creates a new CoreLog context from the root Logger.
    */
-  makeNewLogContext({
-    level = LogLevel.info,
+  createLog({
     metadata,
     fixLevel,
+    name,
   }: {
-    level?: LogLevel
-    metadata?: LogEntryMetadata
-    fixLevel?: boolean
+    metadata?: LogMetadata
+    fixLevel?: LogLevel
+    /**
+     * The name of the log context. Will be printed as the "section" part of the log lines
+     * belonging to this context.
+     */
+    name?: string
   } = {}) {
-    return new Log({
-      level,
+    return new CoreLog({
+      parentConfigs: [],
       fixLevel,
       metadata,
+      context: {
+        name,
+      },
       root: this,
     })
   }
@@ -260,14 +316,14 @@ export class Logger {
     }
     return this.entries
   }
-}
 
-/**
- * Dummy Logger instance, just swallows log entries and prints nothing.
- */
-export class VoidLogger extends Logger {
-  constructor() {
-    super({ writers: [], level: LogLevel.error, storeEntries: false, type: "default" })
+  /**
+   * WARNING: Only use for tests.
+   *
+   * The logger is a singleton which makes it hard to test. This is an escape hatch.
+   */
+  static _createInstanceForTests(params: LoggerConstructor) {
+    return new Logger(params)
   }
 }
 

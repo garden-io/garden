@@ -252,7 +252,7 @@ export class GitHandler extends VcsHandler {
     }
 
     const gitLog = log
-      .makeNewLogContext({})
+      .createLog({})
       .debug(
         `Scanning ${pathDescription} at ${path}\n→ Includes: ${include || "(none)"}\n→ Excludes: ${exclude || "(none)"}`
       )
@@ -537,7 +537,17 @@ export class GitHandler extends VcsHandler {
     const git = this.gitCli(log, absPath, failOnPrompt)
     // Use `--recursive` to include submodules
     if (!this.isHashSHA1(hash)) {
-      return git("clone", "--recursive", "--depth=1", "--shallow-submodules", `--branch=${hash}`, repositoryUrl, ".")
+      return git(
+        "-c",
+        "protocol.file.allow=always",
+        "clone",
+        "--recursive",
+        "--depth=1",
+        "--shallow-submodules",
+        `--branch=${hash}`,
+        repositoryUrl,
+        "."
+      )
     }
 
     // If SHA1 is used we need to fetch the changes as git clone doesn't allow to shallow clone
@@ -545,9 +555,9 @@ export class GitHandler extends VcsHandler {
     try {
       await git("init")
       await git("remote", "add", "origin", repositoryUrl)
-      await git("fetch", "--depth=1", "--recurse-submodules=yes", "origin", hash)
+      await git("-c", "protocol.file.allow=always", "fetch", "--depth=1", "--recurse-submodules=yes", "origin", hash)
       await git("checkout", "FETCH_HEAD")
-      return git("submodule", "update", "--init", "--recursive")
+      return git("-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive")
     } catch (err) {
       throw new RuntimeError(
         dedent`Failed to shallow clone with error: \n\n${err}
@@ -569,7 +579,7 @@ export class GitHandler extends VcsHandler {
     const isCloned = await pathExists(absPath)
 
     if (!isCloned) {
-      const gitLog = log.makeNewLogContext({ section: name }).info(`Fetching from ${url}`)
+      const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
       const { repositoryUrl, hash } = parseGitUrl(url)
 
       try {
@@ -582,7 +592,7 @@ export class GitHandler extends VcsHandler {
         })
       }
 
-      gitLog.setSuccess()
+      gitLog.success("Done")
     }
 
     return absPath
@@ -595,7 +605,7 @@ export class GitHandler extends VcsHandler {
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
-    const gitLog = log.makeNewLogContext({ section: name }).info("Getting remote state")
+    const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
     await git("remote", "update")
 
     const localCommitId = (await git("rev-parse", "HEAD"))[0]
@@ -610,7 +620,7 @@ export class GitHandler extends VcsHandler {
         await git("fetch", "--depth=1", "origin", hash)
         await git("reset", "--hard", `origin/${hash}`)
         // Update submodules if applicable (no-op if no submodules in repo)
-        await git("submodule", "update", "--recursive")
+        await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
       } catch (err) {
         gitLog.error(`Failed fetching from ${url}`)
         throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
@@ -619,9 +629,9 @@ export class GitHandler extends VcsHandler {
         })
       }
 
-      gitLog.setSuccess("Source updated")
+      gitLog.success("Source updated")
     } else {
-      gitLog.setSuccess("Source already up to date")
+      gitLog.success("Source already up to date")
     }
   }
 

@@ -11,7 +11,6 @@ import { printHeader } from "../logger/util"
 import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
-import { ProjectResource } from "../config/project"
 import { ConfigurationError } from "../exceptions"
 
 export class LogOutCommand extends Command {
@@ -31,18 +30,23 @@ export class LogOutCommand extends Command {
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(log, garden.projectRoot)
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig)
+    let configuredDomain = garden.cloudDomain
 
-    // Fail if this is not run within a garden project
-    if (!projectConfig) {
-      throw new ConfigurationError(
-        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        {
-          root: garden.projectRoot,
-        }
-      )
+    if (!configuredDomain) {
+      const projectConfig = await cli?.getProjectConfig(log, garden.projectRoot)
+
+      // Fail if this is not run within a garden project
+      if (!projectConfig) {
+        throw new ConfigurationError(
+          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+          {
+            root: garden.projectRoot,
+          }
+        )
+      }
     }
+
+    const cloudDomain: string | undefined = getGardenCloudDomain(configuredDomain)
 
     const distroName = getCloudDistributionName(cloudDomain)
 

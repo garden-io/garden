@@ -81,25 +81,26 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
   // Copy all the service configuration files
   for (const configPath of paths) {
     const servicePath = dirname(configPath)
-    const gardenPathLog = log.makeNewLogContext({ section: relative(root, servicePath) || "/" })
+    const gardenPathLog = log.createLog({ name: relative(root, servicePath) || "/", showDuration: true })
     gardenPathLog.info("collecting info")
     const tempServicePath = join(tempPath, relative(root, servicePath))
     await ensureDir(tempServicePath)
     const moduleConfigFilename = basename(configPath)
-    const gardenLog = gardenPathLog.makeNewLogContext({ section: moduleConfigFilename })
+    const gardenLog = gardenPathLog.createLog({ name: moduleConfigFilename, showDuration: true })
     gardenLog.info("collecting garden.yml")
     await copy(configPath, join(tempServicePath, moduleConfigFilename))
-    gardenLog.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    gardenLog.success(`Done`)
     // Check if error logs exist and copy them over if they do
     if (await pathExists(join(servicePath, ERROR_LOG_FILENAME))) {
-      const errorLog = gardenPathLog.makeNewLogContext({
-        section: ERROR_LOG_FILENAME,
+      const errorLog = gardenPathLog.createLog({
+        name: ERROR_LOG_FILENAME,
+        showDuration: true,
       })
       errorLog.info(`collecting ${ERROR_LOG_FILENAME}`)
       await copy(join(servicePath, ERROR_LOG_FILENAME), join(tempServicePath, ERROR_LOG_FILENAME))
-      errorLog.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+      errorLog.success(`Done`)
     }
-    gardenPathLog.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    gardenPathLog.success(`Done`)
   }
 }
 
@@ -115,9 +116,9 @@ export async function collectSystemDiagnostic(gardenDirPath: string, log: Log, f
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   await ensureDir(tempPath)
 
-  const systemLog = log.makeNewLogContext({ section: "Operating System" })
+  const systemLog = log.createLog({ name: "Operating System", showDuration: true })
   systemLog.info("collecting info")
-  const gardenLog = log.makeNewLogContext({ section: "Garden" })
+  const gardenLog = log.createLog({ name: "Garden", showDuration: true })
   gardenLog.info("getting version")
 
   const systemInfo = {
@@ -126,8 +127,8 @@ export async function collectSystemDiagnostic(gardenDirPath: string, log: Log, f
     platformVersion: release(),
   }
 
-  systemLog.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
-  gardenLog.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+  systemLog.success(`Done`)
+  gardenLog.success(`Done`)
 
   const outputFileName = `${SYSTEM_INFO_FILENAME_NO_EXT}.${format}`
   await writeFile(join(tempPath, outputFileName), renderInfo(systemInfo, format), "utf8")
@@ -175,16 +176,16 @@ export async function generateBasicDebugInfoReport(root: string, gardenDirPath: 
   const tempPath = join(gardenDirPath, TEMP_DEBUG_ROOT)
   log.info({ msg: "Collecting basic debug info" })
   // Collect project info
-  const projectLog = log.makeNewLogContext({ section: "Project configuration" })
+  const projectLog = log.createLog({ name: "Project configuration", showDuration: true })
   projectLog.info("collecting info")
   await collectBasicDebugInfo(root, gardenDirPath, projectLog)
-  projectLog.setSuccess(chalk.green(`Done (took ${projectLog.getDuration(1)} sec)`))
+  projectLog.success(`Done`)
 
   // Run system diagnostic
-  const systemLog = log.makeNewLogContext({ section: "System" })
+  const systemLog = log.createLog({ name: "System", showDuration: true })
   systemLog.info("collecting info")
   await collectSystemDiagnostic(gardenDirPath, systemLog, format)
-  systemLog.setSuccess(chalk.green(`Done (took ${systemLog.getDuration(1)} sec)`))
+  systemLog.success(`Done`)
 
   // Zip report folder
   log.info("Preparing archive")
@@ -195,7 +196,7 @@ export async function generateBasicDebugInfoReport(root: string, gardenDirPath: 
   // Cleanup temporary folders
   await remove(tempPath)
 
-  log.setSuccess("Done")
+  log.success("Done")
   log.info(`\nDone! Please find your report at  ${outputFilePath}.`)
 }
 
@@ -267,23 +268,23 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
     log.info({ msg: "Collecting debug info" })
 
     // Collect project info
-    const projectLog = log.makeNewLogContext({ section: "Project configuration" })
+    const projectLog = log.createLog({ name: "Project configuration", showDuration: true })
     projectLog.info("collecting info")
     await collectBasicDebugInfo(garden.projectRoot, garden.gardenDirPath, projectLog)
-    projectLog.setSuccess(chalk.green(`Done (took ${projectLog.getDuration(1)} sec)`))
+    projectLog.success(`Done`)
 
     // Run system diagnostic
-    const systemLog = log.makeNewLogContext({ section: "System" })
+    const systemLog = log.createLog({ name: "System", showDuration: true })
     systemLog.info("collecting info")
     await collectSystemDiagnostic(garden.projectRoot, systemLog, opts.format)
-    systemLog.setSuccess(chalk.green(`Done (took ${systemLog.getDuration(1)} sec)`))
+    systemLog.success(`Done`)
 
     // Collect providers info
-    const providerLog = log.makeNewLogContext({ section: "Providers" })
+    const providerLog = log.createLog({ name: "Providers", showDuration: true })
     providerLog.info("collecting info")
     try {
       await collectProviderDebugInfo(garden, providerLog, opts.format, opts["include-project"])
-      providerLog.setSuccess(chalk.green(`Done (took ${systemLog.getDuration(1)} sec)`))
+      providerLog.success(`Done`)
     } catch (err) {
       // One or multiple providers threw an error while processing.
       // Skip the step but still create a report.
@@ -299,7 +300,7 @@ export class GetDebugInfoCommand extends Command<Args, Opts> {
     // Cleanup temporary folders
     await remove(tempPath)
 
-    log.setSuccess("Done")
+    log.success("Done")
 
     log.info(chalk.green(`\nDone! Please find your report at  ${outputFilePath}.\n`))
 

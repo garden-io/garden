@@ -379,8 +379,7 @@ export function describeParameters(args?: Parameters) {
 
 export const globalOptions = {
   "root": new PathParameter({
-    help:
-      "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
+    help: "Override project root directory (defaults to working directory). Can be absolute or relative to current directory.",
   }),
   "silent": new BooleanParameter({
     help: "Suppress log output. Same as setting --logger-type=quiet.",
@@ -436,8 +435,7 @@ export const globalOptions = {
     defaultValue: false,
   }),
   "var": new StringsParameter({
-    help:
-      'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
+    help: 'Set a specific variable value, using the format <key>=<value>, e.g. `--var some-key=custom-value`. This will override any value set in your project configuration. You can specify multiple variables by separating with a comma, e.g. `--var key-a=foo,key-b="value with quotes"`.',
   }),
   "version": new BooleanParameter({
     aliases: ["V"],
@@ -448,8 +446,7 @@ export const globalOptions = {
     help: "Show help",
   }),
   "disable-port-forwards": new BooleanParameter({
-    help:
-      "Disable automatic port forwarding when in watch mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
+    help: "Disable automatic port forwarding when in watch mode. Note that you can also set GARDEN_DISABLE_PORT_FORWARDS=true in your environment.",
   }),
 }
 

@@ -34,6 +34,7 @@ import { k8sGetContainerDeployLogs } from "./logs"
 import { k8sPublishContainerBuild } from "./publish"
 import { k8sContainerRun } from "./run"
 import { k8sGetContainerDeployStatus } from "./status"
+import { k8sContainerStartSync, k8sContainerStopSync } from "./sync"
 import { k8sContainerTest } from "./test"
 
 export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
@@ -43,7 +44,7 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
       const provider = ctx.provider as KubernetesProvider
       // TODO-G2B: figure out why this cast is needed here
       return {
-        outputs: (k8sGetContainerBuildActionOutputs({ action, provider }) as unknown) as DeepPrimitiveMap,
+        outputs: k8sGetContainerBuildActionOutputs({ action, provider }) as unknown as DeepPrimitiveMap,
       }
     },
 
@@ -79,6 +80,8 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
       return getPortForwardHandler({ ...params, namespace: undefined })
     },
     getStatus: k8sGetContainerDeployStatus,
+    startSync: k8sContainerStartSync,
+    stopSync: k8sContainerStopSync,
     validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
       return {}

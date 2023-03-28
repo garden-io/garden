@@ -24,7 +24,7 @@ import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
-import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync"
+import { configureSyncMode, convertContainerSyncSpec } from "../sync"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
 import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
@@ -36,7 +36,7 @@ import {
   SyncableResource,
   KubernetesWorkload,
   KubernetesResource,
-  SupportedRuntimeActions,
+  SupportedRuntimeAction,
 } from "../types"
 import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 import { emitNonRepeatableWarning } from "../../../warnings"
@@ -53,7 +53,6 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   const k8sCtx = <KubernetesPluginContext>ctx
   const mode = action.mode()
   const { deploymentStrategy } = k8sCtx.provider.config
-  const deployWithSyncMode = mode === "sync" && !!action.getSpec("sync")
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action, k8sCtx.provider)
@@ -86,16 +85,6 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   // Make sure port forwards work after redeployment
   killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)
 
-  if (deployWithSyncMode) {
-    await startContainerDevSync({
-      ctx: k8sCtx,
-      log,
-      status: postDeployStatus.detail!,
-      action,
-    })
-    postDeployStatus.attached = true
-  }
-
   if (mode === "local") {
     await startLocalMode({
       ctx: k8sCtx,
@@ -107,59 +96,6 @@ export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAc
   }
 
   return postDeployStatus
-}
-
-export async function startContainerDevSync({
-  ctx,
-  log,
-  status,
-  action,
-}: {
-  ctx: KubernetesPluginContext
-  status: ContainerServiceStatus
-  log: Log
-  action: Resolved<ContainerDeployAction>
-}) {
-  const sync = action.getSpec("sync")
-  const workload = status.detail.workload
-
-  if (!sync?.paths || !workload) {
-    return
-  }
-
-  log.info({
-    section: action.name,
-    // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
-    // it's not rendered.
-    symbol: "info",
-    msg: chalk.grey(`Deploying in sync mode`),
-  })
-
-  const defaultNamespace = await getAppNamespace(ctx, log, ctx.provider)
-
-  const target = {
-    kind: <SyncableKind>workload.kind,
-    name: workload.metadata.name,
-  }
-
-  const syncs = sync.paths.map((s) => ({
-    ...s,
-    sourcePath: s.source,
-    containerPath: s.target,
-    target,
-  }))
-
-  await startSyncs({
-    ctx,
-    log,
-    action,
-    actionDefaults: {},
-    basePath: action.basePath(),
-    defaultNamespace,
-    defaultTarget: target,
-    manifests: status.detail.remoteResources,
-    syncs,
-  })
 }
 
 export async function startLocalMode({
@@ -652,7 +588,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
 }
 
 export function configureVolumes(
-  action: SupportedRuntimeActions,
+  action: SupportedRuntimeAction,
   podSpec: V1PodSpec,
   volumeSpecs: ContainerVolumeSpec[]
 ): void {

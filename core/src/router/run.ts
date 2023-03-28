@@ -16,6 +16,8 @@ import { copyArtifacts, getArtifactKey } from "../util/artifacts"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
+const API_ACTION_TYPE = "run"
+
 export const runRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Run", baseParams, {
     run: async (params) => {
@@ -27,14 +29,16 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = API_ACTION_TYPE
       const moduleName = action.moduleName()
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
       }
 
       garden.events.emit("runStatus", {
@@ -58,13 +62,15 @@ export const runRouter = (baseParams: BaseRouterParams) =>
             timestamp,
             actionUid,
             actionName,
+            actionType,
             moduleName,
             origin,
             data: data.toString(),
           })
         })
 
-        const result = await router.callHandler({ params: { ...params, artifactsPath }, handlerType: "run" })
+        const output = await router.callHandler({ params: { ...params, artifactsPath }, handlerType: "run" })
+        const { result } = output
 
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
@@ -79,7 +85,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         // TODO-G2: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
-        return result
+        return output
       } finally {
         // Copy everything from the temp directory, and then clean it up
         try {
@@ -100,27 +106,31 @@ export const runRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = API_ACTION_TYPE
+
       const moduleName = action.moduleName()
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid: action.getUid(),
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
       }
 
       garden.events.emit("runStatus", {
         ...payloadAttrs,
         state: "getting-status",
-        status: { state: "unknown" }
+        status: { state: "unknown" },
       })
 
-      const result = await router.callHandler({
+      const output = await router.callHandler({
         params,
         handlerType: "getResult",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
       })
+      const { result } = output
 
       garden.events.emit("runStatus", {
         ...payloadAttrs,
@@ -133,7 +143,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         await router.validateActionOutputs(action, "runtime", result.outputs)
       }
 
-      return result
+      return output
     },
   })
 

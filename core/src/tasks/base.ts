@@ -9,7 +9,7 @@
 import { GraphResults } from "../graph/results"
 import { v1 as uuidv1 } from "uuid"
 import { Garden } from "../garden"
-import { Log as Log } from "../logger/log-entry"
+import { ActionLog, createActionLog, Log as Log } from "../logger/log-entry"
 import { Profile } from "../util/profiling"
 import type { Action, ActionState, Executed, Resolved } from "../actions/types"
 import { ConfigGraph, GraphError } from "../graph/config-graph"
@@ -47,9 +47,11 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
   skipRuntimeDependencies?: boolean
+  startSyncs?: boolean
 }
 
 export interface TaskProcessParams {
+  statusOnly: boolean
   dependencyResults: GraphResults
 }
 
@@ -88,7 +90,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   concurrencyLimit = 10
 
   public readonly garden: Garden
-  public readonly log: Log
+  public readonly log: Log | ActionLog
   public readonly uid: string
   public readonly force: boolean
   public readonly skipDependencies: boolean
@@ -194,14 +196,18 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   graph: ConfigGraph
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
+  startSyncs: boolean
+  log: ActionLog
 
   constructor(params: BaseActionTaskParams<T>) {
     const { action } = params
     super({ ...params })
+    this.log = createActionLog({ log: params.log, actionName: action.name, actionKind: action.kind })
     this.action = action
     this.graph = params.graph
     this.forceActions = params.forceActions || []
     this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
+    this.startSyncs = params.startSyncs || false
 
     if (params.forceBuild) {
       this.forceActions.push(...this.graph.getBuilds())
@@ -277,6 +283,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       forceActions: this.forceActions,
       skipDependencies: this.skipDependencies,
       skipRuntimeDependencies: this.skipRuntimeDependencies,
+      startSyncs: this.startSyncs,
     }
   }
 

@@ -29,7 +29,7 @@ import {
   KubernetesRunOutputs,
   kubernetesRunOutputsSchema,
   KubernetesTestOutputs,
-  kubernetesTestOutputsSchema
+  kubernetesTestOutputsSchema,
 } from "./config"
 import { KubernetesResource } from "../types"
 import { KubernetesKustomizeSpec } from "./kustomize"
@@ -61,14 +61,12 @@ export const kubernetesRunPodSchema = (kind: string) => {
     name,
     keys: () => ({
       ...kubernetesCommonRunSchemaKeys(),
-      manifests: kubernetesManifestsSchema()
-        .description(
+      manifests: kubernetesManifestsSchema().description(
         `List of Kubernetes resource manifests to be searched (using \`resource\`e for the pod spec for the ${kind}. If \`files\` is also specified, this is combined with the manifests read from the files.`
       ),
-      files: kubernetesFilesSchema()
-        .description(
+      files: kubernetesFilesSchema().description(
         `POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the ${kind}.`
-  ),
+      ),
       resource: runPodResourceSchema(kind),
       podSpec: runPodSpecSchema(kind),
     }),

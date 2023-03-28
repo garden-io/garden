@@ -36,6 +36,7 @@ import { ToolsCommand } from "./tools"
 import { UtilCommand } from "./util/util"
 import { SelfUpdateCommand } from "./self-update"
 import { memoize } from "lodash"
+import { SyncCommand } from "./sync/sync"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
@@ -60,6 +61,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new ServeCommand(),
   new SelfUpdateCommand(),
   new SetCommand(),
+  new SyncCommand(),
   new TestCommand(),
   new ToolsCommand(),
   new UnlinkCommand(),

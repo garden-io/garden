@@ -14,7 +14,7 @@ import { ServiceStatus } from "../../../types/service"
 import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
-import { configureSyncMode, convertKubernetesModuleDevModeSpec, startSyncs } from "../sync"
+import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync"
 import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
@@ -194,23 +194,8 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     // Local mode always takes precedence over sync mode
     if (mode === "local" && spec.localMode && deployedMode !== "local") {
       state = "outdated"
-    } else if (mode === "sync" && spec.sync?.paths) {
-      // Need to start the sync here, since the deployment handler won't be called with state=ready.
-      await startSyncs({
-        ctx: k8sCtx,
-        log,
-        action,
-        actionDefaults: spec.sync.defaults || {},
-        defaultTarget: spec.defaultTarget,
-        basePath: action.basePath(), // TODO-G2: double check if this holds up
-        defaultNamespace: namespace,
-        manifests: preparedManifests,
-        syncs: spec.sync.paths,
-      })
-
-      if (deployedMode !== "sync") {
-        state = "outdated"
-      }
+    } else if (mode === "sync" && spec.sync?.paths && deployedMode !== "sync") {
+      state = "outdated"
     }
   }
 
@@ -318,19 +303,6 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
         action,
         namespace,
         log,
-      })
-      attached = true
-    } else if (mode === "sync" && spec.sync?.paths?.length) {
-      await startSyncs({
-        ctx: k8sCtx,
-        log,
-        action,
-        actionDefaults: spec.sync.defaults || {},
-        defaultTarget: spec.defaultTarget,
-        basePath: action.basePath(), // TODO-G2: double check if this holds up
-        defaultNamespace: namespace,
-        manifests: preparedManifests,
-        syncs: spec.sync.paths,
       })
       attached = true
     }

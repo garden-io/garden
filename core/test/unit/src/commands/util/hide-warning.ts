@@ -15,7 +15,7 @@ import { getLogMessages } from "../../../../../src/util/testing"
 describe("HideWarningCommand", () => {
   it("should hide a warning message", async () => {
     const garden = await makeTestGarden(projectRootA)
-    const log = garden.log.makeNewLogContext({})
+    const log = garden.log.createLog({})
     const cmd = new HideWarningCommand()
     const key = randomString(10)
 

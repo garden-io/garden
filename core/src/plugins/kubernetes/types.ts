@@ -47,15 +47,14 @@ export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseR
     metadata: Partial<V1ObjectMeta> & {
       name: string
     }
-  } & Omit<T, "apiVersion" | "kind" | "metadata"> &
-    {
+  } & Omit<T, "apiVersion" | "kind" | "metadata"> & {
       // Make sure these are required if they're on the provided type
       [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
     }
 
 // Server-side resources always have some fields set if they're in the schema, e.g. status
-export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> = KubernetesResource<T> &
-  {
+export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> =
+  KubernetesResource<T> & {
     // Make sure these are required if they're on the provided type
     [P in Extract<keyof T, "status">]: Exclude<T[P], undefined>
   }
@@ -100,7 +99,7 @@ export type SyncableRuntimeAction = ContainerDeployAction | KubernetesDeployActi
 
 export type HelmRuntimeAction = HelmDeployAction | HelmPodRunAction | HelmPodTestAction
 
-export type SupportedRuntimeActions =
+export type SupportedRuntimeAction =
   | ContainerBuildAction
   | ContainerDeployAction
   | ContainerTestAction

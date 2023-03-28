@@ -665,7 +665,7 @@ export class Garden {
 
       log.silly(`Resolving providers`)
 
-      const providerLog = log.makeNewLogContext({ section: "providers" })
+      const providerLog = log.createLog({ name: "providers", showDuration: true })
       providerLog.info("Getting status...")
 
       const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -750,13 +750,10 @@ export class Garden {
       }
 
       if (gotCachedResult) {
-        providerLog.setSuccess(chalk.green("Cached"))
-        providerLog.info({
-          symbol: "info",
-          msg: chalk.gray("Run with --force-refresh to force a refresh of provider statuses."),
-        })
+        providerLog.success("Cached")
+        providerLog.info(chalk.gray("Run with --force-refresh to force a refresh of provider statuses."))
       } else {
-        providerLog.setSuccess(chalk.green("Done"))
+        providerLog.success("Done")
       }
 
       providerLog.silly(`Resolved providers: ${providers.map((p) => p.name).join(", ")}`)
@@ -876,7 +873,7 @@ export class Garden {
     const resolvedProviders = await this.resolveProviders(log)
     const rawModuleConfigs = await this.getRawModuleConfigs()
 
-    const graphLog = log.makeNewLogContext({ section: "graph" }).info(`Reading actions and modules...`)
+    const graphLog = log.createLog({ name: "graph", showDuration: true }).info(`Resolving actions and modules...`)
 
     // Resolve the project module configs
     const resolver = new ModuleResolver({
@@ -1047,7 +1044,7 @@ export class Garden {
       this.events.emit("stackGraph", graph.render())
     }
 
-    graphLog.setSuccess(chalk.green("Done"))
+    graphLog.success(chalk.green("Done"))
 
     return graph.toConfigGraph()
   }
@@ -1509,7 +1506,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   opts: GardenOpts
 ): Promise<GardenParams> {
   let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
-  const log = opts.log || getLogger().makeNewLogContext()
+  const log = opts.log || getLogger().createLog()
 
   if (!config) {
     config = await findProjectConfig(log, currentDirectory)
@@ -1581,7 +1578,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const cloudApi = opts.cloudApi || null
   // fall back to get the domain from config if the cloudApi instance failed
   // to login or was not defined.
-  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config)
+  const cloudDomain = cloudApi?.domain || getGardenCloudDomain(config.domain)
 
   // The cloudApi instance only has a project ID when the configured ID has
   // been verified against the cloud instance.
@@ -1590,8 +1587,8 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   if (!opts.noEnterprise && cloudApi) {
     const distroName = getCloudDistributionName(cloudDomain || "")
     const section = getCloudLogSectionName(distroName)
-    const cloudLog = log.makeNewLogContext({ section })
-    cloudLog.info("Initializing...")
+    const cloudLog = log.createLog({ section, showDuration: true })
+    cloudLog.info(`Initializing ${distroName}...`)
 
     let project: CloudProject | undefined
 
@@ -1629,7 +1626,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
         // Only fetch secrets if the projectId exists in the cloud API instance
         try {
           secrets = await getSecrets({ log: cloudLog, projectId: cloudApi.projectId, environmentName, cloudApi })
-          cloudLog.setSuccess(chalk.green("Ready"))
+          cloudLog.success(chalk.green("Ready"))
           cloudLog.silly(`Fetched ${Object.keys(secrets).length} secrets from ${cloudDomain}`)
         } catch (err) {
           cloudLog.debug(`Fetching secrets failed with error: ${err.message}`)

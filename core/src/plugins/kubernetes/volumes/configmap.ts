@@ -175,6 +175,6 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
   return new ResolvedDeployAction<KubernetesDeployActionConfig, {}>({
     ...action["params"],
     config,
-    spec: config.spec
+    spec: config.spec,
   })
 }

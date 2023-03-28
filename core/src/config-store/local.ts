@@ -31,6 +31,8 @@ const analyticsSchema = z.object({
 const localSchema = z.object({
   analytics: analyticsSchema,
 
+  devCommandHistory: z.array(z.string()).default([]),
+
   linkedModuleSources: z.record(linkedSourceSchema),
   linkedProjectSources: z.record(linkedSourceSchema),
 
@@ -63,6 +65,7 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
   protected async initConfig(migrate: boolean) {
     let config: LocalConfig = {
       analytics: {},
+      devCommandHistory: [],
       linkedModuleSources: {},
       linkedProjectSources: {},
       warnings: {},

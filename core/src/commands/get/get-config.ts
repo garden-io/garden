@@ -25,8 +25,7 @@ export const getConfigOptions = {
     help: "Exclude disabled action and module configs from output.",
   }),
   "resolve": new ChoicesParameter({
-    help:
-      "Choose level of resolution of config templates. Defaults to full. Specify --resolve=partial to avoid resolving providers.",
+    help: "Choose level of resolution of config templates. Defaults to full. Specify --resolve=partial to avoid resolving providers.",
     // TODO: add "raw" option, to just scan for configs and return completely unresolved
     choices: ["full", "partial"],
     defaultValue: "full",

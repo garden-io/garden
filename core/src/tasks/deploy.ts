@@ -26,19 +26,32 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<DeployAction>) {
-    const log = this.log.makeNewLogContext({})
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<DeployAction>) {
+    const log = this.log.createLog({})
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     const router = await this.garden.getActionRouter()
 
-    const status = await router.deploy.getStatus({
+    const { result: status } = await router.deploy.getStatus({
       graph: this.graph,
       action,
       log,
     })
 
-    return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
+    if (status.state === "ready" && status.detail?.mode !== action.mode()) {
+      status.state = "not-ready"
+    }
+
+    const executedAction = resolvedActionToExecuted(action, { status })
+
+    if (this.startSyncs && !statusOnly && status.state === "ready" && action.mode() === "sync") {
+      // If the action is already deployed, we still need to make sure the sync is started
+      // TODO-G2: instead, return outdated when sync is not already running?
+
+      await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
+    }
+
+    return { ...status, version: action.versionString(), executedAction }
   }
 
   async process({ dependencyResults, status }: ActionTaskProcessParams<DeployAction, DeployStatus>) {
@@ -47,30 +60,34 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const router = await this.garden.getActionRouter()
 
-    const log = this.log
-      .makeNewLogContext({
-        section: action.name,
-      })
-      .info(`Deploying version ${version}...`)
+    const log = this.log.createLog().info(`Deploying version ${version}...`)
+    log.info(`Deploying version ${version}...`)
 
     try {
-      status = await router.deploy.deploy({
+      const output = await router.deploy.deploy({
         graph: this.graph,
         action,
         log,
         force: this.force,
       })
+      status = output.result
     } catch (err) {
       log.error(`Error deploying ${action.name}`)
       throw err
     }
 
-    log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    log.success(`Done`)
 
     const executedAction = resolvedActionToExecuted(action, { status })
 
     for (const ingress of status.detail?.ingresses || []) {
       log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+    }
+
+    // Start syncing, if requested
+    if (this.startSyncs && action.mode() === "sync") {
+      log.info(chalk.gray("Starting sync"))
+      await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
     }
 
     if (this.garden.persistent) {

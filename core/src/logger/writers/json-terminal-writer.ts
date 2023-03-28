@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogEntryMetadata, LogEntry } from "../log-entry"
+import { LogMetadata, LogEntry } from "../log-entry"
 import { Logger } from "../logger"
 import { Writer } from "./base"
 import { formatForJson } from "../renderers"
@@ -17,7 +17,7 @@ export interface JsonLogEntry {
   data?: any
   errorDetail?: string
   section?: string
-  metadata?: LogEntryMetadata
+  metadata?: LogMetadata
   level: string
 }
 

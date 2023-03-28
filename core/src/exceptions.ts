@@ -11,7 +11,7 @@ import { stringify } from "yaml"
 import { withoutInternalFields, sanitizeValue } from "./util/logging"
 import { testFlags } from "./util/util"
 
-export interface GardenError<D extends object = any> {
+export interface GardenError<D extends object = any> extends Error {
   type: string
   message: string
   detail?: D

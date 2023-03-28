@@ -14,10 +14,13 @@ import { BaseRouterParams, createActionRouter } from "./base"
 import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
 
+const API_ACTION_TYPE = "build"
+
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Build", baseParams, {
     getStatus: async (params) => {
       const { router, action, garden } = params
+      const actionType = API_ACTION_TYPE
 
       const startedAt = new Date().toISOString()
 
@@ -26,6 +29,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         moduleName: action.moduleName(),
         actionName: action.name,
+        actionType,
         actionUid: action.getUid(),
         actionVersion,
         startedAt,
@@ -36,11 +40,12 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         state: "getting-status",
         status: { state: "fetching" },
       })
-      const status = await router.callHandler({
+      const statusOutput = await router.callHandler({
         params,
         handlerType: "getStatus",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
+      const status = statusOutput.result
       const { state } = status
 
       // TODO-G2: only validate if state is ready?
@@ -51,7 +56,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         state: stateForCacheStatusEvent(state),
         status: { state: state === "ready" ? "fetched" : "outdated" },
       })
-      return status
+      return statusOutput
     },
 
     build: async (params) => {
@@ -63,6 +68,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const startedAt = new Date().toISOString()
 
       const actionName = action.name
+      const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
@@ -74,6 +80,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           timestamp,
           actionUid,
           actionName,
+          actionType,
           moduleName,
           origin,
           data: data.toString(),
@@ -82,6 +89,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
         startedAt,
@@ -105,17 +113,18 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       }
 
       try {
-        const result = await router.callHandler({
+        const output = await router.callHandler({
           params,
           handlerType: "build",
           defaultHandler: async () => ({ state: <ActionState>"unknown", outputs: {}, detail: {} }),
         })
+        const { result } = output
 
         // TODO-G2: only validate if state is ready?
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
         emitBuildStatusEvent("ready")
-        return result
+        return output
       } catch (err) {
         emitBuildStatusEvent("failed")
         throw err

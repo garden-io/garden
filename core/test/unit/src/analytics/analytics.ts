@@ -19,6 +19,7 @@ import { Log } from "../../../../src/logger/log-entry"
 import { Logger, LogLevel } from "../../../../src/logger/logger"
 import { AnalyticsGlobalConfig, GlobalConfigStore } from "../../../../src/config-store/global"
 import { ProjectResource } from "../../../../src/config/project"
+import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
 
 class FakeCloudApi extends CloudApi {
   static async factory(params: { log: Log; projectConfig?: ProjectResource; skipLogging?: boolean }) {
@@ -261,13 +262,12 @@ describe("AnalyticsHandler", () => {
 
   describe("factory (user is logged in)", async () => {
     beforeEach(async () => {
-      const logger = new Logger({
+      const logger = Logger._createInstanceForTests({
         level: LogLevel.info,
-        writers: [],
+        writers: { terminal: new QuietWriter({ level: LogLevel.info }), file: [] },
         storeEntries: false,
-        type: "default",
       })
-      const cloudApi = await FakeCloudApi.factory({ log: logger.makeNewLogContext() })
+      const cloudApi = await FakeCloudApi.factory({ log: logger.createLog() })
       garden = await makeTestGardenA(undefined, { cloudApi })
       garden.vcsInfo.originUrl = remoteOriginUrl
       await enableAnalytics(garden)

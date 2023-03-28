@@ -19,18 +19,8 @@ import { runResultToActionState } from "../../../actions/base"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, action, log } = params
-  const {
-    command,
-    args,
-    artifacts,
-    env,
-    cpu,
-    memory,
-    volumes,
-    privileged,
-    addCapabilities,
-    dropCapabilities,
-  } = action.getSpec()
+  const { command, args, artifacts, env, cpu, memory, volumes, privileged, addCapabilities, dropCapabilities } =
+    action.getSpec()
   const timeout = action.getConfig("timeout") || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 

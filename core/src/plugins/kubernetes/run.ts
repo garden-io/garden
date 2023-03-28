@@ -25,7 +25,7 @@ import { Writable, Readable, PassThrough } from "stream"
 import { uniqByName, sleep } from "../../util/util"
 import { ExecInPodResult, KubeApi, KubernetesError } from "./api"
 import { getPodLogs, checkPodStatus } from "./status/pod"
-import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeActions } from "./types"
+import { KubernetesResource, KubernetesPod, KubernetesServerResource, SupportedRuntimeAction } from "./types"
 import { ContainerEnvVars, ContainerResourcesSpec, ContainerVolumeSpec } from "../container/config"
 import { prepareEnvVars, makePodName, renderPodEvents } from "./util"
 import { dedent, deline, randomString } from "../../util/string"
@@ -132,7 +132,7 @@ export async function runAndCopy({
 }: BaseRunParams & {
   ctx: PluginContext
   log: Log
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   image: string
   container?: V1Container
   podName?: string
@@ -212,7 +212,7 @@ export async function runAndCopy({
     const logEventContext = {
       // XXX command cannot be possibly undefined, can it?
       origin: command ? command[0] : "unknown command",
-      log: log.makeNewLogContext({ level: LogLevel.verbose }),
+      log: log.createLog({ fixLevel: LogLevel.verbose }),
     }
 
     const outputStream = new PassThrough()
@@ -262,7 +262,7 @@ export async function prepareRunPodSpec({
   podSpec?: V1PodSpec
   getArtifacts: boolean
   log: Log
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   args: string[]
   command: string[] | undefined
   api: KubeApi
@@ -401,7 +401,7 @@ async function runWithoutArtifacts({
   log: Log
   api: KubeApi
   provider: KubernetesProvider
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   version: string
   podData: PodData
   run: BaseRunParams
@@ -504,7 +504,7 @@ async function runWithArtifacts({
 }: {
   ctx: PluginContext
   log: Log
-  action: SupportedRuntimeActions
+  action: SupportedRuntimeAction
   mainContainerName: string
   api: KubeApi
   provider: KubernetesProvider
@@ -800,7 +800,7 @@ export class PodRunner extends PodRunnerParams {
       ? this.logEventContext
       : {
           origin: this.getFullCommand()[0]!,
-          log: log.makeNewLogContext({ level: LogLevel.verbose }),
+          log: log.createLog({ fixLevel: LogLevel.verbose }),
         }
 
     const stream = new Stream<RunLogEntry>()
@@ -1184,7 +1184,7 @@ export class PodRunner extends PodRunnerParams {
   }) {
     // Some types and predicates to identify known errors
     const knownErrorTypes = ["out-of-memory", "not-found", "timeout", "pod-runner", "kubernetes"] as const
-    type KnownErrorType = typeof knownErrorTypes[number]
+    type KnownErrorType = (typeof knownErrorTypes)[number]
     // A known error is always an instance of a subclass of GardenBaseError
     type KnownError = Error & {
       message: string

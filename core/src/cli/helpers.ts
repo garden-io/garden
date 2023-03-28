@@ -31,7 +31,6 @@ import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
 import { validateGitInstall } from "../vcs/vcs"
-import { FileWriter } from "../logger/writers/file-writer"
 
 export const cliStyles = {
   heading: (str: string) => chalk.white.bold(str),
@@ -487,7 +486,7 @@ function renderParameters(params: Parameters, formatName: (name: string, param: 
 export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) {
   const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
-  const errorLog = log || logger.makeNewLogContext()
+  const errorLog = log || logger.createLog()
 
   for (const error of gardenErrors) {
     errorLog.error({
@@ -498,7 +497,7 @@ export function renderCommandErrors(logger: Logger, errors: Error[], log?: Log) 
     errorLog.silly(error.formatWithDetail())
   }
 
-  if (logger.getWriters().find((w) => w instanceof FileWriter)) {
+  if (logger.getWriters().file.length > 0) {
     errorLog.info(`\nSee .garden/${ERROR_LOG_FILENAME} for detailed error message`)
   }
 }

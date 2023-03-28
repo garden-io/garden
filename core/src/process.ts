@@ -80,9 +80,19 @@ export async function processActions({
 
   // Garden process is persistent but not in watch mode. E.g. used to
   // keep port forwards alive without enabling watch or sync mode.
+  return {
+    ...(await waitForExitEvent(garden, log)),
+    graphResults: results.results,
+  }
+}
+
+export async function waitForExitEvent(garden: Garden, log: Log) {
+  let restartRequired = false
+
   await new Promise((resolve) => {
     garden.events.on("_restart", () => {
       log.debug({ symbol: "info", msg: `Manual restart triggered` })
+      restartRequired = true
       resolve({})
     })
 
@@ -93,8 +103,7 @@ export async function processActions({
   })
 
   return {
-    graphResults: results.results,
-    restartRequired: false,
+    restartRequired,
   }
 }
 

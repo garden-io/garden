@@ -15,7 +15,7 @@ import { randomString } from "../../../../src/util/string"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 
 describe("CloudApi", () => {
-  const log = getLogger().makeNewLogContext()
+  const log = getLogger().createLog()
   const domain = "https://garden." + randomString()
   const globalConfigStore = new GlobalConfigStore()
 

@@ -15,7 +15,7 @@ import { apply, deleteResources } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
-import { configureSyncMode, startSyncs } from "../sync"
+import { configureSyncMode } from "../sync"
 import { KubeApi } from "../api"
 import { ConfiguredLocalMode, configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler } from "../../../plugin/action-types"
@@ -164,19 +164,6 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       log,
     })
     attached = true
-  } else if (mode === "sync" && spec.sync?.paths?.length) {
-    await startSyncs({
-      ctx: k8sCtx,
-      log,
-      action,
-      actionDefaults: spec.sync.defaults || {},
-      defaultTarget: spec.defaultTarget,
-      basePath: action.basePath(), // TODO-G2: double check if this holds up
-      defaultNamespace: namespace,
-      manifests,
-      syncs: spec.sync.paths,
-    })
-    attached = true
   }
 
   return {
@@ -215,7 +202,7 @@ export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> =
   // Wait for resources to terminate
   await deleteResources({ log, ctx, provider, resources, namespace })
 
-  log.setSuccess("Service deleted")
+  log.success("Service deleted")
 
   return { state: "not-ready", outputs: {}, detail: { state: "missing", detail: { remoteResources: [] } } }
 }

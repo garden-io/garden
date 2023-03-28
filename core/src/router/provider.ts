@@ -184,7 +184,7 @@ export class ProviderRouter extends BaseRouter {
       environmentStatuses[provider.name] = { ready: false, outputs: {} }
     })
 
-    log.setSuccess()
+    log.success("Done")
 
     return environmentStatuses
   }

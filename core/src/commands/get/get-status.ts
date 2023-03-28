@@ -106,7 +106,7 @@ async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const result = await router.build.getStatus({ action, log, graph })
+      const { result } = await router.build.getStatus({ action, log, graph })
       return [action.name, result]
     })
   )
@@ -117,7 +117,7 @@ async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph,
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const result = await router.test.getResult({ action, log, graph })
+      const { result } = await router.test.getResult({ action, log, graph })
       return [action.name, result]
     })
   )
@@ -128,7 +128,7 @@ async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, 
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const result = await router.run.getResult({ action, log, graph })
+      const { result } = await router.run.getResult({ action, log, graph })
       return [action.name, result]
     })
   )

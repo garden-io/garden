@@ -101,11 +101,12 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     deploymentName: buildkitDeploymentName,
   })
 
-  log.info(`Building image ${localId}...`)
+  log.info(`Buildkit Building image ${localId}...`)
 
   const logEventContext = {
     origin: "buildkit",
-    log: log.makeNewLogContext({ level: LogLevel.verbose }),
+    // log: log.createLog({ fixLevel: LogLevel.verbose }),
+    log: log.createLog({ fixLevel: LogLevel.verbose, section: "foobar" }),
   }
 
   const outputStream = split2()
@@ -185,7 +186,7 @@ export async function ensureBuildkit({
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.makeNewLogContext({})
+    const deployLog = log.createLog({})
 
     // Make sure auth secret is in place
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({

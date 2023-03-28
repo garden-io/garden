@@ -7,7 +7,6 @@
  */
 
 import chalk, { Chalk } from "chalk"
-import type { Log } from "./log-entry"
 import hasAnsi from "has-ansi"
 import dedent from "dedent"
 import stringWidth from "string-width"
@@ -24,10 +23,6 @@ export interface LogLike {
 }
 
 export type ProcessLog<T extends LogLike = LogLike> = (node: T) => boolean
-
-export function findParentLogContext(log: Log, predicate: ProcessLog<Log>): Log | null {
-  return predicate(log) ? log : log.parent ? findParentLogContext(log.parent, predicate) : null
-}
 
 /**
  * Returns the entry's section or first parent section it finds.

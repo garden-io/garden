@@ -135,7 +135,7 @@ describe("sanitizeValue", () => {
   })
 
   it("replaces LogEntry instances", async () => {
-    const log = logger.makeNewLogContext().info("foo")
+    const log = logger.createLog().info("foo")
     const obj = {
       a: log,
     }
@@ -165,7 +165,7 @@ describe("sanitizeValue", () => {
       log: Log
 
       constructor() {
-        const log = logger.makeNewLogContext().info("foo")
+        const log = logger.createLog().info("foo")
         this.log = log
       }
     }

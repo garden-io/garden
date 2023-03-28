@@ -95,14 +95,14 @@ describe("runContainerTask", () => {
     await garden.processTasks({ tasks: [testTask], throwOnError: true })
 
     // Verify that the result was not saved
-    const actions = await garden.getActionRouter()
-    const storedResult = await actions.run.getResult({
+    const router = await garden.getActionRouter()
+    const { result } = await router.run.getResult({
       log: garden.log,
       action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
       graph,
     })
 
-    expect(storedResult.state).to.eql("not-ready")
+    expect(result.state).to.eql("not-ready")
   })
 
   // TODO-G2: solver gets stuck in an infinite loop
@@ -129,7 +129,7 @@ describe("runContainerTask", () => {
 
     // We also verify that, despite the task failing, its result was still saved.
     const actions = await garden.getActionRouter()
-    const result = await actions.run.getResult({
+    const { result } = await actions.run.getResult({
       log: garden.log,
       action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
       graph,

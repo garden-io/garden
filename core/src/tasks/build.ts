@@ -30,7 +30,8 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
   async getStatus({ dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
-    const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
+    const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
+    const status = output.result
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
@@ -44,9 +45,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       )
     }
 
-    let log = this.log
-      .makeNewLogContext({ section: this.getName() })
-      .info(`Building version ${action.versionString()}...`)
+    const log = this.log.info(`Building version ${action.versionString()}...`)
 
     const files = action.getFullVersion().files
 
@@ -64,12 +63,13 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     await this.garden.buildStaging.syncDependencyProducts(action, log)
 
     try {
-      const result = await router.build.build({
+      const { result } = await router.build.build({
         graph: this.graph,
         action,
         log,
       })
-      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+      // TODO @eysi: Verify duration
+      log.success(`Done`)
 
       return {
         ...result,

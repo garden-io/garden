@@ -44,7 +44,7 @@ export const helmPodRunDefinition = (): RunActionDefinition<HelmPodRunAction> =>
         ctx: k8sCtx,
         log,
         action,
-        provider: k8sCtx.provider
+        provider: k8sCtx.provider,
       })
       const namespace = namespaceStatus.namespaceName
 
@@ -92,7 +92,7 @@ export const helmPodTestDefinition = (): TestActionDefinition<HelmPodTestAction>
         ctx: k8sCtx,
         log,
         action,
-        provider: k8sCtx.provider
+        provider: k8sCtx.provider,
       })
       const namespace = namespaceStatus.namespaceName
 
@@ -183,4 +183,3 @@ export async function runOrTestWithChart(
     version,
   })
 }
-

@@ -9,7 +9,7 @@
 import { PluginContext } from "../../../plugin-context"
 import { Log } from "../../../logger/log-entry"
 import { ServiceStatus, ForwardablePort } from "../../../types/service"
-import { createContainerManifests, startContainerDevSync } from "./deployment"
+import { createContainerManifests } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
 import { sleep } from "../../../util/util"
@@ -52,13 +52,12 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     action,
     imageId,
   })
-  let { state, remoteResources, mode: deployedMode, selectorChangedResourceKeys } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    manifests,
-    log
-  )
+  let {
+    state,
+    remoteResources,
+    mode: deployedMode,
+    selectorChangedResourceKeys,
+  } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(action, api, provider)
 
   // Local mode has its own port-forwarding configuration
@@ -89,16 +88,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     detail: { remoteResources, workload, selectorChangedResourceKeys },
     mode: deployedMode,
     outputs,
-  }
-
-  if (state === "ready" && deployedMode === "sync") {
-    // If the service is already deployed, we still need to make sure the sync is started
-    await startContainerDevSync({
-      ctx: <KubernetesPluginContext>ctx,
-      log,
-      status: detail,
-      action,
-    })
   }
 
   return {

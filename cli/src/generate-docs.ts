@@ -19,7 +19,7 @@ require("source-map-support").install()
 try {
   Logger.initialize({
     level: LogLevel.info,
-    type: "quiet",
+    terminalWriterType: "quiet",
     storeEntries: false,
     // level: LogLevel.debug,
     // writers: [new TerminalWriter()],

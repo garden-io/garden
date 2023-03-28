@@ -20,8 +20,7 @@ import { findByName, getNames } from "../../util/util"
 
 const getTestResultArgs = {
   name: new StringParameter({
-    help:
-      "The name of the test. If this test belongs to a module, specify the module name here instead, and specify the test name from the module in the second argument.",
+    help: "The name of the test. If this test belongs to a module, specify the module name here instead, and specify the test name from the module in the second argument.",
     required: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Test)
@@ -63,11 +62,7 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
     const testName = args.name
     const moduleName = args.module
 
-    printHeader(
-      headerLog,
-      `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`,
-      "✔️"
-    )
+    printHeader(headerLog, `Test result for test ${chalk.cyan(testName)} in module ${chalk.cyan(moduleName)}`, "✔️")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {
@@ -78,7 +73,7 @@ export class GetTestResultCommand extends Command<Args, {}, GetTestResultCommand
 
     const resolved = await garden.resolveAction({ action, graph, log })
 
-    const res = await router.test.getResult({
+    const { result: res } = await router.test.getResult({
       log,
       graph,
       action: resolved,

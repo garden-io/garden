@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
@@ -30,22 +29,18 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<RunAction>) {
-    const taskLog = this.log
-      .makeNewLogContext({
-        section: this.action.name,
-      })
-      .info("Checking result...")
+    const taskLog = this.log.createLog().info("Checking result...")
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
     // The default handler (for plugins that don't implement getTaskResult) returns undefined.
     try {
-      const status = await router.run.getResult({
+      const { result: status } = await router.run.getResult({
         graph: this.graph,
         action,
         log: taskLog,
       })
-      taskLog.setSuccess(chalk.green(`Done`))
+      taskLog.success(`Done`)
 
       // Should return a null value here if there is no result
       if (status.detail === null) {
@@ -66,29 +61,26 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const taskLog = this.log
-      .makeNewLogContext({
-        section: action.key(),
-      })
-      .info("Running...")
+    const taskLog = this.log.createLog().info("Running...")
 
     const actions = await this.garden.getActionRouter()
 
     let status: GetRunResult
 
     try {
-      status = await actions.run.run({
+      const output = await actions.run.run({
         graph: this.graph,
         action,
         log: taskLog,
         interactive: false,
       })
+      status = output.result
     } catch (err) {
       taskLog.error(`Failed running ${action.name}`)
       throw err
     }
     if (status.state === "ready") {
-      taskLog.setSuccess(chalk.green(`Done (took ${taskLog.getDuration(1)} sec)`))
+      taskLog.success(`Done`)
     } else {
       taskLog.error(`Failed!`)
       throw new RunTaskError(status.detail?.log)

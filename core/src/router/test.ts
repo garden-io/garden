@@ -16,6 +16,8 @@ import { makeTempDir } from "../util/fs"
 import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
+const API_ACTION_TYPE = "test"
+
 export const testRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Test", baseParams, {
     run: async (params) => {
@@ -26,12 +28,14 @@ export const testRouter = (baseParams: BaseRouterParams) =>
       const actionUid = action.getUid()
 
       const actionName = action.name
+      const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
         actionUid,
         startedAt: new Date().toISOString(),
@@ -58,13 +62,15 @@ export const testRouter = (baseParams: BaseRouterParams) =>
             timestamp,
             actionUid,
             actionName,
+            actionType,
             moduleName,
             origin,
             data: data.toString(),
           })
         })
 
-        const result = await router.callHandler({ params: { ...params, artifactsPath }, handlerType: "run" })
+        const output = await router.callHandler({ params: { ...params, artifactsPath }, handlerType: "run" })
+        const { result } = output
 
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
@@ -78,7 +84,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         // TODO-G2: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
-        return result
+        return output
       } finally {
         // Copy everything from the temp directory, and then clean it up
         try {
@@ -99,10 +105,12 @@ export const testRouter = (baseParams: BaseRouterParams) =>
 
       const actionName = action.name
       const actionVersion = action.versionString()
+      const actionType = API_ACTION_TYPE
 
       const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName: action.moduleName(),
         actionUid: action.getUid(),
         startedAt: new Date().toISOString(),
@@ -114,11 +122,12 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         status: { state: "unknown" },
       })
 
-      const result = await router.callHandler({
+      const output = await router.callHandler({
         params,
         handlerType: "getResult",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: null, outputs: {} }),
       })
+      const { result } = output
 
       garden.events.emit("testStatus", {
         ...payloadAttrs,
@@ -131,6 +140,6 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         await router.validateActionOutputs(action, "runtime", result.outputs)
       }
 
-      return result
+      return output
     },
   })

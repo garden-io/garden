@@ -15,7 +15,6 @@ import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
-import chalk from "chalk"
 import {
   GetProjectResponse,
   GetProfileResponse,
@@ -27,7 +26,6 @@ import { CommandInfo } from "../plugin-context"
 import { ClientAuthToken, GlobalConfigStore } from "../config-store/global"
 import { add } from "date-fns"
 import { LogLevel } from "../logger/logger"
-import { ProjectResource } from "../config/project"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
@@ -139,13 +137,13 @@ function toCloudProject(
  * A helper function to get the cloud domain from a project config. Uses the env var
  * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export function getGardenCloudDomain(projectConfig?: ProjectResource): string {
+export function getGardenCloudDomain(configuredDomain: string | undefined): string {
   let cloudDomain: string | undefined
 
   if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
     cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
-  } else if (projectConfig?.domain) {
-    cloudDomain = new URL(projectConfig.domain).origin
+  } else if (configuredDomain) {
+    cloudDomain = new URL(configuredDomain).origin
   }
 
   return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
@@ -192,10 +190,13 @@ export class CloudApi {
     globalConfigStore: GlobalConfigStore
     skipLogging?: boolean
   }) {
-    log.debug("Initializing Garden Cloud API client.")
+    const distroName = getCloudDistributionName(cloudDomain)
+    const fixLevel = skipLogging ? LogLevel.silly : undefined
+    const cloudFactoryLog = log.createLog({ fixLevel, name: getCloudLogSectionName(distroName), showDuration: true })
+
+    cloudFactoryLog.debug("Initializing Garden Cloud API client.")
 
     const token = await CloudApi.getStoredAuthToken(log, globalConfigStore, cloudDomain)
-    const distroName = getCloudDistributionName(cloudDomain)
 
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
       log.debug(
@@ -207,9 +208,7 @@ export class CloudApi {
     const api = new CloudApi(log, cloudDomain, globalConfigStore)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const section = getCloudLogSectionName(distroName)
-
-    const enterpriseLog = skipLogging ? null : log.makeNewLogContext({ section }).info("Authorizing...")
+    cloudFactoryLog.info("Authorizing...")
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
@@ -224,18 +223,18 @@ export class CloudApi {
     } else {
       // Refresh the token if it's invalid.
       if (!tokenIsValid) {
-        enterpriseLog?.debug({ msg: `Current auth token is invalid, refreshing` })
+        cloudFactoryLog.debug({ msg: `Current auth token is invalid, refreshing` })
 
         // We can assert the token exists since we're not using GARDEN_AUTH_TOKEN
         await api.refreshToken(token!)
       }
 
       // Start refresh interval if using JWT
-      log.debug({ msg: `Starting refresh interval.` })
+      cloudFactoryLog.debug({ msg: `Starting refresh interval.` })
       api.startInterval()
     }
 
-    enterpriseLog?.setSuccess(chalk.green("Done"))
+    cloudFactoryLog.success("Done")
 
     return api
   }
@@ -516,7 +515,7 @@ export class CloudApi {
               // Intentionally skipping search params in case they contain tokens or sensitive data.
               const href = options.url.origin + options.url.pathname
               const description = retryDescription || `Request`
-              retryLog = retryLog || this.log.makeNewLogContext({ level: LogLevel.debug })
+              retryLog = retryLog || this.log.createLog({ fixLevel: LogLevel.debug })
               const statusCodeDescription = error.code ? ` (status code ${error.code})` : ``
               retryLog.info(deline`
                 ${description} failed with error ${error.message}${statusCodeDescription},

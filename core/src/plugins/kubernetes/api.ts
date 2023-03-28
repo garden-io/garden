@@ -1022,7 +1022,7 @@ async function requestWithRetry<R>(
       return await req()
     } catch (err) {
       if (shouldRetry(err)) {
-        retryLog = retryLog || log.makeNewLogContext({ level: LogLevel.debug })
+        retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
           retryLog.info(deline`

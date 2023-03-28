@@ -183,7 +183,8 @@ export class ResolvedBuildAction<
     Outputs extends {} = any
   >
   extends BuildAction<C, Outputs>
-  implements ResolvedActionExtension<C, Outputs> {
+  implements ResolvedActionExtension<C, Outputs>
+{
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<C>
   protected readonly resolved: true
@@ -239,7 +240,8 @@ export class ExecutedBuildAction<
     O extends {} = any
   >
   extends ResolvedBuildAction<C, O>
-  implements ExecutedActionExtension<C, O> {
+  implements ExecutedActionExtension<C, O>
+{
   protected readonly executed: true
   private readonly status: ActionStatus<this, any, O>
 

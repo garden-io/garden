@@ -7,16 +7,23 @@
  */
 
 import dotenv = require("dotenv")
-import { intersection, sortBy } from "lodash"
+import { intersection, mapValues, sortBy } from "lodash"
 import { resolve, join } from "path"
 import chalk from "chalk"
 import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
-import { shutdown, sleep, getPackageVersion, registerCleanupFunction, getCloudDistributionName } from "../util/util"
+import {
+  shutdown,
+  sleep,
+  getPackageVersion,
+  registerCleanupFunction,
+  getCloudDistributionName,
+  getCloudLogSectionName,
+} from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
-import { Logger, LoggerType, LogLevel, parseLogLevel } from "../logger/logger"
+import { getTerminalWriterType, Logger, LogLevel, parseLogLevel } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 
 import {
@@ -39,7 +46,13 @@ import {
   ProjectResource,
   EnvironmentConfig,
 } from "../config/project"
-import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
+import {
+  ERROR_LOG_FILENAME,
+  DEFAULT_API_VERSION,
+  DEFAULT_GARDEN_DIR_NAME,
+  LOGS_DIR_NAME,
+  gardenEnv,
+} from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
@@ -55,11 +68,11 @@ import { prepareDebugLogfiles } from "./debug-logs"
 import { Log } from "../logger/log-entry"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
-import { printEmoji, renderDivider } from "../logger/util"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess } from "../process"
 import { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
+import { SemVer } from "semver"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments: EnvironmentConfig[] = gardenOpts.environmentName
@@ -82,27 +95,6 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
-function renderHeader({
-  environmentName,
-  namespaceName,
-  log,
-}: {
-  environmentName: string
-  namespaceName: string
-  log: Log
-}) {
-  const divider = chalk.gray(renderDivider())
-  let msg = `${printEmoji("🌍", log)}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
-    environmentName
-  )}`
-
-  return dedent`
-    ${divider}
-    ${msg}
-    ${divider}\n
-  `
-}
-
 export interface RunOutput {
   argv: any
   code: number
@@ -119,10 +111,12 @@ export class GardenCli {
   private plugins: GardenPluginReference[]
   private bufferedEventStream: BufferedEventStream | undefined
   private sessionFinished = false
+  private initLogger: boolean
   public processRecord: GardenProcess
 
-  constructor({ plugins }: { plugins?: GardenPluginReference[] } = {}) {
+  constructor({ plugins, initLogger = false }: { plugins?: GardenPluginReference[]; initLogger?: boolean } = {}) {
     this.plugins = plugins || []
+    this.initLogger = initLogger
 
     const commands = sortBy(getBuiltinCommands(), (c) => c.name)
     commands.forEach((command) => this.addCommand(command))
@@ -151,12 +145,10 @@ ${renderCommands(commands)}
   }
 
   private async initFileWriters({
-    logger,
     log,
     gardenDirPath,
     commandFullName,
   }: {
-    logger: Logger
     log: Log
     gardenDirPath: string
     commandFullName: string
@@ -192,11 +184,11 @@ ${renderCommands(commands)}
       },
       {
         logFilePath: join(gardenDirPath, LOGS_DIR_NAME, "development.log"),
-        level: logger.level,
+        level: log.root.level,
       },
     ]
     for (const config of logConfigs) {
-      logger.addWriter(await (config.json ? JsonFileWriter : FileWriter).factory(config))
+      log.root.addFileWriter(await (config.json ? JsonFileWriter : FileWriter).factory(config))
     }
     this.fileWritersInitialized = true
   }
@@ -232,21 +224,20 @@ ${renderCommands(commands)}
     parsedOpts,
     processRecord,
     workingDir,
+    log,
   }: {
     command: Command<A, O>
     parsedArgs: BuiltinArgs & ParameterValues<A>
     parsedOpts: ParameterValues<GlobalOptions & O>
     processRecord?: GardenProcess
     workingDir: string
+    log: Log
   }) {
     const {
-      "logger-type": loggerTypeOpt,
-      "log-level": logLevel,
-      "show-timestamps": showTimestamps,
-      emoji,
-      "env": environmentName,
       silent,
       output,
+      "logger-type": loggerTypeOpt,
+      "env": environmentName,
       "force-refresh": forceRefresh,
       "var": cliVars,
       "disable-port-forwards": disablePortForwards,
@@ -255,35 +246,24 @@ ${renderCommands(commands)}
     // Parse command line --var input
     const parsedCliVars = cliVars ? dotenv.parse(cliVars.join("\n")) : {}
 
-    // Init logger
-    const level = parseLogLevel(logLevel)
-    let loggerType = <LoggerType>loggerTypeOpt || command.getLoggerType({ opts: parsedOpts, args: parsedArgs })
+    // Some commands may set their own logger type so we update the logger config here,
+    // once we've resolved the command.
+    const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
+    log.root.setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
-    if (silent || output) {
-      loggerType = "quiet"
+    // TODO: remove for the proper 0.13 release
+    if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
+      log.warn(
+        chalk.yellow(dedent`Garden Bonsai (0.13) is in beta. Please report any issues here:
+          https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
+      )
     }
-
-    const logger = Logger.initialize({
-      level,
-      storeEntries: false,
-      type: loggerType,
-      useEmoji: emoji,
-      showTimestamps,
-    })
-
-    // Currently we initialise empty placeholder entries and pass those to the
-    // framework as opposed to the logger itself. This is to give better control over where on
-    // the screen the logs are printed.
-    // TODO: Remove header and footer logs. Not needed any more.
-    const headerLog = logger.makeNewLogContext()
-    const log = logger.makeNewLogContext()
-    const footerLog = logger.makeNewLogContext()
 
     const globalConfigStore = new GlobalConfigStore()
 
     await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
 
-    command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
+    command.printHeader({ headerLog: log, args: parsedArgs, opts: parsedOpts })
     const sessionId = uuidv4()
 
     // Init Cloud API
@@ -292,7 +272,7 @@ ${renderCommands(commands)}
     if (!command.noProject) {
       const config: ProjectResource | undefined = await this.getProjectConfig(log, workingDir)
 
-      const cloudDomain = getGardenCloudDomain(config)
+      const cloudDomain = getGardenCloudDomain(config?.domain)
       const distroName = getCloudDistributionName(cloudDomain)
 
       try {
@@ -357,8 +337,8 @@ ${renderCommands(commands)}
 
     const prepareParams = {
       log,
-      headerLog,
-      footerLog,
+      headerLog: log,
+      footerLog: log,
       args: parsedArgs,
       opts: parsedOpts,
       cloudApi: cloudApi || undefined,
@@ -373,7 +353,7 @@ ${renderCommands(commands)}
     contextOpts.persistent = persistent
     const { streamEvents, streamLogEntries } = command
     // TODO: Link to Cloud namespace page here.
-    const nsLog = headerLog.makeNewLogContext({})
+    const nsLog = log.createLog({})
 
     do {
       try {
@@ -382,7 +362,12 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.info(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName, log }))
+          nsLog.info({
+            section: "garden",
+            msg: `Running in namespace ${chalk.cyan(garden.namespace)} in environment ${chalk.cyan(
+              garden.environmentName
+            )}`,
+          })
 
           if (!cloudApi && garden.projectId) {
             log.warn({
@@ -431,15 +416,12 @@ ${renderCommands(commands)}
             const distroName = getCloudDistributionName(cloudApi.domain)
             const userId = (await cloudApi.getProfile()).id
             const commandResultUrl = cloudApi.getCommandResultUrl({ sessionId, userId }).href
-            const msg = dedent`
-              \n${printEmoji("🌩️", log)}   ${chalk.cyan(
-              `Connected to ${distroName}! Click the link below to view logs and command results.`
-            )}
-              ${printEmoji("🔗", log)}  ${chalk.blueBright.underline(commandResultUrl)}
-            `
-            footerLog.info(msg)
-          }
 
+            const msg = dedent`🌸 Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
+              commandResultUrl
+            )}\n`
+            log.info({ section: getCloudLogSectionName(distroName), msg })
+          }
         }
 
         if (cloudApi && garden.projectId) {
@@ -476,7 +458,6 @@ ${renderCommands(commands)}
         // Register log file writers. We need to do this after the Garden class is initialised because
         // the file writers depend on the project root.
         await this.initFileWriters({
-          logger,
           log,
           gardenDirPath: garden.gardenDirPath,
           commandFullName: command.getFullName(),
@@ -485,9 +466,9 @@ ${renderCommands(commands)}
         analytics.trackCommand(command.getFullName())
 
         // Note: No reason to await the check
-        checkForUpdates(garden.globalConfigStore, headerLog).catch((err) => {
-          headerLog.verbose("Something went wrong while checking for the latest Garden version.")
-          headerLog.verbose(err)
+        checkForUpdates(garden.globalConfigStore, log).catch((err) => {
+          log.verbose("Something went wrong while checking for the latest Garden version.")
+          log.verbose(err)
         })
 
         await checkForStaticDir()
@@ -500,8 +481,8 @@ ${renderCommands(commands)}
             garden,
             cli: this,
             log,
-            footerLog,
-            headerLog,
+            footerLog: log,
+            headerLog: log,
             args: parsedArgs,
             opts: parsedOpts,
           })
@@ -583,14 +564,27 @@ ${renderCommands(commands)}
     // First look for native Garden commands
     let { command, rest, matchedPath } = pickCommand(Object.values(this.commands), argv._)
 
-    // Logger might not have been initialised if process exits early
+    // Note: We partially initialize the logger here with the default writer or the one set via
+    // command line flags / env var by the user so that we can use it right away.
+    // Some commands require a specific writer so we update the writers (if needed) once
+    // we've resolved the commands.
+    const {
+      emoji,
+      silent,
+      output,
+      "show-timestamps": showTimestamps,
+      "logger-type": loggerTypeOpt,
+      "log-level": logLevelStr,
+    } = argv
     const logger = Logger.initialize({
-      level: LogLevel.info,
-      type: "default",
+      level: parseLogLevel(logLevelStr),
       storeEntries: false,
+      terminalWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
+      useEmoji: emoji,
+      showTimestamps,
     })
 
-    const log = logger.makeNewLogContext()
+    const log = logger.createLog()
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {
@@ -635,13 +629,18 @@ ${renderCommands(commands)}
     let parsedArgs: BuiltinArgs & ParameterValues<any>
     let parsedOpts: ParameterValues<any>
 
-    try {
-      const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })
-      parsedArgs = parseResults.args
-      parsedOpts = parseResults.opts
-    } catch (err) {
-      errors.push(...(err.detail?.errors || []).map(toGardenError))
-      return done(1, err.message + "\n" + command.renderHelp())
+    if (command.ignoreOptions) {
+      parsedArgs = { $all: args }
+      parsedOpts = mapValues(globalOptions, (spec) => spec.getDefaultValue(true))
+    } else {
+      try {
+        const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, matchedPath, cli: true })
+        parsedArgs = parseResults.args
+        parsedOpts = parseResults.opts
+      } catch (err) {
+        errors.push(...(err.detail?.errors || []).map(toGardenError))
+        return done(1, err.message + "\n" + command.renderHelp())
+      }
     }
 
     let commandResult: CommandResult<any> | undefined = undefined
@@ -661,7 +660,7 @@ ${renderCommands(commands)}
     const commandStartTime = new Date()
 
     try {
-      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir })
+      const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir, log })
       commandResult = runResults.result
       analytics = runResults.analytics
     } catch (err) {

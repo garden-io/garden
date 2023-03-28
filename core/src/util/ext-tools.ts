@@ -154,7 +154,7 @@ export class CliWrapper {
 
     const logEventContext = {
       origin: this.name,
-      log: log.makeNewLogContext({ level: LogLevel.verbose }),
+      log: log.createLog({ fixLevel: LogLevel.verbose }),
     }
 
     logStream.on("data", (line: Buffer) => {
@@ -297,10 +297,10 @@ export class PluginTool extends CliWrapper {
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
 
-      const downloadLog = log.makeNewLogContext({}).info(`Fetching ${this.name}...`)
+      const downloadLog = log.createLog({}).info(`Fetching ${this.name}...`)
       const debug = downloadLog
-        .makeNewLogContext({
-          level: LogLevel.debug,
+        .createLog({
+          fixLevel: LogLevel.debug,
         })
         .info(`Downloading ${this.buildSpec.url}...`)
 
@@ -324,8 +324,8 @@ export class PluginTool extends CliWrapper {
         }
       }
 
-      debug && debug.setSuccess("Done")
-      downloadLog.setSuccess(`Fetched ${this.name}`)
+      debug && debug.success("Done")
+      downloadLog.success(`Fetched ${this.name}`)
     })
   }
 
