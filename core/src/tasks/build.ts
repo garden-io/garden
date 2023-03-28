@@ -51,6 +51,16 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     }
 
     const log = this.log.info(`Building version ${action.versionString()}...`)
+    // const newActionLog = log.createLog()
+
+    // const newCoreLog = log.createLog({ name: "foo" })
+    // const anotherCoreLog = newCoreLog.createLog()
+    // const anotherActionLog = anotherCoreLog.createLog({ actionKind: "build", actionName: "api" })
+
+    // const newActionLog = log.new({})
+    // const newCoreLog = log.new({ name: "foo" })
+    // const anotherCoreLog = newCoreLog.new({})
+    // const anotherActionLog = anotherCoreLog.new({ actionKind: "build", actionName: "api" })
 
     const files = action.getFullVersion().files
 

@@ -158,6 +158,17 @@ ${renderCommands(commands)}
     if (this.fileWritersInitialized) {
       return
     }
+
+    const entries = log.entries
+    const entry = entries[0]
+    if (entry) {
+      if (entry.context.type === "actionLog") {
+        // 
+      } else {
+        entry.context.type
+      }
+    }
+
     const { debugLogfileName, jsonLogfileName } = await prepareDebugLogfiles(
       log,
       join(gardenDirPath, LOGS_DIR_NAME),

@@ -161,7 +161,7 @@ describe("CoreLog", () => {
         ],
       })
 
-      const testLogChild = testLog.createLog()
+      const testLogChild = testLog.createLog({})
       const partialTestLogChild = omit(testLogChild, "root")
       expect(partialTestLogChild).to.eql({
         type: "coreLog",
@@ -203,7 +203,7 @@ describe("CoreLog", () => {
     })
     it("should create a new log context and have it inherit the metadata", () => {
       const testLog = log.createLog({ name: "test-log", metadata: { workflowStep: { index: 2 } } })
-      const childLog = testLog.createLog()
+      const childLog = testLog.createLog({})
 
       expect(testLog.metadata).to.eql({ workflowStep: { index: 2 } })
       expect(childLog.metadata).to.eql({ workflowStep: { index: 2 } })
@@ -278,7 +278,7 @@ describe("ActionLog", () => {
         ],
       })
 
-      const testLogChild = testLog.createLog()
+      const testLogChild = testLog.createLog({})
       const partialTestLogChild = omit(testLogChild, "root")
       expect(partialTestLogChild).to.eql({
         type: "actionLog",
@@ -304,7 +304,7 @@ describe("ActionLog", () => {
     })
     it("should create a new log context and have it inherit the metadata", () => {
       const testLog = log.createLog({ name: "test-log", metadata: { workflowStep: { index: 2 } } })
-      const childLog = testLog.createLog()
+      const childLog = testLog.createLog({})
 
       expect(testLog.metadata).to.eql({ workflowStep: { index: 2 } })
       expect(childLog.metadata).to.eql({ workflowStep: { index: 2 } })

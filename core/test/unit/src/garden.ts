@@ -53,9 +53,6 @@ import { convertExecModule } from "../../../src/plugins/exec/convert"
 import { getLogMessages } from "../../../src/util/testing"
 import { TreeCache } from "../../../src/cache"
 import { omitUndefined } from "../../../src/util/objects"
-import { prepareProjectResource } from "../../../src/config/base"
-import { CoreLog } from "../../../src/logger/log-entry"
-import { Logger, LogLevel } from "../../../src/logger/logger"
 
 // TODO-G2: change all module config based tests to be action-based.
 

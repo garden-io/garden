@@ -85,7 +85,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const router = await this.garden.getActionRouter()
 
-    const log = this.log.createLog()
+    const log = this.log.createLog({})
     log.info(`Deploying version ${version}...`)
 
     try {

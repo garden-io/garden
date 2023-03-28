@@ -30,7 +30,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   }
 
   async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<RunAction>) {
-    const taskLog = this.log.createLog().info("Checking result...")
+    const taskLog = this.log.createLog({}).info("Checking result...")
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
 
@@ -39,7 +39,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       const { result: status } = await router.run.getResult({
         graph: this.graph,
         action,
-        log: taskLog,
+        log: taskLog, 
       })
       taskLog.success(`Done`)
 
@@ -49,7 +49,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       }
 
       if (status.state === "ready" && !statusOnly) {
-        this.log.info(chalk.green(`${action.longDescription()} already complete.`))
+        taskLog.info(chalk.green(`${action.longDescription()} already complete.`))
       }
 
       return {
@@ -66,7 +66,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
   async process({ dependencyResults }: ActionTaskProcessParams<RunAction, GetRunResult>) {
     const action = this.getResolvedAction(this.action, dependencyResults)
 
-    const taskLog = this.log.createLog().info("Running...")
+    const taskLog = this.log.createLog({}).info("Running...")
 
     const actions = await this.garden.getActionRouter()
 

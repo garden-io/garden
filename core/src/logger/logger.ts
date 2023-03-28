@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { LogMetadata, LogEntry, CoreLog } from "./log-entry"
+import { LogMetadata, LogEntry, Log, CoreLogContext } from "./log-entry"
 import { Writer } from "./writers/base"
 import { CommandError, InternalError, ParameterError } from "../exceptions"
 import { TerminalWriter } from "./writers/terminal-writer"
@@ -140,7 +140,7 @@ interface LoggerWriters {
 
 export interface Logger extends Required<LoggerConfigBase> {
   events: EventBus
-  createLog(params?: CreateLogParams): CoreLog
+  createLog(params?: CreateLogParams): Log<CoreLogContext>
   log(entry: LogEntry): void
   getLogEntries(): LogEntry[]
   getWriters(): LoggerWriters
@@ -185,6 +185,11 @@ export abstract class LoggerBase implements Logger {
   }
 
   log(entry: LogEntry) {
+    if (entry.context.type === "actionLog") {
+      entry.context.actionKind
+    } else {
+      entry.context.name
+    }
     if (this.storeEntries) {
       this.entries.push(entry)
     }
@@ -202,12 +207,25 @@ export abstract class LoggerBase implements Logger {
   /**
    * Creates a new CoreLog context from the root Logger.
    */
-  createLog({ metadata, fixLevel, name }: CreateLogParams = {}) {
-    return new CoreLog({
+  createLog({
+    metadata,
+    fixLevel,
+    name,
+  }: {
+    metadata?: LogMetadata
+    fixLevel?: LogLevel
+    /**
+     * The name of the log context. Will be printed as the "section" part of the log lines
+     * belonging to this context.
+     */
+    name?: string
+  } = {}) {
+    return new Log<CoreLogContext>({
       parentConfigs: [],
       fixLevel,
       metadata,
       context: {
+        type: "coreLog",
         name,
       },
       root: this,

@@ -98,23 +98,23 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       // TODO: validate the tag?
     }
 
-    const log = this.log.createLog().info("Publishing with tag " + tag)
+    this.log.info("Publishing with tag " + tag)
 
     const router = await this.garden.getActionRouter()
 
     let result: PublishActionResult
     try {
-      const output = await router.build.publish({ action, log, graph: this.graph, tag })
+      const output = await router.build.publish({ action, log: this.log, graph: this.graph, tag })
       result = output.result
     } catch (err) {
-      log.error(`Failed publishing build ${action.name}`)
+      this.log.error(`Failed publishing build ${action.name}`)
       throw err
     }
 
     if (result.detail?.published) {
-      log.success(result.detail.message || `Ready`)
+      this.log.success(result.detail.message || `Ready`)
     } else if (result.detail?.message) {
-      log.warn(result.detail.message)
+      this.log.warn(result.detail.message)
     }
 
     return { ...result, version }

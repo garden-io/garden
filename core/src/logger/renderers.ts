@@ -61,7 +61,7 @@ export function renderSymbol(entry: LogEntry): string {
   }
 
   // Always show symbol with sections
-  if (!symbol && (entry.type === "actionLogEntry" || section)) {
+  if (!symbol && (entry.context.type === "actionLog" || section)) {
     symbol = "info"
   }
 
@@ -108,9 +108,9 @@ export function renderSection(entry: LogEntry): string {
   const { msg } = entry
   let { section } = entry
 
-  if (entry.type === "actionLogEntry") {
+  if (entry.context.type === "actionLog") {
     section = `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
-  } else if (entry.context.name) {
+  } else if (entry.context.type === "coreLog" && entry.context.name) {
     section = entry.context.name
   }
 
