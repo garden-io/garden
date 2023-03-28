@@ -19,7 +19,7 @@ Here is the list of breaking changes when upgrading your `garden` CLI tool. This
 - template configurations will use `camelCase` everywhere, no more `snake_case` or `kebab-case`: [tracking issue](https://github.com/garden-io/garden/issues/3513)
 - the deprecated `hot-reload` has been removed, use `sync` instead
 - the deprecated `cluster-docker` build mode has been removed, use `cluster-buildkit` or `kaniko` instead
-- dropped support for deploying an in-cluster registry, see the [in-cluster build documentation](../k8s-plugins/advanced/in-cluster-building.md)
+- dropped support for deploying an in-cluster registry, see the [in-cluster build documentation](../k8s-plugins/remote-k8s/configure-registry/README.md)
 - dropped support for the following providers:
   - `google-app-engine`
   - `google-cloud-functions`
