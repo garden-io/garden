@@ -93,13 +93,14 @@ test_release() {
   cd ..
   cd vote
   echo ""
-  echo "→ Running 'garden dev' in vote project - exits after 1 minute"
+  echo "→ Running 'garden deploy --sync' in vote project (the test script will continue after 1 minute)."
   echo "→ Try e.g. to update this file: ${garden_root}/examples/vote/vote/src/views/Home.vue"
   echo ""
-  timeout 1m ${garden_release} dev
+  timeout 1m ${garden_release} deploy --sync
+  # TODO-0.13: stop the syncs
 
   echo ""
-  echo "→ Running 'garden serve' in disabled-configs project - exits after 1 minute."
+  echo "→ Running 'garden serve' in disabled-configs project (the test script will continue after 1 minute)."
   echo "→ The disabled module and test should be flagged appropriately on the Overview and Stack Graph pages."
   echo ""
   cd ..
