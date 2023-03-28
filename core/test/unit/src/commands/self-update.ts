@@ -78,7 +78,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": "",
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installationDirectory).to.equal(dirname(process.execPath))
@@ -92,7 +92,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
 
@@ -107,7 +107,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": "",
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
@@ -122,7 +122,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": "",
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
@@ -138,7 +138,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": "",
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
@@ -153,7 +153,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installedVersion).to.be.undefined
@@ -168,7 +168,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installedVersion).to.equal("edge")
@@ -187,7 +187,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     const { result } = await action(
@@ -197,7 +197,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installedVersion).to.equal("edge")
@@ -217,7 +217,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     await action(
@@ -227,7 +227,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     const { result } = await action(
@@ -239,7 +239,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
     expect(result?.installedVersion).to.equal("edge")
@@ -259,7 +259,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "windows",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
 
@@ -276,7 +276,7 @@ describe("SelfUpdateCommand", () => {
         "install-dir": tempDir.path,
         "platform": "macos",
         "major": false,
-        "minor": false,
+        // "minor": false,
       }
     )
 

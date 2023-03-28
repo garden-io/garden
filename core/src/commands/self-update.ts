@@ -45,21 +45,23 @@ const selfUpdateOpts = {
   }),
   "major": new BooleanParameter({
     defaultValue: false,
+    // TODO Core 1.0 major release: add these notes:
+    //  "Takes precedence over --minor flag if both are defined."
+    //  "The latest patch version will be installed if neither --major nor --minor flags are specified."
     help: dedent`
-    Install the latest major version greater than the current one. Takes precedence over --minor flag if both are defined. Falls back to the current version if the greater major version does not exist.
-
-    The latest patch version will be installed if neither --major nor --minor flags are specified.
+    Install the latest major version greater than the current one. Falls back to the current version if the greater major version does not exist.
 
     Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
   }),
-  "minor": new BooleanParameter({
-    defaultValue: false,
-    help: dedent`Install the latest minor version greater than the current one. Falls back to the current version if the greater minor version does not exist.
-
-    The latest patch version will be installed if neither --major nor --minor flags are specified.
-
-    Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
-  }),
+  // TODO Core 1.0 major release: uncomment this:
+  // "minor": new BooleanParameter({
+  //   defaultValue: false,
+  //   help: dedent`Install the latest minor version greater than the current one. Falls back to the current version if the greater minor version does not exist.
+  //
+  //   The latest patch version will be installed if neither --major nor --minor flags are specified.
+  //
+  //   Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.`,
+  // }),
 }
 
 export type SelfUpdateArgs = typeof selfUpdateArgs
@@ -69,9 +71,10 @@ function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>):
   if (opts["major"]) {
     return "major"
   }
-  if (opts["minor"]) {
-    return "minor"
-  }
+  // TODO Core 1.0 major release: uncomment this:
+  // if (opts["minor"]) {
+  //   return "minor"
+  // }
   return "patch"
 }
 
@@ -92,6 +95,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   cliOnly = true
   noProject = true
 
+  // TODO Core 1.0 major release: add this example (after --major example):
+  //  garden self-update --minor  # install the latest minor version (if it exists) greater than the current one
   description = dedent`
     Updates your Garden CLI in-place.
 
@@ -103,7 +108,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
        garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
        garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
        garden self-update --major  # install the latest major version (if it exists) greater than the current one
-       garden self-update --minor  # install the latest minor version (if it exists) greater than the current one
        garden self-update --force  # re-install even if the same version is detected
        garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
   `
