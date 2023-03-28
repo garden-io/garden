@@ -39,7 +39,13 @@ import {
   ProjectResource,
   EnvironmentConfig,
 } from "../config/project"
-import { ERROR_LOG_FILENAME, DEFAULT_API_VERSION, DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME } from "../constants"
+import {
+  ERROR_LOG_FILENAME,
+  DEFAULT_API_VERSION,
+  DEFAULT_GARDEN_DIR_NAME,
+  LOGS_DIR_NAME,
+  gardenEnv,
+} from "../constants"
 import { generateBasicDebugInfoReport } from "../commands/get/get-debug-info"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { BufferedEventStream, ConnectBufferedEventStreamParams } from "../cloud/buffered-event-stream"
@@ -60,6 +66,7 @@ import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess } from "../process"
 import { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
+import { SemVer } from "semver"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments: EnvironmentConfig[] = gardenOpts.environmentName
@@ -494,6 +501,12 @@ ${renderCommands(commands)}
           headerLog.verbose("Something went wrong while checking for the latest Garden version.")
           headerLog.verbose(err)
         })
+
+        // TODO: remove for the proper 0.13 release
+        if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
+          log.warn(dedent`Garden Bonsai (0.13) is in beta. Please report any issues here:
+          https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
+        }
 
         await checkForStaticDir()
 
