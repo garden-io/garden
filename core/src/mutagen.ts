@@ -374,7 +374,7 @@ export class Mutagen {
       }
 
       if (!this.syncStatusLines[key]) {
-        this.syncStatusLines[key] = log.makeNewLogContext({})
+        this.syncStatusLines[key] = log.createLog({})
       }
       let statusMsg: string | undefined
 

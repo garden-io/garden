@@ -12,6 +12,7 @@ import { keyBy, max } from "lodash"
 import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
 import { BuiltinArgs, Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
+import { toGardenError } from "../exceptions"
 import { ConfigDump, Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
@@ -632,7 +633,7 @@ ${chalk.white.underline("Keys:")}
       })
       .catch((error: Error) => {
         // TODO-G2: improve error rendering
-        this.log.error({ error })
+        this.log.error({ error: toGardenError(error) })
         this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
         this.flashError(failMessage)
       })
