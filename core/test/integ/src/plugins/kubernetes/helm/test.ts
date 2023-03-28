@@ -14,6 +14,7 @@ import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("Helm Pod Test", () => {
   let garden: TestGarden
@@ -90,10 +91,11 @@ describe("Helm Pod Test", () => {
     )
 
     const actions = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     // We also verify that, despite the test failing, its result was still saved.
     const result = await actions.test.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })

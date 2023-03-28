@@ -105,7 +105,7 @@ export class ServeCommand<
     this.garden = garden
     const loggedIn = this.garden?.isLoggedIn()
     if (!loggedIn) {
-      garden.emitWarning({
+      await garden.emitWarning({
         key: "local-dashboard-removed",
         log,
         message: chalk.yellow(

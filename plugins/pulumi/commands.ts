@@ -39,7 +39,7 @@ import { isDeployAction } from "@garden-io/core/build/src/actions/deploy"
 import { ActionConfigContext } from "@garden-io/core/build/src/config/template-contexts/actions"
 import { ActionTaskProcessParams, ValidResultType } from "@garden-io/core/build/src/tasks/base"
 import { deletePulumiDeploy } from "./handlers"
-import { Log } from "@garden-io/core/src/logger/log-entry"
+import { ActionLog, createActionLog, Log } from "@garden-io/core/build/src/logger/log-entry"
 
 type PulumiBaseParams = Omit<PulumiParams, "action">
 
@@ -179,7 +179,7 @@ const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garde
 interface PulumiPluginCommandTaskParams {
   garden: Garden
   graph: ConfigGraph
-  log: Log
+  log: ActionLog
   action: PulumiDeploy
   commandName: string
   commandDescription: string
@@ -266,7 +266,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
-    const log = this.log.createLog().info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
+    this.log.info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
 
     const params = { ...this.pulumiParams, action: this.getResolvedAction(this.action, dependencyResults) }
 
@@ -279,12 +279,10 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
         graph: this.graph,
       })
       const result = await this.runFn({ ...params, ctx: ctxForService })
-      log.success({
-        msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
-      })
+      this.log.success("Success")
       return result
     } catch (err) {
-      log.error(chalk.red(`Failed! (took ${log.getDuration(1)} sec)`))
+      this.log.error("Failed")
       throw err
     }
   }
@@ -337,15 +335,18 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
 
       const tasks = await Bluebird.map(actions, async (action) => {
         const templateContext = new ActionConfigContext(garden, action.getConfig())
+        const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
+
         const pulumiParams: PulumiBaseParams = {
           ctx: await garden.getPluginContext({ provider, templateContext, events: ctx.events }),
           provider,
-          log,
+          log: actionLog,
         }
+
         return new PulumiPluginCommandTask({
           garden,
           graph,
-          log,
+          log: actionLog,
           action,
           commandName: name,
           commandDescription,

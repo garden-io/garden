@@ -85,7 +85,7 @@ export class LoginCommand extends Command {
           Looks like your session token is invalid. If you were previously logged into a different instance
           of ${distroName}, log out first before logging in.
         `
-        log.warn({ msg, symbol: "warning" })
+        log.warn(msg)
         log.info("")
       }
       throw err

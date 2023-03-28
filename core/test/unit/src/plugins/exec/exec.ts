@@ -13,7 +13,7 @@ import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
 import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
-import { Log } from "../../../../../src/logger/log-entry"
+import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
 import { keyBy, omit } from "lodash"
 import {
   getDataDir,
@@ -59,14 +59,14 @@ describe("exec plugin", () => {
     let ctx: PluginContext
     let execProvider: ExecProvider
     let graph: ConfigGraph
-    let log: Log
+    let log: ActionLog
 
     beforeEach(async () => {
       garden = await makeTestGarden(testProjectRoot, { plugins: [plugin] })
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       execProvider = await garden.resolveProvider(garden.log, "exec")
       ctx = await garden.getPluginContext({ provider: execProvider, templateContext: undefined, events: undefined })
-      log = garden.log
+      log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
       await garden.clearBuilds()
     })
 

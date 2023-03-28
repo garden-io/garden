@@ -152,17 +152,15 @@ export function defer<T>() {
 }
 
 /**
- * Creates an output stream that updates a log entry on data events (in an opinionated way).
- *
- * Note that new entries are not created but rather the passed log entry gets updated.
- * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
+ * Creates an output stream that logs the message.
  */
 export function createOutputStream(log: Log, origin?: string) {
   const outputStream = split2()
+  const streamLog = log.createLog({ origin })
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    log.info({ msg: line.toString(), origin })
+    streamLog.info({ msg: line.toString() })
   })
 
   return outputStream

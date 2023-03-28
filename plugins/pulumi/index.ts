@@ -13,12 +13,7 @@ import { getPulumiCommands } from "./commands"
 
 import { joiVariables } from "@garden-io/core/build/src/config/common"
 import { pulumiCliSPecs } from "./cli"
-import {
-  PulumiDeployConfig,
-  pulumiDeploySpecSchema,
-  PulumiModule,
-  pulumiProviderConfigSchema,
-} from "./config"
+import { PulumiDeployConfig, pulumiDeploySpecSchema, PulumiModule, pulumiProviderConfigSchema } from "./config"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
 import { join } from "path"
 import { pathExists } from "fs-extra"

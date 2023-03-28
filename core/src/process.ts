@@ -18,13 +18,13 @@ export async function waitForExitEvent(garden: Garden, log: Log) {
 
   await new Promise((resolve) => {
     garden.events.on("_restart", () => {
-      log.debug({ symbol: "info", msg: `Manual restart triggered` })
+      log.debug(`Manual restart triggered`)
       restartRequired = true
       resolve({})
     })
 
     garden.events.on("_exit", () => {
-      log.debug({ symbol: "info", msg: `Manual exit triggered` })
+      log.debug(`Manual exit triggered`)
       resolve({})
     })
   })

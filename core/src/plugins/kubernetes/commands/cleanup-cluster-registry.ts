@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { PluginCommand } from "../../../plugin/command"
 
 export const cleanupClusterRegistry: PluginCommand = {
@@ -18,12 +17,9 @@ export const cleanupClusterRegistry: PluginCommand = {
   handler: async ({ log }) => {
     const result = {}
 
-    log.warn({
-      symbol: "warning",
-      msg: chalk.yellow(
-        "This command no longer has any effect as of version 0.13! You probably want to remove this from any pipelines running it :)"
-      ),
-    })
+    log.warn(
+      "This command no longer has any effect as of version 0.13! You probably want to remove this from any pipelines running it :)"
+    )
 
     return { result }
   },

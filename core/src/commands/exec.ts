@@ -15,6 +15,7 @@ import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers
 import { executeAction } from "../graph/actions"
 import { NotFoundError } from "../exceptions"
 import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
+import { createActionLog } from "../logger/log-entry"
 
 const execArgs = {
   deploy: new StringParameter({
@@ -113,9 +114,10 @@ export class ExecCommand extends Command<Args, Opts> {
     }
 
     const router = await garden.getActionRouter()
+    const actionLog = createActionLog({ log, actionName: action.name, actionKind: action.kind })
 
     const { result } = await router.deploy.exec({
-      log,
+      log: actionLog,
       graph,
       action: executed,
       command,

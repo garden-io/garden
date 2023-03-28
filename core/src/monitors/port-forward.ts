@@ -39,7 +39,7 @@ export class PortForwardMonitor extends Monitor {
     this.action = params.action
     this.graph = params.graph
     this.proxies = []
-    this.log = params.log.createLog({ section: params.action.key(), origin: "proxy" })
+    this.log = params.log.createLog({ name: params.action.key(), origin: "proxy" })
     this.events = new PluginEventBroker(params.garden)
   }
 

@@ -138,7 +138,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
   const deployState: DeployState = "outdated"
 
   if (!spec.allowDestroy) {
-    log.warn({ section: action.key(), msg: "allowDestroy is set to false. Not calling terraform destroy." })
+    log.warn("allowDestroy is set to false. Not calling terraform destroy.")
     return {
       state: deployStateToActionState(deployState),
       detail: {

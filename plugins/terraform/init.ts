@@ -35,13 +35,10 @@ export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = as
     if (autoApply) {
       return { ready: false, outputs: {} }
     } else {
-      log.warn({
-        symbol: "warning",
-        msg: chalk.yellow(deline`
-          Terraform stack is not up-to-date and ${chalk.underline("autoApply")} is not enabled. Please run
-          ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
-        `),
-      })
+      log.warn(deline`
+        Terraform stack is not up-to-date and ${chalk.underline("autoApply")} is not enabled. Please run
+        ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
+      `)
       const outputs = await getTfOutputs({ log, ctx, provider, root })
       // Make sure the status is not cached when the stack is not up-to-date
       return { ready: true, outputs, disableCache: true }
@@ -79,6 +76,7 @@ export const prepareEnvironment: ProviderHandlers["prepareEnvironment"] = async 
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async ({ ctx, log }) => {
   const provider = ctx.provider as TerraformProvider
+  const providerLog = log.createLog({ name: provider.name })
 
   if (!provider.config.initRoot) {
     // Nothing to do!
@@ -86,10 +84,7 @@ export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async 
   }
 
   if (!provider.config.allowDestroy) {
-    log.warn({
-      section: provider.name,
-      msg: "allowDestroy is set to false. Not calling terraform destroy for root stack.",
-    })
+    providerLog.warn("allowDestroy is set to false. Not calling terraform destroy for root stack.")
     return {}
   }
 
@@ -97,10 +92,10 @@ export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async 
   const variables = provider.config.variables
   const workspace = provider.config.workspace || null
 
-  await setWorkspace({ ctx, provider, root, log, workspace })
+  await setWorkspace({ ctx, provider, root, log: providerLog, workspace })
 
   const args = ["destroy", "-auto-approve", "-input=false", ...(await prepareVariables(root, variables))]
-  await terraform(ctx, provider).exec({ log, args, cwd: root })
+  await terraform(ctx, provider).exec({ log: providerLog, args, cwd: root })
 
   return {}
 }

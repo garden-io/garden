@@ -32,6 +32,7 @@ export function padSection(section: string, width: number = SECTION_PADDING) {
 
 export const msgStyle = (s: string) => (hasAnsi(s) ? s : chalk.gray(s))
 export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
+export const warningStyle = (s: string) => (hasAnsi(s) ? s : chalk.yellow(s))
 
 /*** RENDER HELPERS ***/
 
@@ -61,7 +62,7 @@ export function renderSymbol(entry: LogEntry): string {
   }
 
   // Always show symbol with sections
-  if (!symbol && (entry.type === "actionLogEntry" || section)) {
+  if (!symbol && section) {
     symbol = "info"
   }
 
@@ -80,13 +81,14 @@ export function getTimestamp(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { level, msg, origin } = entry
+  const { level, msg, context } = entry
+  const { origin } = context
 
   if (!msg) {
     return ""
   }
 
-  const styleFn = level === LogLevel.error ? errorStyle : msgStyle
+  const styleFn = level === LogLevel.error ? errorStyle : level === LogLevel.warn ? warningStyle : msgStyle
 
   return styleFn(origin ? chalk.gray(`[${origin}] ${msg}`) : msg)
 }
@@ -106,18 +108,17 @@ export function renderData(entry: LogEntry): string {
 export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
   const { msg } = entry
-  let { section } = entry
+  let section = ""
 
-  if (entry.type === "actionLogEntry") {
+  if (entry.context.type === "actionLog") {
     section = `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
-  } else if (entry.context.name) {
+  } else if (entry.context.type === "coreLog" && entry.context.name) {
     section = entry.context.name
   }
 
   // For log levels higher than "info" we print the log level name.
   // This should technically happen when we render the symbol but it's harder
-  // to deal with the padding that way and we'll be re-doing most of this anyway
-  // with: https://github.com/garden-io/garden/issues/3254
+  // to deal with the padding that way.
   const logLevelName = chalk.gray(`[${logLevelMap[entry.level]}]`)
 
   // Just print the log level name directly without padding. E.g:
@@ -146,8 +147,8 @@ export function renderSection(entry: LogEntry): string {
  * Formats entries for the terminal writer.
  */
 export function formatForTerminal(entry: LogEntry, logger: Logger): string {
-  const { msg: msg, section, symbol, data } = entry
-  const empty = [msg, section, symbol, data].every((val) => val === undefined)
+  const { msg: msg, symbol, data } = entry
+  const empty = [msg, symbol, data].every((val) => val === undefined)
 
   if (empty) {
     return ""
@@ -178,12 +179,15 @@ export function cleanWhitespace(str: string) {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { msg, metadata, section } = entry
+  const { msg, metadata } = entry
   const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
+  const section = renderSection(entry)
+
   const jsonLogEntry: JsonLogEntry = {
     msg: cleanForJSON(msg),
     data: entry.data,
     metadata,
+    // TODO @eysi: Should we include the section here or rather just show the context?
     section: cleanForJSON(section),
     timestamp: getTimestamp(entry),
     level: logLevelMap[entry.level],

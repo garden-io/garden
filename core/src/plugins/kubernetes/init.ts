@@ -89,7 +89,7 @@ export async function getEnvironmentStatus({
     log,
     api
   )
-  ingressWarnings.forEach((w) => log.warn({ symbol: "warning", msg: chalk.yellow(w) }))
+  ingressWarnings.forEach((w) => log.warn(w))
 
   const namespaceNames = mapValues(namespaces, (s) => s.namespaceName)
   const result: KubernetesEnvironmentStatus = {
@@ -149,7 +149,7 @@ export async function getIngressMisconfigurationWarnings(
   ingressApiVersion: string | undefined,
   log: Log,
   api: KubeApi
-): Promise<String[]> {
+): Promise<string[]> {
   if (!customIngressClassName) {
     return []
   }
@@ -251,13 +251,10 @@ export async function prepareSystem({
       // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
       // This avoids blocking users where there's variance in configuration between users of the same cluster,
       // that often doesn't affect usage.
-      log.warn({
-        symbol: "warning",
-        msg: chalk.gray(deline`
-          One or more cluster-wide system services are outdated or their configuration does not match your current
-          configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
-        `),
-      })
+      log.warn(deline`
+        One or more cluster-wide system services are outdated or their configuration does not match your current
+        configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
+      `)
 
       return {}
     }
@@ -327,7 +324,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
 
   const entry = log
     .createLog({
-      section: "kubernetes",
+      name: "kubernetes",
     })
     .info(`Deleting ${nsDescription} (this may take a while)`)
 

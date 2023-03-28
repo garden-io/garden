@@ -47,7 +47,7 @@ export class Autocompleter {
   private enableDebug: boolean
 
   constructor({ log, commands, configDump, debug }: AutocompleterParams) {
-    this.log = log
+    this.log = log.createLog({ name: "autocompleter" })
     this.configDump = configDump
     this.commands = commands
     this.enableDebug = !!debug
@@ -110,8 +110,7 @@ export class Autocompleter {
   }
 
   private debug(msg: any) {
-    this.enableDebug &&
-      this.log.silly({ section: "autocompleter", msg: typeof msg === "string" ? msg : JSON.stringify(msg) })
+    this.enableDebug && this.log.silly(typeof msg === "string" ? msg : JSON.stringify(msg))
   }
 
   private matchCommandNames(commands: Command[], input: string) {

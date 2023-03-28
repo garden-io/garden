@@ -15,6 +15,7 @@ import { RunTask } from "../../../../../../src/tasks/run"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("Helm Pod Run", () => {
   let garden: TestGarden
@@ -56,8 +57,10 @@ describe("Helm Pod Run", () => {
 
     // We also verify that result was saved.
     const actions = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
     const storedResult = await actions.run.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
@@ -87,8 +90,10 @@ describe("Helm Pod Run", () => {
 
     // Verify that the result was not saved
     const router = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+
     const { result } = await router.run.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })
@@ -138,10 +143,11 @@ describe("Helm Pod Run", () => {
     )
 
     const actions = await garden.getActionRouter()
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     // We also verify that, despite the task failing, its result was still saved.
     const result = await actions.run.getResult({
-      log: garden.log,
+      log: actionLog,
       action: await garden.resolveAction({ action, log: garden.log, graph }),
       graph,
     })

@@ -17,6 +17,7 @@ import { containerHelpers } from "../../../../../../src/plugins/container/helper
 import { expect } from "chai"
 import { grouped } from "../../../../../helpers"
 import { BuildAction } from "../../../../../../src/actions/build"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("pull-image plugin command", () => {
   let garden: Garden
@@ -74,10 +75,15 @@ describe("pull-image plugin command", () => {
 
       // build the image
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
+      const actionLog = createActionLog({
+        log: garden.log,
+        actionName: resolvedAction.name,
+        actionKind: resolvedAction.kind,
+      })
 
       await k8sBuildContainer({
         ctx,
-        log: garden.log,
+        log: actionLog,
         action: resolvedAction,
       })
     })
@@ -106,10 +112,11 @@ describe("pull-image plugin command", () => {
 
       // build the image
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       await k8sBuildContainer({
         ctx,
-        log: garden.log,
+        log: actionLog,
         action: resolvedAction,
       })
     })

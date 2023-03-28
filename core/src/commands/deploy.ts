@@ -174,7 +174,7 @@ export class DeployCommand extends Command<Args, Opts> {
       const bold = disabled.map((d) => chalk.bold(d))
       const msg =
         disabled.length === 1 ? `Deploy action ${bold} is disabled` : `Deploy actions ${naturalList(bold)} are disabled`
-      log.info({ symbol: "info", msg: chalk.white(msg) })
+      log.info(chalk.white(msg))
     }
 
     const skipped = opts.skip || []

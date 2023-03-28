@@ -77,24 +77,16 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       return output
     },
 
-    // TODO @eysi: The type here should explictly be ActionLog
     delete: async (params) => {
       const { action, router, handlers } = params
 
-      const log = params.log
-        .createLog({
-          section: action.key(),
-        })
-        .info("Cleaning up...")
+      const log = params.log.createLog().info("Cleaning up...")
 
       const statusOutput = await handlers.getStatus({ ...params })
       const status = statusOutput.result
 
       if (status.detail?.state === "missing") {
-        log.success({
-          section: action.key(),
-          msg: "Not found",
-        })
+        log.success("Not found")
         return statusOutput
       }
 
@@ -114,7 +106,6 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
 
       router.emitNamespaceEvents(output.result.detail?.namespaceStatuses)
 
-      // TODO @eysi: Validate that timestamp gets printed
       log.success(`Done`)
 
       return output
@@ -132,10 +123,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "getLogs",
         defaultHandler: async () => {
-          log.warn({
-            section: action.key(),
-            msg: chalk.yellow(`No handler for log retrieval available for action type ${action.type}`),
-          })
+          log.warn(chalk.yellow(`No handler for log retrieval available for action type ${action.type}`))
           return {}
         },
       })
@@ -195,10 +183,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "getSyncStatus",
         defaultHandler: async () => {
-          log.debug({
-            section: action.key(),
-            msg: `No getSyncStatus handler available for action type ${action.type}`,
-          })
+          log.debug(`No getSyncStatus handler available for action type ${action.type}`)
           return {
             state: "unknown" as const,
           }
@@ -213,10 +198,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "startSync",
         defaultHandler: async () => {
-          log.warn({
-            section: action.key(),
-            msg: chalk.yellow(`No startSync handler available for action type ${action.type}`),
-          })
+          log.warn(chalk.yellow(`No startSync handler available for action type ${action.type}`))
           return {}
         },
       })
@@ -229,10 +211,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         params,
         handlerType: "stopSync",
         defaultHandler: async () => {
-          log.warn({
-            section: action.key(),
-            msg: chalk.yellow(`No stopSync handler available for action type ${action.type}`),
-          })
+          log.warn(chalk.yellow(`No stopSync handler available for action type ${action.type}`))
           return {}
         },
       })

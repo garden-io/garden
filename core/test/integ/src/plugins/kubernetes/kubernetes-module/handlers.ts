@@ -16,7 +16,7 @@ import { getKubernetesTestGarden } from "./common"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { getManifests } from "../../../../../../src/plugins/kubernetes/kubernetes-type/common"
 import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
-import { Log } from "../../../../../../src/logger/log-entry"
+import { ActionLog, createActionLog, Log } from "../../../../../../src/logger/log-entry"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { getActionNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
 import { getDeployedResource } from "../../../../../../src/plugins/kubernetes/status/status"
@@ -40,6 +40,7 @@ describe("kubernetes-module handlers", () => {
   let tmpDir: tmp.DirectoryResult
   let garden: TestGarden
   let log: Log
+  let actionLog: ActionLog
   let ctx: KubernetesPluginContext
   let api: KubeApi
   /**
@@ -74,6 +75,7 @@ describe("kubernetes-module handlers", () => {
     garden = await getKubernetesTestGarden()
     moduleConfigBackup = await garden.getRawModuleConfigs()
     log = garden.log
+    actionLog = createActionLog({ log: log, actionName: "", actionKind: "" })
     const provider = <KubernetesProvider>await garden.resolveProvider(log, "local-kubernetes")
     ctx = <KubernetesPluginContext>(
       await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
@@ -135,7 +137,7 @@ describe("kubernetes-module handlers", () => {
       })
       const deployParams = {
         ctx,
-        log: garden.log,
+        log: actionLog,
         action,
         force: false,
       }
@@ -164,7 +166,7 @@ describe("kubernetes-module handlers", () => {
       const resolvedAction = await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph })
       const deployParams = {
         ctx,
-        log: garden.log,
+        log: actionLog,
         action: resolvedAction,
         force: false,
       }
@@ -190,7 +192,7 @@ describe("kubernetes-module handlers", () => {
       const action = graph.getDeploy("module-simple")
       const deployParams = {
         ctx,
-        log: garden.log,
+        log: actionLog,
         action: await garden.resolveAction<KubernetesDeployAction>({ action, log: garden.log, graph }),
         force: false,
       }

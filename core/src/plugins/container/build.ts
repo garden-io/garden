@@ -25,11 +25,7 @@ export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerB
   const identifier = await containerHelpers.imageExistsLocally(outputs.localImageId, log, ctx)
 
   if (identifier) {
-    log.debug({
-      section: action.key(),
-      msg: `Image ${identifier} already exists`,
-      symbol: "info",
-    })
+    log.debug(`Image ${identifier} already exists`)
   }
 
   const state = !!identifier ? "ready" : "not-ready"

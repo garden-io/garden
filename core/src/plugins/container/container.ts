@@ -487,7 +487,7 @@ export const gardenPlugin = () =>
               validateRuntimeCommon(action)
               return {}
             },
-          }
+          },
         },
       ],
     },

@@ -30,7 +30,7 @@ import {
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { getHelmTestGarden } from "./helm/common"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
-import { Log } from "../../../../../src/logger/log-entry"
+import { createActionLog, Log } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
 import { getContainerTestGarden } from "./container/container"
 import {
@@ -140,8 +140,7 @@ describe("util", () => {
           ctx,
           imageId: action.getSpec().image,
           namespace: provider.config.namespace!.name!,
-
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           production: false,
         })
         await garden.processTasks({ tasks: [deployTask], throwOnError: true })
