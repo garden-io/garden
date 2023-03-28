@@ -292,6 +292,14 @@ ${renderCommands(commands)}
     const log = logger.makeNewLogContext()
     const footerLog = logger.makeNewLogContext()
 
+    // TODO: remove for the proper 0.13 release
+    if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
+      log.warn(
+        chalk.yellow(dedent`Garden Bonsai (0.13) is in beta. Please report any issues here:
+          https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
+      )
+    }
+
     const globalConfigStore = new GlobalConfigStore()
 
     await validateRuntimeRequirementsCached(log, globalConfigStore, checkRequirements)
@@ -501,12 +509,6 @@ ${renderCommands(commands)}
           headerLog.verbose("Something went wrong while checking for the latest Garden version.")
           headerLog.verbose(err)
         })
-
-        // TODO: remove for the proper 0.13 release
-        if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
-          log.warn(dedent`Garden Bonsai (0.13) is in beta. Please report any issues here:
-          https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
-        }
 
         await checkForStaticDir()
 
