@@ -61,8 +61,8 @@ Let's get your development environment wired up.
   }
 
   async action(params: ActionParams): Promise<CommandResult> {
-    const logger = getLogger()
-    const terminalWriter = logger.getWriters().terminal
+    const logger = params.log.root
+  const terminalWriter = logger.getWriters().terminal
 
     let inkWriter: InkTerminalWriter
     // TODO: maybe enforce this elsewhere

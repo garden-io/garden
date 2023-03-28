@@ -14,7 +14,11 @@ import { ActionTypeHandlerSpec } from "../base/base"
 
 type StopSyncParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
 
-export class StopSync<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<"Deploy", StopSyncParams<T>, {}> {
+export class StopSync<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
+  "Deploy",
+  StopSyncParams<T>,
+  {}
+> {
   description = dedent`
     Stop syncing to the given Deploy.
   `

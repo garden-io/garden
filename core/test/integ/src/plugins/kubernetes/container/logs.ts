@@ -243,7 +243,6 @@ describe("kubernetes", () => {
 
         const deployLog = entries.find((e) => e.msg.includes("Server running..."))
         expect(deployLog).to.exist
-
       })
     })
   })
