@@ -58,7 +58,7 @@ Once Minikube and the appropriate driver for your OS are installed, you can star
 minikube start --vm-driver=<your vm driver>  # e.g. hyperkit on macOS
 ```
 
-In order to authenticate minikube with an image registry such as ECR, the `registry-creds` addon must be enabled. In order to do this, follow these steps:
+If you are working in a team and need to use an external registry, you can [configure Garden with an external image registry](https://docs.garden.io/kubernetes-plugins/remote-k8s/configure-registry) such as ECR. Alternatively, you can enable Minikube's `registry-creds` addon, by following these steps:
 
 1.  Make sure Minikube is running by typing `minikube start`
 
