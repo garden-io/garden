@@ -57,7 +57,7 @@ To run this project, export the following variable in your ENV.
 export CF_API_TOKEN=your-cf-API-token
 ````
 
-Then set the required variables in your [project.garden.yml](./project.garden.yml) file (lines 32-47).
+Then set the required variables in your [project.garden.yml](./project.garden.yml), use the following block as an example for the variables:
 
 ````bash
 variables:
@@ -85,7 +85,7 @@ kubectl config get-contexts
 kubectl config current-context # Copy the name of the context
 ````
 
-After getting your context name, change line 15 in the [project.garden.yml](./project.garden.yml) file.
+After getting your context name, change the `context` field in your [project.garden.yml](./project.garden.yml) file.
 
 For the `deploymentRegistry` and `imagePullSecrets` fields, you must have a Docker Registry (prerequisite #5).
 
@@ -153,13 +153,13 @@ NAME           READY   SECRET         AGE
 staging-cert   True    staging-cert   4m23s
 ````
 
-The staging certificate got created, and now uncomment lines 21-24 in the [project.garden.yml](./project.garden.yml) file.
+The staging certificate got created, now uncomment the `tlsCertificates` block in your [project.garden.yml](./project.garden.yml) file.
 
 ````yaml
 ...
 kaniko:
   namespace: null
-tlsCertificates:
+tlsCertificates: # <------ Uncomment this block
   - name: staging-cert
     secretRef:
       name: staging-cert
