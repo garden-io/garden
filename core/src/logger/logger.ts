@@ -123,6 +123,7 @@ interface LoggerInitParams extends LoggerConfigBase {
    * The logger also has a set of file writers that are set internally.
    */
   terminalWriterType: LoggerType
+  force?: boolean
 }
 
 interface LoggerConstructor extends LoggerConfigBase {
@@ -184,7 +185,7 @@ export class Logger implements Required<LoggerConfigBase> {
    * in the context of environment variables and writer types.
    */
   static initialize(config: LoggerInitParams): Logger {
-    if (Logger.instance) {
+    if (!config.force && Logger.instance) {
       return Logger.instance
     }
 

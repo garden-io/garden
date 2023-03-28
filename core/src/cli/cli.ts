@@ -580,6 +580,7 @@ ${renderCommands(commands)}
       terminalWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
       useEmoji: emoji,
       showTimestamps,
+      force: this.initLogger,
     })
 
     const log = logger.createLog()
