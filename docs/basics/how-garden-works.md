@@ -5,7 +5,9 @@ title: How Garden Works
 
 # How Garden Works
 
-For those that prefer something a bit more visual, we recommend checking out this [short introduction video](https://www.youtube.com/watch?app=desktop&v=3gMJWGV0WE8) to how Garden works.
+This page contains a brief explanation of the how and why of Garden. For those that prefer something a bit more visual, we recommend checking out this video. Otherwise, continue reading below.
+
+{% embed url="https://youtu.be/3gMJWGV0WE8" %}
 
 ## **The Stack Graph**
 
