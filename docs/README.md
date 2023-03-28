@@ -15,6 +15,7 @@
   * [2. Connect to a Cluster](./tutorials/your-first-project/2-connect-to-a-cluster.md)
   * [3. Deploy and Test](./tutorials/your-first-project/3-deploy-and-test.md)
   * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
+* [Migrating your configuration for Bonsai](./tutorials/migrating-to-bonsai.md)
 
 ## 💐 Using Garden
 
