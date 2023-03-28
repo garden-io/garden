@@ -1,4 +1,296 @@
 
+<a name="0.13.0-0"></a>
+## [0.13.0-0](https://github.com/garden-io/garden/compare/0.12.53...0.13.0-0) (2023-03-28)
+
+### Bug Fixes
+
+* restore spec and vars after action validation ([16ccd2845](https://github.com/garden-io/garden/commit/16ccd2845))
+* conftest plugin compilation errors ([35d0343bc](https://github.com/garden-io/garden/commit/35d0343bc))
+* fix getDockerVersion helper ([f1117944f](https://github.com/garden-io/garden/commit/f1117944f))
+* action type schemas ([478ab9149](https://github.com/garden-io/garden/commit/478ab9149))
+* corrected type definition ([a0ac0bc1d](https://github.com/garden-io/garden/commit/a0ac0bc1d))
+* test plugin missing convert handler ([3226d1ff0](https://github.com/garden-io/garden/commit/3226d1ff0))
+* some schema fixes ([7edb68ed1](https://github.com/garden-io/garden/commit/7edb68ed1))
+* allow default value in schema ([2f474bd0c](https://github.com/garden-io/garden/commit/2f474bd0c))
+* fixed group configs resolution ([ff7dd04fe](https://github.com/garden-io/garden/commit/ff7dd04fe))
+* fixed field name in xor condition of action source schema ([2f711fa39](https://github.com/garden-io/garden/commit/2f711fa39))
+* null-safe access to the `meta` config field ([eed64e9cb](https://github.com/garden-io/garden/commit/eed64e9cb))
+* pick action kind-specific validation schema ([78b109fe6](https://github.com/garden-io/garden/commit/78b109fe6))
+* corrected test name definitions ([f43dddab4](https://github.com/garden-io/garden/commit/f43dddab4))
+* action kind router typing and configure method ([bd363877f](https://github.com/garden-io/garden/commit/bd363877f))
+* handle internal fields on action config schema during validation ([688ffda6a](https://github.com/garden-io/garden/commit/688ffda6a))
+* initialize logger when not present ([e54012f58](https://github.com/garden-io/garden/commit/e54012f58))
+* `get tests` schema + tests ([84231f5e7](https://github.com/garden-io/garden/commit/84231f5e7))
+* `get test-result` schema + tests ([5b1dc7e73](https://github.com/garden-io/garden/commit/5b1dc7e73))
+* action ref handling ([4d3382ab0](https://github.com/garden-io/garden/commit/4d3382ab0))
+* fixed test assertions in `deleteExecService` spec ([1fd8b9898](https://github.com/garden-io/garden/commit/1fd8b9898))
+* configmap getK8sAction return ([aabfe4c2c](https://github.com/garden-io/garden/commit/aabfe4c2c))
+* values for sync perms ([c70d3db87](https://github.com/garden-io/garden/commit/c70d3db87))
+* fix result schema definition of `configure` action handler ([3cf92b442](https://github.com/garden-io/garden/commit/3cf92b442))
+* config graph generation ([6a0d01360](https://github.com/garden-io/garden/commit/6a0d01360))
+* fix result schema of delete deploy action ([654f4b033](https://github.com/garden-io/garden/commit/654f4b033))
+* schema fixes around k8s/container conversion ([733f0c5a7](https://github.com/garden-io/garden/commit/733f0c5a7))
+* errors in action resolution flow ([101ea2bd3](https://github.com/garden-io/garden/commit/101ea2bd3))
+* fix source build dir initialization and syncing ([9098fab07](https://github.com/garden-io/garden/commit/9098fab07))
+* update core/src/graph/config-graph.ts ([2c15e0b3a](https://github.com/garden-io/garden/commit/2c15e0b3a))
+* review comments ([10f26d03e](https://github.com/garden-io/garden/commit/10f26d03e))
+* loading actions from source tree ([f5ab3fee3](https://github.com/garden-io/garden/commit/f5ab3fee3))
+* added missing schema field definition ([72e559763](https://github.com/garden-io/garden/commit/72e559763))
+* fixed relative path resolution in build staging sync ([ae846b907](https://github.com/garden-io/garden/commit/ae846b907))
+* handle chart with url as remote ([0a978de9d](https://github.com/garden-io/garden/commit/0a978de9d))
+* empty action group when converting basic exec module ([ff991ff01](https://github.com/garden-io/garden/commit/ff991ff01))
+* corrected `varfiles` definition in the base action config schema ([e830a079a](https://github.com/garden-io/garden/commit/e830a079a))
+* k8s pod action conversin ([c9b1081f6](https://github.com/garden-io/garden/commit/c9b1081f6))
+* inherit module ns in action conversion ([8ea794f5f](https://github.com/garden-io/garden/commit/8ea794f5f))
+* fix typing problems in circular dep logic ([78987f55f](https://github.com/garden-io/garden/commit/78987f55f))
+* fixed task dependencies resolution ([b42b93a04](https://github.com/garden-io/garden/commit/b42b93a04))
+* provider resolution issues ([25609446d](https://github.com/garden-io/garden/commit/25609446d))
+* add actionType to log events ([f0f2e0283](https://github.com/garden-io/garden/commit/f0f2e0283))
+* re-initialize providers changing environments ([#3481](https://github.com/garden-io/garden/issues/3481)) ([3401f4946](https://github.com/garden-io/garden/commit/3401f4946))
+* fixed container deploy schema definition ([0e85ae9cd](https://github.com/garden-io/garden/commit/0e85ae9cd))
+* k8s pod action conversion ([3af866a62](https://github.com/garden-io/garden/commit/3af866a62))
+* action module reference description ([aa39d5502](https://github.com/garden-io/garden/commit/aa39d5502))
+* action names from module conversion ([346435e74](https://github.com/garden-io/garden/commit/346435e74))
+* correctly assign cfgMap and pvc names ([8878c4524](https://github.com/garden-io/garden/commit/8878c4524))
+* remove accessMode from configmap deploy spec ([1ddcaba35](https://github.com/garden-io/garden/commit/1ddcaba35))
+* some module conversion issues ([fc91a65a9](https://github.com/garden-io/garden/commit/fc91a65a9))
+* fixed action kind detection in `getActionTemplateReferences` ([70d0db412](https://github.com/garden-io/garden/commit/70d0db412))
+* volume action reference module conversion ([97ccc6b64](https://github.com/garden-io/garden/commit/97ccc6b64))
+* action kind schema logic ([061870968](https://github.com/garden-io/garden/commit/061870968))
+* action router test plugin ([8811a28eb](https://github.com/garden-io/garden/commit/8811a28eb))
+* action resolution flow ([9d50a7a05](https://github.com/garden-io/garden/commit/9d50a7a05))
+* fixed `actionConfigs` schema definition ([c0c0e2d63](https://github.com/garden-io/garden/commit/c0c0e2d63))
+* properly give plugin name in error ([401c21c2b](https://github.com/garden-io/garden/commit/401c21c2b))
+* post-rebase errors ([d91bcf626](https://github.com/garden-io/garden/commit/d91bcf626))
+* run action result processing ([b9032f977](https://github.com/garden-io/garden/commit/b9032f977))
+* utilize validation handler ([82e01cd90](https://github.com/garden-io/garden/commit/82e01cd90))
+* action getFullVersion crash if dep is disabled ([019b2acef](https://github.com/garden-io/garden/commit/019b2acef))
+* include updated action in watch tasks ([631c0ed4f](https://github.com/garden-io/garden/commit/631c0ed4f))
+* exec and test plugin schema issues ([027133530](https://github.com/garden-io/garden/commit/027133530))
+* missing resolve task dependency for delete task ([c50d37a9f](https://github.com/garden-io/garden/commit/c50d37a9f))
+* **build:** rsync version check was run prematurely (i.e. even if disabled) ([85018e522](https://github.com/garden-io/garden/commit/85018e522))
+* **cli:** util fetch-tools command would not error if run outside project dir ([30907db73](https://github.com/garden-io/garden/commit/30907db73))
+* **cli:** test command would hang if --interactive=true ([3e34189cc](https://github.com/garden-io/garden/commit/3e34189cc))
+* **cli:** failure in self-update command due to GitHub API change ([17f574c47](https://github.com/garden-io/garden/commit/17f574c47))
+* **cli:** command-specified logger type wasn't respected ([066416702](https://github.com/garden-io/garden/commit/066416702))
+* **cli:** error in `get status` command + updated tests ([a25f6b699](https://github.com/garden-io/garden/commit/a25f6b699))
+* **cloud:** continue when token refresh fails ([#3814](https://github.com/garden-io/garden/issues/3814)) ([361381a98](https://github.com/garden-io/garden/commit/361381a98))
+* **cloud:** update to use UUIDs ([#3834](https://github.com/garden-io/garden/issues/3834)) ([90c39a6f5](https://github.com/garden-io/garden/commit/90c39a6f5))
+* **config:** fixed module conversion handler name ([f8a47418d](https://github.com/garden-io/garden/commit/f8a47418d))
+* **config:** application of default values on resolve action spec ([950e8a468](https://github.com/garden-io/garden/commit/950e8a468))
+* **config:** superfluous configPath field on action configs from disk ([82d418730](https://github.com/garden-io/garden/commit/82d418730))
+* **config:** ensure a path is set on augmentGraph actions ([813a5a6e8](https://github.com/garden-io/garden/commit/813a5a6e8))
+* **config:** issues with template resolution on built-in action config fields ([ad1588454](https://github.com/garden-io/garden/commit/ad1588454))
+* **container:** ensure error message is properly indented ([8f2d7df47](https://github.com/garden-io/garden/commit/8f2d7df47))
+* **container:** incorrect working directory when calling docker CLI ([4c816700d](https://github.com/garden-io/garden/commit/4c816700d))
+* **container:** module conversion and schema issues ([a86fbdb57](https://github.com/garden-io/garden/commit/a86fbdb57))
+* **container:** detached container build spec from `BaseBuildSpec` ([92edb7200](https://github.com/garden-io/garden/commit/92edb7200))
+* **container:** fix spec.image in container conversion ([7be72b6d8](https://github.com/garden-io/garden/commit/7be72b6d8))
+* **core:** incorrect schema used for action configure handler ([5acbe65d2](https://github.com/garden-io/garden/commit/5acbe65d2))
+* **core:** handling of action type base definitions and extensions ([95aae5870](https://github.com/garden-io/garden/commit/95aae5870))
+* **core:** incorrect action version resolution in some cases ([e557a43f3](https://github.com/garden-io/garden/commit/e557a43f3))
+* **core:** serializing error detail could explode ([f2a165107](https://github.com/garden-io/garden/commit/f2a165107))
+* **core:** schema error in module resolution ([2865a7d34](https://github.com/garden-io/garden/commit/2865a7d34))
+* **core:** override Build version with module ([#3908](https://github.com/garden-io/garden/issues/3908)) ([13f2b7d8d](https://github.com/garden-io/garden/commit/13f2b7d8d))
+* **core:** error when attempting to emit warning message ([69f4f8b99](https://github.com/garden-io/garden/commit/69f4f8b99))
+* **core:** allowed undefined values in mapped types ([26ec7ec57](https://github.com/garden-io/garden/commit/26ec7ec57))
+* **core:** improve graph result filtering ([#3911](https://github.com/garden-io/garden/issues/3911)) ([761745ff4](https://github.com/garden-io/garden/commit/761745ff4))
+* **core:** initialize `compatibleTypes` of a base action in the ctor ([713f89d72](https://github.com/garden-io/garden/commit/713f89d72))
+* **core:** rework and fix handling of static+runtime action outputs ([d54f8e370](https://github.com/garden-io/garden/commit/d54f8e370))
+* **core:** more narrow set of config fields to hash for module versions ([c17a6cfbd](https://github.com/garden-io/garden/commit/c17a6cfbd))
+* **core:** get test command working ([a58b0fafb](https://github.com/garden-io/garden/commit/a58b0fafb))
+* **core:** fix `delete environment` --with-dependants flag + tests ([89be0690b](https://github.com/garden-io/garden/commit/89be0690b))
+* **core:** error when referencing a disabled Build action in Deploy ([da28dd9fc](https://github.com/garden-io/garden/commit/da28dd9fc))
+* **core:** various issues with action/runtime template references ([ab1447f81](https://github.com/garden-io/garden/commit/ab1447f81))
+* **core:** always ignore .garden directory when scanning for configs ([6b0077fc4](https://github.com/garden-io/garden/commit/6b0077fc4))
+* **core:** issues with validation and handling of base handlers on action types ([b091ff91d](https://github.com/garden-io/garden/commit/b091ff91d))
+* **core:** issues with disabled actions and BuildCommand tests ([4aab2254c](https://github.com/garden-io/garden/commit/4aab2254c))
+* **deploy:** watch triggers for module config files weren't firing correctly ([f86e1828c](https://github.com/garden-io/garden/commit/f86e1828c))
+* **dev:** handle -h/--help and print help if command group is matched ([8617bdc07](https://github.com/garden-io/garden/commit/8617bdc07))
+* **dev:** autocomplete for partially entered option flags ([8e8edd3fe](https://github.com/garden-io/garden/commit/8e8edd3fe))
+* **dev:** correctly update autocompletes after config reload ([1d166c56f](https://github.com/garden-io/garden/commit/1d166c56f))
+* **dev:** not all commands would be loaded on config load/reload ([18f06be51](https://github.com/garden-io/garden/commit/18f06be51))
+* **dev:** login and logout commands didn't work in dev command ([7f93b9083](https://github.com/garden-io/garden/commit/7f93b9083))
+* **dev:** crash when specifying bad command arguments ([d5c73bbc9](https://github.com/garden-io/garden/commit/d5c73bbc9))
+* **dev:** disallow persistent commands in the dev console ([f60babd2b](https://github.com/garden-io/garden/commit/f60babd2b))
+* **dev:** handle most characters and symbols in the command input ([51d842174](https://github.com/garden-io/garden/commit/51d842174))
+* **dev-mode:** [post-merge fix] proper support of absolute source paths ([68921ffad](https://github.com/garden-io/garden/commit/68921ffad))
+* **docs:** fix broken links ([8067b9bd6](https://github.com/garden-io/garden/commit/8067b9bd6))
+* **docs:** move pvc shared volumes info to the right page ([2f8820375](https://github.com/garden-io/garden/commit/2f8820375))
+* **events:** update log event timestamp type be string or number ([332657e61](https://github.com/garden-io/garden/commit/332657e61))
+* **example:** correct entrypoint in `Dockerfile` in base-image example ([f211e79fd](https://github.com/garden-io/garden/commit/f211e79fd))
+* **exec:** issues with log output propagation and env vars ([5502628fe](https://github.com/garden-io/garden/commit/5502628fe))
+* **exec:** more informative error msg on timeout ([#3584](https://github.com/garden-io/garden/issues/3584)) ([a530afdeb](https://github.com/garden-io/garden/commit/a530afdeb))
+* **exec:** prevent `ExecModuleBuildSpec` from extending `BaseBuildSpec` ([58512dc65](https://github.com/garden-io/garden/commit/58512dc65))
+* **exec:** superfluous spec fields in conversion from modules to actions ([2275fb270](https://github.com/garden-io/garden/commit/2275fb270))
+* **exec:** env variables from action specs were not properly propagated ([356e94fd5](https://github.com/garden-io/garden/commit/356e94fd5))
+* **framework:** increase consistency in verbose plugin logs ([23ad49486](https://github.com/garden-io/garden/commit/23ad49486))
+* **get-config:** error in output schema ([5e96f792e](https://github.com/garden-io/garden/commit/5e96f792e))
+* **git:** allow local submodules (prohibited by default in recent git versions) ([c7d794105](https://github.com/garden-io/garden/commit/c7d794105))
+* **hadolint:** correct Dockerfile path construction ([b7c95d78b](https://github.com/garden-io/garden/commit/b7c95d78b))
+* **hadolint:** enable timeout in hadolint test config ([30cfc5733](https://github.com/garden-io/garden/commit/30cfc5733))
+* **hadolint:** fix Dockerfile path processing for different specs ([c47ed636b](https://github.com/garden-io/garden/commit/c47ed636b))
+* **hadolint:** attempt to fix schema validation issue ([d7690ea3f](https://github.com/garden-io/garden/commit/d7690ea3f))
+* **hadolint:** fixed description string ([0970e74c8](https://github.com/garden-io/garden/commit/0970e74c8))
+* **hadolint:** fix internal config path initialization ([a7b03beff](https://github.com/garden-io/garden/commit/a7b03beff))
+* **helm:** correctly handle values file path and chart references ([089b41c75](https://github.com/garden-io/garden/commit/089b41c75))
+* **helm:** stream logs to CLI and Garden Cloud ([#3582](https://github.com/garden-io/garden/issues/3582)) ([80cb1cf45](https://github.com/garden-io/garden/commit/80cb1cf45))
+* **helm:** fix base chart logic for helm modules ([f27cebf30](https://github.com/garden-io/garden/commit/f27cebf30))
+* **helm:** fix conversion when skipDeploy = true ([74be91175](https://github.com/garden-io/garden/commit/74be91175))
+* **install:** remove unnecessary rsync dependency in homebrew formula ([465c3e222](https://github.com/garden-io/garden/commit/465c3e222))
+* **jib:** remove `timeout` from build action spec ([22f6426b5](https://github.com/garden-io/garden/commit/22f6426b5))
+* **jib:** fix spec creation in jib module converter ([bf14b2e5a](https://github.com/garden-io/garden/commit/bf14b2e5a))
+* **jib:** fixed broken Maven Daemon support in 0.13 ([196da0862](https://github.com/garden-io/garden/commit/196da0862))
+* **k8s:** bad label on container Deployment manifest ([413029783](https://github.com/garden-io/garden/commit/413029783))
+* **k8s:** retry exec attempts in PodRunner ([#3956](https://github.com/garden-io/garden/issues/3956)) ([199fe4b1d](https://github.com/garden-io/garden/commit/199fe4b1d))
+* **k8s:** typo in volume access modes module conversion ([23de55a24](https://github.com/garden-io/garden/commit/23de55a24))
+* **k8s:** delete handler for container deploys wasn't wired up ([065eb7ad9](https://github.com/garden-io/garden/commit/065eb7ad9))
+* **k8s:** fix k8s module-to-action conversion ([030975d37](https://github.com/garden-io/garden/commit/030975d37))
+* **k8s:** error when getting status of container Deploy in sync mode ([584fe23ae](https://github.com/garden-io/garden/commit/584fe23ae))
+* **k8s:** fixed dev mode for `container` services ([3a6ee5bd4](https://github.com/garden-io/garden/commit/3a6ee5bd4))
+* **k8s:** fix sync destination formatting issue ([dca1eedbc](https://github.com/garden-io/garden/commit/dca1eedbc))
+* **k8s:** pod spec schema properly defined on kubernetes-pod action types ([abc8a2891](https://github.com/garden-io/garden/commit/abc8a2891))
+* **k8s:** fix Helm Tests, Runs and dev mode specs ([fb5126946](https://github.com/garden-io/garden/commit/fb5126946))
+* **k8s:** fixed resource file processing in `configure` action handler ([e2974d9d0](https://github.com/garden-io/garden/commit/e2974d9d0))
+* **k8s:** add log streaming for exec Runs/Tests ([9dc877003](https://github.com/garden-io/garden/commit/9dc877003))
+* **k8s:** bad error handling when initializing system services ([ab7c9d8b8](https://github.com/garden-io/garden/commit/ab7c9d8b8))
+* **k8s:** fix persistentvolumeclaim Deploy actions ([ff7193604](https://github.com/garden-io/garden/commit/ff7193604))
+* **k8s:** error during helm module conversion ([d65471563](https://github.com/garden-io/garden/commit/d65471563))
+* **k8s:** more stable & performant log streaming ([#3730](https://github.com/garden-io/garden/issues/3730)) ([70815f5b4](https://github.com/garden-io/garden/commit/70815f5b4))
+* **kubernetes:** make preStop command work with busybox ([#3568](https://github.com/garden-io/garden/issues/3568)) ([4aa014124](https://github.com/garden-io/garden/commit/4aa014124))
+* **kubernetes:** detect that pod has been killed ([#3571](https://github.com/garden-io/garden/issues/3571)) ([9ca9e85a7](https://github.com/garden-io/garden/commit/9ca9e85a7))
+* **local-mode:** fix ssh key names for local mode ([5b3a7270d](https://github.com/garden-io/garden/commit/5b3a7270d))
+* **logger:** ensure 'fixLevel' is used properly ([8dc35a28c](https://github.com/garden-io/garden/commit/8dc35a28c))
+* **logger:** ensure we print emoji instead of text description ([53c12945b](https://github.com/garden-io/garden/commit/53c12945b))
+* **logs:** exit with error if services not found when getting logs ([870ab90fb](https://github.com/garden-io/garden/commit/870ab90fb))
+* **plugins:** ensure PluginEventBroker is correctly passed to PluginContext ([23da54c83](https://github.com/garden-io/garden/commit/23da54c83))
+* **scripts:** release.ts unintentionally also ran scripts ([#3626](https://github.com/garden-io/garden/issues/3626)) ([89b55d39c](https://github.com/garden-io/garden/commit/89b55d39c))
+* **server:** errors in output serialization ([d76b69640](https://github.com/garden-io/garden/commit/d76b69640))
+* **solver:** error when processing zero tasks ([1329fe3af](https://github.com/garden-io/garden/commit/1329fe3af))
+* **solver:** ready status was ignored for several task types ([4b12a96f3](https://github.com/garden-io/garden/commit/4b12a96f3))
+* **solver:** error in handling status during graph execution ([23e464c91](https://github.com/garden-io/garden/commit/23e464c91))
+* **solver:** deadlock when running multiple solver instances ([dfb13c80d](https://github.com/garden-io/garden/commit/dfb13c80d))
+* **sync-mode:** fix predicate in init container matcher ([612187411](https://github.com/garden-io/garden/commit/612187411))
+* **sync-mode:** fix source path definition in config schema ([8062450e2](https://github.com/garden-io/garden/commit/8062450e2))
+* **terraform:** update condition to trigger tf init ([#3632](https://github.com/garden-io/garden/issues/3632)) ([6c17c7f62](https://github.com/garden-io/garden/commit/6c17c7f62))
+* **terraform:** fix checksums for terraform 1.2.9 darwin builds ([#3630](https://github.com/garden-io/garden/issues/3630)) ([ced0e3c43](https://github.com/garden-io/garden/commit/ced0e3c43))
+* **terraform:** improve init behaviour on validate and error messages ([#3663](https://github.com/garden-io/garden/issues/3663)) ([49cb253e6](https://github.com/garden-io/garden/commit/49cb253e6))
+
+### Features
+
+* add `sync start` and `sync stop` commands ([5a805cca7](https://github.com/garden-io/garden/commit/5a805cca7))
+* remaining actionTypes ([54c429f12](https://github.com/garden-io/garden/commit/54c429f12))
+* remove commented fields from create commands ([b0d3383b3](https://github.com/garden-io/garden/commit/b0d3383b3))
+* add action type reference docs ([8e23e6fdf](https://github.com/garden-io/garden/commit/8e23e6fdf))
+* **cli:** add --interactive flag to test command ([015b36746](https://github.com/garden-io/garden/commit/015b36746))
+* **cli:** add `util mutagen` command to ease troubleshooting sync issues ([064ea8287](https://github.com/garden-io/garden/commit/064ea8287))
+* **cli:** support spread positional arguments ([492dd3601](https://github.com/garden-io/garden/commit/492dd3601))
+* **cli:** new, minty fresh interactive dev command ([68fb22c0c](https://github.com/garden-io/garden/commit/68fb22c0c))
+* **cloud:** garden cloud dashboard fallback ([#3666](https://github.com/garden-io/garden/issues/3666)) ([6488c13c6](https://github.com/garden-io/garden/commit/6488c13c6))
+* **commands:** add experimental watch disable flag for dev mode ([9c4b69d50](https://github.com/garden-io/garden/commit/9c4b69d50))
+* **config:** templating for actions and workflows + new RenderTemplate kind ([9ec9ccd03](https://github.com/garden-io/garden/commit/9ec9ccd03))
+* **config:** add sourcePath and buildPath keys to action template references ([87af35c3a](https://github.com/garden-io/garden/commit/87af35c3a))
+* **config:** add $if/$else/$then conditional objects ([#3907](https://github.com/garden-io/garden/issues/3907)) ([350d1f789](https://github.com/garden-io/garden/commit/350d1f789))
+* **config:** add ${this.mode} template variable to action spec context ([b44c725e2](https://github.com/garden-io/garden/commit/b44c725e2))
+* **core:** allow multiple Runs in `garden run` and add watch mode ([62ab928c1](https://github.com/garden-io/garden/commit/62ab928c1))
+* **dev:** add blinking cursor ([8ede9617d](https://github.com/garden-io/garden/commit/8ede9617d))
+* **dev:** add reload command to dev console ([0f36fd512](https://github.com/garden-io/garden/commit/0f36fd512))
+* **dev:** add autocomplete, reload and log-level commands to API server ([0b5eea37e](https://github.com/garden-io/garden/commit/0b5eea37e))
+* **dev:** show status message while running commands ([6920ab54d](https://github.com/garden-io/garden/commit/6920ab54d))
+* **examples:** add GitOps example based on ArgoCD ([931480587](https://github.com/garden-io/garden/commit/931480587))
+* **exec:** add explicit `shell: true` option to exec action specs ([f972f4ec5](https://github.com/garden-io/garden/commit/f972f4ec5))
+* **k8s:** kubernetes-exec Runs and Tests ([5a886e653](https://github.com/garden-io/garden/commit/5a886e653))
+* **kubernetes:** add sync helper commands ([acaa4e8bf](https://github.com/garden-io/garden/commit/acaa4e8bf))
+
+### Improvements
+
+* track the command run result and duration ([#3837](https://github.com/garden-io/garden/issues/3837)) ([2cf819dcb](https://github.com/garden-io/garden/commit/2cf819dcb))
+* removed error-prone local ip inference ([b52ac025c](https://github.com/garden-io/garden/commit/b52ac025c))
+* deduplicate deploy status logs for ready statuses ([31efbf16f](https://github.com/garden-io/garden/commit/31efbf16f))
+* add additional info to error message when sh is not found ([071fdcb02](https://github.com/garden-io/garden/commit/071fdcb02))
+* support static keys to avoid unnecessary action execution ([182d8a0ea](https://github.com/garden-io/garden/commit/182d8a0ea))
+* more granular version control in `self-update` command ([#3999](https://github.com/garden-io/garden/issues/3999)) ([4f45a294b](https://github.com/garden-io/garden/commit/4f45a294b))
+* support only single dotIgnoreFile ([#3069](https://github.com/garden-io/garden/issues/3069)) ([8ecde239a](https://github.com/garden-io/garden/commit/8ecde239a))
+* **autocomplete:** handful of small improvements based on feedback ([babd2c2b3](https://github.com/garden-io/garden/commit/babd2c2b3))
+* **cli:** slightly improved error detail logging ([60ddb1980](https://github.com/garden-io/garden/commit/60ddb1980))
+* **config:** better debug info for certain schema errors ([fdda5256a](https://github.com/garden-io/garden/commit/fdda5256a))
+* **config-store:** tighter file mode on global config + atomic write ([a6df8ffab](https://github.com/garden-io/garden/commit/a6df8ffab))
+* **container:** slightly more clear log context for docker builds ([6938c4d01](https://github.com/garden-io/garden/commit/6938c4d01))
+* **container:** redeploy when spec changes ([2c6f4d468](https://github.com/garden-io/garden/commit/2c6f4d468))
+* **core:** tell user which envs are configured when bad env specified ([dd00f9625](https://github.com/garden-io/garden/commit/dd00f9625))
+* **core:** clear separation between input and output versions for tasks ([afc9dcd53](https://github.com/garden-io/garden/commit/afc9dcd53))
+* **dev:** persist command history between dev command sessions ([d8104f220](https://github.com/garden-io/garden/commit/d8104f220))
+* **dev:** some styling tweaks in dev command ([f0126074d](https://github.com/garden-io/garden/commit/f0126074d))
+* **dev:** add 'exit' as alias to 'quit' command ([520ae6f48](https://github.com/garden-io/garden/commit/520ae6f48))
+* **dev:** autocomplete on right-arrow if at end of input line ([30d8bf18c](https://github.com/garden-io/garden/commit/30d8bf18c))
+* **dev-mode:** address PR comments ([af53702e3](https://github.com/garden-io/garden/commit/af53702e3))
+* **exec:** run persistent exec processes detached from the Garden proc ([aaae3ddd9](https://github.com/garden-io/garden/commit/aaae3ddd9))
+* **framework:** allow users to specify proxy hostname in project config ([0d3b2b4d1](https://github.com/garden-io/garden/commit/0d3b2b4d1))
+* **hadolint:** update `hadolint` to `v.2.12.0` ([798e8bc46](https://github.com/garden-io/garden/commit/798e8bc46))
+* **k8s:** schedule runners w/o deploying ([3a942ef76](https://github.com/garden-io/garden/commit/3a942ef76))
+* **k8s:** syncs keep running after Garden process exits ([7bbd9c39b](https://github.com/garden-io/garden/commit/7bbd9c39b))
+* **logger:** remove fancy logger ([41c5796d8](https://github.com/garden-io/garden/commit/41c5796d8))
+* **logger:** add ActionLog (v0) ([d51a787dd](https://github.com/garden-io/garden/commit/d51a787dd))
+* **logger:** various fixes to make basic logger render nicer ([df2058c3f](https://github.com/garden-io/garden/commit/df2058c3f))
+* **server:** ensure serverReady event has correct type ([0e0e5a663](https://github.com/garden-io/garden/commit/0e0e5a663))
+* **sync:** wait for first sync to complete (flush) when starting syncs ([13d38a5b8](https://github.com/garden-io/garden/commit/13d38a5b8))
+* **sync-mode:** allow Windows paths as sync sources ([1a2e2fb79](https://github.com/garden-io/garden/commit/1a2e2fb79))
+* **template:** aligned action and runtime kind validation ([d2255676b](https://github.com/garden-io/garden/commit/d2255676b))
+* **template:** better error message on missing kind ([dd6dd4d4d](https://github.com/garden-io/garden/commit/dd6dd4d4d))
+
+### Performance Improvements
+
+* **core:** cache schemas to reduce load time and speed up tests ([c560204bd](https://github.com/garden-io/garden/commit/c560204bd))
+* **core:** memoize frequently accessed Garden methods ([5690b816a](https://github.com/garden-io/garden/commit/5690b816a))
+* **solver:** use events to avoid stack piling up and improve performance ([559b88a5e](https://github.com/garden-io/garden/commit/559b88a5e))
+* **vcs:** cut git CLI calls down by approx 60% ([884d3f93a](https://github.com/garden-io/garden/commit/884d3f93a))
+
+### BREAKING CHANGE
+
+
+Previously Garden would just exit silently when running the logs
+command and no services were found, either because of bad params or
+because the project has no services.
+
+Now we throw an error, exit with code 1, and log a helpful error
+message.
+
+This commit removes the 'fancy' logger.
+
+That is, the default Garden logger that renders spinners and updates log
+lines in place.
+
+From now on, the logger previously knowns as the "basic" logger is the
+default.
+
+This results in the following breaking changes:
+
+- You can no longer set the logger type to 'fancy' via the `--logger-type`
+  flag or the `GARDEN_LOGGER_TYPE` env  var. Note that `"fancy"` was the
+  default behaviour so it's very unlikely that it's set anywhere via either
+  of the aforementioned options.
+
+Furthermore, setting the logger type to `"basic"` has been deprecated and
+will be removed in a future release. Instead the type can be set to
+`"default"` (which is kind of a superfluous option).
+
+Furthermore, the logs rendered in the terminal will "look" different
+compared to the current default, although that's not technically a
+breaking change.
+
+Finally, the shape of the log data sent to Garden Cloud has changed and
+will need to be handled specifically in Cloud.
+
+Goodbye, you beautiful disaster.
+
+The `garden test` command now accepts Test action names (including globs) as
+positional arguments, instead of module names. To filter tests by module, use
+the new `--module` option flag.
+
+The `dotIgnoreFiles` field in project configs has been deprecated in 0.13 in favor of the `dotIgnoreFile` field, and as of 0.13 only one filename is allowed here.
+
+If a single filename is specified in the old `dotIgnoreFiles` field, the conversion is done automatically. If multiple filenames are provided, an error will be thrown.
+
 <a name="0.12.51"></a>
 ## [0.12.51](https://github.com/garden-io/garden/compare/0.12.50...0.12.51) (2023-02-06)
 
