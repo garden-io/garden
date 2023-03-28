@@ -139,7 +139,7 @@ Done! ✔️
 
 After the deployment, Garden deploys a fancy landing page without a certificate🎉.
 
-![First successful deployment](https://res.cloudinary.com/djp21wtxm/image/upload/v1676712587/i1600x744-DlhjPIr3f0XI_aut50k.png)
+![First successful deployment](./images/firs-successful-deployment.png)
 
 To generate the certificates, switch `GENERATE_STG_CERTS` from false to true. This action allows Garden to deploy the certificates.
 
@@ -170,7 +170,7 @@ Deploy and refresh your browser.
 
 A message stating "your connection is not private" means that certificate got exposed to the NGINX ingress. Browsers do not trust staging certificates, hence the alert.
 
-![Your connection is not private](https://res.cloudinary.com/djp21wtxm/image/upload/v1676834933/i1425x1036-pyYqS8azWa2P_ccsaez.png)
+![Your connection is not private](./images/your-connection-is-not-private.png)
 
 To generate the production certificates, turn `GENERATE_PROD_CERTS` to true and re-deploy the example, waiting for the new certificate to be ready.
 
@@ -192,6 +192,6 @@ tlsCertificates:
 
 And voilà! We can now see the desired 🔒️ on our website. If you've made it this far, the NGINX ingress controller is correctly utilizing your certificate, and we have a valid HTTPS endpoint using the Production certificate 🕺.
 
-![Successful HTTPS website](https://res.cloudinary.com/djp21wtxm/image/upload/v1676835652/i1600x904-LLQLXx-TtGww_va4xkf.png)
+![Successful HTTPS website](./images/successful-https-website.png)
 
 If you have any issues, find a bug, or something is not clear from the documentation, please don't hesitate to open a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in [our Discord community](https://discord.gg/UetZGUKhNx).
