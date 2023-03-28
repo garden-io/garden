@@ -85,7 +85,27 @@ kubectl config get-contexts
 kubectl config current-context # Copy the name of the context
 ````
 
-After getting your context name, change line 15 in the [project.garden.yml](./project.garden.yml) file, then deploy the configuration for the first time.
+After getting your context name, change line 15 in the [project.garden.yml](./project.garden.yml) file.
+
+For the `deploymentRegistry` and `imagePullSecrets` fields, you must have a Docker Registry (prerequisite #5).
+
+If you already have a Docker registry on Docker Hub or Quay, create a secret with your credentials using the following command:
+
+```bash
+kubectl create secret docker-registry regcred \
+  --docker-username=user \
+  --docker-password=password \
+  --docker-email=docker-email@email.com \
+  --docker-server=your-docker-server-url
+```
+
+Note: *If you are using Docker Hub*, `--docker-server` should be: `https://index.docker.io/v1/`
+
+Or, you can also follow this awesome guide from the official [Kubernetes documentation](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/). Make sure to name your secret `regcred` and keep it in the `default` namespace.
+
+If you decide to set up the secret with a different name make sure to update it in the `imagePullSecrets` configuration.
+
+After setting these values, deploy the configuration for the first time.
 
 ````bash
 garden deploy --yes
@@ -174,4 +194,4 @@ And voilà! We can now see the desired 🔒️ on our website. If you've made it
 
 ![Successful HTTPS website](https://res.cloudinary.com/djp21wtxm/image/upload/v1676835652/i1600x904-LLQLXx-TtGww_va4xkf.png)
 
-If you have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in [our Discord community](https://discord.gg/UetZGUKhNx).
+If you have any issues, find a bug, or something is not clear from the documentation, please don't hesitate to open a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in [our Discord community](https://discord.gg/UetZGUKhNx).
