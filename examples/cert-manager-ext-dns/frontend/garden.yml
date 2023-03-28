@@ -1,0 +1,28 @@
+kind: Module
+type: container
+name: react-app
+description: React App for TLS and DNS example
+build:
+  dependencies:
+    - name: cluster-issuers
+services:
+  - name: frontend
+    dependencies: [cluster-issuers]
+    ports:
+      - name: http
+        containerPort: 3000
+    ingresses:
+      - path: /
+        port: http
+        hostname: react.${var.base-hostname}
+    devMode: # This is the dev mode for the module, make sure to run it with `garden deploy --dev-mode --watch`
+      command: [npm, start]
+      sync:
+        - source: ./src
+          target: /app/src
+          exclude: [node_modules]
+        - source: package.json
+          target: /package.json
+tests:
+  - name: unit
+    args: ["npm", "test"]

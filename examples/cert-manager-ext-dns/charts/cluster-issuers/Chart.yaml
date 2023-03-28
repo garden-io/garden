@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cluster-issuers
+description: A Helm chart for needed resources for TLS and DNS
+type: application
+version: 0.1.0
