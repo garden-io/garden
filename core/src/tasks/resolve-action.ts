@@ -196,6 +196,12 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const actionRouter = router.getRouterForActionKind(resolvedAction.kind)
     await actionRouter.validateActionOutputs(resolvedAction, "static", staticOutputs)
 
+    await actionRouter.callHandler({
+      handlerType: "validate",
+      params: { action: resolvedAction, graph: resolvedGraph, log: this.log, events: undefined },
+      defaultHandler: async (p) => ({}),
+    })
+
     // TODO-G2B: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs
 
