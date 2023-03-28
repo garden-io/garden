@@ -6,7 +6,7 @@ There are some changes in the configuration format in this version, but fear not
 
 On the other hand, the optional new configuration format is easier to read and write, provides much more flexibility, and adds some completely new functionalities. We encourage migrating to the new configuration format when you feel the time is right in your project.
 
-## Breaking changes
+## Breaking changes first
 
 Here is the list of breaking changes when upgrading your `garden` CLI tool. This lets you use your old Module-style configuration files with minimal changes.
 
@@ -15,11 +15,12 @@ Here is the list of breaking changes when upgrading your `garden` CLI tool. This
 - `garden delete` has been renamed to `garden cleanup`
 - `garden delete env` has been renamed to `garden cleanup namespace` with an alias of `garden cleanup ns`
 - `dotIgnoreFiles` has been renamed to `dotIgnoreFile` and only supports one file
+- project config `modules.*` will be renamed to `scan.*`: [tracking issue](https://github.com/garden-io/garden/issues/3512)
 - removed default `environments`, please specify the field in project configuration
 - template configurations will use `camelCase` everywhere, no more `snake_case` or `kebab-case`: [tracking issue](https://github.com/garden-io/garden/issues/3513)
 - the deprecated `hot-reload` has been removed, use `sync` instead
 - the deprecated `cluster-docker` build mode has been removed, use `cluster-buildkit` or `kaniko` instead
-- dropped support for deploying an in-cluster registry, see the [in-cluster build documentation](../k8s-plugins/advanced/in-cluster-building.md)
+- dropped support for deploying an in-cluster registry, see the [in-cluster build documentation](../k8s-plugins/remote-k8s/configure-registry/README.md)
 - dropped support for the following providers:
   - `google-app-engine`
   - `google-cloud-functions`
@@ -28,11 +29,31 @@ Here is the list of breaking changes when upgrading your `garden` CLI tool. This
   - `npm-package`
   - `openfaas`
 
+## Note before continuing
+
+It is possible to use both the old Module configuration and new Action configuration in the same project. This should make it easier to convert projects piece by piece.
+
+However, there are some caveats:
+
+- Modules cannot depend on actions
+- Modules cannot reference actions
+- Actions can reference and depend on modules, by referencing the actions that are generated from modules
+
+This means that converting your project to the actions config can be performed gradually by starting from the end of the dependency tree.
+
+The general flow of the Garden runtime is as follows:
+
+- Modules are resolved
+- Modules are converted to actions
+- Actions are resolved
+
 ## Opt in to the new format
 
 Here are a couple of examples of converting existing Module-style configuration to the new Action-based configuration format. This requires more effort, but should be pretty rewarding.
 
 The added granularity and flexibility should make it easier to configure complex projects, and significantly reduce the number of unnecessary rebuilds.
+
+This is a short tutorial, you can find the full reference documentation for Actions [here](../reference/action-types/README.md)
 
 ### vote/api
 
