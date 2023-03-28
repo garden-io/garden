@@ -16,11 +16,10 @@ Here is the list of breaking changes when upgrading your `garden` CLI tool. This
 - `garden delete env` has been renamed to `garden cleanup namespace` with an alias of `garden cleanup ns`
 - `dotIgnoreFiles` has been renamed to `dotIgnoreFile` and only supports one file
 - removed default `environments`, please specify the field in project configuration
-- template configurations now use `camelCase` everywhere, no more `snake_case` or `kebab-case`
+- template configurations will use `camelCase` everywhere, no more `snake_case` or `kebab-case`: [tracking issue](https://github.com/garden-io/garden/issues/3513)
 - the deprecated `hot-reload` has been removed, use `sync` instead
 - the deprecated `cluster-docker` build mode has been removed, use `cluster-buildkit` or `kaniko` instead
 - dropped support for deploying an in-cluster registry, see the [in-cluster build documentation](../k8s-plugins/advanced/in-cluster-building.md)
-- dropped support for Kubernetes version `1.14` and below
 - dropped support for the following providers:
   - `google-app-engine`
   - `google-cloud-functions`
