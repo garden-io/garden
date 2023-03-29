@@ -80,7 +80,7 @@ function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>):
   return "patch"
 }
 
-function isEdgeVersion(version: string) {
+export function isEdgeVersion(version: string) {
   return version === "edge" || version.startsWith("edge-")
 }
 

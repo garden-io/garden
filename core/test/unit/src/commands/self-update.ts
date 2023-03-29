@@ -14,12 +14,32 @@ import getPort from "get-port"
 import { dirname } from "path"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ParameterValues } from "../../../../src/cli/params"
-import { SelfUpdateArgs, SelfUpdateCommand, SelfUpdateOpts } from "../../../../src/commands/self-update"
+import { isEdgeVersion, SelfUpdateArgs, SelfUpdateCommand, SelfUpdateOpts } from "../../../../src/commands/self-update"
 import { DummyGarden } from "../../../../src/garden"
 import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
 import { getPackageVersion } from "../../../../src/util/util"
 import { getDataDir, withDefaultGlobalOpts } from "../../../helpers"
 import { createServer, Server } from "http"
+
+describe("version helpers", () => {
+  describe("isEdgeVersion", () => {
+    it("should be true for 'edge' version name", () => {
+      expect(isEdgeVersion("edge")).to.be.true
+    })
+
+    it("should be true for a version name starting with 'edge-'", () => {
+      expect(isEdgeVersion("edge-bonsai")).to.be.true
+    })
+
+    it("should be false for a pre-release version name", () => {
+      expect(isEdgeVersion("0.13.0-0")).to.be.false
+    })
+
+    it("should be false for a stable version name", () => {
+      expect(isEdgeVersion("0.13.0")).to.be.false
+    })
+  })
+})
 
 describe("SelfUpdateCommand", () => {
   const command = new SelfUpdateCommand()
