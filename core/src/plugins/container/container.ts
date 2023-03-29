@@ -387,6 +387,7 @@ export const gardenPlugin = () =>
 
             async validate({ action }) {
               // make sure ports are correctly configured
+              validateRuntimeCommon(action)
               const spec = action.getSpec()
               const definedPorts = spec.ports
               const portsByName = keyBy(spec.ports, "name")
@@ -465,7 +466,7 @@ export const gardenPlugin = () =>
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
             async validate({ action }) {
-              validateCommon(action)
+              validateRuntimeCommon(action)
               return {}
             },
           },
@@ -483,7 +484,11 @@ export const gardenPlugin = () =>
           runtimeOutputsSchema: containerTestOutputSchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
-          },
+            async validate({ action }) {
+              validateRuntimeCommon(action)
+              return {}
+            },
+          }
         },
       ],
     },
@@ -564,7 +569,7 @@ export const gardenPlugin = () =>
     ],
   })
 
-function validateCommon(action: Resolved<ContainerRuntimeAction>) {
+function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
   const { image } = action.getSpec()
 
