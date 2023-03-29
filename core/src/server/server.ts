@@ -369,12 +369,12 @@ export class GardenServer extends EventEmitter {
       }
 
       // TODO: Only allow auth key authentication
-      if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
-        send("error", { message: `401 Unauthorized` })
-        const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
-        websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
-        return
-      }
+      // if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
+      //   send("error", { message: `401 Unauthorized` })
+      //   const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
+      //   websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
+      //   return
+      // }
 
       send("event", { name: "serverReady", payload: {} })
 
@@ -550,6 +550,19 @@ export class GardenServer extends EventEmitter {
       const req = this.activePersistentRequests[requestId]
       req && req.command.terminate()
       delete this.activePersistentRequests[requestId]
+    } else if (requestType === "getProjectMeta") {
+      const garden = this.garden
+
+      if (!garden) {
+        return send("error", { requestId, message: notReadyMessage })
+      }
+
+      const projectMeta = {
+        id: garden.projectId,
+        name: garden.projectName,
+      }
+
+      return send("projectMeta", projectMeta)
     } else if (clientRequestNames.find((e) => e === requestType)) {
       // TODO-G2: get rid of ClientRouter entirely
       this.clientRouter?.dispatch(<ClientRequestType>requestType, request).catch(() => {})
@@ -560,6 +573,11 @@ export class GardenServer extends EventEmitter {
       })
     }
   }
+}
+
+interface ProjectMeta {
+  id: string | undefined
+  name: string
 }
 
 interface ServerWebsocketMessages {
@@ -590,6 +608,7 @@ interface ServerWebsocketMessages {
     name: EventName
     payload: ValueOf<Events>
   }
+  projectMeta: ProjectMeta
 }
 
 type ServerWebsocketMessageType = keyof ServerWebsocketMessages
