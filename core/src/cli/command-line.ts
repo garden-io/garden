@@ -15,6 +15,7 @@ import { BuiltinArgs, Command, CommandGroup, CommandParams, CommandResult } from
 import { toGardenError } from "../exceptions"
 import { ConfigDump, Garden } from "../garden"
 import { Log } from "../logger/log-entry"
+import { getRootLogger } from "../logger/logger"
 import { renderDivider } from "../logger/util"
 import { TypedEventEmitter } from "../util/events"
 import { uuidv4 } from "../util/random"
@@ -65,6 +66,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private commandHistory: string[]
   private showCursor: boolean
   private runningCommands: { [id: string]: { command: Command; params: CommandParams } }
+  private persistentStatus: string
 
   private keyHandlers: { [key: string]: KeyHandler }
 
@@ -110,6 +112,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.commandHistory = history
     this.showCursor = true
     this.runningCommands = {}
+    this.persistentStatus = ""
 
     // This does nothing until a callback is supplied from outside
     this.commandLineCallback = () => {}
@@ -363,7 +366,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   renderStatus() {
-    let status = ""
+    let status = this.persistentStatus
 
     const runningCommands = Object.values(this.runningCommands)
 
@@ -438,6 +441,10 @@ ${chalk.white.underline("Keys:")}
     this.printWithDividers(helpText, "help")
   }
 
+  setPersistentStatus(msg: string) {
+    this.persistentStatus = msg
+  }
+
   /**
    * Flash the given `message` in the command line for `duration` milliseconds, meanwhile disabling the command line.
    */
@@ -448,7 +455,7 @@ ${chalk.white.underline("Keys:")}
     this.messageCallback(prefix + message)
 
     this.messageTimeout = setTimeout(() => {
-      this.messageCallback("")
+      this.messageCallback(this.persistentStatus)
     }, opts.duration || defaultMessageDuration)
   }
 
@@ -592,14 +599,12 @@ ${chalk.white.underline("Keys:")}
 
     const name = command.getFullName()
 
-    if (command.isPersistent(params)) {
+    if (!command.allowInDevCommand(params)) {
       if ((name === "test" || name === "run") && opts["interactive"]) {
         // Specific error for interactive commands
         this.flashError(`Commands cannot be run in interactive mode in the dev console. Please run those separately.`)
       } else if (name === "dev") {
         this.flashError(`Nice try :)`)
-      } else if (name === "logs") {
-        this.flashError(`Logs cannot currently be followed in the dev console. Please use a separate terminal.`)
       } else {
         this.flashError(`This command cannot be run in the dev console. Please run it in a separate terminal.`)
       }
@@ -607,7 +612,7 @@ ${chalk.white.underline("Keys:")}
     }
 
     // Execute the command
-    if (!command.isInteractive) {
+    if (!command.isDevCommand) {
       const msg = `Running ${chalk.white.bold(command.getFullName())}...`
       this.flashMessage(msg)
       this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
@@ -620,10 +625,12 @@ ${chalk.white.underline("Keys:")}
       .action(params)
       .then((output: CommandResult) => {
         if (output.errors?.length) {
-          renderCommandErrors(this.log.root, output.errors, this.log)
+          renderCommandErrors(getRootLogger(), output.errors, this.log)
           this.log.error({ msg: renderDivider({ width, color: chalk.red }) })
           this.flashError(failMessage)
-        } else if (!command.isInteractive) {
+        } else if (!command.isDevCommand) {
+          // TODO: print this differently if monitors from the command are active
+          // const monitorsAdded = this.garden.monitors.getByCommand(command).length
           const msg = `${chalk.whiteBright(command.getFullName())} command completed successfully!`
           this.flashSuccess(msg)
           this.log.info({

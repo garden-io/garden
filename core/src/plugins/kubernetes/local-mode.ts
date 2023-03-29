@@ -7,7 +7,7 @@
  */
 
 import { ContainerDeployAction, containerLocalModeSchema, ContainerLocalModeSpec } from "../container/config"
-import { dedent, gardenAnnotationKey } from "../../util/string"
+import { dedent, gardenAnnotationKey, splitLast } from "../../util/string"
 import { cloneDeep, remove, set } from "lodash"
 import { BaseResource, KubernetesResource, SyncableResource, SyncableRuntimeAction } from "./types"
 import { PrimitiveMap } from "../../config/common"
@@ -613,6 +613,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
         log.verbose({
           symbol: "info",
           section,
+          origin: splitLast(localAppCmd.command, ",")[1],
           msg: chalk.gray(composeMessage(msg, stripEol(msg.message))),
         })
       },
@@ -706,6 +707,7 @@ async function getKubectlPortForwardProcess(
         if (msg.message.includes("Handling connection for")) {
           log.info({
             section,
+            origin: chalk.gray("kubectl"),
             msg: chalk.white(consoleMessage),
           })
           lastSeenSuccessMessage = consoleMessage
@@ -727,9 +729,9 @@ async function getReversePortForwardCommands(
     command: "ssh",
     args: [
       /*
-         Always disable pseudo-terminal allocation to avoid warnings like
-         "Pseudo-terminal will not be allocated because stdin is not a terminal".
-         */
+        Always disable pseudo-terminal allocation to avoid warnings like
+        "Pseudo-terminal will not be allocated because stdin is not a terminal".
+      */
       "-T",
       "-R",
       `${portSpec.remote}:${localhost}:${portSpec.local}`,
@@ -751,97 +753,97 @@ async function getReversePortForwardProcesses(
   localSshPort: number
 ): Promise<RecoverableProcess[]> {
   const reversePortForwardingCmds = await getReversePortForwardCommands(configParams, localSshPort)
-  const { ctx, action, log } = configParams
+  const { ctx, action } = configParams
 
   const section = action.key()
 
-  return reversePortForwardingCmds.map(
-    (cmd) =>
-      new RecoverableProcess({
-        events: ctx.events,
-        osCommand: cmd,
-        retryConfig: {
-          maxRetries: Number.POSITIVE_INFINITY,
-          minTimeoutMs: portForwardRetryTimeoutMs,
-        },
-        log,
-        stderrListener: {
-          catchCriticalErrors: (chunk: any) => {
-            const output = chunk.toString()
-            const lowercaseOutput = output.toLowerCase()
-            if (lowercaseOutput.includes('unsupported option "accept-new"')) {
-              log.error({
-                section,
-                msg: chalk.red(
-                  "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
-                ),
-              })
-              return true
-            }
-            const criticalErrorIndicators = [
-              "permission denied",
-              "remote host identification has changed",
-              "bad configuration option",
-            ]
-            const hasCriticalErrors = criticalErrorIndicators.some((indicator) => {
-              lowercaseOutput.includes(indicator)
-            })
-            if (hasCriticalErrors) {
-              log.error({
-                section,
-                msg: chalk.red(output),
-              })
-            }
-            return hasCriticalErrors
-          },
-          hasErrors: (chunk: any) => {
-            const output = chunk.toString()
-            // A message containing "warning: permanently added" is printed by ssh command
-            // when the connection is established and the public key is added to the temporary known hosts file.
-            // This message is printed to stderr, but it should not be considered as an error.
-            // It indicates the successful connection.
-            return !output.toLowerCase().includes("warning: permanently added")
-          },
-          onError: (msg: ProcessMessage) => {
+  return reversePortForwardingCmds.map((cmd) => {
+    // Include origin with logs for clarity
+    const log = configParams.log.createLog({ origin: chalk.gray(cmd.command) })
+
+    return new RecoverableProcess({
+      events: ctx.events,
+      osCommand: cmd,
+      retryConfig: {
+        maxRetries: Number.POSITIVE_INFINITY,
+        minTimeoutMs: portForwardRetryTimeoutMs,
+      },
+      log,
+      stderrListener: {
+        catchCriticalErrors: (chunk: any) => {
+          const output = chunk.toString()
+          const lowercaseOutput = output.toLowerCase()
+          if (lowercaseOutput.includes('unsupported option "accept-new"')) {
             log.error({
               section,
-              msg: chalk.gray(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
+              msg: chalk.red(
+                "It looks like you're using too old SSH version which doesn't support option -oStrictHostKeyChecking=accept-new. Consider upgrading to OpenSSH 7.6 or higher. Local mode will not work."
+              ),
             })
-            reversePortForwardFailureCounter.addFailure(() => {
-              log.error({
-                symbol: "warning",
-                section,
-                msg: chalk.yellow(
-                  dedent`${
-                    msg.processDescription
-                  } hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts.
-                  Please make sure your configuration is correct, check the logs in ${getLogsPath(
-                    ctx
-                  )}, and consider restarting Garden.`
-                ),
-              })
-            })
-          },
-          onMessage: (msg: ProcessMessage) => {
-            log.success({
+            return true
+          }
+          const criticalErrorIndicators = [
+            "permission denied",
+            "remote host identification has changed",
+            "bad configuration option",
+          ]
+          const hasCriticalErrors = criticalErrorIndicators.some((indicator) => {
+            lowercaseOutput.includes(indicator)
+          })
+          if (hasCriticalErrors) {
+            log.error({
               section,
-              msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+              msg: chalk.red(output),
             })
-          },
+          }
+          return hasCriticalErrors
         },
-        stdoutListener: {
-          catchCriticalErrors: (_chunk: any) => false,
-          hasErrors: (_chunk: any) => false,
-          onError: (_msg: ProcessMessage) => {},
-          onMessage: (msg: ProcessMessage) => {
-            log.success({
+        hasErrors: (chunk: any) => {
+          const output = chunk.toString()
+          // A message containing "warning: permanently added" is printed by ssh command
+          // when the connection is established and the public key is added to the temporary known hosts file.
+          // This message is printed to stderr, but it should not be considered as an error.
+          // It indicates the successful connection.
+          return !output.toLowerCase().includes("warning: permanently added")
+        },
+        onError: (msg: ProcessMessage) => {
+          log.error({
+            section,
+            msg: chalk.gray(composeErrorMessage(`${msg.processDescription} port-forward failed`, msg)),
+          })
+          reversePortForwardFailureCounter.addFailure(() => {
+            log.error({
+              symbol: "warning",
               section,
-              msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+              msg: chalk.yellow(
+                `${
+                  msg.processDescription
+                } hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts.
+                  Please check the logs in ${getLogsPath(ctx)} and consider restarting Garden.`
+              ),
             })
-          },
+          })
         },
-      })
-  )
+        onMessage: (msg: ProcessMessage) => {
+          log.success({
+            section,
+            msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+          })
+        },
+      },
+      stdoutListener: {
+        catchCriticalErrors: (_chunk: any) => false,
+        hasErrors: (_chunk: any) => false,
+        onError: (_msg: ProcessMessage) => {},
+        onMessage: (msg: ProcessMessage) => {
+          log.success({
+            section,
+            msg: chalk.white(composeMessage(msg, `${msg.processDescription} is up and running`)),
+          })
+        },
+      },
+    })
+  })
 }
 
 function composeSshTunnelProcessTree(

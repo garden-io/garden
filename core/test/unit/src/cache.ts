@@ -9,11 +9,11 @@
 import { TreeCache } from "../../../src/cache"
 import { expect } from "chai"
 import { expectError } from "../../helpers"
-import { getLogger } from "../../../src/logger/logger"
+import { getRootLogger } from "../../../src/logger/logger"
 
 describe("TreeCache", () => {
   let cache: TreeCache
-  const log = getLogger().createLog()
+  const log = getRootLogger().createLog()
 
   beforeEach(() => {
     cache = new TreeCache()

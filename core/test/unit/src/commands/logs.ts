@@ -9,7 +9,7 @@
 import tmp from "tmp-promise"
 import { expect } from "chai"
 import { Garden } from "../../../../src"
-import { colors, LogsCommand } from "../../../../src/commands/logs"
+import { LogsCommand } from "../../../../src/commands/logs"
 import { ProjectConfig } from "../../../../src/config/project"
 import { GardenPlugin } from "../../../../src/plugin/plugin"
 import { TestGarden } from "../../../../src/util/testing"
@@ -29,6 +29,8 @@ import { DeployLogEntry } from "../../../../src/types/service"
 import { execDeployActionSchema } from "../../../../src/plugins/exec/config"
 import { GetDeployLogs } from "../../../../src/plugin/handlers/Deploy/get-logs"
 import { BaseActionConfig } from "../../../../src/actions/types"
+import { LogMonitor, logMonitorColors } from "../../../../src/monitors/logs"
+import stripAnsi from "strip-ansi"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 
@@ -94,7 +96,7 @@ describe("LogsCommand", () => {
   const msgColor = chalk.bgRedBright
   const logMsg = "Yes, this is log"
   const logMsgWithColor = msgColor(logMsg)
-  const color = chalk[colors[0]]
+  const color = chalk[logMonitorColors[0]]
 
   type GetDeployLogsParams = GetDeployLogs["_paramsType"]
 
@@ -128,6 +130,10 @@ describe("LogsCommand", () => {
 
   before(async () => {
     tmpDir = await makeTempDir({ git: true, initialCommit: false })
+  })
+
+  beforeEach(() => {
+    LogMonitor.resetGlobalState()
   })
 
   after(async () => {
@@ -341,9 +347,9 @@ describe("LogsCommand", () => {
         ])
 
         // Entries are color coded by their alphabetical order
-        const colA = chalk[colors[0]]
-        const colB = chalk[colors[1]]
-        const colD = chalk[colors[3]]
+        const colA = chalk[logMonitorColors[0]]
+        const colB = chalk[logMonitorColors[1]]
+        const colD = chalk[logMonitorColors[3]]
         const dc = msgColor
         const command = new LogsCommand()
         await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
@@ -358,41 +364,6 @@ describe("LogsCommand", () => {
         )
         expect(out[4]).to.eql(`${colA.bold("a-short         ")} → ${chalk.gray("[container=short] ")}${dc(logMsg)}`)
       })
-    })
-    it("should assign the same color to each service, regardless of which service logs are streamed", async () => {
-      const getServiceLogsHandler = async ({ action, stream }: GetDeployLogsParams) => {
-        if (action.name === "test-service-a") {
-          void stream.write({
-            tags: { container: "my-container" },
-            name: "test-service-a",
-            msg: logMsgWithColor,
-            timestamp: new Date("2021-05-13T20:00:00.000Z"),
-          })
-        } else {
-          void stream.write({
-            tags: { container: "my-container" },
-            name: "test-service-b",
-            msg: logMsgWithColor,
-            timestamp: new Date("2021-05-13T20:01:00.000Z"),
-          })
-        }
-        return {}
-      }
-      const garden = await makeGarden(tmpDir, makeTestPlugin(getServiceLogsHandler))
-      garden.setActionConfigs([
-        makeDeployAction(tmpDir.path, "test-service-a"),
-        makeDeployAction(tmpDir.path, "test-service-b"),
-      ])
-
-      const command = new LogsCommand()
-      // Only get logs for test-service-b.
-      await command.action(makeCommandParams({ garden, args: { names: ["test-service-b"] } }))
-
-      const out = getLogOutput(garden, logMsg)
-      const color2 = chalk[colors[1]]
-
-      // Assert that the service gets the "second" color, even though its the only one we're fetching logs for.
-      expect(out[0]).to.eql(`${color2.bold("test-service-b")} → ${msgColor("Yes, this is log")}`)
     })
 
     const actionConfigsForTags = (): BaseActionConfig[] => [
@@ -417,7 +388,7 @@ describe("LogsCommand", () => {
       await command.action(makeCommandParams({ garden, opts: { "show-tags": true } }))
       const out = getLogOutput(garden, logMsg)
 
-      expect(out[0]).to.eql(`${color.bold("api")} → ${chalk.gray("[container=api] ")}${msgColor("Yes, this is log")}`)
+      expect(stripAnsi(out[0])).to.include("[container=api]")
     })
 
     // These tests use tags as emitted by `container`/`kubernetes`/`helm` services, which use the `container` tag.

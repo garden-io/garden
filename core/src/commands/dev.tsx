@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandResult, CommandParams, InteractiveCommand } from "./base"
+import { CommandResult, CommandParams, ConsoleCommand } from "./base"
 import { renderDivider } from "../logger/util"
 import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
@@ -46,6 +46,8 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
   printHeader({ headerLog }) {
     const width = process.stdout?.columns ? process.stdout?.columns - 2 : 100
 
+    console.clear()
+
     headerLog.info(
       chalk.magenta(`
 ${renderDivider({ color: chalk.green, title: chalk.green.bold("🌳  garden dev 🌳 "), width })}
@@ -60,9 +62,13 @@ Let's get your development environment wired up.
     return "ink"
   }
 
+  allowInDevCommand() {
+    return false
+  }
+
   async action(params: ActionParams): Promise<CommandResult> {
     const logger = params.log.root
-  const terminalWriter = logger.getWriters().terminal
+    const terminalWriter = logger.getWriters().display
 
     let inkWriter: InkTerminalWriter
     // TODO: maybe enforce this elsewhere
@@ -155,7 +161,7 @@ Let's get your development environment wired up.
   }
 }
 
-class HelpCommand extends InteractiveCommand {
+class HelpCommand extends ConsoleCommand {
   name = "help"
   help = ""
   hidden = true
@@ -166,7 +172,7 @@ class HelpCommand extends InteractiveCommand {
   }
 }
 
-class QuitCommand extends InteractiveCommand {
+class QuitCommand extends ConsoleCommand {
   name = "quit"
   help = "Exit the dev console."
   aliases = ["exit"]
@@ -181,7 +187,7 @@ class QuitCommand extends InteractiveCommand {
   }
 }
 
-class QuietCommand extends InteractiveCommand {
+class QuietCommand extends ConsoleCommand {
   name = "quiet"
   help = ""
   hidden = true
@@ -192,7 +198,7 @@ class QuietCommand extends InteractiveCommand {
   }
 }
 
-class QuiteCommand extends InteractiveCommand {
+class QuiteCommand extends ConsoleCommand {
   name = "quite"
   help = ""
   hidden = true

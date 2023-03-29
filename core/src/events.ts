@@ -35,7 +35,7 @@ export class EventBus extends EventEmitter2 {
     super({
       wildcard: false,
       newListener: false,
-      maxListeners: 100, // we may need to adjust this
+      maxListeners: 1000, // we may need to adjust this
     })
   }
 
@@ -179,6 +179,7 @@ export interface Events {
     inputVersion: string
   }
   taskComplete: GraphResultEventPayload
+  taskReady: GraphResult
   taskError: GraphResultEventPayload
   taskCancelled: {
     /**

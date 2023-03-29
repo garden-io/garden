@@ -126,7 +126,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     await mutagen.ensureSync({
       log,
       key,
-      logSection: action.name,
+      logSection: action.key(),
       sourceDescription: `Module ${action.name} build path`,
       targetDescription: "Build sync Pod",
       config: {

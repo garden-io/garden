@@ -488,12 +488,20 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
-  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled. You may specify multiple names by setting this flag multiple times. Use * to deploy all supported deployments with sync enabled.
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. You may specify multiple deploys by setting this flag multiple times. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
-This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
+  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled.
+You may specify multiple names by setting this flag multiple times.
+Use * to deploy all supported deployments with sync enabled.
+
+Important: The syncs stay active after the command exits. To stop the syncs, use the &#x60;sync stop&#x60; command.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of deploy(s) to be started locally with local mode enabled.
+
+You may specify multiple deploys by setting this flag multiple times. Use * to deploy all deploys with local mode enabled. When this option is used,
+the command stays running until explicitly aborted.
+
+This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
   | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
-  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --sync or --local/--local-mode are set.
+  | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync or --local/--local-mode are set.
 
 #### Outputs
 
@@ -3386,7 +3394,7 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--deploy` |  | boolean | Deploy the specified actions, if they&#x27;re out of date and/or not deployed in sync mode.
   | `--with-dependencies` |  | boolean | When deploying actions, also include any runtime dependencies. Ignored if --deploy is not set.
-  | `--follow` |  | boolean | Keep the process running and print sync status logs after starting them.
+  | `--monitor` |  | boolean | Keep the process running and print sync status logs after starting them.
 
 
 ### garden sync stop

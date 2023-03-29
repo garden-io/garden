@@ -21,7 +21,7 @@ import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
-import { getLogger } from "../logger/logger"
+import { getRootLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
 import { ConfigGraph } from "../graph/config-graph"
@@ -168,7 +168,7 @@ export class TestGarden extends Garden {
     if (cacheKey && paramCache[cacheKey]) {
       params = cloneDeep(paramCache[cacheKey])
       // Need to do these separately to avoid issues around cloning
-      params.log = opts?.log || getLogger().createLog()
+      params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })

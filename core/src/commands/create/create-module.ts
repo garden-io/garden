@@ -94,9 +94,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     printHeader(headerLog, "Create new module", "✏️")
   }
 
-  // Defining it like this because it'll stall on waiting for user input.
-  isPersistent() {
-    return true
+  allowInDevCommand() {
+    return false
   }
 
   async action({

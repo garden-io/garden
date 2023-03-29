@@ -42,7 +42,6 @@ import { getActionNamespace } from "./namespace"
 import { Resolved } from "../../actions/types"
 import { serializeValues } from "../../util/serialization"
 import { PassThrough } from "stream"
-import { LogLevel } from "../../logger/logger"
 
 const STATIC_LABEL_REGEX = /[0-9]/g
 export const workloadTypes = ["Deployment", "DaemonSet", "ReplicaSet", "StatefulSet"]
@@ -286,15 +285,15 @@ export async function execInWorkload({
     const logEventContext = {
       // To avoid an awkwardly long prefix for the log lines when rendered, we set a max length here.
       origin: truncate(command.join(" "), 25),
-      log: log.createLog({ fixLevel: LogLevel.verbose }),
+      level: "verbose" as const,
     }
 
     const outputStream = new PassThrough()
     outputStream.on("error", () => {})
     outputStream.on("data", (line: Buffer) => {
       // For some reason, we're getting extra newlines for each line here, so we trim them.
-      const data = Buffer.from(line.toString().trimEnd(), "utf-8")
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
+      const msg = line.toString().trimEnd()
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg, ...logEventContext })
     })
     execParams.stdout = outputStream
     execParams.stderr = outputStream

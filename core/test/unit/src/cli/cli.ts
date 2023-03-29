@@ -29,7 +29,7 @@ import { UtilCommand } from "../../../../src/commands/util/util"
 import { StringParameter } from "../../../../src/cli/params"
 import stripAnsi from "strip-ansi"
 import { ToolsCommand } from "../../../../src/commands/tools"
-import { Logger, getLogger } from "../../../../src/logger/logger"
+import { getRootLogger, RootLogger } from "../../../../src/logger/logger"
 import { safeLoad } from "js-yaml"
 import { startServer, GardenServer } from "../../../../src/server/server"
 import { envSupportsEmoji } from "../../../../src/logger/util"
@@ -43,7 +43,7 @@ import { ServeCommand } from "../../../../src/commands/serve"
 describe("cli", () => {
   let cli: GardenCli
   const globalConfigStore = new GlobalConfigStore()
-  const log = getLogger().createLog()
+  const log = getRootLogger().createLog()
 
   beforeEach(() => {
     cli = new GardenCli()
@@ -223,7 +223,7 @@ describe("cli", () => {
         delete process.env.GARDEN_LOG_LEVEL
         gardenEnv.GARDEN_LOGGER_TYPE = ""
         gardenEnv.GARDEN_LOG_LEVEL = ""
-        Logger.clearInstance()
+        RootLogger.clearInstance()
       })
       // Re-initialise the test logger
       after(() => {
@@ -231,7 +231,7 @@ describe("cli", () => {
         process.env.GARDEN_LOG_LEVEL = envLogLevel
         gardenEnv.GARDEN_LOGGER_TYPE = envLoggerType || ""
         gardenEnv.GARDEN_LOG_LEVEL = envLogLevel || ""
-        Logger.clearInstance()
+        RootLogger.clearInstance()
         initTestLogger()
       })
 
@@ -253,9 +253,9 @@ describe("cli", () => {
 
         await cli.run({ args: ["test-command"], exitOnError: false })
 
-        const logger = getLogger()
+        const logger = log.root
         const writers = logger.getWriters()
-        expect(writers.terminal.type).to.equal("default")
+        expect(writers.display.type).to.equal("default")
       })
     })
 
@@ -1064,7 +1064,7 @@ describe("cli", () => {
     describe("validateRuntimeRequirementsCached", () => {
       let config: GlobalConfigStore
       let tmpDir
-      const log = getLogger().createLog()
+      const log = getRootLogger().createLog()
 
       before(async () => {
         tmpDir = await tmp.dir({ unsafeCleanup: true })

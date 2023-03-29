@@ -68,7 +68,8 @@ export async function watchRemovedWarning(garden: Garden, log: Log) {
   return garden.emitWarning({
     log,
     key: "watch-flag-removed",
-    message:
-      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community",
+    message: chalk.yellow(
+      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community"
+    ),
   })
 }

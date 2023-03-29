@@ -9,15 +9,19 @@
 import { actionParamsSchema, PluginDeployActionParamsBase } from "../../base"
 import { dedent } from "../../../util/string"
 import { createSchema, joi, joiVariables } from "../../../config/common"
-import { DeployAction } from "../../../actions/deploy"
+import type { DeployAction } from "../../../actions/deploy"
 import { ActionTypeHandlerSpec } from "../base/base"
+import type { Executed } from "../../../actions/types"
 
-type GetSyncStatusParams<T extends DeployAction> = PluginDeployActionParamsBase<T>
+interface GetSyncStatusParams<T extends DeployAction> extends PluginDeployActionParamsBase<T> {
+  monitor: boolean
+}
 
-export const syncStates = ["active", "not-active", "failed", "unknown"] as const
+// TODO-G2: maybe this should be the same as an ActionState
+export const syncStates = ["active", "not-active", "failed", "unknown", "outdated"] as const
 export type SyncState = (typeof syncStates)[number]
 
-export interface GetSyncStatusResult<D extends object> {
+export interface GetSyncStatusResult<D extends object = {}> {
   state: SyncState
   error?: string
   detail?: D
@@ -39,12 +43,15 @@ export const getSyncStatusResultSchema = createSchema({
 
 export class GetSyncStatus<T extends DeployAction = DeployAction> extends ActionTypeHandlerSpec<
   "Deploy",
-  GetSyncStatusParams<T>,
+  GetSyncStatusParams<Executed<T>>,
   GetSyncStatusResult<any>
 > {
   description = dedent`
     Get the sync status for the given Deploy.
   `
-  paramsSchema = () => actionParamsSchema()
+  paramsSchema = () =>
+    actionParamsSchema().keys({
+      monitor: joi.boolean().required().description("Keep monitoring the sync and emit logs until aborted."),
+    })
   resultSchema = () => getSyncStatusResultSchema()
 }

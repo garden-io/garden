@@ -7,84 +7,11 @@
  */
 
 import Bluebird from "bluebird"
-import chalk from "chalk"
 
-import { BaseTask } from "./tasks/base"
 import { Garden } from "./garden"
 import { Log } from "./logger/log-entry"
-import { ConfigGraph } from "./graph/config-graph"
-import { renderDivider } from "./logger/util"
-import { Action } from "./actions/types"
-import { GraphResults } from "./graph/results"
 import { GardenProcess, GlobalConfigStore } from "./config-store/global"
-
-export type ProcessHandler = (graph: ConfigGraph, action: Action) => Promise<BaseTask[]>
-
-interface ProcessParams {
-  garden: Garden
-  graph: ConfigGraph
-  log: Log
-  persistent: boolean
-  initialTasks: BaseTask[]
-}
-
-export interface ProcessActionsParams extends ProcessParams {
-  actions: Action[]
-}
-
-export interface ProcessResults {
-  graphResults: GraphResults
-  restartRequired?: boolean
-}
-
-export async function processActions({
-  garden,
-  log,
-  actions,
-  initialTasks,
-  persistent,
-}: ProcessActionsParams): Promise<ProcessResults> {
-  log.silly("Starting processActions")
-
-  // Let the user know if any actions are linked to a local path
-  const linkedActionsMsg = actions
-    .filter((a) => a.isLinked())
-    .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.basePath())}`)
-    .map((msg) => "  " + msg) // indent list
-
-  if (linkedActionsMsg.length > 0) {
-    log.info(renderDivider())
-    log.info(chalk.gray(`The following actions are linked to a local path:\n${linkedActionsMsg.join("\n")}`))
-    log.info(renderDivider())
-  }
-
-  // true if one or more tasks failed when the task graph last finished processing all its nodes.
-
-  const results = await garden.processTasks({ tasks: initialTasks, log })
-
-  // If any task indicates it's running persistently, we set persistent=true and keep the process alive.
-  // Used for e.g. exec Deploy actions with spec.persistent=true
-  for (const result of results.results.getAll()) {
-    if (result?.attached) {
-      log.verbose(`${result.task.getDescription()} is running a persistent process until Garden exits`)
-      persistent = true
-    }
-  }
-
-  if (!persistent) {
-    return {
-      graphResults: results.results,
-      restartRequired: false,
-    }
-  }
-
-  // Garden process is persistent but not in watch mode. E.g. used to
-  // keep port forwards alive without enabling watch or sync mode.
-  return {
-    ...(await waitForExitEvent(garden, log)),
-    graphResults: results.results,
-  }
-}
+import { sleep } from "./util/util"
 
 export async function waitForExitEvent(garden: Garden, log: Log) {
   let restartRequired = false
@@ -166,4 +93,10 @@ export function isRunning(pid: number) {
   } catch {
     return false
   }
+}
+
+// Note: Circumvents an issue where the process exits before the output is fully flushed.
+// Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
+export async function waitForOutputFlush() {
+  await sleep(100)
 }

@@ -104,14 +104,14 @@ export class SyncStopCommand extends Command<Args, Opts> {
     const router = await garden.getActionRouter()
 
     await Bluebird.map(actions, async (action) => {
-      const { result: status } = await router.deploy.getSyncStatus({ log, action, graph })
-      if (status.state !== "not-active") {
-        log.info({ section: action.key(), msg: "Stopping active syncs..." })
-        await router.deploy.stopSync({ log, action, graph })
-        log.info({ section: action.key(), msg: "Syncing successfully stopped." })
-      } else {
-        log.info({ section: action.key(), msg: "Syncing not active, nothing to do." })
-      }
+      log.info({ section: action.key(), msg: "Stopping active syncs (if any)..." })
+
+      await router.deploy.stopSync({ log, action, graph })
+
+      // Halt any active monitors for the sync
+      garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop())
+
+      log.info({ section: action.key(), msg: "Syncing successfully stopped." })
     })
 
     log.info(chalk.green("\nDone!"))

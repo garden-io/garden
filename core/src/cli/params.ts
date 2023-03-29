@@ -270,7 +270,12 @@ export class ChoicesParameter extends Parameter<string> {
     super(args)
 
     this.choices = args.choices
-    this.schema = joi.string().valid(...args.choices)
+
+    if (args.defaultValue !== undefined) {
+      this.choices.push(args.defaultValue)
+    }
+
+    this.schema = joi.string().valid(...this.choices)
   }
 
   coerce(input: string) {

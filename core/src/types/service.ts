@@ -196,7 +196,6 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   runningReplicas?: number
   state: DeployState
   updatedAt?: string
-  version?: string
 }
 
 export interface ServiceStatusMap {

@@ -9,10 +9,10 @@
 import { expect } from "chai"
 
 import { TerminalWriter } from "../../../../../src/logger/writers/terminal-writer"
-import { getLogger, Logger } from "../../../../../src/logger/logger"
+import { getRootLogger, Logger } from "../../../../../src/logger/logger"
 import { formatForTerminal } from "../../../../../src/logger/renderers"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
   logger["entries"] = []

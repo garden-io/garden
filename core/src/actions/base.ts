@@ -119,7 +119,11 @@ export const baseActionConfigSchema = createSchema({
       .string()
       .required()
       .allow(...actionKinds)
-      .description(`The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), "or")}).`)
+      .description(
+        `The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), {
+          trailingWord: "or",
+        })}).`
+      )
       .meta({ templateContext: null }),
     type: joiIdentifier()
       .required()

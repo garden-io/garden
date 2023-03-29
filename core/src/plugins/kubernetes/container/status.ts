@@ -8,7 +8,7 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { Log } from "../../../logger/log-entry"
-import { ServiceStatus, ForwardablePort } from "../../../types/service"
+import { ServiceStatus, ForwardablePort, DeployState, ServiceIngress } from "../../../types/service"
 import { createContainerManifests } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
@@ -22,8 +22,9 @@ import { KubernetesPluginContext } from "../config"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
-import { Resolved } from "../../../actions/types"
-import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
+import { ActionMode, Resolved } from "../../../actions/types"
+import { deployStateToActionState, DeployStatus } from "../../../plugin/handlers/Deploy/get-status"
+import { NamespaceStatus } from "../../../types/namespace"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
@@ -60,6 +61,40 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(action, api, provider)
 
+  return prepareContainerDeployStatus({
+    action,
+    deployedMode,
+    imageId,
+    remoteResources,
+    workload,
+    selectorChangedResourceKeys,
+    state,
+    namespaceStatus,
+    ingresses,
+  })
+}
+
+export function prepareContainerDeployStatus({
+  action,
+  deployedMode,
+  imageId,
+  remoteResources,
+  workload,
+  selectorChangedResourceKeys,
+  state,
+  namespaceStatus,
+  ingresses,
+}: {
+  action: Resolved<ContainerDeployAction>
+  deployedMode: ActionMode
+  imageId: string
+  remoteResources: KubernetesServerResource[]
+  workload: KubernetesWorkload
+  selectorChangedResourceKeys: string[]
+  state: DeployState
+  namespaceStatus: NamespaceStatus
+  ingresses: ServiceIngress[] | undefined
+}): DeployStatus<ContainerDeployAction> {
   // Local mode has its own port-forwarding configuration
   const forwardablePorts: ForwardablePort[] =
     deployedMode === "local"
@@ -84,7 +119,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     ingresses,
     state,
     namespaceStatuses: [namespaceStatus],
-    version: state === "ready" ? action.versionString() : undefined,
     detail: { remoteResources, workload, selectorChangedResourceKeys },
     mode: deployedMode,
     outputs,

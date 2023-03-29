@@ -9,10 +9,10 @@
 import { expect } from "chai"
 
 import { JsonTerminalWriter } from "../../../../../src/logger/writers/json-terminal-writer"
-import { getLogger, Logger } from "../../../../../src/logger/logger"
+import { getRootLogger, Logger } from "../../../../../src/logger/logger"
 import { freezeTime } from "../../../../helpers"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
   logger["entries"] = []

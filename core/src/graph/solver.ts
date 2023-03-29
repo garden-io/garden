@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import type { BaseTask, Task } from "../tasks/base"
+import type { BaseTask, Task, ValidResultType } from "../tasks/base"
 import type { Log } from "../logger/log-entry"
 import { GardenBaseError, toGardenError } from "../exceptions"
 import { uuidv4 } from "../util/random"
@@ -405,16 +405,16 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
         // See what is missing to fulfill the request, or resolve
         const task = request.task
         const statusNode = this.getNode({ type: "status", task, statusOnly: request.statusOnly })
-        const status = this.getPendingResult(statusNode)
+        const status = this.getPendingResult(statusNode) as GraphResult<ValidResultType>
 
         if (status?.aborted || status?.error) {
           // Status is either aborted or failed
           this.log.silly(`Request ${request.getKey()} status: ${resultToString(status)}`)
-          request.complete(status)
+          this.completeTask({ ...status, node: request })
         } else if (request.statusOnly && status !== undefined) {
           // Status is resolved, and that's all we need
           this.log.silly(`Request ${request.getKey()} is statusOnly and the status is available. Completing.`)
-          request.complete(status)
+          this.completeTask({ ...status, node: request })
         } else if (status === undefined) {
           // We're not forcing, and we don't have the status yet, so we ensure that's pending
           this.log.silly(`Request ${request.getKey()} is missing its status.`)
@@ -422,14 +422,14 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           // TODO-G2: The state should be a top-level field
         } else if (status.result?.state === "ready" && !task.force) {
           this.log.silly(`Request ${request.getKey()} has ready status and force=false, no need to process.`)
-          request.complete(status)
+          this.completeTask({ ...status, node: request })
         } else {
           const processNode = this.getNode({ type: "process", task, statusOnly: request.statusOnly })
           const result = this.getPendingResult(processNode)
 
           if (result) {
             this.log.silly(`Request ${request.getKey()} has been processed.`)
-            request.complete(result)
+            this.completeTask({ ...result, node: request })
           } else {
             this.log.silly(`Request ${request.getKey()} should be processed. Status: ${resultToString(status)}`)
             this.ensurePendingNode(processNode, request)
@@ -459,6 +459,11 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const result = params.node.complete(params)
     delete this.inProgress[params.node.getKey()]
     this.emit("taskComplete", toGraphResultEventPayload(result))
+    if (result.success && result.result?.state === "ready") {
+      params.node.task.emit("ready", { result: <any>result.result })
+      this.emit("taskReady", result)
+      this.garden.events.emit("taskReady", result)
+    }
     return result
   }
 
@@ -519,6 +524,14 @@ interface SolverEvents {
   abort: {
     error: GraphError | null
   }
+  loop: {}
+  process: {
+    keys: string[]
+    inProgress: string[]
+  }
+  taskComplete: GraphResultEventPayload
+  taskReady: GraphResult
+  taskStart: TaskStartEvent
   solveComplete: {
     error: Error | null
     results: {
@@ -526,8 +539,6 @@ interface SolverEvents {
     }
   }
   start: {}
-  taskComplete: GraphResultEventPayload
-  taskStart: TaskStartEvent
   statusComplete: GraphResultEventPayload
   statusStart: TaskStartEvent
 }

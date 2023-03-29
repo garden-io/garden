@@ -62,6 +62,7 @@ interface LogConfig {
    */
   metadata?: LogMetadata
   section?: string
+  origin?: string
   /**
    * Fix the level of all log entries created by this Log such that they're
    * geq to this value.
@@ -90,7 +91,7 @@ interface ActionLogConstructor extends Omit<LogConstructor, "showDuration"> {
   context: ActionLogContext
 }
 
-interface CreateCoreLogParams extends Pick<LogConfig, "metadata" | "fixLevel" | "section" | "showDuration"> {
+interface CreateCoreLogParams extends Pick<LogConfig, "metadata" | "fixLevel" | "section" | "showDuration" | "origin"> {
   /**
    * The name of the log context. Will be printed as the "section" part of the log lines
    * belonging to this context.
@@ -98,7 +99,7 @@ interface CreateCoreLogParams extends Pick<LogConfig, "metadata" | "fixLevel" | 
    */
   name?: string
 }
-interface CreateActionLogParams extends Pick<LogConfig, "metadata" | "fixLevel"> {}
+interface CreateActionLogParams extends Pick<LogConfig, "metadata" | "fixLevel" | "origin"> {}
 
 interface LogEntryBase extends Pick<LogConfig, "metadata" | "section"> {
   type: "coreLogEntry" | "actionLogEntry"
@@ -117,6 +118,10 @@ interface LogEntryBase extends Pick<LogConfig, "metadata" | "section"> {
    * Used for rendering contextual information alongside the actual message.
    */
   context: LogContext
+  /**
+   * Reference to what created the log message, e.g. tool that generated it (such as "docker")
+   */
+  origin?: string
   msg?: string
   symbol?: LogSymbol
   data?: any
@@ -133,7 +138,7 @@ interface ActionLogEntry extends LogEntryBase {
 }
 
 interface LogParams
-  extends Pick<LogEntryBase, "metadata" | "section" | "msg" | "symbol" | "data" | "dataFormat" | "error"> {}
+  extends Pick<LogEntryBase, "metadata" | "section" | "msg" | "symbol" | "data" | "dataFormat" | "error" | "origin"> {}
 interface CreateLogEntryParams extends LogParams {
   level: LogLevel
 }
@@ -149,15 +154,18 @@ export function createActionLog({
   actionName,
   actionKind,
   metadata,
+  origin,
 }: {
   log: Log
   actionName: string
   actionKind: string
   metadata?: LogMetadata
+  origin?: string
 }) {
   return new ActionLog({
     parentConfigs: [...log.parentConfigs, log.getConfig()],
     metadata,
+    origin,
     root: log.root,
     context: {
       actionName,
@@ -175,6 +183,7 @@ export abstract class Log implements LogConfig {
   public readonly timestamp: string
   public readonly root: Logger
   public readonly section?: string
+  public readonly origin?: string
   public readonly fixLevel?: LogLevel
   public readonly entries: LogEntry[]
   public readonly context: LogContext
@@ -189,6 +198,7 @@ export abstract class Log implements LogConfig {
     this.metadata = params.metadata
     // Require section? (Won't be needed for ActionLog and PluginLog)
     this.section = params.section
+    this.origin = params.origin
     this.context = params.context
     this.showDuration = params.showDuration || false
   }
@@ -228,6 +238,7 @@ export abstract class Log implements LogConfig {
     return {
       section,
       ...params,
+      origin: params.origin || this.origin,
       parentLogKey: this.key,
       context: this.context,
       level,
@@ -361,6 +372,7 @@ export class CoreLog extends Log {
       metadata: params.metadata || this.metadata,
       fixLevel: params.fixLevel || this.fixLevel,
       section: params.section || this.section,
+      origin: params.origin || this.origin,
       // The name is passed directly to the function to simplify call sites.
       context: {
         name: params.name || this.context.name,
@@ -397,6 +409,7 @@ export class ActionLog extends Log {
     return new ActionLog({
       metadata: params.metadata || this.metadata,
       fixLevel: params.fixLevel || this.fixLevel,
+      origin: params.origin || this.origin,
       // Action log context is always inherited and does not get overwritten.
       context: this.context,
       root: this.root,

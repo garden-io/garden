@@ -83,6 +83,7 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     try {
       const output = await router.deploy.delete({ log: this.log, action, graph: this.graph })
       status = output.result
+      this.log.info("Done!")
     } catch (err) {
       this.log.error(`Failed deleting ${action.name}`)
       throw err

@@ -16,7 +16,6 @@ import {
   processCommandResultSchema,
 } from "./base"
 import dedent from "dedent"
-import { processActions } from "../process"
 import { printHeader } from "../logger/util"
 import { flatten } from "lodash"
 import { BuildTask } from "../tasks/build"
@@ -103,7 +102,7 @@ export class BuildCommand extends Command<Args, Opts> {
       ])
     }
 
-    const initialTasks = flatten(
+    const tasks = flatten(
       await Bluebird.map(
         actions,
         (action) =>
@@ -118,15 +117,8 @@ export class BuildCommand extends Command<Args, Opts> {
       )
     )
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      persistent: this.isPersistent(params),
-      initialTasks,
-    })
+    const result = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(footerLog, "build", results)
+    return handleProcessResults(garden, footerLog, "build", result)
   }
 }

@@ -13,7 +13,6 @@ import { printHeader, renderDivider } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
-import { processActions } from "../process"
 import { watchParameter, watchRemovedWarning } from "./helpers"
 
 // TODO-G2: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
@@ -213,7 +212,7 @@ export class RunCommand extends Command<Args, Opts> {
       })
     }
 
-    const initialTasks = actions.map(
+    const tasks = actions.map(
       (action) =>
         new RunTask({
           garden,
@@ -235,15 +234,8 @@ export class RunCommand extends Command<Args, Opts> {
     //   })
     // }
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      initialTasks,
-      persistent: this.isPersistent(params),
-    })
+    const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(footerLog, "test", results)
+    return handleProcessResults(garden, footerLog, "test", results)
   }
 }

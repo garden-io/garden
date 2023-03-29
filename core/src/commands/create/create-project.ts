@@ -91,8 +91,12 @@ export class CreateProjectCommand extends Command<CreateProjectArgs, CreateProje
   }
 
   // Defining it like this because it'll stall on waiting for user input.
-  isPersistent() {
+  maybePersistent() {
     return true
+  }
+
+  allowInDevCommand() {
+    return false
   }
 
   async action({

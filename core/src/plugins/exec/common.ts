@@ -52,13 +52,13 @@ export async function execRun({
 }) {
   const logEventContext = {
     origin: command[0],
-    log,
+    level: "info" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
   const envVars = {

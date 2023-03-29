@@ -360,11 +360,11 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
     opts,
   }
 
-  const persistent = command.isPersistent(commandParams)
+  const persistent = command.maybePersistent(commandParams)
 
   if (persistent) {
     throw new ConfigurationError(
-      `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, commands with watch flags set etc.)`,
+      `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
       {
         step,
       }

@@ -10,12 +10,12 @@ import { expect } from "chai"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { joi } from "../../../../src/config/common"
 import type { Log } from "../../../../src/logger/log-entry"
-import { getLogger, Logger } from "../../../../src/logger/logger"
+import { getRootLogger, Logger } from "../../../../src/logger/logger"
 import { sanitizeValue } from "../../../../src/util/logging"
 import { projectRootA } from "../../../helpers"
 
 describe("sanitizeValue", () => {
-  const logger: Logger = getLogger()
+  const logger: Logger = getRootLogger()
 
   it("replaces Buffer instances", () => {
     const obj = {

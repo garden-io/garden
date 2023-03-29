@@ -82,6 +82,7 @@ export const getExecDeployLogs: DeployActionHandler<"getLogs", ExecDeploy> = asy
   if (follow) {
     ctx.events.on("abort", () => {
       logsFollower.stop()
+      ctx.events.emit("done")
     })
 
     await logsFollower.streamLogs({ since: params.since, tail: params.tail, follow: true })

@@ -21,7 +21,7 @@ import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpe
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -30,7 +30,7 @@ const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
-const log = getLogger().createLog()
+const log = getRootLogger().createLog()
 
 // TODO: remove this describe block in 0.14
 describe("prepareProjectResource", () => {

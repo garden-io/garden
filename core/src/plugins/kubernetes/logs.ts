@@ -61,6 +61,7 @@ export async function streamK8sLogs(params: GetAllLogsParams) {
 
     params.ctx.events.on("abort", () => {
       logsFollower.close()
+      params.ctx.events.emit("done")
     })
 
     // We use sinceOnRetry 30s here, to cap the maximum age of log messages on retry attempts to max 30s

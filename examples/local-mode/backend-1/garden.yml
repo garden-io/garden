@@ -10,6 +10,7 @@ name: backend-1
 description: Backend 1 service container
 type: container
 
+#build: '${this.mode == "local" ? "backend-1-local" : "backend-1"}'
 build: backend-1
 
 # You can specify variables here at the module level

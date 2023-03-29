@@ -18,7 +18,6 @@ import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
-import { ProcessResults } from "../process"
 import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
@@ -26,6 +25,8 @@ import { renderOptions, renderCommands, renderArguments, cliStyles } from "../cl
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenCli } from "../cli/cli"
 import { CommandLine } from "../cli/command-line"
+import { SolveResult } from "../graph/solver"
+import { waitForOutputFlush } from "../process"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -90,7 +91,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   isCustom: boolean = false // Used to identify custom commands
-  isInteractive: boolean = false // Set to true for internal commands in interactive command-line commands
+  isDevCommand: boolean = false // Set to true for internal commands in interactive command-line commands
   ignoreOptions: boolean = false // Completely ignore all option flags and pass all arguments directly to the command
 
   subscribers: DataCallback[]
@@ -204,10 +205,17 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   /**
-   * Called to check if the command would run persistently, with the given args/opts
+   * Called to check if the command might run persistently, with the given args/opts
    */
-  isPersistent(_: PrepareParams<A, O>) {
+  maybePersistent(_: PrepareParams<A, O>) {
     return false
+  }
+
+  /**
+   * Called to check if the command can be run in the dev console, with the given args/opts
+   */
+  allowInDevCommand(_: PrepareParams<A, O>) {
+    return true
   }
 
   /**
@@ -317,12 +325,12 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 }
 
-export abstract class InteractiveCommand<A extends Parameters = {}, O extends Parameters = {}, R = any> extends Command<
+export abstract class ConsoleCommand<A extends Parameters = {}, O extends Parameters = {}, R = any> extends Command<
   A,
   O,
   R
 > {
-  isInteractive = true
+  isDevCommand = true
 }
 
 export abstract class CommandGroup extends Command {
@@ -426,12 +434,13 @@ export const processCommandResultSchema = createSchema({
  * Handles the command result and logging for commands the return results of type ProcessResults.
  * This applies to commands that can run in watch mode.
  */
-export function handleProcessResults(
+export async function handleProcessResults(
+  garden: Garden,
   log: Log,
   taskType: string,
-  results: ProcessResults
-): CommandResult<ProcessCommandResult> {
-  const graphResults = results.graphResults.export()
+  results: SolveResult
+): Promise<CommandResult<ProcessCommandResult>> {
+  const graphResults = results.results.export()
 
   const failed = pickBy(graphResults, (r) => r && r.error)
   const failedCount = size(failed)
@@ -449,12 +458,14 @@ export function handleProcessResults(
     return { result, errors: [error], restartRequired: false }
   }
 
-  if (!results.restartRequired) {
+  await waitForOutputFlush()
+
+  if (garden.monitors.getAll().length === 0) {
     printFooter(log)
   }
+
   return {
     result,
-    restartRequired: results.restartRequired,
   }
 }
 

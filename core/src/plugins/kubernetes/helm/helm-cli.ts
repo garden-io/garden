@@ -14,7 +14,6 @@ import { mkdirp } from "fs-extra"
 import { StringMap } from "../../../config/common"
 import { PluginToolSpec } from "../../../plugin/tools"
 import split2 from "split2"
-import { LogLevel } from "../../../logger/logger"
 
 export const helm3Spec: PluginToolSpec = {
   name: "helm",
@@ -107,14 +106,14 @@ export async function helm({
 
   const logEventContext = {
     origin: "helm",
-    log: log.createLog({ fixLevel: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
     if (emitLogEvents) {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
     }
   })
 

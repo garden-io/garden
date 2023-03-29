@@ -14,7 +14,7 @@
 export class KeyedSet<V> {
   private map: Map<string, V>
 
-  constructor(private keyFn: (V) => string) {
+  constructor(private keyFn: (v: V) => string) {
     this.map = new Map()
   }
 

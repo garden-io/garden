@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 
-import { getLogger, Logger } from "../../../../src/logger/logger"
+import { getRootLogger, Logger } from "../../../../src/logger/logger"
 import {
   renderMsg,
   msgStyle,
@@ -30,7 +30,7 @@ import { highlightYaml, safeDumpYaml } from "../../../../src/util/serialization"
 import { freezeTime } from "../../../helpers"
 import chalk = require("chalk")
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
   logger["entries"] = []

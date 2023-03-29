@@ -80,7 +80,7 @@ export function getTimestamp(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { level, msg } = entry
+  const { level, msg, origin } = entry
 
   if (!msg) {
     return ""
@@ -88,7 +88,7 @@ export function renderMsg(entry: LogEntry): string {
 
   const styleFn = level === LogLevel.error ? errorStyle : msgStyle
 
-  return styleFn(msg)
+  return styleFn(origin ? `[${hasAnsi(origin) ? origin : chalk.gray(origin)}] ${msg}` : msg)
 }
 
 export function renderData(entry: LogEntry): string {

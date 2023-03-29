@@ -19,19 +19,24 @@ import {
   processCommandResultSchema,
   ProcessCommandResult,
 } from "./base"
-import { processActions } from "../process"
-import { printHeader } from "../logger/util"
+import { printEmoji, printHeader } from "../logger/util"
 import { watchParameter, watchRemovedWarning } from "./helpers"
-import { DeployTask } from "../tasks/deploy"
+import { DeployTask, isDeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
-import Bluebird = require("bluebird")
 import { ActionModeMap } from "../actions/types"
+import { SyncMonitor } from "../monitors/sync"
+import { warnOnLinkedActions } from "../actions/helpers"
+import { PluginEventBroker } from "../plugin-context"
+import { HandlerMonitor } from "../monitors/handler"
+import { GraphResultFromTask } from "../graph/results"
+import { PortForwardMonitor } from "../monitors/port-forward"
+import { registerCleanupFunction } from "../util/util"
 
 export const deployArgs = {
   names: new StringsParameter({
-    help: deline`The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything).
+    help: deline`The name(s) of the deploy(s) (or services if using modules) to deploy (skip to deploy everything).
       You may specify multiple names, separated by spaces.`,
     spread: true,
     getSuggestions: ({ configDump }) => {
@@ -45,9 +50,12 @@ export const deployOpts = {
   "force-build": new BooleanParameter({ help: "Force re-build of build dependencies." }),
   "watch": watchParameter,
   "sync": new StringsParameter({
-    help: deline`The name(s) of the deploys to deploy with sync enabled.
-      You may specify multiple names by setting this flag multiple times. Use * to deploy all
-      supported deployments with sync enabled.
+    help: dedent`
+      The name(s) of the deploys to deploy with sync enabled.
+      You may specify multiple names by setting this flag multiple times.
+      Use * to deploy all supported deployments with sync enabled.
+
+      Important: The syncs stay active after the command exits. To stop the syncs, use the \`sync stop\` command.
     `,
     aliases: ["dev", "dev-mode"],
     getSuggestions: ({ configDump }) => {
@@ -55,13 +63,13 @@ export const deployOpts = {
     },
   }),
   "local-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled.
-    You may specify multiple deploys by setting this flag multiple times. Use * to deploy all
-    deploys with local mode enabled. When this option is used,
-    the command is run in persistent mode.
+    help: dedent`
+    [EXPERIMENTAL] The name(s) of deploy(s) to be started locally with local mode enabled.
 
-    This always takes the precedence over sync mode if there are any conflicts,
-    i.e. if the same deploys are passed to both \`--sync\` and \`--local\` options.
+    You may specify multiple deploys by setting this flag multiple times. Use * to deploy all deploys with local mode enabled. When this option is used,
+    the command stays running until explicitly aborted.
+
+    This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are matched with both \`--sync\` and \`--local\` options.
     `,
     aliases: ["local"],
     getSuggestions: ({ configDump }) => {
@@ -82,7 +90,7 @@ export const deployOpts = {
     aliases: ["nodeps"],
   }),
   "forward": new BooleanParameter({
-    help: `Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --sync or --local/--local-mode are set.`,
+    help: `Create port forwards and leave process running after deploying. This is implied if any of --sync or --local/--local-mode are set.`,
   }),
 }
 
@@ -125,7 +133,7 @@ export class DeployCommand extends Command<Args, Opts> {
 
   outputsSchema = () => processCommandResultSchema()
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return !!opts["sync"] || !!opts["local-mode"] || !!opts.forward
   }
 
@@ -134,6 +142,7 @@ export class DeployCommand extends Command<Args, Opts> {
   }
 
   terminate() {
+    super.terminate()
     this.garden?.events.emit("_exit", {})
   }
 
@@ -145,6 +154,10 @@ export class DeployCommand extends Command<Args, Opts> {
     if (opts.watch) {
       await watchRemovedWarning(garden, log)
     }
+
+    // TODO-G2: make these both explicit options
+    let monitor = this.maybePersistent(params)
+    let forward = monitor
 
     const actionModes: ActionModeMap = {
       // Support a single empty value (which comes across as an empty list) as equivalent to '*'
@@ -184,31 +197,126 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const force = opts.force
-    const startSyncs = !!opts.sync
+    const startSync = !!opts.sync
 
-    const initialTasks = actions.map(
-      (action) =>
-        new DeployTask({
-          garden,
+    warnOnLinkedActions(log, actions)
+
+    if (forward) {
+      // Start port forwards for ready deployments
+      garden.events.on("taskReady", (graphResult) => {
+        const { task } = graphResult
+        const typedResult = graphResult as GraphResultFromTask<DeployTask>
+
+        if (!isDeployTask(task) || !graphResult.result) {
+          return
+        }
+
+        const action = typedResult.result!.executedAction
+
+        garden.monitors.add(
+          new PortForwardMonitor({
+            garden,
+            log,
+            graph,
+            action,
+            command: this,
+          })
+        )
+      })
+    }
+
+    let syncAlerted = false
+
+    function syncWarnings() {
+      if (syncAlerted) {
+        return
+      }
+      const commandSuggestion = `To stop syncing, use the ${chalk.whiteBright("sync stop")} command.`
+      garden
+        .emitWarning({
           log,
-          graph,
-          action,
-          force,
-          forceBuild: opts["force-build"],
-          skipRuntimeDependencies,
-          startSyncs,
+          key: "syncs-stay-active",
+          message: chalk.white(`Please note: Syncs stay active after the Garden process ends. ${commandSuggestion}`),
         })
-    )
+        .catch(() => {})
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      initialTasks,
-      persistent: this.isPersistent(params),
+      registerCleanupFunction("sync-active-alert", () => {
+        // eslint-disable-next-line no-console
+        log.info(
+          "\n" +
+            printEmoji("ℹ️", log) +
+            chalk.white(`One or more syncs may still be active. ${commandSuggestion}\n\n`) +
+            chalk.green("Done!")
+        )
+      })
+
+      syncAlerted = true
+    }
+
+    const tasks = actions.map((action) => {
+      const events = new PluginEventBroker(garden)
+      const task = new DeployTask({
+        garden,
+        log,
+        graph,
+        action,
+        force,
+        forceBuild: opts["force-build"],
+        skipRuntimeDependencies,
+        startSync,
+        events,
+      })
+      if (monitor) {
+        task.on("ready", ({ result }) => {
+          const executedAction = result?.executedAction
+          const mode = executedAction.mode()
+
+          if (mode === "sync") {
+            garden.monitors.add(
+              new SyncMonitor({
+                garden,
+                log,
+                command: this,
+                action: executedAction,
+                graph,
+              })
+            )
+            syncWarnings()
+          } else if (mode === "local" && result.attached) {
+            // Wait for local mode processes to complete.
+            garden.monitors.add(
+              new HandlerMonitor({
+                type: "local-deploy",
+                garden,
+                log,
+                command: this,
+                events,
+                key: action.key(),
+                description: "monitor for attached local mode process in " + action.longDescription(),
+              })
+            )
+          } else if (result.attached) {
+            // Wait for other attached processes after deployment.
+            // Note: No plugin currently does this outside of local mode but we do support it.
+            garden.monitors.add(
+              new HandlerMonitor({
+                type: "deploy",
+                garden,
+                log,
+                command: this,
+                events,
+                key: action.key(),
+                description: "monitor for attached process in " + action.longDescription(),
+              })
+            )
+          }
+        })
+      }
+      return task
     })
 
-    return handleProcessResults(footerLog, "deploy", results)
+    const results = await garden.processTasks({ tasks, log })
+
+    return handleProcessResults(garden, footerLog, "deploy", results)
   }
 }

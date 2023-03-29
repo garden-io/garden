@@ -17,7 +17,7 @@ export interface TaskEventBase {
   description: string
   key: string
   name: string
-  version: string
+  inputVersion: string
 }
 
 export interface GraphResult<R extends ValidResultType = ValidResultType> extends TaskEventBase {
@@ -165,7 +165,7 @@ function prepareForExport(graphResult: GraphResultWithoutTask | null) {
       "version",
       "processed",
       "success",
-      "version"
+      "inputVersion"
     ),
     result: filterResultForExport(result),
     error: filterErrorForExport(error),

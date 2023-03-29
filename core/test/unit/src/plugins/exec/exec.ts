@@ -812,7 +812,6 @@ describe("exec plugin", () => {
           expect(actionRes.state).to.equal("unknown")
           const detail = actionRes.detail!
           expect(detail.state).to.equal("unknown")
-          expect(detail.version).to.equal(action.versionString())
           expect(detail.detail).to.be.empty
         })
 
@@ -837,7 +836,6 @@ describe("exec plugin", () => {
           expect(actionRes.state).to.equal("ready")
           const detail = actionRes.detail!
           expect(detail.state).to.equal("ready")
-          expect(detail.version).to.equal(action.versionString())
           expect(detail.detail.statusCommandOutput).to.equal("already deployed")
         })
 
@@ -857,7 +855,6 @@ describe("exec plugin", () => {
           const detail = actionRes.detail!
           // The deploy state is different (has more states) than the action state
           expect(detail.state).to.equal("outdated")
-          expect(detail.version).to.equal(action.versionString())
           expect(detail.detail.statusCommandOutput).to.be.empty
         })
       })

@@ -14,7 +14,6 @@ import { pathExists } from "fs-extra"
 import { getBuiltinCommands } from "../commands/commands"
 import {
   shutdown,
-  sleep,
   getPackageVersion,
   registerCleanupFunction,
   getCloudDistributionName,
@@ -23,7 +22,7 @@ import {
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
 import { Garden, GardenOpts, DummyGarden } from "../garden"
-import { getTerminalWriterType, Logger, LogLevel, parseLogLevel } from "../logger/logger"
+import { getRootLogger, getTerminalWriterType, LogLevel, parseLogLevel, RootLogger } from "../logger/logger"
 import { FileWriter, FileWriterConfig } from "../logger/writers/file-writer"
 
 import {
@@ -69,7 +68,7 @@ import { Log } from "../logger/log-entry"
 import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { GardenProcess, GlobalConfigStore } from "../config-store/global"
-import { registerProcess } from "../process"
+import { registerProcess, waitForOutputFlush } from "../process"
 import { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
 import { SemVer } from "semver"
@@ -188,7 +187,7 @@ ${renderCommands(commands)}
       },
     ]
     for (const config of logConfigs) {
-      log.root.addFileWriter(await (config.json ? JsonFileWriter : FileWriter).factory(config))
+      getRootLogger().addFileWriter(await (config.json ? JsonFileWriter : FileWriter).factory(config))
     }
     this.fileWritersInitialized = true
   }
@@ -249,7 +248,7 @@ ${renderCommands(commands)}
     // Some commands may set their own logger type so we update the logger config here,
     // once we've resolved the command.
     const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
-    log.root.setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
+    getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
     // TODO: remove for the proper 0.13 release
     if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
@@ -344,7 +343,7 @@ ${renderCommands(commands)}
       cloudApi: cloudApi || undefined,
     }
 
-    const persistent = command.isPersistent(prepareParams)
+    const persistent = command.maybePersistent(prepareParams)
 
     await command.prepare(prepareParams)
 
@@ -364,7 +363,7 @@ ${renderCommands(commands)}
 
           nsLog.info({
             section: "garden",
-            msg: `Running in environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`,
+            msg: `Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`,
           })
 
           if (!cloudApi && garden.projectId) {
@@ -489,6 +488,17 @@ ${renderCommands(commands)}
           log.info("\nCommand aborted.")
           result = {}
         }
+
+        // This is a little trick to do a round trip in the event loop, which may be necessary for event handlers to
+        // fire, which may be needed to e.g. capture monitors added in event handlers
+        await waitForOutputFlush()
+
+        if (garden.monitors.anyMonitorsActive()) {
+          // Wait for monitors to exit
+          log.debug(chalk.gray("One or more monitors active, waiting until all exit."))
+          await garden.monitors.waitUntilAllStopped()
+        }
+
         await garden.close()
       } catch (err) {
         // Generate a basic report in case Garden.factory(...) fails and command is "get debug-info".
@@ -530,10 +540,6 @@ ${renderCommands(commands)}
 
     const errors: (GardenBaseError | Error)[] = []
 
-    // Note: Circumvents an issue where the process exits before the output is fully flushed.
-    // Needed for output renderers and Winston (see: https://github.com/winstonjs/winston/issues/228)
-    const waitForOutputFlush = () => sleep(100)
-
     async function done(abortCode: number, consoleOutput: string, result: any = {}) {
       if (exitOnError) {
         // eslint-disable-next-line no-console
@@ -574,10 +580,10 @@ ${renderCommands(commands)}
       "logger-type": loggerTypeOpt,
       "log-level": logLevelStr,
     } = argv
-    const logger = Logger.initialize({
+    const logger = RootLogger.initialize({
       level: parseLogLevel(logLevelStr),
       storeEntries: false,
-      terminalWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
+      displayWriterType: getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType: null }),
       useEmoji: emoji,
       showTimestamps,
       force: this.initLogger,

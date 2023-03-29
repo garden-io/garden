@@ -12,10 +12,10 @@ import { printHeader } from "../../logger/util"
 import { DeployTask } from "../../tasks/deploy"
 import { dedent, naturalList } from "../../util/string"
 import { Command, CommandParams, CommandResult, PrepareParams } from "../base"
-import { processActions, waitForExitEvent } from "../../process"
 import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ParameterError, RuntimeError } from "../../exceptions"
+import { SyncMonitor } from "../../monitors/sync"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -36,8 +36,8 @@ const syncStartOpts = {
   "with-dependencies": new BooleanParameter({
     help: "When deploying actions, also include any runtime dependencies. Ignored if --deploy is not set.",
   }),
-  "follow": new BooleanParameter({
-    aliases: ["f"],
+  "monitor": new BooleanParameter({
+    aliases: ["m"],
     help: "Keep the process running and print sync status logs after starting them.",
   }),
 }
@@ -84,14 +84,13 @@ export class SyncStartCommand extends Command<Args, Opts> {
     printHeader(headerLog, "Starting sync(s)", "🔁")
   }
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.follow
+  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
+    return !!opts.monitor
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<{}>> {
     const { garden, log, args, opts } = params
 
-    const persistent = this.isPersistent(params)
     const names = args.names || []
 
     if (names.length === 0) {
@@ -142,7 +141,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
     if (opts.deploy) {
       // Deploy and start syncs
       const tasks = actions.map((action) => {
-        return new DeployTask({
+        const task = new DeployTask({
           garden,
           graph,
           log,
@@ -150,19 +149,20 @@ export class SyncStartCommand extends Command<Args, Opts> {
           force: false,
           forceActions: [],
           skipRuntimeDependencies: !opts["with-dependencies"],
-          startSyncs: true,
+          startSync: true,
         })
+        if (opts.monitor) {
+          task.on("ready", ({ result }) => {
+            const executedAction = result?.executedAction
+            const monitor = new SyncMonitor({ garden, log, command: this, action: executedAction, graph })
+            garden.monitors.add(monitor)
+          })
+        }
+        return task
       })
-      const result = await processActions({
-        garden,
-        graph,
-        log,
-        actions,
-        initialTasks: tasks,
-        persistent,
-      })
+      await garden.processTasks({ tasks, log })
       log.info(chalk.green("\nDone!"))
-      return result
+      return {}
     } else {
       // Don't deploy, just start syncs
       const tasks = actions.map((action) => {
@@ -174,11 +174,11 @@ export class SyncStartCommand extends Command<Args, Opts> {
           force: false,
           forceActions: [],
           skipRuntimeDependencies: true,
-          startSyncs: true,
+          startSync: true,
         })
       })
 
-      const processResult = await garden.processTasks({ log, tasks, statusOnly: true })
+      const statusResult = await garden.processTasks({ log, tasks, statusOnly: true })
       let someSyncStarted = false
 
       const router = await garden.getActionRouter()
@@ -186,7 +186,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
       await Bluebird.map(tasks, async (task) => {
         const action = task.action
         const section = action.key()
-        const result = processResult.results.getResult(task)
+        const result = statusResult.results.getResult(task)
 
         const mode = result?.result?.detail?.mode
         const state = result?.result?.detail?.state
@@ -206,13 +206,18 @@ export class SyncStartCommand extends Command<Args, Opts> {
           try {
             await router.deploy.startSync({ log, action: executedAction, graph })
             someSyncStarted = true
+
+            if (opts.monitor) {
+              const monitor = new SyncMonitor({ garden, log, command: this, action: executedAction, graph })
+              garden.monitors.add(monitor)
+            }
           } catch (error) {
             log.warn({
               section,
               msg: chalk.yellow(dedent`
                 Failed starting sync for ${action.longDescription()}: ${error}
 
-                You may need to re-deploy the action. Try running this command with \`--deploy\` set, or running \`garden deploy\` before running this command again.
+                You may need to re-deploy the action. Try running this command with \`--deploy\` set, or running \`garden deploy --sync\` before running this command again.
               `),
             })
           }
@@ -230,12 +235,10 @@ export class SyncStartCommand extends Command<Args, Opts> {
         })
       }
 
-      if (persistent) {
-        return waitForExitEvent(garden, log)
-      } else {
+      if (garden.monitors.getAll().length === 0) {
         log.info(chalk.green("\nDone!"))
-        return {}
       }
+      return {}
     }
   }
 }
