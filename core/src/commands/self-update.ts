@@ -80,11 +80,11 @@ function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>):
   return "patch"
 }
 
-export function isEdgeVersion(version: string) {
+export function isEdgeVersion(version: string): boolean {
   return version === "edge" || version.startsWith("edge-")
 }
 
-export function isPreReleaseVersion(semVersion: semver.SemVer | null) {
+export function isPreReleaseVersion(semVersion: semver.SemVer | null): boolean {
   return (semVersion?.prerelease.length || 0) > 0
 }
 
