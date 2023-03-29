@@ -389,8 +389,12 @@ export async function compareDeployedResources(
     }
 
     // Discard any last applied config from the input manifest
-    if (manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]) {
-      delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
+    const hashKey = gardenAnnotationKey("manifest-hash")
+    if (manifest.metadata?.annotations?.[hashKey]) {
+      delete manifest.metadata?.annotations?.[hashKey]
+    }
+    if (manifest.spec?.template?.metadata?.annotations?.[hashKey]) {
+      delete manifest.spec?.template?.metadata?.annotations?.[hashKey]
     }
 
     if (isWorkloadResource(manifest)) {
