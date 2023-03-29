@@ -247,15 +247,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     try {
       // Fetch the desired version and extract it to a temp directory
+      const { build, filename, extension, url } = this.getReleaseArtifactDetails(platform, desiredVersion)
       if (!platform) {
         platform = getPlatform() === "darwin" ? "macos" : getPlatform()
       }
-      const architecture = "amd64" // getArchitecture()
-      const extension = platform === "windows" ? "zip" : "tar.gz"
-      const build = `${platform}-${architecture}`
-
-      const filename = `garden-${desiredVersion}-${build}.${extension}`
-      const url = `${this._baseReleasesUrl}${desiredVersion}/${filename}`
 
       log.info("")
       log.info(chalk.white(`Downloading version ${chalk.cyan(desiredVersion)} from ${chalk.underline(url)}...`))
@@ -361,6 +356,20 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     } finally {
       await tempDir.cleanup()
     }
+  }
+
+  private getReleaseArtifactDetails(platform: string, desiredVersion: string) {
+    if (!platform) {
+      platform = getPlatform() === "darwin" ? "macos" : getPlatform()
+    }
+    const architecture = "amd64" // getArchitecture()
+    const extension = platform === "windows" ? "zip" : "tar.gz"
+    const build = `${platform}-${architecture}`
+
+    const filename = `garden-${desiredVersion}-${build}.${extension}`
+    const url = `${this._baseReleasesUrl}${desiredVersion}/${filename}`
+
+    return { build, filename, extension, url }
   }
 
   /**
