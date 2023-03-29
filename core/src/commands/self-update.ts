@@ -427,7 +427,21 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       )
     }
 
-    const targetRelease = await GitHubReleaseApi.findRelease((release) => {
+    const targetVersionPredicate = this.getTargetVersionPredicate(currentSemVer, versionScope)
+    const targetRelease = await GitHubReleaseApi.findRelease(targetVersionPredicate)
+
+    if (!targetRelease) {
+      throw new RuntimeError(
+        `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
+        {}
+      )
+    }
+
+    return targetRelease.tag_name
+  }
+
+  getTargetVersionPredicate(currentSemVer: semver.SemVer, versionScope: VersionScope) {
+    return function _latestVersionInScope(release: any) {
       const tagName = release.tag_name
       // skip pre-release, draft and edge tags
       if (isEdgeVersion(tagName) || release.prerelease || release.draft) {
@@ -455,15 +469,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           return _exhaustiveCheck
         }
       }
-    })
-
-    if (!targetRelease) {
-      throw new RuntimeError(
-        `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
-        {}
-      )
     }
-
-    return targetRelease.tag_name
   }
 }
