@@ -93,7 +93,7 @@ test_release() {
   cd ..
   cd vote
   echo ""
-  echo "→ Running 'garden deploy --sync' in vote project (the test script will continue after 1 minute)."
+  echo "→ Running 'garden deploy --sync' in vote project (the test script will continue after 2 minutes)."
   echo "→ Try e.g. to update this file: ${garden_root}/examples/vote/vote/src/views/Home.vue"
   echo ""
   timeout 1m ${garden_release} deploy --sync
