@@ -162,6 +162,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   arguments = selfUpdateArgs
   options = selfUpdateOpts
 
+  _basePreReleasesUrl = "https://github.com/garden-io/garden/releases/download/"
   // Overridden during testing
   _baseReleasesUrl = "https://download.garden.io/core/"
 
@@ -366,8 +367,18 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     const extension = platform === "windows" ? "zip" : "tar.gz"
     const build = `${platform}-${architecture}`
 
-    const filename = `garden-${desiredVersion}-${build}.${extension}`
-    const url = `${this._baseReleasesUrl}${desiredVersion}/${filename}`
+    const desiredSemVer = semver.parse(desiredVersion)
+
+    let filename: string
+    let url: string
+    if (desiredSemVer && this.isPreReleaseVersion(desiredSemVer)) {
+      const desiredVersionWithoutPreRelease = `${desiredSemVer.major}.${desiredSemVer.minor}.${desiredSemVer.patch}`
+      filename = `garden-${desiredVersionWithoutPreRelease}-${build}.${extension}`
+      url = `${this._basePreReleasesUrl}${desiredVersion}/${filename}`
+    } else {
+      filename = `garden-${desiredVersion}-${build}.${extension}`
+      url = `${this._baseReleasesUrl}${desiredVersion}/${filename}`
+    }
 
     return { build, filename, extension, url }
   }
