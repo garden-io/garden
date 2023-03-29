@@ -882,9 +882,9 @@ export async function startServiceInLocalMode(configParams: StartLocalModeParams
       symbol: "warning",
       section,
       msg: chalk.yellow(
-        `Local mode has been stopped for the service "${action.key()}". ` +
+        `Local mode has been stopped for the action "${action.key()}". ` +
           "Please, re-deploy the original service to restore the original k8s cluster state: " +
-          `${chalk.white(`\`garden deploy ${action.key()}\``)}`
+          `${chalk.white(`\`garden deploy ${action.name}\``)}`
       ),
     })
   })
