@@ -29,7 +29,7 @@ export class ValidateCommand extends Command {
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // This implicitly validates modules and actions.
-    await garden.getConfigGraph({ log, emit: false })
+    await garden.getResolvedConfigGraph({ log, emit: false })
 
     /*
      * Normally, workflow configs are only resolved when they're run via the `run-workflow` command (and only the
