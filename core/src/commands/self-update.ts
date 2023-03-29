@@ -391,8 +391,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     }
 
     const currentSemVer = semver.parse(currentVersion)
-    const isCurrentPrerelease = currentSemVer?.prerelease.length || 0
-    if (isCurrentPrerelease) {
+    if (this.isPreReleaseVersion(currentSemVer)) {
       return GitHubApi.getLatestVersion()
     }
 
@@ -447,5 +446,9 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
   private isEdgeVersion(version: string) {
     return version === "edge" || version.startsWith("edge-")
+  }
+
+  private isPreReleaseVersion(semVersion: semver.SemVer | null) {
+    return semVersion?.prerelease.length || 0
   }
 }
