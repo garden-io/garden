@@ -369,12 +369,12 @@ export class GardenServer extends EventEmitter {
       }
 
       // TODO: Only allow auth key authentication
-      // if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
-      //   send("error", { message: `401 Unauthorized` })
-      //   const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
-      //   websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
-      //   return
-      // }
+      if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
+        send("error", { message: `401 Unauthorized` })
+        const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
+        websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
+        return
+      }
 
       send("event", { name: "serverReady", payload: {} })
 
