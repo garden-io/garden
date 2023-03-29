@@ -29,9 +29,6 @@ const selfUpdateArgs = {
   }),
 }
 
-const versionScopes = ["major", "minor", "patch"] as const
-type VersionScope = typeof versionScopes[number]
-
 const selfUpdateOpts = {
   "force": new BooleanParameter({
     help: `Install the Garden CLI even if the specified or detected latest version is the same as the current version.`,
@@ -68,6 +65,9 @@ const selfUpdateOpts = {
 
 export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
+
+const versionScopes = ["major", "minor", "patch"] as const
+type VersionScope = typeof versionScopes[number]
 
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
