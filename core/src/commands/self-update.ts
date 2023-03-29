@@ -99,7 +99,7 @@ namespace GitHubApi {
    *
    * @param predicate the predicate to identify the wanted release
    */
-  export async function findRelease(predicate: (any) => boolean) {
+  export async function findRelease(predicate: (any: any) => boolean) {
     const releasesPerPage = 100
     let page = 1
     let fetchedReleases: any[]
