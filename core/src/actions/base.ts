@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
-import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
   apiVersionSchema,
@@ -442,10 +442,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return false
   }
 
-  getDependency<K extends ActionKind>(ref: ActionReference<K>) {
+  getDependency<K extends ActionKind>(ref: ActionReference<K>, opts?: GetActionOpts) {
     for (const dep of this.dependencies) {
       if (actionRefMatches(dep, ref)) {
-        return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref)
+        return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref, opts)
       }
     }
 
