@@ -580,7 +580,7 @@ function validateCommon(action: Resolved<ContainerRuntimeAction>) {
       }
     )
   } else if (build) {
-    const buildAction = action.getDependency({ kind: "Build", name: build })
+    const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
     if (buildAction && !buildAction?.isCompatible("container")) {
       throw new ConfigurationError(
         `${action.longDescription()} build field must specify a container Build, or a compatible type.`,
