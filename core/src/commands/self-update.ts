@@ -25,7 +25,7 @@ import stream from "stream"
 
 const selfUpdateArgs = {
   version: new StringParameter({
-    help: `Specify which version to switch/update to.`,
+    help: `Specify which version to switch/update to. It can be either a stable release version, or a pre-release version, or an edge one.`,
   }),
 }
 
