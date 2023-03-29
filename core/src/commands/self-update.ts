@@ -83,7 +83,7 @@ function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>):
 interface SelfUpdateResult {
   currentVersion: string
   latestVersion: string
-  targetVersion: string
+  desiredVersion: string
   installationDirectory: string
   installedBuild?: string
   installedVersion?: string
@@ -147,18 +147,16 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     installationDirectory = resolve(installationDirectory)
 
     log.info(chalk.white("Checking for target and latest versions..."))
-
-    const versionScope: VersionScope = getVersionScope(opts)
-    const targetVersion = await this.getTargetVersion(currentVersion, versionScope)
     const latestVersion = await this.getLatestVersion()
 
     if (!desiredVersion) {
-      desiredVersion = targetVersion
+      const versionScope = getVersionScope(opts)
+      desiredVersion = await this.getTargetVersion(currentVersion, versionScope)
     }
 
     log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     log.info(chalk.white("Current Garden version: ") + chalk.cyan(currentVersion))
-    log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(targetVersion))
+    log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(desiredVersion))
     log.info(chalk.white("Latest release version: ") + chalk.cyan(latestVersion))
 
     if (!opts.force && !opts["install-dir"] && desiredVersion === currentVersion) {
@@ -173,7 +171,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           currentVersion,
           installationDirectory,
           latestVersion,
-          targetVersion,
+          desiredVersion,
           abortReason: "Version already installed",
         },
       }
@@ -194,7 +192,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           currentVersion,
           installationDirectory,
           latestVersion,
-          targetVersion,
+          desiredVersion,
           abortReason: "Not running from binary installation",
         },
       }
@@ -249,7 +247,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
             result: {
               currentVersion,
               latestVersion,
-              targetVersion,
+              desiredVersion,
               installationDirectory,
               abortReason: "Version not found",
             },
@@ -311,7 +309,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           installedVersion: desiredVersion,
           installedBuild: build,
           latestVersion,
-          targetVersion,
+          desiredVersion,
           installationDirectory,
         },
       }
