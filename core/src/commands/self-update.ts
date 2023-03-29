@@ -80,6 +80,14 @@ function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>):
   return "patch"
 }
 
+function isEdgeVersion(version: string) {
+  return version === "edge" || version.startsWith("edge-")
+}
+
+function isPreReleaseVersion(semVersion: semver.SemVer | null) {
+  return semVersion?.prerelease.length || 0
+}
+
 interface SelfUpdateResult {
   currentVersion: string
   latestVersion: string
@@ -375,7 +383,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     let filename: string
     let url: string
-    if (desiredSemVer && this.isPreReleaseVersion(desiredSemVer)) {
+    if (desiredSemVer && isPreReleaseVersion(desiredSemVer)) {
       const desiredVersionWithoutPreRelease = `${desiredSemVer.major}.${desiredSemVer.minor}.${desiredSemVer.patch}`
       filename = `garden-${desiredVersionWithoutPreRelease}-${build}.${extension}`
       url = `${this._basePreReleasesUrl}${desiredVersion}/${filename}`
@@ -401,12 +409,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    * or if the current version cannot be recognized as a valid release version
    */
   private async findTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
-    if (this.isEdgeVersion(currentVersion)) {
+    if (isEdgeVersion(currentVersion)) {
       return GitHubReleaseApi.getLatestVersion()
     }
 
     const currentSemVer = semver.parse(currentVersion)
-    if (this.isPreReleaseVersion(currentSemVer)) {
+    if (isPreReleaseVersion(currentSemVer)) {
       return GitHubReleaseApi.getLatestVersion()
     }
 
@@ -422,7 +430,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     const targetRelease = await GitHubReleaseApi.findRelease((release) => {
       const tagName = release.tag_name
       // skip pre-release, draft and edge tags
-      if (this.isEdgeVersion(tagName) || release.prerelease || release.draft) {
+      if (isEdgeVersion(tagName) || release.prerelease || release.draft) {
         return false
       }
       const tagSemVer = semver.parse(tagName)
@@ -457,13 +465,5 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     }
 
     return targetRelease.tag_name
-  }
-
-  private isEdgeVersion(version: string) {
-    return version === "edge" || version.startsWith("edge-")
-  }
-
-  private isPreReleaseVersion(semVersion: semver.SemVer | null) {
-    return semVersion?.prerelease.length || 0
   }
 }
