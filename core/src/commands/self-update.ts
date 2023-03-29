@@ -133,6 +133,18 @@ namespace GitHubReleaseApi {
 
     return latestVersionRes.tag_name
   }
+
+  export async function getLatestVersions(numOfStableVersions: number) {
+    const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
+
+    return [
+      chalk.cyan("edge"),
+      ...res
+        .filter((r: any) => !r.prerelease && !r.draft)
+        .map((r: any) => chalk.cyan(r.name))
+        .slice(0, numOfStableVersions),
+    ]
+  }
 }
 
 export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
@@ -269,15 +281,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
           // Print the latest available stable versions
           try {
-            const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
-
-            const latestVersions = [
-              chalk.cyan("edge"),
-              ...res
-                .filter((r: any) => !r.prerelease && !r.draft)
-                .map((r: any) => chalk.cyan(r.name))
-                .slice(0, 10),
-            ]
+            const latestVersions = await GitHubReleaseApi.getLatestVersions(10)
 
             log.info(
               chalk.white.bold(`Here are the latest available versions: `) + latestVersions.join(chalk.white(", "))
