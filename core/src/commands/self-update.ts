@@ -93,7 +93,7 @@ interface SelfUpdateResult {
 /**
  * Utilities and wrappers on top of GitHub REST API.
  */
-namespace GitHubApi {
+namespace GitHubReleaseApi {
   /**
    * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
    *
@@ -194,7 +194,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     installationDirectory = resolve(installationDirectory)
 
     log.info(chalk.white("Checking for target and latest versions..."))
-    const latestVersion = await GitHubApi.getLatestVersion()
+    const latestVersion = await GitHubReleaseApi.getLatestVersion()
 
     if (!desiredVersion) {
       const versionScope = getVersionScope(opts)
@@ -398,12 +398,12 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    */
   private async findTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
     if (this.isEdgeVersion(currentVersion)) {
-      return GitHubApi.getLatestVersion()
+      return GitHubReleaseApi.getLatestVersion()
     }
 
     const currentSemVer = semver.parse(currentVersion)
     if (this.isPreReleaseVersion(currentSemVer)) {
-      return GitHubApi.getLatestVersion()
+      return GitHubReleaseApi.getLatestVersion()
     }
 
     // The current version is necessary, it's not possible to proceed without its value
@@ -415,7 +415,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       )
     }
 
-    const targetRelease = await GitHubApi.findRelease((release) => {
+    const targetRelease = await GitHubReleaseApi.findRelease((release) => {
       const tagName = release.tag_name
       // skip pre-release, draft and edge tags
       if (this.isEdgeVersion(tagName) || release.prerelease || release.draft) {
