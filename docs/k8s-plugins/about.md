@@ -22,4 +22,4 @@ For tests and tasks, Garden spins up Pods from the respective image that execute
 
 For live code synchronization, Garden uses a tool called Mutagen to sync changes to the running container.
 
-There's a lot more to the Kubernetes plugin and if you're interested in the "nitty-gritty", we're more than happy to answer questions us on our [Discord channel](https://discord.gg/gxeuDgp6Xt).
+There's a lot more to the Kubernetes plugin and if you're interested in the "nitty-gritty", we're more than happy to answer questions us on our [Discord channel](https://discord.gg/FrmhuUjFs6).
