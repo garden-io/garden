@@ -401,6 +401,7 @@ describe("createIngressResources", () => {
       annotations: {},
       path: "/",
       port: "http",
+      hostname: "my.domain.com",
     })
 
     const api = await getKubeApi(basicProvider)
@@ -481,6 +482,7 @@ describe("createIngressResources", () => {
         annotations: {},
         path: "/",
         port: "http",
+        hostname: "my.domain.com",
       },
       {
         annotations: {},
@@ -509,6 +511,7 @@ describe("createIngressResources", () => {
       annotations: {},
       path: "/",
       port: "http",
+      hostname: "my.domain.com"
     })
 
     const api = await getKubeApi(singleTlsProvider)
