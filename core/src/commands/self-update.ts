@@ -227,7 +227,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     // -> Make sure it's an actual executable, not a script (e.g. from a local dev build)
     const expectedExecutableName = process.platform === "win32" ? "garden.exe" : "garden"
     if (!opts["install-dir"] && basename(process.execPath) !== expectedExecutableName) {
-      log.error("")
       log.error(
         chalk.redBright(
           `The executable path ${process.execPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
