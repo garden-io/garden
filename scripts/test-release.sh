@@ -89,6 +89,7 @@ test_release() {
   echo "→ Respond to the prompts to see if the create command works"
   echo ""
   ${garden_release} create module
+  revert_git_changes
 
   cd ..
   cd vote
@@ -100,6 +101,7 @@ test_release() {
   echo ""
   echo "→ Stopping sync for vote app"
   ${garden_release} sync stop vote
+  revert_git_changes
 
   echo ""
   echo "→ Running 'garden serve' in disabled-configs project (the test script will continue after 1 minute)."
@@ -118,7 +120,7 @@ test_release() {
   echo "Done!"
 }
 
-cleanup() {
+revert_git_changes() {
   echo ""
   echo "Reverting git changes"
   git checkout .
@@ -127,4 +129,5 @@ cleanup() {
 
 download_release
 test_release
-cleanup
+# to ensure that any possible intermediate changes would be reverted too
+revert_git_changes
