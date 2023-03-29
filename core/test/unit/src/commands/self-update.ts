@@ -14,12 +14,19 @@ import getPort from "get-port"
 import { dirname } from "path"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { ParameterValues } from "../../../../src/cli/params"
-import { isEdgeVersion, SelfUpdateArgs, SelfUpdateCommand, SelfUpdateOpts } from "../../../../src/commands/self-update"
+import {
+  isEdgeVersion,
+  isPreReleaseVersion,
+  SelfUpdateArgs,
+  SelfUpdateCommand,
+  SelfUpdateOpts,
+} from "../../../../src/commands/self-update"
 import { DummyGarden } from "../../../../src/garden"
 import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
 import { getPackageVersion } from "../../../../src/util/util"
 import { getDataDir, withDefaultGlobalOpts } from "../../../helpers"
 import { createServer, Server } from "http"
+import semver from "semver"
 
 describe("version helpers", () => {
   describe("isEdgeVersion", () => {
@@ -37,6 +44,28 @@ describe("version helpers", () => {
 
     it("should be false for a stable version name", () => {
       expect(isEdgeVersion("0.13.0")).to.be.false
+    })
+  })
+
+  describe("isPreReleaseVersion", () => {
+    it("should be false for 'edge' version name", () => {
+      const version = semver.parse("edge")
+      expect(isPreReleaseVersion(version)).to.be.false
+    })
+
+    it("should be false for a version name starting with 'edge-'", () => {
+      const version = semver.parse("edge-bonsai")
+      expect(isPreReleaseVersion(version)).to.be.false
+    })
+
+    it("should be true for a pre-release version name", () => {
+      const version = semver.parse("0.13.0-0")
+      expect(isPreReleaseVersion(version)).to.be.true
+    })
+
+    it("should be false for a stable version name", () => {
+      const version = semver.parse("0.13.0")
+      expect(isPreReleaseVersion(version)).to.be.false
     })
   })
 })
