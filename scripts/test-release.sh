@@ -97,7 +97,9 @@ test_release() {
   echo "→ Try e.g. to update this file: ${garden_root}/examples/vote/vote/src/views/Home.vue"
   echo ""
   timeout 1m ${garden_release} deploy --sync
-  # TODO-0.13: stop the syncs
+  echo ""
+  echo "→ Stopping sync for vote app"
+  ${garden_release} sync stop vote
 
   echo ""
   echo "→ Running 'garden serve' in disabled-configs project (the test script will continue after 1 minute)."
