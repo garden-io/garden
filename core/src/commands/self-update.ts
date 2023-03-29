@@ -351,35 +351,52 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       )
     }
 
+    const targetRelease = await this.findRelease((release) => {
+      const tagName = release.tag_name
+      // skip pre-release, draft and edge tags
+      if (this.isEdgeVersion(tagName) || release.prerelease || release.draft) {
+        return false
+      }
+      const tagSemVer = semver.parse(tagName)
+      // skip any kind of unexpected tag versions, only stable releases should be processed here
+      if (!tagSemVer) {
+        return false
+      }
+      return this.targetVersionMatches(tagSemVer, currentSemVer, versionScope)
+    })
+
+    if (!targetRelease) {
+      throw new RuntimeError(
+        `Unable to detect the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
+        {}
+      )
+    }
+
+    return targetRelease.tag_name
+  }
+
+  /**
+   * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
+   *
+   * @param predicate the predicate to identify the wanted release
+   */
+  private async findRelease(predicate: (any) => boolean) {
     const releasesPerPage = 100
     let page = 1
-    let releaseList: any[]
+    let fetchedReleases: any[]
     do {
-      releaseList = await got(
+      fetchedReleases = await got(
         `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
       ).json()
-      for (const release of releaseList) {
-        const tagName = release.tag_name
-        // skip pre-release, draft and edge tags
-        if (this.isEdgeVersion(tagName) || release.prerelease || release.draft) {
-          continue
-        }
-        const tagSemVer = semver.parse(tagName)
-        // skip any kind of unexpected tag versions, only stable releases should be processed here
-        if (!tagSemVer) {
-          continue
-        }
-        if (this.targetVersionMatches(tagSemVer, currentSemVer, versionScope)) {
-          return tagName
+      for (const release of fetchedReleases) {
+        if (predicate(release)) {
+          return release
         }
       }
       page++
-    } while (releaseList.length > 0)
+    } while (fetchedReleases.length > 0)
 
-    throw new RuntimeError(
-      `Unable to detect the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
-      {}
-    )
+    return undefined
   }
 
   private isEdgeVersion(version: string) {
