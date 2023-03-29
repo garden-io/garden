@@ -122,7 +122,7 @@ Below are our guiding principles for developing Garden.
 
 ### **Community**
 
-Join our [Discord community](https://discord.gg/gxeuDgp6Xt) to ask questions, give feedback or just say hi 🙂
+Join our [Discord community](https://discord.gg/FrmhuUjFs6) to ask questions, give feedback or just say hi 🙂
 
 ### **Security**
 

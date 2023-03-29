@@ -204,4 +204,4 @@ If you like to dive right in and configure your own project for Garden, we recom
 projects on GitHub](https://github.com/garden-io/garden/tree/0.12.53/examples) for reference and reading through the different pages
 of the [Using Garden section](../using-garden/configuration-overview.md) of our docs.
 
-And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/gxeuDgp6Xt)!
+And if you have any questions or feedback—or just want to say hi 🙂—we encourage you to join our [Discord community](https://discord.gg/FrmhuUjFs6)!
