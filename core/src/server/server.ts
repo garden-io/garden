@@ -24,7 +24,7 @@ import { gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
-import { EventName, Events, EventBus, GardenEventListener } from "../events"
+import { EventName, Events, EventBus, GardenEventListener, pipedEventNames } from "../events"
 import type { ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
@@ -251,7 +251,7 @@ export class GardenServer extends EventEmitter {
         opts,
       }
 
-      const persistent = command.isPersistent(prepareParams)
+      const persistent = command.maybePersistent(prepareParams)
 
       if (persistent) {
         ctx.throw(400, "Attempted to run persistent command (e.g. a dev/follow command). Aborting.")
@@ -360,8 +360,9 @@ export class GardenServer extends EventEmitter {
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send: SendWrapper = (type, payload) => {
         const event = { type, ...(<object>payload) }
-        this.log.debug(`Send ${type} event: ${JSON.stringify(event)}`)
-        websocket.send(JSON.stringify(event), (err?: Error) => {
+        const jsonEvent = JSON.stringify(event)
+        this.log.debug(`Send ${type} event: ${jsonEvent}`)
+        websocket.send(jsonEvent, (err?: Error) => {
           if (err) {
             this.debugLog.debug({ error: toGardenError(err) })
           }
@@ -394,8 +395,12 @@ export class GardenServer extends EventEmitter {
         isAlive = true
       })
 
-      // Pipe everything from the event bus to the socket, as well as from the /events endpoint.
-      const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
+      // Pipe events from the event bus to the socket, as well as from the /events endpoint.
+      const eventListener = (name: EventName, payload: any) => {
+        if (pipedEventNames.includes(name)) {
+          send("event", { name, payload })
+        }
+      }
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)
 
@@ -489,7 +494,7 @@ export class GardenServer extends EventEmitter {
           opts,
         }
 
-        const persistent = command.isPersistent(prepareParams)
+        const persistent = command.maybePersistent(prepareParams)
 
         command
           .prepare(prepareParams)

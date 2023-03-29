@@ -22,7 +22,7 @@ import {
   syncTargetPathSchema,
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { cloneDeep, omit, set } from "lodash"
+import { cloneDeep, keyBy, omit, set } from "lodash"
 import {
   getResourceContainer,
   getResourceKey,
@@ -63,6 +63,7 @@ import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-co
 import { HelmModule, HelmService } from "./helm/module-config"
 import { convertServiceResource } from "./kubernetes-type/common"
 import { prepareConnectionOpts } from "./kubectl"
+import { GetSyncStatusResult, SyncState } from "../../plugin/handlers/Deploy/get-sync-status"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -471,12 +472,12 @@ interface SyncParamsBase {
 }
 
 interface StopSyncsParams extends SyncParamsBase {
-  action: SupportedRuntimeAction
+  action: SyncableRuntimeAction
 }
 
 interface StartSyncsParams extends StopSyncsParams {
   defaultTarget: KubernetesTargetResourceSpec | undefined
-  action: Resolved<SupportedRuntimeAction>
+  action: Resolved<SyncableRuntimeAction>
   basePath: string
   actionDefaults: SyncDefaults
   manifests: KubernetesResource[]
@@ -484,11 +485,14 @@ interface StartSyncsParams extends StopSyncsParams {
   syncs: KubernetesDeployDevModeSyncSpec[]
 }
 
+interface GetSyncStatusParams extends StartSyncsParams {
+  monitor: boolean
+}
+
 interface PrepareSyncParams extends SyncParamsBase {
   action: Resolved<SupportedRuntimeAction>
   resourceSpec: KubernetesTargetResourceSpec
   spec: KubernetesDeployDevModeSyncSpec
-  index: number
   manifests: KubernetesResource[]
 }
 
@@ -509,7 +513,9 @@ export async function startSyncs(params: StartSyncsParams) {
   const provider = ctx.provider
   const providerDefaults = provider.config.sync?.defaults || {}
 
-  await Bluebird.map(syncs, async (s, i) => {
+  const expectedKeys: string[] = []
+
+  await Bluebird.map(syncs, async (s) => {
     const resourceSpec = s.target || defaultTarget
 
     if (!resourceSpec) {
@@ -517,23 +523,27 @@ export async function startSyncs(params: StartSyncsParams) {
       return
     }
 
-    const { key, description, sourceDescription, targetDescription, target, resourceName } = await prepareSync({
-      ...params,
-      resourceSpec,
-      spec: s,
-      index: i,
-    })
+    const { key, description, sourceDescription, targetDescription, target, resourceName, containerName } =
+      await prepareSync({
+        ...params,
+        resourceSpec,
+        spec: s,
+      })
 
     // Validate the target
     if (!isConfiguredForSyncMode(target)) {
-      log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
+      log.warn({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`),
+      })
       return
     }
 
-    const containerName = s.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
-
     if (!containerName) {
-      log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
+      log.warn({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`),
+      })
       return
     }
 
@@ -556,7 +566,7 @@ export async function startSyncs(params: StartSyncsParams) {
     await mutagen.ensureSync({
       log,
       key,
-      logSection: action.name,
+      logSection: action.key(),
       sourceDescription,
       targetDescription,
       config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
@@ -564,7 +574,19 @@ export async function startSyncs(params: StartSyncsParams) {
 
     // Wait for initial sync to complete
     await mutagen.flushSync(log, key)
+
+    expectedKeys.push(key)
   })
+
+  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+
+  for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
+    log.info({ section: action.key(), msg: chalk.gray(`Terminating unexpected/outdated sync ${sync.name}`) })
+    await mutagen.terminateSync(log, sync.name)
+  }
+
+  mutagen.stopMonitoring()
 }
 
 export async function stopSyncs(params: StopSyncsParams) {
@@ -582,11 +604,129 @@ export async function stopSyncs(params: StopSyncsParams) {
   }
 }
 
+export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyncStatusResult> {
+  const { ctx, log, basePath, action, defaultNamespace, actionDefaults, defaultTarget, syncs, monitor } = params
+
+  const mutagen = new Mutagen({ ctx, log })
+  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const syncsByName = keyBy(allSyncs, "name")
+
+  const provider = ctx.provider
+  const providerDefaults = provider.config.sync?.defaults || {}
+
+  let allActive = true
+  let someActive = false
+  let failed = false
+  const expectedKeys: string[] = []
+
+  // TODO: dedupe from startSync
+  await Bluebird.map(syncs, async (s) => {
+    const resourceSpec = s.target || defaultTarget
+
+    if (!resourceSpec) {
+      // This will have been caught and warned about elsewhere
+      return
+    }
+
+    const { key, sourceDescription, targetDescription, target, resourceName, containerName } = await prepareSync({
+      ...params,
+      resourceSpec,
+      spec: s,
+    })
+
+    // Validate the target
+    if (!isConfiguredForSyncMode(target)) {
+      log.debug({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`),
+      })
+      return
+    }
+
+    if (!containerName) {
+      log.debug({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`),
+      })
+      return
+    }
+
+    const namespace = target.metadata.namespace || defaultNamespace
+
+    const localPath = getLocalSyncPath(s.sourcePath, basePath)
+    const remoteDestination = await getKubectlExecDestination({
+      ctx,
+      log,
+      namespace,
+      containerName,
+      resourceName,
+      targetPath: s.containerPath,
+    })
+
+    const session = syncsByName[key]
+
+    if (session) {
+      if (session.status === "disconnected") {
+        failed = true
+      } else {
+        someActive = true
+      }
+    } else {
+      allActive = false
+    }
+
+    expectedKeys.push(key)
+
+    if (monitor) {
+      mutagen.monitorSync({
+        key,
+        logSection: action.key(),
+        sourceDescription,
+        targetDescription,
+        config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
+      })
+    }
+  })
+
+  if (monitor) {
+    // TODO: emit log events instead of using Log instance on Mutagen instance
+    await mutagen.startMonitoring()
+
+    ctx.events.on("abort", () => {
+      mutagen.stopMonitoring()
+      params.ctx.events.emit("done")
+    })
+  }
+
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+
+  let extraSyncs = false
+
+  for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
+    log.debug({ section: action.key(), msg: chalk.gray(`Found unexpected/outdated sync ${sync.name}`) })
+    extraSyncs = true
+  }
+
+  let state: SyncState = "not-active"
+
+  if (failed) {
+    state = "failed"
+  } else if (extraSyncs || someActive) {
+    state = "outdated"
+  } else if (allActive) {
+    state = "active"
+  }
+
+  return {
+    state,
+  }
+}
+
 function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
   return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
 }
 
-async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec, index }: PrepareSyncParams) {
+async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec }: PrepareSyncParams) {
   const provider = ctx.provider
 
   const target = await getTargetResource({
@@ -600,7 +740,7 @@ async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec, in
 
   const resourceName = getResourceKey(target)
 
-  const key = `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}--${index}`
+  const key = `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}`
 
   const localPathDescription = chalk.white(spec.sourcePath)
   const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
@@ -620,6 +760,8 @@ async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec, in
 
   const description = `${sourceDescription} to ${targetDescription}`
 
+  const containerName = spec.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
+
   return {
     key,
     description,
@@ -627,6 +769,7 @@ async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec, in
     targetDescription,
     target,
     resourceName,
+    containerName,
   }
 }
 

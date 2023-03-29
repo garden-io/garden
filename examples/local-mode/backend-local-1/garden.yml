@@ -1,0 +1,7 @@
+kind: Build
+name: backend-1-local
+description: Backend 1 local build
+type: exec
+buildAtSource: true
+spec:
+  command: [sh, -c "go build -o main && chmod +x main"]

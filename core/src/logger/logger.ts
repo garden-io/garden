@@ -18,6 +18,8 @@ import { getEnumKeys } from "../util/util"
 import { range } from "lodash"
 import { InkTerminalWriter } from "./writers/ink-terminal-writer"
 import { QuietWriter } from "./writers/quiet-writer"
+import { PluginEventBroker } from "../plugin-context"
+import { EventLogWriter } from "./writers/event-writer"
 
 export type LoggerType = "quiet" | "default" | "basic" | "json" | "ink"
 export const LOGGER_TYPES = new Set<LoggerType>(["quiet", "default", "basic", "json", "ink"])
@@ -30,6 +32,8 @@ export enum LogLevel {
   debug = 4,
   silly = 5,
 }
+
+export type StringLogLevel = keyof typeof LogLevel
 
 const getLogLevelNames = () => getEnumKeys(LogLevel)
 const getNumericLogLevels = () => range(getLogLevelNames().length)
@@ -62,6 +66,10 @@ export const logLevelMap = {
   [LogLevel.verbose]: "verbose",
   [LogLevel.debug]: "debug",
   [LogLevel.silly]: "silly",
+}
+
+export function logLevelToString(level: LogLevel): StringLogLevel {
+  return logLevelMap[level] as StringLogLevel
 }
 
 const eventLogLevel = LogLevel.debug
@@ -115,34 +123,41 @@ interface LoggerConfigBase {
   useEmoji?: boolean
 }
 
+interface CreateLogParams {
+  metadata?: LogMetadata
+  fixLevel?: LogLevel
+  /**
+   * The name of the log context. Will be printed as the "section" part of the log lines
+   * belonging to this context.
+   */
+  name?: string
+}
+
+interface LoggerWriters {
+  display: Writer
+  file: Writer[]
+}
+
+export interface Logger extends Required<LoggerConfigBase> {
+  events: EventBus
+  createLog(params?: CreateLogParams): CoreLog
+  log(entry: LogEntry): void
+  getLogEntries(): LogEntry[]
+  getWriters(): LoggerWriters
+}
+
 interface LoggerInitParams extends LoggerConfigBase {
   /**
-   * The type of terminal writer to use. This is configurable by the user
+   * The type of display writer to use. This is configurable by the user
    * and exposed as a "logger type" which is a bit more user friendly.
    *
    * The logger also has a set of file writers that are set internally.
    */
-  terminalWriterType: LoggerType
+  displayWriterType: LoggerType
   force?: boolean
 }
 
-interface LoggerConstructor extends LoggerConfigBase {
-  writers: {
-    terminal: Writer
-    file: Writer[]
-  }
-}
-
-/**
- * The "root" Logger. Responsible for calling the log writers on log events
- * and holds the command-wide log configuration.
- *
- * Is initialized as a singleton class.
- *
- * Note that this class does not have methods for logging at different levels. Rather
- * that's handled by the 'Log' class which in turns calls the root Logger.
- */
-export class Logger implements Required<LoggerConfigBase> {
+export abstract class LoggerBase implements Logger {
   public events: EventBus
   public useEmoji: boolean
   public showTimestamps: boolean
@@ -150,118 +165,23 @@ export class Logger implements Required<LoggerConfigBase> {
   public entries: LogEntry[]
   public storeEntries: boolean
 
-  private writers: {
-    terminal: Writer
-    file: Writer[]
-  }
-  private static instance?: Logger
+  protected writers: LoggerWriters
 
-  private constructor(config: LoggerConstructor) {
+  constructor(config: LoggerConfigBase) {
     this.level = config.level
     this.entries = []
-    this.writers = config.writers
     this.useEmoji = config.useEmoji === false ? false : true
     this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
     this.storeEntries = config.storeEntries || false
   }
 
-  /**
-   * Returns the already initialized Logger singleton instance.
-   *
-   * Throws and error if called before logger is initialized.
-   *
-   * @throws(InternalError)
-   */
-  static getInstance() {
-    if (!Logger.instance) {
-      throw new InternalError("Logger not initialized", {})
-    }
-    return Logger.instance
-  }
-
-  /**
-   * Initializes the logger as a singleton from config. Also ensures that the logger settings make sense
-   * in the context of environment variables and writer types.
-   */
-  static initialize(config: LoggerInitParams): Logger {
-    if (!config.force && Logger.instance) {
-      return Logger.instance
-    }
-
-    let instance: Logger
-
-    // The GARDEN_LOG_LEVEL env variable takes precedence over the config param
-    if (gardenEnv.GARDEN_LOG_LEVEL) {
-      try {
-        config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
-      } catch (err) {
-        throw new CommandError(`Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}`, {})
-      }
-    }
-
-    // GARDEN_LOGGER_TYPE env variable takes precedence over the config param
-    if (gardenEnv.GARDEN_LOGGER_TYPE) {
-      const loggerTypeFromEnv = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
-
-      if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
-        throw new ParameterError(`Invalid logger type specified: ${loggerTypeFromEnv}`, {
-          loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
-          availableTypes: LOGGER_TYPES,
-        })
-      }
-
-      config.terminalWriterType = loggerTypeFromEnv
-    }
-
-    const terminalWriter = getTerminalWriterInstance(config.terminalWriterType, config.level)
-    const writers = {
-      terminal: terminalWriter,
-      file: [],
-    }
-
-    instance = new Logger({ ...config, storeEntries: config.storeEntries, writers })
-
-    const initLog = instance.createLog()
-
-    if (gardenEnv.GARDEN_LOG_LEVEL) {
-      initLog.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)
-    }
-    if (gardenEnv.GARDEN_LOGGER_TYPE) {
-      initLog.debug(`Setting logger type to ${gardenEnv.GARDEN_LOGGER_TYPE} (from GARDEN_LOGGER_TYPE)`)
-    }
-
-    Logger.instance = instance
-    return instance
-  }
-
-  /**
-   * Clears the singleton instance. Use this if you need to re-initialise the global logger singleton.
-   */
-  static clearInstance() {
-    Logger.instance = undefined
-  }
-
   toSanitizedValue() {
     return "<Logger>"
   }
 
-  addFileWriter(writer: Writer) {
-    this.writers.file.push(writer)
-  }
-
   getWriters() {
     return this.writers
-  }
-
-  /**
-   * Reset the default terminal writer that the logger was initialized with.
-   *
-   * This is required because when we initialize the logger we don't know what writer
-   * the command may require and we need to re-set it when we've resolved the command.
-   */
-  setTerminalWriter(type: LoggerType) {
-    this.writers.terminal = getTerminalWriterInstance(type, this.level)
   }
 
   log(entry: LogEntry) {
@@ -271,7 +191,7 @@ export class Logger implements Required<LoggerConfigBase> {
     if (entry.level <= eventLogLevel) {
       this.events.emit("logEntry", formatLogEntryForEventStream(entry))
     }
-    const writers = [this.writers.terminal, ...this.writers.file]
+    const writers = [this.writers.display, ...this.writers.file]
     for (const writer of writers) {
       if (entry.level <= writer.level) {
         writer.write(entry, this)
@@ -282,19 +202,7 @@ export class Logger implements Required<LoggerConfigBase> {
   /**
    * Creates a new CoreLog context from the root Logger.
    */
-  createLog({
-    metadata,
-    fixLevel,
-    name,
-  }: {
-    metadata?: LogMetadata
-    fixLevel?: LogLevel
-    /**
-     * The name of the log context. Will be printed as the "section" part of the log lines
-     * belonging to this context.
-     */
-    name?: string
-  } = {}) {
+  createLog({ metadata, fixLevel, name }: CreateLogParams = {}) {
     return new CoreLog({
       parentConfigs: [],
       fixLevel,
@@ -317,17 +225,155 @@ export class Logger implements Required<LoggerConfigBase> {
     }
     return this.entries
   }
+}
+
+interface RootLoggerParams extends LoggerConfigBase {
+  writers: LoggerWriters
+}
+
+/**
+ * The "root" Logger. Responsible for calling the log writers on log events
+ * and holds the command-wide log configuration.
+ *
+ * Is initialized as a singleton class.
+ *
+ * Note that this class does not have methods for logging at different levels. Rather
+ * that's handled by the 'Log' class which in turns calls the root Logger.
+ */
+export class RootLogger extends LoggerBase {
+  private static instance?: RootLogger
+
+  private constructor(config: RootLoggerParams) {
+    super(config)
+    this.writers = config.writers
+  }
+
+  /**
+   * Returns the already initialized Logger singleton instance.
+   *
+   * Throws and error if called before logger is initialized.
+   *
+   * @throws(InternalError)
+   */
+  static getInstance() {
+    if (!RootLogger.instance) {
+      throw new InternalError("Logger not initialized", {})
+    }
+    return RootLogger.instance
+  }
+
+  /**
+   * Initializes the logger as a singleton from config. Also ensures that the logger settings make sense
+   * in the context of environment variables and writer types.
+   */
+  static initialize(config: LoggerInitParams): RootLogger {
+    if (RootLogger.instance) {
+      return RootLogger.instance
+    }
+
+    let instance: RootLogger
+
+    // The GARDEN_LOG_LEVEL env variable takes precedence over the config param
+    if (gardenEnv.GARDEN_LOG_LEVEL) {
+      try {
+        config.level = parseLogLevel(gardenEnv.GARDEN_LOG_LEVEL)
+      } catch (err) {
+        throw new CommandError(`Invalid log level set for GARDEN_LOG_LEVEL: ${err.message}`, {})
+      }
+    }
+
+    // GARDEN_LOGGER_TYPE env variable takes precedence over the config param
+    if (gardenEnv.GARDEN_LOGGER_TYPE) {
+      const loggerTypeFromEnv = <LoggerType>gardenEnv.GARDEN_LOGGER_TYPE
+
+      if (!LOGGER_TYPES.has(loggerTypeFromEnv)) {
+        throw new ParameterError(`Invalid logger type specified: ${loggerTypeFromEnv}`, {
+          loggerType: gardenEnv.GARDEN_LOGGER_TYPE,
+          availableTypes: LOGGER_TYPES,
+        })
+      }
+
+      config.displayWriterType = loggerTypeFromEnv
+    }
+
+    const terminalWriter = getTerminalWriterInstance(config.displayWriterType, config.level)
+    const writers = {
+      display: terminalWriter,
+      file: [],
+    }
+
+    instance = new RootLogger({ ...config, storeEntries: config.storeEntries, writers })
+
+    const initLog = instance.createLog()
+
+    if (gardenEnv.GARDEN_LOG_LEVEL) {
+      initLog.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)
+    }
+    if (gardenEnv.GARDEN_LOGGER_TYPE) {
+      initLog.debug(`Setting logger type to ${gardenEnv.GARDEN_LOGGER_TYPE} (from GARDEN_LOGGER_TYPE)`)
+    }
+
+    RootLogger.instance = instance
+    return instance
+  }
+
+  /**
+   * Clears the singleton instance. Use this if you need to re-initialise the global logger singleton.
+   */
+  static clearInstance() {
+    RootLogger.instance = undefined
+  }
+
+  addFileWriter(writer: Writer) {
+    this.writers.file.push(writer)
+  }
+
+  /**
+   * Reset the default terminal writer that the logger was initialized with.
+   *
+   * This is required because when we initialize the logger we don't know what writer
+   * the command may require and we need to re-set it when we've resolved the command.
+   */
+  setTerminalWriter(type: LoggerType) {
+    this.writers.display = getTerminalWriterInstance(type, this.level)
+  }
 
   /**
    * WARNING: Only use for tests.
    *
    * The logger is a singleton which makes it hard to test. This is an escape hatch.
    */
-  static _createInstanceForTests(params: LoggerConstructor) {
-    return new Logger(params)
+  static _createInstanceForTests(params: RootLoggerParams) {
+    return new RootLogger(params)
   }
 }
 
-export function getLogger() {
-  return Logger.getInstance()
+export function getRootLogger() {
+  return RootLogger.getInstance()
+}
+
+interface EventLoggerParams extends LoggerConfigBase {
+  defaultOrigin?: string
+  events: PluginEventBroker // TODO: may want to support other event buses
+}
+
+export interface CreateEventLogParams extends CreateLogParams {
+  origin: string
+}
+
+export class EventLogger extends LoggerBase {
+  constructor(config: EventLoggerParams) {
+    super(config)
+    this.writers = {
+      display: new EventLogWriter({ level: config.level, defaultOrigin: config.defaultOrigin, events: config.events }),
+      file: [],
+    }
+  }
+
+  /**
+   * Creates a new CoreLog context from the root Logger.
+   */
+  createLog(params: CreateEventLogParams) {
+    return super.createLog(params)
+  }
 }

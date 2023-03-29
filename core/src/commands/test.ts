@@ -15,7 +15,6 @@ import {
   ProcessCommandResult,
   processCommandResultSchema,
 } from "./base"
-import { processActions } from "../process"
 import { TestTask } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -126,8 +125,12 @@ export class TestCommand extends Command<Args, Opts> {
     printHeader(headerLog, `Running Tests`, "🌡️")
   }
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return opts.interactive
+  }
+
+  allowInDevCommand({ opts }: PrepareParams<Args, Opts>) {
+    return !opts.interactive
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
@@ -159,7 +162,7 @@ export class TestCommand extends Command<Args, Opts> {
       excludeNames: opts.skip,
     })
 
-    const initialTasks = actions.map(
+    const tasks = actions.map(
       (action) =>
         new TestTask({
           garden,
@@ -174,22 +177,15 @@ export class TestCommand extends Command<Args, Opts> {
         })
     )
 
-    if (opts.interactive && initialTasks.length !== 1) {
+    if (opts.interactive && tasks.length !== 1) {
       throw new ParameterError(`The --interactive/-i option can only be used if a single test is selected.`, {
         args,
         opts,
       })
     }
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      initialTasks,
-      persistent: false,
-    })
+    const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(footerLog, "test", results)
+    return handleProcessResults(garden, footerLog, "test", results)
   }
 }

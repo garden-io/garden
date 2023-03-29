@@ -147,6 +147,7 @@ describe("TestCommand", () => {
             completedAt: new Date(),
           },
           outputs: {},
+          version: "v-1234",
         },
       }
     })

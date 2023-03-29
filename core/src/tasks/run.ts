@@ -11,6 +11,7 @@ import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
+import chalk from "chalk"
 
 export interface RunTaskParams extends BaseActionTaskParams<RunAction> {}
 
@@ -28,7 +29,7 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<RunAction>) {
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<RunAction>) {
     const taskLog = this.log.createLog().info("Checking result...")
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
@@ -45,6 +46,10 @@ export class RunTask extends ExecuteActionTask<RunAction, GetRunResult> {
       // Should return a null value here if there is no result
       if (status.detail === null) {
         return null
+      }
+
+      if (status.state === "ready" && !statusOnly) {
+        this.log.info(chalk.green(`${action.longDescription()} already complete.`))
       }
 
       return {

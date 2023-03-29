@@ -27,7 +27,6 @@ import {
   builderToleration,
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
-import { LogLevel } from "../../../../logger/logger"
 import { sleep } from "../../../../util/util"
 import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
@@ -105,14 +104,13 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
 
   const logEventContext = {
     origin: "buildkit",
-    // log: log.createLog({ fixLevel: LogLevel.verbose }),
-    log: log.createLog({ fixLevel: LogLevel.verbose, section: "foobar" }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
   const command = [

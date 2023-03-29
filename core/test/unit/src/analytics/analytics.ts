@@ -16,7 +16,7 @@ import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/
 import { DEFAULT_API_VERSION, DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
 import { Log } from "../../../../src/logger/log-entry"
-import { Logger, LogLevel } from "../../../../src/logger/logger"
+import { LogLevel, RootLogger } from "../../../../src/logger/logger"
 import { AnalyticsGlobalConfig, GlobalConfigStore } from "../../../../src/config-store/global"
 import { ProjectResource } from "../../../../src/config/project"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
@@ -262,9 +262,9 @@ describe("AnalyticsHandler", () => {
 
   describe("factory (user is logged in)", async () => {
     beforeEach(async () => {
-      const logger = Logger._createInstanceForTests({
+      const logger = RootLogger._createInstanceForTests({
         level: LogLevel.info,
-        writers: { terminal: new QuietWriter({ level: LogLevel.info }), file: [] },
+        writers: { display: new QuietWriter({ level: LogLevel.info }), file: [] },
         storeEntries: false,
       })
       const cloudApi = await FakeCloudApi.factory({ log: logger.createLog() })

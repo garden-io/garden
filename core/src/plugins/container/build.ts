@@ -8,7 +8,6 @@
 
 import { containerHelpers } from "./helpers"
 import { ConfigurationError } from "../../exceptions"
-import { LogLevel } from "../../logger/logger"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
@@ -69,13 +68,13 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   const logEventContext = {
     origin: "docker build",
-    log: log.createLog({ fixLevel: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
   const timeout = action.getConfig("timeout")
   const res = await containerHelpers.dockerCli({

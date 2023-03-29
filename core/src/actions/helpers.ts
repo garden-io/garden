@@ -6,13 +6,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { memoize } from "lodash"
 import { joi } from "../config/common"
+import { Log } from "../logger/log-entry"
+import { renderDivider } from "../logger/util"
 import { buildActionConfigSchema, ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build"
 import { deployActionConfigSchema, ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy"
 import { ExecutedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run"
 import { ExecutedTestAction, isTestAction, ResolvedTestAction, testActionConfigSchema } from "./test"
-import { Action, ExecuteActionParams, Executed, ResolveActionParams, ResolvedAction } from "./types"
+import type { Action, ActionState, ExecuteActionParams, Executed, ResolveActionParams, ResolvedAction } from "./types"
 
 /**
  * Creates a corresponding Resolved version of the given Action, given the additional parameters needed.
@@ -64,3 +67,30 @@ export const actionConfigSchema = memoize(() =>
     testActionConfigSchema()
   )
 )
+
+// TODO-G2: maybe do this implicitly
+export function warnOnLinkedActions(log: Log, actions: Action[]) {
+  // Let the user know if any actions are linked to a local path
+  const linkedActionsMsg = actions
+    .filter((a) => a.isLinked())
+    .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.basePath())}`)
+    .map((msg) => "  " + msg) // indent list
+
+  if (linkedActionsMsg.length > 0) {
+    log.info(renderDivider())
+    log.info(chalk.gray(`The following actions are linked to a local path:\n${linkedActionsMsg.join("\n")}`))
+    log.info(renderDivider())
+  }
+}
+
+const displayStates = {
+  failed: "in a failed state",
+  unknown: "in an unknown state",
+}
+
+/**
+ * Just to make action states look nicer in print.
+ */
+export function displayState(state: ActionState) {
+  return displayStates[state] || state.replace("-", " ")
+}

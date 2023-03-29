@@ -154,11 +154,11 @@ export class CliWrapper {
 
     const logEventContext = {
       origin: this.name,
-      log: log.createLog({ fixLevel: LogLevel.verbose }),
+      level: "verbose" as const,
     }
 
     logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
     })
 
     await new Promise<void>((resolve, reject) => {

@@ -4706,7 +4706,7 @@ describe("Garden", () => {
         await garden.emitWarning({ key, log, message })
         const logs = getLogMessages(log)
         expect(logs.length).to.equal(1)
-        expect(logs[0]).to.equal(message + `\nRun garden util hide-warning ${key} to disable this warning.`)
+        expect(logs[0]).to.equal(message + `\n→ Run garden util hide-warning ${key} to disable this warning.`)
       })
 
       it("should not log a warning if the key has been hidden", async () => {

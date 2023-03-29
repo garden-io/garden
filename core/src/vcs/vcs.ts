@@ -30,6 +30,7 @@ import { validateInstall } from "../util/validateInstall"
 import { isActionConfig } from "../actions/base"
 import type { BaseActionConfig } from "../actions/types"
 import { Garden } from "../garden"
+import chalk = require("chalk")
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -192,10 +193,10 @@ export abstract class VcsHandler {
           await this.garden?.emitWarning({
             key: `${projectName}-filecount-${config.name}`,
             log,
-            message: dedent`
+            message: chalk.yellow(dedent`
               Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
               See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
-            `,
+            `),
           })
         }
 

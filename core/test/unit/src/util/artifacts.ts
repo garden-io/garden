@@ -12,7 +12,7 @@ import { realpath, writeFile } from "fs-extra"
 import normalizePath from "normalize-path"
 import { join } from "path"
 import { getArtifactFileList, getArtifactKey } from "../../../../src/util/artifacts"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 
 describe("artifacts", () => {
   describe("getArtifactKey", () => {
@@ -25,7 +25,7 @@ describe("artifacts", () => {
   describe("getArtifactFileList", () => {
     let tmpDir: tmp.DirectoryResult
     let artifactsPath: string
-    const log = getLogger().createLog()
+    const log = getRootLogger().createLog()
 
     beforeEach(async () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true })

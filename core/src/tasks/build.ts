@@ -27,11 +27,16 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<BuildAction>) {
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
     const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
     const status = output.result
+
+    if (status.state === "ready" && !statusOnly) {
+      this.log.info(`${action.longDescription()} already complete, nothing to do.`)
+    }
+
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 

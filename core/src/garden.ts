@@ -45,7 +45,7 @@ import { VcsHandler, ModuleVersion, getModuleVersionString, VcsInfo } from "./vc
 import { GitHandler } from "./vcs/git"
 import { BuildStaging } from "./build-staging/build-staging"
 import { ConfigGraph, ResolvedConfigGraph } from "./graph/config-graph"
-import { getLogger } from "./logger/logger"
+import { getRootLogger } from "./logger/logger"
 import { ProviderHandlers, GardenPlugin } from "./plugin/plugin"
 import {
   loadConfigResources,
@@ -144,6 +144,7 @@ import { Task } from "./tasks/base"
 import { GraphResultFromTask, GraphResults } from "./graph/results"
 import { uuidv4 } from "./util/random"
 import { convertTemplatedModuleToRender, RenderTemplateConfig, renderConfigTemplate } from "./config/render-template"
+import { MonitorManager } from "./monitors/manager"
 
 const defaultLocalAddress = "localhost"
 
@@ -239,6 +240,7 @@ export class Garden {
   private tools: { [key: string]: PluginTool }
   public configTemplates: { [name: string]: ConfigTemplateConfig }
   private actionTypeBases: ActionTypeMap<ActionTypeDefinition<any>[]>
+  private emittedWarnings: Set<string>
 
   public readonly production: boolean
   public readonly projectRoot: string
@@ -272,6 +274,7 @@ export class Garden {
   public readonly cloudApi: CloudApi | null
   public readonly disablePortForwards: boolean
   public readonly commandInfo: CommandInfo
+  public readonly monitors: MonitorManager
 
   // Used internally for introspection
   public readonly isGarden: true
@@ -310,6 +313,7 @@ export class Garden {
     this.cache = params.cache
     this.isGarden = true
     this.configTemplates = {}
+    this.emittedWarnings = new Set()
 
     this.asyncLock = new AsyncLock()
 
@@ -369,13 +373,14 @@ export class Garden {
     this.registeredPlugins = [...getBuiltinPlugins(), ...params.plugins]
     this.resolvedProviders = {}
 
-    this.solver = new GraphSolver(this)
     this.events = new EventBus()
-
     // TODO: actually resolve version, based on the VCS version of the plugin and its dependencies
     this.version = getPackageVersion()
 
     this.disablePortForwards = gardenEnv.GARDEN_DISABLE_PORT_FORWARDS || params.disablePortForwards || false
+
+    this.monitors = new MonitorManager(this)
+    this.solver = new GraphSolver(this)
   }
 
   static async factory<T extends typeof Garden>(
@@ -397,6 +402,7 @@ export class Garden {
   async close() {
     this.events.removeAllListeners()
     this.watcher && (await this.watcher.stop())
+    this.monitors.stopAll()
   }
 
   /**
@@ -447,13 +453,22 @@ export class Garden {
   }
 
   async emitWarning({ key, log, message }: { key: string; log: Log; message: string }) {
-    const existing = await this.localConfigStore.get("warnings", key)
+    await this.asyncLock.acquire("emitWarning", async () => {
+      // Only emit a warning once per instance
+      if (this.emittedWarnings.has(key)) {
+        return
+      }
 
-    if (!existing || !existing.hidden) {
-      log.warn(
-        chalk.yellow(message + `\nRun ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
-      )
-    }
+      const existing = await this.localConfigStore.get("warnings", key)
+
+      if (!existing || !existing.hidden) {
+        this.emittedWarnings.add(key)
+        log.warn({
+          symbol: "warning",
+          msg: message + `\n→ Run ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning`,
+        })
+      }
+    })
   }
 
   async hideWarning(key: string) {
@@ -1512,7 +1527,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   opts: GardenOpts
 ): Promise<GardenParams> {
   let { environmentName: environmentStr, config, gardenDirPath, plugins = [], disablePortForwards } = opts
-  const log = opts.log || getLogger().createLog()
+  const log = opts.log || getRootLogger().createLog()
 
   if (!config) {
     config = await findProjectConfig(log, currentDirectory)

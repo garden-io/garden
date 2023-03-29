@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { joi } from "../../../src/config/common"
-import { getLogger } from "../../../src/logger/logger"
+import { getRootLogger } from "../../../src/logger/logger"
 import { BuildActionDefinition } from "../../../src/plugin/action-types"
 import { createGardenPlugin, PluginBuildActionParamsBase } from "../../../src/plugin/plugin"
 import { resolvePlugins } from "../../../src/plugins"
@@ -16,7 +16,7 @@ import { findByName } from "../../../src/util/util"
 import { expectError } from "../../helpers"
 
 describe("resolvePlugins", () => {
-  const log = getLogger().createLog()
+  const log = getRootLogger().createLog()
 
   const testHandler = (params: PluginBuildActionParamsBase<any>) => {
     return {

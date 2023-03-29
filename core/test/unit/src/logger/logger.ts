@@ -7,13 +7,13 @@
  */
 
 import { expect } from "chai"
-import { getLogger, Logger, LogLevel } from "../../../../src/logger/logger"
+import { getRootLogger, Logger, LogLevel, RootLogger } from "../../../../src/logger/logger"
 import { LogEntryEventPayload } from "../../../../src/cloud/buffered-event-stream"
 import { freezeTime } from "../../../helpers"
 import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
 import chalk from "chalk"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 describe("Logger", () => {
   beforeEach(() => {
@@ -79,15 +79,16 @@ describe("Logger", () => {
       log.debug("debug")
       log.silly("silly")
 
-      expect(logger.entries).to.have.lengthOf(6)
-      const messages = logger.entries.map((e) => e.msg)
+      const entries = logger.getLogEntries()
+      expect(entries).to.have.lengthOf(6)
+      const messages = entries.map((e) => e.msg)
       expect(messages).to.eql([chalk.red("error"), "warn", "info", "verbose", "debug", "silly"])
     })
     it("should not store entries if storeEntries=false", () => {
-      const logWriterB = Logger._createInstanceForTests({
+      const logWriterB = RootLogger._createInstanceForTests({
         level: LogLevel.info,
         writers: {
-          terminal: new QuietWriter({ level: LogLevel.info }),
+          display: new QuietWriter({ level: LogLevel.info }),
           file: [],
         },
         storeEntries: false,
@@ -100,7 +101,7 @@ describe("Logger", () => {
       log.debug("debug")
       log.silly("silly")
 
-      expect(logger.entries).to.eql([])
+      expect(logger.getLogEntries()).to.eql([])
     })
   })
   describe("getLogEntries", () => {

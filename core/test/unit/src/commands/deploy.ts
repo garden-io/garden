@@ -18,7 +18,7 @@ import {
   getAllProcessedTaskNames,
   getDataDir,
 } from "../../../helpers"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
 
 // TODO-G2: rename test cases to match the new graph model semantics
@@ -165,7 +165,7 @@ describe("DeployCommand", () => {
       }
 
       expect(graphResult.name).to.exist
-      expect(graphResult.version).to.equal(getDeployVersion(graphResult.name))
+      expect(graphResult.inputVersion).to.equal(getDeployVersion(graphResult.name))
       expect(graphResult.aborted).to.be.false
       expect(graphResult.error).to.be.null
       expect(graphResult.result).to.exist
@@ -386,8 +386,8 @@ describe("DeployCommand", () => {
   describe("isPersistent", () => {
     it("should return persistent=true if --sync is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().createLog()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
         headerLog: log,
         footerLog: log,
@@ -411,8 +411,8 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --local-mode is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().createLog()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
         headerLog: log,
         footerLog: log,
@@ -436,8 +436,8 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --follow is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().createLog()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
         headerLog: log,
         footerLog: log,

@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
 import { uuidv4 } from "../../../../src/util/random"
@@ -15,7 +15,7 @@ import { randomString } from "../../../../src/util/string"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 
 describe("CloudApi", () => {
-  const log = getLogger().createLog()
+  const log = getRootLogger().createLog()
   const domain = "https://garden." + randomString()
   const globalConfigStore = new GlobalConfigStore()
 

@@ -23,7 +23,6 @@ import {
   containerModuleSpecSchema,
 } from "@garden-io/core/build/src/plugins/container/moduleConfig"
 import { joi } from "@garden-io/core/build/src/config/common"
-import { renderOutputStream } from "@garden-io/core/build/src/util/util"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure"
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
@@ -186,20 +185,24 @@ export const gardenPlugin = () =>
 
               if (!projectType) {
                 projectType = detectProjectType(action)
-                statusLine.info(renderOutputStream(`Detected project type ${projectType}`))
+                statusLine.info(`Detected project type ${projectType}`)
               }
 
               let buildLog = ""
 
               const logEventContext: PluginEventLogContext = {
+                level: "verbose",
                 origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
-                log: log.createLog({ fixLevel: LogLevel.verbose }),
               }
 
               const outputStream = split2()
               outputStream.on("error", () => {})
               outputStream.on("data", (data: Buffer) => {
-                ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
+                ctx.events.emit("log", {
+                  timestamp: new Date().toISOString(),
+                  msg: data.toString(),
+                  ...logEventContext,
+                })
                 buildLog += data.toString()
               })
 

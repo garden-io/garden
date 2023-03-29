@@ -28,7 +28,6 @@ import exitHook from "async-exit-hook"
 import _spawn from "cross-spawn"
 import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
-import chalk from "chalk"
 import { safeLoad } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
@@ -153,24 +152,17 @@ export function defer<T>() {
 }
 
 /**
- * Extracting to a separate function so that we can test output streams
- */
-export function renderOutputStream(msg: string, command?: string) {
-  return command ? chalk.gray(`[${command}]: ${msg}`) : chalk.gray(msg)
-}
-
-/**
  * Creates an output stream that updates a log entry on data events (in an opinionated way).
  *
  * Note that new entries are not created but rather the passed log entry gets updated.
  * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
  */
-export function createOutputStream(log: Log) {
+export function createOutputStream(log: Log, origin?: string) {
   const outputStream = split2()
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    log.info(renderOutputStream(line.toString()))
+    log.info({ msg: line.toString(), origin })
   })
 
   return outputStream

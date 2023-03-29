@@ -11,7 +11,6 @@ import { omit } from "lodash"
 import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { DeployState } from "../types/service"
-import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 const API_ACTION_TYPE = "deploy"
@@ -22,16 +21,16 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const { router, action, garden } = params
 
       const actionUid = action.getUid()
-      params.events = params.events || new PluginEventBroker()
+      params.events = params.events || new PluginEventBroker(garden)
 
       const actionName = action.name
       const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
-      params.events.on("log", ({ timestamp, data, origin, log }) => {
+      params.events.on("log", ({ timestamp, msg, origin, level }) => {
         // stream logs to CLI
-        log.info(renderOutputStream(data.toString(), origin))
+        params.log[level]({ msg, origin })
         // stream logs to Garden Cloud
         garden.events.emit("log", {
           timestamp,
@@ -39,8 +38,8 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           actionName,
           actionType,
           moduleName,
-          origin,
-          data: data.toString(),
+          origin: origin || "",
+          data: msg,
         })
       })
 
@@ -87,7 +86,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
         .createLog({
           section: action.key(),
         })
-        .info("Deleting...")
+        .info("Cleaning up...")
 
       const statusOutput = await handlers.getStatus({ ...params })
       const status = statusOutput.result
@@ -188,7 +187,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     },
 
     stopPortForward: async (params) => {
-      return params.router.callHandler({ params, handlerType: "stopPortForward" })
+      return params.router.callHandler({ params, handlerType: "stopPortForward", defaultHandler: async () => ({}) })
     },
 
     getSyncStatus: async (params) => {

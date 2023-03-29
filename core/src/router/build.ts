@@ -8,7 +8,6 @@
 
 import chalk from "chalk"
 
-import { renderOutputStream } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
 import { BaseRouterParams, createActionRouter } from "./base"
 import { ActionState, stateForCacheStatusEvent } from "../actions/types"
@@ -63,7 +62,7 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const { action, garden, router } = params
 
       const actionUid = action.getUid()
-      params.events = params.events || new PluginEventBroker()
+      params.events = params.events || new PluginEventBroker(garden)
 
       const startedAt = new Date().toISOString()
 
@@ -72,9 +71,9 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const actionVersion = action.versionString()
       const moduleName = action.moduleName()
 
-      params.events.on("log", ({ timestamp, data, origin, log }) => {
+      params.events.on("log", ({ timestamp, msg, origin, level }) => {
         // stream logs to CLI
-        log.info(renderOutputStream(data.toString(), origin))
+        params.log[level]({ msg, origin })
         // stream logs to Garden Cloud
         garden.events.emit("log", {
           timestamp,
@@ -82,8 +81,8 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
           actionName,
           actionType,
           moduleName,
-          origin,
-          data: data.toString(),
+          origin: origin || "",
+          data: msg,
         })
       })
       const payloadAttrs = {

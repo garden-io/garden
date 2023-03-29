@@ -18,7 +18,7 @@ import { makeTestGardenA, withDefaultGlobalOpts } from "../../../helpers"
 describe("CustomCommandWrapper", () => {
   let garden: TestGarden
   let log: Log
-  const cli = new GardenCli()
+  const cli = new GardenCli({ initLogger: false })
 
   before(async () => {
     garden = await makeTestGardenA()

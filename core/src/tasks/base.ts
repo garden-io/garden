@@ -26,6 +26,7 @@ import type { RunTask } from "./run"
 import type { TestTask } from "./test"
 import { Memoize } from "typescript-memoize"
 import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
+import { TypedEventEmitter } from "../util/events"
 
 export class TaskDefinitionError extends Error {}
 
@@ -47,7 +48,6 @@ export interface BaseActionTaskParams<T extends Action = Action> extends CommonT
   forceActions?: ActionReference[]
   forceBuild?: boolean // Shorthand for placing all builds in forceActions
   skipRuntimeDependencies?: boolean
-  startSyncs?: boolean
 }
 
 export interface TaskProcessParams {
@@ -58,6 +58,7 @@ export interface TaskProcessParams {
 export interface ValidResultType {
   state: ActionState
   outputs: {}
+  attached?: boolean
 }
 
 export type Task =
@@ -82,8 +83,19 @@ export interface BaseTaskOutputs {
   version: string
 }
 
+interface TaskEventPayload<O extends ValidResultType> {
+  error?: Error
+  result?: O
+}
+
+interface TaskEvents<O extends ValidResultType> {
+  statusResolved: TaskEventPayload<O>
+  processed: TaskEventPayload<O>
+  ready: { result: O }
+}
+
 @Profile()
-export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
+export abstract class BaseTask<O extends ValidResultType = ValidResultType> extends TypedEventEmitter<TaskEvents<O>> {
   abstract type: string
 
   // How many tasks of this exact type are allowed to run concurrently
@@ -101,6 +113,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
   _resolvedDependencies?: BaseTask[]
 
   constructor(initArgs: CommonTaskParams) {
+    super()
     this.garden = initArgs.garden
     this.uid = uuidv1() // uuidv1 is timestamp-based
     this.force = !!initArgs.force
@@ -184,7 +197,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> {
 export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}
 export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
   extends ActionTaskStatusParams<T> {
-  status: S
+  status: S | null
 }
 
 export interface BaseActionTaskOutputs extends BaseTaskOutputs {}
@@ -196,7 +209,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   graph: ConfigGraph
   forceActions: ActionReference[]
   skipRuntimeDependencies: boolean
-  startSyncs: boolean
   log: ActionLog
 
   constructor(params: BaseActionTaskParams<T>) {
@@ -207,7 +219,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
     this.graph = params.graph
     this.forceActions = params.forceActions || []
     this.skipRuntimeDependencies = params.skipRuntimeDependencies || false
-    this.startSyncs = params.startSyncs || false
 
     if (params.forceBuild) {
       this.forceActions.push(...this.graph.getBuilds())
@@ -283,7 +294,6 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       forceActions: this.forceActions,
       skipDependencies: this.skipDependencies,
       skipRuntimeDependencies: this.skipRuntimeDependencies,
-      startSyncs: this.startSyncs,
     }
   }
 
@@ -348,9 +358,8 @@ export interface ExecuteActionOutputs<T extends Action> extends BaseActionTaskOu
 
 export abstract class ExecuteActionTask<
   T extends Action,
-  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any }
-> extends BaseActionTask<T, O> {
-  _resultType: O & ExecuteActionOutputs<T>
+  O extends ValidResultType = { state: ActionState; outputs: T["_outputs"]; detail: any; version: string }
+> extends BaseActionTask<T, O & ExecuteActionOutputs<T>> {
   executeTask = true
 
   abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(O & ExecuteActionOutputs<T>) | null>

@@ -463,10 +463,7 @@ export interface ActionReference<K extends ActionKind = ActionKind> {
 }
 
 const actionRefParseError = (reference: any) => {
-  const validActionKinds = naturalList(
-    actionKindsLower.map((k) => "'" + k + "'"),
-    "or"
-  )
+  const validActionKinds = naturalList(actionKindsLower, { trailingWord: "or", quote: true })
 
   const refStr = JSON.stringify(reference)
 

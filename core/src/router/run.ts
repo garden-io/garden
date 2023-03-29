@@ -13,7 +13,6 @@ import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PluginEventBroker } from "../plugin-context"
 import { runStatusForEventPayload } from "../plugin/base"
 import { copyArtifacts, getArtifactKey } from "../util/artifacts"
-import { renderOutputStream } from "../util/util"
 import { BaseRouterParams, createActionRouter } from "./base"
 
 const API_ACTION_TYPE = "run"
@@ -47,15 +46,15 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         status: { state: "running" },
       })
 
-      params.events = params.events || new PluginEventBroker()
+      params.events = params.events || new PluginEventBroker(garden)
 
       try {
         // Annotate + emit log output
-        params.events.on("log", ({ timestamp, data, origin, log }) => {
+        params.events.on("log", ({ timestamp, msg, origin, level }) => {
           if (!params.interactive) {
             // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
             // TODO: 0.13 make sure that logs of different tasks in the same module can be differentiated
-            log.info(renderOutputStream(data.toString(), origin))
+            params.log[level]({ msg, origin })
           }
           // stream logs to Garden Cloud
           garden.events.emit("log", {
@@ -64,8 +63,8 @@ export const runRouter = (baseParams: BaseRouterParams) =>
             actionName,
             actionType,
             moduleName,
-            origin,
-            data: data.toString(),
+            origin: origin || "",
+            data: msg,
           })
         })
 

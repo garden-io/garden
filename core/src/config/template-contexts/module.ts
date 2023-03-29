@@ -16,7 +16,9 @@ import { getModuleTypeUrl } from "../../docs/common"
 import { GardenModule } from "../../types/module"
 import { ConfigContext, schema, ErrorContext, ParentContext, TemplateContext } from "./base"
 import { ProviderConfigContext } from "./provider"
-import { GraphResults } from "../../graph/results"
+import { GraphResultFromTask, GraphResults } from "../../graph/results"
+import { DeployTask } from "../../tasks/deploy"
+import { RunTask } from "../../tasks/run"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
@@ -168,10 +170,15 @@ class RuntimeConfigContext extends ConfigContext {
 
     if (graphResults) {
       for (const result of Object.values(graphResults.getMap())) {
-        if (result?.task.type === "deploy") {
-          this.services.set(result.name, new ServiceRuntimeContext(this, result.outputs, result.version))
+        if (result?.task.type === "deploy" && result.result) {
+          const r = (<GraphResultFromTask<DeployTask>>result).result!
+          this.services.set(
+            result.name,
+            new ServiceRuntimeContext(this, result.outputs, r.executedAction.versionString())
+          )
         } else if (result?.task.type === "run") {
-          this.tasks.set(result.name, new TaskRuntimeContext(this, result.outputs, result.version))
+          const r = (<GraphResultFromTask<RunTask>>result).result!
+          this.tasks.set(result.name, new TaskRuntimeContext(this, result.outputs, r.executedAction.versionString()))
         }
       }
     }

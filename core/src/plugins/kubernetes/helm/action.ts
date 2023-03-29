@@ -19,7 +19,7 @@ import { getHelmDeployLogs } from "./logs"
 import { getHelmDeployStatus } from "./status"
 import { posix } from "path"
 import { k8sContainerStopSync } from "../container/sync"
-import { helmStartSync } from "./sync"
+import { helmGetSyncStatus, helmStartSync } from "./sync"
 
 export const helmDeployDocs = dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
@@ -41,6 +41,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
 
     startSync: helmStartSync,
     stopSync: k8sContainerStopSync,
+    getSyncStatus: helmGetSyncStatus,
 
     getPortForward: async (params) => {
       const { ctx, log, action } = params

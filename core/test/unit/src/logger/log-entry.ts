@@ -8,13 +8,13 @@
 
 import { expect } from "chai"
 
-import { getLogger, LogLevel, Logger } from "../../../../src/logger/logger"
+import { getRootLogger, LogLevel, Logger } from "../../../../src/logger/logger"
 import { freezeTime } from "../../../helpers"
 import { createActionLog, Log, LogMetadata } from "../../../../src/logger/log-entry"
-import { omit, pick } from "lodash"
+import { omit } from "lodash"
 import chalk from "chalk"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
   logger["entries"] = []
@@ -140,6 +140,7 @@ describe("CoreLog", () => {
         entries: [],
         key: testLog.key,
         metadata: undefined,
+        origin: undefined,
         fixLevel: undefined,
         section: undefined,
         showDuration: false,
@@ -167,6 +168,7 @@ describe("CoreLog", () => {
         entries: [],
         key: testLogChild.key,
         metadata: undefined,
+        origin: undefined,
         fixLevel: undefined,
         section: undefined,
         showDuration: false,
@@ -188,6 +190,7 @@ describe("CoreLog", () => {
         entries: [],
         key: testLogChildWithOverwrites.key,
         metadata: { workflowStep: { index: 2 } },
+        origin: undefined,
         fixLevel: LogLevel.warn,
         section: undefined,
         showDuration: false,
@@ -209,7 +212,7 @@ describe("CoreLog", () => {
   describe("createLogEntry", () => {
     it("should pass its config on to the log entry", () => {
       const timestamp = freezeTime().toISOString()
-      const testLog = log.createLog({ name: "test-log", metadata: { workflowStep: { index: 2 } } })
+      const testLog = log.createLog({ name: "test-log", origin: "foo", metadata: { workflowStep: { index: 2 } } })
       const entry = testLog.info("hello").getLatestEntry()
 
       expect(entry.key).to.be.a.string
@@ -222,6 +225,7 @@ describe("CoreLog", () => {
           },
         },
         msg: "hello",
+        origin: "foo",
         parentLogKey: testLog.key,
         section: undefined,
         timestamp,
@@ -252,6 +256,7 @@ describe("ActionLog", () => {
         entries: [],
         key: testLog.key,
         metadata: undefined,
+        origin: undefined,
         fixLevel: undefined,
         section: undefined,
         showDuration: true, // <--- Always true for ActionLog
@@ -280,6 +285,7 @@ describe("ActionLog", () => {
         entries: [],
         key: testLogChild.key,
         metadata: undefined,
+        origin: undefined,
         fixLevel: undefined,
         section: undefined,
         showDuration: true,
@@ -311,6 +317,7 @@ describe("ActionLog", () => {
         log,
         actionKind: "build",
         actionName: "api",
+        origin: "foo",
         metadata: { workflowStep: { index: 2 } },
       })
       const entry = testLog.info("hello").getLatestEntry()
@@ -325,6 +332,7 @@ describe("ActionLog", () => {
           },
         },
         msg: "hello",
+        origin: "foo",
         parentLogKey: testLog.key,
         section: undefined,
         timestamp,

@@ -43,7 +43,7 @@ import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store/global"
 import { EventLogEntry, TestGarden, TestGardenOpts } from "../src/util/testing"
-import { Logger, LogLevel } from "../src/logger/logger"
+import { LogLevel, RootLogger } from "../src/logger/logger"
 import { GardenCli } from "../src/cli/cli"
 import { profileAsync } from "../src/util/profiling"
 import { defaultDotIgnoreFile, makeTempDir } from "../src/util/fs"
@@ -561,14 +561,14 @@ export function getAllProcessedTaskNames(results: GraphResultMapWithoutTask) {
 }
 
 /**
- * Returns a map of all Run results including dependencies from a GraphResultMap.
+ * Returns a map of all task results including dependencies from a GraphResultMap.
  */
-export function getAllRunResults(results: GraphResultMapWithoutTask) {
+export function getAllTaskResults(results: GraphResultMapWithoutTask) {
   const all = { ...results }
 
   for (const r of Object.values(results)) {
     if (r?.dependencyResults) {
-      for (const [key, result] of Object.entries(getAllRunResults(r.dependencyResults))) {
+      for (const [key, result] of Object.entries(getAllTaskResults(r.dependencyResults))) {
         all[key] = result
       }
     }
@@ -796,10 +796,10 @@ export function getRuntimeStatusEventsWithoutTimestamps(eventLog: EventLogEntry[
 export function initTestLogger() {
   // make sure logger is initialized
   try {
-    Logger.initialize({
+    RootLogger.initialize({
       level: LogLevel.info,
       storeEntries: true,
-      terminalWriterType: "quiet",
+      displayWriterType: "quiet",
     })
   } catch (_) {}
 }

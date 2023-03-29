@@ -8,7 +8,7 @@
 
 import { expect } from "chai"
 import { StreamEvent, LogEntryEventPayload, BufferedEventStream } from "../../../../src/cloud/buffered-event-stream"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { Garden } from "../../../../src/garden"
 import { makeTestGardenA } from "../../../helpers"
 import { find, isMatch, range, repeat } from "lodash"
@@ -35,7 +35,7 @@ describe("BufferedEventStream", () => {
     const flushedEvents: StreamEvent[] = []
     const flushedLogEntries: LogEntryEventPayload[] = []
 
-    const log = getLogger().createLog()
+    const log = getRootLogger().createLog()
 
     const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
 
@@ -64,7 +64,7 @@ describe("BufferedEventStream", () => {
     const flushedEvents: StreamEvent[] = []
     const flushedLogEntries: LogEntryEventPayload[] = []
 
-    const log = getLogger().createLog()
+    const log = getRootLogger().createLog()
 
     const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
 
@@ -101,7 +101,7 @@ describe("BufferedEventStream", () => {
     const maxBatchBytes = 3 * 1024 // Set this to a low value (3 Kb) to keep the memory use of the test suite low.
     it("should pick records until the batch size reaches MAX_BATCH_BYTES", async () => {
       const recordSizeKb = 0.5
-      const log = getLogger().createLog()
+      const log = getRootLogger().createLog()
       const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes
       // Total size is ~3MB, which exceeds MAX_BATCH_BYTES
@@ -115,7 +115,7 @@ describe("BufferedEventStream", () => {
 
     it("should drop individual records whose payload size exceeds MAX_BATCH_BYTES", async () => {
       const recordSizeKb = 0.5
-      const log = getLogger().createLog()
+      const log = getRootLogger().createLog()
       const bufferedEventStream = new BufferedEventStream({ log, sessionId: "dummy-session-id" })
       bufferedEventStream["maxBatchBytes"] = maxBatchBytes
       // This record's size, exceeds MAX_BATCH_BYTES, so it should be dropped by `makeBatch`.

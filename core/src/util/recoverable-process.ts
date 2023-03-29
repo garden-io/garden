@@ -10,6 +10,7 @@ import { ChildProcess, execFile, spawn } from "child_process"
 import { Log } from "../logger/log-entry"
 import { sleep } from "./util"
 import { ConfigurationError, RuntimeError } from "../exceptions"
+import { PluginEventBroker } from "../plugin-context"
 
 export interface OsCommand {
   readonly command: string
@@ -98,6 +99,7 @@ export namespace CommandExecutors {
 export type FailureHandler = () => Promise<void>
 
 export interface RecoverableProcessConfig {
+  events: PluginEventBroker
   readonly osCommand: OsCommand
   readonly executor?: CommandExecutor
   readonly retryConfig: RetryConfig
@@ -228,6 +230,8 @@ export class RecoverableProcess {
   private readonly stdoutListener?: IOStreamListener
 
   private readonly log: Log
+  // TODO: this should likely not be this specific event handler, and we should instead emit events from this class
+  private readonly events: PluginEventBroker
 
   constructor(config: RecoverableProcessConfig) {
     this.command = config.osCommand
@@ -243,6 +247,12 @@ export class RecoverableProcess {
     this.stdoutListener = config.stdoutListener
     this.log = config.log
     this.state = "runnable"
+    this.events = config.events
+
+    // Allow aborting the process from commands etc.
+    this.events.on("abort", () => {
+      this.stopAll()
+    })
   }
 
   private static hasFailures(node: RecoverableProcess): boolean {
@@ -303,8 +313,8 @@ export class RecoverableProcess {
 
     const processSays = (stdio: StdIo, chunk: any) =>
       !!stdio
-        ? `[Process PID=${this.getCurrentPid()}] ${stdio} says "${chunk.toString()}"`
-        : `[Process PID=${this.getCurrentPid()}] says "${chunk.toString()}"`
+        ? `[Process PID=${this.getCurrentPid()}] ${stdio} says "${chunk.toString().trimEnd()}"`
+        : `[Process PID=${this.getCurrentPid()}] says "${chunk.toString().trimEnd()}"`
 
     const attemptsLeft = () =>
       !!this.retriesLeft
@@ -442,11 +452,17 @@ export class RecoverableProcess {
     RecoverableProcess.recursiveAction(this, (node) => node.resetNodeRetriesLeft())
   }
 
-  private async fail(): Promise<void> {
+  private async fail(error?: Error): Promise<void> {
     this.log.error("Unable to start local mode, see the error details in the logs.")
     this.stopAll()
     this.state = "failed"
     await this.failureHandler()
+    this.events.emit("failed", error)
+  }
+
+  private throw(error: Error) {
+    this.events.emit("failed", error)
+    throw error
   }
 
   private async tryRestartSubTree(): Promise<void> {
@@ -470,7 +486,7 @@ export class RecoverableProcess {
 
   private addDescendant(descendant: RecoverableProcess): RecoverableProcess {
     if (this.state !== "runnable") {
-      throw new RuntimeError("Cannot attach a descendant to already running, stopped or failed process.", this)
+      this.throw(new RuntimeError("Cannot attach a descendant to already running, stopped or failed process.", this))
     }
 
     descendant.parent = this
@@ -515,10 +531,10 @@ export class RecoverableProcess {
       return this
     }
     if (this.state === "failed") {
-      throw new RuntimeError("Cannot start failed process with no retries left.", this)
+      this.throw(new RuntimeError("Cannot start failed process with no retries left.", this))
     }
     if (this.state === "stopped") {
-      throw new RuntimeError("Cannot start already stopped process.", this)
+      this.throw(new RuntimeError("Cannot start already stopped process.", this))
     }
     // no need to use pRetry here, the failures will be handled by the event process listeners
     const proc = this.executor(this.command)
@@ -553,7 +569,7 @@ export class RecoverableProcess {
   public startAll(): RecoverableProcess {
     const root = this.getTreeRoot()
     if (root.hasFailures()) {
-      throw new RuntimeError("Cannot start the process tree. Some processes failed with no retries left.", this)
+      this.throw(new RuntimeError("Cannot start the process tree. Some processes failed with no retries left.", this))
     }
     RecoverableProcess.startFromNode(root)
     return root
@@ -571,6 +587,7 @@ export class RecoverableProcess {
     const root = this.getTreeRoot()
     root.unregisterSubTreeListeners()
     root.stopSubTree("stopped")
+    this.events.emit("done")
     return root
   }
 

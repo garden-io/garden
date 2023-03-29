@@ -148,7 +148,7 @@ describe("GraphSolver", () => {
     expect(result!.name).to.equal("task-a")
     expect(result!.startedAt).to.eql(now)
     expect(result!.completedAt).to.eql(now)
-    expect(result!.version).to.equal(task.getInputVersion())
+    expect(result!.inputVersion).to.equal(task.getInputVersion())
     expect(result!.result?.state).to.equal("ready")
     expect(result!.outputs["processed"]).to.equal(true)
   })

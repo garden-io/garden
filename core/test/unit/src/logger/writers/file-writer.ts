@@ -10,11 +10,11 @@ import { expect } from "chai"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 
-import { getLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
+import { getRootLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
 import { renderError } from "../../../../../src/logger/renderers"
 import { render } from "../../../../../src/logger/writers/file-writer"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
   logger["entries"] = []

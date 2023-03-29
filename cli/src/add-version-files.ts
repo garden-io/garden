@@ -8,7 +8,7 @@
 
 import { GitHandler } from "@garden-io/core/build/src/vcs/git"
 import { Garden } from "@garden-io/core/build/src/garden"
-import { Logger, LogLevel } from "@garden-io/core/build/src/logger/logger"
+import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
 import { resolve, relative } from "path"
 import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_VERSIONFILE_NAME } from "@garden-io/core/build/src/constants"
@@ -18,7 +18,7 @@ import { TreeCache } from "@garden-io/core/build/src/cache"
 require("source-map-support").install()
 
 // make sure logger is initialized
-Logger.initialize({ level: LogLevel.info, terminalWriterType: "quiet", storeEntries: false })
+RootLogger.initialize({ level: LogLevel.info, displayWriterType: "quiet", storeEntries: false })
 
 /**
  * Write .garden-version files for modules in garden-system/static.
