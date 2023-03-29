@@ -196,7 +196,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     if (!desiredVersion) {
       const versionScope = getVersionScope(opts)
-      desiredVersion = await this.getTargetVersion(currentVersion, versionScope)
+      desiredVersion = await this.findTargetVersion(currentVersion, versionScope)
     }
 
     log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
@@ -376,7 +376,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    * @throws {RuntimeError} if the desired version cannot be detected,
    * or if the current version cannot be recognized as a valid release version
    */
-  private async getTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
+  private async findTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
     if (this.isEdgeVersion(currentVersion)) {
       return GitHubApi.getLatestVersion()
     }
@@ -407,12 +407,28 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       if (!tagSemVer) {
         return false
       }
-      return this.targetVersionMatches(tagSemVer, currentSemVer, versionScope)
+
+      switch (versionScope) {
+        case "major":
+          return tagSemVer.major >= currentSemVer.major
+        case "minor":
+          return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
+        case "patch":
+          return (
+            tagSemVer.major === currentSemVer.major &&
+            tagSemVer.minor === currentSemVer.minor &&
+            tagSemVer.patch >= currentSemVer.patch
+          )
+        default: {
+          const _exhaustiveCheck: never = versionScope
+          return _exhaustiveCheck
+        }
+      }
     })
 
     if (!targetRelease) {
       throw new RuntimeError(
-        `Unable to detect the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
+        `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
         {}
       )
     }
@@ -422,24 +438,5 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
   private isEdgeVersion(version: string) {
     return version === "edge" || version.startsWith("edge-")
-  }
-
-  private targetVersionMatches(tagSemVer: semver.SemVer, currentSemVer: semver.SemVer, versionScope: VersionScope) {
-    switch (versionScope) {
-      case "major":
-        return tagSemVer.major >= currentSemVer.major
-      case "minor":
-        return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
-      case "patch":
-        return (
-          tagSemVer.major === currentSemVer.major &&
-          tagSemVer.minor === currentSemVer.minor &&
-          tagSemVer.patch >= currentSemVer.patch
-        )
-      default: {
-        const _exhaustiveCheck: never = versionScope
-        return _exhaustiveCheck
-      }
-    }
   }
 }
