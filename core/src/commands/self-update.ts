@@ -90,6 +90,51 @@ interface SelfUpdateResult {
   abortReason?: string
 }
 
+/**
+ * Utilities and wrappers on top of GitHub REST API.
+ */
+namespace GitHubApi {
+  /**
+   * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
+   *
+   * @param predicate the predicate to identify the wanted release
+   */
+  export async function findRelease(predicate: (any) => boolean) {
+    const releasesPerPage = 100
+    let page = 1
+    let fetchedReleases: any[]
+    do {
+      fetchedReleases = await got(
+        `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
+      ).json()
+      for (const release of fetchedReleases) {
+        if (predicate(release)) {
+          return release
+        }
+      }
+      page++
+    } while (fetchedReleases.length > 0)
+
+    return undefined
+  }
+
+  /**
+   * @return the latest version tag
+   * @throws {RuntimeError} if the latest version cannot be detected
+   */
+  export async function getLatestVersion(): Promise<string> {
+    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
+    const latestVersion = latestVersionRes.tag_name
+    if (!latestVersion) {
+      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
+        response: latestVersionRes,
+      })
+    }
+
+    return latestVersionRes.tag_name
+  }
+}
+
 export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   name = "self-update"
   help = "Update the Garden CLI."
@@ -147,7 +192,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     installationDirectory = resolve(installationDirectory)
 
     log.info(chalk.white("Checking for target and latest versions..."))
-    const latestVersion = await this.getLatestVersion()
+    const latestVersion = await GitHubApi.getLatestVersion()
 
     if (!desiredVersion) {
       const versionScope = getVersionScope(opts)
@@ -333,13 +378,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    */
   private async getTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
     if (this.isEdgeVersion(currentVersion)) {
-      return this.getLatestVersion()
+      return GitHubApi.getLatestVersion()
     }
 
     const currentSemVer = semver.parse(currentVersion)
     const isCurrentPrerelease = currentSemVer?.prerelease.length || 0
     if (isCurrentPrerelease) {
-      return this.getLatestVersion()
+      return GitHubApi.getLatestVersion()
     }
 
     // The current version is necessary, it's not possible to proceed without its value
@@ -351,7 +396,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       )
     }
 
-    const targetRelease = await this.findRelease((release) => {
+    const targetRelease = await GitHubApi.findRelease((release) => {
       const tagName = release.tag_name
       // skip pre-release, draft and edge tags
       if (this.isEdgeVersion(tagName) || release.prerelease || release.draft) {
@@ -375,30 +420,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     return targetRelease.tag_name
   }
 
-  /**
-   * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
-   *
-   * @param predicate the predicate to identify the wanted release
-   */
-  private async findRelease(predicate: (any) => boolean) {
-    const releasesPerPage = 100
-    let page = 1
-    let fetchedReleases: any[]
-    do {
-      fetchedReleases = await got(
-        `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
-      ).json()
-      for (const release of fetchedReleases) {
-        if (predicate(release)) {
-          return release
-        }
-      }
-      page++
-    } while (fetchedReleases.length > 0)
-
-    return undefined
-  }
-
   private isEdgeVersion(version: string) {
     return version === "edge" || version.startsWith("edge-")
   }
@@ -420,20 +441,5 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
         return _exhaustiveCheck
       }
     }
-  }
-
-  /**
-   * @return the latest version tag
-   * @throws {RuntimeError} if the latest version cannot be detected
-   */
-  private async getLatestVersion(): Promise<string> {
-    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
-    const latestVersion = latestVersionRes.tag_name
-    if (!latestVersion) {
-      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
-        response: latestVersionRes,
-      })
-    }
-    return latestVersionRes.tag_name
   }
 }
