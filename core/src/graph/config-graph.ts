@@ -43,7 +43,7 @@ export interface RenderedNode {
 
 export type GraphNodes = { [key: string]: ConfigGraphNode }
 
-interface GetActionOpts {
+export interface GetActionOpts {
   includeDisabled?: boolean
   ignoreMissing?: boolean
 }
