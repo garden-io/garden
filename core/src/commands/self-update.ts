@@ -84,8 +84,8 @@ export function isEdgeVersion(version: string) {
   return version === "edge" || version.startsWith("edge-")
 }
 
-function isPreReleaseVersion(semVersion: semver.SemVer | null) {
-  return semVersion?.prerelease.length || 0
+export function isPreReleaseVersion(semVersion: semver.SemVer | null) {
+  return (semVersion?.prerelease.length || 0) > 0
 }
 
 interface SelfUpdateResult {
