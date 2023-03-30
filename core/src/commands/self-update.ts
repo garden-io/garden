@@ -67,7 +67,7 @@ export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
 const versionScopes = ["major", "minor", "patch"] as const
-type VersionScope = typeof versionScopes[number]
+export type VersionScope = typeof versionScopes[number]
 
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
@@ -454,8 +454,13 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       }
 
       switch (versionScope) {
-        case "major":
+        case "major": {
+          // TODO Core 1.0 major release: remove this check
+          if (tagSemVer.major === currentSemVer.major) {
+            return tagSemVer.minor >= currentSemVer.minor
+          }
           return tagSemVer.major >= currentSemVer.major
+        }
         case "minor":
           return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
         case "patch":
