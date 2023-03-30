@@ -268,7 +268,7 @@ export class AnalyticsHandler {
     this.isEnabled = isEnabled
     this.garden = garden
     this.sessionId = garden.sessionId
-    this.isLoggedIn = !!garden.cloudApi
+    this.isLoggedIn = garden.isLoggedIn()
     // Events that are queued or flushed but the network response hasn't returned
     this.pendingEvents = new Map()
 

@@ -117,7 +117,7 @@ export async function renderConfigTemplate({
   // Resolve template strings for fields. Note that inputs are partially resolved, and will be fully resolved later
   // when resolving the resolving the resulting modules. Inputs that are used in module names must however be resolvable
   // immediately.
-  const loggedIn = !!garden.cloudApi
+  const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const templateContext = new EnvironmentConfigContext({ ...garden, loggedIn, enterpriseDomain })
   const resolvedWithoutInputs = resolveTemplateStrings({ ...omit(config, "inputs") }, templateContext)
@@ -161,7 +161,7 @@ export async function renderConfigTemplate({
   // Prepare modules and resolve templated names
   const context = new RenderTemplateConfigContext({
     ...garden,
-    loggedIn: !!garden.cloudApi,
+    loggedIn: garden.isLoggedIn(),
     enterpriseDomain,
     parentName: resolved.name,
     templateName: template.name,

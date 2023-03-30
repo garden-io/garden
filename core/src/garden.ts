@@ -432,7 +432,7 @@ export class Garden {
   }
 
   getProjectConfigContext() {
-    const loggedIn = !!this.cloudApi
+    const loggedIn = this.isLoggedIn()
     const enterpriseDomain = this.cloudApi?.domain
     return new ProjectConfigContext({ ...this, loggedIn, enterpriseDomain })
   }
@@ -1500,6 +1500,11 @@ export class Garden {
       sources: this.projectSources,
     }
   }
+
+  /** Returns whether the user is logged in to the Garden Cloud */
+  public isLoggedIn(): boolean {
+    return !!this.cloudApi
+  }
 }
 
 export const resolveGardenParams = profileAsync(async function _resolveGardenParams(
@@ -1560,17 +1565,19 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     log.debug(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
   }
 
-  const defaultEnvironmentName = localConfigDefaultEnv || resolveTemplateString(
-    config.defaultEnvironment,
-    new DefaultEnvironmentContext({
-      projectName,
-      projectRoot,
-      artifactsPath,
-      vcsInfo,
-      username: _username,
-      commandInfo,
-    })
-  ) as string
+  const defaultEnvironmentName =
+    localConfigDefaultEnv ||
+    (resolveTemplateString(
+      config.defaultEnvironment,
+      new DefaultEnvironmentContext({
+        projectName,
+        projectRoot,
+        artifactsPath,
+        vcsInfo,
+        username: _username,
+        commandInfo,
+      })
+    ) as string)
 
   const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
 
