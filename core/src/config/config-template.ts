@@ -59,7 +59,7 @@ export async function resolveConfigTemplate(
     modules: [],
     configs: [],
   }
-  const loggedIn = !!garden.cloudApi
+  const loggedIn = garden.isLoggedIn()
   const enterpriseDomain = garden.cloudApi?.domain
   const context = new ProjectConfigContext({ ...garden, loggedIn, enterpriseDomain })
   const resolved = resolveTemplateStrings(partial, context)

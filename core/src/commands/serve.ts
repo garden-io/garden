@@ -20,6 +20,7 @@ import { Log } from "../logger/log-entry"
 import { CommandLine } from "../cli/command-line"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import chalk from "chalk"
+import { RuntimeError } from "../exceptions"
 
 export const defaultServerPort = 9700
 
@@ -97,6 +98,16 @@ export class ServeCommand<
 
   async action({ garden, log }: CommandParams<A, O>): Promise<CommandResult<R>> {
     this.garden = garden
+    const loggedIn = this.garden?.isLoggedIn()
+    if (!loggedIn) {
+      log.warn(
+        chalk.yellow(
+          "The local dashboard has been removed. To use the new Garden Cloud Dashboard, please log in first."
+        )
+      )
+      throw new RuntimeError("You are not logged in. Please run `garden login` before running `garden serve`.", {})
+    }
+
     this.autocompleter = new Autocompleter({ log, commands: [], configDump: undefined })
 
     return new Promise((resolve, reject) => {

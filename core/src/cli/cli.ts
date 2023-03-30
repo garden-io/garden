@@ -364,7 +364,7 @@ ${renderCommands(commands)}
 
           nsLog.info({
             section: "garden",
-            msg: `Running in Running in environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`,
+            msg: `Running in environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`,
           })
 
           if (!cloudApi && garden.projectId) {

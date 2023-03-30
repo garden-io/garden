@@ -402,7 +402,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       artifactsPath: garden.artifactsPath,
       vcsInfo: garden.vcsInfo,
       username: garden.username,
-      loggedIn: !!garden.cloudApi,
+      loggedIn: garden.isLoggedIn(),
       enterpriseDomain: garden.cloudApi?.domain,
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
