@@ -28,9 +28,9 @@ const basicConfig: KubernetesConfig = {
   name: "kubernetes",
   buildMode: "local-docker",
   context: "my-cluster",
-  defaultHostname: "my.domain.com",
+  defaultHostname: "hostname.invalid",
   deploymentRegistry: {
-    hostname: "foo.garden",
+    hostname: "registry.invalid",
     port: 5000,
     namespace: "boo",
     insecure: true,

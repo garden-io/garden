@@ -41,9 +41,9 @@ type PartialConfig = PartialBy<KubernetesConfig, "context">
 const basicConfig: PartialConfig = {
   name: "local-kubernetes",
   buildMode: "local-docker",
-  defaultHostname: "my.domain.com",
+  defaultHostname: "hostname.invalid",
   deploymentRegistry: {
-    hostname: "foo.garden",
+    hostname: "registry.invalid",
     port: 5000,
     namespace: "boo",
     insecure: true,
@@ -422,7 +422,7 @@ describe("createIngressResources", () => {
       expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.be.undefined
       expect(ingress.spec.rules).to.eql([
         {
-          host: "my.domain.com",
+          host: "hostname.invalid",
           http: {
             paths: [
               {
@@ -445,7 +445,7 @@ describe("createIngressResources", () => {
       expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.equal("nginx")
       expect(ingress.spec.rules).to.eql([
         {
-          host: "my.domain.com",
+          host: "hostname.invalid",
           http: {
             paths: [
               {
@@ -498,7 +498,7 @@ describe("createIngressResources", () => {
     expect(ingresses.length).to.equal(2)
 
     expect(ingresses[0].metadata.name).to.equal(`${action.name}-0`)
-    expect(ingresses[0].spec?.rules?.[0].host).to.equal("my.domain.com")
+    expect(ingresses[0].spec?.rules?.[0].host).to.equal("hostname.invalid")
     expect(ingresses[0].spec?.rules?.[0].http?.paths[0].path).to.equal("/")
 
     expect(ingresses[1].metadata.name).to.equal(`${action.name}-1`)
@@ -525,7 +525,7 @@ describe("createIngressResources", () => {
     expect(ingress.spec.tls?.[0].secretName).to.equal("somesecret")
 
     if (ingress.apiVersion === "networking.k8s.io/v1") {
-      expect(ingress.spec.tls?.[0].hosts).to.eql(["my.domain.com"])
+      expect(ingress.spec.tls?.[0].hosts).to.eql(["hostname.invalid"])
     }
   })
 
