@@ -20,6 +20,7 @@ import {
   SelfUpdateArgs,
   SelfUpdateCommand,
   SelfUpdateOpts,
+  VersionScope,
 } from "../../../../src/commands/self-update"
 import { DummyGarden } from "../../../../src/garden"
 import { makeTempDir, TempDirectory } from "../../../../src/util/fs"
@@ -332,5 +333,95 @@ describe("SelfUpdateCommand", () => {
     const extracted = await readdir(tempDir.path)
     expect(extracted).to.include("garden")
     expect(extracted).to.include("static")
+  })
+
+  describe("getTargetVersionPredicate", () => {
+    function expectAccepted(
+      release: { tag_name: string; draft: boolean; prerelease: boolean },
+      currentSemVer: semver.SemVer,
+      versionScope: VersionScope
+    ) {
+      const predicate = command.getTargetVersionPredicate(currentSemVer, versionScope)
+      expect(predicate(release)).to.be.true
+    }
+
+    function expectSkipped(
+      release: { tag_name: string; draft: boolean; prerelease: boolean },
+      currentSemVer: semver.SemVer,
+      versionScope: VersionScope
+    ) {
+      const predicate = command.getTargetVersionPredicate(currentSemVer, versionScope)
+      expect(predicate(release)).to.be.false
+    }
+
+    context("stable patch versions", () => {
+      it("should accept a newer stable patch version", () => {
+        expectAccepted({ tag_name: "0.12.51", draft: false, prerelease: false }, semver.parse("0.12.50")!, "patch")
+      })
+
+      it("should accept the same stable patch version", () => {
+        expectAccepted({ tag_name: "0.12.50", draft: false, prerelease: false }, semver.parse("0.12.50")!, "patch")
+      })
+
+      it("should skip an older stable patch version", () => {
+        expectSkipped({ tag_name: "0.12.49", draft: false, prerelease: false }, semver.parse("0.12.50")!, "patch")
+      })
+    })
+
+    // TODO: change this to test minor versions in 1.0 release
+    context("stable major versions", () => {
+      it("should accept a newer major patch version", () => {
+        expectAccepted({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.12.50")!, "major")
+      })
+
+      it("should accept the same stable major version", () => {
+        expectAccepted({ tag_name: "0.13.0", draft: false, prerelease: false }, semver.parse("0.13.0")!, "major")
+      })
+
+      it("should skip an older stable major version", () => {
+        expectSkipped({ tag_name: "0.12.50", draft: false, prerelease: false }, semver.parse("0.13.0")!, "major")
+      })
+    })
+
+    // VersionScope doesn't matter in this context
+    context("skipped versions", () => {
+      context("skip any pre-release", () => {
+        it("should skip an older pre-release version", () => {
+          expectSkipped({ tag_name: "0.12.50-0", draft: false, prerelease: true }, semver.parse("0.12.50-1")!, "patch")
+        })
+
+        it("should skip the same pre-release version", () => {
+          expectSkipped({ tag_name: "0.12.50-0", draft: false, prerelease: true }, semver.parse("0.12.50-0")!, "patch")
+        })
+
+        it("should skip a newer pre-release version", () => {
+          expectSkipped({ tag_name: "0.12.50-1", draft: false, prerelease: true }, semver.parse("0.12.50-0")!, "patch")
+        })
+      })
+    })
+
+    context("skip any draft", () => {
+      it("should skip an older pre-release version", () => {
+        expectSkipped({ tag_name: "test", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
+      })
+
+      it("should skip the same pre-release version", () => {
+        expectSkipped({ tag_name: "test", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
+      })
+
+      it("should skip a newer pre-release version", () => {
+        expectSkipped({ tag_name: "test", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
+      })
+    })
+
+    context("skip any edge", () => {
+      it("should skip an edge version", () => {
+        expectSkipped({ tag_name: "edge", draft: false, prerelease: false }, semver.parse("0.13.0")!, "patch")
+      })
+
+      it("should skip edge-* versions", () => {
+        expectSkipped({ tag_name: "edge-bonsai", draft: false, prerelease: false }, semver.parse("0.13.0")!, "patch")
+      })
+    })
   })
 })
