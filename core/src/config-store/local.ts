@@ -32,7 +32,7 @@ const localSchema = z.object({
   analytics: analyticsSchema,
 
   devCommandHistory: z.array(z.string()).default([]),
-  defaultEnv: z.string().describe("An environment override, set with the `set env` command."),
+  defaultEnv: z.string().default("").describe("An environment override, set with the `set env` command."),
 
   linkedModuleSources: z.record(linkedSourceSchema),
   linkedProjectSources: z.record(linkedSourceSchema),
