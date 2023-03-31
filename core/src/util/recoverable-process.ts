@@ -18,7 +18,16 @@ export interface OsCommand {
   readonly description?: string
 }
 
-export const renderOsCommand = (cmd: OsCommand): string => JSON.stringify(cmd)
+export function renderOsCommand(cmd: OsCommand): string {
+  let commandStr = `${cmd.command}`
+  if (cmd.args?.length) {
+    commandStr += ` ${cmd.args.join(" ")}`
+  }
+  if (cmd.cwd) {
+    commandStr += ` (cwd: ${cmd.cwd})`
+  }
+  return commandStr
+}
 
 export interface ProcessMessage {
   readonly pid: number
