@@ -499,7 +499,7 @@ const attemptsLeft = ({ maxRetries, minTimeoutMs, retriesLeft }: RetryInfo): str
 }
 
 const composeMessage = (processMessage: ProcessMessage, customMessage: string): string => {
-  return `[PID=${processMessage.pid}] ${customMessage}`
+  return `[PID=${processMessage.pid}] ${customMessage}. ${processMessage.message}`
 }
 
 const composeErrorMessage = (customMessage: string, processMessage: ProcessMessage): string => {
@@ -587,12 +587,7 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
         } else {
           log.error({
             section,
-            msg: chalk.gray(
-              composeErrorMessage(
-                `Error running local app, check the local app logs and the Garden logs in ${getLogsPath(ctx)}`,
-                msg
-              )
-            ),
+            msg: chalk.gray(composeErrorMessage(`Cannot start the local app`, msg)),
           })
         }
         localAppFailureCounter.addFailure(() => {
@@ -600,9 +595,10 @@ function getLocalAppProcess(configParams: StartLocalModeParams): RecoverableProc
             symbol: "warning",
             section,
             msg: chalk.yellow(
-              `Local app hasn't started after ${localAppFailureCounter.getFailures()} attempts. Please check the logs in ${getLogsPath(
+              dedent`${msg.processDescription} hasn't started after ${localAppFailureCounter.getFailures()} attempts.
+              Please make sure your configuration is correct, check the logs in ${getLogsPath(
                 ctx
-              )} and consider restarting Garden.`
+              )}, and consider restarting Garden.`
             ),
           })
         })
@@ -683,10 +679,12 @@ async function getKubectlPortForwardProcess(
             symbol: "warning",
             section,
             msg: chalk.yellow(
-              `${
+              dedent`${
                 msg.processDescription
               } hasn't started after ${kubectlPortForwardFailureCounter.getFailures()} attempts.
-              Please check the logs in ${getLogsPath(ctx)} and consider restarting Garden.`
+              Please make sure your configuration is correct, check the logs in ${getLogsPath(
+                ctx
+              )}, and consider restarting Garden.`
             ),
           })
         })
@@ -811,10 +809,12 @@ async function getReversePortForwardProcesses(
                 symbol: "warning",
                 section,
                 msg: chalk.yellow(
-                  `${
+                  dedent`${
                     msg.processDescription
                   } hasn't started after ${reversePortForwardFailureCounter.getFailures()} attempts.
-                  Please check the logs in ${getLogsPath(ctx)} and consider restarting Garden.`
+                  Please make sure your configuration is correct, check the logs in ${getLogsPath(
+                    ctx
+                  )}, and consider restarting Garden.`
                 ),
               })
             })
