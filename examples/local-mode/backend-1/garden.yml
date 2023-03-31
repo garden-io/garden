@@ -11,6 +11,7 @@ description: Backend 1 service container
 type: container
 
 build: backend-1
+dependencies: "${var.localMode1 ? ['run.build-backend-local-1'] : []}"
 
 # You can specify variables here at the module level
 variables:
