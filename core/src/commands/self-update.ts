@@ -139,7 +139,7 @@ namespace GitHubReleaseApi {
       })
     }
 
-    return latestVersionRes.tag_name
+    return latestVersion
   }
 
   export async function getLatestVersions(numOfStableVersions: number) {
