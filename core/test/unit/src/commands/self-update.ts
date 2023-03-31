@@ -402,15 +402,15 @@ describe("SelfUpdateCommand", () => {
 
     context("skip any draft", () => {
       it("should skip an older pre-release version", () => {
-        expectSkipped({ tag_name: "test", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
+        expectSkipped({ tag_name: "0.12.53-0", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
       })
 
       it("should skip the same pre-release version", () => {
-        expectSkipped({ tag_name: "test", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
+        expectSkipped({ tag_name: "0.13", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
       })
 
       it("should skip a newer pre-release version", () => {
-        expectSkipped({ tag_name: "test", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
+        expectSkipped({ tag_name: "0.13.1-0", draft: true, prerelease: false }, semver.parse("0.13.0")!, "patch")
       })
     })
 
