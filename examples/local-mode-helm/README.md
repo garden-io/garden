@@ -7,17 +7,9 @@ This project is based on the [local-mode-k8s](../local-mode-k8s). The only diffe
 service defined as a `helm` deploy action. The backend service can be started in the _local mode_.
 
 The local backend service implementation can be found in [backend-local](./backend-local).
-
-To build the local backend service, locate to its directory and run the following commands:
-
-```shell
-# optional command to re-generate `main.mod` file
-go mod init main
-# build binary
-go build -o main
-# make the binary executable
-chmod +x main
-```
+The `backend-local` application has its own `garden.yml` config that defines a single `Run` action to compile the
+application binary. The `Deploy` action defined in the [backend](./backend/garden.yml) depends on the `Run` action of
+the `backend-local` when deployment is running in local mode.
 
 To start the backend in local mode, try the following commands:
 

@@ -7,3 +7,5 @@ environments:
 providers:
   - name: local-kubernetes
     defaultHostname: ${var.baseHostname}
+variables:
+  localMode: ${command.params contains 'local' && (isEmpty(command.params.local) || command.params.local contains 'backend')}
