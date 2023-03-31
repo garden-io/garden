@@ -25,12 +25,9 @@ import stream from "stream"
 
 const selfUpdateArgs = {
   version: new StringParameter({
-    help: `Specify which version to switch/update to.`,
+    help: `Specify which version to switch/update to. It can be either a stable release, a pre-release, or an edge release version.`,
   }),
 }
-
-const versionScopes = ["major", "minor", "patch"] as const
-type VersionScope = typeof versionScopes[number]
 
 const selfUpdateOpts = {
   "force": new BooleanParameter({
@@ -69,6 +66,9 @@ const selfUpdateOpts = {
 export type SelfUpdateArgs = typeof selfUpdateArgs
 export type SelfUpdateOpts = typeof selfUpdateOpts
 
+const versionScopes = ["major", "minor", "patch"] as const
+export type VersionScope = typeof versionScopes[number]
+
 function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>): VersionScope {
   if (opts["major"]) {
     return "major"
@@ -80,14 +80,79 @@ function getVersionScope(opts: ParameterValues<GlobalOptions & SelfUpdateOpts>):
   return "patch"
 }
 
+export function isEdgeVersion(version: string): boolean {
+  return version === "edge" || version.startsWith("edge-")
+}
+
+export function isPreReleaseVersion(semVersion: semver.SemVer | null): boolean {
+  return (semVersion?.prerelease.length || 0) > 0
+}
+
 interface SelfUpdateResult {
   currentVersion: string
   latestVersion: string
-  targetVersion: string
+  desiredVersion: string
   installationDirectory: string
   installedBuild?: string
   installedVersion?: string
   abortReason?: string
+}
+
+/**
+ * Utilities and wrappers on top of GitHub REST API.
+ */
+namespace GitHubReleaseApi {
+  /**
+   * Traverse the Garden releases on GitHub and get the first one matching the given predicate.
+   *
+   * @param predicate the predicate to identify the wanted release
+   */
+  export async function findRelease(predicate: (any: any) => boolean) {
+    const releasesPerPage = 100
+    let page = 1
+    let fetchedReleases: any[]
+    do {
+      fetchedReleases = await got(
+        `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
+      ).json()
+      for (const release of fetchedReleases) {
+        if (predicate(release)) {
+          return release
+        }
+      }
+      page++
+    } while (fetchedReleases.length > 0)
+
+    return undefined
+  }
+
+  /**
+   * @return the latest version tag
+   * @throws {RuntimeError} if the latest version cannot be detected
+   */
+  export async function getLatestVersion(): Promise<string> {
+    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
+    const latestVersion = latestVersionRes.tag_name
+    if (!latestVersion) {
+      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
+        response: latestVersionRes,
+      })
+    }
+
+    return latestVersion
+  }
+
+  export async function getLatestVersions(numOfStableVersions: number) {
+    const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
+
+    return [
+      chalk.cyan("edge"),
+      ...res
+        .filter((r: any) => !r.prerelease && !r.draft)
+        .map((r: any) => chalk.cyan(r.name))
+        .slice(0, numOfStableVersions),
+    ]
+  }
 }
 
 export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
@@ -108,7 +173,8 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
        garden self-update          # update to the latest Garden CLI version
        garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
-       garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
+       garden self-update 0.12.24  # switch to the 0.12.24 stable version of the CLI
+       garden self-update 0.13.0-0 # switch to the 0.13.0-0 pre-release version of the CLI
        garden self-update --major  # install the latest major version (if it exists) greater than the current one
        garden self-update --force  # re-install even if the same version is detected
        garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
@@ -117,6 +183,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
   arguments = selfUpdateArgs
   options = selfUpdateOpts
 
+  _basePreReleasesUrl = "https://github.com/garden-io/garden/releases/download/"
   // Overridden during testing
   _baseReleasesUrl = "https://download.garden.io/core/"
 
@@ -147,18 +214,16 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     installationDirectory = resolve(installationDirectory)
 
     log.info(chalk.white("Checking for target and latest versions..."))
-
-    const versionScope: VersionScope = getVersionScope(opts)
-    const targetVersion = await this.getTargetVersion(currentVersion, versionScope)
-    const latestVersion = await this.getLatestVersion()
+    const latestVersion = await GitHubReleaseApi.getLatestVersion()
 
     if (!desiredVersion) {
-      desiredVersion = targetVersion
+      const versionScope = getVersionScope(opts)
+      desiredVersion = await this.findTargetVersion(currentVersion, versionScope)
     }
 
     log.info(chalk.white("Installation directory: ") + chalk.cyan(installationDirectory))
     log.info(chalk.white("Current Garden version: ") + chalk.cyan(currentVersion))
-    log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(targetVersion))
+    log.info(chalk.white("Target Garden version to be installed: ") + chalk.cyan(desiredVersion))
     log.info(chalk.white("Latest release version: ") + chalk.cyan(latestVersion))
 
     if (!opts.force && !opts["install-dir"] && desiredVersion === currentVersion) {
@@ -173,7 +238,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           currentVersion,
           installationDirectory,
           latestVersion,
-          targetVersion,
+          desiredVersion,
           abortReason: "Version already installed",
         },
       }
@@ -183,7 +248,6 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
     // -> Make sure it's an actual executable, not a script (e.g. from a local dev build)
     const expectedExecutableName = process.platform === "win32" ? "garden.exe" : "garden"
     if (!opts["install-dir"] && basename(process.execPath) !== expectedExecutableName) {
-      log.error("")
       log.error(
         chalk.redBright(
           `The executable path ${process.execPath} doesn't indicate this is a normal binary installation for your platform. Perhaps you're running a local development build?`
@@ -194,7 +258,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           currentVersion,
           installationDirectory,
           latestVersion,
-          targetVersion,
+          desiredVersion,
           abortReason: "Not running from binary installation",
         },
       }
@@ -204,15 +268,10 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
     try {
       // Fetch the desired version and extract it to a temp directory
+      const { build, filename, extension, url } = this.getReleaseArtifactDetails(platform, desiredVersion)
       if (!platform) {
         platform = getPlatform() === "darwin" ? "macos" : getPlatform()
       }
-      const architecture = "amd64" // getArchitecture()
-      const extension = platform === "windows" ? "zip" : "tar.gz"
-      const build = `${platform}-${architecture}`
-
-      const filename = `garden-${desiredVersion}-${build}.${extension}`
-      const url = `${this._baseReleasesUrl}${desiredVersion}/${filename}`
 
       log.info("")
       log.info(chalk.white(`Downloading version ${chalk.cyan(desiredVersion)} from ${chalk.underline(url)}...`))
@@ -230,15 +289,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
 
           // Print the latest available stable versions
           try {
-            const res: any = await got("https://api.github.com/repos/garden-io/garden/releases?per_page=100").json()
-
-            const latestVersions = [
-              chalk.cyan("edge"),
-              ...res
-                .filter((r: any) => !r.prerelease && !r.draft)
-                .map((r: any) => chalk.cyan(r.name))
-                .slice(0, 10),
-            ]
+            const latestVersions = await GitHubReleaseApi.getLatestVersions(10)
 
             log.info(
               chalk.white.bold(`Here are the latest available versions: `) + latestVersions.join(chalk.white(", "))
@@ -249,7 +300,7 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
             result: {
               currentVersion,
               latestVersion,
-              targetVersion,
+              desiredVersion,
               installationDirectory,
               abortReason: "Version not found",
             },
@@ -311,13 +362,37 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
           installedVersion: desiredVersion,
           installedBuild: build,
           latestVersion,
-          targetVersion,
+          desiredVersion,
           installationDirectory,
         },
       }
     } finally {
       await tempDir.cleanup()
     }
+  }
+
+  private getReleaseArtifactDetails(platform: string, desiredVersion: string) {
+    if (!platform) {
+      platform = getPlatform() === "darwin" ? "macos" : getPlatform()
+    }
+    const architecture = "amd64" // getArchitecture()
+    const extension = platform === "windows" ? "zip" : "tar.gz"
+    const build = `${platform}-${architecture}`
+
+    const desiredSemVer = semver.parse(desiredVersion)
+
+    let filename: string
+    let url: string
+    if (desiredSemVer && isPreReleaseVersion(desiredSemVer)) {
+      const desiredVersionWithoutPreRelease = `${desiredSemVer.major}.${desiredSemVer.minor}.${desiredSemVer.patch}`
+      filename = `garden-${desiredVersionWithoutPreRelease}-${build}.${extension}`
+      url = `${this._basePreReleasesUrl}${desiredVersion}/${filename}`
+    } else {
+      filename = `garden-${desiredVersion}-${build}.${extension}`
+      url = `${this._baseReleasesUrl}${desiredVersion}/${filename}`
+    }
+
+    return { build, filename, extension, url }
   }
 
   /**
@@ -333,15 +408,14 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
    * @throws {RuntimeError} if the desired version cannot be detected,
    * or if the current version cannot be recognized as a valid release version
    */
-  private async getTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
-    if (this.isEdgeVersion(currentVersion)) {
-      return this.getLatestVersion()
+  private async findTargetVersion(currentVersion: string, versionScope: VersionScope): Promise<string> {
+    if (isEdgeVersion(currentVersion)) {
+      return GitHubReleaseApi.getLatestVersion()
     }
 
     const currentSemVer = semver.parse(currentVersion)
-    const isCurrentPrerelease = currentSemVer?.prerelease.length || 0
-    if (isCurrentPrerelease) {
-      return this.getLatestVersion()
+    if (isPreReleaseVersion(currentSemVer)) {
+      return GitHubReleaseApi.getLatestVersion()
     }
 
     // The current version is necessary, it's not possible to proceed without its value
@@ -353,72 +427,53 @@ export class SelfUpdateCommand extends Command<SelfUpdateArgs, SelfUpdateOpts> {
       )
     }
 
-    const releasesPerPage = 100
-    let page = 1
-    let releaseList: any[]
-    do {
-      releaseList = await got(
-        `https://api.github.com/repos/garden-io/garden/releases?page=${page}&per_page=${releasesPerPage}`
-      ).json()
-      for (const release of releaseList) {
-        const tagName = release.tag_name
-        // skip pre-release, draft and edge tags
-        if (this.isEdgeVersion(tagName) || release.prerelease || release.draft) {
-          continue
+    const targetVersionPredicate = this.getTargetVersionPredicate(currentSemVer, versionScope)
+    const targetRelease = await GitHubReleaseApi.findRelease(targetVersionPredicate)
+
+    if (!targetRelease) {
+      throw new RuntimeError(
+        `Unable to find the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
+        {}
+      )
+    }
+
+    return targetRelease.tag_name
+  }
+
+  getTargetVersionPredicate(currentSemVer: semver.SemVer, versionScope: VersionScope) {
+    return function _latestVersionInScope(release: any) {
+      const tagName = release.tag_name
+      // skip pre-release, draft and edge tags
+      if (isEdgeVersion(tagName) || release.prerelease || release.draft) {
+        return false
+      }
+      const tagSemVer = semver.parse(tagName)
+      // skip any kind of unexpected tag versions, only stable releases should be processed here
+      if (!tagSemVer) {
+        return false
+      }
+
+      switch (versionScope) {
+        case "major": {
+          // TODO Core 1.0 major release: remove this check
+          if (tagSemVer.major === currentSemVer.major) {
+            return tagSemVer.minor >= currentSemVer.minor
+          }
+          return tagSemVer.major >= currentSemVer.major
         }
-        const tagSemVer = semver.parse(tagName)
-        // skip any kind of unexpected tag versions, only stable releases should be processed here
-        if (!tagSemVer) {
-          continue
-        }
-        if (this.targetVersionMatches(tagSemVer, currentSemVer, versionScope)) {
-          return tagName
+        case "minor":
+          return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
+        case "patch":
+          return (
+            tagSemVer.major === currentSemVer.major &&
+            tagSemVer.minor === currentSemVer.minor &&
+            tagSemVer.patch >= currentSemVer.patch
+          )
+        default: {
+          const _exhaustiveCheck: never = versionScope
+          return _exhaustiveCheck
         }
       }
-      page++
-    } while (releaseList.length > 0)
-
-    throw new RuntimeError(
-      `Unable to detect the latest Garden version greater or equal than ${currentVersion} for the scope: ${versionScope}`,
-      {}
-    )
-  }
-
-  private isEdgeVersion(version: string) {
-    return version === "edge" || version.startsWith("edge-")
-  }
-
-  private targetVersionMatches(tagSemVer: semver.SemVer, currentSemVer: semver.SemVer, versionScope: VersionScope) {
-    switch (versionScope) {
-      case "major":
-        return tagSemVer.major >= currentSemVer.major
-      case "minor":
-        return tagSemVer.major === currentSemVer.major && tagSemVer.minor >= currentSemVer.minor
-      case "patch":
-        return (
-          tagSemVer.major === currentSemVer.major &&
-          tagSemVer.minor === currentSemVer.minor &&
-          tagSemVer.patch >= currentSemVer.patch
-        )
-      default: {
-        const _exhaustiveCheck: never = versionScope
-        return _exhaustiveCheck
-      }
     }
-  }
-
-  /**
-   * @return the latest version tag
-   * @throws {RuntimeError} if the latest version cannot be detected
-   */
-  private async getLatestVersion(): Promise<string> {
-    const latestVersionRes: any = await got("https://api.github.com/repos/garden-io/garden/releases/latest").json()
-    const latestVersion = latestVersionRes.tag_name
-    if (!latestVersion) {
-      throw new RuntimeError(`Unable to detect the latest Garden version: ${latestVersionRes}`, {
-        response: latestVersionRes,
-      })
-    }
-    return latestVersionRes.tag_name
   }
 }

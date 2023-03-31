@@ -3431,7 +3431,8 @@ Examples:
 
    garden self-update          # update to the latest Garden CLI version
    garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
-   garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
+   garden self-update 0.12.24  # switch to the 0.12.24 stable version of the CLI
+   garden self-update 0.13.0-0 # switch to the 0.13.0-0 pre-release version of the CLI
    garden self-update --major  # install the latest major version (if it exists) greater than the current one
    garden self-update --force  # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
@@ -3444,7 +3445,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `version` | No | Specify which version to switch/update to.
+  | `version` | No | Specify which version to switch/update to. It can be either a stable release, a pre-release, or an edge release version.
 
 #### Options
 
