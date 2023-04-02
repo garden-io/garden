@@ -20,6 +20,7 @@ export interface AutocompleteSuggestion {
   command: {
     name: string[]
     cliOnly: boolean
+    stringArguments: string[]
   }
   priority: number
 }
@@ -156,6 +157,7 @@ export class Autocompleter {
         command: {
           name: match.matchedPath,
           cliOnly: match.command.cliOnly,
+          stringArguments: [],
         },
         priority: 1,
       })
@@ -201,7 +203,7 @@ export class Autocompleter {
     return [...this.getArgumentSuggestions(params), ...this.getOptionFlagSuggestions(params)]
   }
 
-  private getArgumentSuggestions(params: GetCommandArgParams) {
+  private getArgumentSuggestions(params: GetCommandArgParams): AutocompleteSuggestion[] {
     const { command, input, rest, configDump, matchedPath } = params
 
     if (!configDump) {
@@ -233,27 +235,28 @@ export class Autocompleter {
     return argSuggestions
       .filter((s) => prefix === s || (s.startsWith(prefix) && !rest.includes(s)))
       .map((s) => {
-        const split = [...matchedPath, ...rest]
+        const stringArguments = [...rest]
 
         if (rest.length === 0) {
-          split.push(s)
+          stringArguments.push(s)
         } else {
-          split[split.length - 1] = s
+          stringArguments[stringArguments.length - 1] = s
         }
 
-        return <AutocompleteSuggestion>{
+        return {
           type: "argument",
-          line: split.join(" "),
+          line: [...matchedPath, ...stringArguments].join(" "),
           command: {
             name: command.getPath(),
             cliOnly: command.cliOnly,
+            stringArguments,
           },
           priority: 1000, // Rank these above option flags
         }
       })
   }
 
-  private getOptionFlagSuggestions(params: GetCommandArgParams) {
+  private getOptionFlagSuggestions(params: GetCommandArgParams): AutocompleteSuggestion[] {
     const { command, rest, matchedPath, ignoreGlobalFlags } = params
 
     const lastArg = rest[rest.length - 1]
@@ -275,21 +278,22 @@ export class Autocompleter {
     }
 
     return keys.map((k) => {
-      const split = [...matchedPath, ...rest]
+      const stringArguments = [...rest]
       const s = "--" + k
 
       if (rest.length === 0) {
-        split.push(s)
+        stringArguments.push(s)
       } else {
-        split[split.length - 1] = s
+        stringArguments[stringArguments.length - 1] = s
       }
 
-      return <AutocompleteSuggestion>{
+      return {
         type: "option",
-        line: split.join(" "),
+        line: [...matchedPath, ...stringArguments].join(" "),
         command: {
           name: command.getPath(),
           cliOnly: command.cliOnly,
+          stringArguments,
         },
         // prefer command-specific flags
         priority: globalOptions[k] ? 1 : 2,

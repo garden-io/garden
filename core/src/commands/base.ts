@@ -151,10 +151,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     }
   }
 
-  getKey() {
-    return !!this.parent ? `${this.parent.getKey()}.${this.name}` : this.name
-  }
-
   getFullName(): string {
     return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
   }
