@@ -480,7 +480,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
+  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
 
 #### Options
 
