@@ -25,7 +25,8 @@ export async function runCli({
   args,
   cli,
   exitOnError = true,
-}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean } = {}) {
+  initLogger = true,
+}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean; initLogger?: boolean } = {}) {
   let code = 0
   let result: RunOutput | undefined = undefined
 
@@ -35,7 +36,7 @@ export async function runCli({
 
   try {
     if (!cli) {
-      cli = new GardenCli({ plugins: getBundledPlugins(), initLogger: true })
+      cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
     }
     // Note: We slice off the binary/script name from argv.
     result = await cli.run({ args, exitOnError })

@@ -800,6 +800,7 @@ export function initTestLogger() {
       level: LogLevel.info,
       storeEntries: true,
       displayWriterType: "quiet",
+      force: true,
     })
   } catch (_) {}
 }
