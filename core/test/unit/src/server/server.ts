@@ -18,7 +18,6 @@ import WebSocket = require("ws")
 import stripAnsi from "strip-ansi"
 import { authTokenHeader } from "../../../../src/cloud/api"
 import { ServeCommand } from "../../../../src/commands/serve"
-import websockify from "koa-websocket"
 import { gardenEnv } from "../../../../src/constants"
 import { deepOmitUndefined } from "../../../../src/util/objects"
 import { uuidv4 } from "../../../../src/util/random"
@@ -28,7 +27,6 @@ describe("GardenServer", () => {
   let gardenServer: GardenServer
   let server: Server
   let port: number
-  let app: websockify.App
 
   const hostname = "127.0.0.1"
 
@@ -41,7 +39,6 @@ describe("GardenServer", () => {
     gardenServer = await startServer({ log: garden.log, command, port })
     await gardenServer.start()
     server = gardenServer["server"]
-    app = gardenServer["app"]
   })
 
   after(async () => {
@@ -112,7 +109,7 @@ describe("GardenServer", () => {
       await request(server)
         .post("/api")
         .set({ [authTokenHeader]: gardenServer.authKey })
-        .send({ command: "foo" })
+        .send({ command: "foo", stringArguments: [] })
         .expect(404)
     })
 
@@ -121,7 +118,7 @@ describe("GardenServer", () => {
       await request(server)
         .post("/api")
         .set({ [authTokenHeader]: gardenServer.authKey })
-        .send({ command: "get.config" })
+        .send({ command: "get.config", stringArguments: [] })
         .expect(503)
     })
 
@@ -129,7 +126,7 @@ describe("GardenServer", () => {
       const res = await request(server)
         .post("/api")
         .set({ [authTokenHeader]: gardenServer.authKey })
-        .send({ command: "get.config" })
+        .send({ command: "get.config", stringArguments: [] })
         .expect(200)
       const config = await garden.dumpConfig({ log: garden.log })
       expect(res.body.result).to.eql(deepOmitUndefined(config))
@@ -224,7 +221,7 @@ describe("GardenServer", () => {
       ws.close()
     })
 
-    const onMessageAfterReady = (cb: (req: object) => void) => {
+    const onMessageAfterReady = (cb: (req: any) => void) => {
       ws.on("message", (msg) => {
         const parsed = JSON.parse(msg.toString())
         // This message is always sent at the beginning and we skip it here
@@ -402,12 +399,12 @@ describe("GardenServer", () => {
       const id = uuidv4()
       onMessageAfterReady((req) => {
         // Ignore other events such as taskPending and taskProcessing and wait for the command result
-        if ((<any>req).type !== "commandResult") {
+        if (req.type !== "commandResult") {
           return
         }
-        const taskResult = taskResultOutputs((<any>req).result)
+        const taskResult = taskResultOutputs(req.result)
         const result = {
-          ...(<any>req),
+          ...req,
           result: taskResult,
         }
         expect(result.requestId).to.equal(id)
@@ -424,6 +421,38 @@ describe("GardenServer", () => {
             names: ["module-a"],
             force: true,
           },
+        })
+      )
+    })
+
+    it("parses string arguments if specified", (done) => {
+      const id = uuidv4()
+      onMessageAfterReady((msg) => {
+        if (msg.type === "commandStart") {
+          expect(msg.args).to.eql({ names: ["module-a"] })
+          expect(msg.opts.force).to.be.true
+        }
+
+        // Ignore other events such as taskPending and taskProcessing and wait for the command result
+        if (msg.type !== "commandResult") {
+          return
+        }
+        const taskResult = taskResultOutputs(msg.result)
+        const result = {
+          ...msg,
+          result: taskResult,
+        }
+        expect(result.requestId).to.equal(id)
+        expect(result.result["build.module-a"]).to.exist
+        expect(result.result["build.module-a"].state).to.equal("ready")
+        done()
+      })
+      ws.send(
+        JSON.stringify({
+          type: "command",
+          id,
+          command: "build",
+          stringArguments: ["module-a", "--force"],
         })
       )
     })

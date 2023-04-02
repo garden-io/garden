@@ -478,7 +478,7 @@ export class GardenServer extends EventEmitter {
           ctx,
           this.debugLog,
           this.commands,
-          omit(request, ["id", "type"])
+          <any>omit(request, ["id", "type"])
         )
 
         const prepareParams = {
