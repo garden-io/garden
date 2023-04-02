@@ -271,7 +271,7 @@ export class ChoicesParameter extends Parameter<string> {
 
     this.choices = args.choices
 
-    if (args.defaultValue !== undefined) {
+    if (args.defaultValue !== undefined && !this.choices.includes(args.defaultValue)) {
       this.choices.push(args.defaultValue)
     }
 
