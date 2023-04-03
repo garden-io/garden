@@ -54,7 +54,7 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
   })
 
   // TODO: this check should probably live outside of the plugin
-  if (!target || !includes(["ready", "outdated"], status.state)) {
+  if (!target || !includes(["ready", "outdated"], status.detail?.state)) {
     throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
       state: status.state,
