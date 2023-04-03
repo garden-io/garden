@@ -70,10 +70,9 @@ describe("kubernetes-type pod Test", () => {
     expect(result!.result!.detail?.namespaceStatus?.namespaceName).to.equal(action.getConfig().spec.namespace)
   })
 
-  // TODO-G2: solver gets stuck in an infinite loop
-  it.skip("should fail if an error occurs, but store the result", async () => {
+  it("should fail if an error occurs, but store the result", async () => {
     const action = graph.getTest("module-simple-echo-test")
-    action.getConfig().spec.command = ["bork"] // this will fail
+    action["_config"].spec.command = ["bork"] // this will fail
 
     const testTask = new TestTask({
       garden,

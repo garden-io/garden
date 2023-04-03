@@ -162,7 +162,7 @@ describe("run actions", () => {
       graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const runActionTaskA = graph.getRun("task-a")
 
-      runActionTaskA.getConfig().spec.artifacts = [
+      runActionTaskA["_config"].spec.artifacts = [
         {
           source: "some-file.txt",
         },
