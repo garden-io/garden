@@ -109,7 +109,7 @@ proxy:
 
 # Control where to scan for configuration files in the project.
 scan:
-  # Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+  # Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
   #
   # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source
   # tree, which use the same format as `.gitignore` files. See the [Configuration Files
@@ -123,7 +123,8 @@ scan:
   # Also note that specifying an empty list here means _no paths_ should be included.
   include:
 
-  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration
+  # files.
   #
   # The filters here also affect which files and directories are watched for changes. So if you have a large number of
   # directories in your project that should not be watched, you should specify them here.
@@ -509,7 +510,7 @@ Control where to scan for configuration files in the project.
 
 [scan](#scan) > include
 
-Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
 
 Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
@@ -534,7 +535,7 @@ scan:
 
 [scan](#scan) > exclude
 
-Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration files.
 
 The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
 
