@@ -84,8 +84,8 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       namespace: testResultNamespace,
       key: getTestResultKey(k8sCtx, action),
       labels: {
-        [gardenAnnotationKey("module")]: action.moduleName() || "",
-        [gardenAnnotationKey("test")]: action.name,
+        [gardenAnnotationKey("action")]: action.key(),
+        [gardenAnnotationKey("actionType")]: action.type,
         [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,
