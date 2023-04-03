@@ -68,7 +68,7 @@ describe("kubernetes-type pod Run", () => {
 
   it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.cacheResult = false
+    action["_config"].spec.cacheResult = false
 
     const testTask = new RunTask({
       garden,
@@ -117,10 +117,9 @@ describe("kubernetes-type pod Run", () => {
     expect(result?.result?.outputs.log).to.equal(action.getConfig().spec.namespace)
   })
 
-  // TODO-G2: solver gets stuck in an infinite loop
-  it.skip("should fail if an error occurs, but store the result", async () => {
+  it("should fail if an error occurs, but store the result", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.command = ["bork"] // this will fail
+    action["_config"].spec.command = ["bork"] // this will fail
 
     const testTask = new RunTask({
       garden,

@@ -146,8 +146,8 @@ describe("sync mode deployments and sync behavior", () => {
     // prefix-a         <--- matched by provider-level default excludes
     // nested/prefix-b  <--- matched by provider-level default excludes
 
-    action.getConfig().spec.sync!.paths[0].mode = "one-way-replica"
-    action.getConfig().spec.sync!.paths[0].exclude = ["somedir"]
+    action["_config"].spec.sync!.paths[0].mode = "one-way-replica"
+    action["_config"].spec.sync!.paths[0].exclude = ["somedir"]
     const log = garden.log
     const deployTask = new DeployTask({
       garden,

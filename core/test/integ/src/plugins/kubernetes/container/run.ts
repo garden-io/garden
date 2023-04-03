@@ -78,7 +78,7 @@ describe("runContainerTask", () => {
 
   it("should not store Run results if cacheResult=false", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.cacheResult = false
+    action["_config"].spec.cacheResult = false
 
     const testTask = new RunTask({
       garden,
@@ -105,10 +105,9 @@ describe("runContainerTask", () => {
     expect(result.state).to.eql("not-ready")
   })
 
-  // TODO-G2: solver gets stuck in an infinite loop
-  it.skip("should fail if an error occurs, but store the result", async () => {
+  it("should fail if an error occurs, but store the result", async () => {
     const action = graph.getRun("echo-task")
-    action.getConfig().spec.command = ["bork"] // this will fail
+    action["_config"].spec.command = ["bork"] // this will fail
 
     const testTask = new RunTask({
       garden,

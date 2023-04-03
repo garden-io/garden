@@ -139,7 +139,7 @@ describe("kubernetes-module handlers", () => {
         action,
         force: false,
       }
-      action.getConfig().spec.manifests = [
+      action["_config"].spec.manifests = [
         {
           apiVersion: "foo.bar/baz",
           kind: "Whatever",

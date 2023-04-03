@@ -33,7 +33,7 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { flatten, fromPairs, isString, omit, sortBy } from "lodash"
+import { cloneDeep, flatten, fromPairs, isString, omit, sortBy } from "lodash"
 import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
@@ -535,7 +535,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return key ? this._config[key] : this._config
+    return cloneDeep(key ? this._config[key] : this._config)
   }
 
   /**
@@ -699,7 +699,7 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return key ? this._config.spec[key] : this._config.spec
+    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
   }
 
   getOutput<K extends keyof Outputs>(key: K) {

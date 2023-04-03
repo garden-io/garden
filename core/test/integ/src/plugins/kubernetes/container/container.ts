@@ -147,10 +147,10 @@ describe("kubernetes container module handlers", () => {
       expect(logEvent).to.exist
     })
 
-    // TODO-G2: solver gets stuck in an infinite loop
-    it.skip("should fail if an error occurs, but store the result", async () => {
+    it("should fail if an error occurs, but store the result", async () => {
       const testAction = graph.getTest("simple-echo-test")!
-      testAction.getConfig().spec.command = ["bork"] // this will fail
+
+      testAction["_config"].spec.command = ["bork"] // this will fail
 
       const testTask = new TestTask({
         garden,

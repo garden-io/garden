@@ -280,7 +280,7 @@ describe("kubernetes build flow", () => {
       const action = graph.getBuild("simple-service")
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action.getConfig().spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -366,7 +366,7 @@ describe("kubernetes build flow", () => {
       const action = graph.getBuild("simple-service")
       await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action.getConfig().spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
