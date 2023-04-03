@@ -336,7 +336,7 @@ export class TagsOption extends Parameter<string[] | undefined> {
   }
 }
 
-export class EnvironmentParameter extends StringParameter {
+export class EnvironmentParameter extends StringOption {
   type = "string"
   schema = joi.environment()
 
@@ -355,6 +355,7 @@ export class EnvironmentParameter extends StringParameter {
     if (!input) {
       return
     }
+
     // Validate the environment
     parseEnvironment(input)
     return input

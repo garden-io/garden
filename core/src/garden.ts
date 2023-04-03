@@ -1577,7 +1577,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const localConfigDefaultEnv = await localConfigStore.get("defaultEnv")
 
   if (localConfigDefaultEnv) {
-    log.debug(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
+    log.info(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
   }
 
   const defaultEnvironmentName =

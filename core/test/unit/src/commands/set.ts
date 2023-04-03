@@ -37,6 +37,23 @@ describe("SetDefaultEnvCommand", () => {
     expect(defaultEnv).to.equal("other")
   })
 
+  it("clears the specified environment if no args given", async () => {
+    await garden.localConfigStore.set("defaultEnv", "other")
+
+    await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { env: undefined },
+      opts: withDefaultGlobalOpts({}),
+    })
+
+    const defaultEnv = await garden.localConfigStore.get("defaultEnv")
+
+    expect(defaultEnv).to.equal("")
+  })
+
   it("clears the specified environment if given an empty string", async () => {
     await garden.localConfigStore.set("defaultEnv", "other")
 
