@@ -50,6 +50,7 @@ describe("Autocompleter", () => {
       command: {
         name: ["build"],
         cliOnly: false,
+        stringArguments: [],
       },
       priority: 1,
     })
@@ -109,20 +110,20 @@ describe("Autocompleter", () => {
     it("returns option flags after matched command", () => {
       const result = ac.getSuggestions("build")
 
-      const lines = result.map((s) => s.line)
-
-      for (const s of flags) {
-        expect(lines).to.include("build " + s)
+      for (const f of flags) {
+        const matched = result.find((s) => s.line === "build " + f)
+        expect(matched).to.exist
+        expect(matched?.command.stringArguments).to.eql([f])
       }
     })
 
     it("skips global option flags when ignoreGlobalFlags=true", () => {
-      const result = ac.getSuggestions("build")
+      const result = ac.getSuggestions("build", { ignoreGlobalFlags: true })
 
       const lines = result.map((s) => s.line)
 
-      for (const s of buildFlags.map((f) => "--" + f)) {
-        expect(lines).to.include("build " + s)
+      for (const s of globalFlags.map((f) => "--" + f)) {
+        expect(lines).to.not.include("build " + s)
       }
     })
   })
@@ -135,10 +136,10 @@ describe("Autocompleter", () => {
     it("returns suggested positional args and option flags after matched command", () => {
       const result = ac.getSuggestions("build")
 
-      const lines = result.map((s) => s.line)
-
-      for (const s of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
-        expect(lines).to.include("build " + s)
+      for (const f of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
+        const matched = result.find((s) => s.line === "build " + f)
+        expect(matched).to.exist
+        expect(matched?.command.stringArguments).to.eql([f])
       }
     })
 
