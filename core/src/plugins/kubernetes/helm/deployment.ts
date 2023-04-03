@@ -56,7 +56,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     ...(await getValueArgs({ action, valuesPath: preparedTemplates.valuesPath })),
   ]
 
-  if (spec.atomicInstall) {
+  if (spec.atomic) {
     // Make sure chart gets purged if it fails to install
     commonArgs.push("--atomic")
   }
