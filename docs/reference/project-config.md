@@ -391,9 +391,9 @@ providers:
 
 The default environment to use when calling commands without the `--env` parameter. May include a namespace name, in the format `<namespace>.<environment>`. Defaults to the first configured environment, with no namespace set.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `string` | `""`    | No       |
+| Type          | Default | Required |
+| ------------- | ------- | -------- |
+| `environment` | `""`    | No       |
 
 Example:
 
