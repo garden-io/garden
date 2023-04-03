@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import chalk from "chalk"
 import { EnvironmentParameter } from "../cli/params"
 import { dedent } from "../util/string"
 import { Command, CommandGroup, CommandParams } from "./base"
@@ -21,7 +22,7 @@ export class SetCommand extends CommandGroup {
 const setDefaultEnvArgs = {
   env: new EnvironmentParameter({
     help: "The default environment to set for the current project",
-    required: true,
+    required: false,
   }),
 }
 
@@ -39,18 +40,20 @@ export class SetDefaultEnvCommand extends Command<SetDefaultEnvArgs, {}> {
 
       garden set default-env remote       # Set the default env to remote (with the configured default namespace)
       garden set default-env dev.my-env   # Set the default env to dev.my-env
-      garden set default-env ''           # Clear any previously set override
+      garden set default-env              # Clear any previously set override
   `
 
   arguments = setDefaultEnvArgs
 
   async action({ garden, log, args }: CommandParams<SetDefaultEnvArgs, {}>) {
-    await garden.localConfigStore.set("defaultEnv", args.env)
+    await garden.localConfigStore.set("defaultEnv", args.env || "")
+
+    log.info("")
 
     if (args.env) {
-      log.info(`Set the default environment to ${args.env}`)
+      log.success(chalk.white(`Set the default environment to ${chalk.cyan(args.env)}`))
     } else {
-      log.info("Cleared the default environment")
+      log.success(chalk.white("Cleared the default environment"))
     }
 
     return {}
