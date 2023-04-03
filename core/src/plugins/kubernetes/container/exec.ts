@@ -27,7 +27,7 @@ export const execInContainer: DeployActionHandler<"exec", ContainerDeployAction>
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
   // TODO: this check should probably live outside of the plugin
-  if (!status.detail?.detail.workload || !includes(["ready", "outdated"], status.state)) {
+  if (!status.detail?.detail.workload || !includes(["ready", "outdated"], status.detail.state)) {
     throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
       state: status.state,
