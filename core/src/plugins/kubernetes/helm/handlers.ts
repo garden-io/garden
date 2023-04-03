@@ -209,7 +209,7 @@ function prepareDeployAction({
     dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
     spec: {
-      atomicInstall: module.spec.atomicInstall,
+      atomic: module.spec.atomicInstall,
       portForwards: module.spec.portForwards,
       namespace: module.spec.namespace,
       releaseName: module.spec.releaseName,

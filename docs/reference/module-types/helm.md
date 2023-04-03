@@ -159,10 +159,6 @@ variables:
 # varfiles exist).
 varfile:
 
-# Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information
-# about failures and then manually roll back, instead of having Helm do it automatically on failure.
-atomicInstall: true
-
 # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
 # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 namespace:
@@ -206,6 +202,10 @@ values: {}
 # Note that the paths here should be relative to the _config_ root, and the files should be contained in
 # this action config's directory.
 valueFiles: []
+
+# Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information
+# about failures and then manually roll back, instead of having Helm do it automatically on failure.
+atomicInstall: true
 
 # The name of another `helm` module to use as a base for this one. Use this to re-use a Helm chart across multiple
 # services. For example, you might have an organization-wide base chart for certain types of services.
@@ -909,14 +909,6 @@ Example:
 varfile: "my-module.env"
 ```
 
-### `atomicInstall`
-
-Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `true`  | No       |
-
 ### `namespace`
 
 A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
@@ -1012,6 +1004,14 @@ this action config's directory.
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
+
+### `atomicInstall`
+
+Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `base`
 

@@ -129,6 +129,12 @@ export const helmModuleSpecSchema = () =>
     .object()
     .keys({
       ...helmCommonSchemaKeys(),
+      atomicInstall: joi
+        .boolean()
+        .default(true)
+        .description(
+          "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
+        ),
       base: joiUserIdentifier()
         .description(
           deline`The name of another \`helm\` module to use as a base for this one. Use this to re-use a Helm chart across

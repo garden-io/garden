@@ -47,7 +47,7 @@ interface HelmChartSpec {
 }
 
 interface HelmDeployActionSpec {
-  atomicInstall: boolean
+  atomic: boolean
   chart?: HelmChartSpec
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
@@ -98,12 +98,6 @@ const helmValueFilesSchema = () =>
   `)
 
 export const helmCommonSchemaKeys = () => ({
-  atomicInstall: joi
-    .boolean()
-    .default(true)
-    .description(
-      "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
-    ),
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   releaseName: helmReleaseNameSchema(),
@@ -183,6 +177,12 @@ export const helmDeploySchema = () =>
     .object()
     .keys({
       ...helmCommonSchemaKeys(),
+      atomic: joi
+        .boolean()
+        .default(false)
+        .description(
+          "Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure."
+        ),
       chart: helmChartSpecSchema(),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),

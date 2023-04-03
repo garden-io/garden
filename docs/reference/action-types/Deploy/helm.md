@@ -153,10 +153,6 @@ build:
 kind:
 
 spec:
-  # Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more
-  # information about failures and then manually roll back, instead of having Helm do it automatically on failure.
-  atomicInstall: true
-
   # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
   # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
   # characters.
@@ -201,6 +197,10 @@ spec:
   # Note that the paths here should be relative to the _config_ root, and the files should be contained in
   # this action config's directory.
   valueFiles: []
+
+  # Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be
+  # reverted on failure.
+  atomic: false
 
   # Specify the Helm chart to use.
   #
@@ -671,16 +671,6 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.atomicInstall`
-
-[spec](#spec) > atomicInstall
-
-Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `true`  | No       |
-
 ### `spec.namespace`
 
 [spec](#spec) > namespace
@@ -788,6 +778,16 @@ this action config's directory.
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
+
+### `spec.atomic`
+
+[spec](#spec) > atomic
+
+Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
 
 ### `spec.chart`
 
