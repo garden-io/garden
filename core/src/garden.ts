@@ -1573,31 +1573,28 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     projectRoot: config.path,
   })
 
+  const configDefaultEnvironment = resolveTemplateString(
+    config.defaultEnvironment || "",
+    new DefaultEnvironmentContext({
+      projectName,
+      projectRoot,
+      artifactsPath,
+      vcsInfo,
+      username: _username,
+      commandInfo,
+    })
+  ) as string
+
   const localConfigStore = new LocalConfigStore(gardenDirPath)
-  const localConfigDefaultEnv = await localConfigStore.get("defaultEnv")
-
-  if (localConfigDefaultEnv) {
-    log.info(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
-  }
-
-  const defaultEnvironmentName =
-    localConfigDefaultEnv ||
-    (resolveTemplateString(
-      config.defaultEnvironment,
-      new DefaultEnvironmentContext({
-        projectName,
-        projectRoot,
-        artifactsPath,
-        vcsInfo,
-        username: _username,
-        commandInfo,
-      })
-    ) as string)
-
-  const defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
 
   if (!environmentStr) {
-    environmentStr = defaultEnvironment
+    const localConfigDefaultEnv = await localConfigStore.get("defaultEnv")
+
+    if (localConfigDefaultEnv) {
+      log.info(`Using environment ${localConfigDefaultEnv}, set with the \`set default-env\` command`)
+    }
+
+    environmentStr = getDefaultEnvironmentName(localConfigDefaultEnv || configDefaultEnvironment, config)
   }
 
   const { environment: environmentName } = parseEnvironment(environmentStr)
@@ -1678,7 +1675,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   const loggedIn = !!cloudApi
 
   config = resolveProjectConfig({
-    defaultName: defaultEnvironmentName,
+    defaultEnvironmentName: configDefaultEnvironment,
     config,
     artifactsPath,
     vcsInfo,

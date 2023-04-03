@@ -293,8 +293,7 @@ export const projectSchema = createSchema({
         "Please refer to individual plugins/providers for details on how to configure them."
     ),
     defaultEnvironment: joi
-      .string()
-      .hostname()
+      .environment()
       .allow("")
       .default("")
       .description(
@@ -411,7 +410,7 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
  * @param config raw project configuration
  */
 export function resolveProjectConfig({
-  defaultName,
+  defaultEnvironmentName,
   config,
   artifactsPath,
   vcsInfo,
@@ -421,7 +420,7 @@ export function resolveProjectConfig({
   secrets,
   commandInfo,
 }: {
-  defaultName: string
+  defaultEnvironmentName: string
   config: ProjectConfig
   artifactsPath: string
   vcsInfo: VcsInfo
@@ -461,7 +460,7 @@ export function resolveProjectConfig({
       ...config,
       ...globalConfig,
       name,
-      defaultEnvironment: defaultName,
+      defaultEnvironment: defaultEnvironmentName,
       // environments are validated later
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
       sources: [],
@@ -484,7 +483,7 @@ export function resolveProjectConfig({
     sources,
   }
 
-  config.defaultEnvironment = getDefaultEnvironmentName(defaultName, config)
+  config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
 
   return config
 }

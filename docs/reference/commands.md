@@ -3336,17 +3336,17 @@ Examples:
 
   garden set default-env remote       # Set the default env to remote (with the configured default namespace)
   garden set default-env dev.my-env   # Set the default env to dev.my-env
-  garden set default-env ''           # Clear any previously set override
+  garden set default-env              # Clear any previously set override
 
 #### Usage
 
-    garden set default-env <env> 
+    garden set default-env [env] 
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `env` | Yes | The default environment to set for the current project
+  | `env` | No | The default environment to set for the current project
 
 
 

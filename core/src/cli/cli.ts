@@ -43,7 +43,7 @@ import {
   defaultNamespace,
   parseEnvironment,
   ProjectResource,
-  EnvironmentConfig,
+  defaultEnvironment,
 } from "../config/project"
 import {
   ERROR_LOG_FILENAME,
@@ -74,9 +74,13 @@ import { uuidv4 } from "../util/random"
 import { SemVer } from "semver"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
-  const environments: EnvironmentConfig[] = gardenOpts.environmentName
-    ? [{ name: parseEnvironment(gardenOpts.environmentName).environment, defaultNamespace, variables: {} }]
-    : [{ defaultNamespace: "default", name: "default", variables: {} }]
+  if (!gardenOpts.environmentName) {
+    gardenOpts.environmentName = `${defaultEnvironment}.${defaultNamespace}`
+  }
+
+  const parsed = parseEnvironment(gardenOpts.environmentName)
+  const environmentName = parsed.environment || defaultEnvironment
+  const _defaultNamespace = parsed.namespace || defaultNamespace
 
   const config: ProjectConfig = {
     path: root,
@@ -85,7 +89,7 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
     name: "no-project",
     defaultEnvironment: "",
     dotIgnoreFile: defaultDotIgnoreFile,
-    environments,
+    environments: [{ name: environmentName, defaultNamespace: _defaultNamespace, variables: {} }],
     providers: [],
     variables: {},
   }
