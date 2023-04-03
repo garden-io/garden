@@ -1695,7 +1695,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
   // We always exclude the garden dir
   const gardenDirExcludePattern = `${relative(projectRoot, gardenDirPath)}/**/*`
   const moduleExcludePatterns = [
-    ...((config.modules || {}).exclude || []),
+    ...((config.scan || {}).exclude || []),
     gardenDirExcludePattern,
     ...fixedProjectExcludes,
   ]
@@ -1742,7 +1742,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     dotIgnoreFile: config.dotIgnoreFile,
     proxy,
     log,
-    moduleIncludePatterns: (config.modules || {}).include,
+    moduleIncludePatterns: (config.scan || {}).include,
     username: _username,
     forceRefresh: opts.forceRefresh,
     cloudApi,

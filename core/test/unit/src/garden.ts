@@ -53,6 +53,9 @@ import { convertExecModule } from "../../../src/plugins/exec/convert"
 import { getLogMessages } from "../../../src/util/testing"
 import { TreeCache } from "../../../src/cache"
 import { omitUndefined } from "../../../src/util/objects"
+import { prepareProjectResource } from "../../../src/config/base"
+import { CoreLog } from "../../../src/logger/log-entry"
+import { Logger, LogLevel } from "../../../src/logger/logger"
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -2544,6 +2547,71 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
     })
 
+    // TODO-0.14: remove this and core/test/data/test-projects/project-include-exclude-old-syntax directory
+    it("should respect the modules.include and modules.exclude fields, if specified", async () => {
+      const projectRoot = getDataDir("test-projects", "project-include-exclude-old-syntax")
+      const garden = await makeTestGarden(projectRoot)
+      const modules = await garden.resolveModules({ log: garden.log })
+
+      // Should NOT include "nope" and "module-c"
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
+    })
+
+    it("should respect the scan.include and scan.exclude fields, if specified", async () => {
+      const projectRoot = getDataDir("test-projects", "project-include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const modules = await garden.resolveModules({ log: garden.log })
+
+      // Should NOT include "nope" and "module-c"
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
+    })
+
+    // TODO-0.14: remove this context
+    context("rename modules.* to scan.* in 0.13", () => {
+      try {
+        Logger.initialize({
+          level: LogLevel.info,
+          terminalWriterType: "quiet",
+          storeEntries: false,
+        })
+      } catch (_) {}
+      const log = new CoreLog({ context: { name: "log" }, parentConfigs: [], root: Logger.getInstance() })
+
+      it("should convert old modules.* field to scan.*", () => {
+        const projectConfig = createProjectConfig({
+          modules: {
+            include: ["/tmp/module-a"],
+            exclude: ["/tmp/module-b"],
+          },
+        })
+
+        const result = prepareProjectResource(log, projectConfig)
+        expect(result.modules).to.not.exist
+        expect(result.scan).to.exist
+        expect(result.scan?.include).to.eql(["/tmp/module-a"])
+        expect(result.scan?.exclude).to.eql(["/tmp/module-b"])
+      })
+
+      it("should merge old modules.* field and scan.* and deduplicate the entries if both fields are provided", () => {
+        const projectConfig = createProjectConfig({
+          modules: {
+            include: ["/tmp/module-a"],
+            exclude: ["/tmp/module-b"],
+          },
+          scan: {
+            include: ["/tmp/module-a", "/tmp/module-c"],
+            exclude: ["/tmp/module-b", "/tmp/module-d"],
+          }
+        })
+
+        const result = prepareProjectResource(log, projectConfig)
+        expect(result.modules).to.not.exist
+        expect(result.scan).to.exist
+        expect(result.scan?.include?.sort()).to.eql(["/tmp/module-a", "/tmp/module-c"])
+        expect(result.scan?.exclude?.sort()).to.eql(["/tmp/module-b", "/tmp/module-d"])
+      })
+    })
+
     it("should respect .gitignore and .gardenignore files", async () => {
       const projectRoot = getDataDir("test-projects", "dotignore")
       const garden = await makeTestGarden(projectRoot)
@@ -2555,7 +2623,7 @@ describe("Garden", () => {
     it("should respect custom dotignore files", async () => {
       // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
       // Thus, all exclusions from .gardenignore will be skipped.
-      // TODO: amend the config core/test/data/test-projects/dotignore-custom/garden.yml in 0.14
+      // TODO-0.14: amend the config core/test/data/test-projects/dotignore-custom/garden.yml
       const projectRoot = getDataDir("test-projects", "dotignore-custom")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })
@@ -2565,7 +2633,7 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
     })
 
-    // TODO: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory oin 0.14
+    // TODO-0.14: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory in 0.14
     context("dotignore files migration to 0.13", async () => {
       it("should remap singleton array `dotIgnoreFiles` to scalar `dotIgnoreFile`", async () => {
         // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.

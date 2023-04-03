@@ -107,8 +107,8 @@ proxy:
   # Note that the `GARDEN_PROXY_DEFAULT_ADDRESS` environment variable takes precedence over this value.
   hostname: localhost
 
-# Control where to scan for modules in the project.
-modules:
+# Control where to scan for configuration files in the project.
+scan:
   # Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
   #
   # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source
@@ -124,6 +124,39 @@ modules:
   include:
 
   # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+  #
+  # The filters here also affect which files and directories are watched for changes. So if you have a large number of
+  # directories in your project that should not be watched, you should specify them here.
+  #
+  # For example, you might want to exclude large vendor directories in your project from being scanned and watched, by
+  # setting `exclude: [node_modules/**/*, vendor/**/*]`.
+  #
+  # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
+  # field, the paths/patterns specified here are filtered from the files matched by `include`.
+  #
+  # The `include` field does _not_ affect which files are watched.
+  #
+  # See the [Configuration Files
+  # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
+  # details.
+  exclude:
+
+  # Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
+  #
+  # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source
+  # tree, which use the same format as `.gitignore` files. See the [Configuration Files
+  # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
+  # details.
+  #
+  # Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories Garden
+  # watches for changes. Use the `exclude` field to affect those, if you have large directories that should not be
+  # watched for changes.
+  #
+  # Also note that specifying an empty list here means _no paths_ should be included.
+  include:
+
+  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration
+  # files.
   #
   # The filters here also affect which files and directories are watched for changes. So if you have a large number of
   # directories in your project that should not be watched, you should specify them here.
@@ -464,9 +497,76 @@ proxy:
   hostname: - 127.0.0.1
 ```
 
+### `scan`
+
+Control where to scan for configuration files in the project.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `scan.include[]`
+
+[scan](#scan) > include
+
+Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+
+Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+
+Unlike the `exclude` field, the paths/globs specified here have _no effect_ on which files and directories Garden watches for changes. Use the `exclude` field to affect those, if you have large directories that should not be watched for changes.
+
+Also note that specifying an empty list here means _no paths_ should be included.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
+
+Example:
+
+```yaml
+scan:
+  ...
+  include:
+    - modules/**/*
+```
+
+### `scan.exclude[]`
+
+[scan](#scan) > exclude
+
+Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+
+The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
+
+For example, you might want to exclude large vendor directories in your project from being scanned and watched, by setting `exclude: [node_modules/**/*, vendor/**/*]`.
+
+Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the paths/patterns specified here are filtered from the files matched by `include`.
+
+The `include` field does _not_ affect which files are watched.
+
+See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | No       |
+
+Example:
+
+```yaml
+scan:
+  ...
+  exclude:
+    - public/**/*
+    - tmp/**/*
+```
+
 ### `modules`
 
-Control where to scan for modules in the project.
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
+Control where to scan for modules in the project. Deprecated in 0.13. Please, use `scan` field instead.
 
 | Type     | Required |
 | -------- | -------- |
@@ -476,7 +576,7 @@ Control where to scan for modules in the project.
 
 [modules](#modules) > include
 
-Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
 
 Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
@@ -501,7 +601,7 @@ modules:
 
 [modules](#modules) > exclude
 
-Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration files.
 
 The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
 

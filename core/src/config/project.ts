@@ -187,7 +187,15 @@ export interface ProjectConfig {
   dotIgnoreFile: string
   dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
+  /**
+   * Deprecated. Use {@link #scan} instead.
+   * @deprecated remove in 0.14
+   */
   modules?: {
+    include?: string[]
+    exclude?: string[]
+  }
+  scan?: {
     include?: string[]
     exclude?: string[]
   }
@@ -207,8 +215,8 @@ export const projectNameSchema = () =>
 
 export const projectRootSchema = () => joi.string().description("The path to the project root.")
 
-const projectModulesSchema = createSchema({
-  name: "project-modules",
+const projectScanSchema = createSchema({
+  name: "project-scan",
   keys: () => ({
     include: joi
       .array()
@@ -348,7 +356,13 @@ export const projectSchema = createSchema({
         )
         .example(["127.0.0.1"]),
     }),
-    modules: projectModulesSchema().description("Control where to scan for modules in the project."),
+    scan: projectScanSchema().description("Control where to scan for configuration files in the project."),
+    // TODO-0.14: remove this
+    modules: projectScanSchema()
+      .description("Control where to scan for modules in the project. Deprecated in 0.13. Please, use `scan` field instead.")
+      .meta({
+        deprecated: "Please use `scan` instead.",
+      }),
     outputs: joiSparseArray(projectOutputSchema())
       .unique("name")
       .description(
