@@ -21,6 +21,7 @@ export interface AutocompleteSuggestion {
     name: string[]
     cliOnly: boolean
   }
+  stringArguments?: string[]
   priority: number
 }
 
@@ -241,6 +242,9 @@ export class Autocompleter {
           split[split.length - 1] = s
         }
 
+        // Separate the string arguments from the command
+        const stringArguments = split.filter((arg) => arg !== command.getPath().join(" "))
+
         return <AutocompleteSuggestion>{
           type: "argument",
           line: split.join(" "),
@@ -248,6 +252,7 @@ export class Autocompleter {
             name: command.getPath(),
             cliOnly: command.cliOnly,
           },
+          stringArguments,
           priority: 1000, // Rank these above option flags
         }
       })

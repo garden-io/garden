@@ -167,6 +167,15 @@ describe("Autocompleter", () => {
       expect(lines).to.include("build module-a")
     })
 
+    it("returns arguments separate from command when matched with positional argument", () => {
+      const results = ac.getSuggestions("build module-a mod")
+
+      for (const result of results) {
+        const [_, ...argumentsFromLine] = result.line.split(" ")
+        expect(result.stringArguments).to.eql(argumentsFromLine)
+      }
+    })
+
     it("returns more (unique) suggestions for variadic args after first arg", () => {
       const input = "build module-a "
       const result = ac.getSuggestions(input)
