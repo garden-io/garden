@@ -256,10 +256,10 @@ export function prepareResource({
   }
 }
 
-// TODO: remove this function in 0.14
-export function prepareProjectResource(log: Log, spec: any): ProjectResource {
-  const projectSpec = <ProjectResource>spec
+// TODO (start): remove these deprecation handlers in 0.14
+type DeprecatedConfigHandler = (log: Log, spec: ProjectResource) => ProjectResource
 
+function handleDotIgnoreFiles(log: Log, projectSpec: ProjectResource) {
   // If the project config has an explicitly defined `dotIgnoreFile` field,
   // it means the config has already been updated to 0.13 format.
   if (!!projectSpec.dotIgnoreFile) {
@@ -290,9 +290,19 @@ export function prepareProjectResource(log: Log, spec: any): ProjectResource {
       ", "
     )}]`,
     {
-      spec,
+      projectSpec,
     }
   )
+}
+
+const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [handleDotIgnoreFiles]
+
+export function prepareProjectResource(log: Log, spec: any): ProjectResource {
+  let projectSpec = <ProjectResource>spec
+  for (const handler of bonsaiDeprecatedConfigHandlers) {
+    projectSpec = handler(log, projectSpec)
+  }
+  return projectSpec
 }
 
 export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleConfig {
