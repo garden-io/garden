@@ -113,7 +113,7 @@ export const runBaseParams = () => ({
   timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
 })
 
-// TODO-G2: update this schema in 0.13
+// TODO-0.13.0: update this schema in 0.13.0
 export interface RunResult {
   success: boolean
   exitCode?: number

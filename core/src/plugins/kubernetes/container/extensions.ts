@@ -42,7 +42,7 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
   handlers: {
     async getOutputs({ ctx, action }) {
       const provider = ctx.provider as KubernetesProvider
-      // TODO-G2B: figure out why this cast is needed here
+      // TODO: figure out why this cast is needed here
       return {
         outputs: k8sGetContainerBuildActionOutputs({ action, provider }) as unknown as DeepPrimitiveMap,
       }

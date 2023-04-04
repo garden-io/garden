@@ -254,7 +254,7 @@ ${renderCommands(commands)}
     const commandLoggerType = command.getTerminalWriterType({ opts: parsedOpts, args: parsedArgs })
     getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
-    // TODO: remove for the proper 0.13 release
+    // TODO-0.13.0: remove for the proper 0.13 release
     if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
       log.warn(
         chalk.yellow(dedent`Garden Bonsai (0.13) is in beta. Please report any issues here:

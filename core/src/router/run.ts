@@ -53,7 +53,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
         params.events.on("log", ({ timestamp, msg, origin, level }) => {
           if (!params.interactive) {
             // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
-            // TODO: 0.13 make sure that logs of different tasks in the same module can be differentiated
+            // TODO: make sure that logs of different tasks in the same module can be differentiated
             params.log[level]({ msg, origin })
           }
           // stream logs to Garden Cloud
@@ -80,8 +80,7 @@ export const runRouter = (baseParams: BaseRouterParams) =>
           completedAt: new Date().toISOString(),
           status: runStatusForEventPayload(result.detail),
         })
-        // result && this.validateTaskOutputs(params.task, result)
-        // TODO-G2: get this out of the core framework and shift it to the provider
+        // TODO: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
         return output
@@ -145,24 +144,3 @@ export const runRouter = (baseParams: BaseRouterParams) =>
       return output
     },
   })
-
-// TODO-G2
-// private validateTaskOutputs(task: GardenTask, result: RunTaskResult) {
-//   const spec = this.moduleTypes[task.module.type]
-
-//   if (spec.taskOutputsSchema) {
-//     result.outputs = validateSchema(result.outputs, spec.taskOutputsSchema, {
-//       context: `outputs from task '${task.name}'`,
-//       ErrorClass: PluginError,
-//     })
-//   }
-
-//   for (const base of getModuleTypeBases(spec, this.moduleTypes)) {
-//     if (base.taskOutputsSchema) {
-//       result.outputs = validateSchema(result.outputs, base.taskOutputsSchema.unknown(true), {
-//         context: `outputs from task '${task.name}' (base schema from '${base.name}' plugin)`,
-//         ErrorClass: PluginError,
-//       })
-//     }
-//   }
-// }

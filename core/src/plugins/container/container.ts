@@ -94,7 +94,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
     for (const volume of spec.volumes) {
       if (volume.module) {
-        // TODO-G2: change this to validation instead, require explicit dependency
         moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
         spec.dependencies.push(volume.module)
       }
@@ -357,7 +356,7 @@ export const gardenPlugin = () =>
           schema: containerBuildSpecSchema(),
           handlers: {
             async getOutputs({ action }) {
-              // TODO-G2B: figure out why this cast is needed here
+              // TODO: figure out why this cast is needed here
               return {
                 outputs: getContainerBuildActionOutputs(action) as unknown as DeepPrimitiveMap,
               }

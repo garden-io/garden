@@ -78,7 +78,6 @@ export function k8sGetContainerBuildActionOutputs({
   return outputs
 }
 
-// TODO-G2: handle at action level as well
 function validateConfig<T extends ContainerModule>(params: ConfigureModuleParams<T>) {
   // validate ingress specs
   const moduleConfig = params.moduleConfig

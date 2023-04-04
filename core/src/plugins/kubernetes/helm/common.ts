@@ -320,7 +320,7 @@ export async function renderHelmTemplateString({
   valuesPath: string
   reference: string[]
 }): Promise<string> {
-  // TODO-G2: see if we can lift this limitation
+  // TODO: see if we can lift this limitation
   if (!chartPath) {
     throw new ConfigurationError(
       `Referencing Helm template strings is currently only supported for local Helm charts`,

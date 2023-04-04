@@ -37,7 +37,7 @@ export const testArgs = {
 }
 
 export const testOpts = {
-  // TODO: remove in 0.13?
+  // TODO-0.14: remove in 0.14?
   "name": new StringsParameter({
     help: deline`
       DEPRECATED: This now does the exact same as the positional arguments.

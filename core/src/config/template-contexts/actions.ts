@@ -203,7 +203,7 @@ export interface ActionSpecContextParams {
  * Used to resolve action spec and variables.
  */
 export class ActionSpecContext extends OutputConfigContext {
-  // TODO-G2: rename to actions (to allow using action singular in certain contexts + match the modules field)
+  // TODO-0.13.0: rename to actions (to allow using action singular in certain contexts + match the modules field)
   @schema(
     ActionReferencesContext.getSchema().description(
       "Runtime outputs and information from other actions (only resolved at runtime when executing actions)."

@@ -21,7 +21,7 @@ import { splitLast } from "../util/string"
 import type { ResolveActionTask } from "./resolve-action"
 
 // NOTE: This is necessary to avoid circular imports.
-// TODO-G2B: There may be better solutions
+// TODO: There may be better solutions
 const importLazy = require("import-lazy")(require)
 const build = importLazy("./build")
 const deploy = importLazy("./deploy")

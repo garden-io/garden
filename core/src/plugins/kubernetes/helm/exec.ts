@@ -22,7 +22,7 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
-  // TODO-G2: We should allow for alternatives here
+  // TODO: We should allow for alternatives here
   const defaultTarget = action.getSpec("defaultTarget")
 
   if (!defaultTarget) {

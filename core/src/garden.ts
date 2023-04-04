@@ -660,7 +660,7 @@ export class Garden {
   }
 
   async resolveProviders(log: Log, forceInit = false, names?: string[]): Promise<ProviderMap> {
-    // TODO-G2: split this out of the Garden class
+    // TODO: split this out of the Garden class
     let providers: Provider[] = []
 
     await this.asyncLock.acquire("resolve-providers", async () => {
@@ -883,7 +883,7 @@ export class Garden {
    * call to `getConfigGraph` in the command uses `emit = true` to ensure that the graph event gets streamed.
    */
   async getConfigGraph({ log, graphResults, emit, actionModes = {} }: GetConfigGraphParams): Promise<ConfigGraph> {
-    // TODO-G2: split this out of the Garden class
+    // TODO: split this out of the Garden class
     await this.scanAndAddConfigs()
 
     const resolvedProviders = await this.resolveProviders(log)
@@ -962,7 +962,7 @@ export class Garden {
       actionModes,
     })
 
-    // TODO-G2: detect overlap on Build actions
+    // TODO-0.13.1: detect overlap on Build actions
 
     // Walk through all plugins in dependency order, and allow them to augment the graph
     const plugins = keyBy(await this.getAllPlugins(), "name")
@@ -995,7 +995,6 @@ export class Garden {
 
       let updated = false
 
-      // TODO-G2: review and add tests
       // Resolve modules from specs and add to the list
       await Bluebird.map(addActions || [], async (config) => {
         // There is no actual config file for plugin modules (which the prepare function assumes)
@@ -1071,7 +1070,7 @@ export class Garden {
     return new ResolvedConfigGraph({
       actions: Object.values(resolved),
       moduleGraph: graph.moduleGraph,
-      // TODO-G2: perhaps this should be resolved here
+      // TODO: perhaps groups should be resolved here
       groups: graph.getGroups(),
     })
   }

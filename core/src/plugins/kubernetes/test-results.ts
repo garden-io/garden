@@ -24,7 +24,7 @@ import { runResultToActionState } from "../../actions/base"
 import { HelmPodTestAction } from "./helm/config"
 import { KubernetesTestAction } from "./kubernetes-type/config"
 
-// TODO-G2: figure out how to get rid of the any case
+// TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
   const { ctx, log } = params
   const action = <ContainerTestAction>params.action

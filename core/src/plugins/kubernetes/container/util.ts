@@ -37,7 +37,7 @@ export function getDeployedImageId(action: Resolved<ContainerRuntimeAction>, pro
   if (explicitImage) {
     return explicitImage
   } else if (build) {
-    // TODO-G2: we can get this off the BuildAction when static outputs are implemented
+    // TODO-0.13.0: we can get this off the BuildAction when static outputs are implemented
     return containerHelpers.getBuildDeploymentImageId(
       build.name,
       undefined,

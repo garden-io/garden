@@ -53,7 +53,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
         params.events.on("log", ({ timestamp, msg, origin, level }) => {
           if (!params.interactive) {
             // stream logs to CLI; if interactive is true, the output will already be streamed to process.stdout
-            // TODO: 0.13 make sure that logs of different tests in the same module can be differentiated
+            // TODO: make sure that logs of different tests in the same module can be differentiated
             params.log[level]({ msg, origin })
           }
           // stream logs to Garden Cloud
@@ -80,7 +80,7 @@ export const testRouter = (baseParams: BaseRouterParams) =>
           state: result.state,
           status: runStatusForEventPayload(result.detail),
         })
-        // TODO-G2: get this out of the core framework and shift it to the provider
+        // TODO: get this out of the core framework and shift it to the provider
         router.emitNamespaceEvent(result.detail?.namespaceStatus)
 
         return output

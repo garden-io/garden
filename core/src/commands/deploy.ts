@@ -155,7 +155,7 @@ export class DeployCommand extends Command<Args, Opts> {
       await watchRemovedWarning(garden, log)
     }
 
-    // TODO-G2: make these both explicit options
+    // TODO-0.13.0: make these both explicit options
     let monitor = this.maybePersistent(params)
     let forward = monitor
 

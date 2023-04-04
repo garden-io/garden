@@ -388,10 +388,8 @@ export function printResult({
   success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 
-// TODO-G2: update
 export interface ProcessCommandResult {
   aborted: boolean
-  // durationMsec?: number | null
   success: boolean
   error?: string
   graphResults: GraphResultMapWithoutTask
@@ -416,7 +414,6 @@ export const graphResultsSchema = () =>
     )
     .meta({ keyPlaceholder: "<key>" })
 
-// TODO-G2: update
 export const processCommandResultSchema = createSchema({
   name: "process-command-result",
   keys: () => ({

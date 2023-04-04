@@ -29,7 +29,7 @@ export class GetTestsCommand extends Command<Args, {}, ActionDescriptionMap> {
   name = "tests"
   help = "Lists the tests defined in your project."
 
-  // TODO-G2: add output schema
+  // TODO-0.13.0: add output schema
 
   arguments = getTestsArgs
 

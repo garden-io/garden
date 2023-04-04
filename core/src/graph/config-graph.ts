@@ -126,12 +126,12 @@ export abstract class BaseConfigGraph<
   }
 
   toSanitizedValue() {
-    // TODO-G2
+    // TODO
     return "<ConfigGraph>"
   }
 
   validate() {
-    // TODO-G2
+    // TODO-0.13.0: checks for circular dependencies
   }
 
   clone() {
@@ -596,7 +596,7 @@ export class ConfigGraphNode {
 
   private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
     const nodes = this[type].filter((n) => {
-      // TODO-G2: This feels out of place here
+      // TODO-0.13.1: This feels out of place here
       if (n.kind !== "Build" && n.disabled) {
         return false
       } else if (filter) {

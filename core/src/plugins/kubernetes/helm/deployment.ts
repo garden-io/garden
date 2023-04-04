@@ -176,7 +176,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
       namespaceStatuses: [namespaceStatus],
     },
     attached,
-    // TODO-G2
+    // TODO-0.13.1
     outputs: {},
   }
 }

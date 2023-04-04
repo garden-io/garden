@@ -276,7 +276,7 @@ export class GardenServer extends EventEmitter {
       ctx.response.body = sanitizeValue(result)
     })
 
-    // TODO-G2: remove this once it has another place
+    // TODO: remove this once it has another place
     /**
      * Resolves the URL for the given provider dashboard page, and redirects to it.
      */
@@ -556,7 +556,7 @@ export class GardenServer extends EventEmitter {
       req && req.command.terminate()
       delete this.activePersistentRequests[requestId]
     } else if (clientRequestNames.find((e) => e === requestType)) {
-      // TODO-G2: get rid of ClientRouter entirely
+      // TODO-0.13.0: get rid of ClientRouter entirely
       this.clientRouter?.dispatch(<ClientRequestType>requestType, request).catch(() => {})
     } else {
       return send("error", {

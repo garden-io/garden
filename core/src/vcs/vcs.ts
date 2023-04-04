@@ -63,7 +63,7 @@ export interface TreeVersions {
   [moduleName: string]: TreeVersion
 }
 
-// TODO-G2: rename, maybe to ResourceVersion
+// TODO: rename, maybe to ResourceVersion
 export interface ModuleVersion {
   versionString: string
   dependencyVersions: DependencyVersions
@@ -189,7 +189,7 @@ export abstract class VcsHandler {
         })
 
         if (files.length > fileCountWarningThreshold) {
-          // TODO-G2: This will be repeated for modules and actions resulting from module conversion
+          // TODO-0.13.0: This will be repeated for modules and actions resulting from module conversion
           await this.garden?.emitWarning({
             key: `${projectName}-filecount-${config.name}`,
             log,

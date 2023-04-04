@@ -325,7 +325,6 @@ export async function getActionNamespaceStatus({
 }): Promise<NamespaceStatus> {
   let namespace: string | undefined
 
-  // TODO-G2: add namespace field on container Deploy
   if (action.type !== "container") {
     namespace = action.getSpec().namespace
   }

@@ -20,7 +20,7 @@ import type { BaseAction } from "./base"
 import type { ValidResultType } from "../tasks/base"
 import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base"
 
-// TODO-G2: split this file
+// TODO: split this file
 
 export type { ActionKind } from "../plugin/action-types"
 

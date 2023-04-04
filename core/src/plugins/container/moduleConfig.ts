@@ -116,7 +116,6 @@ const containerServiceSchema = () =>
     })
     .rename("devMode", "sync")
 
-// TODO-G2: peel out build action keys
 export const containerModuleSpecSchema = () =>
   joi
     .object()

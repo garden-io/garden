@@ -73,8 +73,6 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     if (this.startSync && !statusOnly && status.state === "ready" && action.mode() === "sync") {
       // If the action is already deployed, we still need to make sure the sync is started
-      // TODO-G2: instead, return outdated when sync is not already running?
-
       await router.deploy.startSync({ log, graph: this.graph, action: executedAction })
     }
 

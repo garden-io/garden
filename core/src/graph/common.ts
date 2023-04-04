@@ -142,7 +142,7 @@ export async function resolveVariables({
   }
 
   // Merge different varfiles, later files taking precedence over prior files in the list.
-  // TODO-G2: should this be a JSON merge?
+  // TODO-0.13.0: should this be a JSON merge?
   for (const vars of varsByFile) {
     merge(output, vars)
   }

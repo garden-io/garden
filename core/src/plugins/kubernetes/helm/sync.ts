@@ -41,7 +41,7 @@ export const helmStartSync: DeployActionHandler<"startSync", HelmDeployAction> =
     action,
     actionDefaults: spec.sync.defaults || {},
     defaultTarget: spec.defaultTarget,
-    basePath: action.basePath(), // TODO-G2: double check if this holds up
+    basePath: action.basePath(),
     defaultNamespace: namespace,
     manifests: resources,
     syncs: spec.sync.paths,
@@ -79,7 +79,7 @@ export const helmGetSyncStatus: DeployActionHandler<"getSyncStatus", HelmDeployA
     action,
     actionDefaults: spec.sync.defaults || {},
     defaultTarget: spec.defaultTarget,
-    basePath: action.basePath(), // TODO-G2: double check if this holds up
+    basePath: action.basePath(),
     defaultNamespace: namespace,
     manifests: resources,
     syncs: spec.sync.paths,

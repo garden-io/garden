@@ -36,7 +36,7 @@ export const publishContainerBuild: BuildActionHandler<"publish", ContainerBuild
   return {
     state: "ready",
     detail: { published: true, message: `Published ${remoteId}` },
-    // TODO-G2
+    // TODO-0.13.1
     outputs: {},
   }
 }

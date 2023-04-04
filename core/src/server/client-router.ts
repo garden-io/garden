@@ -133,7 +133,6 @@ export class ClientRouter {
   }
 }
 
-// TODO-0.13: Update the field names to no longer use moduleName and taskName.
 export interface ClientRequests {
   build: {
     moduleName: string
@@ -153,7 +152,6 @@ export interface ClientRequests {
     testNames?: string[] // If not provided, run all tests for the module
     skipDependencies: boolean
   }
-  // TODO-0.13: Rename to "run"
   task: {
     taskName: string
     force: boolean

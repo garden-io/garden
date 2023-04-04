@@ -70,8 +70,6 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
     if (serviceResource?.containerModule) {
       const build = convertBuildDependency(serviceResource.containerModule)
-
-      // TODO-G2: make this implicit
       deployAction.dependencies?.push(build)
     }
 
@@ -210,7 +208,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
       namespaceStatuses: [namespaceStatus],
       ingresses: getK8sIngresses(remoteResources),
     },
-    // TODO-G2
+    // TODO-0.13.1
     outputs: {},
   }
 }
@@ -297,7 +295,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       await startServiceInLocalMode({
         ctx,
         spec: spec.localMode,
-        // TODO-G2: Support multiple processes+targets.
+        // TODO-0.13.0: Support multiple processes+targets.
         targetResource: modifiedResources[0],
         manifests: preparedManifests,
         action,
@@ -445,7 +443,7 @@ async function configureSpecialModesForManifests({
 
   // Local mode always takes precedence over sync mode
   if (mode === "local" && spec.localMode && !isEmpty(spec.localMode)) {
-    // TODO-G2: Support multiple local processes+targets
+    // TODO-0.13.0: Support multiple local processes+targets
     // The "local-mode" annotation is set in `configureLocalMode`.
     return await configureLocalMode({
       ctx,

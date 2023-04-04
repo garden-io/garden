@@ -138,7 +138,7 @@ function mapResults<T extends Task = Task, R extends object = {}>(
  * Render a result to string. Used for debugging and errors.
  */
 export function resultToString(result: GraphResult) {
-  // TODO-G2: improve
+  // TODO: improve
   return CircularJSON.stringify(toGraphResultEventPayload(result))
 }
 

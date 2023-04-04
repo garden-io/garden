@@ -47,7 +47,6 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
       const status = statusOutput.result
       const { state } = status
 
-      // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", status.outputs)
       garden.events.emit("buildStatus", {
         ...payloadAttrs,
@@ -119,7 +118,6 @@ export const buildRouter = (baseParams: BaseRouterParams) =>
         })
         const { result } = output
 
-        // TODO-G2: only validate if state is ready?
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
         emitBuildStatusEvent("ready")

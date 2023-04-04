@@ -235,7 +235,6 @@ function prepareDeployAction({
 
   if (serviceResource?.containerModule) {
     const build = convertBuildDependency(serviceResource.containerModule)
-    // TODO-G2: make this implicit
     deployAction.dependencies?.push(build)
   }
 

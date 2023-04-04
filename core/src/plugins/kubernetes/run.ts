@@ -473,7 +473,6 @@ ${cmd.join(" ")}
  * @param artifacts the artifacts to be processed
  */
 function getArtifactsTarScript(artifacts: ArtifactSpec[]) {
-  // TODO: only interpret target as directory if it ends with a slash (breaking change, so slated for 0.13)
   const directoriesToCreate = artifacts.map((a) => a.target).filter((target) => !!target && target !== ".")
   const tmpPath = "/tmp/.garden-artifacts-" + randomString(8)
 
@@ -733,7 +732,6 @@ type RunParams = StartParams & {
   remove: boolean
   tty: boolean
   events: PluginEventBroker
-  // TODO: 0.13 consider removing this in the scope of https://github.com/garden-io/garden/issues/3254
   throwOnExitCode?: boolean
 }
 

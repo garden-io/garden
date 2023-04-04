@@ -54,7 +54,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 
   async getStatus() {
-    // TODO-G2
+    // TODO-0.13.1
     return null
   }
 
