@@ -32,7 +32,7 @@ const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
 const log = getRootLogger().createLog()
 
-// TODO: remove this describe block in 0.14
+// TODO-0.14: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
   const projectResourceTemplate = {
     apiVersion: DEFAULT_API_VERSION,

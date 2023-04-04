@@ -1,10 +1,10 @@
 kind: Project
-name: include-exclude
+name: include-exclude-old-syntax
 environments:
   - name: local
 providers:
   - name: test-plugin
-scan:
+modules:
   include:
     - module*/**/*
   exclude:

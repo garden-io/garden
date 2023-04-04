@@ -74,8 +74,8 @@ export async function collectBasicDebugInfo(root: string, gardenDirPath: string,
     ignoreFile: projectConfig.dotIgnoreFile || defaultDotIgnoreFile,
     cache,
   })
-  const include = projectConfig.modules && projectConfig.modules.include
-  const exclude = projectConfig.modules && projectConfig.modules.exclude
+  const include = projectConfig.scan && projectConfig.scan.include
+  const exclude = projectConfig.scan && projectConfig.scan.exclude
   const paths = await findConfigPathsInPath({ vcs, dir: root, include, exclude, log })
 
   // Copy all the service configuration files

@@ -107,9 +107,9 @@ proxy:
   # Note that the `GARDEN_PROXY_DEFAULT_ADDRESS` environment variable takes precedence over this value.
   hostname: localhost
 
-# Control where to scan for modules in the project.
-modules:
-  # Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+# Control where to scan for configuration files in the project.
+scan:
+  # Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
   #
   # Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source
   # tree, which use the same format as `.gitignore` files. See the [Configuration Files
@@ -123,7 +123,8 @@ modules:
   # Also note that specifying an empty list here means _no paths_ should be included.
   include:
 
-  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+  # Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration
+  # files.
   #
   # The filters here also affect which files and directories are watched for changes. So if you have a large number of
   # directories in your project that should not be watched, you should specify them here.
@@ -464,19 +465,19 @@ proxy:
   hostname: - 127.0.0.1
 ```
 
-### `modules`
+### `scan`
 
-Control where to scan for modules in the project.
+Control where to scan for configuration files in the project.
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
 
-### `modules.include[]`
+### `scan.include[]`
 
-[modules](#modules) > include
+[scan](#scan) > include
 
-Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
 
 Note that you can also _exclude_ path using the `exclude` field or by placing `.gardenignore` files in your source tree, which use the same format as `.gitignore` files. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
@@ -491,17 +492,17 @@ Also note that specifying an empty list here means _no paths_ should be included
 Example:
 
 ```yaml
-modules:
+scan:
   ...
   include:
     - modules/**/*
 ```
 
-### `modules.exclude[]`
+### `scan.exclude[]`
 
-[modules](#modules) > exclude
+[scan](#scan) > exclude
 
-Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration files.
 
 The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
 
@@ -520,7 +521,7 @@ See the [Configuration Files guide](https://docs.garden.io/using-garden/configur
 Example:
 
 ```yaml
-modules:
+scan:
   ...
   exclude:
     - public/**/*

@@ -187,7 +187,7 @@ export interface ProjectConfig {
   dotIgnoreFile: string
   dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
-  modules?: {
+  scan?: {
     include?: string[]
     exclude?: string[]
   }
@@ -207,15 +207,15 @@ export const projectNameSchema = () =>
 
 export const projectRootSchema = () => joi.string().description("The path to the project root.")
 
-const projectModulesSchema = createSchema({
-  name: "project-modules",
+const projectScanSchema = createSchema({
+  name: "project-scan",
   keys: () => ({
     include: joi
       .array()
       .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
-        Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+        Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
 
         Note that you can also _exclude_ path using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.
 
@@ -229,7 +229,7 @@ const projectModulesSchema = createSchema({
       .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
-        Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+        Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration files.
 
         The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
 
@@ -347,7 +347,7 @@ export const projectSchema = createSchema({
         )
         .example(["127.0.0.1"]),
     }),
-    modules: projectModulesSchema().description("Control where to scan for modules in the project."),
+    scan: projectScanSchema().description("Control where to scan for configuration files in the project."),
     outputs: joiSparseArray(projectOutputSchema())
       .unique("name")
       .description(
@@ -383,6 +383,7 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
+  rename: [["modules", "scan"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {

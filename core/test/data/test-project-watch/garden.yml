@@ -1,6 +1,6 @@
 kind: Project
 name: test-project-a
-modules:
+scan:
   exclude: [module-a/project-excluded.txt]
 environments:
   - name: local
