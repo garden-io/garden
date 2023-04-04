@@ -2578,15 +2578,14 @@ describe("Garden", () => {
       const log = new CoreLog({ context: { name: "log" }, parentConfigs: [], root: Logger.getInstance() })
 
       it("should convert old modules.* field to scan.*", () => {
-        const projectConfig = createProjectConfig({
-          modules: {
-            include: ["/tmp/module-a"],
-            exclude: ["/tmp/module-b"],
-          },
-        })
+        const projectConfig = createProjectConfig({})
+        projectConfig["modules"] = {
+          include: ["/tmp/module-a"],
+          exclude: ["/tmp/module-b"],
+        }
 
         const result = prepareProjectResource(log, projectConfig)
-        expect(result.modules).to.not.exist
+        expect(result["modules"]).to.not.exist
         expect(result.scan).to.exist
         expect(result.scan?.include).to.eql(["/tmp/module-a"])
         expect(result.scan?.exclude).to.eql(["/tmp/module-b"])
@@ -2594,18 +2593,18 @@ describe("Garden", () => {
 
       it("should merge old modules.* field and scan.* and deduplicate the entries if both fields are provided", () => {
         const projectConfig = createProjectConfig({
-          modules: {
-            include: ["/tmp/module-a"],
-            exclude: ["/tmp/module-b"],
-          },
           scan: {
             include: ["/tmp/module-a", "/tmp/module-c"],
             exclude: ["/tmp/module-b", "/tmp/module-d"],
-          }
+          },
         })
+        projectConfig["modules"] = {
+          include: ["/tmp/module-a"],
+          exclude: ["/tmp/module-b"],
+        }
 
         const result = prepareProjectResource(log, projectConfig)
-        expect(result.modules).to.not.exist
+        expect(result["modules"]).to.not.exist
         expect(result.scan).to.exist
         expect(result.scan?.include?.sort()).to.eql(["/tmp/module-a", "/tmp/module-c"])
         expect(result.scan?.exclude?.sort()).to.eql(["/tmp/module-b", "/tmp/module-d"])

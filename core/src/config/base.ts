@@ -296,7 +296,9 @@ function handleDotIgnoreFiles(log: Log, projectSpec: ProjectResource) {
 }
 
 function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectResource {
-  if (!projectSpec.modules) {
+  // Field 'modules' was intentionally removed from the internal interface `ProjectResource`,
+  // but it still can be presented in the runtime if the old config format is used.
+  if (!projectSpec["modules"]) {
     return projectSpec
   }
 
@@ -309,21 +311,21 @@ function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectRe
     projectSpec.scan = {}
   }
 
-  if (projectSpec.modules.include) {
-    const oldSyntaxInclusions = projectSpec.modules.include || []
+  if (projectSpec["modules"].include) {
+    const oldSyntaxInclusions = projectSpec["modules"].include || []
     const newSyntaxInclusions = projectSpec.scan.include || []
     const mergedInclusions = new Set<string>([...oldSyntaxInclusions, ...newSyntaxInclusions])
     projectSpec.scan.include = [...mergedInclusions]
   }
 
-  if (projectSpec.modules.exclude) {
-    const oldSyntaxExclusions = new Set<string>(projectSpec.modules.exclude || [])
+  if (projectSpec["modules"].exclude) {
+    const oldSyntaxExclusions = new Set<string>(projectSpec["modules"].exclude || [])
     const newSyntaxExclusions = new Set<string>(projectSpec.scan.exclude || [])
     const mergedExclusions = new Set<string>([...oldSyntaxExclusions, ...newSyntaxExclusions])
     projectSpec.scan.exclude = [...mergedExclusions]
   }
 
-  delete projectSpec.modules
+  delete projectSpec["modules"]
 
   return projectSpec
 }

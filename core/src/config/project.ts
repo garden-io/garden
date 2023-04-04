@@ -187,14 +187,6 @@ export interface ProjectConfig {
   dotIgnoreFile: string
   dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
-  /**
-   * Deprecated. Use {@link #scan} instead.
-   * @deprecated remove in 0.14
-   */
-  modules?: {
-    include?: string[]
-    exclude?: string[]
-  }
   scan?: {
     include?: string[]
     exclude?: string[]
