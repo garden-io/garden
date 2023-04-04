@@ -86,9 +86,9 @@ export function renderMsg(entry: LogEntry): string {
     return ""
   }
 
-  const styleFn = level === LogLevel.error ? errorStyle : msgStyle
+  // const styleFn = level === LogLevel.error ? errorStyle : msgStyle
 
-  return styleFn(origin ? chalk.gray(`[${origin}] ${msg}`) : msg)
+  return chalk.gray((origin ? `[${chalk.gray(origin)}] ${chalk.white(msg)}` : msg))
 }
 
 export function renderData(entry: LogEntry): string {

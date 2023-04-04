@@ -397,7 +397,7 @@ export class Mutagen {
       }
 
       if (statusMsg) {
-        log.info({
+        log.verbose({
           symbol: "info",
           section,
           msg: chalk.gray(`${syncLogPrefix} ${statusMsg}`),
