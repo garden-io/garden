@@ -19,7 +19,7 @@ import {
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
 import { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig"
 import { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig"
-import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
+import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/constants"
 import { getContainerTestGarden } from "./container"
 import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/types"
@@ -59,7 +59,6 @@ const basicConfig: PartialConfig = {
   setupIngressController: null,
   systemNodeSelector: {},
   tlsCertificates: [],
-  _systemServices: [],
 }
 
 const singleTlsConfig: PartialConfig = {

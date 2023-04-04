@@ -15,7 +15,7 @@ import { dockerAuthSecretKey } from "../../../../../src/plugins/kubernetes/const
 import { ConfigurationError } from "../../../../../src/exceptions"
 import { KubernetesProvider, KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
 import { gardenPlugin } from "../../../../../src/plugins/container/container"
-import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
+import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/constants"
 import { KubeApi } from "../../../../../src/plugins/kubernetes/api"
 import { makeTestGarden, expectError, getDataDir } from "../../../../helpers"
 import { KubernetesList, KubernetesResource } from "../../../../../src/plugins/kubernetes/types"
@@ -60,7 +60,6 @@ const basicConfig: KubernetesConfig = {
   setupIngressController: null,
   systemNodeSelector: {},
   tlsCertificates: [],
-  _systemServices: [],
 }
 
 const basicProvider: KubernetesProvider = {

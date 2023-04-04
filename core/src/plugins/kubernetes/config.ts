@@ -8,7 +8,6 @@
 
 import {
   joi,
-  joiArray,
   joiIdentifier,
   joiIdentifierDescription,
   joiProviderName,
@@ -28,7 +27,7 @@ import {
 } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
 import { dedent, deline } from "../../util/string"
-import { defaultSystemNamespace } from "./system"
+import { defaultSystemNamespace } from "./constants"
 import { SyncableKind, syncableKinds } from "./types"
 import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
 import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
@@ -172,8 +171,7 @@ export interface KubernetesConfig extends BaseProviderConfig {
   gardenSystemNamespace: string
   tlsCertificates: IngressTlsCertificate[]
   certManager?: CertManagerConfig
-  clusterType?: "kind" | "minikube" | "microk8s"
-  _systemServices: string[]
+  clusterType?: "kind" | "minikube" | "microk8s" | "generic"
 }
 
 export type KubernetesProvider = Provider<KubernetesConfig>
@@ -726,14 +724,13 @@ export const kubernetesConfigBase = () =>
         [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`
         )
         .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
-      _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
       systemNodeSelector: joiStringMap(joi.string())
         .description(
           dedent`
-        Exposes the \`nodeSelector\` field on the PodSpec of system services. This allows you to constrain the system services to only run on particular nodes.
+          Exposes the \`nodeSelector\` field on the PodSpec of system services. This allows you to constrain the system services to only run on particular nodes.
 
-        [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
-        `
+          [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+          `
         )
         .example({ disktype: "ssd" })
         .default(() => ({})),

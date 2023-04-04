@@ -87,14 +87,6 @@ metadata:
   namespace: garden-system
   name: user-<username>-common
 rules:
-  # Allow port forward to build-sync services
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list"]
-  # Note: An upcoming release will remove the requirement
-- apiGroups: [""]
-  resources: ["pods/portforward"]
-  verbs: ["get", "list", "create"]
   # Allow storing and reading test results
 - apiGroups: [""]
   resources: ["configmaps"]
@@ -113,9 +105,6 @@ rules:
   verbs: ["get", "list"]
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["roles", "rolebindings"]
-  verbs: ["get", "list"]
-- apiGroups: ["extensions", "apps"]
-  resources: ["deployments", "daemonsets"]
   verbs: ["get", "list"]
   # Note: We do not store anything sensitive in secrets, aside from registry auth,
   #       which users anyway need to be able to read and push built images.
@@ -138,38 +127,3 @@ subjects:
 - namespace: <service-accounts-namespace>
   kind: ServiceAccount
   name: user-<username>
-
----
-
-# Allow building with kaniko in-cluster
-# Note: An upcoming release will remove this required role
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  namespace: garden-system
-  name: user-<username>-kaniko
-rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs:
-  - "get"
-  - "list"
-  - "create"
-  - "delete"
-
----
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: user-<username>-kaniko
-  namespace: garden-system
-roleRef:
-  kind: Role
-  name: user-<username>-kaniko
-  apiGroup: ""
-subjects:
-- namespace: <service-accounts-namespace>
-  kind: ServiceAccount
-  name: user-<username>
-```

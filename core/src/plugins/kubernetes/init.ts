@@ -6,23 +6,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { KubeApi, KubernetesError } from "./api"
-import {
-  getAppNamespace,
-  prepareNamespaces,
-  deleteNamespaces,
-  getSystemNamespace,
-  getAppNamespaceStatus,
-} from "./namespace"
+import { KubeApi } from "./api"
+import { getAppNamespace, prepareNamespaces, deleteNamespaces, getAppNamespaceStatus } from "./namespace"
 import { KubernetesPluginContext, KubernetesConfig, KubernetesProvider, ProviderSecretRef } from "./config"
-import { prepareSystemServices, getSystemServiceStatus, getSystemGarden } from "./system"
 import { GetEnvironmentStatusParams, EnvironmentStatus } from "../../plugin/handlers/Provider/getEnvironmentStatus"
 import { PrepareEnvironmentParams, PrepareEnvironmentResult } from "../../plugin/handlers/Provider/prepareEnvironment"
 import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../../plugin/handlers/Provider/cleanupEnvironment"
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
-import { combineStates, DeployState } from "../../types/service"
 import {
   setupCertManager,
   checkCertManagerStatus,
@@ -35,12 +27,11 @@ import { readSecret } from "./secrets"
 import { systemDockerAuthSecretName, dockerAuthSecretKey } from "./constants"
 import { V1IngressClass, V1Secret, V1Toleration } from "@kubernetes/client-node"
 import { KubernetesResource } from "./types"
-import { compareDeployedResources } from "./status/status"
 import { PrimitiveMap } from "../../config/common"
-import { mapValues, omit } from "lodash"
+import { mapValues } from "lodash"
 import { getIngressApiVersion, supportedIngressApiVersions } from "./container/ingress"
 import { Log } from "../../logger/log-entry"
-import { DeployStatusMap } from "../../plugin/handlers/Deploy/get-status"
+import { helmNginxInstall, helmNginxStatus } from "./integrations/nginx"
 
 const dockerAuthSecretType = "kubernetes.io/dockerconfigjson"
 const dockerAuthDocsLink = `
@@ -54,14 +45,12 @@ interface KubernetesProviderOutputs extends PrimitiveMap {
 }
 
 interface KubernetesEnvironmentDetail {
-  deployStatuses: DeployStatusMap
   systemReady: boolean
-  systemServiceState: DeployState
   systemCertManagerReady: boolean
   systemManagedCertificatesReady: boolean
 }
 
-type KubernetesEnvironmentStatus = EnvironmentStatus<KubernetesProviderOutputs, KubernetesEnvironmentDetail>
+export type KubernetesEnvironmentStatus = EnvironmentStatus<KubernetesProviderOutputs, KubernetesEnvironmentDetail>
 
 /**
  * Checks system service statuses (if provider has system services)
@@ -77,13 +66,9 @@ export async function getEnvironmentStatus({
   const api = await KubeApi.factory(log, ctx, provider)
 
   const namespaces = await prepareNamespaces({ ctx, log })
-  const systemServiceNames = k8sCtx.provider.config._systemServices
-  const systemNamespace = await getSystemNamespace(ctx, k8sCtx.provider, log)
 
   const detail: KubernetesEnvironmentDetail = {
-    deployStatuses: {},
     systemReady: true,
-    systemServiceState: <DeployState>"unknown",
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }
@@ -106,18 +91,6 @@ export async function getEnvironmentStatus({
       "default-hostname": provider.config.defaultHostname || null,
     },
   }
-
-  if (
-    // No need to continue if we don't need any system services
-    systemServiceNames.length === 0 ||
-    // Make sure we don't recurse infinitely
-    provider.config.namespace?.name === systemNamespace
-  ) {
-    return result
-  }
-
-  const variables = getKubernetesSystemVariables(provider.config)
-  const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
 
   if (provider.config.certManager) {
     const certManagerStatus = await checkCertManagerStatus({ ctx, provider, log })
@@ -154,33 +127,13 @@ export async function getEnvironmentStatus({
     }
   }
 
-  // Check if builder auth secret is up-to-date
-  let secretsUpToDate = true
-
-  if (provider.config.buildMode !== "local-docker") {
-    const authSecret = await prepareDockerAuth(api, provider, systemNamespace)
-    const comparison = await compareDeployedResources(k8sCtx, api, systemNamespace, [authSecret], log)
-    secretsUpToDate = comparison.state === "ready"
+  if (provider.config.setupIngressController === "nginx") {
+    const state = await helmNginxStatus(k8sCtx, log)
+    if (state !== "ready") {
+      result.ready = false
+      detail.systemReady = false
+    }
   }
-
-  // Get system service statuses
-  const systemServiceStatus = await getSystemServiceStatus({
-    ctx: k8sCtx,
-    log,
-    sysGarden,
-    namespace: systemNamespace,
-    names: systemServiceNames,
-  })
-
-  if (!secretsUpToDate || systemServiceStatus.state !== "ready") {
-    result.ready = false
-    detail.systemReady = false
-  }
-
-  detail.deployStatuses = mapValues(systemServiceStatus.serviceStatuses, (s) => omit(s, "executedAction"))
-  detail.systemServiceState = systemServiceStatus.state
-
-  sysGarden.log.success("Done")
 
   return result
 }
@@ -224,114 +177,19 @@ export async function prepareEnvironment(
 ): Promise<PrepareEnvironmentResult> {
   const { ctx, log, status } = params
   const k8sCtx = <KubernetesPluginContext>ctx
+  const provider = k8sCtx.provider
+  const config = provider.config
+
+  // TODO-G2: remove this option for remote kubernetes clusters?
+  if (config.setupIngressController === "nginx") {
+    await helmNginxInstall(k8sCtx, log)
+  }
 
   // Prepare system services
-  await prepareSystem({ ...params, clusterInit: false })
   const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   await setupCertManager({ ctx: k8sCtx, provider: k8sCtx.provider, log, status })
 
   return { status: { namespaceStatuses: [ns], ready: true, outputs: status.outputs } }
-}
-
-export async function prepareSystem({
-  ctx,
-  log,
-  force,
-  status,
-  clusterInit,
-}: PrepareEnvironmentParams<KubernetesEnvironmentStatus> & { clusterInit: boolean }) {
-  const k8sCtx = <KubernetesPluginContext>ctx
-  const provider = k8sCtx.provider
-  const variables = getKubernetesSystemVariables(provider.config)
-
-  const systemReady = status.detail && !!status.detail.systemReady && !force
-  const systemServiceNames = k8sCtx.provider.config._systemServices
-
-  if (systemServiceNames.length === 0 || systemReady) {
-    return {}
-  }
-
-  const deployStatuses: DeployStatusMap = (status.detail && status.detail.deployStatuses) || {}
-  const serviceStates = Object.values(deployStatuses).map((s) => s.detail?.state || "unknown")
-  const combinedState = combineStates(serviceStates)
-
-  const remoteCluster = provider.name !== "local-kubernetes"
-
-  // Don't attempt to prepare environment automatically when running the init or uninstall commands
-  if (
-    !clusterInit &&
-    ctx.command?.name === "plugins" &&
-    (ctx.command?.args.command === "uninstall-garden-services" || ctx.command?.args.command === "cluster-init")
-  ) {
-    return {}
-  }
-
-  // We require manual init if we're installing any system services to remote clusters, to avoid conflicts
-  // between users or unnecessary work.
-  if (!clusterInit && remoteCluster) {
-    const initCommand = chalk.white.bold(`garden --env=${ctx.environmentName} plugins kubernetes cluster-init`)
-
-    if (combinedState === "ready") {
-      return {}
-    } else if (
-      combinedState === "deploying" ||
-      combinedState === "unhealthy" ||
-      serviceStates.includes("missing") ||
-      serviceStates.includes("unknown")
-    ) {
-      // If any of the services are not ready or missing, we throw, since builds and deployments are likely to fail.
-      throw new KubernetesError(
-        deline`
-        One or more cluster-wide system services are missing or not ready. You need to run ${initCommand}
-        to initialize them, or contact a cluster admin to do so, before deploying services to this cluster.
-      `,
-        {
-          status,
-        }
-      )
-    } else {
-      // If system services are outdated but none are *missing*, we warn instead of flagging as not ready here.
-      // This avoids blocking users where there's variance in configuration between users of the same cluster,
-      // that often doesn't affect usage.
-      log.warn({
-        symbol: "warning",
-        msg: chalk.gray(deline`
-          One or more cluster-wide system services are outdated or their configuration does not match your current
-          configuration. You may want to run ${initCommand} to update them, or contact a cluster admin to do so.
-        `),
-      })
-
-      return {}
-    }
-  }
-
-  const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-  const sysProvider = <KubernetesProvider>await sysGarden.resolveProvider(log, provider.name)
-  const systemNamespace = await getSystemNamespace(ctx, sysProvider, log)
-  const sysApi = await KubeApi.factory(log, ctx, sysProvider)
-
-  await sysGarden.clearBuilds()
-
-  // Set auth secret for in-cluster builder
-  if (provider.config.buildMode !== "local-docker") {
-    log.info("Updating builder auth secret")
-    const authSecret = await prepareDockerAuth(sysApi, sysProvider, systemNamespace)
-    await sysApi.upsert({ kind: "Secret", namespace: systemNamespace, obj: authSecret, log })
-  }
-
-  // Install system services
-  await prepareSystemServices({
-    log,
-    sysGarden,
-    namespace: systemNamespace,
-    force,
-    ctx: k8sCtx,
-    names: systemServiceNames,
-  })
-
-  sysGarden.log.success("Done")
-
-  return {}
 }
 
 export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams): Promise<CleanupEnvironmentResult> {

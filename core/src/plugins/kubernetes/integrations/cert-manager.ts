@@ -227,7 +227,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
       certsLog.info("Installing to cert-manager namespace...")
       const api = await KubeApi.factory(log, ctx, provider)
       await ensureNamespace(api, { name: "cert-manager" }, log)
-      const customResourcesPath = join(STATIC_DIR, "kubernetes", "system", "cert-manager", "cert-manager-crd.yaml")
+      const customResourcesPath = join(STATIC_DIR, "kubernetes", "cert-manager-crd.yaml")
       const crd = yaml.safeLoadAll((await readFile(customResourcesPath)).toString()).filter((x) => x)
       certsLog.info("Installing Custom Resources...")
       await apply({ log, ctx, api, provider, manifests: crd, validate: false })

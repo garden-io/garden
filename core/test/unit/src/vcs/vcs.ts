@@ -11,8 +11,6 @@ import {
   TreeVersions,
   TreeVersion,
   getModuleVersionString,
-  writeTreeVersionFile,
-  readTreeVersionFile,
   GetFilesParams,
   VcsFile,
   getResourceTreeCacheKey,
@@ -30,9 +28,8 @@ import { ModuleConfig } from "../../../../src/config/module"
 import { GitHandler } from "../../../../src/vcs/git"
 import { resolve, join } from "path"
 import td from "testdouble"
-import tmp from "tmp-promise"
-import { realpath, readFile, writeFile } from "fs-extra"
-import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
+import { readFile, writeFile } from "fs-extra"
+import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
 import { Log } from "../../../../src/logger/log-entry"
 import { BaseActionConfig } from "../../../../src/actions/types"
@@ -333,55 +330,6 @@ describe("getModuleVersionString", () => {
     expect(module.version.versionString).to.eql(fixedVersionString)
 
     delete process.env.TEST_ENV_VAR
-  })
-})
-
-describe("writeTreeVersionFile", () => {
-  let tmpDir: tmp.DirectoryResult
-  let tmpPath: string
-
-  beforeEach(async () => {
-    tmpDir = await tmp.dir({ unsafeCleanup: true })
-    tmpPath = await realpath(tmpDir.path)
-  })
-
-  afterEach(async () => {
-    await tmpDir.cleanup()
-  })
-
-  describe("writeVersionFile", () => {
-    it("should write relative paths for files", async () => {
-      await writeTreeVersionFile(tmpPath, {
-        contentHash: "foo",
-        files: [join(tmpPath, "some", "file")],
-      })
-      expect(await readTreeVersionFile(join(tmpPath, GARDEN_VERSIONFILE_NAME))).to.eql({
-        contentHash: "foo",
-        files: ["some/file"],
-      })
-    })
-
-    it("should handle relative paths in input", async () => {
-      await writeTreeVersionFile(tmpPath, {
-        contentHash: "foo",
-        files: ["some/file"],
-      })
-      expect(await readTreeVersionFile(join(tmpPath, GARDEN_VERSIONFILE_NAME))).to.eql({
-        contentHash: "foo",
-        files: ["some/file"],
-      })
-    })
-
-    it("should normalize Windows-style paths to POSIX-style", async () => {
-      await writeTreeVersionFile(tmpPath, {
-        contentHash: "foo",
-        files: [`some\\file`],
-      })
-      expect(await readTreeVersionFile(join(tmpPath, GARDEN_VERSIONFILE_NAME))).to.eql({
-        contentHash: "foo",
-        files: ["some/file"],
-      })
-    })
   })
 })
 

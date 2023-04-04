@@ -26,7 +26,7 @@ import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-st
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
-const helmStatusMap: { [status: string]: DeployState } = {
+export const helmStatusMap: { [status: string]: DeployState } = {
   unknown: "unknown",
   deployed: "ready",
   deleted: "missing",

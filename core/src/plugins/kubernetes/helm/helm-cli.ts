@@ -24,8 +24,8 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "amd64",
-      url: "https://get.helm.sh/helm-v3.7.2-darwin-amd64.tar.gz",
-      sha256: "5a0738afb1e194853aab00258453be8624e0a1d34fcc3c779989ac8dbcd59436",
+      url: "https://get.helm.sh/helm-v3.11.2-darwin-amd64.tar.gz",
+      sha256: "404938fd2c6eff9e0dab830b0db943fca9e1572cd3d7ee40904705760faa390f",
       extract: {
         format: "tar",
         targetPath: "darwin-amd64/helm",
@@ -34,8 +34,8 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "darwin",
       architecture: "arm64",
-      url: "https://get.helm.sh/helm-v3.7.2-darwin-arm64.tar.gz",
-      sha256: "260d4b8bffcebc6562ea344dfe88efe252cf9511dd6da3cccebf783773d42aec",
+      url: "https://get.helm.sh/helm-v3.11.2-darwin-arm64.tar.gz",
+      sha256: "f61a3aa55827de2d8c64a2063fd744b618b443ed063871b79f52069e90813151",
       extract: {
         format: "tar",
         targetPath: "darwin-arm64/helm",
@@ -44,8 +44,8 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "linux",
       architecture: "amd64",
-      url: "https://get.helm.sh/helm-v3.7.2-linux-amd64.tar.gz",
-      sha256: "4ae30e48966aba5f807a4e140dad6736ee1a392940101e4d79ffb4ee86200a9e",
+      url: "https://get.helm.sh/helm-v3.11.2-linux-amd64.tar.gz",
+      sha256: "781d826daec584f9d50a01f0f7dadfd25a3312217a14aa2fbb85107b014ac8ca",
       extract: {
         format: "tar",
         targetPath: "linux-amd64/helm",
@@ -54,8 +54,8 @@ export const helm3Spec: PluginToolSpec = {
     {
       platform: "windows",
       architecture: "amd64",
-      url: "https://get.helm.sh/helm-v3.7.2-windows-amd64.zip",
-      sha256: "299165f0af46bece9a61b41305cca8e8d5ec5319a4b694589cd71e6b75aca77e",
+      url: "https://get.helm.sh/helm-v3.11.2-windows-amd64.zip",
+      sha256: "bca0c5b99a0e6621032f1767e61a1723b86c5f4ef565fa58be8be6d619a4276a",
       extract: {
         format: "zip",
         targetPath: "windows-amd64/helm.exe",

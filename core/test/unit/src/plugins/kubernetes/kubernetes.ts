@@ -8,7 +8,7 @@
 
 import { configureProvider, gardenPlugin } from "../../../../../src/plugins/kubernetes/kubernetes"
 import { KubernetesConfig, defaultResources } from "../../../../../src/plugins/kubernetes/config"
-import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/system"
+import { defaultSystemNamespace } from "../../../../../src/plugins/kubernetes/constants"
 import { expect } from "chai"
 import { TempDirectory, makeTempDir } from "../../../../helpers"
 import { providerFromConfig } from "../../../../../src/config/provider"
@@ -37,7 +37,6 @@ describe("kubernetes configureProvider", () => {
     setupIngressController: null,
     systemNodeSelector: {},
     tlsCertificates: [],
-    _systemServices: [],
   }
 
   let tmpDir: TempDirectory

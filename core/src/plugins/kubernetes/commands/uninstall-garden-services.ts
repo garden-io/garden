@@ -8,9 +8,8 @@
 
 import chalk from "chalk"
 import { PluginCommand } from "../../../plugin/command"
-import { getKubernetesSystemVariables } from "../init"
 import { KubernetesPluginContext } from "../config"
-import { getSystemGarden } from "../system"
+import { helmNginxUninstall } from "../integrations/nginx"
 
 export const uninstallGardenServices: PluginCommand = {
   name: "uninstall-garden-services",
@@ -22,25 +21,11 @@ export const uninstallGardenServices: PluginCommand = {
 
   handler: async ({ ctx, log }) => {
     const k8sCtx = <KubernetesPluginContext>ctx
-    const variables = getKubernetesSystemVariables(k8sCtx.provider.config)
 
-    const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
-    const actions = await sysGarden.getActionRouter()
-
-    const graph = await sysGarden.getConfigGraph({ log, emit: false })
-    const deploys = graph.getDeploys()
-
-    log.info("")
-
-    const deployNames = deploys.map((s) => s.name)
-    const statuses = await actions.deleteDeploys({ graph, log, names: deployNames })
-
-    log.info("")
-
-    const environmentStatuses = await actions.provider.cleanupAll(log)
+    await helmNginxUninstall(k8sCtx, log)
 
     log.info(chalk.green("\nDone!"))
 
-    return { result: { serviceStatuses: statuses, environmentStatuses } }
+    return { result: {} }
   },
 }

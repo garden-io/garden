@@ -33,3 +33,5 @@ export const k8sReverseProxyImageName = "gardendev/k8s-reverse-proxy:0.1.0"
 export const skopeoDaemonContainerName = "util"
 
 export const defaultIngressClass = "nginx"
+
+export const defaultSystemNamespace = "garden-system"

@@ -11,14 +11,11 @@ import normalize = require("normalize-path")
 import { sortBy, pick } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
-import { join, relative, isAbsolute } from "path"
-import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
-import { pathExists, readFile, writeFile } from "fs-extra"
+import { pathExists, readFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
 import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
 import type { Log } from "../logger/log-entry"
-import { treeVersionSchema } from "../config/common"
 import { dedent } from "../util/string"
 import { fixedProjectExcludes } from "../util/fs"
 import { pathToCacheContext, TreeCache } from "../cache"
@@ -214,13 +211,6 @@ export abstract class VcsHandler {
     return result
   }
 
-  async resolveTreeVersion(log: Log, projectName: string, moduleConfig: ModuleConfig): Promise<TreeVersion> {
-    // the version file is used internally to specify versions outside of source control
-    const versionFilePath = join(moduleConfig.path, GARDEN_TREEVERSION_FILENAME)
-    const fileVersion = await readTreeVersionFile(versionFilePath)
-    return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
-  }
-
   getRemoteSourcesDirname(type: ExternalSourceType) {
     return getRemoteSourcesDirname(type)
   }
@@ -254,28 +244,6 @@ async function readVersionFile(path: string, schema: Joi.Schema): Promise<any> {
       error,
     })
   }
-}
-
-export async function readTreeVersionFile(path: string): Promise<TreeVersion | null> {
-  return readVersionFile(path, treeVersionSchema())
-}
-
-/**
- * Writes a normalized TreeVersion file to the specified directory
- *
- * @param dir The directory to write the file to
- * @param version The TreeVersion for the directory
- */
-export async function writeTreeVersionFile(dir: string, version: TreeVersion) {
-  const processed = {
-    ...version,
-    files: version.files
-      // Always write relative paths, normalized to POSIX style
-      .map((f) => normalize(isAbsolute(f) ? relative(dir, f) : f))
-      .filter((f) => f !== GARDEN_TREEVERSION_FILENAME),
-  }
-  const path = join(dir, GARDEN_TREEVERSION_FILENAME)
-  await writeFile(path, JSON.stringify(processed, null, 4) + "\n")
 }
 
 /**

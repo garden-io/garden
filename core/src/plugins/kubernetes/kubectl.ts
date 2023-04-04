@@ -9,15 +9,16 @@
 import { encodeYamlMulti } from "../../util/serialization"
 import { ExecParams, PluginTool } from "../../util/ext-tools"
 import { Log } from "../../logger/log-entry"
-import { KubernetesProvider } from "./config"
+import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
 import { getResourceKey, hashManifest } from "./util"
 import { PluginToolSpec } from "../../plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
-import { pathExists } from "fs-extra"
+import { pathExists, readFile } from "fs-extra"
 import { ConfigurationError } from "../../exceptions"
+import { safeLoadAll } from "js-yaml"
 
 // Corresponds to the default prune whitelist in `kubectl`.
 // See: https://github.com/kubernetes/kubectl/blob/master/pkg/cmd/apply/prune.go#L176-L192
@@ -129,6 +130,12 @@ export async function apply({
   } catch (_) {
     return result
   }
+}
+
+export async function applyYamlFromFile(ctx: KubernetesPluginContext, log: Log, path: string) {
+  const api = await KubeApi.factory(log, ctx, ctx.provider)
+  const manifests = safeLoadAll((await readFile(path)).toString()).filter((x) => x)
+  await apply({ log, ctx, api, provider: ctx.provider, manifests, validate: false })
 }
 
 export async function deleteResources(params: {
