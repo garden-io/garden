@@ -225,9 +225,9 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(defaultData.deployParams)
       const res3 = await findDeployedResources(defaultData.manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("sync")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 
     it("should handle local mode", async () => {
@@ -253,9 +253,9 @@ describe("kubernetes-module handlers", () => {
       await kubernetesDeploy(defaultData.deployParams)
       const res3 = await findDeployedResources(defaultData.manifests, log)
 
-      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res1[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
       expect(res2[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("local")
-      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.be.undefined
+      expect(res3[0].metadata.annotations![gardenAnnotationKey("mode")]).to.equal("default")
     })
 
     it("should not delete previously deployed namespace resources", async () => {
