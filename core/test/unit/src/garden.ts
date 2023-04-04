@@ -2566,51 +2566,6 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
     })
 
-    // TODO-0.14: remove this context
-    context("rename modules.* to scan.* in 0.13", () => {
-      try {
-        Logger.initialize({
-          level: LogLevel.info,
-          terminalWriterType: "quiet",
-          storeEntries: false,
-        })
-      } catch (_) {}
-      const log = new CoreLog({ context: { name: "log" }, parentConfigs: [], root: Logger.getInstance() })
-
-      it("should convert old modules.* field to scan.*", () => {
-        const projectConfig = createProjectConfig({})
-        projectConfig["modules"] = {
-          include: ["/tmp/module-a"],
-          exclude: ["/tmp/module-b"],
-        }
-
-        const result = prepareProjectResource(log, projectConfig)
-        expect(result["modules"]).to.not.exist
-        expect(result.scan).to.exist
-        expect(result.scan?.include).to.eql(["/tmp/module-a"])
-        expect(result.scan?.exclude).to.eql(["/tmp/module-b"])
-      })
-
-      it("should merge old modules.* field and scan.* and deduplicate the entries if both fields are provided", () => {
-        const projectConfig = createProjectConfig({
-          scan: {
-            include: ["/tmp/module-a", "/tmp/module-c"],
-            exclude: ["/tmp/module-b", "/tmp/module-d"],
-          },
-        })
-        projectConfig["modules"] = {
-          include: ["/tmp/module-a"],
-          exclude: ["/tmp/module-b"],
-        }
-
-        const result = prepareProjectResource(log, projectConfig)
-        expect(result["modules"]).to.not.exist
-        expect(result.scan).to.exist
-        expect(result.scan?.include?.sort()).to.eql(["/tmp/module-a", "/tmp/module-c"])
-        expect(result.scan?.exclude?.sort()).to.eql(["/tmp/module-b", "/tmp/module-d"])
-      })
-    })
-
     it("should respect .gitignore and .gardenignore files", async () => {
       const projectRoot = getDataDir("test-projects", "dotignore")
       const garden = await makeTestGarden(projectRoot)

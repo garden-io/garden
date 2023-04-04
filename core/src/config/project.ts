@@ -349,12 +349,6 @@ export const projectSchema = createSchema({
         .example(["127.0.0.1"]),
     }),
     scan: projectScanSchema().description("Control where to scan for configuration files in the project."),
-    // TODO-0.14: remove this
-    modules: projectScanSchema()
-      .description("Control where to scan for modules in the project. Deprecated in 0.13. Please, use `scan` field instead.")
-      .meta({
-        deprecated: "Please use `scan` instead.",
-      }),
     outputs: joiSparseArray(projectOutputSchema())
       .unique("name")
       .description(
@@ -390,6 +384,7 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
+  rename: [["modules", "scan"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
