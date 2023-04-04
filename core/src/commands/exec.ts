@@ -62,7 +62,7 @@ export class ExecCommand extends Command<Args, Opts> {
   outputsSchema = () => execInDeployResultSchema()
 
   printHeader({ headerLog, args }) {
-    const serviceName = args.service
+    const serviceName = args.deploy
     const command = this.getCommand(args)
     printHeader(
       headerLog,
