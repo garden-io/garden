@@ -511,7 +511,7 @@ describe("createIngressResources", () => {
       annotations: {},
       path: "/",
       port: "http",
-      hostname: "hostname.invalid",
+      hostname: "my.domain.com",
     })
 
     const api = await getKubeApi(singleTlsProvider)
@@ -525,7 +525,7 @@ describe("createIngressResources", () => {
     expect(ingress.spec.tls?.[0].secretName).to.equal("somesecret")
 
     if (ingress.apiVersion === "networking.k8s.io/v1") {
-      expect(ingress.spec.tls?.[0].hosts).to.eql(["hostname.invalid"])
+      expect(ingress.spec.tls?.[0].hosts).to.eql(["my.domain.com"])
     }
   })
 
