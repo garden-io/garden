@@ -77,6 +77,7 @@ export async function getManifests({
     const annotationValue =
       manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
     set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
+    set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], action.mode())
     set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
 
     return manifest
