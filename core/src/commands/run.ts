@@ -15,7 +15,7 @@ import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { watchParameter, watchRemovedWarning } from "./helpers"
 
-// TODO-G2: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
+// TODO: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 
 const runArgs = {
   names: new StringsParameter({

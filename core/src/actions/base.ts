@@ -61,7 +61,7 @@ import { TestAction } from "./test"
 import { RunAction } from "./run"
 import { uuidv4 } from "../util/random"
 
-// TODO-G2: split this file
+// TODO: split this file
 
 const actionInternalFieldsSchema = createSchema({
   name: "action-config-internal-fields",
@@ -311,7 +311,7 @@ export interface ActionDescriptionMap {
 }
 
 export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, Outputs extends {} = any> {
-  // TODO-G2: figure out why kind and type come out as any types on Action type
+  // TODO: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
@@ -321,7 +321,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   _config: C
-  // TODO-G2: split the typing here
+  // TODO: split the typing here
   _outputs: Outputs
   protected _staticOutputs: Outputs
 
@@ -389,7 +389,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   isDisabled(): boolean {
-    // TODO-G2: return true if group is disabled
+    // TODO: return true if group is disabled
     return !!this.getConfig("disabled")
   }
 
@@ -397,7 +397,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
    * Check if the action is linked, including those within an external project source.
    * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
    */
-  // TODO-G2: this is ported from another function but the logic seems a little suspect to me... - JE
+  // TODO-0.13.0: this is ported from another function but the logic seems a little suspect to me... - JE
   isLinked(): boolean {
     return !pathIsInside(this.basePath(), this.projectRoot)
   }
@@ -408,9 +408,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   basePath(): string {
-    // TODO-G2
+    // TODO-0.13.0
     // TODO: handle repository.url
-    // TODO: handle build field
     return this._config.internal.basePath
   }
 

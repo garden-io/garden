@@ -30,7 +30,7 @@ export class GetRunsCommand extends Command<Args, {}, ActionDescriptionMap> {
   help = "Lists the Runs (or tasks, if using modules) defined in your project."
   aliases = ["tasks"]
 
-  // TODO-G2: add output schema
+  // TODO-0.13.0: add output schema
 
   arguments = getRunsArgs
 

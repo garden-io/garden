@@ -252,7 +252,7 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
 
     const statusTask = this.getNode("status", this.task)
-    // TODO-G2: make this more type-safe
+    // TODO: make this more type-safe
     const statusResult = this.getDependencyResult(statusTask) as GraphResultFromTask<T>
 
     if (statusResult === undefined) {

@@ -21,7 +21,7 @@ import { omit, mapValues } from "lodash"
 import { DeployStatus, DeployStatusMap, getDeployStatusSchema } from "../plugin/handlers/Deploy/get-status"
 import chalk from "chalk"
 
-// TODO-G2 rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
+// TODO: rename this to CleanupCommand, and do the same for all related classes, constants, variables and functions
 export class DeleteCommand extends CommandGroup {
   name = "cleanup"
   aliases = ["del", "delete"]

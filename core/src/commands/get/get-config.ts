@@ -95,7 +95,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       config.moduleConfigs = filteredModuleConfigs
 
       for (const configs of Object.values(config.actionConfigs)) {
-        // TODO-G2: work out why c resolves as any
+        // TODO: work out why c resolves as any
         for (const [key, c] of Object.entries(configs)) {
           if (c.disabled) {
             delete configs[key]

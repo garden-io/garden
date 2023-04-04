@@ -157,7 +157,7 @@ export class TestGarden extends Garden {
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
     // Cache the resolved params to save a bunch of time during tests
-    // TODO-G2: re-instate this after we're done refactoring
+    // TODO: re-instate this after we're done refactoring
     const cacheKey = undefined
     // const cacheKey = opts?.noCache
     //   ? undefined
@@ -208,7 +208,7 @@ export class TestGarden extends Garden {
       noCache?: boolean
     }
   ): Promise<ConfigGraph> {
-    // TODO-G2: re-instate this after we're done refactoring
+    // TODO: re-instate this after we're done refactoring
     // let cacheKey: string | undefined = undefined
 
     // if (this.cacheKey && !params.noCache) {

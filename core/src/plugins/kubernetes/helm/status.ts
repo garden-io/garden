@@ -119,7 +119,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
       namespaceStatuses: [namespaceStatus],
       ingresses,
     },
-    // TODO-G2
+    // TODO-0.13.1
     outputs: {},
   }
 }

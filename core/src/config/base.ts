@@ -256,7 +256,7 @@ export function prepareResource({
   }
 }
 
-// TODO (start): remove these deprecation handlers in 0.14
+// TODO-0.14: remove these deprecation handlers in 0.14
 type DeprecatedConfigHandler = (log: Log, spec: ProjectResource) => ProjectResource
 
 function handleDotIgnoreFiles(log: Log, projectSpec: ProjectResource) {
@@ -338,7 +338,6 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   }
 
   // Had a bit of a naming conflict in the terraform module type with the new module variables concept...
-  // FIXME: remove this hack sometime after 0.13
   if (spec.type === "terraform") {
     cleanedSpec["variables"] = spec.variables
   }

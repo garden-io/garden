@@ -138,7 +138,6 @@ export const generatedFileSchema = createSchema({
       ),
     resolveTemplates: joi
       .boolean()
-      // TODO: flip this default in 0.13?
       .default(true)
       .description(
         "By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to skip resolving template strings. Note that this does not apply when setting the `value` field, since that's resolved earlier when parsing the configuration."

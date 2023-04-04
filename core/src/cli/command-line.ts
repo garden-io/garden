@@ -198,7 +198,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   private isValidInputCharacter(input: string, key: Key) {
-    // TODO-G2: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
+    // TODO: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
     // FIXME: for one, typing an umlaut character does not appear to work on international English keyboards
     return (
       input.length === 1 &&
@@ -639,7 +639,7 @@ ${chalk.white.underline("Keys:")}
         }
       })
       .catch((error: Error) => {
-        // TODO-G2: improve error rendering
+        // TODO-0.13.1: improve error rendering
         this.log.error({ error: toGardenError(error) })
         this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
         this.flashError(failMessage)

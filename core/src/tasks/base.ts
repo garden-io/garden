@@ -172,7 +172,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
    * Used to handle overlapping graph solve requests.
    */
   getKey(): string {
-    // TODO-G2
+    // TODO-0.13.1
     let key = this.getBaseKey()
 
     // if (this.force) {
@@ -255,7 +255,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
       // Maybe we can make this easier to reason about... - JE
       if (dep.needsExecutedOutputs) {
         if (disabled && action.kind !== "Build") {
-          // TODO-G2: Need to handle conditional references, over in dependenciesFromAction()
+          // TODO-0.13.1: Need to handle conditional references, over in dependenciesFromAction()
           throw new GraphError(
             `${this.action.longDescription()} depends on one or more runtime outputs from action ${
               action.key

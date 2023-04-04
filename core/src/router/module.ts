@@ -139,10 +139,10 @@ export class ModuleRouter extends BaseRouter {
 
     const result = await handler(<any>handlerParams)
 
-    // TODO-G2: Ensure some fields get copied over correctly
-    // (path, configPath, templateName, plugin, disabled, allowPublish, variables+varfiles on Group)
-    // Validate action names
-    // Dedupe dependencies on actions
+    // TODO-0.13.1: Ensure some fields get copied over correctly
+    //   (path, configPath, templateName, plugin, disabled, allowPublish, variables+varfiles on Group)
+    //   Validate action names
+    //   Dedupe dependencies on actions
 
     return result
   }
@@ -197,7 +197,7 @@ export class ModuleRouter extends BaseRouter {
       { handlerType, pluginName, moduleType, wrapped: handler }
     )
 
-    // TODO-G2B: fix the any cast
+    // TODO: fix the any cast
     wrapped.base = <any>this.wrapBase(handler.base)
 
     if (!this.moduleHandlers[handlerType]) {

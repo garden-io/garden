@@ -107,7 +107,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       return { results, error: null }
     }
 
-    // TODO-G2: remove this lock and test with concurrent execution
+    // TODO-0.13.1+: remove this lock and test with concurrent execution
     return this.lock.acquire("solve", async () => {
       const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
@@ -157,7 +157,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           const failed = Object.entries(results.getMap()).filter(([_, r]) => !!r?.error || !!r?.aborted)
 
           if (failed.length > 0) {
-            // TODO-G2: better aggregate error output
+            // TODO-0.13.1: better aggregate error output
             let msg = `Failed to complete ${failed.length}/${tasks.length} tasks:`
 
             for (const [_, r] of failed) {
@@ -197,7 +197,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       })
 
       // Clean up
-      // TODO-G2: needs revising for concurrency, shortcutting just for now
+      // TODO-0.13.1: needs revising for concurrency, shortcutting just for now
       this.nodes = {}
       this.pendingNodes = {}
 
@@ -235,10 +235,10 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
   }
 
   clearCache() {
-    // TODO-G2: currently a no-op, possibly not necessary
+    // TODO-0.13.1: currently a no-op, possibly not necessary
   }
 
-  // TODO-G2B: This should really only be visible to TaskNode instances
+  // TODO: This should really only be visible to TaskNode instances
   getNode<N extends keyof InternalNodeTypes>({
     type,
     task,
@@ -347,7 +347,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           })
       }
     } finally {
-      // TODO-G2: clean up pending tasks with no dependant requests
+      // TODO-0.13.1: clean up pending tasks with no dependant requests
       this.inLoop = false
     }
   }
@@ -419,7 +419,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           // We're not forcing, and we don't have the status yet, so we ensure that's pending
           this.log.silly(`Request ${request.getKey()} is missing its status.`)
           this.ensurePendingNode(statusNode, request)
-          // TODO-G2: The state should be a top-level field
         } else if (status.result?.state === "ready" && !task.force) {
           this.log.silly(`Request ${request.getKey()} has ready status and force=false, no need to process.`)
           this.completeTask({ ...status, node: request })
@@ -503,7 +502,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const error = toGardenError(err)
     const errorMessage = error.message.trim()
     const msg = renderMessageWithDivider(errMessagePrefix, errorMessage, true)
-    // TODO-G2: pass along log entry here instead of using Garden logger
     log.error({ msg, error })
     const divider = renderDivider()
     log.silly(chalk.gray(`Full error with stack trace:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`))

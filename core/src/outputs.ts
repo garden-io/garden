@@ -37,7 +37,6 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     return garden.rawOutputs
   }
 
-  // TODO-G2: validate these
   for (const ref of templateRefs) {
     if (!ref[1]) {
       continue
@@ -86,7 +85,7 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
   }
 
   const graphTasks = needActions.map((ref) => {
-    // TODO-G2: we may not need full execution for all these actions
+    // TODO: we may not need full execution for all these actions
     const action = graph.getActionByRef(ref)
     return getExecuteTaskForAction(action, baseParams)
   })

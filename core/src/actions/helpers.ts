@@ -68,7 +68,7 @@ export const actionConfigSchema = memoize(() =>
   )
 )
 
-// TODO-G2: maybe do this implicitly
+// TODO: maybe do this implicitly
 export function warnOnLinkedActions(log: Log, actions: Action[]) {
   // Let the user know if any actions are linked to a local path
   const linkedActionsMsg = actions

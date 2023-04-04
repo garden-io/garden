@@ -487,7 +487,7 @@ interface ActionTemplateReference extends ActionReference {
  * Collects every reference to another action in the given config object, including translated runtime.* references.
  * An error is thrown if a reference is not resolvable, i.e. if a nested template is used as a reference.
  *
- * TODO-G2: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
+ * TODO-0.13.1: Allow such nested references in certain cases, e.g. if resolvable with a ProjectConfigContext.
  */
 export function getActionTemplateReferences<T extends object>(config: T): ActionTemplateReference[] {
   const rawRefs = collectTemplateReferences(config)

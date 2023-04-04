@@ -17,7 +17,7 @@ interface GetSyncStatusParams<T extends DeployAction> extends PluginDeployAction
   monitor: boolean
 }
 
-// TODO-G2: maybe this should be the same as an ActionState
+// TODO: maybe this should be the same as an ActionState
 export const syncStates = ["active", "not-active", "failed", "unknown", "outdated"] as const
 export type SyncState = (typeof syncStates)[number]
 

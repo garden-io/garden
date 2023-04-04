@@ -71,7 +71,7 @@ const baseActionTypeClasses = {
   validate: new ValidateAction(),
 }
 
-// TODO-G2: suggest and describe handlers
+// TODO-0.13.1: add suggest handler similar to the one for modules
 const actionTypeClasses = {
   Build: {
     ...baseActionTypeClasses,

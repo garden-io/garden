@@ -25,7 +25,7 @@ import { RunActionHandler } from "../../plugin/action-types"
 import { HelmPodRunAction } from "./helm/config"
 import { KubernetesRunAction } from "./kubernetes-type/config"
 
-// TODO-G2: figure out how to get rid of the any cast here
+// TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
   const { ctx, log } = params
   const action = <ContainerRunAction>params.action

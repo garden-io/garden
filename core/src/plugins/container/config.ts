@@ -596,7 +596,7 @@ export const volumeSchemaBase = () =>
 const volumeSchema = () =>
   volumeSchemaBase()
     .keys({
-      // TODO-0.13: remove when kubernetes-container type is ready, better to swap out with raw k8s references
+      // TODO-0.13.0: remove when kubernetes-container type is ready, better to swap out with raw k8s references
       action: joi
         .actionReference()
         .kind("Deploy")

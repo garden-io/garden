@@ -552,7 +552,6 @@ interface GetTargetResourceParams {
   query: KubernetesTargetResourceSpec
 }
 
-// TODO-G2
 /**
  * Finds and returns the configured resource.
  *

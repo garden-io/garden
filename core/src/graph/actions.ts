@@ -108,7 +108,7 @@ export async function actionConfigsToGraph({
 
   const router = await garden.getActionRouter()
 
-  // TODO-G2: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
+  // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
   await Bluebird.map(Object.entries(configsByKey), async ([key, config]) => {
@@ -437,7 +437,7 @@ async function preprocessActionConfig({
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
-    // TODO-G2: better error messages when something goes wrong here (missing inputs for example)
+    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
     const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: false,
     })
@@ -445,7 +445,7 @@ async function preprocessActionConfig({
     const { spec = {}, variables = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
-    // TODO-G2: better error messages when something goes wrong here
+    // TODO-0.13.1: better error messages when something goes wrong here
     config = validateWithPath({
       config: {
         ...config,
@@ -461,7 +461,7 @@ async function preprocessActionConfig({
 
     config = { ...config, variables, spec }
 
-    // TODO-G2: handle this
+    // TODO-0.13.0: handle this
     // if (config.repositoryUrl) {
     //   const linkedSources = await getLinkedSources(garden, "module")
     //   config.path = await garden.loadExtSourcePath({
@@ -473,7 +473,7 @@ async function preprocessActionConfig({
     // }
 
     // Partially resolve other fields
-    // TODO-G2: better error messages when something goes wrong here (missing inputs for example)
+    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
     const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: true,
     })
@@ -497,7 +497,7 @@ async function preprocessActionConfig({
   config = updatedConfig
 
   // -> Resolve templates again after configure handler
-  // TODO-G2: avoid this if nothing changed in the configure handler
+  // TODO: avoid this if nothing changed in the configure handler
   try {
     resolveTemplates()
   } catch (error) {
@@ -539,7 +539,7 @@ function dependenciesFromActionConfig(
   if (config.kind === "Build") {
     // -> Build copyFrom field
     for (const copyFrom of config.copyFrom || []) {
-      // TODO-G2: need to update this for parameterized actions
+      // TODO: need to update this for parameterized actions
       const ref: ActionReference = { kind: "Build", name: copyFrom.build }
       const buildKey = actionReferenceToString(ref)
 

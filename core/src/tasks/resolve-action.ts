@@ -48,7 +48,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   }
 
   resolveProcessDependencies(): BaseTask[] {
-    // TODO-G2B
+    // TODO-0.13.1
     // If we get a resolved task upfront, e.g. from module conversion, we could avoid resolving any dependencies.
     // if (this.action.getConfig().internal?.resolved) {
     //   return []
@@ -79,7 +79,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const resolvedDependencies: ResolvedAction[] = []
     const executedDependencies: ExecutedAction[] = []
 
-    // TODO-G2: get this to a type-safer place
+    // TODO: get this to a type-safer place
     for (const task of dependencyResults.getTasks()) {
       if (task instanceof ResolveActionTask) {
         const r = dependencyResults.getResult(task)
@@ -202,7 +202,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       defaultHandler: async (p) => ({}),
     })
 
-    // TODO-G2B: avoid this private assignment
+    // TODO: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs
 
     return {
