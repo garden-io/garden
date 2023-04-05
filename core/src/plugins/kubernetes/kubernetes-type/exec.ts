@@ -37,17 +37,19 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
 
   const status = await getKubernetesDeployStatus({
     ctx,
-    log,
     action,
+    log,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
+
+  const manifests = status.detail?.detail.remoteResources || []
 
   const target = await getTargetResource({
     ctx,
     log,
     provider,
     action,
-    manifests: status.detail?.detail.remoteResources || [],
+    manifests,
     query: defaultTarget,
   })
 

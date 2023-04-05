@@ -19,7 +19,6 @@ import chalk from "chalk"
 
 export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = async (params) => {
   const { ctx, log, action, command, interactive } = params
-
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
 
@@ -47,11 +46,10 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   const manifests = await getChartResources({
     ctx: k8sCtx,
     action,
-
     log,
   })
 
-  const serviceResource = await getTargetResource({
+  const target = await getTargetResource({
     ctx,
     log,
     provider,
@@ -61,12 +59,12 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   })
 
   // TODO: this check should probably live outside of the plugin
-  if (!serviceResource || !includes(["ready", "outdated"], status.state)) {
+  if (!target || !includes(["ready", "outdated"], status.state)) {
     throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
       state: status.detail?.state || status.state,
     })
   }
 
-  return execInWorkload({ ctx, provider, log, namespace, workload: serviceResource, command, interactive })
+  return execInWorkload({ ctx, provider, log, namespace, workload: target, command, interactive })
 }
