@@ -15,6 +15,7 @@ import { getHelmDeployStatus } from "./status"
 import { getChartResources } from "./common"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
+import chalk from "chalk"
 
 export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = async (params) => {
   const { ctx, log, action, command, interactive } = params
@@ -27,7 +28,9 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
 
   if (!defaultTarget) {
     throw new ConfigurationError(
-      `${action.longDescription()} does not specify a defaultTarget. This is currently necessary for the exec command to work with helm Deploy actions.`,
+      `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
+        "exec"
+      )} command to work with helm Deploy actions.`,
       {
         name: action.name,
       }
