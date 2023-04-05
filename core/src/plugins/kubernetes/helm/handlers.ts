@@ -233,9 +233,12 @@ function prepareDeployAction({
     deployAction.spec.chart!.path = baseModule.spec.chartPath
   }
 
-  if (serviceResource?.containerModule) {
-    const build = convertBuildDependency(serviceResource.containerModule)
-    deployAction.dependencies?.push(build)
+  if (serviceResource) {
+    if (serviceResource.containerModule) {
+      const build = convertBuildDependency(serviceResource.containerModule)
+      deployAction.dependencies?.push(build)
+    }
+    deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
   }
 
   return deployAction
