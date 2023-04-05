@@ -5,11 +5,11 @@ title: Action Types
 
 # Action Types
 
-* `kind`
+* Build
   * [`exec`](./Build/exec.md)
   * [`container`](./Build/container.md)
   * [`jib-container`](./Build/jib-container.md)
-* `kind`
+* Deploy
   * [`exec`](./Deploy/exec.md)
   * [`container`](./Deploy/container.md)
   * [`kubernetes`](./Deploy/kubernetes.md)
@@ -18,13 +18,13 @@ title: Action Types
   * [`persistentvolumeclaim`](./Deploy/persistentvolumeclaim.md)
   * [`terraform`](./Deploy/terraform.md)
   * [`pulumi`](./Deploy/pulumi.md)
-* `kind`
+* Run
   * [`exec`](./Run/exec.md)
   * [`container`](./Run/container.md)
   * [`kubernetes-exec`](./Run/kubernetes-exec.md)
   * [`kubernetes-pod`](./Run/kubernetes-pod.md)
   * [`helm-pod`](./Run/helm-pod.md)
-* `kind`
+* Test
   * [`exec`](./Test/exec.md)
   * [`container`](./Test/container.md)
   * [`hadolint`](./Test/hadolint.md)

@@ -110,7 +110,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   const actionTypeDefinitions = await garden.getActionTypes()
 
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
-    actionsReadme.push(`* \`kind\``)
+    actionsReadme.push(`* ${kind}`)
     for (const [type, definition] of Object.entries(types)) {
       const dir = resolve(actionTypeDir, kind)
       await mkdirp(dir)
