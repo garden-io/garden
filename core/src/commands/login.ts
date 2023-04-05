@@ -15,6 +15,7 @@ import { ConfigurationError, InternalError, TimeoutError } from "../exceptions"
 import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events"
 import { getCloudDistributionName } from "../util/util"
+import { ProjectResource } from "../config/project"
 
 const loginTimeoutSec = 60
 
@@ -38,25 +39,23 @@ export class LoginCommand extends Command {
   }
 
   async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
-    // The Enterprise API is missing from the Garden class for commands with noProject
-    // so we initialize it here.
-    const globalConfigStore = garden.globalConfigStore
+    // NOTE: The Cloud API is missing from the Garden class for commands with noProject
+    // so we initialize it here. noProject also make sure that the project config is not
+    // initialized in the garden class, so we need to read it in here to get the cloud
+    // domain.
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(log, garden.projectRoot)
 
-    let configuredDomain = garden.cloudDomain
-
-    if (!configuredDomain) {
-      const projectConfig = await cli?.getProjectConfig(log, garden.projectRoot)
-
-      // Fail if this is not run within a garden project
-      if (!projectConfig) {
-        throw new ConfigurationError(
-          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-          {
-            root: garden.projectRoot,
-          }
-        )
-      }
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
+      throw new ConfigurationError(
+        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        {
+          root: garden.projectRoot,
+        }
+      )
     }
+
+    const globalConfigStore = garden.globalConfigStore
 
     // Garden works by default without Garden Cloud. In order to use cloud, a domain
     // must be known to cloud for any command needing a logged in user.
@@ -68,7 +67,7 @@ export class LoginCommand extends Command {
     //
     // If the fallback was used, we rely on the token to decide if the Cloud API instance
     // should use the default domain or not. The token lifecycle ends on logout.
-    let cloudDomain: string = getGardenCloudDomain(configuredDomain)
+    let cloudDomain: string = getGardenCloudDomain(projectConfig?.domain)
 
     const distroName = getCloudDistributionName(cloudDomain)
 
