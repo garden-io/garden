@@ -1026,7 +1026,7 @@ async function requestWithRetry<R>(
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
           retryLog.info(deline`
-            ${description} failed with error ${err.message}, retrying in ${sleepMsec}ms
+            ${description} failed with error '${err.message}', retrying in ${sleepMsec}ms
             (${usedRetries}/${maxRetries})
           `)
           await sleep(sleepMsec)
@@ -1077,4 +1077,11 @@ const statusCodesForRetry: number[] = [
   524, // A Timeout Occurred
 ]
 
-const errorMessageRegexesForRetry = [/ETIMEDOUT/, /ENOTFOUND/, /EAI_AGAIN/]
+const errorMessageRegexesForRetry = [
+  /ETIMEDOUT/,
+  /ENOTFOUND/,
+  /EAI_AGAIN/,
+  // This can happen if etcd is overloaded
+  // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
+  /too many requests/,
+]
