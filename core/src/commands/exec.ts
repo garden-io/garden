@@ -12,7 +12,8 @@ import { Command, CommandResult, CommandParams } from "./base"
 import dedent = require("dedent")
 import { StringParameter, BooleanParameter, ParameterValues, StringsParameter } from "../cli/params"
 import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/Deploy/exec"
-import { executeAction } from "../graph/actions"
+import { resolveAction } from "../graph/actions"
+import { NotFoundError } from "../exceptions"
 
 const execArgs = {
   deploy: new StringParameter({
@@ -78,13 +79,41 @@ export class ExecCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(serviceName)
 
-    const executed = await executeAction({ garden, graph, action, log })
+    const resolved = await resolveAction({ garden, graph, action, log })
 
+    // Just get the status, don't actually deploy
     const router = await garden.getActionRouter()
+    const status = await router.deploy.getStatus({ action: resolved, graph, log })
+    const deployState = status.result.detail?.state
+    switch (deployState) {
+      // Warn if the deployment is not ready yet or unhealthy, but still proceed.
+      case undefined:
+      case "deploying":
+      case "outdated":
+      case "unhealthy":
+      case "unknown":
+        log.warn(chalk.white(`Current state: ${chalk.whiteBright(deployState)}`))
+        break
+      // Only fail if the deployment is missing or stopped.
+      case "missing":
+      case "stopped":
+        throw new NotFoundError(
+          `Cannot execute command in the '${action.name}' service. The target container is ${deployState}.`,
+          { deployState }
+        )
+      case "ready":
+        // Nothing to report/throw, the deployment is ready
+        break
+      default:
+        // To make sure this switch statement is not forgotten if the `DeployState` FSM gets modified.
+        const _exhaustiveCheck: never = deployState
+        return _exhaustiveCheck
+    }
+
     const { result } = await router.deploy.exec({
       log,
       graph,
-      action: executed,
+      action: resolved,
       command,
       interactive: opts.interactive,
     })
