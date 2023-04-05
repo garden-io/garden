@@ -13,6 +13,7 @@ import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 import { ConfigurationError } from "../exceptions"
 import { ProjectResource } from "../config/project"
+import { findProjectConfig } from "../config/base"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -28,10 +29,10 @@ export class LogOutCommand extends Command {
     printHeader(headerLog, "Log out", "☁️")
   }
 
-  async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(log, garden.projectRoot)
+    const projectConfig: ProjectResource | undefined = await findProjectConfig(log, garden.projectRoot)
 
     // Fail if this is not run within a garden project
     if (!projectConfig) {

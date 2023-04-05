@@ -16,6 +16,7 @@ import { AuthRedirectServer } from "../cloud/auth"
 import { EventBus } from "../events"
 import { getCloudDistributionName } from "../util/util"
 import { ProjectResource } from "../config/project"
+import { findProjectConfig } from "../config/base"
 
 const loginTimeoutSec = 60
 
@@ -38,12 +39,12 @@ export class LoginCommand extends Command {
     printHeader(headerLog, "Login", "☁️")
   }
 
-  async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // NOTE: The Cloud API is missing from the Garden class for commands with noProject
     // so we initialize it here. noProject also make sure that the project config is not
     // initialized in the garden class, so we need to read it in here to get the cloud
     // domain.
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(log, garden.projectRoot)
+    const projectConfig: ProjectResource | undefined = await findProjectConfig(log, garden.projectRoot)
 
     // Fail if this is not run within a garden project
     if (!projectConfig) {
