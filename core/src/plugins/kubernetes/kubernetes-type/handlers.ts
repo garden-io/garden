@@ -68,9 +68,12 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
       },
     }
 
-    if (serviceResource?.containerModule) {
-      const build = convertBuildDependency(serviceResource.containerModule)
-      deployAction.dependencies?.push(build)
+    if (serviceResource) {
+      if (serviceResource.containerModule) {
+        const build = convertBuildDependency(serviceResource.containerModule)
+        deployAction.dependencies?.push(build)
+      }
+      deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
     }
 
     actions.push(deployAction)
@@ -179,11 +182,13 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   })
   const preparedManifests = prepareResult.manifests
 
-  let {
-    state,
-    remoteResources,
-    mode: deployedMode,
-  } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
+  let { state, remoteResources, mode: deployedMode } = await compareDeployedResources(
+    k8sCtx,
+    api,
+    namespace,
+    preparedManifests,
+    log
+  )
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(remoteResources, action)
