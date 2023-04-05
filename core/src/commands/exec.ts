@@ -92,15 +92,16 @@ export class ExecCommand extends Command<Args, Opts> {
       case "outdated":
       case "unhealthy":
       case "unknown":
-        log.warn(chalk.white(`Current state: ${chalk.whiteBright(deployState)}`))
+        log.warn(
+          `The current state of ${action.key()} is ${chalk.whiteBright(
+            deployState
+          )}. If this command fails, you may need to re-deploy it with the ${chalk.whiteBright("deploy")} command.`
+        )
         break
       // Only fail if the deployment is missing or stopped.
       case "missing":
       case "stopped":
-        throw new NotFoundError(
-          `${action.key()} status is ${deployState}. Cannot execute command.`,
-          { deployState }
-        )
+        throw new NotFoundError(`${action.key()} status is ${deployState}. Cannot execute command.`, { deployState })
       case "ready":
         // Nothing to report/throw, the deployment is ready
         break
