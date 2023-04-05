@@ -98,7 +98,7 @@ export class ExecCommand extends Command<Args, Opts> {
       case "missing":
       case "stopped":
         throw new NotFoundError(
-          `Cannot execute command in the '${action.name}' service. The target container is ${deployState}.`,
+          `${action.key()} status is ${deployState}. Cannot execute command.`,
           { deployState }
         )
       case "ready":
