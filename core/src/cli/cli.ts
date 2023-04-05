@@ -71,7 +71,6 @@ import { GardenProcess, GlobalConfigStore } from "../config-store/global"
 import { registerProcess, waitForOutputFlush } from "../process"
 import { ServeCommand } from "../commands/serve"
 import { uuidv4 } from "../util/random"
-import { SemVer } from "semver"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   if (!gardenOpts.environmentName) {
@@ -255,9 +254,9 @@ ${renderCommands(commands)}
     getRootLogger().setTerminalWriter(getTerminalWriterType({ silent, output, loggerTypeOpt, commandLoggerType }))
 
     // TODO-0.13.0: remove for the proper 0.13 release
-    if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK && new SemVer(getPackageVersion()).minor === 13) {
+    if (!gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
       log.warn(
-        chalk.yellow(dedent`Garden Bonsai (0.13) is in beta. Please report any issues here:
+        chalk.yellow(dedent`Garden Bonsai (0.13) is in alpha. Please report any issues here:
           https://github.com/garden-io/garden/issues/new?labels=0.13&template=0-13-issue-template.md&title=0.13%3A+%5BBug%5D%3A`)
       )
     }
