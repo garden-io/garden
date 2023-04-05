@@ -14,6 +14,7 @@ import { execInWorkload, getTargetResource } from "../util"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { KubernetesDeployAction } from "./config"
 import { getKubernetesDeployStatus } from "./handlers"
+import chalk from "chalk"
 
 export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeployAction> = async (params) => {
   const { ctx, log, action, command, interactive } = params
@@ -25,7 +26,9 @@ export const execInKubernetesDeploy: DeployActionHandler<"exec", KubernetesDeplo
 
   if (!defaultTarget) {
     throw new ConfigurationError(
-      `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with.`,
+      `${action.longDescription()} does not specify a defaultTarget. Please configure this in order to be able to use this command with. This is currently necessary for the ${chalk.white(
+        "exec"
+      )} command to work with kubernetes Deploy actions.`,
       {
         name: action.name,
       }
