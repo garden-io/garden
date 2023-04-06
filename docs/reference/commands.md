@@ -57,14 +57,14 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify builds to run. You may specify multiple names, separated by spaces.
+  | `names` | No | Specify Builds to run. You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-build.
-  | `--with-dependants` |  | boolean | Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every build in the project will be performed anyway).
+  | `--with-dependants` |  | boolean | Also rebuild any Builds that depend on one of the Builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of Build names is specified as CLI arguments (since otherwise, every Build in the project will be performed anyway).
 
 #### Outputs
 
