@@ -184,7 +184,7 @@ This can be useful if you find the namespace to be in an inconsistent state, or 
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
 
@@ -342,7 +342,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
   | `--with-dependants` |  | boolean | Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
