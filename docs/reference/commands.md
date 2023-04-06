@@ -3242,11 +3242,11 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Run even if the action is disabled for the environment, and/or a successful result is found in cache.
   | `--force-build` |  | boolean | Force re-build of Build dependencies before running.
-  | `--module` |  | array:string | The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
+  | `--module` |  | array:string | The name(s) of one or modules to pull Runs (or tasks if using modules) from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
   | `--skip` |  | array:string | The name(s) of Runs you&#x27;d like to skip. Accepts glob patterns (e.g. init* would skip both &#x27;init&#x27; and &#x27;initialize&#x27;).
   | `--skip-dependencies` |  | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
-This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
-dependencies without redeploying any service dependencies that may have changed since you last deployed.
+This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+dependencies without redeploying any Deploy (or service if using modules) dependencies that may have changed since you last deployed.
 
 Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of
 your test suites are up to date when this option is used.
