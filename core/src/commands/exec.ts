@@ -84,7 +84,7 @@ export class ExecCommand extends Command<Args, Opts> {
     const executed = await executeAction({ garden, graph, action, log, statusOnly: true })
     const status: DeployStatus = executed.getStatus()
 
-    const deployState = status.detail?.state
+    const deployState = status.detail?.deployState
     switch (deployState) {
       // Warn if the deployment is not ready yet or unhealthy, but still proceed.
       case undefined:
