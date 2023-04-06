@@ -22,6 +22,7 @@ import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/c
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
 
 describe("plugins.container", () => {
+  const unmodifiedHelpers = cloneDeep(containerHelpers)
   const projectRoot = getDataDir("test-project-container")
 
   const baseConfig: BuildActionConfig<"container", ContainerBuildActionSpec> = {
@@ -48,6 +49,12 @@ describe("plugins.container", () => {
     containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     td.replace(garden.buildStaging, "syncDependencyProducts", () => null)
+  })
+
+  after(async () => {
+    td.reset()
+    // The line above does not successfully reset the mocks so this is needed instead
+    Object.keys(containerHelpers).forEach((key) => (containerHelpers[key] = unmodifiedHelpers[key]))
   })
 
   async function getTestBuild(cfg: BuildActionConfig): Promise<Executed<ContainerBuildAction>> {
