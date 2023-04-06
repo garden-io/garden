@@ -52,7 +52,7 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
     return {
       state: deployStateToActionState(state),
       detail: {
-        state,
+        deployState: state,
         version: action.versionString(),
         detail: { statusCommandOutput: result.all },
       },
@@ -65,7 +65,7 @@ export const getExecDeployStatus: DeployActionHandler<"getStatus", ExecDeploy> =
 
     return {
       state: deployStateToActionState(state),
-      detail: { state, version: action.versionString(), detail: {} },
+      detail: { deployState: state, version: action.versionString(), detail: {} },
       outputs: {
         log: "",
       },
@@ -101,7 +101,7 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
 
   if (spec.deployCommand.length === 0) {
     log.info({ msg: "No deploy command found. Skipping.", symbol: "info" })
-    return { state: "ready", detail: { state: "ready", detail: { skipped: true } }, outputs: {} }
+    return { state: "ready", detail: { deployState: "ready", detail: { skipped: true } }, outputs: {} }
   } else if (spec.persistent) {
     return deployPersistentExecService({ action, log, ctx, env, deployName: action.name })
   } else {
@@ -122,7 +122,7 @@ export const execDeployAction: DeployActionHandler<"deploy", ExecDeploy> = async
 
     return {
       state: "ready",
-      detail: { state: "ready", detail: { deployCommandOutput: result.all } },
+      detail: { deployState: "ready", detail: { deployCommandOutput: result.all } },
       outputs: {},
     }
   }
@@ -231,7 +231,7 @@ export async function deployPersistentExecService({
 
   return {
     state: "ready",
-    detail: { state: "ready", detail: { persistent: true, pid: proc.pid } },
+    detail: { deployState: "ready", detail: { persistent: true, pid: proc.pid } },
     outputs: {},
   }
 }
@@ -255,7 +255,7 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
 
     return {
       state: "not-ready",
-      detail: { state: "missing", detail: { cleanupCommandOutput: result.all } },
+      detail: { deployState: "missing", detail: { cleanupCommandOutput: result.all } },
       outputs: {},
     }
   } else {
@@ -264,7 +264,7 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
       symbol: "warning",
       msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
     })
-    return { state: "unknown", detail: { state: "unknown", detail: {} }, outputs: {} }
+    return { state: "unknown", detail: { deployState: "unknown", detail: {} }, outputs: {} }
   }
 }
 

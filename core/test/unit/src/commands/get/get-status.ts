@@ -75,7 +75,7 @@ describe("GetStatusCommand", () => {
             "service-b": {
               state: "ready",
               detail: {
-                state: "ready",
+                deployState: "ready",
                 detail: {},
                 forwardablePorts: [],
                 outputs: {},
@@ -86,7 +86,7 @@ describe("GetStatusCommand", () => {
             "service-c": {
               state: "ready",
               detail: {
-                state: "ready",
+                deployState: "ready",
                 detail: {},
                 forwardablePorts: [],
                 outputs: {},
@@ -97,7 +97,7 @@ describe("GetStatusCommand", () => {
             "service-a": {
               state: "ready",
               detail: {
-                state: "ready",
+                deployState: "ready",
                 detail: {},
                 forwardablePorts: [],
                 outputs: {},
@@ -169,7 +169,7 @@ describe("GetStatusCommand", () => {
         name: "service-a",
         status: {
           state: "unknown",
-          detail: { state: "unknown", detail: {} },
+          detail: { deployState: "unknown", detail: {} },
           outputs: {},
         },
       })

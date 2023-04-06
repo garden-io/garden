@@ -20,6 +20,7 @@ import {
 } from "../../../helpers"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
+import { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -29,7 +30,7 @@ const testProvider = () => {
     "service-a": {
       state: "ready",
       detail: {
-        state: "ready",
+        deployState: "ready",
         detail: {},
         ingresses: [
           {
@@ -44,7 +45,7 @@ const testProvider = () => {
     },
     "service-c": {
       state: "ready",
-      detail: { state: "ready", detail: {} },
+      detail: { deployState: "ready", detail: {} },
       outputs: {},
     },
   }
@@ -59,7 +60,11 @@ const testProvider = () => {
           schema: testDeploySchema(),
           handlers: {
             deploy: async (params) => {
-              const newStatus: ActionStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              const newStatus: DeployStatus = {
+                state: "ready",
+                detail: { deployState: "ready", detail: {} },
+                outputs: {},
+              }
               testStatuses[params.action.name] = newStatus
               return newStatus
             },
@@ -67,7 +72,7 @@ const testProvider = () => {
               return (
                 testStatuses[params.action.name] || {
                   state: "unknown",
-                  detail: { state: "unknown", detail: {} },
+                  detail: { deployState: "unknown", detail: {} },
                   outputs: {},
                 }
               )

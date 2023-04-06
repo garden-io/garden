@@ -61,7 +61,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     commonArgs.push("--atomic")
   }
 
-  if (releaseStatus.state === "missing") {
+  if (releaseStatus.deployState === "missing") {
     log.silly(`Installing Helm release ${releaseName}`)
     const installArgs = ["install", releaseName, ...reference, ...commonArgs]
     if (force && !ctx.production) {
@@ -170,7 +170,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     state: "ready",
     detail: {
       forwardablePorts,
-      state: "ready",
+      deployState: "ready",
       version: action.versionString(),
       detail: { remoteResources: statuses.map((s) => s.resource) },
       namespaceStatuses: [namespaceStatus],
@@ -204,5 +204,5 @@ export const deleteHelmDeploy: DeployActionHandler<"delete", HelmDeployAction> =
 
   log.success("Service deleted")
 
-  return { state: "not-ready", outputs: {}, detail: { state: "missing", detail: { remoteResources: [] } } }
+  return { state: "not-ready", outputs: {}, detail: { deployState: "missing", detail: { remoteResources: [] } } }
 }

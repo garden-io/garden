@@ -72,8 +72,8 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
   }
 }
 
-export const serviceStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
-export type DeployState = (typeof serviceStates)[number]
+export const deployStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
+export type DeployState = typeof deployStates[number]
 
 /**
  * Given a list of states, return a single state representing the list.
@@ -194,7 +194,7 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   lastError?: string
   outputs?: O
   runningReplicas?: number
-  state: DeployState
+  deployState: DeployState
   updatedAt?: string
 }
 
@@ -227,9 +227,9 @@ export const serviceStatusSchema = () =>
       lastError: joi.string().description("Latest error status message of the service (if any)."),
       outputs: joiVariables().description("A map of values output from the deployment."),
       runningReplicas: joi.number().description("How many replicas of the service are currently running."),
-      state: joi
+      deployState: joi
         .string()
-        .valid(...serviceStates)
+        .valid(...deployStates)
         .default("unknown")
         .description("The current deployment status of the service."),
       updatedAt: joi.string().description("When the service was last updated by the provider."),
