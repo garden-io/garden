@@ -9,15 +9,16 @@
 import chalk from "chalk"
 import { printHeader } from "../logger/util"
 import { Command, CommandResult, CommandParams } from "./base"
-import dedent = require("dedent")
+import dedent from "dedent"
 import { StringParameter, BooleanParameter, ParameterValues, StringsParameter } from "../cli/params"
 import { ExecInDeployResult, execInDeployResultSchema } from "../plugin/handlers/Deploy/exec"
-import { resolveAction } from "../graph/actions"
+import { executeAction } from "../graph/actions"
 import { NotFoundError } from "../exceptions"
+import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 
 const execArgs = {
   deploy: new StringParameter({
-    help: "The service to exec the command in.",
+    help: "The running Deploy action to exec the command in.",
     required: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Deploy)
@@ -50,7 +51,7 @@ export class ExecCommand extends Command<Args, Opts> {
     Finds an active container for a deployed service and executes the given command within the container.
     Supports interactive shells.
 
-    _NOTE: This command may not be supported for all module types._
+    _NOTE: This command may not be supported for all action types._
 
     Examples:
 
@@ -67,7 +68,7 @@ export class ExecCommand extends Command<Args, Opts> {
     const command = this.getCommand(args)
     printHeader(
       headerLog,
-      `Running command ${chalk.cyan(command.join(" "))} in service ${chalk.cyan(deployName)}`,
+      `Running command ${chalk.cyan(command.join(" "))} in Deploy ${chalk.cyan(deployName)}`,
       "runner"
     )
   }
@@ -79,12 +80,11 @@ export class ExecCommand extends Command<Args, Opts> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const action = graph.getDeploy(deployName)
 
-    const resolved = await resolveAction({ garden, graph, action, log })
-
     // Just get the status, don't actually deploy
-    const router = await garden.getActionRouter()
-    const status = await router.deploy.getStatus({ action: resolved, graph, log })
-    const deployState = status.result.detail?.state
+    const executed = await executeAction({ garden, graph, action, log, statusOnly: true })
+    const status: DeployStatus = executed.getStatus()
+
+    const deployState = status.detail?.state
     switch (deployState) {
       // Warn if the deployment is not ready yet or unhealthy, but still proceed.
       case undefined:
@@ -111,10 +111,12 @@ export class ExecCommand extends Command<Args, Opts> {
         return _exhaustiveCheck
     }
 
+    const router = await garden.getActionRouter()
+
     const { result } = await router.deploy.exec({
       log,
       graph,
-      action: resolved,
+      action: executed,
       command,
       interactive: opts.interactive,
     })

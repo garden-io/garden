@@ -335,11 +335,13 @@ export async function executeAction<T extends Action>({
   graph,
   action,
   log,
+  statusOnly,
 }: {
   garden: Garden
   graph: ConfigGraph
   action: T
   log: Log
+  statusOnly?: boolean
 }): Promise<Executed<T>> {
   const task = getExecuteTaskForAction(action, {
     garden,
@@ -348,7 +350,7 @@ export async function executeAction<T extends Action>({
     force: true,
   })
 
-  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true, statusOnly })
 
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
