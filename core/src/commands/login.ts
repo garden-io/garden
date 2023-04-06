@@ -23,7 +23,6 @@ const loginTimeoutSec = 60
 export class LoginCommand extends Command {
   name = "login"
   help = "Log in to Garden Cloud."
-  hidden = true
 
   /**
    * Since we're logging in, we don't want to resolve e.g. the project config (since it may use secrets, which are

@@ -18,7 +18,6 @@ import { findProjectConfig } from "../config/base"
 export class LogOutCommand extends Command {
   name = "logout"
   help = "Log out of Garden Cloud."
-  hidden = true
   noProject = true
 
   description = dedent`

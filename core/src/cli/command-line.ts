@@ -50,7 +50,6 @@ const directInputKeys = [
 ]
 
 const hideCommands = ["config analytics-enabled", "tools"]
-const overrideHiddenCommands = ["login", "logout"]
 
 interface CommandLineEvents {
   message: string
@@ -427,14 +426,7 @@ ${renderDivider({ width, char, color })}
   showHelp() {
     // TODO: group commands by category?
     const renderedCommands = renderCommands(
-      this.commands.filter(
-        (c) =>
-          !(
-            (c.hidden && !overrideHiddenCommands.includes(c.getFullName())) ||
-            c instanceof CommandGroup ||
-            hideCommands.includes(c.getFullName())
-          )
-      )
+      this.commands.filter((c) => !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName())))
     )
 
     const helpText = `
