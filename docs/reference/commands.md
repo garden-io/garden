@@ -523,7 +523,7 @@ graphResults:
 Finds an active container for a deployed service and executes the given command within the container.
 Supports interactive shells.
 
-_NOTE: This command may not be supported for all module types._
+_NOTE: This command may not be supported for all action types._
 
 Examples:
 
@@ -537,7 +537,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `deploy` | Yes | The service to exec the command in.
+  | `deploy` | Yes | The running Deploy action to exec the command in.
   | `command` | Yes | The command to run.
 
 #### Options
