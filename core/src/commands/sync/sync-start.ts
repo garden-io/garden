@@ -189,7 +189,7 @@ export class SyncStartCommand extends Command<Args, Opts> {
         const result = statusResult.results.getResult(task)
 
         const mode = result?.result?.detail?.mode
-        const state = result?.result?.detail?.state
+        const state = result?.result?.detail?.deployState
         const executedAction = result?.result?.executedAction
 
         if (executedAction && (state === "outdated" || state === "ready")) {

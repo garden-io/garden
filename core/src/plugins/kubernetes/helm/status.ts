@@ -64,7 +64,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
 
   try {
     helmStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
-    state = helmStatus.state
+    state = helmStatus.deployState
     deployedMode = helmStatus.mode || "default"
   } catch (err) {
     state = "missing"
@@ -112,7 +112,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
     state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
-      state,
+      deployState: state,
       version: state === "ready" ? action.versionString() : undefined,
       detail,
       mode: deployedMode,
@@ -218,12 +218,12 @@ export async function getReleaseStatus({
     }
 
     return {
-      state,
+      deployState: state,
       detail: { ...res, values, mode: deployedMode },
     }
   } catch (err) {
     if (err.message.includes("release: not found")) {
-      return { state: "missing", detail: {} }
+      return { deployState: "missing", detail: {} }
     } else {
       throw err
     }

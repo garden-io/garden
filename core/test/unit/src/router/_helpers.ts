@@ -411,7 +411,7 @@ function getRouterUnitTestPlugins() {
             getStatus: async (params) => {
               return {
                 state: "ready",
-                detail: { state: "ready", detail: {} },
+                detail: { deployState: "ready", detail: {} },
                 outputs: getTestPluginOutputs(params),
               }
             },
@@ -420,13 +420,13 @@ function getRouterUnitTestPlugins() {
               // validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
               return {
                 state: "ready",
-                detail: { state: "ready", detail: {} },
+                detail: { deployState: "ready", detail: {} },
                 outputs: getTestPluginOutputs(params),
               }
             },
 
             delete: async (_params) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
             },
 
             exec: async (_params) => {

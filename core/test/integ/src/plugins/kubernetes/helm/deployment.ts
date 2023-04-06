@@ -87,7 +87,7 @@ describe("helmDeploy in local-mode", () => {
       log: garden.log,
     })
 
-    expect(status.state).to.equal("ready")
+    expect(status.deployState).to.equal("ready")
     expect(status.mode).to.equal("local")
     expect(status.detail["values"][".garden"]).to.eql({
       moduleName: "backend",
@@ -149,7 +149,7 @@ describe("helmDeploy", () => {
       log: garden.log,
     })
 
-    expect(releaseStatus.state).to.equal("ready")
+    expect(releaseStatus.deployState).to.equal("ready")
     expect(releaseStatus.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: garden.projectName,
@@ -188,7 +188,7 @@ describe("helmDeploy", () => {
       log: garden.log,
     })
 
-    expect(releaseStatus.state).to.equal("ready")
+    expect(releaseStatus.deployState).to.equal("ready")
     expect(releaseStatus.detail["values"][".garden"]).to.eql({
       moduleName: "api-helm-module",
       projectName: garden.projectName,
@@ -231,7 +231,7 @@ describe("helmDeploy", () => {
       log: garden.log,
     })
 
-    expect(status.state).to.equal("ready")
+    expect(status.deployState).to.equal("ready")
     expect(status.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: garden.projectName,
@@ -266,7 +266,7 @@ describe("helmDeploy", () => {
       log: garden.log,
     })
 
-    expect(status.state).to.equal("ready")
+    expect(status.deployState).to.equal("ready")
 
     const api = await KubeApi.factory(garden.log, ctx, provider)
 
@@ -315,7 +315,7 @@ describe("helmDeploy", () => {
       log: gardenWithCloudApi.log,
     })
 
-    expect(releaseStatus.state).to.equal("ready")
+    expect(releaseStatus.deployState).to.equal("ready")
     expect(releaseStatus.detail["values"][".garden"]).to.eql({
       moduleName: "api",
       projectName: gardenWithCloudApi.projectName,
@@ -361,6 +361,6 @@ describe("helmDeploy", () => {
       releaseName,
       log: gardenWithCloudApi.log,
     })
-    expect(releaseStatusAfterScaleDown.state).to.equal("outdated")
+    expect(releaseStatusAfterScaleDown.deployState).to.equal("outdated")
   })
 })

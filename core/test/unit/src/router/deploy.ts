@@ -50,7 +50,7 @@ describe("deploy actions", () => {
         graph,
       })
       expect(result).to.eql({
-        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {}, mode: "default" },
+        detail: { forwardablePorts: [], deployState: "ready", outputs: {}, detail: {}, mode: "default" },
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
@@ -74,14 +74,14 @@ describe("deploy actions", () => {
       expect(event1.payload.moduleName).to.eql("module-a")
       expect(event1.payload.actionUid).to.be.ok
       expect(event1.payload.state).to.eql("getting-status")
-      expect(event1.payload.status.state).to.eql("unknown")
+      expect(event1.payload.status.deployState).to.eql("unknown")
 
       expect(event2.name).to.eql("deployStatus")
       expect(event2.payload.actionVersion).to.eql(resolvedDeployAction.versionString())
       expect(event2.payload.moduleName).to.eql("module-a")
       expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
       expect(event2.payload.state).to.eql("cached")
-      expect(event2.payload.status.state).to.eql("ready")
+      expect(event2.payload.status.deployState).to.eql("ready")
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
@@ -107,7 +107,7 @@ describe("deploy actions", () => {
         force: true,
       })
       expect(result).to.eql({
-        detail: { forwardablePorts: [], state: "ready", outputs: {}, detail: {}, mode: "default" },
+        detail: { forwardablePorts: [], deployState: "ready", outputs: {}, detail: {}, mode: "default" },
         outputs: { base: "ok", foo: "ok" },
         state: "ready",
       })
@@ -121,7 +121,6 @@ describe("deploy actions", () => {
         graph,
         force: true,
       })
-      const moduleVersion = resolvedDeployAction.moduleVersion().versionString
       const event1 = garden.events.eventLog[0]
       const event2 = garden.events.eventLog[1]
       expect(event1).to.exist
@@ -129,13 +128,13 @@ describe("deploy actions", () => {
       expect(event1.payload.moduleName).to.eql("module-a")
       expect(event1.payload.actionUid).to.be.ok
       expect(event1.payload.state).to.eql("processing")
-      expect(event1.payload.status.state).to.eql("deploying")
+      expect(event1.payload.status.deployState).to.eql("deploying")
       expect(event2).to.exist
       expect(event2.name).to.eql("deployStatus")
       expect(event2.payload.moduleName).to.eql("module-a")
       expect(event2.payload.actionUid).to.eql(event2.payload.actionUid)
       expect(event2.payload.state).to.eql("ready")
-      expect(event2.payload.status.state).to.eql("ready")
+      expect(event2.payload.status.deployState).to.eql("ready")
     })
 
     it("should throw if the outputs don't match the service outputs schema of the plugin", async () => {
@@ -162,7 +161,7 @@ describe("deploy actions", () => {
           forwardablePorts: [],
           outputs: {},
           detail: {},
-          state: "ready",
+          deployState: "ready",
           mode: "default",
         },
         outputs: {},

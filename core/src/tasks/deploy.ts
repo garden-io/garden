@@ -64,7 +64,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       if (status.state === "ready") {
         log.info(chalk.green(`${action.longDescription()} is already deployed.`))
       } else {
-        const state = status.detail?.state || displayState(status.state)
+        const state = status.detail?.deployState || displayState(status.state)
         log.info(chalk.green(`${action.longDescription()} is ${state}.`))
       }
     }
