@@ -520,14 +520,14 @@ graphResults:
 
 **Executes a command (such as an interactive shell) in a running service.**
 
-Finds an active container for a deployed service and executes the given command within the container.
+Finds an active container for a deployed Deploy and executes the given command within the container.
 Supports interactive shells.
 
 _NOTE: This command may not be supported for all action types._
 
 Examples:
 
-     garden exec my-service /bin/sh   # runs a shell in the my-service container
+     garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
 
 #### Usage
 
