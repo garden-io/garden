@@ -464,11 +464,11 @@ Examples:
     garden deploy my-deploy            # only deploy my-deploy
     garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
     garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-    garden deploy --sync=my-deploy     # deploys all deploys, with sync enabled for my-deploy
-    garden deploy --sync               # deploys all compatible deploys with sync enabled
-    garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
-    garden deploy --local              # deploys all compatible deploys with local mode enabled
-    garden deploy --env stage          # deploy your deploys to an environment called stage
+    garden deploy --sync=my-deploy     # deploys all Deploys, with sync enabled for my-deploy
+    garden deploy --sync               # deploys all compatible Deploys with sync enabled
+    garden deploy --local=my-deploy    # deploys all Deploys, with local mode enabled for my-deploy
+    garden deploy --local              # deploys all compatible Deploys with local mode enabled
+    garden deploy --env stage          # deploy your Deploys to an environment called stage
     garden deploy --skip deploy-b      # deploy everything except deploy-b
     garden deploy --forward            # deploy everything and start port forwards without sync or local mode
 
@@ -480,7 +480,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
+  | `names` | No | The name(s) of the Deploy(s) (or services if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -488,19 +488,19 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
-  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled.
+  | `--sync` |  | array:string | The name(s) of the Deploy(s) to deploy with sync enabled.
 You may specify multiple names by setting this flag multiple times.
 Use * to deploy all supported deployments with sync enabled.
 
 Important: The syncs stay active after the command exits. To stop the syncs, use the &#x60;sync stop&#x60; command.
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of deploy(s) to be started locally with local mode enabled.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
 
-You may specify multiple deploys by setting this flag multiple times. Use * to deploy all deploys with local mode enabled. When this option is used,
+You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
 the command stays running until explicitly aborted.
 
-This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
-  | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
-  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
+  | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
+  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync or --local/--local-mode are set.
 
 #### Outputs
