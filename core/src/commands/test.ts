@@ -42,7 +42,7 @@ export const testOpts = {
     help: deline`
       DEPRECATED: This now does the exact same as the positional arguments.
 
-      Only run tests with the specfied name (e.g. unit or integ).
+      Only run tests with the specified name (e.g. unit or integ).
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
     aliases: ["n"],
@@ -56,7 +56,7 @@ export const testOpts = {
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of any Build dependencies encountered." }),
   "interactive": new BooleanParameter({
-    help: "Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
+    help: "Run the specified Test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
     aliases: ["i"],
     cliOnly: true,
   }),
@@ -79,9 +79,9 @@ export const testOpts = {
     },
   }),
   "skip-dependencies": new BooleanParameter({
-    help: deline`Don't deploy any services or run any tasks that the requested tests depend on.
-    This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
-    dependencies without redeploying any service dependencies that may have changed since you last deployed.
+    help: deline`Don't deploy any Deploys (or services if using modules) or run any Run actions (or tasks if using modules) that the requested tests depend on.
+    This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+    dependencies without redeploying any Deploy (or service) dependencies that may have changed since you last deployed.
     Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
     your test suites are up to date when this option is used.`,
     aliases: ["nodeps"],
@@ -103,12 +103,12 @@ export class TestCommand extends Command<Args, Opts> {
   streamEvents = true
 
   description = dedent`
-    Runs all or specified tests defined in the project. Also run builds and other dependencies,
-    including deploys if needed.
+    Runs all or specified Tests defined in the project. Also run builds and other dependencies,
+    including Deploys if needed.
 
     Examples:
 
-        garden test                     # run all tests in the project
+        garden test                     # run all Tests in the project
         garden test my-test             # run the my-test Test action
         garden test --module my-module  # run all Tests in the my-module module
         garden test *integ*             # run all Tests with a name containing 'integ'

@@ -3426,12 +3426,12 @@ Examples:
 
 **Run all or specified Test actions in the project.**
 
-Runs all or specified tests defined in the project. Also run builds and other dependencies,
-including deploys if needed.
+Runs all or specified Tests defined in the project. Also run builds and other dependencies,
+including Deploys if needed.
 
 Examples:
 
-    garden test                     # run all tests in the project
+    garden test                     # run all Tests in the project
     garden test my-test             # run the my-test Test action
     garden test --module my-module  # run all Tests in the my-module module
     garden test *integ*             # run all Tests with a name containing 'integ'
@@ -3453,13 +3453,13 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--name` |  | array:string | DEPRECATED: This now does the exact same as the positional arguments.
-Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+Only run tests with the specified name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
   | `--force` |  | boolean | Force re-run of Test, even if a successful result is found in cache.
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
-  | `--interactive` |  | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
+  | `--interactive` |  | boolean | Run the specified Test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
   | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
+  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any Deploys (or services if using modules) or run any Run actions (or tasks if using modules) that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime dependencies without redeploying any Deploy (or service) dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
 
 #### Outputs
 
