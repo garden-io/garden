@@ -3034,7 +3034,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). You may specify multiple names, separated by spaces.
+  | `names` | No | The name(s) of the Deploy(s) to log (skip to get logs from all Deploys in the project). You may specify multiple names, separated by spaces.
 
 #### Options
 
