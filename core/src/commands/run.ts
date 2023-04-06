@@ -46,7 +46,7 @@ const runOpts = {
   // }),
   "module": new StringsParameter({
     help: deline`
-      The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
+      The name(s) of one or modules to pull Runs (or tasks if using modules) from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
     `,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.moduleConfigs)
@@ -65,8 +65,8 @@ const runOpts = {
   "skip-dependencies": new BooleanParameter({
     help: dedent`
       Don't perform any Deploy or Run actions that the requested Runs depend on.
-      This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
-      dependencies without redeploying any service dependencies that may have changed since you last deployed.
+      This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+      dependencies without redeploying any Deploy (or service if using modules) dependencies that may have changed since you last deployed.
 
       Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
       your test suites are up to date when this option is used.

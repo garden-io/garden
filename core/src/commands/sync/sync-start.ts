@@ -19,7 +19,7 @@ import { SyncMonitor } from "../../monitors/sync"
 
 const syncStartArgs = {
   names: new StringsParameter({
-    help: "The name(s) of one or more deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify '*' as an argument.",
+    help: "The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify '*' as an argument.",
     required: true,
     spread: true,
     getSuggestions: ({ configDump }) => {

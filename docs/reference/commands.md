@@ -57,14 +57,14 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify builds to run. You may specify multiple names, separated by spaces.
+  | `names` | No | Specify Builds to run. You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-build.
-  | `--with-dependants` |  | boolean | Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every build in the project will be performed anyway).
+  | `--with-dependants` |  | boolean | Also rebuild any Builds that depend on one of the Builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of Build names is specified as CLI arguments (since otherwise, every Build in the project will be performed anyway).
 
 #### Outputs
 
@@ -184,7 +184,7 @@ This can be useful if you find the namespace to be in an inconsistent state, or 
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
 
@@ -342,7 +342,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
   | `--with-dependants` |  | boolean | Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
@@ -464,11 +464,11 @@ Examples:
     garden deploy my-deploy            # only deploy my-deploy
     garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
     garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-    garden deploy --sync=my-deploy     # deploys all deploys, with sync enabled for my-deploy
-    garden deploy --sync               # deploys all compatible deploys with sync enabled
-    garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
-    garden deploy --local              # deploys all compatible deploys with local mode enabled
-    garden deploy --env stage          # deploy your deploys to an environment called stage
+    garden deploy --sync=my-deploy     # deploys all Deploys, with sync enabled for my-deploy
+    garden deploy --sync               # deploys all compatible Deploys with sync enabled
+    garden deploy --local=my-deploy    # deploys all Deploys, with local mode enabled for my-deploy
+    garden deploy --local              # deploys all compatible Deploys with local mode enabled
+    garden deploy --env stage          # deploy your Deploys to an environment called stage
     garden deploy --skip deploy-b      # deploy everything except deploy-b
     garden deploy --forward            # deploy everything and start port forwards without sync or local mode
 
@@ -480,7 +480,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
+  | `names` | No | The name(s) of the Deploy(s) (or services if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -488,19 +488,19 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
-  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled.
+  | `--sync` |  | array:string | The name(s) of the Deploy(s) to deploy with sync enabled.
 You may specify multiple names by setting this flag multiple times.
 Use * to deploy all supported deployments with sync enabled.
 
 Important: The syncs stay active after the command exits. To stop the syncs, use the &#x60;sync stop&#x60; command.
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of deploy(s) to be started locally with local mode enabled.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
 
-You may specify multiple deploys by setting this flag multiple times. Use * to deploy all deploys with local mode enabled. When this option is used,
+You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
 the command stays running until explicitly aborted.
 
-This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
-  | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
-  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
+  | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
+  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync or --local/--local-mode are set.
 
 #### Outputs
@@ -520,14 +520,14 @@ graphResults:
 
 **Executes a command (such as an interactive shell) in a running service.**
 
-Finds an active container for a deployed service and executes the given command within the container.
+Finds an active container for a deployed Deploy and executes the given command within the container.
 Supports interactive shells.
 
 _NOTE: This command may not be supported for all action types._
 
 Examples:
 
-     garden exec my-service /bin/sh   # runs a shell in the my-service container
+     garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
 
 #### Usage
 
@@ -3034,7 +3034,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). You may specify multiple names, separated by spaces.
+  | `names` | No | The name(s) of the Deploy(s) to log (skip to get logs from all Deploys in the project). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -3242,11 +3242,11 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Run even if the action is disabled for the environment, and/or a successful result is found in cache.
   | `--force-build` |  | boolean | Force re-build of Build dependencies before running.
-  | `--module` |  | array:string | The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
+  | `--module` |  | array:string | The name(s) of one or modules to pull Runs (or tasks if using modules) from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
   | `--skip` |  | array:string | The name(s) of Runs you&#x27;d like to skip. Accepts glob patterns (e.g. init* would skip both &#x27;init&#x27; and &#x27;initialize&#x27;).
   | `--skip-dependencies` |  | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
-This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
-dependencies without redeploying any service dependencies that may have changed since you last deployed.
+This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+dependencies without redeploying any Deploy (or service if using modules) dependencies that may have changed since you last deployed.
 
 Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of
 your test suites are up to date when this option is used.
@@ -3386,7 +3386,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | Yes | The name(s) of one or more deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
 
 #### Options
 
@@ -3418,7 +3418,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | Yes | The name(s) of one or more deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
 
 
 
@@ -3426,12 +3426,12 @@ Examples:
 
 **Run all or specified Test actions in the project.**
 
-Runs all or specified tests defined in the project. Also run builds and other dependencies,
-including deploys if needed.
+Runs all or specified Tests defined in the project. Also run builds and other dependencies,
+including Deploys if needed.
 
 Examples:
 
-    garden test                     # run all tests in the project
+    garden test                     # run all Tests in the project
     garden test my-test             # run the my-test Test action
     garden test --module my-module  # run all Tests in the my-module module
     garden test *integ*             # run all Tests with a name containing 'integ'
@@ -3453,13 +3453,13 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--name` |  | array:string | DEPRECATED: This now does the exact same as the positional arguments.
-Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+Only run tests with the specified name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
   | `--force` |  | boolean | Force re-run of Test, even if a successful result is found in cache.
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
-  | `--interactive` |  | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
+  | `--interactive` |  | boolean | Run the specified Test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
   | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
+  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any Deploys (or services if using modules) or run any Run actions (or tasks if using modules) that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime dependencies without redeploying any Deploy (or service) dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
 
 #### Outputs
 

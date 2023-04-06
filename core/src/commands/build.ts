@@ -27,7 +27,7 @@ import { watchParameter, watchRemovedWarning } from "./helpers"
 
 const buildArgs = {
   names: new StringsParameter({
-    help: "Specify builds to run. You may specify multiple names, separated by spaces.",
+    help: "Specify Builds to run. You may specify multiple names, separated by spaces.",
     spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Build)
@@ -40,9 +40,9 @@ const buildOpts = {
   "watch": watchParameter,
   "with-dependants": new BooleanParameter({
     help: deline`
-      Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively).
-      Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every
-      build in the project will be performed anyway).
+      Also rebuild any Builds that depend on one of the Builds specified as CLI arguments (recursively).
+      Note: This option has no effect unless a list of Build names is specified as CLI arguments (since otherwise, every
+      Build in the project will be performed anyway).
   `,
   }),
 }

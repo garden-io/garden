@@ -22,7 +22,7 @@ import { LogMonitor, LogsTagOrFilter } from "../monitors/logs"
 const logsArgs = {
   names: new StringsParameter({
     help:
-      "The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). " +
+      "The name(s) of the Deploy(s) to log (skip to get logs from all Deploys in the project). " +
       "You may specify multiple names, separated by spaces.",
     spread: true,
     getSuggestions: ({ configDump }) => {

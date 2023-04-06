@@ -33,7 +33,7 @@ export class DeleteCommand extends CommandGroup {
 const dependantsFirstOpt = {
   "dependants-first": new BooleanParameter({
     help: dedent`
-      Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
+      Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling \`garden cleanup namespace service-a,service-b --dependants-first\`.
 
       When this flag is not used, all services in the project are cleaned up simultaneously.
     `,
