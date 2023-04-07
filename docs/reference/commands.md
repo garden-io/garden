@@ -3010,6 +3010,30 @@ sources:
     path:
 ```
 
+### garden login
+
+**Log in to Garden Cloud.**
+
+Logs you in to Garden Cloud. Subsequent commands will have access to cloud features.
+
+#### Usage
+
+    garden login 
+
+
+
+### garden logout
+
+**Log out of Garden Cloud.**
+
+Logs you out of Garden Cloud.
+
+#### Usage
+
+    garden logout 
+
+
+
 ### garden logs
 
 **Retrieves the most recent logs for the specified Deploy(s).**
