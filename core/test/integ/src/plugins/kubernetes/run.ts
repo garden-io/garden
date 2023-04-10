@@ -74,6 +74,7 @@ describe("kubernetes Pod runner functions", () => {
 
   after(async () => {
     await garden.close()
+    td.reset()
   })
 
   function makePod(command: string[], image = "busybox"): KubernetesPod {

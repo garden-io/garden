@@ -305,6 +305,7 @@ describe("createIngressResources", () => {
     if (garden) {
       await garden.close()
     }
+    td.reset()
   })
 
   beforeEach(async () => {
