@@ -29,8 +29,12 @@ import {
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
 import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
-import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
-import {DEFAULT_API_VERSION, DEFAULT_RUN_TIMEOUT_SEC, DEFAULT_TEST_TIMEOUT_SEC} from "../../../../../src/constants"
+import {
+  DEFAULT_API_VERSION,
+  DEFAULT_BUILD_TIMEOUT_SEC,
+  DEFAULT_RUN_TIMEOUT_SEC,
+  DEFAULT_TEST_TIMEOUT_SEC,
+} from "../../../../../src/constants"
 import { resolve } from "path"
 
 describe("plugins.container", () => {
@@ -53,7 +57,7 @@ describe("plugins.container", () => {
 
     spec: {
       build: {
-        timeout: DEFAULT_BUILD_TIMEOUT,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       buildArgs: {},
       extraFlags: [],
@@ -238,7 +242,7 @@ describe("plugins.container", () => {
 
       spec: {
         build: {
-          timeout: DEFAULT_BUILD_TIMEOUT,
+          timeout: DEFAULT_BUILD_TIMEOUT_SEC,
         },
         buildArgs: {},
         extraFlags: [],
@@ -342,7 +346,7 @@ describe("plugins.container", () => {
           type: "container",
           spec: {
             build: {
-              timeout: DEFAULT_BUILD_TIMEOUT,
+              timeout: DEFAULT_BUILD_TIMEOUT_SEC,
             },
             buildArgs: {},
             extraFlags: [],
@@ -526,7 +530,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -588,7 +592,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -642,7 +646,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -695,7 +699,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -776,7 +780,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],
@@ -844,7 +848,7 @@ describe("plugins.container", () => {
 
         spec: {
           build: {
-            timeout: DEFAULT_BUILD_TIMEOUT,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           buildArgs: {},
           extraFlags: [],

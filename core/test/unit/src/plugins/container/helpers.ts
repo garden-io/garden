@@ -25,8 +25,8 @@ import {
   ContainerModuleConfig,
   defaultDockerfileName,
 } from "../../../../../src/plugins/container/moduleConfig"
-import { containerHelpers as helpers, DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { containerHelpers as helpers } from "../../../../../src/plugins/container/helpers"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
 
@@ -50,7 +50,7 @@ describe("containerHelpers", () => {
 
     spec: {
       build: {
-        timeout: DEFAULT_BUILD_TIMEOUT,
+        timeout: DEFAULT_BUILD_TIMEOUT_SEC,
       },
       buildArgs: {},
       extraFlags: [],
