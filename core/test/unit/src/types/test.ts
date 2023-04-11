@@ -11,6 +11,7 @@ import { getDataDir, makeTestGarden, makeTestGardenA } from "../../../helpers"
 import { TestConfig } from "../../../../src/config/test"
 import { testFromConfig } from "../../../../src/types/test"
 import { cloneDeep } from "lodash"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
 
 describe("testFromConfig", () => {
   it("should propagate the disabled flag from the config", async () => {
@@ -19,7 +20,7 @@ describe("testFromConfig", () => {
       dependencies: [],
       disabled: true,
       spec: {},
-      timeout: null,
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
     }
 
     const garden = await makeTestGardenA()
@@ -36,7 +37,7 @@ describe("testFromConfig", () => {
       dependencies: [],
       disabled: false,
       spec: {},
-      timeout: null,
+      timeout: DEFAULT_TEST_TIMEOUT_SEC,
     }
 
     const garden = await makeTestGardenA()

@@ -11,7 +11,7 @@ import { detectCycles, DependencyGraph } from "../../../../src/graph/common"
 import { makeTestGarden, expectError, getDataDir } from "../../../helpers"
 import { ModuleConfig } from "../../../../src/config/module"
 import { ConfigurationError } from "../../../../src/exceptions"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_TEST_TIMEOUT_SEC } from "../../../../src/constants"
 import { detectMissingDependencies } from "../../../../src/graph/modules"
 
 describe("graph common", () => {
@@ -108,7 +108,7 @@ describe("graph common", () => {
               dependencies: ["missing"],
               disabled: false,
               spec: {},
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
             },
           ],
           spec: {},

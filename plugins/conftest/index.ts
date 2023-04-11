@@ -29,6 +29,7 @@ import { uniq } from "lodash"
 import { HelmDeployAction } from "@garden-io/core/build/src/plugins/kubernetes/helm/config"
 import { actionRefMatches } from "@garden-io/core/build/src/actions/base"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { DEFAULT_TEST_TIMEOUT_SEC } from "@garden-io/core/build/src/constants"
 
 export interface ConftestProviderConfig extends GenericProviderConfig {
   policyPath: string
@@ -393,7 +394,7 @@ export const gardenPlugin = () =>
                 dependencies: moduleConfig.spec.runtimeDependencies,
                 spec: {},
                 disabled: false,
-                timeout: null,
+                timeout: DEFAULT_TEST_TIMEOUT_SEC,
               },
             ]
             return { moduleConfig }

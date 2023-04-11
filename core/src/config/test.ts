@@ -14,7 +14,7 @@ export interface BaseTestSpec {
   name: string
   dependencies: string[]
   disabled: boolean
-  timeout: number | null
+  timeout: number
 }
 
 export const baseTestSpecSchema = createSchema({

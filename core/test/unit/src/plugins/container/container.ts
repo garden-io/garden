@@ -30,7 +30,7 @@ import {
 } from "../../../../../src/plugins/container/moduleConfig"
 import { ExecBuildConfig } from "../../../../../src/plugins/exec/config"
 import { DEFAULT_BUILD_TIMEOUT } from "../../../../../src/plugins/container/helpers"
-import { DEFAULT_API_VERSION } from "../../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_TEST_TIMEOUT_SEC } from "../../../../../src/constants"
 import { resolve } from "path"
 
 describe("plugins.container", () => {
@@ -316,7 +316,7 @@ describe("plugins.container", () => {
             },
             cpu: defaultCpu,
             memory: defaultMemory,
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
             volumes: [],
           },
         ],
@@ -658,7 +658,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               volumes: [
                 {
                   name: "test",
@@ -748,7 +748,7 @@ describe("plugins.container", () => {
               env: {},
               cpu: defaultCpu,
               memory: defaultMemory,
-              timeout: null,
+              timeout: DEFAULT_TEST_TIMEOUT_SEC,
               volumes: [],
             },
           ],
