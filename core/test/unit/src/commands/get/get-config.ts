@@ -11,7 +11,7 @@ import { pick } from "lodash"
 import { getDataDir, makeTestGarden, makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
-import { DEFAULT_API_VERSION, DEFAULT_TEST_TIMEOUT_SEC } from "../../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_RUN_TIMEOUT_SEC, DEFAULT_TEST_TIMEOUT_SEC } from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
 import { defaultContainerLimits } from "../../../../../src/plugins/container/moduleConfig"
 
@@ -581,7 +581,7 @@ describe("GetConfigCommand", () => {
             artifacts: [],
             command: ["echo", "ok"],
           },
-          timeout: null,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         },
       ]
 

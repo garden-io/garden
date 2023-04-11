@@ -96,7 +96,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
         disabled: task.disabled,
         build: dummyBuild?.name,
         dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
-        timeout: task.spec.timeout || undefined,
+        timeout: task.spec.timeout,
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,

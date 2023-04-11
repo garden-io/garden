@@ -126,7 +126,7 @@ export async function convertExecModule(params: ConvertModuleParams<ExecModule>)
       disabled: task.disabled,
       build: buildAction ? buildAction.name : undefined,
       dependencies: prepRuntimeDeps(task.spec.dependencies),
-      timeout: task.spec.timeout ? task.spec.timeout : undefined,
+      timeout: task.spec.timeout,
 
       spec: {
         shell: true, // This keeps the old pre-0.13 behavior

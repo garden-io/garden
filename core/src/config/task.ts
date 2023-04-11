@@ -18,7 +18,7 @@ export interface BaseTaskSpec extends TaskSpec {
   dependencies: string[]
   description?: string
   disabled: boolean
-  timeout: number | null
+  timeout: number
 }
 
 export const cacheResultSchema = memoize(() =>
