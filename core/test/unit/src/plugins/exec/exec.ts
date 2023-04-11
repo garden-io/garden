@@ -49,6 +49,7 @@ import { BuildActionConfig } from "../../../../../src/actions/build"
 import { DeployActionConfig } from "../../../../../src/actions/deploy"
 import { RunActionConfig } from "../../../../../src/actions/run"
 import { getLogFilePath } from "../../../../../src/plugins/exec/deploy"
+import { DEFAULT_RUN_TIMEOUT_SEC, DEFAULT_TEST_TIMEOUT_SEC } from "../../../../../src/constants"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -128,7 +129,7 @@ describe("exec plugin", () => {
           cacheResult: false,
           dependencies: ["orange"],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             artifacts: [],
             name: "banana",
@@ -136,7 +137,7 @@ describe("exec plugin", () => {
             env: {},
             dependencies: ["orange"],
             disabled: false,
-            timeout: null,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
         {
@@ -161,7 +162,7 @@ describe("exec plugin", () => {
           name: "unit",
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           spec: {
             name: "unit",
             artifacts: [],
@@ -171,7 +172,7 @@ describe("exec plugin", () => {
             env: {
               FOO: "boo",
             },
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
           },
         },
       ])
@@ -186,7 +187,7 @@ describe("exec plugin", () => {
           name: "unit",
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           spec: {
             name: "unit",
             artifacts: [],
@@ -194,7 +195,7 @@ describe("exec plugin", () => {
             disabled: false,
             command: ["echo", "OK"],
             env: {},
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
           },
         },
       ])
@@ -209,7 +210,7 @@ describe("exec plugin", () => {
           name: "unit",
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_TEST_TIMEOUT_SEC,
           spec: {
             name: "unit",
             dependencies: [],
@@ -217,7 +218,7 @@ describe("exec plugin", () => {
             disabled: false,
             command: ["echo", "OK"],
             env: {},
-            timeout: null,
+            timeout: DEFAULT_TEST_TIMEOUT_SEC,
           },
         },
       ])
@@ -289,7 +290,7 @@ describe("exec plugin", () => {
           cacheResult: false,
           dependencies: [],
           disabled: false,
-          timeout: null,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
           spec: {
             name: "pwd",
             env: {},
@@ -297,7 +298,7 @@ describe("exec plugin", () => {
             artifacts: [],
             dependencies: [],
             disabled: false,
-            timeout: null,
+            timeout: DEFAULT_RUN_TIMEOUT_SEC,
           },
         },
       ])
