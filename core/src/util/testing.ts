@@ -20,7 +20,7 @@ import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT } from "../constants"
 import { getRootLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
@@ -64,6 +64,7 @@ const moduleConfigDefaults: ModuleConfig = {
   apiVersion: DEFAULT_API_VERSION,
   build: {
     dependencies: [],
+    timeout: DEFAULT_BUILD_TIMEOUT_SEC,
   },
   disabled: false,
   name: "foo",

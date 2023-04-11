@@ -46,9 +46,7 @@ describe("plugins.container", () => {
 
   const baseConfig: ContainerModuleConfig = {
     allowPublish: false,
-    build: {
-      dependencies: [],
-    },
+    build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
     disabled: false,
     apiVersion: DEFAULT_API_VERSION,
     name: "test",
@@ -231,9 +229,7 @@ describe("plugins.container", () => {
   describe("configureContainerModule", () => {
     const containerModuleConfig: ContainerModuleConfig = {
       allowPublish: false,
-      build: {
-        dependencies: [],
-      },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       disabled: false,
       apiVersion: DEFAULT_API_VERSION,
       name: "module-a",
@@ -337,7 +333,7 @@ describe("plugins.container", () => {
       expect(result).to.eql({
         moduleConfig: {
           allowPublish: false,
-          build: { dependencies: [] },
+          build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
           disabled: false,
           apiVersion: DEFAULT_API_VERSION,
           name: "module-a",
@@ -519,9 +515,7 @@ describe("plugins.container", () => {
     it("should add service volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -581,9 +575,7 @@ describe("plugins.container", () => {
     it("should add task volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -635,9 +627,7 @@ describe("plugins.container", () => {
     it("should add test volume modules as build and runtime dependencies", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -688,9 +678,7 @@ describe("plugins.container", () => {
     it("should fail with invalid port in ingress spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -769,9 +757,7 @@ describe("plugins.container", () => {
     it("should fail with invalid port in httpGet healthcheck spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",
@@ -837,9 +823,7 @@ describe("plugins.container", () => {
     it("should fail with invalid port in tcpPort healthcheck spec", async () => {
       const moduleConfig: ContainerModuleConfig = {
         allowPublish: false,
-        build: {
-          dependencies: [],
-        },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         apiVersion: DEFAULT_API_VERSION,
         name: "module-a",

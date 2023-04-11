@@ -40,9 +40,7 @@ describe("containerHelpers", () => {
   const baseConfig: ModuleConfig<ContainerModuleSpec, any, any> = {
     allowPublish: false,
     apiVersion: DEFAULT_API_VERSION,
-    build: {
-      dependencies: [],
-    },
+    build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
     disabled: false,
     name: "test",
     path: modulePath,
@@ -346,7 +344,7 @@ describe("containerHelpers", () => {
         apiVersion: DEFAULT_API_VERSION,
         type: "container",
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "test",
         path: tmpDir.path,

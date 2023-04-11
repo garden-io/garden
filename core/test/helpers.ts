@@ -35,7 +35,7 @@ import { createGardenPlugin, GardenPluginSpec, ProviderHandlers, RegisterPluginP
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv } from "../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_CORE_ROOT, gardenEnv } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { ConfigureModuleParams } from "../src/plugin/handlers/Module/configure"
 import { ExternalSourceType, getRemoteSourceLocalPath, hashRepoUrl } from "../src/util/ext-source-util"
@@ -407,7 +407,7 @@ export const defaultModuleConfig: ModuleConfig = {
   name: "test",
   path: "bla",
   allowPublish: false,
-  build: { dependencies: [] },
+  build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
   disabled: false,
   spec: {
     services: [

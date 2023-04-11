@@ -33,7 +33,7 @@ import { gardenAnnotationKey } from "../../../../../../src/util/string"
 import { getDeployStatuses } from "../../../../../../src/tasks/helpers"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { KubernetesDeployAction } from "../../../../../../src/plugins/kubernetes/kubernetes-type/config"
-import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
 import { ActionModeMap } from "../../../../../../src/actions/types"
 
 describe("kubernetes-module handlers", () => {
@@ -88,7 +88,7 @@ describe("kubernetes-module handlers", () => {
       kind: "Module",
       disabled: false,
       allowPublish: false,
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       description: "Kubernetes module that includes a Namespace resource",
       name: "namespace-resource",
       path: tmpDir.path,
@@ -187,6 +187,7 @@ describe("kubernetes-module handlers", () => {
       })
       return { deployParams, manifests }
     }
+
     it("should successfully deploy when serviceResource doesn't have a containerModule", async () => {
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
       const action = graph.getDeploy("module-simple")

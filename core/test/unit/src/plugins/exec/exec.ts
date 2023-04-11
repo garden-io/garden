@@ -49,7 +49,7 @@ import { BuildActionConfig } from "../../../../../src/actions/build"
 import { DeployActionConfig } from "../../../../../src/actions/deploy"
 import { RunActionConfig } from "../../../../../src/actions/run"
 import { getLogFilePath } from "../../../../../src/plugins/exec/deploy"
-import { DEFAULT_RUN_TIMEOUT_SEC, DEFAULT_TEST_TIMEOUT_SEC } from "../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC, DEFAULT_RUN_TIMEOUT_SEC, DEFAULT_TEST_TIMEOUT_SEC } from "../../../../../src/constants"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -1080,6 +1080,7 @@ describe("exec plugin", () => {
                     ],
                   },
                 ],
+                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               },
               spec: {
                 // exec-plugin specific build config defined in the spec

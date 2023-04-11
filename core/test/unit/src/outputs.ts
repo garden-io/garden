@@ -13,7 +13,7 @@ import { expect } from "chai"
 import { realpath } from "fs-extra"
 import { createGardenPlugin } from "../../../src/plugin/plugin"
 import { ProjectConfig } from "../../../src/config/project"
-import { DEFAULT_API_VERSION } from "../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../src/constants"
 import { joi } from "../../../src/config/common"
 
 describe("resolveProjectOutputs", () => {
@@ -98,7 +98,7 @@ describe("resolveProjectOutputs", () => {
       {
         apiVersion: DEFAULT_API_VERSION,
         allowPublish: false,
-        build: { dependencies: [] },
+        build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
         disabled: false,
         name: "test",
         path: tmpPath,

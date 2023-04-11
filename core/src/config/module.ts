@@ -70,7 +70,7 @@ export const buildDependencySchema = createSchema({
 
 export interface BaseBuildSpec {
   dependencies: BuildDependencyConfig[]
-  timeout?: number
+  timeout: number
 }
 
 export interface GenerateFileSpec {

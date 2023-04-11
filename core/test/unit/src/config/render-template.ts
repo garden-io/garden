@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../src/constants"
 import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../helpers"
 import {
   ConfigTemplateResource,
@@ -178,6 +178,7 @@ describe("config templates", () => {
               name: "${parent.name}-${template.name}-${inputs.foo}",
               build: {
                 dependencies: [{ name: "${parent.name}-${template.name}-foo", copy: [] }],
+                timeout: DEFAULT_BUILD_TIMEOUT_SEC,
               },
               image: "${modules.foo.outputs.bar || inputs.foo}",
             },

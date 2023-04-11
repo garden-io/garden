@@ -32,7 +32,7 @@ import { resolve, join } from "path"
 import td from "testdouble"
 import tmp from "tmp-promise"
 import { realpath, readFile, writeFile } from "fs-extra"
-import { DEFAULT_API_VERSION, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_BUILD_TIMEOUT_SEC, GARDEN_VERSIONFILE_NAME } from "../../../../src/constants"
 import { defaultDotIgnoreFile, fixedProjectExcludes } from "../../../../src/util/fs"
 import { Log } from "../../../../src/logger/log-entry"
 import { BaseActionConfig } from "../../../../src/actions/types"
@@ -393,7 +393,7 @@ describe("hashModuleVersion", () => {
       path: "/tmp",
       name: "foo",
       allowPublish: false,
-      build: { dependencies: [] },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       disabled: false,
       serviceConfigs: [],
       taskConfigs: [],
@@ -518,9 +518,7 @@ describe("helpers", () => {
     const moduleConfig: ModuleConfig = {
       allowPublish: false,
       apiVersion: DEFAULT_API_VERSION,
-      build: {
-        dependencies: [],
-      },
+      build: { dependencies: [], timeout: DEFAULT_BUILD_TIMEOUT_SEC },
       disabled: false,
       name: "module-a",
       path: "/path/to/module/a",
