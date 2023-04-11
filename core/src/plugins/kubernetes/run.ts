@@ -44,9 +44,7 @@ import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@
 import { RunResult } from "../../plugin/base"
 import { LogLevel } from "../../logger/logger"
 import { getResourceEvents } from "./status/events"
-
-// Default timeout for individual run/exec operations
-const defaultTimeout = 600
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants"
 
 /**
  * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
@@ -428,7 +426,7 @@ async function runWithoutArtifacts({
       log,
       remove: true,
       events: ctx.events,
-      timeoutSec: timeout || defaultTimeout,
+      timeoutSec: timeout || DEFAULT_RUN_TIMEOUT_SEC,
       tty: interactive,
       throwOnExitCode: true,
     })
@@ -534,7 +532,7 @@ async function runWithArtifacts({
   let result: RunResult
   const startedAt = new Date()
 
-  const timeoutSec = timeout || defaultTimeout
+  const timeoutSec = timeout || DEFAULT_RUN_TIMEOUT_SEC
 
   try {
     errorMetadata.pod = pod
@@ -1192,7 +1190,7 @@ export class PodRunner extends PodRunnerParams {
   }) {
     // Some types and predicates to identify known errors
     const knownErrorTypes = ["out-of-memory", "not-found", "timeout", "pod-runner", "kubernetes"] as const
-    type KnownErrorType = (typeof knownErrorTypes)[number]
+    type KnownErrorType = typeof knownErrorTypes[number]
     // A known error is always an instance of a subclass of GardenBaseError
     type KnownError = Error & {
       message: string
