@@ -26,9 +26,9 @@ export const DEFAULT_PORT_PROTOCOL = "TCP"
 export const PREVIOUS_API_VERSION = "garden.io/v0"
 export const DEFAULT_API_VERSION = "garden.io/v1"
 
-export const defaultBuildTimeout = 1200
-export const DEFAULT_TEST_TIMEOUT = 60 * 1000
-export const DEFAULT_RUN_TIMEOUT = 60 * 1000
+export const DEFAULT_BUILD_TIMEOUT_SEC = 1200
+export const DEFAULT_TEST_TIMEOUT_SEC = 60 * 1000
+export const DEFAULT_RUN_TIMEOUT_SEC = 60 * 1000
 
 export type SupportedPlatform = "linux" | "darwin" | "win32"
 export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]

@@ -25,7 +25,7 @@ import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
 import { configTemplateKind, varfileDescription } from "./base"
-import { defaultBuildTimeout } from "../constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../constants"
 
 interface BuildCopySpec {
   source: string
@@ -156,7 +156,7 @@ export const baseBuildSpecSchema = createSchema({
     timeout: joi
       .number()
       .integer()
-      .default(defaultBuildTimeout)
+      .default(DEFAULT_BUILD_TIMEOUT_SEC)
       .description("Maximum time in seconds to wait for build to finish."),
   }),
   default: () => ({ dependencies: [] }),

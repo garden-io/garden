@@ -13,7 +13,7 @@ import { TestGarden } from "../../../../../helpers"
 import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getKubernetesTestGarden } from "./common"
-import { defaultBuildTimeout } from "../../../../../../src/constants"
+import { DEFAULT_BUILD_TIMEOUT_SEC } from "../../../../../../src/constants"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden
@@ -66,7 +66,7 @@ describe("configureKubernetesModule", () => {
         spec: {
           build: {
             dependencies: [],
-            timeout: defaultBuildTimeout,
+            timeout: DEFAULT_BUILD_TIMEOUT_SEC,
           },
           dependencies: [],
           files: [],

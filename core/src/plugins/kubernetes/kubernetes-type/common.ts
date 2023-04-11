@@ -22,7 +22,7 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
 import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
-import { DEFAULT_RUN_TIMEOUT } from "../../../constants"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../constants"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
 import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
@@ -238,7 +238,7 @@ export async function runOrTestWithPod(
     image: container.image!,
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
-    timeout: timeout || DEFAULT_RUN_TIMEOUT,
+    timeout: timeout || DEFAULT_RUN_TIMEOUT_SEC,
     version,
   })
 }
