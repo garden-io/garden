@@ -44,7 +44,6 @@ import { V1PodSpec, V1Container, V1Pod, V1ContainerStatus, V1PodStatus } from "@
 import { RunResult } from "../../plugin/base"
 import { LogLevel } from "../../logger/logger"
 import { getResourceEvents } from "./status/events"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants"
 
 /**
  * When a `podSpec` is passed to `runAndCopy`, only these fields will be used for the runner's pod spec
@@ -409,7 +408,7 @@ async function runWithoutArtifacts({
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
-  const { timeout, interactive } = run
+  const { timeout: timeoutSec, interactive } = run
 
   const { runner } = getPodResourceAndRunner({
     ctx,
@@ -426,7 +425,7 @@ async function runWithoutArtifacts({
       log,
       remove: true,
       events: ctx.events,
-      timeoutSec: timeout || DEFAULT_RUN_TIMEOUT_SEC,
+      timeoutSec,
       tty: interactive,
       throwOnExitCode: true,
     })
@@ -520,7 +519,7 @@ async function runWithArtifacts({
   podData: PodData
   run: BaseRunParams
 }): Promise<RunResult> {
-  const { args, command, timeout } = run
+  const { args, command, timeout: timeoutSec } = run
 
   const { pod, runner } = getPodResourceAndRunner({
     ctx,
@@ -531,8 +530,6 @@ async function runWithArtifacts({
 
   let result: RunResult
   const startedAt = new Date()
-
-  const timeoutSec = timeout || DEFAULT_RUN_TIMEOUT_SEC
 
   try {
     errorMetadata.pod = pod

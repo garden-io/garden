@@ -49,6 +49,7 @@ import { KubernetesPodRunActionSpec } from "../../../../../src/plugins/kubernete
 import { Resolved } from "../../../../../src/actions/types"
 import { HelmDeployAction } from "../../../../../src/plugins/kubernetes/helm/config"
 import { executeAction } from "../../../../../src/graph/actions"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../../../../src/constants"
 
 describe("kubernetes Pod runner functions", () => {
   let garden: Garden
@@ -1040,6 +1041,7 @@ describe("kubernetes Pod runner functions", () => {
 
         image,
         version: action.versionString(),
+        timeout: DEFAULT_RUN_TIMEOUT_SEC,
       })
 
       expect(result.log.trim()).to.equal("ok")
@@ -1061,6 +1063,7 @@ describe("kubernetes Pod runner functions", () => {
 
         image,
         version: action.versionString(),
+        timeout: DEFAULT_RUN_TIMEOUT_SEC,
       })
 
       await expectError(
@@ -1110,6 +1113,7 @@ describe("kubernetes Pod runner functions", () => {
           image,
           version: action.versionString(),
           action,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
         expect(result.log.trim()).to.equal("ok")
@@ -1136,6 +1140,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           version: action.versionString(),
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
         await expectError(
@@ -1161,6 +1166,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           version: action.versionString(),
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
         expect(await pathExists(join(tmpDir.path, "subdir", "task.txt"))).to.be.true
@@ -1184,6 +1190,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           version: action.versionString(),
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
       })
 
@@ -1208,6 +1215,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           version: action.versionString(),
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
         expect(await pathExists(join(tmpDir.path, "my-task-report"))).to.be.true
@@ -1234,6 +1242,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           version: action.versionString(),
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
         expect(await pathExists(join(tmpDir.path, "report"))).to.be.true
@@ -1285,7 +1294,7 @@ describe("kubernetes Pod runner functions", () => {
           artifactsPath: tmpDir.path,
           image,
           version: action.versionString(),
-          timeout,
+          timeout: DEFAULT_RUN_TIMEOUT_SEC,
         })
 
         expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)
@@ -1312,6 +1321,7 @@ describe("kubernetes Pod runner functions", () => {
               description: "Foo",
               image,
               version: action.versionString(),
+              timeout: DEFAULT_RUN_TIMEOUT_SEC,
             }),
           (err) =>
             expect(err.message).to.include(deline`
