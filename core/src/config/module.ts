@@ -156,6 +156,7 @@ export const baseBuildSpecSchema = createSchema({
     timeout: joi
       .number()
       .integer()
+      .min(1)
       .default(DEFAULT_BUILD_TIMEOUT_SEC)
       .description("Maximum time in seconds to wait for build to finish."),
   }),
