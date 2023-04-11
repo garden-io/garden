@@ -280,7 +280,7 @@ tasks:
     disabled: false
 
     # Maximum duration (in seconds) of the task's execution.
-    timeout: null
+    timeout: 600
 
     # A list of artifacts to copy after the task run.
     artifacts:
@@ -316,7 +316,7 @@ tests:
     disabled: false
 
     # Maximum duration (in seconds) of the test run.
-    timeout: null
+    timeout: 600
 
     # The command to run to test the module.
     #
@@ -892,7 +892,7 @@ Maximum duration (in seconds) of the task's execution.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tasks[].artifacts[]`
 
@@ -996,7 +996,7 @@ Maximum duration (in seconds) of the test run.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `null`  | No       |
+| `number` | `600`   | No       |
 
 ### `tests[].command[]`
 
