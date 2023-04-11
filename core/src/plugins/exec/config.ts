@@ -159,7 +159,7 @@ export const execDeployActionSchema = createSchema({
         ${execPathDoc}
         `
       ),
-    // TODO: Set a default in v0.13.
+    // TODO-0.13.0: Set a default in v0.13.0.
     timeout: joi.number().description(dedent`
       The maximum duration (in seconds) to wait for \`deployCommand\` to exit. Ignored if \`persistent: false\`.
     `),
