@@ -10,9 +10,10 @@ import { expect } from "chai"
 import { cloneDeep } from "lodash"
 
 import { TestGarden } from "../../../../../helpers"
-import { defaultBuildTimeout, ModuleConfig } from "../../../../../../src/config/module"
+import { ModuleConfig } from "../../../../../../src/config/module"
 import { apply } from "json-merge-patch"
 import { getKubernetesTestGarden } from "./common"
+import { defaultBuildTimeout } from "../../../../../../src/constants"
 
 describe("configureKubernetesModule", () => {
   let garden: TestGarden

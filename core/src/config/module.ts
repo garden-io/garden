@@ -9,24 +9,23 @@
 import { memoize } from "lodash"
 import { ServiceConfig, serviceConfigSchema } from "./service"
 import {
+  apiVersionSchema,
+  createSchema,
+  DeepPrimitiveMap,
+  includeGuideLink,
+  joi,
   joiArray,
   joiIdentifier,
   joiRepositoryUrl,
-  joiUserIdentifier,
-  joi,
-  includeGuideLink,
-  apiVersionSchema,
-  DeepPrimitiveMap,
-  joiVariables,
   joiSparseArray,
-  createSchema,
+  joiUserIdentifier,
+  joiVariables,
 } from "./common"
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
 import { configTemplateKind, varfileDescription } from "./base"
-
-export const defaultBuildTimeout = 1200
+import { defaultBuildTimeout } from "../constants"
 
 interface BuildCopySpec {
   source: string
