@@ -192,7 +192,7 @@ include:
 exclude:
 
 # Set a timeout for the build to complete, in seconds.
-timeout:
+timeout: 1200
 
 spec:
   # Specify an image ID to use when building locally, instead of the default of using the action name. Must be a valid
@@ -540,9 +540,9 @@ exclude:
 
 Set a timeout for the build to complete, in seconds.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1200`  | No       |
 
 ### `spec`
 
