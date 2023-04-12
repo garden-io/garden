@@ -158,9 +158,12 @@ export function prepareMinimistOpts({
     if (!_skipDefault) {
       defaultValues[name] = spec.getDefaultValue(cli)
     }
+    if (!aliases[name]) {
+      aliases[name] = []
+    }
 
     for (const alias of spec.aliases || []) {
-      aliases[name] = alias
+      aliases[name].push(alias)
       if (!_skipDefault) {
         defaultValues[alias] = defaultValues[name]
       }

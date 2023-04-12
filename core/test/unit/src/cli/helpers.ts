@@ -225,9 +225,12 @@ describe("processCliArgs", () => {
 
   it("correctly handles option aliases", () => {
     const cmd = new DeployCommand()
-    const { opts } = parseAndProcess(["--sync", "--force-build=false"], cmd)
-    expect(opts["sync"]).to.eql([])
-    expect(opts["force-build"]).to.be.false
+    // The --sync option has two aliases: dev and dev-mode, so we test both of them.
+    const { opts: firstOpts } = parseAndProcess(["--dev", "some-deploy", "--force-build=false"], cmd)
+    const { opts: secondOpts } = parseAndProcess(["--dev-mode", "some-deploy"], cmd)
+    expect(firstOpts["sync"]).to.eql(["some-deploy"])
+    expect(firstOpts["force-build"]).to.be.false
+    expect(secondOpts["sync"]).to.eql(["some-deploy"])
   })
 
   it("correctly handles multiple instances of a string array parameter", () => {
