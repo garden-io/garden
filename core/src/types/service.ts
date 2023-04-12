@@ -73,7 +73,7 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
 }
 
 export const deployStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
-export type DeployState = typeof deployStates[number]
+export type DeployState = (typeof deployStates)[number]
 
 /**
  * Given a list of states, return a single state representing the list.
@@ -194,7 +194,7 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   lastError?: string
   outputs?: O
   runningReplicas?: number
-  deployState: DeployState
+  state: DeployState
   updatedAt?: string
 }
 

@@ -182,13 +182,11 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   })
   const preparedManifests = prepareResult.manifests
 
-  let { state, remoteResources, mode: deployedMode } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    preparedManifests,
-    log
-  )
+  let {
+    state,
+    remoteResources,
+    mode: deployedMode,
+  } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(remoteResources, action)
@@ -206,7 +204,7 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
     state: deployStateToActionState(state),
     detail: {
       forwardablePorts,
-      deployState: state,
+      state,
       version: state === "ready" ? action.versionString() : undefined,
       detail: { remoteResources },
       mode: deployedMode,
@@ -384,7 +382,7 @@ export const deleteKubernetesDeploy: DeployActionHandler<"delete", KubernetesDep
     })
   }
 
-  const status: KubernetesServiceStatus = { deployState: "missing", detail: { remoteResources: [] } }
+  const status: KubernetesServiceStatus = { state: "missing", detail: { remoteResources: [] } }
 
   if (namespaceManifests.length > 0) {
     status.namespaceStatuses = namespaceManifests.map((m) => ({

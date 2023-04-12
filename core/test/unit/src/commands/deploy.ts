@@ -62,7 +62,7 @@ const testProvider = () => {
             deploy: async (params) => {
               const newStatus: DeployStatus = {
                 state: "ready",
-                detail: { deployState: "ready", detail: {} },
+                detail: { state: "ready", detail: {} },
                 outputs: {},
               }
               testStatuses[params.action.name] = newStatus
@@ -72,7 +72,7 @@ const testProvider = () => {
               return (
                 testStatuses[params.action.name] || {
                   state: "unknown",
-                  detail: { deployState: "unknown", detail: {} },
+                  detail: { state: "unknown", detail: {} },
                   outputs: {},
                 }
               )

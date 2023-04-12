@@ -72,7 +72,7 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
       state: deployStateToActionState("outdated"),
       outputs: {},
       detail: {
-        deployState: "outdated",
+        state: "outdated",
         detail: {},
       },
     }
@@ -87,7 +87,7 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
     state: deployStateToActionState(deployState),
     outputs: await getStackOutputs(pulumiParams),
     detail: {
-      deployState,
+      state: deployState,
       detail: {},
     },
   }
@@ -106,7 +106,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
       state: "ready",
       outputs: await getStackOutputs(pulumiParams),
       detail: {
-        deployState: "ready",
+        state: "ready",
         detail: {},
       },
     }
@@ -141,7 +141,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
     state: "ready",
     outputs: await getStackOutputs(pulumiParams),
     detail: {
-      deployState: "ready",
+      state: "ready",
       detail: {},
     },
   }
@@ -154,7 +154,7 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
       state: deployStateToActionState("outdated"),
       outputs: {},
       detail: {
-        deployState: "outdated",
+        state: "outdated",
         detail: {},
       },
     }
@@ -182,7 +182,7 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
     state: deployStateToActionState("missing"),
     outputs: {},
     detail: {
-      deployState: "missing",
+      state: "missing",
       detail: {},
     },
   }

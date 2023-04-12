@@ -9,8 +9,8 @@
 import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
 import type { LogEntryEventPayload } from "./cloud/buffered-event-stream"
-import type { ServiceStatus } from "./types/service"
-import type { RunStatusForEventPayload } from "./plugin/base"
+import type { DeployState, ServiceStatus } from "./types/service"
+import type { RunState, RunStatusForEventPayload } from "./plugin/base"
 import type { Omit } from "./util/util"
 import type { AuthTokenResponse } from "./cloud/api"
 import type { RenderedActionGraph } from "./graph/config-graph"
@@ -102,7 +102,9 @@ export function toGraphResultEventPayload(result: GraphResult): GraphResultEvent
   return payload
 }
 
-export interface ActionStatusPayload<S = {}> {
+export type ActionStatusDetailedState = DeployState | BuildState | RunState
+
+export interface ActionStatusPayload<S = { state: ActionStatusDetailedState }> {
   actionName: string
   actionVersion: string
   actionUid: string
