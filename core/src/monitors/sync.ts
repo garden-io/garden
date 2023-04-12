@@ -34,7 +34,7 @@ export class SyncMonitor extends Monitor {
     super(params)
     this.action = params.action
     this.graph = params.graph
-    this.log = params.log.createLog({ section: params.action.key() })
+    this.log = params.log.createLog({ name: params.action.key() })
     this.events = new PluginEventBroker(params.garden)
   }
 

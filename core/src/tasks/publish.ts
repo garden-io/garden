@@ -60,10 +60,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
 
   async process({ dependencyResults }: ActionTaskProcessParams<BuildAction, PublishActionResult>) {
     if (this.action.getConfig("allowPublish") === false) {
-      this.log.info({
-        section: this.action.key(),
-        msg: "Publishing disabled (allowPublish=false set on build)",
-      })
+      this.log.info("Publishing disabled (allowPublish=false set on build)")
       return {
         state: <ActionState>"ready",
         detail: { published: false },

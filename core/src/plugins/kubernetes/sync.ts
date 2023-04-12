@@ -38,7 +38,7 @@ import {
   SyncableResource,
   SyncableRuntimeAction,
 } from "./types"
-import { Log } from "../../logger/log-entry"
+import { ActionLogContext, Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common"
 import {
@@ -468,7 +468,7 @@ export async function configureSyncMode({
 
 interface SyncParamsBase {
   ctx: KubernetesPluginContext
-  log: Log
+  log: Log<ActionLogContext>
 }
 
 interface StopSyncsParams extends SyncParamsBase {
@@ -532,18 +532,12 @@ export async function startSyncs(params: StartSyncsParams) {
 
     // Validate the target
     if (!isConfiguredForSyncMode(target)) {
-      log.warn({
-        section: action.key(),
-        msg: chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`),
-      })
+      log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
       return
     }
 
     if (!containerName) {
-      log.warn({
-        section: action.key(),
-        msg: chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`),
-      })
+      log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
       return
     }
 
@@ -561,7 +555,7 @@ export async function startSyncs(params: StartSyncsParams) {
 
     const mode = s.mode || defaultSyncMode
 
-    log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
+    log.info(`Syncing ${description} (${mode})`)
 
     await mutagen.ensureSync({
       log,
@@ -573,7 +567,7 @@ export async function startSyncs(params: StartSyncsParams) {
     })
 
     // Wait for initial sync to complete
-    await mutagen.flushSync(log, key)
+    await mutagen.flushSync(key)
 
     expectedKeys.push(key)
   })
@@ -582,7 +576,7 @@ export async function startSyncs(params: StartSyncsParams) {
   const keyPrefix = getSyncKeyPrefix(ctx, action)
 
   for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
-    log.info({ section: action.key(), msg: chalk.gray(`Terminating unexpected/outdated sync ${sync.name}`) })
+    log.info(`Terminating unexpected/outdated sync ${sync.name}`)
     await mutagen.terminateSync(log, sync.name)
   }
 
@@ -599,7 +593,7 @@ export async function stopSyncs(params: StopSyncsParams) {
   const syncs = allSyncs.filter((sync) => sync.name.startsWith(keyPrefix))
 
   for (const sync of syncs) {
-    log.debug({ section: action.key(), msg: chalk.gray(`Terminating sync ${sync.name}`) })
+    log.debug(`Terminating sync ${sync.name}`)
     await mutagen.terminateSync(log, sync.name)
   }
 }
@@ -636,18 +630,12 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
 
     // Validate the target
     if (!isConfiguredForSyncMode(target)) {
-      log.debug({
-        section: action.key(),
-        msg: chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`),
-      })
+      log.debug(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
       return
     }
 
     if (!containerName) {
-      log.debug({
-        section: action.key(),
-        msg: chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`),
-      })
+      log.debug(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
       return
     }
 
@@ -703,7 +691,7 @@ export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyn
   let extraSyncs = false
 
   for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
-    log.debug({ section: action.key(), msg: chalk.gray(`Found unexpected/outdated sync ${sync.name}`) })
+    log.debug(`Found unexpected/outdated sync ${sync.name}`)
     extraSyncs = true
   }
 

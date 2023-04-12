@@ -248,10 +248,11 @@ export const execPlugin = () =>
         return { ready: !ctx.provider.config.initScript, outputs: {} }
       },
       async prepareEnvironment({ ctx, log }) {
+        const execLog = log.createLog({ name: "exec" })
         if (ctx.provider.config.initScript) {
           try {
-            log.info({ section: "exec", msg: "Running init script" })
-            await runScript({ log, cwd: ctx.projectRoot, script: ctx.provider.config.initScript })
+            execLog.info("Running init script")
+            await runScript({ log: execLog, cwd: ctx.projectRoot, script: ctx.provider.config.initScript })
           } catch (_err) {
             const error = _err as ExecaError
 

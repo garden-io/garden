@@ -119,6 +119,7 @@ describe("kubernetes", () => {
           graph,
         })
 
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
         const resources = [
           await createWorkloadManifest({
             ctx,
@@ -129,7 +130,7 @@ describe("kubernetes", () => {
             imageId: getDeployedImageId(resolvedDeployAction, provider),
 
             production: ctx.production,
-            log,
+            log: actionLog,
           }),
         ]
         logsFollower = new K8sLogFollower({
@@ -158,9 +159,8 @@ describe("kubernetes", () => {
 
       it("should automatically connect if a Deploy that was missing is deployed", async () => {
         const action = graph.getDeploy("simple-service")
-        const log = garden.log
         const namespace = provider.config.namespace!.name!
-        const api = await KubeApi.factory(log, ctx, provider)
+        const api = await KubeApi.factory(garden.log, ctx, provider)
 
         const entries: DeployLogEntry[] = []
 
@@ -194,6 +194,7 @@ describe("kubernetes", () => {
           graph,
         })
 
+        const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
         const resources = [
           await createWorkloadManifest({
             ctx,
@@ -203,14 +204,14 @@ describe("kubernetes", () => {
             namespace,
             imageId: getDeployedImageId(resolvedDeployAction, provider),
             production: ctx.production,
-            log,
+            log: actionLog,
           }),
         ]
         const retryIntervalMs = 1000
         logsFollower = new K8sLogFollower({
           defaultNamespace: provider.config.namespace!.name!,
           stream,
-          log,
+          log: actionLog,
           entryConverter: makeDeployLogEntry(action.name),
           resources,
           k8sApi: api,
@@ -231,7 +232,7 @@ describe("kubernetes", () => {
 
         logsFollower.close()
 
-        const logString = log.toString()
+        const logString = actionLog.toString()
 
         // First we expect to see a "missing container" entry because the Deploy hasn't been completed
         expect(logString).to.match(

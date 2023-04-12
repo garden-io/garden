@@ -145,7 +145,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     })
 
     // -> Flush the sync once
-    await mutagen.flushSync(log, key)
+    await mutagen.flushSync(key)
     log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
   } finally {
     // -> Terminate the sync

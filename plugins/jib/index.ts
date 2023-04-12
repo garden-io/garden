@@ -206,7 +206,7 @@ export const gardenPlugin = () =>
                 buildLog += data.toString()
               })
 
-              statusLine.info({ section: action.key(), msg: `Using JAVA_HOME=${openJdkPath}` })
+              statusLine.info(`Using JAVA_HOME=${openJdkPath}`)
 
               const { args, tarPath } = getBuildFlags(action, projectType)
 

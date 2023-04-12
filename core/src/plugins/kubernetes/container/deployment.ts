@@ -18,7 +18,7 @@ import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
-import { Log } from "../../../logger/log-entry"
+import { ActionLogContext, Log } from "../../../logger/log-entry"
 import { prepareEnvVars } from "../util"
 import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
@@ -106,7 +106,7 @@ export async function startLocalMode({
 }: {
   ctx: KubernetesPluginContext
   status: ContainerServiceStatus
-  log: Log
+  log: Log<ActionLogContext>
   action: Resolved<ContainerDeployAction>
 }) {
   const localModeSpec = action.getSpec("localMode")
@@ -171,7 +171,7 @@ export async function createContainerManifests({
 }: {
   ctx: PluginContext
   api: KubeApi
-  log: Log
+  log: Log<ActionLogContext>
   action: Resolved<ContainerDeployAction>
   imageId: string
 }) {
@@ -210,7 +210,7 @@ interface CreateDeploymentParams {
   action: Resolved<ContainerDeployAction>
   namespace: string
   imageId: string
-  log: Log
+  log: Log<ActionLogContext>
   production: boolean
 }
 
@@ -446,7 +446,7 @@ export async function createWorkloadManifest({
 
     workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
   } else if (mode === "sync" && syncSpec) {
-    log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
+    log.debug(chalk.gray(`-> Configuring in sync mode`))
     const configured = await configureSyncMode({
       ctx,
       log,

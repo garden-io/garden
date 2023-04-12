@@ -119,14 +119,12 @@ export class SyncStartCommand extends Command<Args, Opts> {
     }
 
     actions = actions.filter((action) => {
+      const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
       if (!action.supportsMode("sync")) {
         if (names.includes(action.name)) {
-          log.warn({
-            section: action.key(),
-            msg: chalk.yellow(`${action.longDescription()} does not support syncing.`),
-          })
+          actionLog.warn(chalk.yellow(`${action.longDescription()} does not support syncing.`))
         } else {
-          log.debug({ section: action.key(), msg: `${action.longDescription()} does not support syncing.` })
+          actionLog.debug(`${action.longDescription()} does not support syncing.`)
         }
         return false
       }

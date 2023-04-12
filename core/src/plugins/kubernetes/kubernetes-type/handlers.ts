@@ -28,7 +28,7 @@ import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
 import type { ExecBuildConfig } from "../../exec/config"
 import type { KubernetesActionConfig, KubernetesDeployAction, KubernetesDeployActionConfig } from "./config"
 import type { DeployActionHandler } from "../../../plugin/action-types"
-import type { Log } from "../../../logger/log-entry"
+import type { ActionLogContext, Log } from "../../../logger/log-entry"
 import type { Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
 
@@ -439,7 +439,7 @@ async function configureSpecialModesForManifests({
   manifests,
 }: {
   ctx: KubernetesPluginContext
-  log: Log
+  log: Log<ActionLogContext>
   action: Resolved<KubernetesDeployAction>
   manifests: KubernetesResource<BaseResource>[]
 }) {

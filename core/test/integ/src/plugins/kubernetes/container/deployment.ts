@@ -143,7 +143,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -157,7 +157,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -171,7 +171,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -185,7 +185,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -201,7 +201,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -215,7 +215,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -230,7 +230,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -244,7 +244,7 @@ describe("kubernetes container deployment handlers", () => {
           ctx,
           api,
           action,
-          log: garden.log,
+          log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
           imageId: getDeployedImageId(action, provider),
         })
 
@@ -271,8 +271,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId,
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -342,8 +341,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -368,8 +366,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -393,8 +390,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -419,7 +415,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -462,7 +458,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -508,8 +504,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -547,8 +542,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -568,8 +562,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -590,8 +583,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 
@@ -623,7 +615,7 @@ describe("kubernetes container deployment handlers", () => {
             action,
             imageId: getDeployedImageId(action, provider),
             namespace,
-            log: garden.log,
+            log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
             production: false,
           }),
         (err) =>
@@ -832,7 +824,7 @@ describe("kubernetes container deployment handlers", () => {
         action,
         imageId: getDeployedImageId(action, provider),
         namespace,
-        log: garden.log,
+        log: createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind }),
         production: false,
       })
 

@@ -52,7 +52,6 @@ export interface CoreLogContext extends BaseContext {
   /**
    * The name of the log context. Will be printed as the "section" part of the log lines
    * belonging to this context.
-   * TODO @eysi: Replace section with name and remove.
    */
   name?: string
 }

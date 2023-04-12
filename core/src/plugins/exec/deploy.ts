@@ -260,7 +260,6 @@ export const deleteExecDeploy: DeployActionHandler<"delete", ExecDeploy> = async
     }
   } else {
     log.warn({
-      section: action.key(),
       symbol: "warning",
       msg: chalk.gray(`Missing cleanupCommand, unable to clean up service`),
     })
