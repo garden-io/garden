@@ -22,7 +22,8 @@ export type StreamEvent = {
   timestamp: Date
 }
 
-type LogEntryMessage = Pick<LogEntry, "msg" | "section" | "symbol" | "data" | "dataFormat">
+// TODO @eysi: Keep section here for backwards compatability?
+type LogEntryMessage = Pick<LogEntry, "msg" | "symbol" | "data" | "dataFormat">
 
 // TODO: Remove data, section, timestamp and msg once we've updated GE (it's included in the message)
 export interface LogEntryEventPayload {
@@ -43,7 +44,6 @@ export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayl
       msg: entry.msg,
       symbol: entry.symbol,
       data: entry.data,
-      section: entry.section,
       dataFormat: entry.dataFormat,
     },
   }

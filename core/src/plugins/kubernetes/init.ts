@@ -369,7 +369,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
 
   const entry = log
     .createLog({
-      section: "kubernetes",
+      name: "kubernetes",
     })
     .info(`Deleting ${nsDescription} (this may take a while)`)
 

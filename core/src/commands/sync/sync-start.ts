@@ -184,26 +184,24 @@ export class SyncStartCommand extends Command<Args, Opts> {
 
       await Bluebird.map(tasks, async (task) => {
         const action = task.action
-        const section = action.key()
         const result = statusResult.results.getResult(task)
 
         const mode = result?.result?.detail?.mode
         const state = result?.result?.detail?.deployState
         const executedAction = result?.result?.executedAction
+        const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
 
         if (executedAction && (state === "outdated" || state === "ready")) {
           if (mode !== "sync") {
-            log.warn({
-              section,
-              msg: chalk.yellow(
+            actionLog.warn(
+              chalk.yellow(
                 `Not deployed in sync mode, cannot start sync. Try running this command with \`--deploy\` set.`
-              ),
-            })
+              )
+            )
             return
           }
           // Attempt to start sync even if service is outdated but in sync mode
           try {
-            const actionLog = createActionLog({ log: log, actionName: executedAction.name, actionKind: executedAction.kind })
             await router.deploy.startSync({ log: actionLog, action: executedAction, graph })
             someSyncStarted = true
 
@@ -212,20 +210,16 @@ export class SyncStartCommand extends Command<Args, Opts> {
               garden.monitors.add(monitor)
             }
           } catch (error) {
-            log.warn({
-              section,
-              msg: chalk.yellow(dedent`
+            actionLog.warn(
+              chalk.yellow(dedent`
                 Failed starting sync for ${action.longDescription()}: ${error}
 
                 You may need to re-deploy the action. Try running this command with \`--deploy\` set, or running \`garden deploy --sync\` before running this command again.
-              `),
-            })
+              `)
+            )
           }
         } else {
-          log.warn({
-            section,
-            msg: chalk.yellow(`${action.longDescription()} is not deployed, cannot start sync.`),
-          })
+          actionLog.warn(chalk.yellow(`${action.longDescription()} is not deployed, cannot start sync.`))
         }
       })
 

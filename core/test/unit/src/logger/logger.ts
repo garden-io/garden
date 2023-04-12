@@ -37,7 +37,6 @@ describe("Logger", () => {
         const log = logger.createLog()
         log.info({
           msg: "hello",
-          section: "80",
           symbol: "info",
           data: { foo: "bar" },
           dataFormat: "json",
@@ -55,7 +54,6 @@ describe("Logger", () => {
           level: 2,
           message: {
             msg: "hello",
-            section: "80",
             symbol: "info",
             dataFormat: "json",
             data: { foo: "bar" },

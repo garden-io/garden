@@ -66,19 +66,19 @@ describe("renderers", () => {
   })
   describe("renderSection", () => {
     it("should render the log entry section with padding", () => {
-      const log = logger.createLog().info({ msg: "foo", section: "hello" })
+      const log = logger.createLog({ name: "hello" }).info("foo")
       const withWhitespace = "hello".padEnd(SECTION_PADDING, " ")
       const rendered = stripAnsi(renderSection(log.entries[0]))
       expect(rendered).to.equal(`${withWhitespace} → `)
     })
     it("should not render arrow if message is empty", () => {
-      const log = logger.createLog().info({ section: "hello" })
+      const log = logger.createLog().info({ symbol: "info" })
       const withWhitespace = "hello".padEnd(SECTION_PADDING, " ")
       const rendered = stripAnsi(renderSection(log.entries[0]))
       expect(rendered).to.equal(`${withWhitespace}`)
     })
     it("should not not truncate the section", () => {
-      const log = logger.createLog().info({ msg: "foo", section: "very-very-very-very-very-long" })
+      const log = logger.createLog({ name: "very-very-very-very-very-long" }).info("foo")
       const rendered = stripAnsi(renderSection(log.entries[0]))
       expect(rendered).to.equal(`very-very-very-very-very-long → `)
     })
@@ -96,7 +96,7 @@ describe("renderers", () => {
       const logMsg = logger.createLog().info({ msg: "msg" })
       expect(formatForTerminal(logMsg.entries[0], logger)).contains("\n")
 
-      const logSection = logger.createLog().info({ section: "section" })
+      const logSection = logger.createLog().info({ symbol: "info" })
       expect(formatForTerminal(logSection.entries[0], logger)).contains("\n")
 
       const logSymbol = logger.createLog().info({ symbol: "success" })
@@ -106,7 +106,7 @@ describe("renderers", () => {
       expect(formatForTerminal(logData.entries[0], logger)).contains("\n")
     })
     it("should always render a symbol with sections", () => {
-      const entry = logger.createLog().info({ msg: "hello world", section: "foo" }).getLatestEntry()
+      const entry = logger.createLog({ name: "foo" }).info("hello world").getLatestEntry()
 
       expect(formatForTerminal(entry, logger)).to.equal(
         `${logSymbols["info"]} ${renderSection(entry)}${msgStyle("hello world")}\n`
@@ -120,7 +120,7 @@ describe("renderers", () => {
       )
     })
     it("should print the log level if it's higher then 'info' after the section if there is one", () => {
-      const entry = logger.createLog().debug({ msg: "hello world", section: "foo" }).getLatestEntry()
+      const entry = logger.createLog({ name: "foo" }).debug("hello world").getLatestEntry()
 
       const section = `foo ${chalk.gray("[debug]")}`
       expect(formatForTerminal(entry, logger)).to.equal(
@@ -156,7 +156,6 @@ describe("renderers", () => {
           .info({
             msg: "hello",
             symbol: "info",
-            section: "c",
             data: { foo: "bar" },
             metadata: { task: taskMetadata },
           })
@@ -165,7 +164,6 @@ describe("renderers", () => {
           msg: "hello",
           level: "info",
           timestamp: now.toISOString(),
-          section: "c",
           data: { foo: "bar" },
           metadata: { task: taskMetadata },
         })
@@ -176,7 +174,6 @@ describe("renderers", () => {
         expect(formatForJson(entry)).to.eql({
           msg: "",
           level: "info",
-          section: "",
           data: undefined,
           metadata: undefined,
           timestamp: now.toISOString(),

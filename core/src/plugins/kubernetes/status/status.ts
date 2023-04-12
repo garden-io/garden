@@ -208,7 +208,8 @@ export async function waitForResources({
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log
     .createLog({
-      section: actionName,
+      // TODO @eysi: Avoid fallback
+      name: actionName || "<kubernetes>",
     })
     .info(waitingMsg)
   emitLog(waitingMsg)
@@ -216,7 +217,7 @@ export async function waitForResources({
   if (resources.length === 0) {
     const noResourcesMsg = `No resources to wait`
     emitLog(noResourcesMsg)
-    statusLine.info({ symbol: "info", section: actionName, msg: noResourcesMsg })
+    statusLine.info({ symbol: "info", msg: noResourcesMsg })
     return []
   }
 
@@ -291,7 +292,7 @@ export async function waitForResources({
 
   const readyMsg = `Resources ready`
   emitLog(readyMsg)
-  statusLine.info({ symbol: "info", section: actionName, msg: readyMsg })
+  statusLine.info(readyMsg)
 
   return statuses
 }

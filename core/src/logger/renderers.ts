@@ -107,7 +107,7 @@ export function renderData(entry: LogEntry): string {
 export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
   const { msg } = entry
-  let { section } = entry
+  let section = ""
 
   if (entry.context.type === "actionLog") {
     section = `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
@@ -147,8 +147,8 @@ export function renderSection(entry: LogEntry): string {
  * Formats entries for the terminal writer.
  */
 export function formatForTerminal(entry: LogEntry, logger: Logger): string {
-  const { msg: msg, section, symbol, data } = entry
-  const empty = [msg, section, symbol, data].every((val) => val === undefined)
+  const { msg: msg, symbol, data } = entry
+  const empty = [msg, symbol, data].every((val) => val === undefined)
 
   if (empty) {
     return ""
@@ -179,8 +179,10 @@ export function cleanWhitespace(str: string) {
 
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
-  const { msg, metadata, section } = entry
+  const { msg, metadata } = entry
   const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
+  const section = renderSection(entry)
+
   const jsonLogEntry: JsonLogEntry = {
     msg: cleanForJSON(msg),
     data: entry.data,

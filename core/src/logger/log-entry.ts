@@ -11,10 +11,10 @@ import { cloneDeep, round } from "lodash"
 
 import { LogLevel } from "./logger"
 import { Omit } from "../util/util"
-import { GardenError } from "../exceptions"
 import { Logger } from "./logger"
 import uniqid from "uniqid"
 import chalk from "chalk"
+import { GardenError } from "../exceptions"
 
 export type LogSymbol = keyof typeof logSymbols | "empty"
 export type TaskLogStatus = "active" | "success" | "error"
@@ -75,7 +75,6 @@ interface LogConfig<C extends BaseContext> {
    * all log entries which can optionally extend it.
    */
   metadata?: LogMetadata
-  section?: string
   /**
    * Fix the level of all log entries created by this Log such that they're
    * geq to this value.
@@ -99,18 +98,18 @@ interface LogConstructor<C extends BaseContext> extends Omit<LogConfig<C>, "key"
 }
 
 interface CreateLogParams
-  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "section" | "showDuration">,
+  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "showDuration">,
   Pick<LogContext, "origin"> { }
 
 interface CreateCoreLogParams
-  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "section" | "showDuration">,
+  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "showDuration">,
   Pick<CoreLogContext, "name" | "origin"> {
   name: string
   origin?: string
 }
 
 export interface LogEntry<C extends BaseContext = LogContext>
-  extends Pick<LogConfig<C>, "metadata" | "section" | "context"> {
+  extends Pick<LogConfig<C>, "metadata" | "context"> {
   timestamp: string
   /**
    * A unique ID that's assigned to the entry when it's created.
@@ -133,7 +132,7 @@ export interface LogEntry<C extends BaseContext = LogContext>
 }
 
 interface LogParams
-  extends Pick<LogEntry, "metadata" | "section" | "msg" | "symbol" | "data" | "dataFormat" | "error">,
+  extends Pick<LogEntry, "metadata" | "msg" | "symbol" | "data" | "dataFormat" | "error">,
   Pick<LogContext, "origin"> {}
 
 interface CreateLogEntryParams extends LogParams {
@@ -180,7 +179,6 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
   public readonly parentConfigs: LogConfig<LogContext>[]
   public readonly timestamp: string
   public readonly root: Logger
-  public readonly section?: string
   public readonly fixLevel?: LogLevel
   // FIXME: We're not doing LogEntry<C> here which means we don't know the context type
   // when looking up log.entries.
@@ -197,15 +195,12 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
     this.root = params.root
     this.fixLevel = params.fixLevel
     this.metadata = params.metadata
-    // TODO: Remove section?
-    this.section = params.section
     this.context = params.context
     this.showDuration = params.showDuration || false
   }
 
   protected createLogEntry(params: CreateLogEntryParams): LogEntry<C> {
     const level = this.fixLevel ? Math.max(this.fixLevel, params.level) : params.level
-    const section = params.section || this.section
 
     let metadata: LogMetadata | undefined = undefined
     if (this.metadata || params.metadata) {
@@ -214,7 +209,6 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
 
     return {
       ...params,
-      section,
       parentLogKey: this.key,
       context: {
         ...this.context,
@@ -254,7 +248,6 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
     return new Log<C>({
       metadata: params ? params.metadata : this.metadata,
       fixLevel: params ? params.fixLevel : this.fixLevel,
-      section: params ? params.section : this.section,
       context,
       root: this.root,
       parentConfigs: [...this.parentConfigs, config],
@@ -328,7 +321,6 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
       metadata: this.metadata,
       timestamp: this.timestamp,
       key: this.key,
-      section: this.section,
       fixLevel: this.fixLevel,
     }
   }

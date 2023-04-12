@@ -95,7 +95,7 @@ export async function waitForResourcesWith({
 
   const statusLine = log
     .createLog({
-      section: resourcesType,
+      name: resourcesType,
     })
     .info(`Waiting for resources to be ready...`)
 
@@ -116,7 +116,7 @@ export async function waitForResourcesWith({
     }
   }
 
-  statusLine.info({ symbol: "info", section: resourcesType, msg: `Resources ready` })
+  statusLine.success(`Resources ready`)
 }
 
 /**
@@ -218,7 +218,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
     const certsLog = log.createLog({ name: "cert-manager", showDuration: true })
     certsLog.info(`Verifying installation...`)
     // const certsLog = log.info({
-    //   section: "cert-manager",
+    //   name: "cert-manager",
     //   msg: `Verifying installation...`,
     //   status: "active",
     // })

@@ -142,7 +142,6 @@ describe("CoreLog", () => {
         metadata: undefined,
         origin: undefined,
         fixLevel: undefined,
-        section: undefined,
         showDuration: false,
         timestamp,
         context: {
@@ -154,7 +153,6 @@ describe("CoreLog", () => {
             metadata: log.metadata,
             timestamp: log.timestamp,
             key: log.key,
-            section: log.section,
             fixLevel: log.fixLevel,
             type: "coreLog",
           },
@@ -170,7 +168,6 @@ describe("CoreLog", () => {
         metadata: undefined,
         origin: undefined,
         fixLevel: undefined,
-        section: undefined,
         showDuration: false,
         timestamp,
         context: {
@@ -192,7 +189,6 @@ describe("CoreLog", () => {
         metadata: { workflowStep: { index: 2 } },
         origin: undefined,
         fixLevel: LogLevel.warn,
-        section: undefined,
         showDuration: false,
         timestamp,
         context: {
@@ -227,7 +223,6 @@ describe("CoreLog", () => {
         msg: "hello",
         origin: "foo",
         parentLogKey: testLog.key,
-        section: undefined,
         timestamp,
         type: "coreLogEntry",
         context: {
@@ -258,7 +253,6 @@ describe("ActionLog", () => {
         metadata: undefined,
         origin: undefined,
         fixLevel: undefined,
-        section: undefined,
         showDuration: true, // <--- Always true for ActionLog
         timestamp,
         context: {
@@ -271,7 +265,6 @@ describe("ActionLog", () => {
             metadata: log.metadata,
             timestamp: log.timestamp,
             key: log.key,
-            section: log.section,
             fixLevel: log.fixLevel,
             type: "coreLog",
           },
@@ -287,7 +280,6 @@ describe("ActionLog", () => {
         metadata: undefined,
         origin: undefined,
         fixLevel: undefined,
-        section: undefined,
         showDuration: true,
         timestamp,
         context: { // <--- Inherits context
@@ -333,7 +325,6 @@ describe("ActionLog", () => {
         msg: "hello",
         origin: "foo",
         parentLogKey: testLog.key,
-        section: undefined,
         timestamp,
         type: "actionLogEntry",
         context: {
