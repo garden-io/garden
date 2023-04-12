@@ -88,7 +88,7 @@ export function renderMsg(entry: LogEntry): string {
 
   const styleFn = level === LogLevel.error ? errorStyle : msgStyle
 
-  return styleFn(origin ? `[${hasAnsi(origin) ? origin : chalk.gray(origin)}] ${msg}` : msg)
+  return styleFn(origin ? chalk.gray(`[${origin}] ${msg}`) : msg)
 }
 
 export function renderData(entry: LogEntry): string {

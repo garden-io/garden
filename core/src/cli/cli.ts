@@ -417,7 +417,7 @@ ${renderCommands(commands)}
             const userId = (await cloudApi.getProfile()).id
             const commandResultUrl = cloudApi.getCommandResultUrl({ sessionId, userId }).href
 
-            const msg = dedent`🌸 Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
+            const msg = dedent`🌸  Connected to ${distroName}. View logs and command results at: \n\n${chalk.cyan(
               commandResultUrl
             )}\n`
             log.info({ section: getCloudLogSectionName(distroName), msg })
