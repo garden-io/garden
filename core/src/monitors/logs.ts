@@ -13,7 +13,7 @@ import Stream from "ts-stream"
 import type { DeployAction } from "../actions/deploy"
 import { Resolved } from "../actions/types"
 import { ConfigGraph } from "../graph/config-graph"
-import { Log } from "../logger/log-entry"
+import { createActionLog, Log } from "../logger/log-entry"
 import { LogLevel, logLevelMap } from "../logger/logger"
 import { padSection } from "../logger/renderers"
 import { PluginEventBroker } from "../plugin-context"
@@ -141,8 +141,13 @@ export class LogMonitor extends Monitor {
     })
 
     const router = await this.garden.getActionRouter()
-    await router.deploy.getLogs({
+    const actionLog = createActionLog({
       log: this.garden.log,
+      actionName: this.action.name,
+      actionKind: this.action.kind,
+    })
+    await router.deploy.getLogs({
+      log: actionLog,
       action: this.action,
       follow: !this.collect,
       graph: this.graph,
@@ -186,7 +191,7 @@ export class LogMonitor extends Monitor {
       timestamp = "                        "
       try {
         timestamp = entry.timestamp.toISOString()
-      } catch {}
+      } catch { }
     }
 
     if (this.showTags && entry.tags) {

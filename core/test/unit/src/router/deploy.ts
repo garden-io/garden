@@ -10,7 +10,7 @@ import { expect } from "chai"
 import Stream from "ts-stream"
 import { ResolvedDeployAction } from "../../../../src/actions/deploy"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { Log } from "../../../../src/logger/log-entry"
+import { ActionLogContext, Log } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { DeployLogEntry } from "../../../../src/types/service"
 import { TestGarden, expectError } from "../../../helpers"
@@ -19,7 +19,7 @@ import { getRouterTestData } from "./_helpers"
 describe("deploy actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: Log
+  let log: Log<ActionLogContext>
   let actionRouter: ActionRouter
   let resolvedDeployAction: ResolvedDeployAction
   let returnWrongOutputsCfgKey: string

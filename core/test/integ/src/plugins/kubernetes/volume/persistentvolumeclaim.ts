@@ -14,6 +14,7 @@ import { expect } from "chai"
 import { TestGarden, makeTempDir, createProjectConfig } from "../../../../../helpers"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { isSubset } from "../../../../../../src/util/is-subset"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("persistentvolumeclaim", () => {
   let tmpDir: tmp.DirectoryResult
@@ -100,6 +101,7 @@ describe("persistentvolumeclaim", () => {
       })
     ).to.be.true
 
-    await actions.deploy.delete({ log: garden.log, action, graph })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
+    await actions.deploy.delete({ log: actionLog, action, graph })
   })
 })

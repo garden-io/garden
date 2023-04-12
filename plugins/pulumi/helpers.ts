@@ -24,10 +24,11 @@ import { defaultPulumiEnv, pulumi } from "./cli"
 import { PulumiDeploy, PulumiProvider } from "./config"
 import { deline } from "@garden-io/sdk/util/string"
 import { Resolved } from "@garden-io/core/build/src/actions/types"
+import { ActionLogContext } from "@garden-io/core/src/logger/log-entry"
 
 export interface PulumiParams {
   ctx: PluginContext
-  log: Log
+  log: Log<ActionLogContext>
   provider: PulumiProvider
   action: Resolved<PulumiDeploy>
 }

@@ -14,6 +14,7 @@ import { BaseRuntimeActionConfig } from "../../../../src/actions/base"
 import { BuildActionConfig } from "../../../../src/actions/build"
 import { joi, CustomObjectSchema } from "../../../../src/config/common"
 import { validateSchema } from "../../../../src/config/validation"
+import { createActionLog } from "../../../../src/logger/log-entry"
 import { getModuleHandlerDescriptions } from "../../../../src/plugin/module-types"
 import { createGardenPlugin, GardenPluginSpec } from "../../../../src/plugin/plugin"
 import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src/plugin/providers"
@@ -30,7 +31,7 @@ export async function getRouterTestData() {
     }),
     onlySpecifiedPlugins: true,
   })
-  const log = garden.log
+  const log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
   const actionRouter = await garden.getActionRouter()
   const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
   const module = graph.getModule("module-a")

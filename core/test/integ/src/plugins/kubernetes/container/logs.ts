@@ -21,6 +21,7 @@ import { sleep } from "../../../../../../src/util/util"
 import { DeleteDeployTask } from "../../../../../../src/tasks/delete-deploy"
 import { getDeployedImageId } from "../../../../../../src/plugins/kubernetes/container/util"
 import { ContainerDeployAction } from "../../../../../../src/plugins/container/config"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("kubernetes", () => {
   let garden: TestGarden
@@ -47,6 +48,7 @@ describe("kubernetes", () => {
   describe("k8sGetContainerDeployLogs", () => {
     it("should write Deploy logs to stream", async () => {
       const action = graph.getDeploy("simple-service")
+      const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
       const entries: DeployLogEntry[] = []
 
@@ -72,7 +74,7 @@ describe("kubernetes", () => {
       await k8sGetContainerDeployLogs({
         ctx,
         action: resolvedDeployAction,
-        log: garden.log,
+        log: actionLog,
         stream,
         follow: false,
       })

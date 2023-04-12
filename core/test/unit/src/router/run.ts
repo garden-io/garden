@@ -11,7 +11,7 @@ import { emptyDir, pathExists, readFile } from "fs-extra"
 import { join } from "path"
 import { ResolvedRunAction } from "../../../../src/actions/run"
 import { ConfigGraph } from "../../../../src/graph/config-graph"
-import { Log } from "../../../../src/logger/log-entry"
+import { ActionLogContext, Log } from "../../../../src/logger/log-entry"
 import { ActionRouter } from "../../../../src/router/router"
 import { TestGarden, expectError } from "../../../helpers"
 import { getRouterTestData } from "./_helpers"
@@ -19,7 +19,7 @@ import { getRouterTestData } from "./_helpers"
 describe("run actions", () => {
   let garden: TestGarden
   let graph: ConfigGraph
-  let log: Log
+  let log: Log<ActionLogContext>
   let actionRouter: ActionRouter
   let returnWrongOutputsCfgKey: string
   let resolvedRunAction: ResolvedRunAction

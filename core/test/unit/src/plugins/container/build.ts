@@ -10,7 +10,7 @@ import { expect } from "chai"
 import td from "testdouble"
 import { ResolvedBuildAction, BuildActionConfig } from "../../../../../src/actions/build"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
-import { Log } from "../../../../../src/logger/log-entry"
+import { ActionLogContext, createActionLog, Log } from "../../../../../src/logger/log-entry"
 import { PluginContext } from "../../../../../src/plugin-context"
 import { buildContainer, getContainerBuildStatus } from "../../../../../src/plugins/container/build"
 import { ContainerProvider, gardenPlugin } from "../../../../../src/plugins/container/container"
@@ -23,12 +23,14 @@ context("build.ts", () => {
   let garden: TestGarden
   let ctx: PluginContext
   let log: Log
+  let actionLog: Log<ActionLogContext>
   let containerProvider: ContainerProvider
   let graph: ConfigGraph
 
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
+    actionLog = createActionLog({ log: log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     graph = await garden.getConfigGraph({ log, emit: false })
@@ -45,7 +47,7 @@ context("build.ts", () => {
         async () => "fake image identifier string"
       )
 
-      const result = await getContainerBuildStatus({ ctx, log, action })
+      const result = await getContainerBuildStatus({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")
     })
 
@@ -57,7 +59,7 @@ context("build.ts", () => {
         async () => null
       )
 
-      const result = await getContainerBuildStatus({ ctx, log, action })
+      const result = await getContainerBuildStatus({ ctx, log: actionLog, action })
       expect(result.state).to.eql("not-ready")
     })
   })
@@ -96,7 +98,7 @@ context("build.ts", () => {
         expect(_ctx).to.exist
         return { all: "log" }
       })
-      const result = await buildContainer({ ctx, log, action })
+      const result = await buildContainer({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")
       expect(result.detail?.buildLog).to.eql("log")
       expect(result.detail?.fresh).to.eql(true)
@@ -118,7 +120,7 @@ context("build.ts", () => {
         expect(_ctx).to.exist
         return { all: "log" }
       })
-      const result = await buildContainer({ ctx, log, action })
+      const result = await buildContainer({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")
       expect(result.detail?.buildLog).to.eql("log")
       expect(result.detail?.fresh).to.eql(true)

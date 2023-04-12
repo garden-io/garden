@@ -27,6 +27,7 @@ import { getRootLogger } from "../../../../../../src/logger/logger"
 import { LocalModeProcessRegistry, ProxySshKeystore } from "../../../../../../src/plugins/kubernetes/local-mode"
 import { HelmDeployAction } from "../../../../../../src/plugins/kubernetes/helm/config"
 import { GlobalConfigStore } from "../../../../../../src/config-store/global"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("helmDeploy in local-mode", () => {
   let garden: TestGarden
@@ -71,11 +72,12 @@ describe("helmDeploy in local-mode", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const releaseName = getReleaseName(action)
     await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -123,7 +125,7 @@ describe("helmDeploy", () => {
       if (garden) {
         await garden.close()
       }
-    } catch {}
+    } catch { }
   })
 
   it("should deploy a chart", async () => {
@@ -133,10 +135,11 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const status = await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -172,10 +175,11 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const status = await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -215,11 +219,12 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const releaseName = getReleaseName(action)
     await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -247,13 +252,14 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: garden.log, actionName: action.name, actionKind: action.kind })
 
     const namespace = action.getSpec().namespace!
     expect(namespace).to.equal(provider.config.namespace!.name + "-extra")
 
     await helmDeploy({
       ctx,
-      log: garden.log,
+      log: actionLog,
       action,
       force: false,
     })
@@ -299,10 +305,11 @@ describe("helmDeploy", () => {
       log: garden.log,
       graph,
     })
+    const actionLog = createActionLog({ log: gardenWithCloudApi.log, actionName: action.name, actionKind: action.kind })
 
     const status = await helmDeploy({
       ctx: ctxWithCloudApi,
-      log: gardenWithCloudApi.log,
+      log: actionLog,
       action,
       force: false,
     })

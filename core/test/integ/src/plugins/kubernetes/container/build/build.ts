@@ -19,14 +19,14 @@ import { expect } from "chai"
 import { getContainerTestGarden } from "../container"
 import { containerHelpers } from "../../../../../../../src/plugins/container/helpers"
 import { k8sPublishContainerBuild } from "../../../../../../../src/plugins/kubernetes/container/publish"
-import { Log } from "../../../../../../../src/logger/log-entry"
+import { ActionLogContext, createActionLog, Log } from "../../../../../../../src/logger/log-entry"
 import { cloneDeep } from "lodash"
 import { ContainerBuildAction } from "../../../../../../../src/plugins/container/config"
 import { BuildTask } from "../../../../../../../src/tasks/build"
 
 describe("kubernetes build flow", () => {
   let garden: Garden
-  let log: Log
+  let log: Log<ActionLogContext>
   let graph: ConfigGraph
   let provider: KubernetesProvider
   let ctx: PluginContext
@@ -43,7 +43,7 @@ describe("kubernetes build flow", () => {
   const init = async (environmentName: string) => {
     currentEnv = environmentName
     garden = await getContainerTestGarden(environmentName)
-    log = garden.log
+    log = createActionLog({ log: garden.log, actionName: "", actionKind: "" })
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })

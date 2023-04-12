@@ -17,6 +17,7 @@ import { getContainerTestGarden } from "./container"
 import { clearRunResult } from "../../../../../../src/plugins/kubernetes/run-results"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { ContainerRunAction } from "../../../../../../src/plugins/container/config"
+import { createActionLog } from "../../../../../../src/logger/log-entry"
 
 describe("runContainerTask", () => {
   let garden: TestGarden
@@ -67,9 +68,16 @@ describe("runContainerTask", () => {
 
     // Verify that the result was saved
     const actions = await garden.getActionRouter()
-    const storedResult = await actions.run.getResult({
+    const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
+    const actionLog = createActionLog({
       log: garden.log,
-      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
+      actionName: resolvedAction.name,
+      actionKind: resolvedAction.kind,
+    })
+
+    const storedResult = await actions.run.getResult({
+      log: actionLog,
+      action: resolvedAction,
       graph,
     })
 
@@ -96,9 +104,16 @@ describe("runContainerTask", () => {
 
     // Verify that the result was not saved
     const router = await garden.getActionRouter()
-    const { result } = await router.run.getResult({
+    const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
+    const actionLog = createActionLog({
       log: garden.log,
-      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
+      actionName: resolvedAction.name,
+      actionKind: resolvedAction.kind,
+    })
+
+    const { result } = await router.run.getResult({
+      log: actionLog, 
+      action: resolvedAction,
       graph,
     })
 
@@ -128,9 +143,16 @@ describe("runContainerTask", () => {
 
     // We also verify that, despite the task failing, its result was still saved.
     const actions = await garden.getActionRouter()
-    const { result } = await actions.run.getResult({
+    const resolvedAction = await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph })
+    const actionLog = createActionLog({
       log: garden.log,
-      action: await garden.resolveAction<ContainerRunAction>({ action, log: garden.log, graph }),
+      actionName: resolvedAction.name,
+      actionKind: resolvedAction.kind,
+    })
+
+    const { result } = await actions.run.getResult({
+      log: actionLog, 
+      action: resolvedAction,
       graph,
     })
 
