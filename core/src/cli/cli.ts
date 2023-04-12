@@ -366,7 +366,7 @@ ${renderCommands(commands)}
     contextOpts.persistent = persistent
     const { streamEvents, streamLogEntries } = command
     // TODO: Link to Cloud namespace page here.
-    const nsLog = log.createLog({})
+    const nsLog = log.createLog()
 
     do {
       try {

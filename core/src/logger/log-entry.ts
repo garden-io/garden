@@ -40,11 +40,20 @@ export interface WorkflowStepMetadata {
 }
 
 interface BaseContext {
+  /**
+   * Reference to what created the log message, e.g. tool that generated it (such as "docker")
+   */
+  origin?: string
   type: "coreLog" | "actionLog"
 }
 
 export interface CoreLogContext extends BaseContext {
   type: "coreLog"
+  /**
+   * The name of the log context. Will be printed as the "section" part of the log lines
+   * belonging to this context.
+   * TODO @eysi: Replace section with name and remove.
+   */
   name?: string
 }
 export interface ActionLogContext extends BaseContext {
@@ -69,10 +78,6 @@ interface LogConfig<C extends BaseContext> {
   metadata?: LogMetadata
   section?: string
   /**
-   * Reference to what created the log message, e.g. tool that generated it (such as "docker")
-   */
-  origin?: string
-  /**
    * Fix the level of all log entries created by this Log such that they're
    * geq to this value.
    *
@@ -95,22 +100,18 @@ interface LogConstructor<C extends BaseContext> extends Omit<LogConfig<C>, "key"
 }
 
 interface CreateLogParams
-  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "section" | "showDuration" | "origin"> {}
+  extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "section" | "showDuration">,
+  Pick<LogContext, "origin"> { }
 
-// interface CreateLogParamsTest
-//   extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "section" | "showDuration"> {}
 interface CreateCoreLogParams
-  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "section" | "showDuration" | "origin"> {
-  /**
-   * The name of the log context. Will be printed as the "section" part of the log lines
-   * belonging to this context.
-   * TODO @eysi: Replace section with name and remove.
-   */
+  extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "section" | "showDuration">,
+  Pick<CoreLogContext, "name" | "origin"> {
   name: string
+  origin?: string
 }
 
 export interface LogEntry<C extends BaseContext = LogContext>
-  extends Pick<LogConfig<C>, "metadata" | "section" | "context" | "origin"> {
+  extends Pick<LogConfig<C>, "metadata" | "section" | "context"> {
   timestamp: string
   /**
    * A unique ID that's assigned to the entry when it's created.
@@ -133,7 +134,9 @@ export interface LogEntry<C extends BaseContext = LogContext>
 }
 
 interface LogParams
-  extends Pick<LogEntry, "metadata" | "section" | "msg" | "symbol" | "data" | "dataFormat" | "error" | "origin"> {}
+  extends Pick<LogEntry, "metadata" | "section" | "msg" | "symbol" | "data" | "dataFormat" | "error">,
+  Pick<LogContext, "origin"> {}
+
 interface CreateLogEntryParams extends LogParams {
   level: LogLevel
 }
@@ -154,10 +157,10 @@ export function createActionLog({
   return new Log<ActionLogContext>({
     parentConfigs: [...log.parentConfigs, log.getConfig()],
     metadata,
-    origin,
     root: log.root,
     context: {
       type: "actionLog",
+      origin,
       actionName,
       actionKind,
     },
@@ -179,7 +182,6 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
   public readonly timestamp: string
   public readonly root: Logger
   public readonly section?: string
-  public readonly origin?: string
   public readonly fixLevel?: LogLevel
   // FIXME: We're not doing LogEntry<C> here which means we don't know the context type
   // when looking up log.entries.
@@ -196,9 +198,8 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
     this.root = params.root
     this.fixLevel = params.fixLevel
     this.metadata = params.metadata
-    // Require section? (Won't be needed for ActionLog and PluginLog)
+    // TODO: Remove section?
     this.section = params.section
-    this.origin = params.origin
     this.context = params.context
     this.showDuration = params.showDuration || false
   }
@@ -214,10 +215,12 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
 
     return {
       ...params,
-      origin: params.origin || this.origin,
       section,
       parentLogKey: this.key,
-      context: this.context,
+      context: {
+        ...this.context,
+        origin: params.origin || this.context.origin,
+      },
       level,
       timestamp: new Date().toISOString(),
       metadata,
@@ -230,20 +233,21 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
    * optionally overwriting some fields.
    *
    * By default this function returns a Log instance of the same type as the caller.
-   * So e.g. actionLog.createLog() returns a log of type Log<ActionLogContext> (assuming actionLog)
-   + has that type.
+   * So e.g. actionLog.createLog() returns a log of type Log<ActionLogContext> (assuming actionLog
+   + has that type).
    *
-   * It can also expclitily create a log of type Log<CoreLogContext> by passing a "name" parameter.
+   * It can also explictly create a log of type Log<CoreLogContext> by passing the relevant parameter.
    * This is mostly for convenience and compatibility with the previous version, although a admittedly
    * a little awkward. We may revisit as we add more context types.
    */
+  createLog(): Log<C>
   createLog(params: CreateLogParams): Log<C>
   createLog(params: CreateCoreLogParams): Log<CoreLogContext>
   createLog(params: CreateLogParams | CreateCoreLogParams | void): Log<C | CoreLogContext> {
     // TODO @eysi: Figure out a better way to do this
     let context: C
     if (isCreateCoreLogParams(params)) {
-      context = { type: "coreLog", name: params.name } as unknown as C
+      context = { type: "coreLog", name: params.name, origin: params.origin } as unknown as C
     } else {
       context = this.context as C
     }
@@ -252,7 +256,6 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
       metadata: params ? params.metadata : this.metadata,
       fixLevel: params ? params.fixLevel : this.fixLevel,
       section: params ? params.section : this.section,
-      origin: params ? params.origin : this.origin,
       context,
       root: this.root,
       parentConfigs: [...this.parentConfigs, config],
@@ -368,4 +371,3 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
     return "<Log>"
   }
 }
-

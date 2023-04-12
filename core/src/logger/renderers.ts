@@ -80,7 +80,8 @@ export function getTimestamp(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { level, msg, origin } = entry
+  const { level, msg, context } = entry
+  const { origin } = context
 
   if (!msg) {
     return ""

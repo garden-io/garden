@@ -33,7 +33,7 @@ export class EventLogWriter extends Writer {
     const out = formatForTerminal(entry, logger)
     if (out) {
       this.events.emit("log", {
-        origin: entry.origin || this.defaultOrigin,
+        origin: entry.context.origin || this.defaultOrigin,
         level: logLevelToString(entry.level),
         msg: out,
         timestamp: entry.timestamp,

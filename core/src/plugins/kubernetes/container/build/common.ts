@@ -293,7 +293,7 @@ export async function ensureUtilDeployment({
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.createLog({})
+    const deployLog = log.createLog()
 
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({
       provider,

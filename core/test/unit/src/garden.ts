@@ -4720,7 +4720,7 @@ describe("Garden", () => {
 
     describe("emitWarning", () => {
       it("should log a warning if the key has not been hidden", async () => {
-        const log = garden.log.createLog({})
+        const log = garden.log.createLog()
         const message = "Oh noes!"
         await garden.emitWarning({ key, log, message })
         const logs = getLogMessages(log)
@@ -4729,7 +4729,7 @@ describe("Garden", () => {
       })
 
       it("should not log a warning if the key has been hidden", async () => {
-        const log = garden.log.createLog({})
+        const log = garden.log.createLog()
         const message = "Oh noes!"
         await garden.hideWarning(key)
         await garden.emitWarning({ key, log, message })
