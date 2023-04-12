@@ -1,9 +1,9 @@
 ---
-order: 4
-title: Module configuration context
+order: 6
+title: Module template context
 ---
 
-# Module configuration context
+# Module template context
 
 The below keys are available in template strings in module configs.
 
@@ -148,8 +148,6 @@ my-variable: ${command.name}
 ### `${command.params.*}`
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
-
-For example, to see if a service is in sync mode, you might do something like `${command.params contains 'sync' && command.params.sync contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
 
 Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
 
@@ -435,7 +433,7 @@ Retrieve information about modules that are defined in the project.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -449,7 +447,7 @@ my-variable: ${modules.<module-name>.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -457,7 +455,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |
@@ -621,7 +619,7 @@ Information about the config parent, if any (usually a template, if applicable).
 
 ### `${parent.name}`
 
-The name of the parent module.
+The name of the parent config.
 
 | Type     |
 | -------- |
@@ -653,7 +651,7 @@ Information about the action/module currently being resolved.
 
 ### `${this.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -667,7 +665,7 @@ my-variable: ${this.buildPath}
 
 ### `${this.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -675,7 +673,7 @@ The name of the action/module.
 
 ### `${this.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |

@@ -4,7 +4,7 @@ environments:
   - name: local
 providers:
   - name: test-plugin
-modules:
+scan:
   include:
     - module*/**/*
   exclude:

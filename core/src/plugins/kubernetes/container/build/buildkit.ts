@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,7 +27,6 @@ import {
   builderToleration,
 } from "./common"
 import { getNamespaceStatus } from "../../namespace"
-import { LogLevel } from "../../../../logger/logger"
 import { sleep } from "../../../../util/util"
 import { ContainerBuildAction, ContainerModuleOutputs } from "../../../container/moduleConfig"
 import { getDockerBuildArgs } from "../../../container/build"
@@ -101,17 +100,17 @@ export const buildkitBuildHandler: BuildHandler = async (params) => {
     deploymentName: buildkitDeploymentName,
   })
 
-  log.info(`Building image ${localId}...`)
+  log.info(`Buildkit Building image ${localId}...`)
 
   const logEventContext = {
     origin: "buildkit",
-    log: log.makeNewLogContext({ level: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
 
   const command = [
@@ -185,7 +184,7 @@ export async function ensureBuildkit({
   namespace: string
 }) {
   return deployLock.acquire(namespace, async () => {
-    const deployLog = log.makeNewLogContext({})
+    const deployLog = log.createLog({})
 
     // Make sure auth secret is in place
     const { authSecret, updated: secretUpdated } = await ensureBuilderSecret({

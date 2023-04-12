@@ -1,29 +1,25 @@
 kind: Project
-name: local-tls
+name: remote-k8s
 defaultEnvironment: local
+
 environments:
   - name: local
-    # you can run garden against this environment by adding "--env remote" to your commands,
-    # e.g. garden --env remote deploy
+  # you can run garden against this environment by adding "--env remote" to your commands,
+  # e.g. garden --env remote deploy
   - name: remote
+
 providers:
   - name: local-kubernetes
     environments: [local]
   - name: kubernetes
     environments: [remote]
     context: my-remote-context
-    defaultHostname: my-cluster.example.com   # change this to the hostname that points to your cluster
-    forceSsl: true
-    tlsCertificates:
-      - name: garden-example-tls
-        secretRef:
-          name: garden-example-tls
-          namespace: default
+    defaultHostname: my-cluster.example.com # change this to the hostname that points to your cluster
     buildMode: kaniko
     # Replace the below values as appropriate
     deploymentRegistry:
-      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
-      namespace: garden-ci   # <- set this to the project ID of the target cluster
+      hostname: eu.gcr.io # <- set this according to the region your cluster runs in
+      namespace: garden-ci # <- set this to the project ID of the target cluster
     imagePullSecrets:
       # Make sure this matches the name and namespace of the imagePullSecret you've created
       # to authenticate with your registry (if needed)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import { merge } from "json-merge-patch"
 import { extname, join, resolve } from "path"
 import { ensureDir, pathExists, readFile } from "fs-extra"
 import { ConfigurationError, FilesystemError } from "@garden-io/sdk/exceptions"
-import { dumpYaml } from "@garden-io/core/build/src/util/util"
+import { dumpYaml } from "@garden-io/core/build/src/util/serialization"
 import { DeepPrimitiveMap } from "@garden-io/core/build/src/config/common"
 import { loadAndValidateYaml } from "@garden-io/core/build/src/config/base"
 import { getPluginOutputsPath } from "@garden-io/sdk"

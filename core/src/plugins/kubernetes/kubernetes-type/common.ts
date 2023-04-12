@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,13 +22,12 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { KubernetesPluginContext, KubernetesTargetResourceSpec, ServiceResourceSpec } from "../config"
 import { HelmModule } from "../helm/module-config"
 import { KubernetesDeployAction } from "./config"
-import { DEFAULT_TASK_TIMEOUT } from "../../../constants"
+import { DEFAULT_RUN_TIMEOUT } from "../../../constants"
 import { CommonRunParams } from "../../../plugin/handlers/Run/run"
 import { runAndCopy } from "../run"
 import { getTargetResource, getResourcePodSpec, getResourceContainer, makePodName } from "../util"
-import { KubernetesRunAction } from "./run"
-import { KubernetesTestAction } from "./test"
 import { Resolved } from "../../../actions/types"
+import { KubernetesPodRunAction, KubernetesPodTestAction } from "./kubernetes-pod"
 
 /**
  * Reads the manifests and makes sure each has a namespace set (when applicable) and adds annotations.
@@ -45,7 +44,7 @@ export async function getManifests({
   ctx: PluginContext
   api: KubeApi
   log: Log
-  action: Resolved<KubernetesDeployAction>
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>
   defaultNamespace: string
   readFromSrcDir?: boolean
 }): Promise<KubernetesResource[]> {
@@ -78,6 +77,7 @@ export async function getManifests({
     const annotationValue =
       manifest.kind === "Namespace" ? gardenNamespaceAnnotationValue(manifest.metadata.name) : action.name
     set(manifest, ["metadata", "annotations", gardenAnnotationKey("service")], annotationValue)
+    set(manifest, ["metadata", "annotations", gardenAnnotationKey("mode")], action.mode())
     set(manifest, ["metadata", "labels", gardenAnnotationKey("service")], annotationValue)
 
     return manifest
@@ -99,7 +99,7 @@ const disallowedKustomizeArgs = ["-o", "--output", "-h", "--help"]
  */
 export async function readManifests(
   ctx: PluginContext,
-  action: Resolved<KubernetesDeployAction>,
+  action: Resolved<KubernetesDeployAction | KubernetesPodRunAction | KubernetesPodTestAction>,
   log: Log,
   readFromSrcDir = false
 ) {
@@ -164,7 +164,8 @@ export function gardenNamespaceAnnotationValue(namespaceName: string) {
 
 export function convertServiceResource(
   module: KubernetesModule | HelmModule,
-  serviceResourceSpec?: ServiceResourceSpec
+  serviceResourceSpec?: ServiceResourceSpec,
+  defaultName?: string
 ): KubernetesTargetResourceSpec | null {
   const s = serviceResourceSpec || module.spec.serviceResource
 
@@ -174,16 +175,16 @@ export function convertServiceResource(
 
   return {
     kind: s.kind,
-    name: s.name || module.name,
+    name: s.name || defaultName || module.name,
     podSelector: s.podSelector,
     containerName: s.containerName,
   }
 }
 
-export async function runOrTest(
+export async function runOrTestWithPod(
   params: CommonRunParams & {
     ctx: KubernetesPluginContext
-    action: Resolved<KubernetesRunAction | KubernetesTestAction>
+    action: Resolved<KubernetesPodRunAction | KubernetesPodTestAction>
     log: Log
     namespace: string
   }
@@ -203,17 +204,18 @@ export async function runOrTest(
       // Note: This will generally be caught in schema validation.
       throw new ConfigurationError(`${action.longDescription()} specified neither podSpec nor resource.`, { spec })
     }
-    // By this point, we can assume that the resource specified by `resourceSpec` has already been deployed by e.g. a
-    // `helm` or `kubernetes` Deployment.
-
+    const k8sCtx = <KubernetesPluginContext>ctx
+    const provider = k8sCtx.provider
+    const api = await KubeApi.factory(log, ctx, provider)
+    const manifests = await getManifests({ ctx, api, log, action, defaultNamespace: namespace })
     const target = await getTargetResource({
       ctx,
       log,
       provider: ctx.provider,
       action,
+      manifests,
       query: resourceSpec,
     })
-
     podSpec = getResourcePodSpec(target)
     container = getResourceContainer(target, resourceSpec.containerName)
   } else if (!container) {
@@ -236,7 +238,7 @@ export async function runOrTest(
     image: container.image!,
     namespace,
     podName: makePodName(action.kind.toLowerCase(), action.name),
-    timeout: timeout || DEFAULT_TASK_TIMEOUT,
+    timeout: timeout || DEFAULT_RUN_TIMEOUT,
     version,
   })
 }

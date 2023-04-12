@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -325,7 +325,7 @@ export class ModuleResolver {
     const templateName = config.templateName
 
     if (templateName) {
-      const template = this.garden.moduleTemplates[templateName]
+      const template = this.garden.configTemplates[templateName]
 
       inputs = resolveTemplateStrings(
         inputs,
@@ -816,6 +816,9 @@ function inheritModuleToAction(module: GardenModule, action: ActionConfig) {
   }
   if (module.templateName) {
     action.internal.templateName = module.templateName
+  }
+  if (module.inputs) {
+    action.internal.inputs = module.inputs
   }
   if (isBuildActionConfig(action) && !module.allowPublish) {
     action.allowPublish = false

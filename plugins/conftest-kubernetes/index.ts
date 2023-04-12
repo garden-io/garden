@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -65,6 +65,7 @@ export const gardenPlugin = () =>
             const policyPath = slash(relative(action.basePath(), resolve(ctx.projectRoot, provider.config.policyPath)))
 
             const isHelmModule = action.isCompatible("helm")
+            const files = action.getConfig().spec.files || ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"]
 
             if (isHelmModule) {
               return {
@@ -79,7 +80,10 @@ export const gardenPlugin = () =>
                   policyPath,
                   namespace: provider.config.namespace,
                   combine: false,
+                  files,
+                  helmDeploy: action.name,
                 },
+                dependencies: [`deploy.${action.name}`],
               }
             } else {
               return {
@@ -94,7 +98,7 @@ export const gardenPlugin = () =>
                   policyPath,
                   namespace: provider.config.namespace,
                   combine: false,
-                  files: action.getConfig().spec.files || ["*.yaml", "**/*.yaml", "*.yml", "**/*.yml"],
+                  files,
                 },
               }
             }

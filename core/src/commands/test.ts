@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,6 @@ import {
   ProcessCommandResult,
   processCommandResultSchema,
 } from "./base"
-import { processActions } from "../process"
 import { TestTask } from "../tasks/test"
 import { printHeader } from "../logger/util"
 import { StringsParameter, BooleanParameter } from "../cli/params"
@@ -27,9 +26,10 @@ export const testArgs = {
   names: new StringsParameter({
     help: deline`
       The name(s) of the Test action(s) to test (skip to run all tests in the project).
-      Use comma as a separator to specify multiple tests.
+      You may specify multiple test names, separated by spaces.
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Test)
     },
@@ -37,12 +37,12 @@ export const testArgs = {
 }
 
 export const testOpts = {
-  // TODO: remove in 0.13?
+  // TODO-0.14: remove in 0.14?
   "name": new StringsParameter({
     help: deline`
       DEPRECATED: This now does the exact same as the positional arguments.
 
-      Only run tests with the specfied name (e.g. unit or integ).
+      Only run tests with the specified name (e.g. unit or integ).
       Accepts glob patterns (e.g. integ* would run both 'integ' and 'integration').
     `,
     aliases: ["n"],
@@ -56,8 +56,7 @@ export const testOpts = {
   }),
   "force-build": new BooleanParameter({ help: "Force rebuild of any Build dependencies encountered." }),
   "interactive": new BooleanParameter({
-    help:
-      "Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
+    help: "Run the specified Test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.",
     aliases: ["i"],
     cliOnly: true,
   }),
@@ -80,9 +79,9 @@ export const testOpts = {
     },
   }),
   "skip-dependencies": new BooleanParameter({
-    help: deline`Don't deploy any services or run any tasks that the requested tests depend on.
-    This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
-    dependencies without redeploying any service dependencies that may have changed since you last deployed.
+    help: deline`Don't deploy any Deploys (or services if using modules) or run any Run actions (or tasks if using modules) that the requested tests depend on.
+    This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+    dependencies without redeploying any Deploy (or service) dependencies that may have changed since you last deployed.
     Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
     your test suites are up to date when this option is used.`,
     aliases: ["nodeps"],
@@ -104,12 +103,12 @@ export class TestCommand extends Command<Args, Opts> {
   streamEvents = true
 
   description = dedent`
-    Runs all or specified tests defined in the project. Also run builds and other dependencies,
-    including deploys if needed.
+    Runs all or specified Tests defined in the project. Also run builds and other dependencies,
+    including Deploys if needed.
 
     Examples:
 
-        garden test                     # run all tests in the project
+        garden test                     # run all Tests in the project
         garden test my-test             # run the my-test Test action
         garden test --module my-module  # run all Tests in the my-module module
         garden test *integ*             # run all Tests with a name containing 'integ'
@@ -126,8 +125,12 @@ export class TestCommand extends Command<Args, Opts> {
     printHeader(headerLog, `Running Tests`, "🌡️")
   }
 
-  isPersistent({ opts }: PrepareParams<Args, Opts>) {
+  maybePersistent({ opts }: PrepareParams<Args, Opts>) {
     return opts.interactive
+  }
+
+  allowInDevCommand({ opts }: PrepareParams<Args, Opts>) {
+    return !opts.interactive
   }
 
   async action(params: CommandParams<Args, Opts>): Promise<CommandResult<ProcessCommandResult>> {
@@ -159,7 +162,7 @@ export class TestCommand extends Command<Args, Opts> {
       excludeNames: opts.skip,
     })
 
-    const initialTasks = actions.map(
+    const tasks = actions.map(
       (action) =>
         new TestTask({
           garden,
@@ -168,29 +171,21 @@ export class TestCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
+
           skipRuntimeDependencies,
           interactive: opts.interactive,
         })
     )
 
-    if (opts.interactive && initialTasks.length !== 1) {
+    if (opts.interactive && tasks.length !== 1) {
       throw new ParameterError(`The --interactive/-i option can only be used if a single test is selected.`, {
         args,
         opts,
       })
     }
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      initialTasks,
-      persistent: false,
-    })
+    const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(footerLog, "test", results)
+    return handleProcessResults(garden, footerLog, "test", results)
   }
 }

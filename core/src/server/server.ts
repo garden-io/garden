@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,8 +24,8 @@ import { gardenEnv } from "../constants"
 import { Log } from "../logger/log-entry"
 import { Command, CommandResult } from "../commands/base"
 import { toGardenError, GardenError } from "../exceptions"
-import { EventName, Events, EventBus, GardenEventListener } from "../events"
-import { uuidv4, ValueOf } from "../util/util"
+import { EventName, Events, EventBus, GardenEventListener, pipedEventNames } from "../events"
+import type { ValueOf } from "../util/util"
 import { AnalyticsHandler } from "../analytics/analytics"
 import { joi } from "../config/common"
 import { randomString } from "../util/string"
@@ -36,7 +36,8 @@ import { clientRequestNames, ClientRequestType, ClientRouter } from "./client-ro
 import { EventEmitter } from "eventemitter3"
 import { ServeCommand } from "../commands/serve"
 import { getBuiltinCommands } from "../commands/commands"
-import { sanitizeValue } from "../logger/logger"
+import { sanitizeValue } from "../util/logging"
+import { uuidv4 } from "../util/random"
 
 // Note: This is different from the `garden serve` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
@@ -115,7 +116,7 @@ export class GardenServer extends EventEmitter {
   constructor({ log, command, port }: GardenServerParams) {
     super()
     this.log = log
-    this.debugLog = this.log.makeNewLogContext({ level: LogLevel.debug, fixLevel: true })
+    this.debugLog = this.log.createLog({ fixLevel: LogLevel.debug })
     this.commands = prepareCommands(getBuiltinCommands()) // This gets updated when .setGarden() is called
     this.serveCommand = command
     this.clientRouter = undefined
@@ -164,7 +165,7 @@ export class GardenServer extends EventEmitter {
     })
 
     this.log.info("")
-    this.statusLog = this.log.makeNewLogContext({})
+    this.statusLog = this.log.createLog({})
   }
 
   getBaseUrl() {
@@ -250,10 +251,10 @@ export class GardenServer extends EventEmitter {
         opts,
       }
 
-      const persistent = command.isPersistent(prepareParams)
+      const persistent = command.maybePersistent(prepareParams)
 
       if (persistent) {
-        ctx.throw(400, "Attempted to run persistent command (e.g. a watch/follow command). Aborting.")
+        ctx.throw(400, "Attempted to run persistent command (e.g. a dev/follow command). Aborting.")
       }
 
       await command.prepare(prepareParams)
@@ -275,7 +276,7 @@ export class GardenServer extends EventEmitter {
       ctx.response.body = sanitizeValue(result)
     })
 
-    // TODO-G2: remove this once it has another place
+    // TODO: remove this once it has another place
     /**
      * Resolves the URL for the given provider dashboard page, and redirects to it.
      */
@@ -359,8 +360,9 @@ export class GardenServer extends EventEmitter {
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send: SendWrapper = (type, payload) => {
         const event = { type, ...(<object>payload) }
-        this.log.debug(`Send ${type} event: ${JSON.stringify(event)}`)
-        websocket.send(JSON.stringify(event), (err?: Error) => {
+        const jsonEvent = JSON.stringify(event)
+        this.log.debug(`Send ${type} event: ${jsonEvent}`)
+        websocket.send(jsonEvent, (err?: Error) => {
           if (err) {
             this.debugLog.debug({ error: toGardenError(err) })
           }
@@ -393,8 +395,12 @@ export class GardenServer extends EventEmitter {
         isAlive = true
       })
 
-      // Pipe everything from the event bus to the socket, as well as from the /events endpoint.
-      const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
+      // Pipe events from the event bus to the socket, as well as from the /events endpoint.
+      const eventListener = (name: EventName, payload: any) => {
+        if (pipedEventNames.includes(name)) {
+          send("event", { name, payload })
+        }
+      }
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)
 
@@ -477,7 +483,7 @@ export class GardenServer extends EventEmitter {
           ctx,
           this.debugLog,
           this.commands,
-          omit(request, ["id", "type"])
+          <any>omit(request, ["id", "type"])
         )
 
         const prepareParams = {
@@ -488,7 +494,7 @@ export class GardenServer extends EventEmitter {
           opts,
         }
 
-        const persistent = command.isPersistent(prepareParams)
+        const persistent = command.maybePersistent(prepareParams)
 
         command
           .prepare(prepareParams)
@@ -550,7 +556,7 @@ export class GardenServer extends EventEmitter {
       req && req.command.terminate()
       delete this.activePersistentRequests[requestId]
     } else if (clientRequestNames.find((e) => e === requestType)) {
-      // TODO-G2: get rid of ClientRouter entirely
+      // TODO-0.13.0: get rid of ClientRouter entirely
       this.clientRouter?.dispatch(<ClientRequestType>requestType, request).catch(() => {})
     } else {
       return send("error", {

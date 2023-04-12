@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,12 +13,13 @@ import { validate as validateUuid } from "uuid"
 
 import { makeTestGardenA, TestGarden, enableAnalytics, getDataDir, makeTestGarden, freezeTime } from "../../../helpers"
 import { AnalyticsHandler, getAnonymousUserId } from "../../../../src/analytics/analytics"
-import { DEFAULT_API_VERSION, gardenEnv } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
 import { Log } from "../../../../src/logger/log-entry"
-import { Logger, LogLevel } from "../../../../src/logger/logger"
+import { LogLevel, RootLogger } from "../../../../src/logger/logger"
 import { AnalyticsGlobalConfig, GlobalConfigStore } from "../../../../src/config-store/global"
 import { ProjectResource } from "../../../../src/config/project"
+import { QuietWriter } from "../../../../src/logger/writers/quiet-writer"
 
 class FakeCloudApi extends CloudApi {
   static async factory(params: { log: Log; projectConfig?: ProjectResource; skipLogging?: boolean }) {
@@ -26,14 +27,14 @@ class FakeCloudApi extends CloudApi {
   }
   async getProfile() {
     return {
-      id: 1,
+      id: "1",
       createdAt: new Date().toString(),
       updatedAt: new Date().toString(),
       name: "gordon",
       vcsUsername: "gordon@garden.io",
       serviceAccount: false,
       organization: {
-        id: 1,
+        id: "1",
         name: "garden",
       },
       cachedPermissions: {},
@@ -261,12 +262,12 @@ describe("AnalyticsHandler", () => {
 
   describe("factory (user is logged in)", async () => {
     beforeEach(async () => {
-      const logger = new Logger({
+      const logger = RootLogger._createInstanceForTests({
         level: LogLevel.info,
-        writers: [],
+        writers: { display: new QuietWriter({ level: LogLevel.info }), file: [] },
         storeEntries: false,
       })
-      const cloudApi = await FakeCloudApi.factory({ log: logger.makeNewLogContext() })
+      const cloudApi = await FakeCloudApi.factory({ log: logger.createLog() })
       garden = await makeTestGardenA(undefined, { cloudApi })
       garden.vcsInfo.originUrl = remoteOriginUrl
       await enableAnalytics(garden)
@@ -405,8 +406,8 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: undefined,
-          enterpriseDomainV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
           isLoggedIn: false,
           customer: undefined,
           ciName: analytics["ciName"],
@@ -444,8 +445,8 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: undefined,
-          enterpriseDomainV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
           isLoggedIn: false,
           customer: undefined,
           system: analytics["systemConfig"],
@@ -500,8 +501,8 @@ describe("AnalyticsHandler", () => {
           projectNameV2,
           enterpriseProjectId: undefined,
           enterpriseProjectIdV2: undefined,
-          enterpriseDomain: undefined,
-          enterpriseDomainV2: undefined,
+          enterpriseDomain: AnalyticsHandler.hash(DEFAULT_GARDEN_CLOUD_DOMAIN),
+          enterpriseDomainV2: AnalyticsHandler.hashV2(DEFAULT_GARDEN_CLOUD_DOMAIN),
           isLoggedIn: false,
           customer: undefined,
           ciName: analytics["ciName"],

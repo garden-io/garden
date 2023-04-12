@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,7 @@ function versionCheckError(params: BinaryVersionCheckParams, msg: string, detail
     deline`
       ${msg}
       Please make sure ${params.name} (version ${params.minVersion} or later) is installed and on your PATH.
-      More about garden installation and requirements can be found in our documentation at https://docs.garden.io/guides/installation#requirements
+      More about garden installation and requirements can be found in our documentation at https://docs.garden.io/guides/installation
       `,
     detail
   )

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,11 @@ export interface AutocompleteSuggestion {
   // What's being suggested in the last item in the split array
   type: "command" | "argument" | "option"
   line: string
-  command: string[]
+  command: {
+    name: string[]
+    cliOnly: boolean
+    stringArguments: string[]
+  }
   priority: number
 }
 
@@ -67,6 +71,11 @@ export class Autocompleter {
         const commands = command.getSubCommands()
         output.push(...this.matchCommandNames(commands, input))
       } else {
+        // Include the command itself if matching exact string
+        if (rest.length === 0) {
+          output.push(...this.matchCommandNames([command], input))
+        }
+
         output.push(
           ...this.getCommandArgSuggestions({
             command,
@@ -106,25 +115,55 @@ export class Autocompleter {
   }
 
   private matchCommandNames(commands: Command[], input: string) {
+    interface CommandMatch {
+      matchedString: string
+      matchedPath: string[]
+      command: Command
+    }
+
+    const matches: { [key: string]: CommandMatch } = {}
+
     const output: AutocompleteSuggestion[] = []
 
-    for (const c of commands) {
+    for (const command of commands) {
       // TODO: should we maybe skip deprecated aliases?
-      // TODO: skip aliases that are just prefixes of the full name
-      for (const path of c.getPaths()) {
+      for (const path of command.getPaths()) {
         const fullName = path.join(" ")
         if (fullName.startsWith(input)) {
-          output.push({
-            type: "command",
-            line: fullName,
-            command: path,
-            priority: 1,
-          })
+          const key = command.getFullName()
+          const existing = matches[key]
+
+          if (
+            !existing ||
+            // Prefer match on canonical command name
+            key === fullName ||
+            // followed by shorter match
+            (existing.matchedString !== key && existing.matchedString.length > fullName.length)
+          ) {
+            matches[key] = {
+              matchedString: fullName,
+              matchedPath: path,
+              command,
+            }
+          }
         }
       }
     }
 
-    this.debug(`Matched commands to input '${input}': ${output.map((s) => s.command.join(" "))}`)
+    for (const match of Object.values(matches)) {
+      output.push({
+        type: "command",
+        line: match.matchedString,
+        command: {
+          name: match.matchedPath,
+          cliOnly: match.command.cliOnly,
+          stringArguments: [],
+        },
+        priority: 1,
+      })
+    }
+
+    this.debug(`Matched commands to input '${input}': ${output.map((s) => s.command.name.join(" "))}`)
 
     return output
   }
@@ -164,49 +203,60 @@ export class Autocompleter {
     return [...this.getArgumentSuggestions(params), ...this.getOptionFlagSuggestions(params)]
   }
 
-  private getArgumentSuggestions(params: GetCommandArgParams) {
+  private getArgumentSuggestions(params: GetCommandArgParams): AutocompleteSuggestion[] {
     const { command, input, rest, configDump, matchedPath } = params
 
     if (!configDump) {
       return []
     }
 
-    // TODO: handle variadic args
     const stringArgs = input[input.length - 1] === " " ? rest.slice(0, -1) : rest
     const parsed = parseCliArgs({ stringArgs, command, cli: true })
     const argIndex = parsed._.length
     const argSpecs = <Parameter<any>[]>Object.values(command.arguments || {})
-    const argSpec = argSpecs[argIndex]
+
+    let argSpec = argSpecs[argIndex]
 
     if (!argSpec) {
       // No more positional args
-      return []
+      const lastSpec = argSpecs[argSpecs.length - 1]
+
+      if (lastSpec?.spread) {
+        // There is a spread argument
+        argSpec = lastSpec
+      } else {
+        return []
+      }
     }
 
     const prefix = rest.length === 0 ? "" : rest[rest.length - 1]
     const argSuggestions = argSpec.getSuggestions({ configDump })
 
     return argSuggestions
-      .filter((s) => s.startsWith(prefix))
+      .filter((s) => prefix === s || (s.startsWith(prefix) && !rest.includes(s)))
       .map((s) => {
-        const split = [...matchedPath, ...rest]
+        const stringArguments = [...rest]
 
         if (rest.length === 0) {
-          split.push(s)
+          stringArguments.push(s)
         } else {
-          split[split.length - 1] = s
+          stringArguments[stringArguments.length - 1] = s
         }
 
-        return <AutocompleteSuggestion>{
+        return {
           type: "argument",
-          line: split.join(" "),
-          command: command.getPath(),
+          line: [...matchedPath, ...stringArguments].join(" "),
+          command: {
+            name: command.getPath(),
+            cliOnly: command.cliOnly,
+            stringArguments,
+          },
           priority: 1000, // Rank these above option flags
         }
       })
   }
 
-  private getOptionFlagSuggestions(params: GetCommandArgParams) {
+  private getOptionFlagSuggestions(params: GetCommandArgParams): AutocompleteSuggestion[] {
     const { command, rest, matchedPath, ignoreGlobalFlags } = params
 
     const lastArg = rest[rest.length - 1]
@@ -228,19 +278,23 @@ export class Autocompleter {
     }
 
     return keys.map((k) => {
-      const split = [...matchedPath, ...rest]
+      const stringArguments = [...rest]
       const s = "--" + k
 
       if (rest.length === 0) {
-        split.push(s)
+        stringArguments.push(s)
       } else {
-        split[split.length - 1] = s
+        stringArguments[stringArguments.length - 1] = s
       }
 
-      return <AutocompleteSuggestion>{
+      return {
         type: "option",
-        line: split.join(" "),
-        command: command.getPath(),
+        line: [...matchedPath, ...stringArguments].join(" "),
+        command: {
+          name: command.getPath(),
+          cliOnly: command.cliOnly,
+          stringArguments,
+        },
         // prefer command-specific flags
         priority: globalOptions[k] ? 1 : 2,
       }

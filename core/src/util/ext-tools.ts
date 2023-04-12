@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import split2 from "split2"
 import { pathExists, createWriteStream, ensureDir, chmod, remove, move, createReadStream } from "fs-extra"
 import { ConfigurationError, ParameterError, GardenBaseError, RuntimeError } from "../exceptions"
 import { join, dirname, basename, posix } from "path"
-import { hashString, exec, uuidv4, getPlatform, getArchitecture, isDarwinARM } from "./util"
+import { hashString, exec, getPlatform, getArchitecture, isDarwinARM } from "./util"
 import tar from "tar"
 import { GARDEN_GLOBAL_PATH } from "../constants"
 import { Log } from "../logger/log-entry"
@@ -24,6 +24,7 @@ import { parse } from "url"
 import AsyncLock from "async-lock"
 import { PluginContext } from "../plugin-context"
 import { LogLevel } from "../logger/logger"
+import { uuidv4 } from "./random"
 
 const toolsPath = join(GARDEN_GLOBAL_PATH, "tools")
 const lock = new AsyncLock()
@@ -153,11 +154,11 @@ export class CliWrapper {
 
     const logEventContext = {
       origin: this.name,
-      log: log.makeNewLogContext({ level: LogLevel.verbose }),
+      level: "verbose" as const,
     }
 
     logStream.on("data", (line: Buffer) => {
-      ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+      ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
     })
 
     await new Promise<void>((resolve, reject) => {
@@ -296,10 +297,10 @@ export class PluginTool extends CliWrapper {
       const tmpPath = join(this.toolPath, this.versionDirname + "." + uuidv4().substr(0, 8))
       const targetAbsPath = join(tmpPath, ...this.targetSubpath.split(posix.sep))
 
-      const downloadLog = log.makeNewLogContext({}).info(`Fetching ${this.name}...`)
+      const downloadLog = log.createLog({}).info(`Fetching ${this.name}...`)
       const debug = downloadLog
-        .makeNewLogContext({
-          level: LogLevel.debug,
+        .createLog({
+          fixLevel: LogLevel.debug,
         })
         .info(`Downloading ${this.buildSpec.url}...`)
 
@@ -323,8 +324,8 @@ export class PluginTool extends CliWrapper {
         }
       }
 
-      debug && debug.setSuccess("Done")
-      downloadLog.setSuccess(`Fetched ${this.name}`)
+      debug && debug.success("Done")
+      downloadLog.success(`Fetched ${this.name}`)
     })
   }
 

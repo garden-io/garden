@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,107 +8,120 @@
 
 import chalk from "chalk"
 
-import { renderOutputStream, uuidv4 } from "../util/util"
 import { PluginEventBroker } from "../plugin-context"
-import { BuildState } from "../plugin/handlers/Build/get-status"
 import { BaseRouterParams, createActionRouter } from "./base"
-import { ActionState } from "../actions/types"
+import { ActionState, stateForCacheStatusEvent } from "../actions/types"
 import { PublishActionResult } from "../plugin/handlers/Build/publish"
+
+const API_ACTION_TYPE = "build"
 
 export const buildRouter = (baseParams: BaseRouterParams) =>
   createActionRouter("Build", baseParams, {
     getStatus: async (params) => {
       const { router, action, garden } = params
+      const actionType = API_ACTION_TYPE
 
-      const status = await router.callHandler({
+      const startedAt = new Date().toISOString()
+
+      // Then an actual build won't take place, so we emit a build status event to that effect.
+      const actionVersion = action.versionString()
+      const payloadAttrs = {
+        moduleName: action.moduleName(),
+        actionName: action.name,
+        actionType,
+        actionUid: action.getUid(),
+        actionVersion,
+        startedAt,
+      }
+
+      garden.events.emit("buildStatus", {
+        ...payloadAttrs,
+        state: "getting-status",
+        status: { state: "fetching" },
+      })
+      const statusOutput = await router.callHandler({
         params,
         handlerType: "getStatus",
         defaultHandler: async () => ({ state: <ActionState>"unknown", detail: {}, outputs: {} }),
       })
+      const status = statusOutput.result
+      const { state } = status
 
-      // TODO-G2: only validate if state is ready?
       await router.validateActionOutputs(action, "runtime", status.outputs)
-
-      if (status.state === "ready") {
-        // Then an actual build won't take place, so we emit a build status event to that effect.
-        const actionVersion = action.versionString()
-
-        garden.events.emit("buildStatus", {
-          moduleName: action.moduleName(),
-          moduleVersion: action.moduleVersion().versionString,
-          actionName: action.name,
-          actionVersion,
-          status: { state: "fetched" },
-        })
-      }
-      return status
+      garden.events.emit("buildStatus", {
+        ...payloadAttrs,
+        completedAt: new Date().toISOString(),
+        state: stateForCacheStatusEvent(state),
+        status: { state: state === "ready" ? "fetched" : "outdated" },
+      })
+      return statusOutput
     },
 
     build: async (params) => {
       const { action, garden, router } = params
 
-      const actionUid = uuidv4()
-      params.events = params.events || new PluginEventBroker()
+      const actionUid = action.getUid()
+      params.events = params.events || new PluginEventBroker(garden)
 
       const startedAt = new Date().toISOString()
 
       const actionName = action.name
+      const actionType = API_ACTION_TYPE
       const actionVersion = action.versionString()
-      const moduleVersion = action.moduleVersion().versionString
       const moduleName = action.moduleName()
 
-      params.events.on("log", ({ timestamp, data, origin, log }) => {
+      params.events.on("log", ({ timestamp, msg, origin, level }) => {
         // stream logs to CLI
-        log.info(renderOutputStream(data.toString(), origin))
+        params.log[level]({ msg, origin })
         // stream logs to Garden Cloud
-        // TODO: consider sending origin as well
         garden.events.emit("log", {
           timestamp,
           actionUid,
-          entity: {
-            type: "build",
-            key: `${moduleName}`,
-            moduleName,
-          },
-          data: data.toString(),
+          actionName,
+          actionType,
+          moduleName,
+          origin: origin || "",
+          data: msg,
         })
       })
-      garden.events.emit("buildStatus", {
+      const payloadAttrs = {
         actionName,
         actionVersion,
+        actionType,
         moduleName,
-        moduleVersion,
         actionUid,
-        status: { state: "building", startedAt },
+        startedAt,
+      }
+
+      garden.events.emit("buildStatus", {
+        ...payloadAttrs,
+        state: "processing",
+        status: { state: "building" },
       })
 
-      const emitBuildStatusEvent = (state: BuildState) => {
+      const emitBuildStatusEvent = (state: "ready" | "failed") => {
         garden.events.emit("buildStatus", {
-          actionName,
-          actionVersion,
-          moduleName,
-          moduleVersion,
-          actionUid,
+          ...payloadAttrs,
+          state,
+          completedAt: new Date().toISOString(),
           status: {
-            state,
-            startedAt,
-            completedAt: new Date().toISOString(),
+            state: state === "ready" ? "built" : "failed",
           },
         })
       }
 
       try {
-        const result = await router.callHandler({
+        const output = await router.callHandler({
           params,
           handlerType: "build",
           defaultHandler: async () => ({ state: <ActionState>"unknown", outputs: {}, detail: {} }),
         })
+        const { result } = output
 
-        // TODO-G2: only validate if state is ready?
         await router.validateActionOutputs(action, "runtime", result.outputs)
 
-        emitBuildStatusEvent("built")
-        return result
+        emitBuildStatusEvent("ready")
+        return output
       } catch (err) {
         emitBuildStatusEvent("failed")
         throw err

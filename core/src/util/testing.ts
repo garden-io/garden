@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,20 +8,20 @@
 
 import { GlobalOptions, globalOptions, ParameterValues } from "../cli/params"
 import { cloneDeep, isEqual, keyBy, set, mapValues } from "lodash"
-import { Garden, GardenOpts, GardenParams, resolveGardenParams } from "../garden"
+import { Garden, GardenOpts, GardenParams, GetConfigGraphParams, resolveGardenParams } from "../garden"
 import { DeepPrimitiveMap, StringMap } from "../config/common"
 import { ModuleConfig } from "../config/module"
 import { WorkflowConfig } from "../config/workflow"
 import { Log, LogEntry } from "../logger/log-entry"
 import { GardenModule } from "../types/module"
-import { findByName, getNames, isPromise, uuidv4, ValueOf } from "./util"
+import { findByName, getNames, isPromise, ValueOf } from "./util"
 import { GardenBaseError, GardenError, InternalError } from "../exceptions"
 import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { join, resolve } from "path"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
-import { getLogger } from "../logger/logger"
+import { getRootLogger } from "../logger/logger"
 import stripAnsi from "strip-ansi"
 import { VcsHandler } from "../vcs/vcs"
 import { ConfigGraph } from "../graph/config-graph"
@@ -34,6 +34,7 @@ import { BuiltinArgs, Command, CommandResult } from "../commands/base"
 import { validateSchema } from "../config/validation"
 import { mkdirp, remove } from "fs-extra"
 import { GlobalConfigStore } from "../config-store/global"
+import { uuidv4 } from "./random"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -156,7 +157,7 @@ export class TestGarden extends Garden {
     opts?: TestGardenOpts
   ): Promise<InstanceType<T>> {
     // Cache the resolved params to save a bunch of time during tests
-    // TODO-G2: re-instate this after we're done refactoring
+    // TODO: re-instate this after we're done refactoring
     const cacheKey = undefined
     // const cacheKey = opts?.noCache
     //   ? undefined
@@ -167,7 +168,7 @@ export class TestGarden extends Garden {
     if (cacheKey && paramCache[cacheKey]) {
       params = cloneDeep(paramCache[cacheKey])
       // Need to do these separately to avoid issues around cloning
-      params.log = opts?.log || getLogger().makeNewLogContext()
+      params.log = opts?.log || getRootLogger().createLog()
       params.plugins = opts?.plugins || []
     } else {
       params = await resolveGardenParams(currentDirectory, { commandInfo: defaultCommandinfo, ...opts })
@@ -202,13 +203,12 @@ export class TestGarden extends Garden {
   /**
    * Override to cache the config graph.
    */
-  async getConfigGraph(params: {
-    log: Log
-    graphResults?: GraphResults
-    emit: boolean
-    noCache?: boolean
-  }): Promise<ConfigGraph> {
-    // TODO-G2: re-instate this after we're done refactoring
+  async getConfigGraph(
+    params: GetConfigGraphParams & {
+      noCache?: boolean
+    }
+  ): Promise<ConfigGraph> {
+    // TODO: re-instate this after we're done refactoring
     // let cacheKey: string | undefined = undefined
 
     // if (this.cacheKey && !params.noCache) {
@@ -261,11 +261,12 @@ export class TestGarden extends Garden {
     }
     actionConfigs.forEach((ac) => {
       this.addActionConfig({
-        internal: {
-          basePath: this.projectRoot,
-        },
         spec: {},
         ...ac,
+        internal: {
+          basePath: this.projectRoot,
+          ...ac.internal,
+        },
       })
     })
   }

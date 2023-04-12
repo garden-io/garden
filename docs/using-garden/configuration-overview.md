@@ -12,7 +12,7 @@ The [project configuration](./projects.md) file should be located in the top-lev
 
 In addition, each of the project's [modules](../reference/glossary.md#module)' should be located in that module's top-level directory. Modules define all the individual components of your project, including [services](./services.md), [tasks](./tasks.md) and [tests](./tests.md).
 
-You can define [module templates](./module-templates.md) to create your own abstractions, both within a project and across multiple projects.
+You can define [module templates](./config-templates.md) to create your own abstractions, both within a project and across multiple projects.
 
 Lastly, you can define [workflows](./workflows.md), to codify sequences of Garden commands and custom scripts. We suggest placing those in a `workflows.garden.yml` file in your project root.
 

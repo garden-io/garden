@@ -137,9 +137,9 @@ Depending on the size of your project, you may want to add a handful of modules 
 
 ## Step 3 — Add more plugins and environments
 
-Garden works great during development, and for running tests and creating preview environments in CI. 
+Garden works great during development, and for running tests and creating preview environments in CI.
 
-We recommend adopting Garden in one part of your software delivery cycle to begin and then gradually introducing more. 
+We recommend adopting Garden in one part of your software delivery cycle to begin and then gradually introducing more.
 
 A common path looks something like this:
 
@@ -192,4 +192,4 @@ At this point you'll have codified all your workflows such that they are portabl
 
 Now that you have a feel for how our users typically adopt Garden, we recommend heading to the documentation for your plugin of choice, and to start Gardenifying your project.
 
-And if you have any questions, don't hesitate to reach out to our [our Discord community](https://discord.gg/gxeuDgp6Xt).
+And if you have any questions, don't hesitate to reach out to our [our Discord community](https://discord.gg/FrmhuUjFs6).

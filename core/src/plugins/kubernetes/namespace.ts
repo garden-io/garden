@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,7 @@ import type { V1Namespace } from "@kubernetes/client-node"
 import { isSubset } from "../../util/is-subset"
 import chalk from "chalk"
 import type { NamespaceStatus } from "../../types/namespace"
-import type { KubernetesServerResource, SupportedRuntimeActions } from "./types"
+import type { KubernetesServerResource, SupportedRuntimeAction } from "./types"
 import type { Resolved } from "../../actions/types"
 
 const GARDEN_VERSION = getPackageVersion()
@@ -273,7 +273,7 @@ export async function deleteNamespaces(namespaces: string[], api: KubeApi, log?:
     const nsNames = await getAllNamespaces(api)
     if (intersection(nsNames, namespaces).length === 0) {
       if (log) {
-        log.setSuccess()
+        log.success("Done")
       }
       break
     }
@@ -296,7 +296,7 @@ export async function getActionNamespace({
 }: {
   ctx: KubernetesPluginContext
   log: Log
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SupportedRuntimeAction>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<string> {
@@ -319,13 +319,12 @@ export async function getActionNamespaceStatus({
 }: {
   ctx: KubernetesPluginContext
   log: Log
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SupportedRuntimeAction>
   provider: KubernetesProvider
   skipCreate?: boolean
 }): Promise<NamespaceStatus> {
   let namespace: string | undefined
 
-  // TODO-G2: add namespace field on container Deploy
   if (action.type !== "container") {
     namespace = action.getSpec().namespace
   }

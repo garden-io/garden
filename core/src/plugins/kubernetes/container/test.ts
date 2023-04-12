@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,18 +19,8 @@ import { runResultToActionState } from "../../../actions/base"
 
 export const k8sContainerTest: TestActionHandler<"run", ContainerTestAction> = async (params) => {
   const { ctx, action, log } = params
-  const {
-    command,
-    args,
-    artifacts,
-    env,
-    cpu,
-    memory,
-    volumes,
-    privileged,
-    addCapabilities,
-    dropCapabilities,
-  } = action.getSpec()
+  const { command, args, artifacts, env, cpu, memory, volumes, privileged, addCapabilities, dropCapabilities } =
+    action.getSpec()
   const timeout = action.getConfig("timeout") || DEFAULT_TEST_TIMEOUT
   const k8sCtx = ctx as KubernetesPluginContext
 

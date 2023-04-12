@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,7 +43,7 @@ export interface RenderedNode {
 
 export type GraphNodes = { [key: string]: ConfigGraphNode }
 
-interface GetActionOpts {
+export interface GetActionOpts {
   includeDisabled?: boolean
   ignoreMissing?: boolean
 }
@@ -59,7 +59,7 @@ export class GraphError extends GardenBaseError {
   type = "graph"
 }
 
-type PickTypeByKind<
+export type PickTypeByKind<
   K extends ActionKind,
   B extends BuildAction,
   D extends DeployAction,
@@ -126,12 +126,12 @@ export abstract class BaseConfigGraph<
   }
 
   toSanitizedValue() {
-    // TODO-G2
+    // TODO
     return "<ConfigGraph>"
   }
 
   validate() {
-    // TODO-G2
+    // TODO-0.13.0: checks for circular dependencies
   }
 
   clone() {
@@ -596,7 +596,7 @@ export class ConfigGraphNode {
 
   private traverse(type: "dependants" | "dependencies", recursive: boolean, filter?: DependencyRelationFilterFn) {
     const nodes = this[type].filter((n) => {
-      // TODO-G2: This feels out of place here
+      // TODO-0.13.1: This feels out of place here
       if (n.kind !== "Build" && n.disabled) {
         return false
       } else if (filter) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@ import { ContainerDeployAction, ContainerDeploySpec, ContainerVolumeSpec } from 
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { waitForResources } from "../status/status"
-import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
@@ -24,123 +24,78 @@ import { deline, gardenAnnotationKey } from "../../../util/string"
 import { resolve } from "path"
 import { killPortForwards } from "../port-forward"
 import { prepareSecrets } from "../secrets"
-import { configureSyncMode, convertContainerSyncSpec, startSyncs } from "../sync"
+import { configureSyncMode, convertContainerSyncSpec } from "../sync"
 import { getDeployedImageId, getResourceRequirements, getSecurityContext } from "./util"
-import { configureLocalMode, startServiceInLocalMode } from "../local-mode"
+import { configureLocalMode, convertContainerLocalModeSpec, startServiceInLocalMode } from "../local-mode"
 import { DeployActionHandler, DeployActionParams } from "../../../plugin/action-types"
-import { Resolved } from "../../../actions/types"
-import { ConfigurationError } from "../../../exceptions"
+import { ActionMode, Resolved } from "../../../actions/types"
+import { ConfigurationError, DeploymentError } from "../../../exceptions"
 import {
   SyncableKind,
   syncableKinds,
   SyncableResource,
   KubernetesWorkload,
   KubernetesResource,
-  SupportedRuntimeActions,
+  SupportedRuntimeAction,
 } from "../types"
 import { k8sGetContainerDeployStatus, ContainerServiceStatus } from "./status"
 import { emitNonRepeatableWarning } from "../../../warnings"
 
 export const DEFAULT_CPU_REQUEST = "10m"
-export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters
+export const DEFAULT_MEMORY_REQUEST = "90Mi" // This is the minimum in some clusters - or so they tell me
 export const REVISION_HISTORY_LIMIT_PROD = 10
 export const REVISION_HISTORY_LIMIT_DEFAULT = 3
 export const DEFAULT_MINIMUM_REPLICAS = 1
 export const PRODUCTION_MINIMUM_REPLICAS = 3
 
 export const k8sContainerDeploy: DeployActionHandler<"deploy", ContainerDeployAction> = async (params) => {
-  const { ctx, action, log, syncMode, localMode } = params
+  const { ctx, action, log, force } = params
   const k8sCtx = <KubernetesPluginContext>ctx
+  const mode = action.mode()
   const { deploymentStrategy } = k8sCtx.provider.config
-  const deployWithSyncMode = syncMode && !!action.getSpec("sync")
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   const imageId = getDeployedImageId(action, k8sCtx.provider)
 
+  const status = await k8sGetContainerDeployStatus(params)
+  const specChangedResourceKeys: string[] = status.detail?.detail.selectorChangedResourceKeys || []
+  if (specChangedResourceKeys.length > 0) {
+    const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+    await handleChangedSelector({
+      action,
+      specChangedResourceKeys,
+      ctx: k8sCtx,
+      namespace: namespaceStatus.namespaceName,
+      log,
+      production: ctx.production,
+      force,
+    })
+  }
+
   if (deploymentStrategy === "blue-green") {
     emitNonRepeatableWarning(
+      log,
       "The deploymentStrategy configuration option has been deprecated and has no effect. It will be removed iin 0.14. The 'rolling' deployment strategy will be applied."
     )
   }
-  await deployContainerServiceRolling({ ...params, syncMode: deployWithSyncMode, api, imageId })
+  await deployContainerServiceRolling({ ...params, api, imageId })
 
-  const status = await k8sGetContainerDeployStatus(params)
+  const postDeployStatus = await k8sGetContainerDeployStatus(params)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(action, status.detail?.forwardablePorts || [], log)
+  killPortForwards(action, postDeployStatus.detail?.forwardablePorts || [], log)
 
-  if (deployWithSyncMode) {
-    await startContainerDevSync({
-      ctx: k8sCtx,
-      log,
-      status: status.detail!,
-      action,
-    })
-  }
-
-  if (localMode) {
+  if (mode === "local") {
     await startLocalMode({
       ctx: k8sCtx,
       log,
-      status: status.detail!,
+      status: postDeployStatus.detail!,
       action,
     })
+    postDeployStatus.attached = true
   }
 
-  return status
-}
-
-export async function startContainerDevSync({
-  ctx,
-  log,
-  status,
-  action,
-}: {
-  ctx: KubernetesPluginContext
-  status: ContainerServiceStatus
-  log: Log
-  action: Resolved<ContainerDeployAction>
-}) {
-  const sync = action.getSpec("sync")
-  const workload = status.detail.workload
-
-  if (!sync?.paths || !workload) {
-    return
-  }
-
-  log.info({
-    section: action.name,
-    // FIXME: Not sure why we need to explicitly set the symbol here, but if we don't
-    // it's not rendered.
-    symbol: "info",
-    msg: chalk.grey(`Deploying in sync mode`),
-  })
-
-  const defaultNamespace = await getAppNamespace(ctx, log, ctx.provider)
-
-  const target = {
-    kind: <SyncableKind>workload.kind,
-    name: workload.metadata.name,
-  }
-
-  const syncs = sync.paths.map((s) => ({
-    ...s,
-    sourcePath: s.source,
-    containerPath: s.target,
-    target,
-  }))
-
-  await startSyncs({
-    ctx,
-    log,
-    action,
-    actionDefaults: {},
-    basePath: action.basePath(),
-    defaultNamespace,
-    defaultTarget: target,
-    manifests: status.detail.remoteResources,
-    syncs,
-  })
+  return postDeployStatus
 }
 
 export async function startLocalMode({
@@ -167,6 +122,7 @@ export async function startLocalMode({
     ctx,
     spec: localModeSpec,
     targetResource,
+    manifests: status.detail.remoteResources,
     action,
     namespace,
     log,
@@ -176,7 +132,7 @@ export async function startLocalMode({
 export const deployContainerServiceRolling = async (
   params: DeployActionParams<"deploy", ContainerDeployAction> & { api: KubeApi; imageId: string }
 ) => {
-  const { ctx, api, action, log, syncMode, imageId, localMode } = params
+  const { ctx, api, action, log, imageId } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
@@ -188,8 +144,6 @@ export const deployContainerServiceRolling = async (
     log,
     action,
     imageId,
-    enableSyncMode: syncMode,
-    enableLocalMode: localMode,
   })
 
   const provider = k8sCtx.provider
@@ -214,16 +168,12 @@ export async function createContainerManifests({
   log,
   action,
   imageId,
-  enableSyncMode,
-  enableLocalMode,
 }: {
   ctx: PluginContext
   api: KubeApi
   log: Log
   action: Resolved<ContainerDeployAction>
   imageId: string
-  enableSyncMode: boolean
-  enableLocalMode: boolean
 }) {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
@@ -237,24 +187,10 @@ export async function createContainerManifests({
     action,
     imageId,
     namespace,
-    enableSyncMode,
-    enableLocalMode,
     log,
     production,
   })
   const kubeServices = await createServiceResources(action, namespace)
-  const localModeSpec = action.getSpec("localMode")
-
-  if (enableLocalMode && localModeSpec) {
-    await configureLocalMode({
-      ctx,
-      spec: localModeSpec,
-      targetResource: workload,
-      action,
-      log,
-    })
-  }
-
   const manifests = [workload, ...kubeServices, ...ingresses]
 
   for (const obj of manifests) {
@@ -274,11 +210,14 @@ interface CreateDeploymentParams {
   action: Resolved<ContainerDeployAction>
   namespace: string
   imageId: string
-  enableSyncMode: boolean
-  enableLocalMode: boolean
   log: Log
   production: boolean
 }
+
+const getDefaultWorkloadTarget = (w: KubernetesResource<V1Deployment | V1DaemonSet>) => ({
+  kind: <SyncableKind>w.kind,
+  name: w.metadata.name,
+})
 
 export async function createWorkloadManifest({
   ctx,
@@ -287,12 +226,12 @@ export async function createWorkloadManifest({
   action,
   imageId,
   namespace,
-  enableSyncMode,
-  enableLocalMode,
   log,
   production,
 }: CreateDeploymentParams): Promise<KubernetesWorkload> {
   const spec = action.getSpec()
+  const mode = action.mode()
+
   let configuredReplicas = spec.replicas || DEFAULT_MINIMUM_REPLICAS
   let workload = workloadConfig({ action, configuredReplicas, namespace })
 
@@ -300,7 +239,7 @@ export async function createWorkloadManifest({
     configuredReplicas = PRODUCTION_MINIMUM_REPLICAS
   }
 
-  if (enableSyncMode && configuredReplicas > 1) {
+  if (mode === "sync" && configuredReplicas > 1) {
     log.warn({
       msg: chalk.gray(`Ignoring replicas config on container service ${action.name} while in sync mode`),
       symbol: "warning",
@@ -308,7 +247,7 @@ export async function createWorkloadManifest({
     configuredReplicas = 1
   }
 
-  if (enableLocalMode && configuredReplicas > 1) {
+  if (mode === "local" && configuredReplicas > 1) {
     log.verbose({
       msg: chalk.yellow(`Ignoring replicas config on container Deploy ${action.name} while in local mode`),
       symbol: "warning",
@@ -385,14 +324,6 @@ export async function createWorkloadManifest({
   }
 
   if (spec.healthCheck) {
-    let mode: HealthCheckMode
-    if (enableSyncMode) {
-      mode = "dev"
-    } else if (enableLocalMode) {
-      mode = "local"
-    } else {
-      mode = "normal"
-    }
     configureHealthCheck(container, spec, mode)
   }
 
@@ -500,22 +431,28 @@ export async function createWorkloadManifest({
   }
 
   const syncSpec = convertContainerSyncSpec(ctx, action)
-  const localModeSpec = spec.localMode
+  const localModeSpec = convertContainerLocalModeSpec(ctx, action)
 
   // Local mode always takes precedence over sync mode
-  if (enableLocalMode && localModeSpec) {
-    // no op here, local mode will be configured later after all manifests are ready
-  } else if (enableSyncMode && syncSpec) {
+  if (mode === "local" && localModeSpec) {
+    const configured = await configureLocalMode({
+      ctx,
+      spec: localModeSpec,
+      defaultTarget: getDefaultWorkloadTarget(workload),
+      manifests: [workload],
+      action,
+      log,
+    })
+
+    workload = <KubernetesResource<V1Deployment | V1DaemonSet>>configured.updated[0]
+  } else if (mode === "sync" && syncSpec) {
     log.debug({ section: action.key(), msg: chalk.gray(`-> Configuring in sync mode`) })
-
-    const target = { kind: <SyncableKind>workload.kind, name: workload.metadata.name }
-
     const configured = await configureSyncMode({
       ctx,
       log,
       provider,
       action,
-      defaultTarget: target,
+      defaultTarget: getDefaultWorkloadTarget(workload),
       manifests: [workload],
       spec: syncSpec,
     })
@@ -598,7 +535,7 @@ function workloadConfig({
 
 type HealthCheckMode = "dev" | "local" | "normal"
 
-function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: HealthCheckMode): void {
+function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec, mode: ActionMode): void {
   if (mode === "local") {
     // no need to configure liveness and readiness probes for a service running in local mode
     return
@@ -622,10 +559,10 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
   // sync event.
   container.livenessProbe = {
     initialDelaySeconds: readinessPeriodSeconds * readinessFailureThreshold,
-    periodSeconds: mode === "dev" ? 10 : 5,
+    periodSeconds: mode === "sync" ? 10 : 5,
     timeoutSeconds: spec.healthCheck?.livenessTimeoutSeconds || 3,
     successThreshold: 1,
-    failureThreshold: mode === "dev" ? 30 : 3,
+    failureThreshold: mode === "sync" ? 30 : 3,
   }
 
   const portsByName = keyBy(spec.ports, "name")
@@ -651,7 +588,7 @@ function configureHealthCheck(container: V1Container, spec: ContainerDeploySpec,
 }
 
 export function configureVolumes(
-  action: SupportedRuntimeActions,
+  action: SupportedRuntimeAction,
   podSpec: V1PodSpec,
   volumeSpecs: ContainerVolumeSpec[]
 ): void {
@@ -741,5 +678,65 @@ export const deleteContainerDeploy: DeployActionHandler<"delete", ContainerDeplo
     includeUninitialized: false,
   })
 
-  return { state: "ready", detail: { state: "missing", detail: {} }, outputs: {} }
+  return { state: "ready", detail: { deployState: "missing", detail: {} }, outputs: {} }
+}
+
+/**
+ * Deletes matching deployed resources for the given Deploy action, unless deploying against a production environment
+ * with `force = false`.
+ *
+ * TODO: Also accept `KubernetesDeployAction`s and reuse this helper for deleting before redeploying when selectors
+ * have changed before a `kubernetes` Deploy is redeployed.
+ */
+export async function handleChangedSelector({
+  action,
+  specChangedResourceKeys,
+  ctx,
+  namespace,
+  log,
+  production,
+  force,
+}: {
+  action: ContainerDeployAction
+  specChangedResourceKeys: string[]
+  ctx: KubernetesPluginContext
+  namespace: string
+  log: Log
+  production: boolean
+  force: boolean
+}) {
+  const msgPrefix = `Deploy ${chalk.white(action.name)} was deployed with a different ${chalk.white(
+    "spec.selector"
+  )} and needs to be deleted before redeploying.`
+  if (production && !force) {
+    throw new DeploymentError(
+      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
+        "--force"
+      )} flag when deploying e.g. with the ${chalk.white(
+        "garden deploy"
+      )} command. You can also delete the resource from your cluster manually and try again.`,
+      {
+        deployName: action.name,
+      }
+    )
+  } else {
+    if (production && force) {
+      log.warn(
+        chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
+      )
+    } else if (!production) {
+      log.warn(
+        chalk.yellow(
+          `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
+        )
+      )
+    }
+    await deleteResourceKeys({
+      ctx,
+      log,
+      provider: ctx.provider,
+      namespace,
+      keys: specChangedResourceKeys,
+    })
+  }
 }

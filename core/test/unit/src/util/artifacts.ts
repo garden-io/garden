@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,7 @@ import { realpath, writeFile } from "fs-extra"
 import normalizePath from "normalize-path"
 import { join } from "path"
 import { getArtifactFileList, getArtifactKey } from "../../../../src/util/artifacts"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 
 describe("artifacts", () => {
   describe("getArtifactKey", () => {
@@ -25,7 +25,7 @@ describe("artifacts", () => {
   describe("getArtifactFileList", () => {
     let tmpDir: tmp.DirectoryResult
     let artifactsPath: string
-    const log = getLogger().makeNewLogContext()
+    const log = getRootLogger().createLog()
 
     beforeEach(async () => {
       tmpDir = await tmp.dir({ unsafeCleanup: true })

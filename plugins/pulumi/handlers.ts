@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,6 +25,8 @@ import {
 import { PulumiDeploy, PulumiProvider } from "./config"
 import chalk from "chalk"
 import { DeployActionHandlers } from "@garden-io/core/build/src/plugin/action-types"
+import { DeployState } from "@garden-io/core/build/src/types/service"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
 
 export const cleanupEnvironment: ProviderHandlers["cleanupEnvironment"] = async (_params) => {
   // To properly implement this handler, we'd need access to the config graph (or at least the list of pulumi services
@@ -67,10 +69,10 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
 
   if (!cacheStatus) {
     return {
-      state: "outdated",
+      state: deployStateToActionState("outdated"),
       outputs: {},
       detail: {
-        state: "outdated",
+        deployState: "outdated",
         detail: {},
       },
     }
@@ -79,13 +81,13 @@ export const getPulumiDeployStatus: DeployActionHandlers<PulumiDeploy>["getStatu
   await selectStack(pulumiParams)
   const stackStatus = await getStackStatusFromTag(pulumiParams)
 
-  const state = stackStatus === "up-to-date" ? "ready" : "outdated"
+  const deployState: DeployState = stackStatus === "up-to-date" ? "ready" : "outdated"
 
   return {
-    state,
+    state: deployStateToActionState(deployState),
     outputs: await getStackOutputs(pulumiParams),
     detail: {
-      state,
+      deployState,
       detail: {},
     },
   }
@@ -104,7 +106,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
       state: "ready",
       outputs: await getStackOutputs(pulumiParams),
       detail: {
-        state: "ready",
+        deployState: "ready",
         detail: {},
       },
     }
@@ -139,7 +141,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
     state: "ready",
     outputs: await getStackOutputs(pulumiParams),
     detail: {
-      state: "ready",
+      deployState: "ready",
       detail: {},
     },
   }
@@ -149,10 +151,10 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
   if (!action.getSpec("allowDestroy")) {
     log.warn(chalk.yellow(`${action.longDescription()} has allowDestroy = false. Skipping destroy.`))
     return {
-      state: "outdated",
+      state: deployStateToActionState("outdated"),
       outputs: {},
       detail: {
-        state: "outdated",
+        deployState: "outdated",
         detail: {},
       },
     }
@@ -177,10 +179,10 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
   await clearStackVersionTag(pulumiParams)
 
   return {
-    state: "not-ready",
+    state: deployStateToActionState("missing"),
     outputs: {},
     detail: {
-      state: "missing",
+      deployState: "missing",
       detail: {},
     },
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,6 @@ import { resolve } from "path"
 import { dedent } from "../../util/string"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/module-config"
-import chalk from "chalk"
 import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 import { DOCS_BASE_URL } from "../../constants"
@@ -37,7 +36,7 @@ import { defaultIngressClass } from "./constants"
 import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim"
 import { helm3Spec } from "./helm/helm-cli"
 import { isString } from "lodash"
-import { mutagenCliSpec } from "./mutagen"
+import { mutagenCliSpec } from "../../mutagen"
 import { configMapModuleDefinition, configmapDeployDefinition } from "./volumes/configmap"
 import {
   k8sContainerBuildExtension,
@@ -49,9 +48,10 @@ import { helmDeployDefinition, helmDeployDocs } from "./helm/action"
 import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
 import { kustomizeSpec } from "./kubernetes-type/kustomize"
-import { kubernetesRunDefinition } from "./kubernetes-type/run"
-import { kubernetesTestDefinition } from "./kubernetes-type/test"
 import { syncPause, syncResume, syncStatus } from "./commands/sync"
+import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod"
+import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod"
+import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec"
 
 export async function configureProvider({
   namespace,
@@ -105,7 +105,9 @@ export async function configureProvider({
 export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams): Promise<DebugInfo> {
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
-  const providerLog = log.makeNewLogContext({ section: ctx.provider.name }).info("collecting provider configuration")
+  const providerLog = log
+    .createLog({ name: ctx.provider.name, showDuration: true })
+    .info("collecting provider configuration")
 
   const systemNamespace = await getSystemNamespace(ctx, provider, log)
   const systemMetadataNamespace = getSystemMetadataNamespaceName(provider.config)
@@ -116,18 +118,18 @@ export async function debugInfo({ ctx, log, includeProject }: GetDebugInfoParams
     namespacesList.push(appNamespace)
   }
   const namespaces = await Bluebird.map(namespacesList, async (ns) => {
-    const nsLog = providerLog.makeNewLogContext({ section: ns }).info("collecting namespace configuration")
+    const nsLog = providerLog.createLog({ name: ns, showDuration: true }).info("collecting namespace configuration")
     const out = await kubectl(ctx, provider).stdout({
       log,
       args: ["get", "all", "--namespace", ns, "--output", "json"],
     })
-    nsLog.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    nsLog.success(`Done`)
     return {
       namespace: ns,
       output: JSON.parse(out),
     }
   })
-  providerLog.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+  providerLog.success(`Done`)
 
   const version = await kubectl(ctx, provider).stdout({ log, args: ["version", "--output", "json"] })
 
@@ -182,8 +184,8 @@ export const gardenPlugin = () =>
         configmapDeployDefinition(),
         persistentvolumeclaimDeployDefinition(),
       ],
-      Run: [kubernetesRunDefinition()],
-      Test: [kubernetesTestDefinition()],
+      Run: [kubernetesExecRunDefinition(), kubernetesPodRunDefinition(), helmPodRunDefinition()],
+      Test: [kubernetesExecTestDefinition(), kubernetesPodTestDefinition(), helmPodTestDefinition()],
     },
 
     extendActionTypes: {

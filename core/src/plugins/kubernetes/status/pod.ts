@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,11 +12,11 @@ import { KubernetesServerResource, KubernetesPod } from "../types"
 import { V1Pod, V1Status } from "@kubernetes/client-node"
 import { ResourceStatus } from "./status"
 import chalk from "chalk"
-import { ServiceState, combineStates } from "../../../types/service"
+import { DeployState, combineStates } from "../../../types/service"
 
 export const POD_LOG_LINES = 30
 
-export function checkPodStatus(pod: KubernetesServerResource<V1Pod>): ServiceState {
+export function checkPodStatus(pod: KubernetesServerResource<V1Pod>): DeployState {
   const phase = pod.status!.phase
 
   // phase can be "Running" even if some containers have failed, so we need to check container statuses

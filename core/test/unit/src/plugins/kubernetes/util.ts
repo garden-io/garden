@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ import { sleep } from "../../../../../src/util/util"
 
 describe("deduplicatePodsByLabel", () => {
   it("should return a list of pods, unique by label so that the latest pod is kept", () => {
-    const podA = ({
+    const podA = {
       apiVersion: "v1",
       kind: "Pod",
       metadata: {
@@ -35,8 +35,8 @@ describe("deduplicatePodsByLabel", () => {
         },
       },
       spec: {},
-    } as unknown) as KubernetesServerResource<V1Pod>
-    const podADupe = ({
+    } as unknown as KubernetesServerResource<V1Pod>
+    const podADupe = {
       apiVersion: "v1",
       kind: "Pod",
       metadata: {
@@ -46,39 +46,39 @@ describe("deduplicatePodsByLabel", () => {
           service: "a",
         },
       },
-    } as unknown) as KubernetesServerResource<V1Pod>
-    const podUndefinedLabelA = ({
+    } as unknown as KubernetesServerResource<V1Pod>
+    const podUndefinedLabelA = {
       apiVersion: "v1",
       kind: "Pod",
       metadata: {
         creationTimestamp: new Date("2019-11-13T14:44:26Z"),
         labels: undefined,
       },
-    } as unknown) as KubernetesServerResource<V1Pod>
-    const podUndefinedLabelB = ({
+    } as unknown as KubernetesServerResource<V1Pod>
+    const podUndefinedLabelB = {
       apiVersion: "v1",
       kind: "Pod",
       metadata: {
         creationTimestamp: new Date("2019-11-14T14:44:26Z"),
         labels: undefined,
       },
-    } as unknown) as KubernetesServerResource<V1Pod>
-    const podEmptyLabelA = ({
+    } as unknown as KubernetesServerResource<V1Pod>
+    const podEmptyLabelA = {
       apiVersion: "v1",
       kind: "Pod",
       metadata: {
         creationTimestamp: new Date("2019-11-15T14:44:26Z"),
         labels: {},
       },
-    } as unknown) as KubernetesServerResource<V1Pod>
-    const podEmptyLabelB = ({
+    } as unknown as KubernetesServerResource<V1Pod>
+    const podEmptyLabelB = {
       apiVersion: "v1",
       kind: "Pod",
       metadata: {
         creationTimestamp: new Date("2019-11-16T14:44:26Z"),
         labels: {},
       },
-    } as unknown) as KubernetesServerResource<V1Pod>
+    } as unknown as KubernetesServerResource<V1Pod>
     const uniq = deduplicatePodsByLabel([
       podA,
       podADupe,
@@ -275,7 +275,7 @@ describe("flattenResources", () => {
 
 describe("getStaticLabelsFromPod", () => {
   it("should should only select labels without characters", () => {
-    const pod = ({
+    const pod = {
       apiVersion: "v1",
       kind: "Pod",
       metadata: {
@@ -288,7 +288,7 @@ describe("getStaticLabelsFromPod", () => {
         },
       },
       spec: {},
-    } as unknown) as KubernetesPod
+    } as unknown as KubernetesPod
 
     const labels = getStaticLabelsFromPod(pod)
 

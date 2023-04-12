@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,13 +10,15 @@ import { Garden } from "./garden"
 import { projectNameSchema, projectSourcesSchema, environmentNameSchema, SourceConfig } from "./config/project"
 import { Provider, providerSchema, GenericProviderConfig } from "./config/provider"
 import { deline } from "./util/string"
-import { joi, joiVariables, joiStringMap, DeepPrimitiveMap } from "./config/common"
+import { joi, joiVariables, joiStringMap, DeepPrimitiveMap, joiIdentifier } from "./config/common"
 import { PluginTool } from "./util/ext-tools"
 import { ConfigContext, ContextResolveOpts } from "./config/template-contexts/base"
 import { resolveTemplateStrings } from "./template-string/template-string"
 import { Log } from "./logger/log-entry"
 import { logEntrySchema } from "./plugin/base"
 import { EventEmitter } from "eventemitter3"
+import { CreateEventLogParams, EventLogger, LogLevel, StringLogLevel } from "./logger/logger"
+import { Memoize } from "typescript-memoize"
 
 type WrappedFromGarden = Pick<
   Garden,
@@ -27,6 +29,7 @@ type WrappedFromGarden = Pick<
   | "cloudApi"
   // TODO: remove this from the interface
   | "environmentName"
+  | "namespace"
   | "production"
   | "sessionId"
 >
@@ -66,6 +69,7 @@ export const pluginContextSchema = () =>
         })
         .description("Information about the command being executed, if applicable."),
       environmentName: environmentNameSchema(),
+      namespace: joiIdentifier().description("The active namespace."),
       events: joi.any().description("An event emitter, used for communication during handler execution."),
       gardenDirPath: joi.string().description(deline`
         The absolute path of the project's Garden dir. This is the directory the contains builds, logs and
@@ -92,17 +96,13 @@ export const pluginContextSchema = () =>
       cloudApi: joi.any().optional(),
     })
 
+// TODO: unify with LogEntry type (this is basically a subset)
 export type PluginEventLogContext = {
   /** entity that created the log message, e.g. tool that generated it */
-  origin: string
+  origin?: string
 
-  /**
-   * Log placeholder to be used to stream the logs to the CLI
-   * It's recommended to pass a verbose placeholder created like this: `log.placeholder({ level: LogLevel.verbose })`
-   *
-   * @todo 0.13 consider removing this once we have the append-only logger (#3254)
-   */
-  log: Log
+  /** which level to print the log at */
+  level: StringLogLevel
 }
 
 export type PluginEventLogMessage = PluginEventLogContext & {
@@ -112,19 +112,79 @@ export type PluginEventLogMessage = PluginEventLogContext & {
   timestamp: string
 
   /** log message */
-  data: Buffer
+  msg: string
 }
 
 // Define your emitter's types like that:
 // Key: Event name; Value: Listener function signature
 type PluginEvents = {
   abort: (reason?: string) => void
+  done: () => void
+  failed: (error?: Error) => void
   log: (msg: PluginEventLogMessage) => void
 }
 
 type PluginEventType = keyof PluginEvents
 
-export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventType> {}
+export class PluginEventBroker extends EventEmitter<PluginEvents, PluginEventType> {
+  private aborted: boolean
+  private done: boolean
+  private failed: boolean
+  private error: Error | undefined
+
+  constructor(garden: Garden) {
+    super()
+
+    this.aborted = false
+    this.done = false
+    this.failed = false
+
+    // Always respond to exit and restart events
+    garden.events.on("_exit", () => {
+      this.emit("abort")
+    })
+    garden.events.on("_restart", () => {
+      this.emit("abort")
+    })
+
+    this.on("abort", () => {
+      this.aborted = true
+    })
+    this.on("done", () => {
+      this.done = true
+    })
+    this.on("failed", (error?: Error) => {
+      this.done = true
+      this.failed = true
+      this.error = error
+    })
+  }
+
+  isAborted() {
+    return this.aborted
+  }
+
+  isDone() {
+    return this.done
+  }
+
+  isFailed() {
+    return this.failed
+  }
+
+  getError() {
+    return this.error
+  }
+
+  @Memoize()
+  private getLogger() {
+    return new EventLogger({ events: this, level: LogLevel.info })
+  }
+
+  createLog(params: CreateEventLogParams) {
+    return this.getLogger().createLog(params)
+  }
+}
 
 export async function createPluginContext({
   garden,
@@ -141,8 +201,9 @@ export async function createPluginContext({
 }): Promise<PluginContext> {
   return {
     command,
-    events: events || new PluginEventBroker(),
+    events: events || new PluginEventBroker(garden),
     environmentName: garden.environmentName,
+    namespace: garden.namespace,
     gardenDirPath: garden.gardenDirPath,
     log: garden.log,
     projectName: garden.projectName,

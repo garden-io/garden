@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import chalk from "chalk"
 import titleize from "titleize"
-import type { ConfigGraph, ResolvedConfigGraph } from "../graph/config-graph"
+import type { ConfigGraph, GetActionOpts, ResolvedConfigGraph } from "../graph/config-graph"
 import {
   ActionReference,
   apiVersionSchema,
@@ -33,8 +33,8 @@ import { actionOutputsSchema } from "../plugin/handlers/base/base"
 import type { GraphResult, GraphResults } from "../graph/results"
 import type { RunResult } from "../plugin/base"
 import { Memoize } from "typescript-memoize"
-import { flatten, fromPairs, isString, omit, sortBy } from "lodash"
-import { ActionConfigContext } from "../config/template-contexts/actions"
+import { cloneDeep, flatten, fromPairs, isString, omit, sortBy } from "lodash"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 import { relative } from "path"
 import { InternalError } from "../exceptions"
 import {
@@ -42,6 +42,8 @@ import {
   ActionConfig,
   ActionDependency,
   actionKinds,
+  ActionMode,
+  ActionModes,
   ActionReferenceMap,
   actionStateTypes,
   ActionStatus,
@@ -52,9 +54,26 @@ import {
   ResolvedAction,
   ResolvedActionWrapperParams,
 } from "./types"
-import { varfileDescription } from "../config/base"
+import { baseInternalFieldsSchema, varfileDescription } from "../config/base"
+import { PickTypeByKind } from "../graph/config-graph"
+import { DeployAction } from "./deploy"
+import { TestAction } from "./test"
+import { RunAction } from "./run"
+import { uuidv4 } from "../util/random"
 
-// TODO-G2: split this file
+// TODO: split this file
+
+const actionInternalFieldsSchema = createSchema({
+  name: "action-config-internal-fields",
+  extend: baseInternalFieldsSchema,
+  keys: {
+    groupName: joi.string().optional().meta({ internal: true }),
+    moduleName: joi.string().optional().meta({ internal: true }),
+    resolved: joi.boolean().optional().meta({ internal: true }),
+  },
+  allowUnknown: true,
+  meta: { internal: true },
+})
 
 const actionSourceSpecSchema = () =>
   joi
@@ -100,7 +119,11 @@ export const baseActionConfigSchema = createSchema({
       .string()
       .required()
       .allow(...actionKinds)
-      .description(`The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), "or")}).`)
+      .description(
+        `The kind of action you want to define (one of ${naturalList(actionKinds.map(titleize), {
+          trailingWord: "or",
+        })}).`
+      )
       .meta({ templateContext: null }),
     type: joiIdentifier()
       .required()
@@ -115,20 +138,7 @@ export const baseActionConfigSchema = createSchema({
     description: joi.string().description("A description of the action.").meta({ templateContext: null }),
 
     // Internal metadata fields (these are rejected in `loadConfigResources()` if specified by users)
-    internal: joi
-      .object()
-      .keys({
-        basePath: joi.string().required().meta({ internal: true }),
-        configFilePath: joi.string().optional().meta({ internal: true }),
-        groupName: joi.string().optional().meta({ internal: true }),
-        moduleName: joi.string().optional().meta({ internal: true }),
-        resolved: joi.boolean().optional().meta({ internal: true }),
-        inputs: joi.object().optional().meta({ internal: true }),
-        parentName: joi.string().optional().meta({ internal: true }),
-        templateName: joi.string().optional().meta({ internal: true }),
-      })
-      .unknown(true)
-      .meta({ internal: true }),
+    internal: actionInternalFieldsSchema,
 
     // Location
     source: actionSourceSpecSchema(),
@@ -219,7 +229,7 @@ export const baseActionConfigSchema = createSchema({
       .object()
       .unknown(true)
       .description("The spec for the specific action type.")
-      .meta({ templateContext: ActionConfigContext }),
+      .meta({ templateContext: ActionSpecContext }),
   },
 })
 
@@ -262,6 +272,11 @@ export const actionStatusSchema = createSchema({
       .allow(null)
       .description("Optional provider-specific information about the action status or results."),
     outputs: actionOutputsSchema(),
+    attached: joi
+      .boolean()
+      .description(
+        "Set to true if the action handler is running a process persistently and attached to the Garden process after returning."
+      ),
   },
 })
 
@@ -296,7 +311,7 @@ export interface ActionDescriptionMap {
 }
 
 export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, Outputs extends {} = any> {
-  // TODO-G2: figure out why kind and type come out as any types on Action type
+  // TODO: figure out why kind and type come out as any types on Action type
   public readonly kind: C["kind"]
   public readonly type: C["type"]
   public readonly name: string
@@ -306,7 +321,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   // Note: These need to be public because we need to reference the types (a current TS limitation)
   _config: C
-  // TODO-G2: split the typing here
+  // TODO: split the typing here
   _outputs: Outputs
   protected _staticOutputs: Outputs
 
@@ -316,7 +331,9 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   protected readonly graph: ConfigGraph
   protected readonly _moduleName?: string // TODO: remove in 0.14
   protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
+  protected readonly _mode: ActionMode
   protected readonly projectRoot: string
+  protected readonly _supportedModes: ActionModes
   protected readonly _treeVersion: TreeVersion
   protected readonly variables: DeepPrimitiveMap
 
@@ -330,8 +347,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.graph = params.graph
     this._moduleName = params.moduleName
     this._moduleVersion = params.moduleVersion
+    this._mode = params.mode
     this._config = params.config
     this.projectRoot = params.projectRoot
+    this._supportedModes = params.supportedModes
     this._treeVersion = params.treeVersion
     this.variables = params.variables
     this.resolved = false
@@ -370,7 +389,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   isDisabled(): boolean {
-    // TODO-G2: return true if group is disabled
+    // TODO: return true if group is disabled
     return !!this.getConfig("disabled")
   }
 
@@ -378,7 +397,7 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
    * Check if the action is linked, including those within an external project source.
    * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
    */
-  // TODO-G2: this is ported from another function but the logic seems a little suspect to me... - JE
+  // TODO-0.13.0: this is ported from another function but the logic seems a little suspect to me... - JE
   isLinked(): boolean {
     return !pathIsInside(this.basePath(), this.projectRoot)
   }
@@ -389,9 +408,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   basePath(): string {
-    // TODO-G2
+    // TODO-0.13.0
     // TODO: handle repository.url
-    // TODO: handle build field
     return this._config.internal.basePath
   }
 
@@ -427,12 +445,10 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return false
   }
 
-  getDependency(refOrString: string | ActionReference) {
-    const ref = isString(refOrString) ? parseActionReference(refOrString) : refOrString
-
+  getDependency<K extends ActionKind>(ref: ActionReference<K>, opts?: GetActionOpts) {
     for (const dep of this.dependencies) {
       if (actionRefMatches(dep, ref)) {
-        return this.graph.getActionByRef(ref)
+        return <PickTypeByKind<K, BuildAction, DeployAction, RunAction, TestAction>>this.graph.getActionByRef(ref, opts)
       }
     }
 
@@ -487,6 +503,14 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   }
 
   /**
+   * We use memoization to lazy-generate the uid to avoid unnecessary overhead when initializing every action.
+   */
+  @Memoize()
+  getUid() {
+    return uuidv4()
+  }
+
+  /**
    * Returns a map of commonly used environment variables for the action.
    */
   getEnvVars() {
@@ -504,18 +528,42 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return this.getFullVersion().versionString
   }
 
+  getInternal(): BaseActionConfig["internal"] {
+    return { ...this.getConfig("internal") }
+  }
+
   getConfig(): C
   getConfig<K extends keyof C>(key: K): C[K]
   getConfig(key?: keyof C["spec"]) {
-    return key ? this._config[key] : this._config
+    return cloneDeep(key ? this._config[key] : this._config)
   }
 
+  /**
+   * Returns true if this action is compatible with the given action type.
+   */
   isCompatible(type: string) {
     return this.compatibleTypes.includes(type)
   }
 
+  /**
+   * Returns true if this action matches the given action reference.
+   */
   matchesRef(ref: ActionReference) {
     return actionRefMatches(ref, this)
+  }
+
+  /**
+   * Return the mode that the action should be executed in.
+   * Returns "default" if the action is not configured for the mode or the type does not support it.
+   *
+   * Note: A warning is emitted during action resolution if an unsupported mode is explicitly requested for it.
+   */
+  mode(): ActionMode {
+    return this.supportsMode(this._mode) ? this._mode : "default"
+  }
+
+  supportsMode(mode: ActionMode) {
+    return mode === "default" || !!this._supportedModes[mode]
   }
 
   describe(): ActionDescription {
@@ -546,7 +594,7 @@ export abstract class RuntimeAction<
   getBuildAction<T extends BuildAction>() {
     const buildName = this.getConfig("build")
     if (buildName) {
-      const buildAction = this.graph.getBuild(buildName)
+      const buildAction = this.graph.getBuild(buildName, { includeDisabled: true })
       return <T>buildAction
     } else {
       return null
@@ -592,7 +640,8 @@ export abstract class ResolvedRuntimeAction<
     Outputs extends {} = any
   >
   extends RuntimeAction<Config, Outputs>
-  implements ResolvedActionExtension<Config, Outputs> {
+  implements ResolvedActionExtension<Config, Outputs>
+{
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<Config>
   protected readonly resolved: true
@@ -610,6 +659,7 @@ export abstract class ResolvedRuntimeAction<
     this.resolvedDependencies = params.resolvedDependencies
     this._staticOutputs = params.staticOutputs
     this._config.spec = params.spec
+    this._config.internal.inputs = params.inputs
   }
 
   /**
@@ -649,7 +699,7 @@ export abstract class ResolvedRuntimeAction<
   getSpec(): Config["spec"]
   getSpec<K extends keyof Config["spec"]>(key: K): Config["spec"][K]
   getSpec(key?: keyof Config["spec"]) {
-    return key ? this._config.spec[key] : this._config.spec
+    return cloneDeep(key ? this._config.spec[key] : this._config.spec)
   }
 
   getOutput<K extends keyof Outputs>(key: K) {
@@ -676,12 +726,17 @@ export abstract class ExecutedRuntimeAction<
     O extends {} = any
   >
   extends ResolvedRuntimeAction<C, O>
-  implements ExecutedActionExtension<C, O> {
+  implements ExecutedActionExtension<C, O>
+{
   private readonly status: ActionStatus<this, any, O>
 
   constructor(params: ExecutedActionWrapperParams<C, O>) {
     super(params)
     this.status = params.status
+  }
+
+  getStatus() {
+    return this.status
   }
 
   getOutput<K extends keyof O>(key: K) {

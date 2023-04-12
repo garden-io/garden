@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,10 +27,16 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     return this.action.longDescription()
   }
 
-  async getStatus({ dependencyResults }: ActionTaskStatusParams<BuildAction>) {
+  async getStatus({ statusOnly, dependencyResults }: ActionTaskStatusParams<BuildAction>) {
     const router = await this.garden.getActionRouter()
     const action = this.getResolvedAction(this.action, dependencyResults)
-    const status = await router.build.getStatus({ log: this.log, graph: this.graph, action })
+    const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
+    const status = output.result
+
+    if (status.state === "ready" && !statusOnly) {
+      this.log.info(`${action.longDescription()} already complete, nothing to do.`)
+    }
+
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
   }
 
@@ -44,29 +50,31 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       )
     }
 
-    let log = this.log
-      .makeNewLogContext({ section: this.getName() })
-      .info(`Building version ${action.versionString()}...`)
+    const log = this.log.info(`Building version ${action.versionString()}...`)
 
     const files = action.getFullVersion().files
 
     if (files.length > 0) {
-      log.verbose(`Syncing module sources (${pluralize("file", files.length, true)})...`)
+      log.verbose(`Syncing sources (${pluralize("file", files.length, true)})...`)
     }
 
-    await this.garden.buildStaging.syncFromSrc(action, log || this.log)
+    await this.garden.buildStaging.syncFromSrc({
+      action,
+      log: log || this.log,
+    })
 
-    log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+    log.verbose(chalk.green(`Done syncing sources (took ${log.getDuration(1)} sec)`))
 
     await this.garden.buildStaging.syncDependencyProducts(action, log)
 
     try {
-      const result = await router.build.build({
+      const { result } = await router.build.build({
         graph: this.graph,
         action,
         log,
       })
-      log.setSuccess(chalk.green(`Done (took ${log.getDuration(1)} sec)`))
+      // TODO @eysi: Verify duration
+      log.success(`Done`)
 
       return {
         ...result,
@@ -74,7 +82,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
         executedAction: resolvedActionToExecuted(action, { status: result }),
       }
     } catch (err) {
-      log.error(`Error syncing modules`)
+      log.error(`Build failed`)
       throw err
     }
   }

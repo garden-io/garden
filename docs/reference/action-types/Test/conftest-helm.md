@@ -30,9 +30,6 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -157,6 +154,8 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
+kind:
+
 # Set a timeout for the test to complete, in seconds.
 timeout:
 
@@ -176,6 +175,9 @@ spec:
   # Specify a build whose files we want to test.
   build:
 
+  # A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
+  files:
+
   # The Helm Deploy action to validate.
   helmDeploy:
 ```
@@ -189,14 +191,6 @@ The schema version of this config (currently not used).
 | Type     | Allowed Values | Default          | Required |
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
 
 ### `type`
 
@@ -401,6 +395,12 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `string` | No       |
 
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Test"         | Yes      |
+
 ### `timeout`
 
 Set a timeout for the test to complete, in seconds.
@@ -458,6 +458,16 @@ Specify a build whose files we want to test.
 | -------- | -------- |
 | `string` | No       |
 
+### `spec.files[]`
+
+[spec](#spec) > files
+
+A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
+
+| Type               | Required |
+| ------------------ | -------- |
+| `array[posixPath]` | Yes      |
+
 ### `spec.helmDeploy`
 
 [spec](#spec) > helmDeploy
@@ -474,9 +484,31 @@ The Helm Deploy action to validate.
 The following keys are available via the `${actions.test.<name>}` template string key for `conftest-helm`
 modules.
 
+### `${actions.test.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.test.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.test.my-test.disabled}
+```
+
 ### `${actions.test.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -488,17 +520,9 @@ Example:
 my-variable: ${actions.test.my-test.buildPath}
 ```
 
-### `${actions.test.<name>.name}`
+### `${actions.test.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.test.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -507,33 +531,33 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.test.my-test.path}
+my-variable: ${actions.test.my-test.sourcePath}
+```
+
+### `${actions.test.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.test.my-test.mode}
 ```
 
 ### `${actions.test.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.test.<name>.var.<variable-name>}`
+### `${actions.test.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.test.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.test.my-test.version}
-```

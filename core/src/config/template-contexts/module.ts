@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,36 +14,44 @@ import { joi } from "../common"
 import { deline } from "../../util/string"
 import { getModuleTypeUrl } from "../../docs/common"
 import { GardenModule } from "../../types/module"
-import { ConfigContext, schema, ErrorContext } from "./base"
-import { ProjectConfigContext, ProjectConfigContextParams } from "./project"
+import { ConfigContext, schema, ErrorContext, ParentContext, TemplateContext } from "./base"
 import { ProviderConfigContext } from "./provider"
-import { GraphResults } from "../../graph/results"
+import { GraphResultFromTask, GraphResults } from "../../graph/results"
+import { DeployTask } from "../../tasks/deploy"
+import { RunTask } from "../../tasks/run"
 
 export const exampleVersion = "v-17ad4cb3fd"
 
-class ConfigThisContext extends ConfigContext {
+export interface ModuleThisContextParams {
+  root: ConfigContext
+  buildPath: string
+  name: string
+  path: string
+}
+
+class ModuleThisContext extends ConfigContext {
   @schema(
     joi
       .string()
       .required()
-      .description("The build path of the action/module.")
+      .description("The build path of the module.")
       .example("/home/me/code/my-project/.garden/build/my-build")
   )
   public buildPath: string
 
-  @schema(joiIdentifier().description(`The name of the action/module.`))
+  @schema(joiIdentifier().description(`The name of the module.`))
   public name: string
 
   @schema(
     joi
       .string()
       .required()
-      .description("The source path of the action/module.")
+      .description("The source path of the module.")
       .example("/home/me/code/my-project/my-container")
   )
   public path: string
 
-  constructor(root: ConfigContext, buildPath: string, name: string, path: string) {
+  constructor({ root, buildPath, name, path }: ModuleThisContextParams) {
     super(root)
     this.buildPath = buildPath
     this.name = name
@@ -51,7 +59,7 @@ class ConfigThisContext extends ConfigContext {
   }
 }
 
-export class ModuleReferenceContext extends ConfigThisContext {
+export class ModuleReferenceContext extends ModuleThisContext {
   @schema(
     joiIdentifierMap(
       joiPrimitive().description(
@@ -80,7 +88,7 @@ export class ModuleReferenceContext extends ConfigThisContext {
   public version: string
 
   constructor(root: ConfigContext, module: GardenModule) {
-    super(root, module.buildPath, module.name, module.path)
+    super({ root, buildPath: module.buildPath, name: module.name, path: module.path })
     this.outputs = module.outputs
     this.var = module.variables
     this.version = module.version.versionString
@@ -162,10 +170,15 @@ class RuntimeConfigContext extends ConfigContext {
 
     if (graphResults) {
       for (const result of Object.values(graphResults.getMap())) {
-        if (result?.task.type === "deploy") {
-          this.services.set(result.name, new ServiceRuntimeContext(this, result.outputs, result.version))
+        if (result?.task.type === "deploy" && result.result) {
+          const r = (<GraphResultFromTask<DeployTask>>result).result!
+          this.services.set(
+            result.name,
+            new ServiceRuntimeContext(this, result.outputs, r.executedAction.versionString())
+          )
         } else if (result?.task.type === "run") {
-          this.tasks.set(result.name, new TaskRuntimeContext(this, result.outputs, result.version))
+          const r = (<GraphResultFromTask<RunTask>>result).result!
+          this.tasks.set(result.name, new TaskRuntimeContext(this, result.outputs, r.executedAction.versionString()))
         }
       }
     }
@@ -173,50 +186,6 @@ class RuntimeConfigContext extends ConfigContext {
     // This ensures that any template string containing runtime.* references is returned unchanged when
     // there is no or limited runtime context available.
     this._alwaysAllowPartial = allowPartial
-  }
-}
-
-export class ParentContext extends ConfigContext {
-  @schema(joiIdentifier().description(`The name of the parent module.`))
-  public name: string
-
-  constructor(root: ConfigContext, name: string) {
-    super(root)
-    this.name = name
-  }
-}
-
-export class TemplateContext extends ConfigContext {
-  @schema(joiIdentifier().description(`The name of the template.`))
-  public name: string
-
-  constructor(root: ConfigContext, name: string) {
-    super(root)
-    this.name = name
-  }
-}
-
-export class ModuleTemplateConfigContext extends ProjectConfigContext {
-  @schema(ParentContext.getSchema().description(`Information about the templated config being resolved.`))
-  public parent: ParentContext
-
-  @schema(TemplateContext.getSchema().description(`Information about the template used when generating the config.`))
-  public template: TemplateContext
-
-  @schema(
-    joiVariables().description(`The inputs provided when resolving the template.`).meta({
-      keyPlaceholder: "<input-key>",
-    })
-  )
-  public inputs: DeepPrimitiveMap
-
-  constructor(
-    params: { parentName: string; templateName: string; inputs: DeepPrimitiveMap } & ProjectConfigContextParams
-  ) {
-    super(params)
-    this.parent = new ParentContext(this, params.parentName)
-    this.template = new TemplateContext(this, params.templateName)
-    this.inputs = params.inputs
   }
 }
 
@@ -306,8 +275,8 @@ export class ModuleConfigContext extends OutputConfigContext {
   )
   public template?: TemplateContext
 
-  @schema(ConfigThisContext.getSchema().description("Information about the action/module currently being resolved."))
-  public this: ConfigThisContext
+  @schema(ModuleThisContext.getSchema().description("Information about the action/module currently being resolved."))
+  public this: ModuleThisContext
 
   constructor(params: ModuleConfigContextParams) {
     super(params)
@@ -323,7 +292,7 @@ export class ModuleConfigContext extends OutputConfigContext {
     }
     this.inputs = inputs || {}
 
-    this.this = new ConfigThisContext(this, buildPath, name, path)
+    this.this = new ModuleThisContext({ root: this, buildPath, name, path })
   }
 
   static fromModule(params: Omit<ModuleConfigContextParams, "buildPath"> & { module: GardenModule }) {

@@ -26,9 +26,6 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -153,11 +150,9 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
-spec:
-  # Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more
-  # information about failures and then manually roll back, instead of having Helm do it automatically on failure.
-  atomicInstall: true
+kind:
 
+spec:
   # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
   # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
   # characters.
@@ -182,7 +177,7 @@ spec:
       # not available, a warning is shown and a random port chosen instead.
       localPort:
 
-  # Optionally override the release name used when installing (defaults to the module name).
+  # Optionally override the release name used when installing (defaults to the Deploy name).
   releaseName:
 
   # Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks).
@@ -199,11 +194,15 @@ spec:
   # If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
   # of this list, so they will take precedence over other files listed here.
   #
-  # Note that the paths here should be relative to the _module_ root, and the files should be contained in
-  # your module directory.
+  # Note that the paths here should be relative to the _config_ root, and the files should be contained in
+  # this action config's directory.
   valueFiles: []
 
-  # Specify the Helm chart to deploy.
+  # Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be
+  # reverted on failure.
+  atomic: false
+
+  # Specify the Helm chart to use.
   #
   # If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be
   # detected. If the chart is in the source tree but in a sub-directory, you should set `chart.path` to the directory
@@ -232,10 +231,11 @@ spec:
     # The chart version to deploy.
     version:
 
-  # Specify a default resource in the deployment to use for syncs, and for the `garden exec` command.
+  # Specify a default resource in the deployment to use for syncs, local mode, and for the `garden exec` command.
   #
   # Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this
-  # action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
+  # action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing or local
+  # mode).
   #
   # Set `containerName` to specify a container to connect to in the remote Pod. By default the first container in the
   # Pod is used.
@@ -390,20 +390,23 @@ spec:
         # Override the args in the matched container.
         args:
 
-  # Configures the local application which will send and receive network requests instead of the target resource
-  # specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for
-  # the action.
+  # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
+  # resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local
+  # mode for the action.
   #
   # The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
   # server to proxy requests.
   # Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
   #
-  # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+  # Local mode is enabled by setting the `--local` option on the `garden deploy` command.
   # Local mode always takes the precedence over sync mode if there are any conflicting service names.
   #
   # Health checks are disabled for services running in local mode.
   #
   # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+  #
+  # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+  # release.
   localMode:
     # The reverse port-forwards configuration for the local application.
     ports:
@@ -452,14 +455,6 @@ The schema version of this config (currently not used).
 | Type     | Allowed Values | Default          | Required |
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
 
 ### `type`
 
@@ -664,21 +659,17 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `string` | No       |
 
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Deploy"       | Yes      |
+
 ### `spec`
 
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
-
-### `spec.atomicInstall`
-
-[spec](#spec) > atomicInstall
-
-Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `true`  | No       |
 
 ### `spec.namespace`
 
@@ -744,7 +735,7 @@ The _preferred_ local port to forward from. If none is set, a random port is cho
 
 [spec](#spec) > releaseName
 
-Optionally override the release name used when installing (defaults to the module name).
+Optionally override the release name used when installing (defaults to the Deploy name).
 
 | Type     | Required |
 | -------- | -------- |
@@ -781,18 +772,28 @@ this list will have the highest precedence.
 If you _also_ specify keys under the `values` field, those will effectively be added as another file at the end
 of this list, so they will take precedence over other files listed here.
 
-Note that the paths here should be relative to the _module_ root, and the files should be contained in
-your module directory.
+Note that the paths here should be relative to the _config_ root, and the files should be contained in
+this action config's directory.
 
 | Type               | Default | Required |
 | ------------------ | ------- | -------- |
 | `array[posixPath]` | `[]`    | No       |
 
+### `spec.atomic`
+
+[spec](#spec) > atomic
+
+Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `spec.chart`
 
 [spec](#spec) > chart
 
-Specify the Helm chart to deploy.
+Specify the Helm chart to use.
 
 If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set `chart.path` to the directory path, relative to the action directory.
 
@@ -870,9 +871,9 @@ The chart version to deploy.
 
 [spec](#spec) > defaultTarget
 
-Specify a default resource in the deployment to use for syncs, and for the `garden exec` command.
+Specify a default resource in the deployment to use for syncs, local mode, and for the `garden exec` command.
 
-Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
+Specify either `kind` and `name`, or a `podSelector`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing or local mode).
 
 Set `containerName` to specify a container to connect to in the remote Pod. By default the first container in the Pod is used.
 
@@ -1290,17 +1291,19 @@ Override the args in the matched container.
 
 [spec](#spec) > localMode
 
-Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
 
 The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
 Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
-Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode is enabled by setting the `--local` option on the `garden deploy` command.
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
 
 See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1432,9 +1435,31 @@ The name of a container in the target. Specify this if the target contains more 
 The following keys are available via the `${actions.deploy.<name>}` template string key for `helm`
 modules.
 
+### `${actions.deploy.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.deploy.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.deploy.my-deploy.disabled}
+```
+
 ### `${actions.deploy.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -1446,17 +1471,9 @@ Example:
 my-variable: ${actions.deploy.my-deploy.buildPath}
 ```
 
-### `${actions.deploy.<name>.name}`
+### `${actions.deploy.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.deploy.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -1465,33 +1482,33 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.deploy.my-deploy.path}
+my-variable: ${actions.deploy.my-deploy.sourcePath}
+```
+
+### `${actions.deploy.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.deploy.my-deploy.mode}
 ```
 
 ### `${actions.deploy.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.deploy.<name>.var.<variable-name>}`
+### `${actions.deploy.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.deploy.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.deploy.my-deploy.version}
-```

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,22 +12,24 @@ import { safeLoad, safeLoadAll } from "js-yaml"
 import yamlLint from "yaml-lint"
 import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
-import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
+import { coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig, ModuleConfig } from "./module"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
-import { ProjectResource } from "../config/project"
+import { ProjectConfig, ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
-import { ModuleTemplateKind } from "./module-template"
+import { ConfigTemplateKind } from "./config-template"
 import { isTruthy } from "../util/util"
-import { PrimitiveMap } from "./common"
+import { createSchema, DeepPrimitiveMap, joi, PrimitiveMap } from "./common"
 import { emitNonRepeatableWarning } from "../warnings"
 import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
+import { Log } from "../logger/log-entry"
 
-export const moduleTemplateKind = "ModuleTemplate"
-export const noTemplateFields = ["apiVersion", "kind", "type", "name", "description"]
+export const configTemplateKind = "ConfigTemplate"
+export const renderTemplateKind = "RenderTemplate"
+export const noTemplateFields = ["apiVersion", "kind", "type", "name", "internal"]
 
 export const varfileDescription = `
 The format of the files is determined by the configured file's extension:
@@ -39,15 +41,43 @@ The format of the files is determined by the configured file's extension:
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 `.trim()
 
-export interface GardenResource {
-  apiVersion: string
-  kind: string
-  name: string
-  path: string
-  configPath?: string
+export interface GardenResourceInternalFields {
+  basePath: string
+  configFilePath?: string
+  // -> set by templates
+  inputs?: DeepPrimitiveMap
+  parentName?: string
+  templateName?: string
 }
 
-export type ConfigKind = "Module" | "Workflow" | "Project" | ModuleTemplateKind | ActionKind
+export interface BaseGardenResource {
+  apiVersion?: string
+  kind: string
+  name: string
+  internal: GardenResourceInternalFields
+}
+
+export const baseInternalFieldsSchema = createSchema({
+  name: "base-internal-fields",
+  keys: {
+    basePath: joi.string().required().meta({ internal: true }),
+    configFilePath: joi.string().optional().meta({ internal: true }),
+    inputs: joi.object().optional().meta({ internal: true }),
+    parentName: joi.string().optional().meta({ internal: true }),
+    templateName: joi.string().optional().meta({ internal: true }),
+  },
+  allowUnknown: true,
+  meta: { internal: true },
+})
+
+// Note: Avoiding making changes to ModuleConfig and ProjectConfig for now, because of
+// the blast radius.
+export type GardenResource = BaseGardenResource | ModuleConfig | ProjectConfig
+
+export type RenderTemplateKind = typeof renderTemplateKind
+export type ConfigKind = "Module" | "Workflow" | "Project" | ConfigTemplateKind | RenderTemplateKind | ActionKind
+
+export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKind, renderTemplateKind, ...actionKinds]
 
 /**
  * Attempts to parse content as YAML, and applies a linter to produce more informative error messages when
@@ -75,23 +105,32 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
 }
 
 export async function loadConfigResources(
+  log: Log,
   projectRoot: string,
   configPath: string,
   allowInvalid = false
 ): Promise<GardenResource[]> {
   const fileData = await readConfigFile(configPath, projectRoot)
 
-  const resources = await validateRawConfig({ rawConfig: fileData.toString(), configPath, projectRoot, allowInvalid })
+  const resources = await validateRawConfig({
+    log,
+    rawConfig: fileData.toString(),
+    configPath,
+    projectRoot,
+    allowInvalid,
+  })
 
   return resources
 }
 
 export async function validateRawConfig({
+  log,
   rawConfig,
   configPath,
   projectRoot,
   allowInvalid = false,
 }: {
+  log: Log
   rawConfig: string
   configPath: string
   projectRoot: string
@@ -102,9 +141,13 @@ export async function validateRawConfig({
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
-  const resources = <GardenResource[]>(
-    rawSpecs.map((s) => prepareResource({ spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
-  )
+  const resources = <GardenResource[]>rawSpecs
+    .map((s) => {
+      const relPath = relative(projectRoot, configPath)
+      const description = `config at ${relPath}`
+      return prepareResource({ log, spec: s, configFilePath: configPath, projectRoot, description, allowInvalid })
+    })
+    .filter(Boolean)
   return resources
 }
 
@@ -119,76 +162,104 @@ export async function readConfigFile(configPath: string, projectRoot: string) {
 /**
  * Each YAML document in a garden.yml file defines a project, a module or a workflow.
  */
-function prepareResource({
+export function prepareResource({
+  log,
   spec,
-  configPath,
+  configFilePath,
   projectRoot,
+  description,
   allowInvalid = false,
 }: {
+  log: Log
   spec: any
-  configPath: string
+  configFilePath: string
   projectRoot: string
+  description: string
   allowInvalid?: boolean
-}): GardenResource | null {
-  const relPath = relative(projectRoot, configPath)
+}): GardenResource | ModuleConfig | null {
+  const relPath = relative(projectRoot, configFilePath)
 
   if (!isPlainObject(spec)) {
     throw new ConfigurationError(
-      `Invalid configuration found in ${relPath}. Expected mapping object but got ${typeof spec}.`,
+      `Invalid configuration found in ${description}. Expected mapping object but got ${typeof spec}.`,
       {
         spec,
-        configPath,
+        configPath: configFilePath,
       }
     )
   }
 
-  const kind = spec.kind
+  let kind = spec.kind
 
   if (!spec.apiVersion) {
     spec.apiVersion = DEFAULT_API_VERSION
   }
 
-  spec.path = dirname(configPath)
-  spec.configPath = configPath
+  const basePath = dirname(configFilePath)
 
   if (!allowInvalid) {
     for (const field of noTemplateFields) {
       if (spec[field] && mayContainTemplateString(spec[field])) {
         throw new ConfigurationError(
           `Resource in ${relPath} has a template string in field '${field}', which does not allow templating.`,
-          { spec, configPath }
+          { spec, configPath: configFilePath }
         )
       }
     }
+    if (spec.internal) {
+      throw new ConfigurationError(`Found invalid key "internal" in config at ${relPath}`, {
+        spec,
+        path: relPath,
+      })
+    }
+  }
+
+  // Allow this for backwards compatibility
+  if (kind === "ModuleTemplate") {
+    spec.kind = kind = configTemplateKind
   }
 
   if (kind === "Project") {
-    return prepareProjectResource(spec)
-  } else if (actionKinds.includes(kind)) {
-    return prepareActionResource(spec, configPath, relPath)
-  } else if (kind === "Command" || kind === "Workflow" || kind === moduleTemplateKind) {
+    spec.path = basePath
+    spec.configPath = configFilePath
+    delete spec.internal
+    return prepareProjectResource(log, spec)
+  } else if (
+    actionKinds.includes(kind) ||
+    kind === "Command" ||
+    kind === "Workflow" ||
+    kind === configTemplateKind ||
+    kind === renderTemplateKind
+  ) {
+    spec.internal = {
+      basePath,
+      configFilePath,
+    }
     return spec
   } else if (kind === "Module") {
-    return prepareModuleResource(spec, configPath, projectRoot)
+    spec.path = basePath
+    spec.configPath = configFilePath
+    delete spec.internal
+    return prepareModuleResource(spec, configFilePath, projectRoot)
   } else if (allowInvalid) {
     return spec
   } else if (!kind) {
-    throw new ConfigurationError(`Missing \`kind\` field in config at ${relPath}`, {
+    throw new ConfigurationError(`Missing \`kind\` field in ${description}`, {
       kind,
       path: relPath,
     })
   } else {
-    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, {
+    throw new ConfigurationError(`Unknown kind ${kind} in ${description}`, {
       kind,
       path: relPath,
     })
   }
 }
 
-// TODO: remove this function in 0.14
-export function prepareProjectResource(spec: any): ProjectResource {
-  const projectSpec = <ProjectResource>spec
+// TODO-0.14: remove these deprecation handlers in 0.14
+type DeprecatedConfigHandler = (log: Log, spec: ProjectResource) => ProjectResource
 
+function handleDotIgnoreFiles(log: Log, projectSpec: ProjectResource) {
   // If the project config has an explicitly defined `dotIgnoreFile` field,
   // it means the config has already been updated to 0.13 format.
   if (!!projectSpec.dotIgnoreFile) {
@@ -208,6 +279,7 @@ export function prepareProjectResource(spec: any): ProjectResource {
 
   if (dotIgnoreFiles.length === 1) {
     emitNonRepeatableWarning(
+      log,
       "Multi-valued project configuration field `dotIgnoreFiles` is deprecated in 0.13 and will be removed in 0.14. Please use single-valued `dotIgnoreFile` instead."
     )
     return { ...projectSpec, dotIgnoreFile: dotIgnoreFiles[0] }
@@ -218,30 +290,35 @@ export function prepareProjectResource(spec: any): ProjectResource {
       ", "
     )}]`,
     {
-      spec,
+      projectSpec,
     }
   )
 }
 
-export function prepareActionResource(spec: any, configFilePath: string, relPath: string) {
-  delete spec.path
-  delete spec.configPath
-
-  if (spec.internal) {
-    throw new ConfigurationError(`Found invalid key "internal" in config at ${relPath}`, {
-      spec,
-      path: relPath,
-    })
+function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectResource {
+  // Field 'modules' was intentionally removed from the internal interface `ProjectResource`,
+  // but it still can be presented in the runtime if the old config format is used.
+  if (projectSpec["modules"]) {
+    emitNonRepeatableWarning(
+      log,
+      "Project configuration field `modules` is deprecated in 0.13 and will be removed in 0.14. Please use the `scan` field instead."
+    )
   }
 
-  spec.internal = {
-    basePath: dirname(configFilePath),
-    configFilePath,
-  }
-  return spec
+  return projectSpec
 }
 
-export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleResource {
+const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [handleDotIgnoreFiles, handleProjectModules]
+
+export function prepareProjectResource(log: Log, spec: any): ProjectResource {
+  let projectSpec = <ProjectResource>spec
+  for (const handler of bonsaiDeprecatedConfigHandlers) {
+    projectSpec = handler(log, projectSpec)
+  }
+  return projectSpec
+}
+
+export function prepareModuleResource(spec: any, configPath: string, projectRoot: string): ModuleConfig {
   // We allow specifying modules by name only as a shorthand:
   //   dependencies:
   //   - foo-module
@@ -261,13 +338,13 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   }
 
   // Had a bit of a naming conflict in the terraform module type with the new module variables concept...
-  // FIXME: remove this hack sometime after 0.13
   if (spec.type === "terraform") {
     cleanedSpec["variables"] = spec.variables
   }
 
   // Built-in keys are validated here and the rest are put into the `spec` field
-  const config: ModuleResource = {
+  const path = dirname(configPath)
+  const config: ModuleConfig = {
     apiVersion: spec.apiVersion || DEFAULT_API_VERSION,
     kind: "Module",
     allowPublish: spec.allowPublish,
@@ -281,7 +358,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
     include: spec.include,
     exclude: spec.exclude,
     name: spec.name,
-    path: dirname(configPath),
+    path,
     repositoryUrl: spec.repositoryUrl,
     serviceConfigs: [],
     spec: cleanedSpec,
@@ -322,14 +399,18 @@ export function prepareBuildDependencies(buildDependencies: any[]): BuildDepende
     .filter(isTruthy)
 }
 
-export async function findProjectConfig(path: string, allowInvalid = false): Promise<ProjectResource | undefined> {
+export async function findProjectConfig(
+  log: Log,
+  path: string,
+  allowInvalid = false
+): Promise<ProjectResource | undefined> {
   let sepCount = path.split(sep).length - 1
 
   for (let i = 0; i < sepCount; i++) {
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
 
     for (const configFile of configFiles) {
-      const resources = await loadConfigResources(path, join(path, configFile), allowInvalid)
+      const resources = await loadConfigResources(log, path, join(path, configFile), allowInvalid)
 
       const projectSpecs = resources.filter((s) => s.kind === "Project")
 

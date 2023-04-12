@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -71,8 +71,6 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const deps = task.resolveStatusDependencies()
@@ -92,8 +90,6 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const deps = task.resolveProcessDependencies({ status: null })
@@ -116,8 +112,6 @@ describe("BaseActionTask", () => {
         action,
         force: true,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const deps = task.resolveProcessDependencies({ status: null })
@@ -141,8 +135,6 @@ describe("BaseActionTask", () => {
         action,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const deps = task.resolveProcessDependencies({ status: { state: "ready", outputs: {} } })
@@ -164,8 +156,6 @@ describe("BaseActionTask", () => {
           force: true,
           forceBuild: false,
           skipRuntimeDependencies: true, // <-----
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const deps = task.resolveProcessDependencies({ status: null })

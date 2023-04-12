@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import { expect } from "chai"
 import { k8sGetRunResult, storeRunResult } from "../../../../../src/plugins/kubernetes/run-results"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "../../../../../src/plugins/kubernetes/constants"
 
-describe("kubernetes task results", () => {
+describe("kubernetes Run results", () => {
   let garden: Garden
   let provider: Provider<KubernetesConfig>
 
@@ -29,7 +29,7 @@ describe("kubernetes task results", () => {
     await garden.close()
   })
 
-  describe("storeTaskResult", () => {
+  describe("storeRunResult", () => {
     it("should trim logs when necessary", async () => {
       const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
       const graph = await garden.getConfigGraph({ log: garden.log, emit: false })

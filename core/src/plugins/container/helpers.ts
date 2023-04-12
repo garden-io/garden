@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,7 @@ import semver from "semver"
 import { parse, CommandEntry } from "docker-file-parser"
 import isGlob from "is-glob"
 import { ConfigurationError, RuntimeError } from "../../exceptions"
-import { spawn, splitLast, SpawnOutput, splitFirst } from "../../util/util"
+import { spawn, SpawnOutput } from "../../util/util"
 import {
   ContainerRegistryConfig,
   defaultTag as _defaultTag,
@@ -26,7 +26,7 @@ import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import isUrl from "is-url"
 import titleize from "titleize"
-import { deline, stripQuotes } from "../../util/string"
+import { deline, stripQuotes, splitLast, splitFirst } from "../../util/string"
 import { PluginContext } from "../../plugin-context"
 import { ModuleVersion } from "../../vcs/vcs"
 import { SpawnParams } from "../../util/ext-tools"
@@ -250,31 +250,29 @@ const helpers = {
   /**
    * Retrieves the docker client and server version.
    */
-  getDockerVersion: pMemoize(
-    async (cliPath = "docker"): Promise<DockerVersion> => {
-      const results = await Bluebird.map(["client", "server"], async (key) => {
-        let res: SpawnOutput
+  getDockerVersion: pMemoize(async (cliPath = "docker"): Promise<DockerVersion> => {
+    const results = await Bluebird.map(["client", "server"], async (key) => {
+      let res: SpawnOutput
 
-        try {
-          res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
-        } catch (err) {
-          return [key, undefined]
-        }
+      try {
+        res = await spawn(cliPath, ["version", "-f", `{{ .${titleize(key)}.Version }}`])
+      } catch (err) {
+        return [key, undefined]
+      }
 
-        const output = res.stdout.trim()
+      const output = res.stdout.trim()
 
-        if (!output) {
-          throw new RuntimeError(`Unexpected docker version output: ${res.all.trim()}`, {
-            output,
-          })
-        }
+      if (!output) {
+        throw new RuntimeError(`Unexpected docker version output: ${res.all.trim()}`, {
+          output,
+        })
+      }
 
-        return [key, output]
-      })
+      return [key, output]
+    })
 
-      return fromPairs(results)
-    }
-  ),
+    return fromPairs(results)
+  }),
 
   /**
    * Asserts that the specified docker client version meets the minimum requirements.

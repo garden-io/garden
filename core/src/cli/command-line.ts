@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,12 +11,14 @@ import { Key } from "ink"
 import { keyBy, max } from "lodash"
 import sliceAnsi from "slice-ansi"
 import stringWidth from "string-width"
-import { Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
+import { BuiltinArgs, Command, CommandGroup, CommandParams, CommandResult } from "../commands/base"
+import { toGardenError } from "../exceptions"
 import { ConfigDump, Garden } from "../garden"
 import { Log } from "../logger/log-entry"
+import { getRootLogger } from "../logger/logger"
 import { renderDivider } from "../logger/util"
 import { TypedEventEmitter } from "../util/events"
-import { uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
 import { Autocompleter, AutocompleteSuggestion } from "./autocomplete"
 import { parseCliArgs, pickCommand, processCliArgs, renderCommandErrors, renderCommands } from "./helpers"
 import { GlobalOptions, ParameterValues } from "./params"
@@ -24,7 +26,7 @@ import { GlobalOptions, ParameterValues } from "./params"
 const defaultMessageDuration = 2000
 const commandLinePrefix = chalk.yellow("🌼  > ")
 const emptyCommandLinePlaceholder = chalk.gray("<enter command> (enter help for more info)")
-const inputChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789- _*!@$%&/="
+const inputHistoryLength = 100
 
 const styles = {
   command: chalk.white.bold,
@@ -64,6 +66,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   private commandHistory: string[]
   private showCursor: boolean
   private runningCommands: { [id: string]: { command: Command; params: CommandParams } }
+  private persistentStatus: string
 
   private keyHandlers: { [key: string]: KeyHandler }
 
@@ -84,12 +87,14 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     commands,
     configDump,
     globalOpts,
+    history = [],
   }: {
     garden: Garden
     log: Log
     commands: Command[]
     configDump?: ConfigDump
     globalOpts: Partial<ParameterValues<GlobalOptions>>
+    history?: string[]
   }) {
     super()
 
@@ -101,12 +106,13 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     this.enabled = true
     this.currentCommand = ""
     this.cursorPosition = 0
-    this.historyIndex = 0
+    this.historyIndex = history.length
     this.suggestionIndex = -1
     this.autocompletingFrom = -1
-    this.commandHistory = []
+    this.commandHistory = history
     this.showCursor = true
     this.runningCommands = {}
+    this.persistentStatus = ""
 
     // This does nothing until a callback is supplied from outside
     this.commandLineCallback = () => {}
@@ -181,7 +187,34 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
 
     if (handler) {
       handler(input, key)
+    } else if (this.isValidInputCharacter(input, key)) {
+      this.currentCommand =
+        this.currentCommand.substring(0, this.cursorPosition) +
+        input +
+        this.currentCommand.substring(this.cursorPosition)
+      this.moveCursor(this.cursorPosition + 1)
+      this.renderCommandLine()
     }
+  }
+
+  private isValidInputCharacter(input: string, key: Key) {
+    // TODO: this is most likely not quite sufficient, nor the most efficient way to handle the inputs
+    // FIXME: for one, typing an umlaut character does not appear to work on international English keyboards
+    return (
+      input.length === 1 &&
+      !key.backspace &&
+      !key.delete &&
+      !key.downArrow &&
+      !key.escape &&
+      !key.leftArrow &&
+      !key.meta &&
+      !key.pageDown &&
+      !key.pageUp &&
+      !key.return &&
+      !key.rightArrow &&
+      !key.tab &&
+      !key.upArrow
+    )
   }
 
   private setCommandLine(line: string) {
@@ -189,20 +222,6 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   private init() {
-    // Character input
-    const characterHandler: KeyHandler = (char) => {
-      this.currentCommand =
-        this.currentCommand.substring(0, this.cursorPosition) +
-        char +
-        this.currentCommand.substring(this.cursorPosition)
-      this.moveCursor(this.cursorPosition + 1)
-      this.renderCommandLine()
-    }
-
-    for (const char of inputChars.split("")) {
-      this.setKeyHandler(char, characterHandler)
-    }
-
     // Delete
     this.setKeyHandler("backspace", () => {
       if (this.cursorPosition > 0) {
@@ -347,7 +366,7 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
   }
 
   renderStatus() {
-    let status = ""
+    let status = this.persistentStatus
 
     const runningCommands = Object.values(this.runningCommands)
 
@@ -378,18 +397,39 @@ export class CommandLine extends TypedEventEmitter<CommandLineEvents> {
     return process.stdout?.columns || 100
   }
 
+  private printWithDividers(text: string, title: string) {
+    let width = max(text.split("\n").map((l) => stringWidth(l.trimEnd()))) || 0
+    width += 2
+    const termWidth = this.getTermWidth()
+    const minWidth = stringWidth(title) + 10
+
+    if (width > termWidth) {
+      width = termWidth
+    }
+
+    if (width < minWidth) {
+      width = minWidth
+    }
+
+    const char = "┈"
+    const color = chalk.bold
+
+    const wrapped = `
+${renderDivider({ title: chalk.bold(title), width, char, color })}
+${text}
+${renderDivider({ width, char, color })}
+`
+
+    this.log.info(wrapped)
+  }
+
   showHelp() {
     // TODO: group commands by category?
     const renderedCommands = renderCommands(
       this.commands.filter((c) => !(c.hidden || c instanceof CommandGroup || hideCommands.includes(c.getFullName())))
     )
 
-    const width = max(renderedCommands.split("\n").map((l) => stringWidth(l.trimEnd())))
-    const char = "┈"
-    const color = chalk.bold
-
     const helpText = `
-${renderDivider({ title: chalk.bold("help"), width, char, color })}
 ${chalk.white.underline("Available commands:")}
 
 ${renderedCommands}
@@ -397,10 +437,12 @@ ${renderedCommands}
 ${chalk.white.underline("Keys:")}
 
   ${chalk.gray(`[tab]: auto-complete  [up/down]: command history  [ctrl-d]: quit`)}
-${renderDivider({ width, char, color })}
 `
+    this.printWithDividers(helpText, "help")
+  }
 
-    this.log.info(helpText)
+  setPersistentStatus(msg: string) {
+    this.persistentStatus = msg
   }
 
   /**
@@ -413,7 +455,7 @@ ${renderDivider({ width, char, color })}
     this.messageCallback(prefix + message)
 
     this.messageTimeout = setTimeout(() => {
-      this.messageCallback("")
+      this.messageCallback(this.persistentStatus)
     }, opts.duration || defaultMessageDuration)
   }
 
@@ -464,6 +506,12 @@ ${renderDivider({ width, char, color })}
     }
   }
 
+  private clear() {
+    this.currentCommand = ""
+    this.moveCursor(0)
+    this.renderCommandLine()
+  }
+
   private handleReturn() {
     if (this.currentCommand.trim() === "") {
       return
@@ -477,26 +525,63 @@ ${renderDivider({ width, char, color })}
       return
     }
 
+    // Prepare args and opts
+    let args: BuiltinArgs & ParameterValues<any> = {}
+    let opts: ParameterValues<any> = {}
+
+    try {
+      const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
+
+      // Handle -h, --help, and subcommand listings
+      if (parsedArgs.h || parsedArgs.help || command instanceof CommandGroup) {
+        // Try to show specific help for given subcommand
+        if (command instanceof CommandGroup) {
+          for (const subCommand of command.subCommands) {
+            const sub = new subCommand()
+            if (sub.name === rest[0]) {
+              this.clear()
+              this.printWithDividers("\n" + sub.renderHelp(), `help — ${sub.getFullName()}`)
+              return
+            }
+          }
+          // If not found, falls through to general command help below
+        }
+        this.clear()
+        this.printWithDividers(command.renderHelp(), `help — ${command.getFullName()}`)
+        return
+      }
+
+      const processed = processCliArgs({
+        log: this.log,
+        rawArgs,
+        parsedArgs,
+        command,
+        matchedPath,
+        cli: false,
+        inheritedOpts: this.globalOpts,
+        warnOnGlobalOpts: true,
+      })
+      args = processed.args
+      opts = processed.opts
+    } catch (error) {
+      this.flashError(error.message)
+      return
+    }
+
     // Push the command to the top of the history
-    this.commandHistory = [...this.commandHistory.filter((cmd) => cmd !== this.currentCommand), this.currentCommand]
+    this.commandHistory = [
+      ...this.commandHistory.filter((cmd) => cmd !== this.currentCommand),
+      this.currentCommand,
+    ].slice(0, inputHistoryLength)
     this.historyIndex = this.commandHistory.length
 
     // Update command line
-    this.currentCommand = ""
-    this.moveCursor(0)
-    this.renderCommandLine()
+    this.clear()
 
-    // Prepare args and opts
-    const parsedArgs = parseCliArgs({ stringArgs: rest, command, cli: false, skipGlobalDefault: true })
-    const { args, opts } = processCliArgs({
-      log: this.log,
-      rawArgs,
-      parsedArgs,
-      command,
-      matchedPath,
-      cli: false,
-      inheritedOpts: this.globalOpts,
-      warnOnGlobalOpts: true,
+    // Update persisted history
+    // Note: We're currently not resolving history across concurrent dev commands, but that's anyway not well supported
+    this.garden.localConfigStore.set("devCommandHistory", this.commandHistory).catch((error) => {
+      this.log.warn(chalk.yellow(`Could not persist command history: ${error}`))
     })
 
     const id = uuidv4()
@@ -514,14 +599,12 @@ ${renderDivider({ width, char, color })}
 
     const name = command.getFullName()
 
-    if (command.isPersistent(params)) {
+    if (!command.allowInDevCommand(params)) {
       if ((name === "test" || name === "run") && opts["interactive"]) {
         // Specific error for interactive commands
         this.flashError(`Commands cannot be run in interactive mode in the dev console. Please run those separately.`)
       } else if (name === "dev") {
         this.flashError(`Nice try :)`)
-      } else if (name === "logs") {
-        this.flashError(`Logs cannot currently be followed in the dev console. Please use a separate terminal.`)
       } else {
         this.flashError(`This command cannot be run in the dev console. Please run it in a separate terminal.`)
       }
@@ -529,7 +612,7 @@ ${renderDivider({ width, char, color })}
     }
 
     // Execute the command
-    if (!command.isInteractive) {
+    if (!command.isDevCommand) {
       const msg = `Running ${chalk.white.bold(command.getFullName())}...`
       this.flashMessage(msg)
       this.log.info({ msg: "\n" + renderDivider({ width, title: msg, color: chalk.blueBright, char: "┈" }) })
@@ -542,10 +625,12 @@ ${renderDivider({ width, char, color })}
       .action(params)
       .then((output: CommandResult) => {
         if (output.errors?.length) {
-          renderCommandErrors(this.log.root, output.errors, this.log)
+          renderCommandErrors(getRootLogger(), output.errors, this.log)
           this.log.error({ msg: renderDivider({ width, color: chalk.red }) })
           this.flashError(failMessage)
-        } else if (!command.isInteractive) {
+        } else if (!command.isDevCommand) {
+          // TODO: print this differently if monitors from the command are active
+          // const monitorsAdded = this.garden.monitors.getByCommand(command).length
           const msg = `${chalk.whiteBright(command.getFullName())} command completed successfully!`
           this.flashSuccess(msg)
           this.log.info({
@@ -553,7 +638,9 @@ ${renderDivider({ width, char, color })}
           })
         }
       })
-      .catch(() => {
+      .catch((error: Error) => {
+        // TODO-0.13.1: improve error rendering
+        this.log.error({ error: toGardenError(error) })
         this.log.error({ msg: renderDivider({ width, color: chalk.red, char: "┈" }) })
         this.flashError(failMessage)
       })

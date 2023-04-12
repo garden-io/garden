@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,14 +18,15 @@ import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { LoggerType } from "../logger/logger"
 import { printFooter, renderMessageWithDivider } from "../logger/util"
-import { ProcessResults } from "../process"
-import { GraphResultExport } from "../graph/results"
+import { GraphResultMapWithoutTask } from "../graph/results"
 import { capitalize } from "lodash"
 import { userPrompt } from "../util/util"
-import { renderOptions, renderCommands, renderArguments, getCliStyles } from "../cli/helpers"
+import { renderOptions, renderCommands, renderArguments, cliStyles } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, Parameters } from "../cli/params"
 import { GardenCli } from "../cli/cli"
 import { CommandLine } from "../cli/command-line"
+import { SolveResult } from "../graph/solver"
+import { waitForOutputFlush } from "../process"
 
 export interface CommandConstructor {
   new (parent?: CommandGroup): Command
@@ -90,7 +91,8 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   isCustom: boolean = false // Used to identify custom commands
-  isInteractive: boolean = false // Set to true for internal commands in interactive command-line commands
+  isDevCommand: boolean = false // Set to true for internal commands in interactive command-line commands
+  ignoreOptions: boolean = false // Completely ignore all option flags and pass all arguments directly to the command
 
   subscribers: DataCallback[]
   terminated: boolean
@@ -149,10 +151,6 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     }
   }
 
-  getKey() {
-    return !!this.parent ? `${this.parent.getKey()}.${this.name}` : this.name
-  }
-
   getFullName(): string {
     return !!this.parent ? `${this.parent.getFullName()} ${this.name}` : this.name
   }
@@ -183,7 +181,7 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
     }
   }
 
-  getLoggerType(_: CommandParamsBase<A, O>): LoggerType {
+  getTerminalWriterType(_: CommandParamsBase<A, O>): LoggerType {
     return "default"
   }
 
@@ -203,10 +201,17 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   /**
-   * Called to check if the command would run persistently, with the given args/opts
+   * Called to check if the command might run persistently, with the given args/opts
    */
-  isPersistent(_: PrepareParams<A, O>) {
+  maybePersistent(_: PrepareParams<A, O>) {
     return false
+  }
+
+  /**
+   * Called to check if the command can be run in the dev console, with the given args/opts
+   */
+  allowInDevCommand(_: PrepareParams<A, O>) {
+    return true
   }
 
   /**
@@ -287,16 +292,16 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 
   renderHelp() {
-    const cliStyles = getCliStyles()
-
-    let out = this.description ? `${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n` : ""
+    let out = this.description
+      ? `\n${cliStyles.heading("DESCRIPTION")}\n\n${chalk.dim(this.description.trim())}\n\n`
+      : ""
 
     out += `${cliStyles.heading("USAGE")}\n  garden ${this.getFullName()} `
 
     if (this.arguments) {
       out +=
         Object.entries(this.arguments)
-          .map(([name, param]) => cliStyles.usagePositional(name, param.required))
+          .map(([name, param]) => cliStyles.usagePositional(name, param.required, param.spread))
           .join(" ") + " "
     }
 
@@ -316,12 +321,12 @@ export abstract class Command<A extends Parameters = {}, O extends Parameters = 
   }
 }
 
-export abstract class InteractiveCommand<A extends Parameters = {}, O extends Parameters = {}, R = any> extends Command<
+export abstract class ConsoleCommand<A extends Parameters = {}, O extends Parameters = {}, R = any> extends Command<
   A,
   O,
   R
 > {
-  isInteractive = true
+  isDevCommand = true
 }
 
 export abstract class CommandGroup extends Command {
@@ -355,7 +360,6 @@ export abstract class CommandGroup extends Command {
   }
 
   renderHelp() {
-    const cliStyles = getCliStyles()
     const commands = this.subCommands.map((c) => new c(this))
 
     return `
@@ -384,13 +388,11 @@ export function printResult({
   success ? log.info(chalk.white(msg)) : log.error(msg)
 }
 
-// TODO-G2: update
 export interface ProcessCommandResult {
   aborted: boolean
-  // durationMsec?: number | null
   success: boolean
   error?: string
-  graphResults: GraphResultExport
+  graphResults: GraphResultMapWithoutTask
 }
 
 export const processCommandResultKeys = () => ({
@@ -412,7 +414,6 @@ export const graphResultsSchema = () =>
     )
     .meta({ keyPlaceholder: "<key>" })
 
-// TODO-G2: update
 export const processCommandResultSchema = createSchema({
   name: "process-command-result",
   keys: () => ({
@@ -426,12 +427,13 @@ export const processCommandResultSchema = createSchema({
  * Handles the command result and logging for commands the return results of type ProcessResults.
  * This applies to commands that can run in watch mode.
  */
-export function handleProcessResults(
+export async function handleProcessResults(
+  garden: Garden,
   log: Log,
   taskType: string,
-  results: ProcessResults
-): CommandResult<ProcessCommandResult> {
-  const graphResults = results.graphResults.export()
+  results: SolveResult
+): Promise<CommandResult<ProcessCommandResult>> {
+  const graphResults = results.results.export()
 
   const failed = pickBy(graphResults, (r) => r && r.error)
   const failedCount = size(failed)
@@ -449,12 +451,14 @@ export function handleProcessResults(
     return { result, errors: [error], restartRequired: false }
   }
 
-  if (!results.restartRequired) {
+  await waitForOutputFlush()
+
+  if (garden.monitors.getAll().length === 0) {
     printFooter(log)
   }
+
   return {
     result,
-    restartRequired: results.restartRequired,
   }
 }
 

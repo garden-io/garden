@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -86,7 +86,7 @@ export async function configureKubernetesModule({
   const { serviceResource, kustomize } = moduleConfig.spec
   const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
 
-  // TODO-G2: validate serviceResource.containerModule to be a build dependency
+  // TODO: validate serviceResource.containerModule to be a build dependency
 
   moduleConfig.serviceConfigs = [
     {

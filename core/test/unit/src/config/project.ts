@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -45,7 +45,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultName: "default",
+        defaultEnvironmentName: "default",
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -105,7 +105,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultName: defaultEnvironment,
+        defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -178,7 +178,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultName: defaultEnvironment,
+        defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -238,7 +238,7 @@ describe("resolveProjectConfig", () => {
     })
 
     const result = resolveProjectConfig({
-      defaultName: defaultEnvironment,
+      defaultEnvironmentName: defaultEnvironment,
       config,
       artifactsPath: "/tmp",
       vcsInfo,
@@ -270,7 +270,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultName: defaultEnvironment,
+        defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -305,11 +305,11 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should set defaultEnvironment to first environment if not configured", async () => {
-    const defaultName = ""
+    const defaultEnvironmentName = ""
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: defaultName,
+      defaultEnvironment: defaultEnvironmentName,
       environments: [{ defaultNamespace: null, name: "first-env", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -318,7 +318,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultName,
+        defaultEnvironmentName,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -339,11 +339,11 @@ describe("resolveProjectConfig", () => {
   })
 
   it("should populate default values in the schema", async () => {
-    const defaultName = ""
+    const defaultEnvironmentName = ""
     const config: ProjectConfig = createProjectConfig({
       name: "my-project",
       path: "/tmp/foo",
-      defaultEnvironment: defaultName,
+      defaultEnvironment: defaultEnvironmentName,
       environments: [{ defaultNamespace: null, name: "default", variables: {} }],
       outputs: [],
       providers: [{ name: "some-provider", dependencies: [] }],
@@ -352,7 +352,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultName,
+        defaultEnvironmentName,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -403,7 +403,7 @@ describe("resolveProjectConfig", () => {
 
     expect(
       resolveProjectConfig({
-        defaultName: defaultEnvironment,
+        defaultEnvironmentName: defaultEnvironment,
         config,
         artifactsPath: "/tmp",
         vcsInfo,
@@ -492,25 +492,23 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "default",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    const providerNames = res.providers.map((p) => p.name)
+
+    for (const name of fixedPlugins) {
+      expect(providerNames).to.include(name)
+    }
   })
 
   it("should remove null values in provider configs (as per the JSON Merge Patch spec)", async () => {
@@ -542,7 +540,7 @@ describe("pickEnvironment", () => {
       namespace: "default",
       providers: [
         { name: "exec" },
-        { name: "container", newKey: "foo" },
+        { name: "container", newKey: "foo", dependencies: [] },
         { name: "templated" },
         { name: "my-provider", b: "b" },
       ],
@@ -1138,25 +1136,20 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "foo.default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "foo",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "foo.default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    expect(res.environmentName).to.equal("default")
+    expect(res.namespace).to.equal("foo")
   })
 
   it("should use explicit namespace if specified and there is a default", async () => {
@@ -1165,25 +1158,20 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "foo.default",
-        artifactsPath,
-        vcsInfo,
-        username,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "foo",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "foo.default",
+      artifactsPath,
+      vcsInfo,
+      username,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    expect(res.environmentName).to.equal("default")
+    expect(res.namespace).to.equal("foo")
   })
 
   it("should use defaultNamespace if set and no explicit namespace is specified", async () => {
@@ -1192,25 +1180,20 @@ describe("pickEnvironment", () => {
       path: "/tmp/foo",
     })
 
-    expect(
-      await pickEnvironment({
-        projectConfig: config,
-        envString: "default",
-        artifactsPath,
-        username,
-        vcsInfo,
-        loggedIn: true,
-        enterpriseDomain,
-        secrets: {},
-        commandInfo,
-      })
-    ).to.eql({
-      environmentName: "default",
-      namespace: "default",
-      providers: fixedPlugins.map((name) => ({ name })),
-      production: false,
-      variables: {},
+    const res = await pickEnvironment({
+      projectConfig: config,
+      envString: "default",
+      artifactsPath,
+      username,
+      vcsInfo,
+      loggedIn: true,
+      enterpriseDomain,
+      secrets: {},
+      commandInfo,
     })
+
+    expect(res.environmentName).to.equal("default")
+    expect(res.namespace).to.equal("default")
   })
 
   it("should throw if invalid environment is specified", async () => {
@@ -1276,13 +1259,13 @@ describe("parseEnvironment", () => {
   })
 
   it("should throw if string contains more than two segments", () => {
-    expectError(() => parseEnvironment("a.b.c"), {
+    void expectError(() => parseEnvironment("a.b.c"), {
       contains: "Invalid environment specified (a.b.c): may only contain a single delimiter",
     })
   })
 
   it("should throw if string is not a valid hostname", () => {
-    expectError(() => parseEnvironment("&.$"), {
+    void expectError(() => parseEnvironment("&.$"), {
       contains: "Invalid environment specified (&.$): must be a valid environment name or <namespace>.<environment>",
     })
   })

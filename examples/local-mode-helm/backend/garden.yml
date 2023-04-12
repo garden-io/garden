@@ -3,7 +3,7 @@ name: backend
 description: Helm chart for the backend service
 type: helm
 
-dependencies: [ build.backend-image ]
+dependencies: "${var.localMode ? ['build.backend-image', 'run.build-backend-local'] : ['build.backend-image']}"
 
 spec:
   localMode:

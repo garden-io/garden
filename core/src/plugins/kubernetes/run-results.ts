@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import { ContainerRunAction } from "../container/moduleConfig"
 import { KubernetesPluginContext, KubernetesProvider } from "./config"
 import { KubeApi } from "./api"
 import { getAppNamespace } from "./namespace"
-import { deserializeValues } from "../../util/util"
+import { deserializeValues } from "../../util/serialization"
 import { PluginContext } from "../../plugin-context"
 import { Log } from "../../logger/log-entry"
 import { gardenAnnotationKey } from "../../util/string"
@@ -22,9 +22,10 @@ import { runResultToActionState } from "../../actions/base"
 import { Action } from "../../actions/types"
 import { RunResult } from "../../plugin/base"
 import { RunActionHandler } from "../../plugin/action-types"
-import { KubernetesRunAction } from "./kubernetes-type/run"
+import { HelmPodRunAction } from "./helm/config"
+import { KubernetesRunAction } from "./kubernetes-type/config"
 
-// TODO-G2: figure out how to get rid of the any cast here
+// TODO: figure out how to get rid of the any cast here
 export const k8sGetRunResult: RunActionHandler<"getResult", any> = async (params) => {
   const { ctx, log } = params
   const action = <ContainerRunAction>params.action
@@ -69,7 +70,7 @@ export function getRunResultKey(ctx: PluginContext, action: Action) {
 interface StoreTaskResultParams {
   ctx: PluginContext
   log: Log
-  action: ContainerRunAction | KubernetesRunAction
+  action: ContainerRunAction | KubernetesRunAction | HelmPodRunAction
   result: RunResult
 }
 
@@ -92,14 +93,14 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
       namespace,
       key: getRunResultKey(ctx, action),
       labels: {
-        [gardenAnnotationKey("action")]: "deploy.service-a",
+        [gardenAnnotationKey("action")]: action.key(),
         [gardenAnnotationKey("actionType")]: action.type,
         [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,
     })
   } catch (err) {
-    log.warn(chalk.yellow(`Unable to store task result: ${err.message}`))
+    log.warn(chalk.yellow(`Unable to store Run result: ${err.message}`))
   }
 
   return data
@@ -108,7 +109,7 @@ export async function storeRunResult({ ctx, log, action, result }: StoreTaskResu
 /**
  * Clear the stored result for the given task. No-op if no result had been stored for it.
  */
-export async function clearTaskResult({
+export async function clearRunResult({
   ctx,
   log,
   action,

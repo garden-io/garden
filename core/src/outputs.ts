@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -37,7 +37,6 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     return garden.rawOutputs
   }
 
-  // TODO-G2: validate these
   for (const ref of templateRefs) {
     if (!ref[1]) {
       continue
@@ -81,14 +80,12 @@ export async function resolveProjectOutputs(garden: Garden, log: Log): Promise<O
     garden,
     log,
     graph,
-    syncModeDeployNames: [],
-    localModeDeployNames: [],
     forceActions: [],
     force: false,
   }
 
   const graphTasks = needActions.map((ref) => {
-    // TODO-G2: we may not need full execution for all these actions
+    // TODO: we may not need full execution for all these actions
     const action = graph.getActionByRef(ref)
     return getExecuteTaskForAction(action, baseParams)
   })

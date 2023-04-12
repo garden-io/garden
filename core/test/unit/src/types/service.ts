@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import { combineStates, serviceStates, serviceFromConfig } from "../../../../src/types/service"
+import { combineStates, deployStates, serviceFromConfig } from "../../../../src/types/service"
 import { ServiceConfig } from "../../../../src/config/service"
 import { makeTestGardenA } from "../../../helpers"
 
@@ -18,7 +18,7 @@ describe("combineStates", () => {
   })
 
   it("should return the common state if all states are the same", () => {
-    for (const state of serviceStates) {
+    for (const state of deployStates) {
       const result = combineStates([state, state, state])
       expect(result).to.equal(state)
     }

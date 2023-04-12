@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure
 import { GardenModule } from "../../../types/module"
 import { KubernetesResource } from "../types"
 import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
-import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { getKubernetesDeployStatus, kubernetesDeploy } from "../kubernetes-type/handlers"
@@ -74,14 +74,13 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
       // Copy the access modes field to match the BaseVolumeSpec schema
       config.spec.accessModes = <VolumeAccessMode[]>config.spec.spec.accessModes || ["ReadWriteOnce"]
 
-      return { config }
+      return { config, supportedModes: {} }
     },
 
     deploy: async (params) => {
       const result = await kubernetesDeploy({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -91,7 +90,6 @@ export const persistentvolumeclaimDeployDefinition = (): DeployActionDefinition<
       const result = await getKubernetesDeployStatus({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -201,8 +199,9 @@ function getKubernetesAction(action: Resolved<PersistentVolumeClaimAction>) {
     },
   }
 
-  return new DeployAction<KubernetesDeployActionConfig, {}>({
+  return new ResolvedDeployAction<KubernetesDeployActionConfig, {}>({
     ...action["params"],
     config,
+    spec: config.spec,
   })
 }

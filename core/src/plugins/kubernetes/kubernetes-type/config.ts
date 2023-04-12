@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,9 +19,20 @@ import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 import type { KubernetesResource } from "../types"
 import type { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { defaultTargetSchema } from "../helm/config"
-import type { KubernetesRunActionConfig } from "./run"
-import type { KubernetesTestActionConfig } from "./test"
+import type {
+  KubernetesPodRunAction,
+  KubernetesPodRunActionConfig,
+  KubernetesPodTestAction,
+  KubernetesPodTestActionConfig,
+} from "./kubernetes-pod"
 import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
+import { containerRunOutputSchema } from "../../container/config"
+import {
+  KubernetesExecRunAction,
+  KubernetesExecRunActionConfig,
+  KubernetesExecTestAction,
+  KubernetesExecTestActionConfig,
+} from "./kubernetes-exec"
 
 export interface KubernetesTypeCommonDeploySpec {
   files: string[]
@@ -57,14 +68,20 @@ const kubernetesResourceSchema = () =>
     })
     .unknown(true)
 
-export const kubernetesCommonDeploySpecKeys = () => ({
-  files: joiSparseArray(joi.posixPath().subPathOnly()).description(
+export const kubernetesFilesSchema = () =>
+  joiSparseArray(joi.posixPath().subPathOnly()).description(
     "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
-  ),
-  kustomize: kustomizeSpecSchema(),
-  manifests: joiSparseArray(kubernetesResourceSchema()).description(
+  )
+
+export const kubernetesManifestsSchema = () =>
+  joiSparseArray(kubernetesResourceSchema()).description(
     "List of Kubernetes resource manifests to deploy. If `files` is also specified, this is combined with the manifests read from the files."
-  ),
+  )
+
+export const kubernetesCommonDeploySpecKeys = () => ({
+  files: kubernetesFilesSchema(),
+  kustomize: kustomizeSpecSchema(),
+  manifests: kubernetesManifestsSchema(),
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
   timeout: k8sDeploymentTimeoutSchema(),
@@ -80,6 +97,20 @@ export const kubernetesDeploySchema = () =>
       localMode: kubernetesLocalModeSchema(),
     })
     .rename("devMode", "sync")
+
+export interface KubernetesRunOutputs {
+  log: string
+}
+export const kubernetesRunOutputsSchema = () => containerRunOutputSchema()
+
+export type KubernetesRunActionConfig = KubernetesPodRunActionConfig | KubernetesExecRunActionConfig
+export type KubernetesRunAction = KubernetesPodRunAction | KubernetesExecRunAction
+
+export interface KubernetesTestOutputs extends KubernetesRunOutputs {}
+export const kubernetesTestOutputsSchema = () => kubernetesRunOutputsSchema()
+
+export type KubernetesTestActionConfig = KubernetesPodTestActionConfig | KubernetesExecTestActionConfig
+export type KubernetesTestAction = KubernetesPodTestAction | KubernetesExecTestAction
 
 export type KubernetesActionConfig =
   | KubernetesDeployActionConfig

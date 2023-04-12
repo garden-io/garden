@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -68,7 +68,7 @@ const moduleConfigs: ModuleConfig[] = [
 
 const missingDeployStatus: ActionStatus = {
   state: "not-ready",
-  detail: { state: "missing", forwardablePorts: [], outputs: {}, detail: {} },
+  detail: { deployState: "missing", forwardablePorts: [], outputs: {}, detail: {}, mode: "default" },
   outputs: {},
 }
 
@@ -98,15 +98,15 @@ describe("DeleteEnvironmentCommand", () => {
           schema: execDeployActionSchema(),
           handlers: {
             deploy: async (_params) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
             },
             getStatus: async (_params) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
             },
             delete: async (params) => {
               deletedServices.push(params.action.name)
               deleteOrder.push(params.action.name)
-              return { state: "not-ready", detail: { state: "missing", detail: {} }, outputs: {} }
+              return { state: "not-ready", detail: { deployState: "missing", detail: {} }, outputs: {} }
             },
           },
         },
@@ -202,10 +202,10 @@ describe("DeleteDeployCommand", () => {
           schema: execDeployActionSchema(),
           handlers: {
             deploy: async (_params) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
             },
             getStatus: async (_params) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
             },
             delete: async (params) => {
               deleteOrder.push(params.action.name)

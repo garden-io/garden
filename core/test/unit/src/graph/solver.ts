@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,7 +12,6 @@ import { makeTestGarden, freezeTime, TestGarden, getDataDir, expectError } from 
 import { MakeOptional } from "../../../../src/util/util"
 import { SolveOpts } from "../../../../src/graph/solver"
 import { ActionState } from "../../../../src/actions/types"
-import { NEW_RESOURCE_VERSION } from "../../../../src/vcs/vcs"
 
 const projectRoot = getDataDir("test-project-empty")
 
@@ -22,6 +21,7 @@ interface TestTaskParams extends CommonTaskParams {
   name?: string
   state?: ActionState
   callback?: TestTaskCallback
+  statusCallback?: TestTaskCallback
   dependencies?: BaseTask[]
   statusDependencies?: BaseTask[]
 }
@@ -64,10 +64,6 @@ export class TestTask extends BaseTask<TestTaskResult> {
   }
 
   getName() {
-    return this.name
-  }
-
-  getBaseKey(): string {
     return this.name
   }
 
@@ -152,7 +148,7 @@ describe("GraphSolver", () => {
     expect(result!.name).to.equal("task-a")
     expect(result!.startedAt).to.eql(now)
     expect(result!.completedAt).to.eql(now)
-    expect(result!.version).to.equal(task.getInputVersion())
+    expect(result!.inputVersion).to.equal(task.getInputVersion())
     expect(result!.result?.state).to.equal("ready")
     expect(result!.outputs["processed"]).to.equal(true)
   })
@@ -265,6 +261,26 @@ describe("GraphSolver", () => {
     expect(result).to.exist
     expect(result!.error).to.exist
     expect(result!.error?.message).to.include("Throwing error in process method")
+  })
+
+  it("returns status directly and skips processing if state is ready", async () => {
+    const taskA = makeTask({ state: "ready" })
+
+    const result = await processTask(taskA)
+
+    expect(result!.outputs["processed"]).to.equal(false)
+  })
+
+  it("returns status of dependency directly and skips processing it if its state is ready", async () => {
+    const taskA = makeTask({ name: "task-a", state: "ready" })
+    const taskB = makeTask({ name: "task-b", dependencies: [taskA] })
+
+    const result = await processTask(taskB)
+
+    const depResults = result!.dependencyResults?.["test.task-b"]
+
+    expect(depResults).to.exist
+    expect(depResults!.dependencyResults?.["test.task-a"]?.outputs["processed"]).to.equal(false)
   })
 
   // TODO-G2: update these once we're decided on the event formats

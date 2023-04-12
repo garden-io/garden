@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,12 +17,12 @@ import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
 import { Log } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
-import { gardenEnv } from "./constants"
 import { DeployAction } from "./actions/deploy"
 import { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-forward"
 import { Executed } from "./actions/types"
+import { PluginEventBroker } from "./plugin-context"
 
-interface PortProxy {
+export interface PortProxy {
   key: string
   localPort: number
   localUrl: string
@@ -31,8 +31,6 @@ interface PortProxy {
   spec: ForwardablePort
 }
 
-const defaultLocalAddress = "localhost"
-
 const activeProxies: { [key: string]: PortProxy } = {}
 
 registerCleanupFunction("kill-service-port-proxies", () => {
@@ -40,7 +38,7 @@ registerCleanupFunction("kill-service-port-proxies", () => {
     try {
       // Avoid EPIPE errors
       proxy.server.on("error", () => {})
-      stopPortProxy(proxy)
+      closeProxyServer(proxy)
     } catch {}
   }
 })
@@ -53,12 +51,14 @@ export async function startPortProxies({
   log,
   action,
   status,
+  events,
 }: {
   garden: Garden
   graph: ConfigGraph
   log: Log
   action: Executed<DeployAction>
   status: ServiceStatus
+  events?: PluginEventBroker
 }) {
   if (garden.disablePortForwards) {
     log.info({ msg: chalk.gray("Port forwards disabled") })
@@ -66,7 +66,7 @@ export async function startPortProxies({
   }
 
   return Bluebird.map(status.forwardablePorts || [], (spec) => {
-    return startPortProxy({ garden, graph, log, action, spec })
+    return startPortProxy({ garden, graph, log, action, spec, events })
   })
 }
 
@@ -76,25 +76,28 @@ interface StartPortProxyParams {
   log: Log
   action: Executed<DeployAction>
   spec: ForwardablePort
+  events?: PluginEventBroker
 }
 
-async function startPortProxy({ garden, graph, log, action, spec }: StartPortProxyParams) {
+async function startPortProxy({ garden, graph, log, action, spec, events }: StartPortProxyParams) {
   const key = getPortKey(action, spec)
   let proxy = activeProxies[key]
 
+  const createParams = { garden, graph, log, action, spec, events }
+
   if (!proxy) {
     // Start new proxy
-    proxy = activeProxies[key] = await createProxy({ garden, graph, log, action, spec })
+    proxy = activeProxies[key] = await createProxy(createParams)
   } else if (!isEqual(proxy.spec, spec)) {
     // Stop existing proxy and create new one
-    stopPortProxy(proxy, log)
-    proxy = activeProxies[key] = await createProxy({ garden, graph, log, action, spec })
+    await stopPortProxy({ ...createParams, proxy })
+    proxy = activeProxies[key] = await createProxy(createParams)
   }
 
   return proxy
 }
 
-async function createProxy({ garden, graph, log, action, spec }: StartPortProxyParams): Promise<PortProxy> {
+async function createProxy({ garden, graph, log, action, spec, events }: StartPortProxyParams): Promise<PortProxy> {
   const router = await garden.getActionRouter()
   const key = getPortKey(action, spec)
   let fwd: GetPortForwardResult | null = null
@@ -113,7 +116,8 @@ async function createProxy({ garden, graph, log, action, spec }: StartPortProxyP
       log.debug(`Starting port forward to ${key}`)
 
       try {
-        fwd = await router.deploy.getPortForward({ action, log, graph, ...spec })
+        const output = await router.deploy.getPortForward({ action, log, graph, events, ...spec })
+        fwd = output.result
       } catch (err) {
         const msg = err.message.trim()
 
@@ -226,19 +230,16 @@ async function createProxy({ garden, graph, log, action, spec }: StartPortProxyP
     })
   }
 
+  const defaultLocalAddress = garden.proxy.hostname
   let localIp = defaultLocalAddress
   let localPort: number | undefined
   const preferredLocalPort = spec.preferredLocalPort || spec.targetPort
-
-  if (gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS) {
-    localIp = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
-  }
 
   while (true) {
     try {
       localPort = await getPort({ host: localIp, port: preferredLocalPort })
     } catch (err) {
-      if (err.code === "EADDRNOTAVAIL") {
+      if (err.code === "EADDRNOTAVAIL" && localIp !== defaultLocalAddress) {
         // If we're not allowed to bind to other 127.x.x.x addresses, we fall back to localhost. This will almost always
         // be the case on Mac, until we come up with something more clever (that doesn't require sudo).
         localIp = defaultLocalAddress
@@ -288,14 +289,27 @@ async function createProxy({ garden, graph, log, action, spec }: StartPortProxyP
   }
 }
 
-function stopPortProxy(proxy: PortProxy, log?: Log) {
+function closeProxyServer(proxy: PortProxy) {
   // TODO: call stopPortForward handler
-  log && log.debug(`Stopping port forward to ${proxy.key}`)
   delete activeProxies[proxy.key]
 
   try {
     proxy.server.close(() => {})
   } catch {}
+}
+
+interface StopPortProxyParams extends StartPortProxyParams {
+  proxy: PortProxy
+}
+
+export async function stopPortProxy({ garden, graph, log, action, proxy, events }: StopPortProxyParams) {
+  log.verbose(`Stopping port forward to ${proxy.key}`)
+
+  closeProxyServer(proxy)
+
+  const router = await garden.getActionRouter()
+
+  await router.deploy.stopPortForward({ log, graph, action, events, ...proxy.spec })
 }
 
 function getHostname(action: DeployAction, spec: ForwardablePort) {

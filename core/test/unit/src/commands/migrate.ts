@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -48,7 +48,7 @@ describe("commands", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { configPaths: [] },
+          args: { "config-paths": [] },
           opts: withDefaultGlobalOpts({
             root: projectPath,
             write: false,
@@ -216,7 +216,7 @@ describe("commands", () => {
             log,
             headerLog: log,
             footerLog: log,
-            args: { configPaths: ["./project-varfile/garden.yml"] },
+            args: { "config-paths": ["./project-varfile/garden.yml"] },
             opts: withDefaultGlobalOpts({
               root: projectPathErrors,
               write: false,
@@ -252,7 +252,7 @@ describe("commands", () => {
             log,
             headerLog: log,
             footerLog: log,
-            args: { configPaths: [] },
+            args: { "config-paths": [] },
             opts: withDefaultGlobalOpts({
               write: true,
               root: tmpDir.path,
@@ -275,7 +275,7 @@ describe("commands", () => {
           log,
           headerLog: log,
           footerLog: log,
-          args: { configPaths: ["./garden.yml"] },
+          args: { "config-paths": ["./garden.yml"] },
           opts: withDefaultGlobalOpts({
             root: projectPath,
             write: false,

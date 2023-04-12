@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,7 +56,9 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         envVars: {},
         resources: defaultWorkflowResources,
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         steps: [
           { command: ["deploy"], description: "deploy services" },
           { command: ["get", "outputs"] },
@@ -81,7 +83,7 @@ describe("RunWorkflowCommand", () => {
   it("should add workflowStep metadata to log entries provided to steps", async () => {
     const _garden = await makeTestGardenA(undefined)
     // Ensure log entries are empty
-    _garden.log.root.entries = []
+    _garden.log.root["entries"] = []
     const _log = _garden.log
     const _defaultParams = {
       garden: _garden,
@@ -97,7 +99,9 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         envVars: {},
         resources: defaultWorkflowResources,
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         steps: [{ command: ["deploy"] }, { command: ["test"] }],
       },
     ])
@@ -105,7 +109,7 @@ describe("RunWorkflowCommand", () => {
     await cmd.action({ ..._defaultParams, args: { workflow: "workflow-a" } })
     const entries = _garden.log.getAllLogEntries()
     const stepHeaderEntries = filterLogEntries(entries, /Running step/)
-    const stepBodyEntries = filterLogEntries(entries, /Starting processActions/)
+    const stepBodyEntries = filterLogEntries(entries, /Resolving actions/)
     const stepFooterEntries = filterLogEntries(entries, /Step.*completed/)
     const workflowCompletedEntry = filterLogEntries(entries, /Workflow.*completed/)[0]
 
@@ -139,7 +143,9 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         envVars: {},
         resources: defaultWorkflowResources,
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         steps: [{ command: ["deploy"] }, { command: ["build"], skip: true }, { command: ["test"] }],
       },
     ])
@@ -178,7 +184,9 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         envVars: {},
         resources: defaultWorkflowResources,
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         steps: [{ command: ["run", "task-a"] }],
       },
@@ -353,7 +361,9 @@ describe("RunWorkflowCommand", () => {
         kind: "Workflow",
         envVars: {},
         resources: defaultWorkflowResources,
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         steps: [{ command: ["run", "some-task"] }, { command: ["test"] }],
       },
     ])
@@ -405,7 +415,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [{ path: ".garden/test.txt", data: "test" }],
@@ -423,7 +435,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [{ path: ".garden/test.txt", secretName: "test" }],
@@ -446,7 +460,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [{ path: ".garden/test.txt", secretName: "missing" }],
@@ -465,7 +481,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [{ path: "garden.yml/foo.txt", data: "foo" }],
@@ -484,7 +502,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [{ path: ".garden", data: "foo" }],
@@ -503,7 +523,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [],
@@ -524,7 +546,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [],
@@ -545,7 +569,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         files: [],
@@ -571,7 +597,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: { TEST_VAR_A: "llama" },
         resources: defaultWorkflowResources,
         files: [],
@@ -595,7 +623,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: { TEST_VAR_A: "llama" },
         resources: defaultWorkflowResources,
         files: [],
@@ -619,7 +649,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -642,7 +674,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -744,7 +778,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -772,7 +808,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -793,7 +831,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -817,7 +857,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -841,7 +883,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -869,7 +913,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -894,7 +940,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -918,7 +966,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-a",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         files: [],
         envVars: {},
         resources: defaultWorkflowResources,
@@ -942,7 +992,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "workflow-to-run",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: {},
         resources: defaultWorkflowResources,
         steps: [{ command: ["deploy"] }],
@@ -951,7 +1003,9 @@ describe("RunWorkflowCommand", () => {
         apiVersion: DEFAULT_API_VERSION,
         name: "some-other-workflow",
         kind: "Workflow",
-        path: garden.projectRoot,
+        internal: {
+          basePath: garden.projectRoot,
+        },
         envVars: { FOO: "${secrets.missing}" }, // <--- should not be resolved, so no error should be thrown
         resources: defaultWorkflowResources,
         steps: [{ command: ["deploy"] }],

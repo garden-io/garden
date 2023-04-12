@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,6 +15,7 @@ import { extend, mapValues, omitBy } from "lodash"
 import { LogLevel } from "../logger/logger"
 import { Log } from "../logger/log-entry"
 import { Parameters, ParameterValues, globalOptions } from "../cli/params"
+import { parseCliArgs, processCliArgs } from "../cli/helpers"
 
 export interface CommandMap {
   [key: string]: {
@@ -24,21 +25,29 @@ export interface CommandMap {
   }
 }
 
+interface BaseRequest {
+  command: string
+  stringArguments?: string[]
+  parameters: object
+}
+
 const baseRequestSchema = () =>
-  joi.object().keys({
-    command: joi.string().required().description("The command name to run.").example("get.status"),
-    parameters: joi
-      .object()
-      .keys({})
-      .unknown(true)
-      .default(() => ({}))
-      .description("The parameters for the command."),
-  })
+  joi
+    .object()
+    .keys({
+      command: joi.string().required().description("The command name to run.").example("get status"),
+      stringArguments: joi
+        .array()
+        .items(joi.string())
+        .description("String arguments for the command, as if passed to the CLI normally."),
+      parameters: joi.object().keys({}).unknown(true).description("The formal parameters for the command."),
+    })
+    .oxor("stringArguments", "parameters")
 
 /**
  * Validate and map a request body to a Command
  */
-export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: CommandMap, request: any) {
+export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: CommandMap, request: BaseRequest) {
   // Perform basic validation and find command.
   try {
     request = validateSchema(request, baseRequestSchema(), { context: "API request" })
@@ -46,10 +55,12 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: 
     ctx.throw(400, "Invalid request format: " + err.message)
   }
 
-  const commandSpec = commands[request.command]
+  // Support older way of specifying command name
+  const commandKey = request.command.replace(".", " ")
+  const commandSpec = commands[commandKey]
 
   if (!commandSpec) {
-    ctx.throw(404, `Could not find command ${request.command}`)
+    ctx.throw(404, `Could not find command ${request.command}.`)
   }
 
   // Validate command parameters.
@@ -63,13 +74,27 @@ export function parseRequest(ctx: Koa.ParameterizedContext, log: Log, commands: 
   const command = commandSpec.command
 
   // We generally don't want actions to log anything in the server.
-  const cmdLog = log.makeNewLogContext({ level: LogLevel.silly, fixLevel: true })
+  const cmdLog = log.createLog({ fixLevel: LogLevel.silly })
 
-  const cmdArgs = mapParams(ctx, request.parameters, command.arguments)
-  const optParams = extend({ ...globalOptions, ...command.options })
-  const cmdOpts = mapParams(ctx, request.parameters, optParams)
+  let cmdArgs: ParameterValues<any> = {}
+  let cmdOpts: ParameterValues<any> = {}
 
-  // TODO: warn if using global opts (same as in processCliArgs())
+  if (request.parameters) {
+    // TODO: warn if using global opts (same as in processCliArgs())
+    cmdArgs = mapParams(ctx, request.parameters, command.arguments)
+    const optParams = extend({ ...globalOptions, ...command.options })
+    cmdOpts = mapParams(ctx, request.parameters, optParams)
+  } else {
+    try {
+      const args = request.stringArguments || []
+      const argv = parseCliArgs({ stringArgs: args, command, cli: false })
+      const parseResults = processCliArgs({ rawArgs: args, parsedArgs: argv, command, cli: false })
+      cmdArgs = parseResults.args
+      cmdOpts = parseResults.opts
+    } catch (error) {
+      ctx.throw(400, `Invalid string arguments for command ${command.getFullName()}: ${error.message}`)
+    }
+  }
 
   return {
     command,
@@ -93,9 +118,11 @@ export function prepareCommands(commands: Command[]): CommandMap {
         .unknown(false),
     })
 
-    output[command.getKey()] = {
-      command,
-      requestSchema,
+    for (const path of command.getPaths()) {
+      output[path.join(" ")] = {
+        command,
+        requestSchema,
+      }
     }
   }
 

@@ -1,12 +1,11 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { BaseTask, CommonTaskParams, ResolveProcessDependenciesParams, TaskProcessParams } from "./base"
 import {
   GenericProviderConfig,
@@ -212,7 +211,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       pluginName: providerName,
       log: this.log,
       config: resolvedConfig,
-      configStore: this.garden.configStore,
+      configStore: this.garden.localConfigStore,
       projectName: this.garden.projectName,
       projectRoot: this.garden.projectRoot,
       dependencies: resolvedProviders,
@@ -366,7 +365,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
       this.log.info(`Preparing environment...`)
 
       const envLogEntry = this.log
-        .makeNewLogContext({
+        .createLog({
           section: pluginName,
         })
         .info("Configuring...")
@@ -381,7 +380,7 @@ export class ResolveProviderTask extends BaseTask<Provider> {
 
       status = result.status
 
-      envLogEntry.setSuccess({ msg: chalk.green("Ready") })
+      envLogEntry.success("Ready")
     }
 
     if (!status.ready) {

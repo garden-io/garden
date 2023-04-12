@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,21 +28,17 @@ import {
   expectFuzzyMatch,
   createProjectConfig,
   makeModuleConfig,
+  makeTempGarden,
 } from "../../helpers"
-import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
+import { getNames, findByName, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store/local"
 import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
-import { createGardenPlugin, PluginDependency, ProviderActionName } from "../../../src/plugin/plugin"
+import { createGardenPlugin, ProviderActionName } from "../../../src/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
-import {
-  ModuleConfig,
-  baseModuleSpecSchema,
-  baseBuildSpecSchema,
-  defaultBuildTimeout,
-} from "../../../src/config/module"
-import { DEFAULT_API_VERSION } from "../../../src/constants"
+import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
+import { DEFAULT_API_VERSION, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit } from "lodash"
 import { joi } from "../../../src/config/common"
@@ -53,9 +49,13 @@ import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source
 import { safeDump } from "js-yaml"
 import { TestVcsHandler } from "./vcs/vcs"
 import { ActionRouter } from "../../../src/router/router"
-import { convertExecModule } from "../../../src/plugins/exec/exec"
+import { convertExecModule } from "../../../src/plugins/exec/convert"
 import { getLogMessages } from "../../../src/util/testing"
 import { TreeCache } from "../../../src/cache"
+import { omitUndefined } from "../../../src/util/objects"
+import { prepareProjectResource } from "../../../src/config/base"
+import { CoreLog } from "../../../src/logger/log-entry"
+import { Logger, LogLevel } from "../../../src/logger/logger"
 
 // TODO-G2: change all module config based tests to be action-based.
 
@@ -262,7 +262,7 @@ describe("Garden", () => {
         providers: [{ name: "foo" }],
       })
       config.environments = [] // this is omitted later to simulate a config where envs are not set
-      config = (omit(config, "environments") as any) as ProjectConfig
+      config = omit(config, "environments") as any as ProjectConfig
       await expectError(async () => await TestGarden.factory(pathFoo, { config }), {
         contains: "Error validating project environments: value is required",
       })
@@ -272,6 +272,52 @@ describe("Garden", () => {
       const projectRoot = getDataDir("test-project-empty")
       const garden = await makeTestGarden(projectRoot, { plugins: [testPlugin()] })
       expect(garden.gardenDirPath).to.eql(join(garden.projectRoot, ".garden"))
+    })
+
+    it("prefers default env set in local config over project default", async () => {
+      const config = createProjectConfig({
+        name: "test",
+        defaultEnvironment: "local",
+        environments: [
+          { name: "local", defaultNamespace: "default", variables: {} },
+          { name: "remote", defaultNamespace: "default", variables: {} },
+        ],
+        providers: [{ name: "test-plugin" }],
+      })
+
+      const { garden: _garden } = await makeTempGarden({
+        plugins: [testPlugin()],
+        config,
+      })
+
+      await _garden.localConfigStore.set("defaultEnv", "remote")
+
+      const garden = await TestGarden.factory(_garden.projectRoot, { config })
+
+      expect(garden.environmentName).to.equal("remote")
+    })
+
+    it("chooses directly set environmentName over default env in local config", async () => {
+      const config = createProjectConfig({
+        name: "test",
+        defaultEnvironment: "local",
+        environments: [
+          { name: "local", defaultNamespace: "default", variables: {} },
+          { name: "remote", defaultNamespace: "default", variables: {} },
+        ],
+        providers: [{ name: "test-plugin" }],
+      })
+
+      const { garden: _garden } = await makeTempGarden({
+        plugins: [testPlugin()],
+        config,
+      })
+
+      await _garden.localConfigStore.set("defaultEnv", "remote")
+
+      const garden = await TestGarden.factory(_garden.projectRoot, { config, environmentName: "local" })
+
+      expect(garden.environmentName).to.equal("local")
     })
 
     it("should optionally set a custom cache dir relative to project root", async () => {
@@ -399,6 +445,103 @@ describe("Garden", () => {
       })
 
       expect(garden.variables).to.eql({ foo: "override", bar: "something" })
+    })
+
+    it("should set the default proxy config if non is specified", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentName: "default",
+        variables: { foo: "override" },
+      })
+
+      expect(garden.proxy).to.eql({ hostname: "localhost" })
+    })
+
+    it("should optionally read the proxy config from the project config", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        proxy: {
+          hostname: "127.0.0.1", // <--- Proxy config is set here
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFile: ".gitignore",
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentName: "default",
+        variables: { foo: "override" },
+      })
+
+      expect(garden.proxy).to.eql({ hostname: "127.0.0.1" })
+    })
+
+    it("should use the GARDEN_PROXY_DEFAULT_ADDRESS env variable if set", async () => {
+      const saveEnv = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+      try {
+        gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
+        const configNoProxy: ProjectConfig = {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFile: ".gitignore",
+          environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+          providers: [{ name: "foo" }],
+          variables: { foo: "default", bar: "something" },
+        }
+        const configWithProxy: ProjectConfig = {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          proxy: {
+            hostname: "127.0.0.1", // <--- This should be overwritten
+          },
+          defaultEnvironment: "default",
+          dotIgnoreFile: ".gitignore",
+          environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+          providers: [{ name: "foo" }],
+          variables: { foo: "default", bar: "something" },
+        }
+
+        const gardenWithProxyConfig = await TestGarden.factory(pathFoo, {
+          config: configWithProxy,
+          environmentName: "default",
+          variables: { foo: "override" },
+          noCache: true,
+        })
+        const gardenNoProxyConfig = await TestGarden.factory(pathFoo, {
+          config: configNoProxy,
+          environmentName: "default",
+          variables: { foo: "override" },
+          noCache: true,
+        })
+
+        expect(gardenWithProxyConfig.proxy).to.eql({ hostname: "example.com" })
+        expect(gardenNoProxyConfig.proxy).to.eql({ hostname: "example.com" })
+      } finally {
+        gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = saveEnv
+      }
     })
   })
 
@@ -2241,7 +2384,7 @@ describe("Garden", () => {
       }
     })
 
-    it("should resolve module templates and any modules referencing them", async () => {
+    it("should resolve modules from config templates and any modules referencing them", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "module-templates"))
       await garden.scanAndAddConfigs()
 
@@ -2316,12 +2459,72 @@ describe("Garden", () => {
       })
     })
 
-    it("should throw on duplicate module template names", async () => {
-      const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-module-templates"))
+    it("should resolve actions from config templates", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
+      await garden.scanAndAddConfigs()
+
+      const configs = await garden.getRawActionConfigs()
+
+      const build = configs.Build["foo-test"]
+      const deploy = configs.Deploy["foo-test"]
+      const test = configs.Test["foo-test"]
+
+      const internal = {
+        basePath: garden.projectRoot,
+        configFilePath: join(garden.projectRoot, "actions.garden.yml"),
+        parentName: "foo",
+        templateName: "combo",
+        inputs: {
+          name: "test",
+          envName: "${environment.name}", // <- resolved later
+          providerKey: "${providers.test-plugin.outputs.testKey}", // <- resolved later
+        },
+      }
+
+      expect(build).to.exist
+      expect(deploy).to.exist
+      expect(test).to.exist
+
+      expect(build.type).to.equal("test")
+      expect(build.spec.command).to.eql(["${inputs.value}"]) // <- resolved later
+      expect(build.internal).to.eql(internal)
+
+      expect(deploy["build"]).to.equal("${parent.name}-${inputs.name}") // <- resolved later
+      expect(deploy.internal).to.eql(internal)
+
+      expect(test.dependencies).to.eql(["build.${parent.name}-${inputs.name}"]) // <- resolved later
+      expect(test.spec.command).to.eql(["echo", "${inputs.envName}", "${inputs.providerKey}"]) // <- resolved later
+      expect(test.internal).to.eql(internal)
+    })
+
+    it("should resolve a workflow from a template", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
+      await garden.scanAndAddConfigs()
+
+      const workflow = await garden.getRawWorkflowConfig("foo-test")
+
+      const internal = {
+        basePath: garden.projectRoot,
+        configFilePath: join(garden.projectRoot, "workflows.garden.yml"),
+        parentName: "foo",
+        templateName: "workflows",
+        inputs: {
+          name: "test",
+          envName: "${environment.name}", // <- resolved later
+        },
+      }
+
+      expect(workflow).to.exist
+      expect(workflow.steps).to.eql([{ script: 'echo "${inputs.envName}"' }]) // <- resolved later
+      expect(workflow.internal).to.eql(internal)
+    })
+
+    it("should throw on duplicate config template names", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "duplicate-config-templates"))
 
       await expectError(() => garden.scanAndAddConfigs(), {
         contains: [
-          "Found duplicate names of ModuleTemplates:",
+          "Found duplicate names of ConfigTemplates:",
           "Name combo is used at templates.garden.yml and templates.garden.yml",
         ],
       })
@@ -2344,6 +2547,25 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
     })
 
+    // TODO-0.14: remove this and core/test/data/test-projects/project-include-exclude-old-syntax directory
+    it("should respect the modules.include and modules.exclude fields, if specified", async () => {
+      const projectRoot = getDataDir("test-projects", "project-include-exclude-old-syntax")
+      const garden = await makeTestGarden(projectRoot)
+      const modules = await garden.resolveModules({ log: garden.log })
+
+      // Should NOT include "nope" and "module-c"
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
+    })
+
+    it("should respect the scan.include and scan.exclude fields, if specified", async () => {
+      const projectRoot = getDataDir("test-projects", "project-include-exclude")
+      const garden = await makeTestGarden(projectRoot)
+      const modules = await garden.resolveModules({ log: garden.log })
+
+      // Should NOT include "nope" and "module-c"
+      expect(getNames(modules).sort()).to.eql(["module-a", "module-b"])
+    })
+
     it("should respect .gitignore and .gardenignore files", async () => {
       const projectRoot = getDataDir("test-projects", "dotignore")
       const garden = await makeTestGarden(projectRoot)
@@ -2355,7 +2577,7 @@ describe("Garden", () => {
     it("should respect custom dotignore files", async () => {
       // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
       // Thus, all exclusions from .gardenignore will be skipped.
-      // TODO: amend the config core/test/data/test-projects/dotignore-custom/garden.yml in 0.14
+      // TODO-0.14: amend the config core/test/data/test-projects/dotignore-custom/garden.yml
       const projectRoot = getDataDir("test-projects", "dotignore-custom")
       const garden = await makeTestGarden(projectRoot)
       const modules = await garden.resolveModules({ log: garden.log })
@@ -2365,7 +2587,7 @@ describe("Garden", () => {
       expect(getNames(modules).sort()).to.eql(["module-a", "module-c"])
     })
 
-    // TODO: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory oin 0.14
+    // TODO-0.14: Delete this context AND core/test/data/test-projects/dotignore-custom-legacy directory in 0.14
     context("dotignore files migration to 0.13", async () => {
       it("should remap singleton array `dotIgnoreFiles` to scalar `dotIgnoreFile`", async () => {
         // In this project we have custom dotIgnoreFile: .customignore which overrides the default .gardenignore.
@@ -3449,6 +3671,36 @@ describe("Garden", () => {
   })
 
   describe("getConfigGraph", () => {
+    it("should resolve actions from config templates", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-templates"))
+      const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+
+      const build = graph.getBuild("foo-test")
+      const deploy = graph.getDeploy("foo-test")
+      const test = graph.getTest("foo-test")
+
+      const internal = {
+        basePath: garden.projectRoot,
+        configFilePath: join(garden.projectRoot, "actions.garden.yml"),
+        parentName: "foo",
+        templateName: "combo",
+        inputs: {
+          name: "test",
+          envName: "local", // <- should be resolved
+          providerKey: "${providers.test-plugin.outputs.testKey}", // <- not resolvable now
+        },
+      }
+
+      expect(build.type).to.equal("test")
+      expect(build.getInternal()).to.eql(internal)
+
+      expect(deploy.getBuildAction()?.name).to.equal("foo-test") // <- should be resolved
+      expect(deploy.getInternal()).to.eql(internal)
+
+      expect(test.getDependencies().map((a) => a.key())).to.eql(["build.foo-test"]) // <- should be resolved
+      expect(test.getInternal()).to.eql(internal)
+    })
+
     it("should throw an error if modules have circular build dependencies", async () => {
       const garden = await TestGarden.factory(pathFoo, {
         config: createProjectConfig({
@@ -3456,6 +3708,7 @@ describe("Garden", () => {
           path: pathFoo,
           providers: [],
         }),
+        plugins: [testPlugin()],
       })
 
       garden.setModuleConfigs([
@@ -4458,7 +4711,7 @@ describe("Garden", () => {
     describe("hideWarning", () => {
       it("should flag a warning key as hidden", async () => {
         await garden.hideWarning(key)
-        const record = await garden.configStore.get("warnings", key)
+        const record = await garden.localConfigStore.get("warnings", key)
         expect(record.hidden).to.be.true
       })
 
@@ -4470,16 +4723,16 @@ describe("Garden", () => {
 
     describe("emitWarning", () => {
       it("should log a warning if the key has not been hidden", async () => {
-        const log = garden.log.makeNewLogContext({})
+        const log = garden.log.createLog({})
         const message = "Oh noes!"
         await garden.emitWarning({ key, log, message })
         const logs = getLogMessages(log)
         expect(logs.length).to.equal(1)
-        expect(logs[0]).to.equal(message + `\nRun garden util hide-warning ${key} to disable this warning.`)
+        expect(logs[0]).to.equal(message + `\n→ Run garden util hide-warning ${key} to disable this warning.`)
       })
 
       it("should not log a warning if the key has been hidden", async () => {
-        const log = garden.log.makeNewLogContext({})
+        const log = garden.log.createLog({})
         const message = "Oh noes!"
         await garden.hideWarning(key)
         await garden.emitWarning({ key, log, message })

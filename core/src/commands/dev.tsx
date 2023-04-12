@@ -1,17 +1,17 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandResult, CommandParams, InteractiveCommand } from "./base"
+import { CommandResult, CommandParams, ConsoleCommand } from "./base"
 import { renderDivider } from "../logger/util"
 import React, { FC, useState } from "react"
 import { Box, render, Text, useInput, useStdout } from "ink"
 import { serveArgs, ServeCommand, serveOpts } from "./serve"
-import { getLogger, LoggerType } from "../logger/logger"
+import { LoggerType } from "../logger/logger"
 import { ParameterError } from "../exceptions"
 import { InkTerminalWriter } from "../logger/writers/ink-terminal-writer"
 import { CommandLine } from "../cli/command-line"
@@ -35,7 +35,7 @@ type ActionParams = CommandParams<DevCommandArgs, DevCommandOpts>
 
 export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
   name = "dev"
-  help = "Starts the Garden interactive development environment."
+  help = "Starts the Garden interactive development console."
 
   protected = true
   cliOnly = true
@@ -45,6 +45,8 @@ export class DevCommand extends ServeCommand<DevCommandArgs, DevCommandOpts> {
 
   printHeader({ headerLog }) {
     const width = process.stdout?.columns ? process.stdout?.columns - 2 : 100
+
+    console.clear()
 
     headerLog.info(
       chalk.magenta(`
@@ -56,19 +58,28 @@ Let's get your development environment wired up.
     )
   }
 
-  getLoggerType(): LoggerType {
+  getTerminalWriterType(): LoggerType {
     return "ink"
   }
 
-  async action(params: ActionParams): Promise<CommandResult> {
-    const logger = getLogger()
-    const writers = logger.getWriters()
-    const inkWriter = writers.find((w) => w.type === "ink") as InkTerminalWriter
+  allowInDevCommand() {
+    return false
+  }
 
+  async action(params: ActionParams): Promise<CommandResult> {
+    const logger = params.log.root
+    const terminalWriter = logger.getWriters().display
+
+    let inkWriter: InkTerminalWriter
     // TODO: maybe enforce this elsewhere
-    if (!inkWriter) {
+    if (terminalWriter.type === "ink") {
+      inkWriter = terminalWriter as InkTerminalWriter
+    } else {
       throw new ParameterError(`This command can only be used with the ink logger type`, {
-        writerTypes: writers.map((w) => w.type),
+        writerTypes: {
+          terminalWriter: terminalWriter.type,
+          fileWriters: logger.getWriters().file.map((w) => w.type),
+        },
       })
     }
 
@@ -132,6 +143,7 @@ Let's get your development environment wired up.
       commands: [...commands, new HelpCommand(), new QuitCommand(quit), new QuietCommand(), new QuiteCommand()],
       configDump: undefined, // This gets loaded later
       globalOpts: pick(opts, Object.keys(globalOptions)),
+      history: await garden.localConfigStore.get("devCommandHistory"),
     }))
 
     function quit() {
@@ -149,7 +161,7 @@ Let's get your development environment wired up.
   }
 }
 
-class HelpCommand extends InteractiveCommand {
+class HelpCommand extends ConsoleCommand {
   name = "help"
   help = ""
   hidden = true
@@ -160,7 +172,7 @@ class HelpCommand extends InteractiveCommand {
   }
 }
 
-class QuitCommand extends InteractiveCommand {
+class QuitCommand extends ConsoleCommand {
   name = "quit"
   help = "Exit the dev console."
   aliases = ["exit"]
@@ -175,7 +187,7 @@ class QuitCommand extends InteractiveCommand {
   }
 }
 
-class QuietCommand extends InteractiveCommand {
+class QuietCommand extends ConsoleCommand {
   name = "quiet"
   help = ""
   hidden = true
@@ -186,7 +198,7 @@ class QuietCommand extends InteractiveCommand {
   }
 }
 
-class QuiteCommand extends InteractiveCommand {
+class QuiteCommand extends ConsoleCommand {
   name = "quite"
   help = ""
   hidden = true

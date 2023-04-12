@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,6 +34,7 @@ import { k8sGetContainerDeployLogs } from "./logs"
 import { k8sPublishContainerBuild } from "./publish"
 import { k8sContainerRun } from "./run"
 import { k8sGetContainerDeployStatus } from "./status"
+import { k8sContainerGetSyncStatus, k8sContainerStartSync, k8sContainerStopSync } from "./sync"
 import { k8sContainerTest } from "./test"
 
 export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuildAction> => ({
@@ -41,9 +42,9 @@ export const k8sContainerBuildExtension = (): BuildActionExtension<ContainerBuil
   handlers: {
     async getOutputs({ ctx, action }) {
       const provider = ctx.provider as KubernetesProvider
-      // TODO-G2B: figure out why this cast is needed here
+      // TODO: figure out why this cast is needed here
       return {
-        outputs: (k8sGetContainerBuildActionOutputs({ action, provider }) as unknown) as DeepPrimitiveMap,
+        outputs: k8sGetContainerBuildActionOutputs({ action, provider }) as unknown as DeepPrimitiveMap,
       }
     },
 
@@ -79,6 +80,11 @@ export const k8sContainerDeployExtension = (): DeployActionExtension<ContainerDe
       return getPortForwardHandler({ ...params, namespace: undefined })
     },
     getStatus: k8sGetContainerDeployStatus,
+
+    startSync: k8sContainerStartSync,
+    stopSync: k8sContainerStopSync,
+    getSyncStatus: k8sContainerGetSyncStatus,
+
     validate: async ({ ctx, action }) => {
       validateDeploySpec(action.name, <KubernetesProvider>ctx.provider, action.getSpec())
       return {}

@@ -59,7 +59,7 @@ build:
 
   # For multi-stage Dockerfiles, specify which image/stage to build (see
   # https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
-  target:
+  targetImage:
 
 # A description of the module.
 description:
@@ -125,7 +125,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -312,8 +312,8 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       paths:
-        - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
-          # relative path. Defaults to the config's directory if no value is provided.
+        - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if
+          # no value is provided.
           source: .
 
           # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -356,7 +356,7 @@ services:
     # The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
     # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
     #
-    # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+    # Local mode is enabled by setting the `--local` option on the `garden deploy` command.
     # Local mode always takes the precedence over sync mode if there are any conflicting service names.
     #
     # Health checks are disabled for services running in local mode.
@@ -834,9 +834,9 @@ Maximum time in seconds to wait for build to finish.
 | -------- | ------- | -------- |
 | `number` | `1200`  | No       |
 
-### `build.target`
+### `build.targetImage`
 
-[build](#build) > target
+[build](#build) > targetImage
 
 For multi-stage Dockerfiles, specify which image/stage to build (see https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for details).
 
@@ -947,7 +947,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -1408,11 +1408,11 @@ Specify one or more source files or directories to automatically sync with the r
 
 [services](#services) > [sync](#servicessync) > [paths](#servicessyncpaths) > source
 
-POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"."`   | No       |
 
 Example:
 
@@ -1527,7 +1527,7 @@ Set the default group on files and directories at the target. Specify either an 
 The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
 Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
 
-Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode is enabled by setting the `--local` option on the `garden deploy` command.
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
@@ -2703,7 +2703,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -2717,7 +2717,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -2725,7 +2725,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |

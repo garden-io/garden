@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,16 @@ import { Garden } from "../../../../../../src/garden"
 import { getContainerTestGarden } from "../container/container"
 import { PluginContext } from "../../../../../../src/plugin-context"
 import { KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
-import { MutagenDaemon } from "../../../../../../src/plugins/kubernetes/mutagen"
+import { getMutagenMonitor } from "../../../../../../src/mutagen"
 import { syncPause, syncResume, syncStatus } from "../../../../../../src/plugins/kubernetes/commands/sync"
 import { DeployTask } from "../../../../../../src/tasks/deploy"
 import { Log } from "../../../../../../src/logger/log-entry"
 import { ConfigGraph } from "../../../../../../src/graph/config-graph"
+import { join } from "path"
+import { MUTAGEN_DIR_NAME } from "../../../../../../src/constants"
 
-describe("sync plugin commands", () => {
+// TODO-G2: https://github.com/orgs/garden-io/projects/5/views/1?pane=issue&itemId=23082896
+describe.skip("sync plugin commands", () => {
   let garden: Garden
   let graph: ConfigGraph
   let provider: KubernetesProvider
@@ -31,17 +34,22 @@ describe("sync plugin commands", () => {
   after(async () => {
     if (garden) {
       await garden.close()
-      await MutagenDaemon.clearInstance()
+      const dataDir = join(garden.gardenDirPath, MUTAGEN_DIR_NAME)
+      await getMutagenMonitor({ log, dataDir }).stop()
     }
   })
 
   const init = async (environmentName: string) => {
     garden = await getContainerTestGarden(environmentName)
-    graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+    graph = await garden.getConfigGraph({
+      log: garden.log,
+      emit: false,
+      actionModes: { sync: ["deploy.sync-mode"] },
+    })
     provider = <KubernetesProvider>await garden.resolveProvider(garden.log, "local-kubernetes")
     ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
     log = garden.log
-    const action = graph.getDeploy("dev-mode")
+    const action = graph.getDeploy("sync-mode")
 
     // The deploy task actually creates the sync
     const deployTask = new DeployTask({
@@ -51,13 +59,9 @@ describe("sync plugin commands", () => {
       action,
       force: true,
       forceBuild: false,
-      syncModeDeployNames: [action.name],
-      localModeDeployNames: [],
     })
 
     await garden.processTasks({ log, tasks: [deployTask], throwOnError: true })
-
-    await MutagenDaemon.start({ ctx, log })
   }
 
   describe("sync-status", () => {

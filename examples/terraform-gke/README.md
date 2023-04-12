@@ -35,28 +35,18 @@ The Terraform stack needs some input values from you. You can provide those in a
 
 ```tfvars
 # terraform.tfvars
-gcp_region     = "europe-west1"°
-gcp_project_id = "my-test-project"
+region     = "europe-west1"°
+project_id = "my-test-project"
 ```
 
 **B)** Configure the variables directly in the project `garden.yml` (see the `terraform` provider section).
 
-### Step 4 - Initialize the cluster
+### Step 4 - Deploy your stack
 
-Install the cluster-wide services Garden needs by running:
-
-```sh
-garden plugins kubernetes cluster-init
-```
-
-This will take a while because the cluster needs to be provisioned, and some services installed when it's ready.
-
-### Step 5 - Deploy your services
-
-Finally, to build and deploy your services to your new GKE cluster, run:
+Finally, build and deploy your GKE cluster and services to the new cluster:
 
 ```sh
-garden deploy
+garden deploy -l2 #the -l2 flag is optional, but recommended to observe the progress of the Terraform deployment
 ```
 
 And that's it!

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,18 +13,18 @@ import { printHeader, renderDivider } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
-import { processActions } from "../process"
 import { watchParameter, watchRemovedWarning } from "./helpers"
 
-// TODO-G2: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
+// TODO: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 
 const runArgs = {
   names: new StringsParameter({
     help: deline`
       The name(s) of the Run action(s) to perform.
-      Use comma as a separator to specify multiple names.
+      You may specify multiple names, separated by spaces.
       Accepts glob patterns (e.g. init* would run both 'init' and 'initialize').
     `,
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.actionConfigs.Run)
     },
@@ -46,7 +46,7 @@ const runOpts = {
   // }),
   "module": new StringsParameter({
     help: deline`
-      The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
+      The name(s) of one or modules to pull Runs (or tasks if using modules) from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
     `,
     getSuggestions: ({ configDump }) => {
       return Object.keys(configDump.moduleConfigs)
@@ -65,8 +65,8 @@ const runOpts = {
   "skip-dependencies": new BooleanParameter({
     help: dedent`
       Don't perform any Deploy or Run actions that the requested Runs depend on.
-      This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
-      dependencies without redeploying any service dependencies that may have changed since you last deployed.
+      This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+      dependencies without redeploying any Deploy (or service if using modules) dependencies that may have changed since you last deployed.
 
       Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
       your test suites are up to date when this option is used.
@@ -212,7 +212,7 @@ export class RunCommand extends Command<Args, Opts> {
       })
     }
 
-    const initialTasks = actions.map(
+    const tasks = actions.map(
       (action) =>
         new RunTask({
           garden,
@@ -221,8 +221,7 @@ export class RunCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
+
           skipRuntimeDependencies,
           // interactive: opts.interactive,
         })
@@ -235,15 +234,8 @@ export class RunCommand extends Command<Args, Opts> {
     //   })
     // }
 
-    const results = await processActions({
-      garden,
-      graph,
-      log,
-      actions,
-      initialTasks,
-      persistent: this.isPersistent(params),
-    })
+    const results = await garden.processTasks({ tasks, log })
 
-    return handleProcessResults(footerLog, "test", results)
+    return handleProcessResults(garden, footerLog, "test", results)
   }
 }

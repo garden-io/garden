@@ -9,7 +9,7 @@ tocTitle: "`configmap`"
 
 Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/other-plugins/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
+See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/k8s-plugins/module-types/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
@@ -110,7 +110,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -392,7 +392,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -514,7 +514,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -528,7 +528,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -536,7 +536,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |

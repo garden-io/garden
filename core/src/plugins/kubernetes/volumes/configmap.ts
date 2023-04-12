@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ import { KubernetesResource } from "../types"
 import { kubernetesDeploy, getKubernetesDeployStatus } from "../kubernetes-type/handlers"
 import { ConvertModuleParams } from "../../../plugin/handlers/Module/convert"
 import { DeployActionDefinition } from "../../../plugin/action-types"
-import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
+import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { Resolved } from "../../../actions/types"
 
@@ -49,7 +49,7 @@ type ConfigmapAction = DeployAction<ConfigmapActionConfig, {}>
 const docs = dedent`
   Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-  See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/other-plugins/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
+  See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/k8s-plugins/module-types/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
 `
 
 export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAction> => ({
@@ -60,14 +60,13 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
     configure: async ({ config }) => {
       config.include = []
       config.spec.accessModes = ["ReadOnlyMany"]
-      return { config }
+      return { config, supportedModes: {} }
     },
 
     deploy: async (params) => {
       const result = await kubernetesDeploy({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -77,7 +76,6 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
       const result = await getKubernetesDeployStatus({
         ...(<any>params),
         action: getKubernetesAction(params.action),
-        syncMode: false,
       })
 
       return { ...result, outputs: {} }
@@ -88,7 +86,6 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
 export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
   name: "configmap",
   docs,
-
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),
     dependencies: joiSparseArray(joiIdentifier()).description(
@@ -175,8 +172,9 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
     },
   }
 
-  return new DeployAction<KubernetesDeployActionConfig, {}>({
+  return new ResolvedDeployAction<KubernetesDeployActionConfig, {}>({
     ...action["params"],
     config,
+    spec: config.spec,
   })
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,13 +11,13 @@ import { printHeader } from "../logger/util"
 import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
-import { ProjectResource } from "../config/project"
 import { ConfigurationError } from "../exceptions"
+import { ProjectResource } from "../config/project"
+import { findProjectConfig } from "../config/base"
 
 export class LogOutCommand extends Command {
   name = "logout"
   help = "Log out of Garden Cloud."
-  hidden = true
   noProject = true
 
   description = dedent`
@@ -28,23 +28,33 @@ export class LogOutCommand extends Command {
     printHeader(headerLog, "Log out", "☁️")
   }
 
-  async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
+  async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // The Enterprise API is missing from the Garden class for commands with noProject
     // so we initialize it here.
-    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
-    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
+    const projectConfig: ProjectResource | undefined = await findProjectConfig(log, garden.projectRoot)
 
-    if (!cloudDomain) {
-      throw new ConfigurationError(`Project config is missing a cloud domain.`, {})
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
+      throw new ConfigurationError(
+        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        {
+          root: garden.projectRoot,
+        }
+      )
     }
 
-    const distroName = getCloudDistributionName(garden.cloudDomain || "")
+    const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)
+
+    const distroName = getCloudDistributionName(cloudDomain)
 
     try {
+      // The Enterprise API is missing from the Garden class for commands with noProject
+      // so we initialize it here.
+
       const token = await garden.globalConfigStore.get("clientAuthTokens", cloudDomain)
 
       if (!token) {
-        log.info({ msg: `You're already logged out from ${distroName}.` })
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
         return {}
       }
 
@@ -70,8 +80,8 @@ export class LogOutCommand extends Command {
         msg,
       })
     } finally {
-      log.info({ msg: `Succesfully logged out from ${distroName}.` })
       await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
+      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
     }
     return {}
   }

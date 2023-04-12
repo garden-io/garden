@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -55,15 +55,9 @@ describe("clientRequestHandlers", () => {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          syncMode: false,
-          hotReload: false,
-
-          localMode: false,
           skipDependencies: true,
         },
       })
-      expect(deployTask.syncModeDeployNames).to.eql([])
-      expect(deployTask.localModeDeployNames).to.eql([])
       expect(deployTask.action.name).to.eql("service-a")
     })
 
@@ -74,9 +68,7 @@ describe("clientRequestHandlers", () => {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          syncMode: true,
-          hotReload: false,
-          localMode: false,
+          mode: "sync",
           skipDependencies: true,
         },
       })
@@ -92,9 +84,7 @@ describe("clientRequestHandlers", () => {
           serviceName: "service-a",
           force: false,
           forceBuild: false,
-          syncMode: false,
-          localMode: true,
-          hotReload: false,
+          mode: "local",
           skipDependencies: true,
         },
       })

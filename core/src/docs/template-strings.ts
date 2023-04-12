@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,6 +24,7 @@ import { isEqual, kebabCase, sortBy } from "lodash"
 import { InternalError } from "../exceptions"
 import { CustomCommandContext } from "../config/template-contexts/custom-command"
 import Joi from "@hapi/joi"
+import { ActionConfigContext, ActionSpecContext } from "../config/template-contexts/actions"
 
 interface ContextSpec {
   schema: Joi.ObjectSchema
@@ -53,6 +54,20 @@ const contexts: ContextSpec[] = [
     shortDescription: "Keys available in the `providers` field in Project configurations.",
     longDescription:
       "The following keys are available in template strings under the `providers` key (or `environments[].providers`) in project configs.\n\nProviders can also reference outputs defined by other providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.",
+  },
+  {
+    shortName: "Action (all fields)",
+    schema: ActionConfigContext.getSchema(),
+    shortDescription: "Keys available for built-in fields on action configs.",
+    longDescription:
+      "The below keys are available in template strings for **built-in fields**in action configs, i.e. everything except the `spec` field. Please see [here](./action-specs.md) for all the additional fields available under the `spec` field.\n\nActions can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.\n\nNote that the built-in config fields do not allow referencing other actions or modules, whereas it _is_ allowed under the `spec` field (see [here](./action-specs.md) for more details).",
+  },
+  {
+    shortName: "Action spec",
+    schema: ActionSpecContext.getSchema(),
+    shortDescription: "Keys available for the `spec` field on action configs.",
+    longDescription:
+      "The below keys are available in template strings for the `spec` field in action configs. Please see [here](./action-all-fields.md) for the fields available for the _built-in_ fields in actions configs, which allow somewhat more limited templating.\n\nActions can reference outputs defined by providers, via the `${providers.<provider-name>.outputs}` key. For details on which outputs are available for a given provider, please refer to the [reference](../providers/README.md) docs for the provider in question, and look for the _Outputs_ section.\n\nAction specs can also reference outputs defined by modules and by other actions, via the `${modules.<module-name>.outputs}` and `${actions.<action-kind>.<action-name>.outputs}` keys.\n\nFor details on which outputs are available for a given action type, please refer to the [reference](../action-types/README.md) docs for the type in question, and look for the _Outputs_ section.",
   },
   {
     shortName: "Module",
@@ -136,13 +151,23 @@ export function writeTemplateStringReferenceDocs(docsRoot: string) {
   const contextTemplatePath = resolve(templatesDir, "context.hbs")
   const contextTemplate = handlebars.compile(readFileSync(contextTemplatePath).toString())
 
-  const annotatedContexts = contexts.map((c, i) => ({
-    ...c,
-    index: i + 1,
-    filename: kebabCase(c.shortName.toLowerCase()) + "s.md",
-    shortName: c.shortName + "s",
-    longName: c.shortName + " configuration context",
-  }))
+  const annotatedContexts = contexts.map((c, i) => {
+    let filename = kebabCase(c.shortName.toLowerCase())
+    let shortName = c.shortName
+
+    if (!filename.endsWith("s")) {
+      filename += "s"
+      shortName += "s"
+    }
+
+    return {
+      ...c,
+      index: i + 1,
+      filename: filename + ".md",
+      shortName,
+      longName: c.shortName + " template context",
+    }
+  })
 
   for (const c of annotatedContexts) {
     const outputPath = resolve(outputDir, c.filename)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,8 +8,8 @@
 
 import { expect } from "chai"
 import { optionsWithAliasValues, pickCommand, processCliArgs } from "../../../../src/cli/helpers"
-import { Parameters } from "../../../../src/cli/params"
-import { expectError, expectFuzzyMatch } from "../../../helpers"
+import { Parameters, StringParameter, StringsParameter } from "../../../../src/cli/params"
+import { expectError } from "../../../helpers"
 import { getPackageVersion } from "../../../../src/util/util"
 import { GARDEN_CORE_ROOT } from "../../../../src/constants"
 import { join } from "path"
@@ -29,6 +29,7 @@ import { getBuiltinCommands } from "../../../../src/commands/commands"
 import { DeepPrimitiveMap } from "../../../../src/config/common"
 import { getLogLevelChoices, LogLevel, parseLogLevel } from "../../../../src/logger/logger"
 import { ExecCommand } from "../../../../src/commands/exec"
+import { GetRunResultCommand } from "../../../../src/commands/get/get-run-result"
 
 const validLogLevels = getLogLevelChoices()
 
@@ -260,62 +261,33 @@ describe("processCliArgs", () => {
     expect(opts["log-level"]).to.equal("debug")
   })
 
-  // TODO: do this after the refactor is done and tested
-  // it("should handle a variadic argument spec", async () => {
-  //   const argSpec = {
-  //     first: new StringParameter({
-  //       help: "Some help text.",
-  //     }),
-  //     rest: new StringsParameter({
-  //       help: "Some help text.",
-  //       variadic: true,
-  //     }),
-  //   }
-
-  //   class VarCommand extends Command<typeof argSpec> {
-  //     name = "var-command"
-  //     help = "halp!"
-  //     noProject = true
-
-  //     arguments = argSpec
-
-  //     async action(params) {
-  //       return { result: params }
-  //     }
-  //   }
-
-  //   const cmd = new VarCommand()
-  //   const { args } = parseAndProcess(["test-command", "something", "a", "b", "c"], cmd)
-
-  //   expect(args.first).to.equal("something")
-  //   expect(args.rest).to.eql(["a", "b", "c"])
-  // })
-
   it("throws an error when a required positional argument is missing", () => {
     const cmd = new ExecCommand()
-    expectError(() => parseAndProcess([], cmd), { contains: "Missing required argument" })
+    void expectError(() => parseAndProcess([], cmd), { contains: "Missing required argument" })
   })
 
   it("throws an error when an unexpected positional argument is given", () => {
-    const cmd = new DeleteDeployCommand()
-    expectError(() => parseAndProcess(["my-service", "bla"], cmd), { contains: 'Unexpected positional argument "bla"' })
+    const cmd = new GetRunResultCommand()
+    void expectError(() => parseAndProcess(["my-run", "bla"], cmd), {
+      contains: 'Unexpected positional argument "bla"',
+    })
   })
 
   it("throws an error when an unrecognized option is set", () => {
     const cmd = new BuildCommand()
-    expectError(() => parseAndProcess(["--foo=bar"], cmd), { contains: "Unrecognized option flag --foo" })
+    void expectError(() => parseAndProcess(["--foo=bar"], cmd), { contains: "Unrecognized option flag --foo" })
   })
 
   it("throws an error when an invalid argument is given to a choice option", () => {
     const cmd = new BuildCommand()
-    expectError(() => parseAndProcess(["--logger-type=foo"], cmd), {
+    void expectError(() => parseAndProcess(["--logger-type=foo"], cmd), {
       contains: 'Invalid value for option --logger-type: "foo" is not a valid argument (should be any of ',
     })
   })
 
   it("throws an error when an invalid argument is given to an integer option", () => {
     const cmd = new LogsCommand()
-    expectError(() => parseAndProcess(["--tail=foo"], cmd), {
+    void expectError(() => parseAndProcess(["--tail=foo"], cmd), {
       contains: 'Invalid value for option --tail: Could not parse "foo" as integer',
     })
   })
@@ -353,7 +325,7 @@ describe("processCliArgs", () => {
 
   it("throws with all found errors if applicable", () => {
     const cmd = new RunCommand()
-    expectError(() => parseAndProcess(["--foo=bar", "--interactive=9", "--force"], cmd), {
+    void expectError(() => parseAndProcess(["--foo=bar", "--interactive=9", "--force"], cmd), {
       contains: ["Unrecognized option flag --foo", "Unrecognized option flag --interactive"],
     })
   })
@@ -435,6 +407,46 @@ describe("processCliArgs", () => {
       ...defaultActionParams,
       args,
       opts: withDefaultGlobalOpts(opts),
+    })
+  })
+
+  context("spread args", () => {
+    const argSpec = {
+      first: new StringParameter({
+        help: "Some help text.",
+      }),
+      spread: new StringsParameter({
+        help: "Some help text.",
+        spread: true,
+      }),
+    }
+
+    class SpreadCommand extends Command<typeof argSpec> {
+      name = "spread-command"
+      help = "halp!"
+      noProject = true
+
+      arguments = argSpec
+
+      async action(params: any) {
+        return { result: params }
+      }
+    }
+
+    it("should handle a spread argument spec", async () => {
+      const cmd = new SpreadCommand()
+      const { args } = parseAndProcess(["something", "a", "b", "c"], cmd)
+
+      expect(args.first).to.equal("something")
+      expect(args.spread).to.eql(["a", "b", "c"])
+    })
+
+    it("should handle a spread argument spec with comma-based values entered", async () => {
+      const cmd = new SpreadCommand()
+      const { args } = parseAndProcess(["something", "a,b,c"], cmd)
+
+      expect(args.first).to.equal("something")
+      expect(args.spread).to.eql(["a", "b", "c"])
     })
   })
 })

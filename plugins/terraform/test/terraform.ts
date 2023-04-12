@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -328,8 +328,6 @@ describe("Terraform module type", () => {
       log: garden.log,
       force: false,
       forceBuild: false,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     return garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -356,8 +354,6 @@ describe("Terraform module type", () => {
       log: garden.log,
       force: false,
       forceBuild: false,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     return garden.processTasks({ tasks: [taskTask], throwOnError: true })
@@ -547,8 +543,7 @@ describe("Terraform module type", () => {
       const actions = await garden.getActionRouter()
       const status = await actions.deploy.getStatus({
         action: resolvedAction,
-        syncMode: false,
-        localMode: false,
+
         log: garden.log,
         graph,
       })
@@ -591,8 +586,6 @@ describe("Terraform module type", () => {
       const actions = await _garden.getActionRouter()
       const status = await actions.deploy.getStatus({
         action: resolvedAction,
-        syncMode: false,
-        localMode: false,
         log: _garden.log,
         graph,
       })
@@ -642,8 +635,6 @@ describe("Terraform module type", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       const result = await _garden.processTasks({ tasks: [runTask], throwOnError: true })

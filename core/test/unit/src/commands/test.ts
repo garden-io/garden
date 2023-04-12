@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -132,16 +132,23 @@ describe("TestCommand", () => {
   })
 
   it("handles --interactive option if single test name is specified", async () => {
+    const provider = await garden.resolveProvider(garden.log, "test-plugin")
+    const ctx = await garden.getPluginContext({ provider, templateContext: undefined, events: undefined })
+
     await garden.stubRouterAction("Test", "run", async ({ interactive }) => {
       return {
-        state: "ready",
-        detail: {
-          success: true,
-          log: `Interactive: ${interactive}`,
-          startedAt: new Date(),
-          completedAt: new Date(),
+        ctx,
+        result: {
+          state: "ready",
+          detail: {
+            success: true,
+            log: `Interactive: ${interactive}`,
+            startedAt: new Date(),
+            completedAt: new Date(),
+          },
+          outputs: {},
+          version: "v-1234",
         },
-        outputs: {},
       }
     })
 

@@ -15,7 +15,7 @@ orbs:
     GARDEN_K8S_BUILD_SYNC_MODE: "mutagen"
 
   shared-machine-config: &shared-machine-config
-    image: "ubuntu-2204:2022.10.2"
+    image: "ubuntu-2204:2023.02.1"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
@@ -423,7 +423,7 @@ jobs:
 
   test-docker-gcloud:
     docker:
-    # Use remote image digest from previous job
+      # Use remote image digest from previous job
       - image: $DIGEST
         environment:
           <<: *shared-env-config
@@ -882,11 +882,11 @@ workflows:
           project: gke
           environment: gke-buildkit
           requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-hadolint
-      #     project: hadolint
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-hadolint
+          project: hadolint
+          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-hadolint-modules
@@ -898,32 +898,32 @@ workflows:
           project: jib-container
           environment: remote
           requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-jib-container-modules
-      #     project: jib-container-modules
-      #     environment: remote
-      #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-kustomize
-      #     project: kustomize
-      #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-kustomize-modules
-      #     project: kustomize-modules
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-jib-container-modules
+          project: jib-container-modules
+          environment: remote
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-kustomize
+          project: kustomize
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-kustomize-modules
+          project: kustomize-modules
+          requires: [build]
       # - e2e-project:
       #     <<: *only-internal-prs
       #     name: e2e-remote-sources
       #     project: remote-sources
       #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-remote-sources-modules
-      #     project: remote-sources-modules
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-remote-sources-modules
+          project: remote-sources-modules
+          requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-run-actions
@@ -934,28 +934,28 @@ workflows:
       #     name: e2e-tasks-modules
       #     project: tasks-modules
       #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-templated-k8s-container
-      #     project: templated-k8s-container
-      #     requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-templated-k8s-container-modules
-      #     project: templated-k8s-container-modules
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-templated-k8s-container
+          project: templated-k8s-container
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-templated-k8s-container-modules
+          project: templated-k8s-container-modules
+          requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote
           project: vote
           environment: remote
           requires: [build]
-      # - e2e-project:
-      #     <<: *only-internal-prs
-      #     name: e2e-vote-modules
-      #     project: vote-modules
-      #     environment: remote
-      #     requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
+          name: e2e-vote-modules
+          project: vote-modules
+          environment: remote
+          requires: [build]
       - e2e-project:
           <<: *only-internal-prs
           name: e2e-vote-helm
@@ -973,21 +973,21 @@ workflows:
       # variant and k8s version would be quite expensive, so we try and make sure each of the latest 6-7 k8s versions is
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
-      # - test-minikube:
-      #     name: vm-1.22-minikube
-      #     requires: [build]
-      #     kubernetesVersion: "1.22.2"
-      #     minikubeVersion: "v1.25.2"
-      # - test-minikube:
-      #     name: vm-1.23-minikube
-      #     requires: [build]
-      #     kubernetesVersion: "1.23.3"
-      #     minikubeVersion: "v1.25.2"
-      # - test-minikube:
-      #     name: vm-1.19-minikube
-      #     requires: [build]
-      #     kubernetesVersion: "1.19.7"
-      #     minikubeVersion: "v1.16.0"
+      - test-minikube:
+          name: vm-1.22-minikube
+          requires: [build]
+          kubernetesVersion: "1.22.2"
+          minikubeVersion: "v1.25.2"
+      - test-minikube:
+          name: vm-1.23-minikube
+          requires: [build]
+          kubernetesVersion: "1.23.3"
+          minikubeVersion: "v1.25.2"
+      - test-minikube:
+          name: vm-1.19-minikube
+          requires: [build]
+          kubernetesVersion: "1.19.7"
+          minikubeVersion: "v1.16.0"
       # - test-microk8s:
       #     name: vm-1.24-microk8s
       #     requires: [build]
@@ -1000,26 +1000,26 @@ workflows:
       #     name: vm-1.26-microk8s
       #     requires: [build]
       #     kubernetesVersion: "1.26"
-      # - test-kind:
-      #     name: vm-1.19-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.19.4
-      # - test-kind:
-      #     name: vm-1.20-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.20.2
-      # - test-kind:
-      #     name: vm-1.21-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.21.2
-      # - test-kind:
-      #     name: vm-1.22-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
-      # - test-kind:
-      #     name: vm-1.23-kind
-      #     requires: [build]
-      #     kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
+      - test-kind:
+          name: vm-1.19-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.19.4
+      - test-kind:
+          name: vm-1.20-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.20.2
+      - test-kind:
+          name: vm-1.21-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.21.2
+      - test-kind:
+          name: vm-1.22-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
+      - test-kind:
+          name: vm-1.23-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
 
       # - test-plugins:
       #     requires: [build]

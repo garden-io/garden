@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import { BaseTask, Task, ValidResultType } from "../tasks/base"
 import { InternalError } from "../exceptions"
-import { fromPairs, omit } from "lodash"
+import { fromPairs, omit, pick } from "lodash"
 import { toGraphResultEventPayload } from "../events"
 import CircularJSON from "circular-json"
 
@@ -17,12 +17,12 @@ export interface TaskEventBase {
   description: string
   key: string
   name: string
-  version: string
+  inputVersion: string
 }
 
 export interface GraphResult<R extends ValidResultType = ValidResultType> extends TaskEventBase {
   result: R | null
-  dependencyResults: GraphResultExport | null
+  dependencyResults: GraphResultMapWithoutTask | null
   startedAt: Date | null
   completedAt: Date | null
   error: Error | null
@@ -31,7 +31,13 @@ export interface GraphResult<R extends ValidResultType = ValidResultType> extend
   task: BaseTask
   processed: boolean
   success: boolean
+  // Set to true if the action indicates that it's persistently running after task execution
+  // and attached to the Garden process. Not necessary for e.g. normal deployments that keep
+  // running but outside of the Garden process.
+  attached: boolean
 }
+
+export type GraphResultWithoutTask<T extends Task = Task> = Omit<GraphResultFromTask<T>, "task">
 
 export type GraphResultFromTask<T extends Task> = GraphResult<T["_resultType"]>
 
@@ -39,8 +45,8 @@ export interface GraphResultMap<T extends Task = Task> {
   [key: string]: GraphResultFromTask<T> | null
 }
 
-export interface GraphResultExport<T extends Task = Task> {
-  [key: string]: Omit<GraphResultFromTask<T>, "task"> | null
+export interface GraphResultMapWithoutTask<T extends Task = Task> {
+  [key: string]: GraphResultWithoutTask<T> | null
 }
 
 export class GraphResults<B extends Task = Task> {
@@ -89,11 +95,15 @@ export class GraphResults<B extends Task = Task> {
     return fromPairs(Array.from(this.results.entries()))
   }
 
+  filterForGraphResult<T extends Task = Task>(): GraphResultMapWithoutTask<T> {
+    return mapResults(this.results, (v) => (v ? { ...omit(v, "task") } : null))
+  }
+
   /**
    * Export the result object in a format that's suitable for JSON, command outputs etc.
    */
-  export(): GraphResultExport {
-    return fromPairs(Array.from(this.results.entries()).map(([k, v]) => [k, resultToExport(v)]))
+  export(): GraphResultMapWithoutTask {
+    return mapResults(this.results, (v) => prepareForExport(v))
   }
 
   private checkKey(key: string) {
@@ -111,22 +121,133 @@ export class GraphResults<B extends Task = Task> {
 }
 
 /**
+ * Convenience helper for mapping the values of a Map or plain object of graph results (note: Returns a plain object,not a Map).
+ */
+function mapResults<T extends Task = Task, R extends object = {}>(
+  results: Map<string, GraphResultWithoutTask<T> | null> | GraphResultMapWithoutTask<T> | null,
+  fn: (val: GraphResultWithoutTask<T> | null) => R | null
+): { [key: string]: R | null } {
+  if (!results) {
+    return {}
+  }
+  const entries = results instanceof Map ? results.entries() : Object.entries(results)
+  return fromPairs(Array.from(entries).map(([k, v]) => [k, fn(v)]))
+}
+
+/**
  * Render a result to string. Used for debugging and errors.
  */
 export function resultToString(result: GraphResult) {
-  // TODO-G2: improve
+  // TODO: improve
   return CircularJSON.stringify(toGraphResultEventPayload(result))
 }
 
 /**
  * Prepares an individual GraphResult for export.
  */
-export function resultToExport(result: GraphResult | null) {
-  if (!result) {
-    return result
+function prepareForExport(graphResult: GraphResultWithoutTask | null) {
+  if (!graphResult) {
+    return null
   }
+  const { result, error, dependencyResults } = graphResult
+  const filteredDependencyResults = mapResults(dependencyResults || {}, prepareForExport)
+  // We have to omit instead of picking here, since we may have action-keyed output values in here.
   return {
-    ...omit(result, "task"),
-    result: omit(result.result, ["resolvedAction", "executedAction"]),
+    ...pick(
+      graphResult,
+      "type",
+      "description",
+      "key",
+      "name",
+      "aborted",
+      "startedAt",
+      "completedAt",
+      "version",
+      "processed",
+      "success",
+      "inputVersion"
+    ),
+    result: filterResultForExport(result),
+    error: filterErrorForExport(error),
+    outputs: filterOutputsForExport(graphResult.outputs),
+    dependencyResults: filteredDependencyResults,
+  }
+}
+
+function filterResultForExport(result: any) {
+  if (!result) {
+    return null
+  }
+  // Here, we pick a list of safe (bounded-size) keys across the result types for `BuildTask`, `DeployTask`, `TestTask`
+  // and `RunTask`.
+  const filteredDetail = pick(
+    result.detail || {},
+    // Leaving these in because many of our command unit tests rely on them
+    "fresh",
+    "buildLog",
+    "log",
+    "message"
+  )
+  return {
+    ...pick(
+      result,
+
+      // from DeployStatus
+      "createdAt",
+      "syncMode",
+      "localMode",
+      "namespaceStatuses",
+      "externalId",
+      "externalVersion",
+      "forwardablePorts",
+      "ingresses",
+      "lastMessage",
+      "lastError",
+      "outputs",
+      "runningReplicas",
+      "state",
+      "updatedAt",
+      "version",
+
+      // from BuildStatus
+      "fetched",
+      "fresh",
+
+      // from RunResult and TestResult
+      "success",
+      "exitCode",
+      "startedAt",
+      "completedAt",
+      "namespaceStatus"
+    ),
+    detail: filteredDetail,
+  }
+}
+
+function filterOutputsForExport(outputs: any) {
+  return omit(outputs, "resolvedAction", "executedAction")
+}
+
+function filterErrorForExport(error: any) {
+  if (!error) {
+    return null
+  }
+  const detail = error.detail || {}
+  const filteredDetail = pick(
+    detail || {},
+    "aborted",
+    "completedAt",
+    "description",
+    "message",
+    "stack",
+    "key",
+    "name",
+    "processed",
+    "success",
+    "type"
+  )
+  return {
+    ...pick(error, "message", "type", "stack"),
+    detail: filteredDetail,
   }
 }

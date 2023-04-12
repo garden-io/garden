@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,10 +13,9 @@ import { pathExists } from "fs-extra"
 import chalk = require("chalk")
 import { getBaseModule, helmChartYamlFilename } from "./common"
 import { ExecBuildConfig } from "../../exec/config"
-import { KubernetesActionConfig } from "../kubernetes-type/config"
-import { HelmActionConfig, HelmDeployConfig } from "./config"
+import { HelmActionConfig, HelmDeployConfig, HelmPodTestConfig } from "./config"
 import { getServiceResourceSpec } from "../util"
-import { isTruthy, jsonMerge } from "../../../util/util"
+import { jsonMerge } from "../../../util/util"
 import { cloneDeep, omit } from "lodash"
 import { DeepPrimitiveMap } from "../../../config/common"
 import { convertServiceResource } from "../kubernetes-type/common"
@@ -39,7 +38,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       convertBuildDependency,
       prepareRuntimeDependencies,
     } = params
-    const actions: (ExecBuildConfig | KubernetesActionConfig | HelmActionConfig)[] = []
+    const actions: (ExecBuildConfig | HelmActionConfig)[] = []
 
     if (dummyBuild) {
       actions.push(dummyBuild)
@@ -50,7 +49,7 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
     }
 
     // There's one service on helm modules expect when skipDeploy = true
-    const service: typeof services[0] | undefined = services[0]
+    const service: (typeof services)[0] | undefined = services[0]
 
     // The helm Deploy type does not support the `base` field. We handle the field here during conversion,
     // for compatibility.
@@ -74,63 +73,69 @@ export const helmModuleHandlers: Partial<ModuleActionHandlers<HelmModule>> = {
       actions.push(deployAction)
     }
 
-    // Runs and Tests generated from helm modules all have the kubernetes-pod type, and don't use the podSpec field.
-    // Therefore, they include a runtime dependency on their parent module's Deploy. This means that the helm Deploy
-    // is executed first, and the pod spec for the Test/Run pod runner is read from the cluster.
-    //
-    // This behavior is different from 0.12, where the pod spec was read from the output of a dry-run deploy using the
-    // Helm CLI (and did thus not require the deployment to take place first).
+    const { namespace, releaseName, timeout, values, valueFiles } = module.spec
+    const chart = {
+      name: module.spec.chart,
+      path: module.spec.chart ? undefined : module.spec.chartPath,
+      repo: module.spec.repo,
+      version: module.spec.version,
+    }
 
     for (const task of tasks) {
-      const resource = convertServiceResource(module, task.spec.resource)
+      const resource = convertServiceResource(module, task.spec.resource, task.name)
 
       if (!resource) {
         continue
       }
 
-      // We create a kubernetes Run action here, no need for a specific helm Run type. We add a dependency on this
-      // module's Deploy, since we'll read the pod spec for the Run from the deployed resources.
       actions.push({
         kind: "Run",
-        type: "kubernetes-pod",
+        type: "helm-pod",
         name: task.name,
         ...params.baseFields,
         disabled: task.disabled,
         build: dummyBuild?.name,
-        dependencies: [deployDep, ...prepareRuntimeDependencies(task.config.dependencies, dummyBuild)].filter(isTruthy),
+        dependencies: prepareRuntimeDependencies(task.config.dependencies, dummyBuild),
         timeout: task.spec.timeout || undefined,
         spec: {
           ...omit(task.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
-          namespace: module.spec.namespace
+          namespace,
+          releaseName,
+          timeout,
+          values,
+          valueFiles,
+          chart,
         },
       })
     }
 
     for (const test of tests) {
-      const resource = convertServiceResource(module, test.spec.resource)
+      const testName = module.name + "-" + test.name
+      const resource = convertServiceResource(module, test.spec.resource, testName)
 
       if (!resource) {
         continue
       }
 
-      // We create a kubernetes Test action here, no need for a specific helm Test type. We add a dependency on this
-      // module's Deploy, since we'll read the pod spec for the Test from the deployed resources.
-      const testAction: KubernetesActionConfig = {
+      const testAction: HelmPodTestConfig = {
         kind: "Test",
-        type: "kubernetes-pod",
-        name: module.name + "-" + test.name,
+        type: "helm-pod",
+        name: testName,
         ...params.baseFields,
         disabled: test.disabled,
-
         build: dummyBuild?.name,
-        dependencies: [deployDep, ...prepareRuntimeDependencies(test.config.dependencies, dummyBuild)].filter(isTruthy),
+        dependencies: prepareRuntimeDependencies(test.config.dependencies, dummyBuild),
         timeout: test.spec.timeout || undefined,
-
         spec: {
           ...omit(test.spec, ["name", "dependencies", "disabled", "timeout"]),
           resource,
-          namespace: module.spec.namespace
+          namespace,
+          releaseName,
+          timeout,
+          values,
+          valueFiles,
+          chart,
         },
       }
 
@@ -204,7 +209,7 @@ function prepareDeployAction({
     dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
 
     spec: {
-      atomicInstall: module.spec.atomicInstall,
+      atomic: module.spec.atomicInstall,
       portForwards: module.spec.portForwards,
       namespace: module.spec.namespace,
       releaseName: module.spec.releaseName,
@@ -228,10 +233,12 @@ function prepareDeployAction({
     deployAction.spec.chart!.path = baseModule.spec.chartPath
   }
 
-  if (serviceResource?.containerModule) {
-    const build = convertBuildDependency(serviceResource.containerModule)
-    // TODO-G2: make this implicit
-    deployAction.dependencies?.push(build)
+  if (serviceResource) {
+    if (serviceResource.containerModule) {
+      const build = convertBuildDependency(serviceResource.containerModule)
+      deployAction.dependencies?.push(build)
+    }
+    deployAction.spec.defaultTarget = convertServiceResource(module, serviceResource) || undefined
   }
 
   return deployAction

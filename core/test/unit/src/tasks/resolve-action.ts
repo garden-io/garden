@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,8 @@
 
 import { expect } from "chai"
 import { ResolvedBuildAction } from "../../../../src/actions/build"
-import { ActionKind } from "../../../../src/actions/types"
+import { ActionKind, ActionModeMap } from "../../../../src/actions/types"
+import { configTemplateKind } from "../../../../src/config/base"
 import { joi } from "../../../../src/config/common"
 import { Log } from "../../../../src/logger/log-entry"
 import { createGardenPlugin } from "../../../../src/plugin/plugin"
@@ -33,8 +34,8 @@ describe("ResolveActionTask", () => {
     log = garden.log
   })
 
-  async function getTask(kind: ActionKind, name: string) {
-    const graph = await garden.getConfigGraph({ log: garden.log, emit: false })
+  async function getTask(kind: ActionKind, name: string, actionModes: ActionModeMap = {}) {
+    const graph = await garden.getConfigGraph({ log: garden.log, emit: false, noCache: true, actionModes })
     const action = graph.getActionByRef({ kind, name })
 
     return new ResolveActionTask({
@@ -42,8 +43,6 @@ describe("ResolveActionTask", () => {
       log,
       graph,
       action,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
       force: false,
     })
   }
@@ -192,6 +191,27 @@ describe("ResolveActionTask", () => {
       const variables = resolved.getVariables()
 
       expect(variables).to.eql({ foo: garden.projectName })
+    })
+
+    it("resolves action mode", async () => {
+      garden.setActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          spec: {
+            deployCommand: ["${this.mode}"],
+          },
+        },
+      ])
+
+      const task = await getTask("Deploy", "foo", { local: ["deploy.foo"] })
+      const result = await garden.processTask(task, log, { throwOnError: true })
+
+      const resolved = result!.outputs.resolvedAction
+      const spec = resolved.getSpec()
+
+      expect(spec.deployCommand).to.eql(["local"])
     })
 
     it("correctly merges action and CLI variables", async () => {
@@ -438,6 +458,45 @@ describe("ResolveActionTask", () => {
       const resolved = result!.outputs.resolvedAction
 
       expect(resolved.getSpec("deployCommand")).to.eql(["echo", "echo foo"])
+    })
+
+    it("resolves template inputs and names", async () => {
+      garden.configTemplates = {
+        template: {
+          kind: configTemplateKind,
+          name: "template",
+          inputsSchema: joi.object(),
+          internal: {
+            basePath: garden.projectRoot,
+          },
+        },
+      }
+
+      garden.setActionConfigs([
+        {
+          kind: "Deploy",
+          type: "test",
+          name: "foo",
+          internal: {
+            basePath: garden.projectRoot,
+            parentName: "parent",
+            templateName: "template",
+            inputs: {
+              foo: "bar",
+            },
+          },
+          spec: {
+            deployCommand: ["echo", "${parent.name}", "${template.name}", "${inputs.foo}"],
+          },
+        },
+      ])
+
+      const task = await getTask("Deploy", "foo")
+
+      const result = await garden.processTask(task, log, { throwOnError: true })
+      const resolved = result!.outputs.resolvedAction
+
+      expect(resolved.getSpec("deployCommand")).to.eql(["echo", "parent", "template", "bar"])
     })
   })
 })

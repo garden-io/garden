@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -94,9 +94,8 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     printHeader(headerLog, "Create new module", "✏️")
   }
 
-  // Defining it like this because it'll stall on waiting for user input.
-  isPersistent() {
-    return true
+  allowInDevCommand() {
+    return false
   }
 
   async action({
@@ -158,7 +157,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Throw if module with same name already exists
     if (await pathExists(configPath)) {
-      const configs = await loadConfigResources(configDir, configPath)
+      const configs = await loadConfigResources(log, configDir, configPath)
 
       if (configs.filter((c) => c.kind === "Module" && c.name === name).length > 0) {
         throw new CreateError(
@@ -208,7 +207,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Warn if module type is defined by provider that isn't configured OR if not in a project, ask to make sure
     // it is configured in the project that will use the module.
-    const projectConfig = await findProjectConfig(configDir)
+    const projectConfig = await findProjectConfig(log, configDir)
     const pluginName = definition.plugin.name
 
     if (!fixedPlugins.includes(pluginName)) {

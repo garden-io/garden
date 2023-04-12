@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ import {
 import { TestConfig, testConfigSchema } from "./test"
 import { TaskConfig, taskConfigSchema } from "./task"
 import { dedent, stableStringify } from "../util/string"
-import { moduleTemplateKind, varfileDescription } from "./base"
+import { configTemplateKind, varfileDescription } from "./base"
 
 export const defaultBuildTimeout = 1200
 
@@ -120,7 +120,7 @@ export const generatedFileSchema = createSchema({
       .relativeOnly()
       .description(
         dedent`
-        POSIX-style filename to read the source file contents from, relative to the path of the module (or the ${moduleTemplateKind} configuration file if one is being applied).
+        POSIX-style filename to read the source file contents from, relative to the path of the module (or the ${configTemplateKind} configuration file if one is being applied).
         This file may contain template strings, much like any other field in the configuration.
         `
       ),
@@ -138,7 +138,6 @@ export const generatedFileSchema = createSchema({
       ),
     resolveTemplates: joi
       .boolean()
-      // TODO: flip this default in 0.13?
       .default(true)
       .description(
         "By default, Garden will attempt to resolve any Garden template strings in source files. Set this to false to skip resolving template strings. Note that this does not apply when setting the `value` field, since that's resolved earlier when parsing the configuration."
@@ -313,7 +312,7 @@ export const moduleConfigSchema = createSchema({
           sourcePath: joi.string(),
         })
       )
-      .description("Files to write upon resolution, defined by a ModuleTemplate.")
+      .description(`Files to write upon resolution, defined by a ${configTemplateKind}.`)
       .meta({ internal: true }),
     parentName: joiIdentifier().description(
       "The name of the parent module (e.g. a templated module that generated this module), if applicable."

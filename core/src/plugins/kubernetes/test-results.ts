@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { deserializeValues } from "../../util/util"
+import { deserializeValues } from "../../util/serialization"
 import { KubeApi } from "./api"
 import { ContainerTestAction } from "../container/moduleConfig"
 import { PluginContext } from "../../plugin-context"
@@ -20,10 +20,11 @@ import { trimRunOutput } from "./helm/common"
 import { getSystemNamespace } from "./namespace"
 import chalk from "chalk"
 import { TestActionHandler } from "../../plugin/action-types"
-import { KubernetesTestAction } from "./kubernetes-type/test"
 import { runResultToActionState } from "../../actions/base"
+import { HelmPodTestAction } from "./helm/config"
+import { KubernetesTestAction } from "./kubernetes-type/config"
 
-// TODO-G2: figure out how to get rid of the any case
+// TODO: figure out how to get rid of the any cast
 export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (params) => {
   const { ctx, log } = params
   const action = <ContainerTestAction>params.action
@@ -52,7 +53,7 @@ export const k8sGetTestResult: TestActionHandler<"getResult", any> = async (para
   }
 }
 
-export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction | KubernetesTestAction) {
+export function getTestResultKey(ctx: PluginContext, action: StoreTestResultParams["action"]) {
   const key = `${ctx.projectName}--${action.name}--${action.versionString()}`
   const hash = hasha(key, { algorithm: "sha1" })
   return `test-result--${hash.slice(0, 32)}`
@@ -61,7 +62,7 @@ export function getTestResultKey(ctx: PluginContext, action: ContainerTestAction
 interface StoreTestResultParams {
   ctx: PluginContext
   log: Log
-  action: ContainerTestAction | KubernetesTestAction
+  action: ContainerTestAction | KubernetesTestAction | HelmPodTestAction
   result: TestResult
 }
 
@@ -83,8 +84,8 @@ export async function storeTestResult({ ctx, log, action, result }: StoreTestRes
       namespace: testResultNamespace,
       key: getTestResultKey(k8sCtx, action),
       labels: {
-        [gardenAnnotationKey("module")]: action.moduleName() || "",
-        [gardenAnnotationKey("test")]: action.name,
+        [gardenAnnotationKey("action")]: action.key(),
+        [gardenAnnotationKey("actionType")]: action.type,
         [gardenAnnotationKey("version")]: action.versionString(),
       },
       data,

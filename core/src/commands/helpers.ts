@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,23 +8,13 @@
 
 import chalk from "chalk"
 import indentString from "indent-string"
-import { RunAction } from "../actions/run"
-import { TestAction } from "../actions/test"
+import type { RunAction } from "../actions/run"
+import type { TestAction } from "../actions/test"
 
-import { ConfigGraph } from "../graph/config-graph"
-import { WorkflowConfig } from "../config/workflow"
-import { Log } from "../logger/log-entry"
+import type { WorkflowConfig } from "../config/workflow"
+import type { Log } from "../logger/log-entry"
 import { BooleanParameter } from "../cli/params"
-import { Garden } from "../garden"
-
-export function getMatchingDeployNames(namesFromOpt: string[] | undefined, configGraph: ConfigGraph) {
-  const names = namesFromOpt || []
-  if (names.includes("*") || (!!namesFromOpt && namesFromOpt.length === 0)) {
-    return configGraph.getDeploys().map((s) => s.name)
-  } else {
-    return names
-  }
-}
+import type { Garden } from "../garden"
 
 export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
   return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
@@ -78,7 +68,8 @@ export async function watchRemovedWarning(garden: Garden, log: Log) {
   return garden.emitWarning({
     log,
     key: "watch-flag-removed",
-    message:
-      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community",
+    message: chalk.yellow(
+      "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community"
+    ),
   })
 }

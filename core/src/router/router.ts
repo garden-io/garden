@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import chalk from "chalk"
 import type { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
 import { GardenPlugin, ModuleTypeDefinition, PluginActionContextParams } from "../plugin/plugin"
-import { getServiceStatuses } from "../tasks/helpers"
+import { getDeployStatuses } from "../tasks/helpers"
 import { DeleteDeployTask, deletedDeployStatuses } from "../tasks/delete-deploy"
 import { DeployTask } from "../tasks/deploy"
 import { Profile } from "../util/profiling"
@@ -91,12 +91,14 @@ export class ActionRouter extends BaseRouter {
   ): Promise<GetActionOutputsResult> {
     const router = this.getRouterForActionKind(params.action.kind)
 
-    return router.callHandler({
+    const output = await router.callHandler({
       handlerType: "getOutputs",
-      // TODO-G2: figure out why the typing clashes here
+      // TODO: figure out why the typing clashes here
       params: { ...params, action: <any>params.action, events: undefined },
       defaultHandler: async ({}) => ({ outputs: {} }),
     })
+
+    return output.result
   }
 
   async getDeployStatuses({
@@ -118,14 +120,13 @@ export class ActionRouter extends BaseRouter {
           graph,
           log,
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
+
           forceActions: [],
         })
     )
     const { results } = await this.garden.processTasks({ tasks, log, throwOnError: true, statusOnly: true })
 
-    return getServiceStatuses(results)
+    return getDeployStatuses(results)
   }
 
   async deployMany({ graph, deployNames, force = false, forceBuild = false, log }: DeployManyParams) {
@@ -140,9 +141,6 @@ export class ActionRouter extends BaseRouter {
           action,
           force,
           forceActions: forceBuild ? graph.getBuilds() : [],
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
     )
 
@@ -163,7 +161,7 @@ export class ActionRouter extends BaseRouter {
     dependantsFirst?: boolean
     names?: string[]
   }): Promise<DeployStatusMap> {
-    const servicesLog = log.makeNewLogContext({}).info(chalk.white("Deleting deployments..."))
+    const servicesLog = log.createLog({}).info(chalk.white("Deleting deployments..."))
     const deploys = graph.getDeploys({ names })
 
     const tasks = deploys.map((action) => {
@@ -176,8 +174,6 @@ export class ActionRouter extends BaseRouter {
         deleteDeployNames: deploys.map((d) => d.name),
         force: false,
         forceActions: [],
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
     })
 
@@ -185,7 +181,7 @@ export class ActionRouter extends BaseRouter {
 
     const serviceStatuses = deletedDeployStatuses(results)
 
-    servicesLog.setSuccess()
+    servicesLog.success("Done")
 
     return serviceStatuses
   }

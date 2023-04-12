@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,8 +8,7 @@
 
 import { Task, ValidResultType } from "../tasks/base"
 import { GardenBaseError, InternalError } from "../exceptions"
-import { GraphResult, GraphResults } from "./results"
-import { ActionStatus } from "../actions/types"
+import { GraphResult, GraphResultFromTask, GraphResults } from "./results"
 import type { GraphSolver } from "./solver"
 import { ValuesType } from "utility-types"
 import chalk from "chalk"
@@ -32,6 +31,7 @@ export interface TaskNodeParams<T extends Task> {
   solver: GraphSolver
   task: T
   dependant?: TaskNode
+  statusOnly: boolean
 }
 
 export abstract class TaskNode<T extends Task = Task> {
@@ -40,15 +40,17 @@ export abstract class TaskNode<T extends Task = Task> {
   public readonly type: string
   public startedAt?: Date
   public readonly task: T
+  public readonly statusOnly: boolean
 
   protected solver: GraphSolver
   protected dependants: { [key: string]: TaskNode }
   protected result?: GraphResult<any>
 
-  constructor({ solver, task }: TaskNodeParams<T>) {
+  constructor({ solver, task, statusOnly }: TaskNodeParams<T>) {
     this.task = task
     this.type = task.type
     this.solver = solver
+    this.statusOnly = statusOnly
     this.dependants = {}
   }
 
@@ -108,20 +110,20 @@ export abstract class TaskNode<T extends Task = Task> {
    * If the node was already completed, this is a no-op (may e.g. happen if the node has been completed
    * but a dependency fails and is aborting dependants).
    */
-  complete({ startedAt, error, result, aborted }: CompleteTaskParams<T["_resultType"]>): GraphResult<any> {
+  complete({ startedAt, error, result, aborted }: CompleteTaskParams): GraphResult {
     if (this.result) {
       return this.result
     }
 
     const task = this.task
     const dependencyResults = this.getDependencyResults()
-    const version = result?.version
+    const inputVersion = task.getInputVersion()
 
     task.log.silly({
       msg: `Completing node ${chalk.underline(this.getKey())}. aborted=${aborted}, error=${
         error ? error.message : null
       }`,
-      metadata: metadataForLog(task, error ? "error" : "success", version),
+      metadata: metadataForLog(task, error ? "error" : "success", inputVersion),
     })
 
     this.result = {
@@ -130,16 +132,17 @@ export abstract class TaskNode<T extends Task = Task> {
       key: task.getKey(),
       name: task.getName(),
       result,
-      dependencyResults: dependencyResults.export(),
+      dependencyResults: dependencyResults.filterForGraphResult(),
       aborted,
       startedAt,
       completedAt: new Date(),
       error,
-      version,
+      inputVersion,
       outputs: result?.outputs,
       task,
       processed: this.executionType === "process",
       success: !error && !aborted,
+      attached: !!result?.attached,
     }
 
     if (aborted || error) {
@@ -155,7 +158,7 @@ export abstract class TaskNode<T extends Task = Task> {
       }
     }
 
-    return this.result
+    return this.result!
   }
 
   /**
@@ -170,7 +173,7 @@ export abstract class TaskNode<T extends Task = Task> {
   }
 
   protected getNode<NT extends keyof InternalNodeTypes>(type: NT, task: Task): InternalNodeTypes[NT] {
-    return this.solver.getNode(type, task)
+    return this.solver.getNode({ type, task, statusOnly: this.statusOnly })
   }
 }
 
@@ -186,7 +189,6 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
 
   public readonly requestedAt: Date
   public readonly batchId: string
-  public readonly statusOnly: boolean
 
   private completeHandler: CompleteHandler<T["_resultType"]>
 
@@ -194,7 +196,6 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
     super(params)
     this.requestedAt = new Date()
     this.batchId = params.batchId
-    this.statusOnly = params.statusOnly
     this.completeHandler = params.completeHandler
   }
 
@@ -214,7 +215,7 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
     }
   }
 
-  complete(params: CompleteTaskParams<T["_resultType"]>) {
+  complete(params: CompleteTaskParams) {
     const result = super.complete(params)
     this.completeHandler(result)
     return result
@@ -222,7 +223,7 @@ export class RequestTaskNode<T extends Task = Task> extends TaskNode<T> {
 
   // NOT USED
   async execute() {
-    return undefined
+    return null
   }
 }
 
@@ -251,18 +252,34 @@ export class ProcessTaskNode<T extends Task = Task> extends TaskNode<T> {
     this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
 
     const statusTask = this.getNode("status", this.task)
-    const result = this.getDependencyResult(statusTask)
-    const status = result === undefined ? undefined : <ActionStatus>result.result
+    // TODO: make this more type-safe
+    const statusResult = this.getDependencyResult(statusTask) as GraphResultFromTask<T>
 
-    if (status === undefined) {
+    if (statusResult === undefined) {
       throw new InternalError(`Attempted to execute ${this.describe()} before resolving status.`, {
         nodeKey: this.getKey(),
       })
     }
 
+    const status = statusResult?.result
+
+    if (!this.task.force && status?.state === "ready") {
+      return status
+    }
+
     const dependencyResults = this.getDependencyResults()
 
-    return this.task.process({ status, dependencyResults })
+    try {
+      const processResult: T["_resultType"] = await this.task.process({ status, dependencyResults, statusOnly: false })
+      this.task.emit("processed", { result: processResult })
+      if (processResult.state === "ready") {
+        this.task.log.verbose(`${this.task.getDescription()} is ready.`)
+      }
+      return processResult
+    } catch (error) {
+      this.task.emit("processed", { error })
+      throw error
+    }
   }
 }
 
@@ -282,7 +299,18 @@ export class StatusTaskNode<T extends Task = Task> extends TaskNode<T> {
   async execute() {
     this.task.log.silly(`Executing node ${chalk.underline(this.getKey())}`)
     const dependencyResults = this.getDependencyResults()
-    return this.task.getStatus({ dependencyResults })
+
+    try {
+      const result: T["_resultType"] = await this.task.getStatus({ statusOnly: this.statusOnly, dependencyResults })
+      this.task.emit("statusResolved", { result })
+      if (!this.task.force && result?.state === "ready") {
+        this.task.log.verbose(`${this.task.getDescription()} status is ready.`)
+      }
+      return result
+    } catch (error) {
+      this.task.emit("statusResolved", { error })
+      throw error
+    }
   }
 }
 
@@ -292,10 +320,10 @@ export function getNodeKey(task: Task, type: NodeType) {
 
 export type CompleteHandler<R extends ValidResultType> = (result: GraphResult<R>) => void
 
-export interface CompleteTaskParams<R = any> {
+export interface CompleteTaskParams {
   startedAt: Date | null
   error: Error | null
-  result: R | null
+  result: ValidResultType | null
   aborted: boolean
 }
 

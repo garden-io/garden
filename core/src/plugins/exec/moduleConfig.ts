@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,7 +19,7 @@ import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { ModuleSpec, baseBuildSpecSchema, ModuleConfig } from "../../config/module"
 import { BaseTaskSpec, baseTaskSpecSchema } from "../../config/task"
 import { dedent } from "../../util/string"
-import { artifactsSchema, ExecDevModeSpec } from "./config"
+import { artifactsSchema, ExecSyncModeSpec } from "./config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { omit } from "lodash"
@@ -86,7 +86,7 @@ export interface ExecServiceSpec extends CommonServiceSpec {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  syncMode?: ExecDevModeSpec
+  syncMode?: ExecSyncModeSpec
   timeout?: number
   env: { [key: string]: string }
 }

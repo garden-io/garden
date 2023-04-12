@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import Bluebird from "bluebird"
 import { fromPairs } from "lodash"
-import { deepFilter } from "../../util/util"
+import { deepFilter } from "../../util/objects"
 import { Command, CommandResult, CommandParams } from "../base"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
 import { Log } from "../../logger/log-entry"
@@ -23,7 +23,7 @@ import { getTestResultSchema, TestStatusMap } from "../../plugin/handlers/Test/g
 import { getRunResultSchema, RunStatusMap } from "../../plugin/handlers/Run/get-result"
 import { DeployStatusMap, getDeployStatusSchema } from "../../plugin/handlers/Deploy/get-status"
 import { ActionRouter } from "../../router/router"
-import { sanitizeValue } from "../../logger/logger"
+import { sanitizeValue } from "../../util/logging"
 
 // Value is "completed" if the test/task has been run for the current version.
 export interface StatusCommandResult {
@@ -106,7 +106,7 @@ async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const result = await router.build.getStatus({ action, log, graph })
+      const { result } = await router.build.getStatus({ action, log, graph })
       return [action.name, result]
     })
   )
@@ -117,7 +117,7 @@ async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph,
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const result = await router.test.getResult({ action, log, graph })
+      const { result } = await router.test.getResult({ action, log, graph })
       return [action.name, result]
     })
   )
@@ -128,7 +128,7 @@ async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, 
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const result = await router.run.getResult({ action, log, graph })
+      const { result } = await router.run.getResult({ action, log, graph })
       return [action.name, result]
     })
   )

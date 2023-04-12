@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,6 +36,8 @@ import {
   ExecutedActionExtension,
 } from "./base"
 import { ResolvedConfigGraph } from "../graph/config-graph"
+import { ActionVersion } from "../vcs/vcs"
+import { Memoize } from "typescript-memoize"
 
 export interface BuildCopyFrom {
   build: string
@@ -73,6 +75,8 @@ export const copyFromSchema = createSchema({
 
 export const buildActionConfigSchema = () =>
   baseActionConfigSchema().keys({
+    kind: joi.string().allow("Build").only(),
+
     allowPublish: joi
       .boolean()
       .default(true)
@@ -143,6 +147,24 @@ export class BuildAction<
   kind: "Build"
 
   /**
+   * Builds from module conversions inherit their version from their parent module. This is done for compatibility
+   * reasons, so that e.g. the module version hash that appears in `${modules.*.outputs.deployment-image-id}` in
+   * a runtime step in a module config is consistent with the version hash in the image tag pushed by the `container`
+   * build. Otherwise, this would fail, since the Build version would differ from the module version.
+   *
+   * Semantically, this should be irrelevant to the user, since build cache hits or misses should be triggered for
+   * similar changes to the underlying build-relevant parts of the module config, or to the included sources.
+   */
+  @Memoize()
+  getFullVersion(): ActionVersion {
+    const actionVersion = super.getFullVersion()
+    if (this._moduleVersion) {
+      actionVersion.versionString = this.moduleVersion().versionString
+    }
+    return actionVersion
+  }
+
+  /**
    * Returns the build path for the action. The path is generally `<project root>/.garden/build/<action name>`.
    * If `buildAtSource: true` is set on the config, the path is the base path of the action.
    */
@@ -161,7 +183,8 @@ export class ResolvedBuildAction<
     Outputs extends {} = any
   >
   extends BuildAction<C, Outputs>
-  implements ResolvedActionExtension<C, Outputs> {
+  implements ResolvedActionExtension<C, Outputs>
+{
   protected graph: ResolvedConfigGraph
   protected readonly params: ResolvedActionWrapperParams<C>
   protected readonly resolved: true
@@ -178,6 +201,7 @@ export class ResolvedBuildAction<
     this.resolved = true
     this._staticOutputs = params.staticOutputs
     this._config.spec = params.spec
+    this._config.internal.inputs = params.inputs
   }
   getExecutedDependencies() {
     return this.executedDependencies
@@ -216,7 +240,8 @@ export class ExecutedBuildAction<
     O extends {} = any
   >
   extends ResolvedBuildAction<C, O>
-  implements ExecutedActionExtension<C, O> {
+  implements ExecutedActionExtension<C, O>
+{
   protected readonly executed: true
   private readonly status: ActionStatus<this, any, O>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,7 @@ import { CleanupEnvironmentParams, CleanupEnvironmentResult } from "../../plugin
 import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
-import { combineStates, ServiceState } from "../../types/service"
+import { combineStates, DeployState } from "../../types/service"
 import {
   setupCertManager,
   checkCertManagerStatus,
@@ -56,7 +56,7 @@ interface KubernetesProviderOutputs extends PrimitiveMap {
 interface KubernetesEnvironmentDetail {
   deployStatuses: DeployStatusMap
   systemReady: boolean
-  systemServiceState: ServiceState
+  systemServiceState: DeployState
   systemCertManagerReady: boolean
   systemManagedCertificatesReady: boolean
 }
@@ -83,7 +83,7 @@ export async function getEnvironmentStatus({
   const detail: KubernetesEnvironmentDetail = {
     deployStatuses: {},
     systemReady: true,
-    systemServiceState: <ServiceState>"unknown",
+    systemServiceState: <DeployState>"unknown",
     systemCertManagerReady: true,
     systemManagedCertificatesReady: true,
   }
@@ -180,7 +180,7 @@ export async function getEnvironmentStatus({
   detail.deployStatuses = mapValues(systemServiceStatus.serviceStatuses, (s) => omit(s, "executedAction"))
   detail.systemServiceState = systemServiceStatus.state
 
-  sysGarden.log.setSuccess()
+  sysGarden.log.success("Done")
 
   return result
 }
@@ -252,7 +252,7 @@ export async function prepareSystem({
   }
 
   const deployStatuses: DeployStatusMap = (status.detail && status.detail.deployStatuses) || {}
-  const serviceStates = Object.values(deployStatuses).map((s) => s.detail?.state || "unknown")
+  const serviceStates = Object.values(deployStatuses).map((s) => s.detail?.deployState || "unknown")
   const combinedState = combineStates(serviceStates)
 
   const remoteCluster = provider.name !== "local-kubernetes"
@@ -329,7 +329,7 @@ export async function prepareSystem({
     names: systemServiceNames,
   })
 
-  sysGarden.log.setSuccess()
+  sysGarden.log.success("Done")
 
   return {}
 }
@@ -368,7 +368,7 @@ export async function cleanupEnvironment({ ctx, log }: CleanupEnvironmentParams)
   }
 
   const entry = log
-    .makeNewLogContext({
+    .createLog({
       section: "kubernetes",
     })
     .info(`Deleting ${nsDescription} (this may take a while)`)

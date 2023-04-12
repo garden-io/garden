@@ -1,44 +1,67 @@
-kind: Module
+kind: Build
 name: frontend
 description: Frontend service container
 type: container
-build:
-  dependencies:
-    - name: shared-config
-      copy:
-        - source: "config.json"
-          target: "config/"
-services:
-  - name: frontend
-    sync:
-      command: [npm, run, dev]
-      paths:
-        - source: .
-          target: /app
-          exclude: [node_modules]
-          mode: one-way # do not set to one-way-replica, otherwise it will remove the /config dir
-        - source: ../shared-config/
-          target: /app/config/
-          exclude: [garden.yml]
-          mode: one-way-replica
-    ports:
-      - name: http
-        containerPort: 8080
-    healthCheck:
-      httpGet:
-        path: /hello-frontend
-        port: http
-    ingresses:
-      - path: /hello-frontend
-        port: http
-      - path: /call-backend
-        port: http
-    dependencies:
-      - backend
-tests:
-  - name: unit
-    args: [npm, test]
-  - name: integ
-    args: [npm, run, integ]
-    dependencies:
-      - frontend
+
+dependencies:
+  - build.shared-config
+
+copyFrom:
+  - build: shared-config
+    sourcePath: "config.json"
+    targetPath: "config/"
+
+---
+
+kind: Deploy
+name: frontend
+description: Frontend service container
+type: container
+
+build: frontend
+
+dependencies:
+  - deploy.backend
+
+spec:
+  sync:
+    command: [ npm, run, dev ]
+    paths:
+      - source: .
+        target: /app
+        exclude: [ node_modules ]
+        mode: one-way # do not set to one-way-replica, otherwise it will remove the /config dir
+      - source: ../shared-config/
+        target: /app/config/
+        exclude: [ garden.yml ]
+        mode: one-way-replica
+  ports:
+    - name: http
+      containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
+  ingresses:
+    - path: /hello-frontend
+      port: http
+    - path: /call-backend
+      port: http
+
+---
+kind: Test
+name: frontend-unit
+type: container
+build: frontend
+spec:
+  args: [ npm, test ]
+
+---
+kind: Test
+name: frontend-integ
+type: container
+build: frontend
+dependencies:
+  - deploy.frontend # <- we want the frontend service to be running and up-to-date for this test
+spec:
+  args: [ npm, run, integ ]

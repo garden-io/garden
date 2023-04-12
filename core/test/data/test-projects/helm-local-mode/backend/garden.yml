@@ -9,7 +9,10 @@ localMode:
      remote: 8080
   # starts the local application
   command: [ ]
-  containerName: backend
+  target:
+    kind: Deployment
+    name: backend
+    containerName: backend
 
 # this is here to test that local mode always take precedence over sync mode
 sync:

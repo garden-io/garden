@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,7 +25,7 @@ import {
   isArrayType,
 } from "./common"
 import { JoiKeyDescription } from "./joi-schema"
-import { safeDumpYaml } from "../util/util"
+import { safeDumpYaml } from "../util/serialization"
 
 export const TEMPLATES_DIR = resolve(STATIC_DIR, "docs", "templates")
 const partialTemplatePath = resolve(TEMPLATES_DIR, "config-partial.hbs")

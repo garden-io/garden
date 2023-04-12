@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -113,7 +113,7 @@ export const runBaseParams = () => ({
   timeout: joi.number().optional().description("If set, how long to run the command before timing out."),
 })
 
-// TODO-G2: update this schema in 0.13
+// TODO-0.13.0: update this schema in 0.13.0
 export interface RunResult {
   success: boolean
   exitCode?: number
@@ -140,20 +140,15 @@ export const runResultSchema = createSchema({
 export const artifactsPathSchema = () =>
   joi.string().required().description("A directory path where the handler should write any exported artifacts to.")
 
-export type RunState = "outdated" | "running" | "succeeded" | "failed" | "not-implemented"
+export type RunState = "outdated" | "unknown" | "running" | "succeeded" | "failed" | "not-implemented"
 
-export interface RunStatus {
+export interface RunStatusForEventPayload {
   state: RunState
-  startedAt?: Date
-  completedAt?: Date
 }
 
-export function runStatus<R extends RunResult>(result: R | null | undefined): RunStatus {
+export function runStatusForEventPayload<R extends RunResult>(result: R | null | undefined): RunStatusForEventPayload {
   if (result) {
-    const { startedAt, completedAt } = result
     return {
-      startedAt,
-      completedAt,
       state: result.success ? "succeeded" : "failed",
     }
   } else {

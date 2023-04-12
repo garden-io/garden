@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,11 +10,11 @@ import { expect } from "chai"
 import chalk from "chalk"
 import stripAnsi from "strip-ansi"
 
-import { getLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
+import { getRootLogger, Logger, LogLevel } from "../../../../../src/logger/logger"
 import { renderError } from "../../../../../src/logger/renderers"
 import { render } from "../../../../../src/logger/writers/file-writer"
 
-const logger: Logger = getLogger()
+const logger: Logger = getRootLogger()
 
 beforeEach(() => {
   logger["entries"] = []
@@ -23,16 +23,16 @@ beforeEach(() => {
 describe("FileWriter", () => {
   describe("render", () => {
     it("should render message without ansi characters", () => {
-      const entry = logger.makeNewLogContext().info(chalk.red("hello")).getLatestEntry()
+      const entry = logger.createLog().info(chalk.red("hello")).getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal("hello")
     })
     it("should render error message if entry level is error", () => {
-      const entry = logger.makeNewLogContext().error("error").getLatestEntry()
+      const entry = logger.createLog().error("error").getLatestEntry()
       const expectedOutput = stripAnsi(renderError(entry))
       expect(render(LogLevel.info, entry)).to.equal(expectedOutput)
     })
     it("should return null if entry level is geq to writer level", () => {
-      const entry = logger.makeNewLogContext().silly("silly").getLatestEntry()
+      const entry = logger.createLog().silly("silly").getLatestEntry()
       expect(render(LogLevel.info, entry)).to.equal(null)
     })
   })

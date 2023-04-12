@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ import { getAppNamespace } from "./namespace"
 import { registerCleanupFunction, sleep } from "../../util/util"
 import { PluginContext } from "../../plugin-context"
 import { kubectl } from "./kubectl"
-import { KubernetesResource, SupportedRuntimeActions } from "./types"
+import { KubernetesResource, SupportedRuntimeAction } from "./types"
 import { ForwardablePort } from "../../types/service"
 import { isBuiltIn, matchSelector } from "./util"
 import { Log } from "../../logger/log-entry"
@@ -57,7 +57,7 @@ export function killPortForward(targetResource: string, targetPort: number, log?
   }
 }
 
-export function killPortForwards(action: SupportedRuntimeActions, forwardablePorts: ForwardablePort[], log: Log) {
+export function killPortForwards(action: SupportedRuntimeAction, forwardablePorts: ForwardablePort[], log: Log) {
   for (const port of forwardablePorts) {
     const targetResource = getTargetResourceName(action, port.targetName)
     killPortForward(targetResource, port.targetPort, log)
@@ -210,7 +210,7 @@ export async function getPortForwardHandler(params: {
   }
 }
 
-function getTargetResourceName(action: SupportedRuntimeActions, targetName?: string) {
+function getTargetResourceName(action: SupportedRuntimeAction, targetName?: string) {
   return targetName || `Service/${action.name}`
 }
 
@@ -262,7 +262,7 @@ export function getForwardablePorts(
       }
 
       for (const servicePort of service.spec?.ports || []) {
-        const serviceTargetPort = (servicePort.targetPort as any) as number
+        const serviceTargetPort = servicePort.targetPort as any as number
 
         if (serviceTargetPort && serviceTargetPort === portSpec.containerPort) {
           return true

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,7 +25,8 @@ export async function runCli({
   args,
   cli,
   exitOnError = true,
-}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean } = {}) {
+  initLogger = true,
+}: { args?: string[]; cli?: GardenCli; exitOnError?: boolean; initLogger?: boolean } = {}) {
   let code = 0
   let result: RunOutput | undefined = undefined
 
@@ -35,7 +36,7 @@ export async function runCli({
 
   try {
     if (!cli) {
-      cli = new GardenCli({ plugins: getBundledPlugins() })
+      cli = new GardenCli({ plugins: getBundledPlugins(), initLogger })
     }
     // Note: We slice off the binary/script name from argv.
     result = await cli.run({ args, exitOnError })

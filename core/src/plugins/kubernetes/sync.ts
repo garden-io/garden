@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,7 @@ import {
   syncTargetPathSchema,
 } from "../container/moduleConfig"
 import { dedent, gardenAnnotationKey } from "../../util/string"
-import { cloneDeep, omit, set } from "lodash"
+import { cloneDeep, keyBy, omit, set } from "lodash"
 import {
   getResourceContainer,
   getResourceKey,
@@ -30,7 +30,14 @@ import {
   getTargetResource,
   labelSelectorToString,
 } from "./util"
-import { KubernetesResource, SupportedRuntimeActions, SyncableKind, syncableKinds, SyncableResource } from "./types"
+import {
+  KubernetesResource,
+  SupportedRuntimeAction,
+  SyncableKind,
+  syncableKinds,
+  SyncableResource,
+  SyncableRuntimeAction,
+} from "./types"
 import { Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { joi, joiIdentifier } from "../../config/common"
@@ -44,18 +51,19 @@ import {
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
 import { PluginContext } from "../../plugin-context"
-import { getKubectlExecDestination, mutagenAgentPath, MutagenDaemon, SyncConfig } from "./mutagen"
+import { mutagenAgentPath, Mutagen, SyncConfig } from "../../mutagen"
 import { k8sSyncUtilImageName } from "./constants"
 import { templateStringLiteral } from "../../docs/common"
 import { resolve } from "path"
 import Bluebird from "bluebird"
 import { Resolved } from "../../actions/types"
 import { isAbsolute } from "path"
-import { enumerate } from "../../util/enumerate"
 import { joinWithPosix } from "../../util/fs"
 import { KubernetesModule, KubernetesService } from "./kubernetes-type/module-config"
 import { HelmModule, HelmService } from "./helm/module-config"
 import { convertServiceResource } from "./kubernetes-type/common"
+import { prepareConnectionOpts } from "./kubectl"
+import { GetSyncStatusResult, SyncState } from "../../plugin/handlers/Deploy/get-sync-status"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -248,17 +256,35 @@ export function convertContainerSyncSpec(
   action: Resolved<ContainerDeployAction>
 ): KubernetesDeploySyncSpec | undefined {
   const spec = action.getSpec()
+  const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
+  const target = { kind, name: action.name }
+  const sourcePath = action.basePath()
+  const syncSpec = spec.sync
 
-  if (!spec.sync) {
+  if (!syncSpec || !target) {
     return
   }
 
-  const kind: SyncableKind = spec.daemon ? "DaemonSet" : "Deployment"
-  const target = { kind, name: action.name }
-
-  return {
-    paths: convertSyncPaths(action.basePath(), spec.sync.paths, target),
+  const sync: KubernetesDeploySyncSpec = {
+    paths: convertSyncPaths(sourcePath, syncSpec.paths, target),
   }
+
+  if (syncSpec.command || syncSpec.args) {
+    if (target.kind && target.name) {
+      sync.overrides = [
+        {
+          target: {
+            kind: target.kind,
+            name: target.name,
+          },
+          command: syncSpec.command,
+          args: syncSpec.args,
+        },
+      ]
+    }
+  }
+
+  return sync
 }
 
 function convertSyncPaths(
@@ -286,7 +312,7 @@ export async function configureSyncMode({
   ctx: PluginContext
   log: Log
   provider: KubernetesProvider
-  action: Resolved<SupportedRuntimeActions>
+  action: Resolved<SyncableRuntimeAction>
   defaultTarget: KubernetesTargetResourceSpec | undefined
   manifests: KubernetesResource[]
   spec: KubernetesDeploySyncSpec
@@ -360,7 +386,7 @@ export async function configureSyncMode({
       continue
     }
 
-    set(resolved, ["metadata", "annotations", gardenAnnotationKey("sync-mode")], "true")
+    set(resolved, ["metadata", "annotations", gardenAnnotationKey("mode")], "sync")
     const targetContainer = getResourceContainer(resolved, target.containerName)
 
     if (override.command) {
@@ -388,7 +414,7 @@ export async function configureSyncMode({
       continue
     }
 
-    set(resolved, ["metadata", "annotations", gardenAnnotationKey("sync-mode")], "true")
+    set(resolved, ["metadata", "annotations", gardenAnnotationKey("mode")], "sync")
     const targetContainer = getResourceContainer(resolved, target.containerName)
 
     const podSpec = getResourcePodSpec(resolved)
@@ -416,7 +442,7 @@ export async function configureSyncMode({
     if (!podSpec.initContainers) {
       podSpec.initContainers = []
     }
-    if (!podSpec.initContainers.find((c) => c.name === k8sSyncUtilImageName)) {
+    if (!podSpec.initContainers.find((c) => c.image === k8sSyncUtilImageName)) {
       const initContainer = {
         name: "garden-dev-init",
         image: k8sSyncUtilImageName,
@@ -440,16 +466,34 @@ export async function configureSyncMode({
   return { updated: Object.values(updatedTargets), manifests }
 }
 
-interface StartSyncModeParams {
+interface SyncParamsBase {
   ctx: KubernetesPluginContext
   log: Log
-  action: Resolved<SupportedRuntimeActions>
-  defaultNamespace: string
-  manifests: KubernetesResource[]
+}
+
+interface StopSyncsParams extends SyncParamsBase {
+  action: SyncableRuntimeAction
+}
+
+interface StartSyncsParams extends StopSyncsParams {
+  defaultTarget: KubernetesTargetResourceSpec | undefined
+  action: Resolved<SyncableRuntimeAction>
   basePath: string
   actionDefaults: SyncDefaults
-  defaultTarget: KubernetesTargetResourceSpec | undefined
+  manifests: KubernetesResource[]
+  defaultNamespace: string
   syncs: KubernetesDeployDevModeSyncSpec[]
+}
+
+interface GetSyncStatusParams extends StartSyncsParams {
+  monitor: boolean
+}
+
+interface PrepareSyncParams extends SyncParamsBase {
+  action: Resolved<SupportedRuntimeAction>
+  resourceSpec: KubernetesTargetResourceSpec
+  spec: KubernetesDeployDevModeSyncSpec
+  manifests: KubernetesResource[]
 }
 
 export function getLocalSyncPath(sourcePath: string, basePath: string) {
@@ -457,103 +501,276 @@ export function getLocalSyncPath(sourcePath: string, basePath: string) {
   return localPath.replace(/ /g, "\\ ") // Escape spaces in path
 }
 
-export async function startSyncs({
-  ctx,
-  log,
-  basePath,
-  manifests,
-  action,
-  defaultNamespace,
-  actionDefaults,
-  defaultTarget,
-  syncs,
-}: StartSyncModeParams) {
+export async function startSyncs(params: StartSyncsParams) {
+  const { ctx, log, basePath, action, defaultNamespace, actionDefaults, defaultTarget, syncs } = params
+
   if (syncs.length === 0) {
     return
   }
 
-  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
-  return mutagenDaemon.configLock.acquire("start-sync", async () => {
-    const k8sCtx = <KubernetesPluginContext>ctx
-    const k8sProvider = <KubernetesProvider>k8sCtx.provider
-    const providerDefaults = k8sProvider.config.sync?.defaults || {}
+  const mutagen = new Mutagen({ ctx, log })
 
-    for (const [i, s] of enumerate(syncs)) {
-      const resourceSpec = s.target || defaultTarget
+  const provider = ctx.provider
+  const providerDefaults = provider.config.sync?.defaults || {}
 
-      if (!resourceSpec) {
-        // This will have been caught and warned about elsewhere
-        continue
-      }
+  const expectedKeys: string[] = []
 
-      const target = await getTargetResource({
-        ctx: k8sCtx,
-        log,
-        provider: k8sCtx.provider,
-        manifests,
-        action,
-        query: resourceSpec,
+  await Bluebird.map(syncs, async (s) => {
+    const resourceSpec = s.target || defaultTarget
+
+    if (!resourceSpec) {
+      // This will have been caught and warned about elsewhere
+      return
+    }
+
+    const { key, description, sourceDescription, targetDescription, target, resourceName, containerName } =
+      await prepareSync({
+        ...params,
+        resourceSpec,
+        spec: s,
       })
 
-      const resourceName = getResourceKey(target)
-
-      // Validate the target
-      if (!isConfiguredForSyncMode(target)) {
-        log.warn(chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`))
-        continue
-      }
-
-      const containerName = s.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
-
-      if (!containerName) {
-        log.warn(chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`))
-        continue
-      }
-
-      const namespace = target.metadata.namespace || defaultNamespace
-      const keyBase = `${target.kind}--${namespace}--${target.metadata.name}`
-
-      const key = `${keyBase}-${i}`
-
-      const localPath = getLocalSyncPath(s.sourcePath, basePath)
-      const remoteDestination = await getKubectlExecDestination({
-        ctx: k8sCtx,
-        log,
-        namespace,
-        containerName,
-        resourceName,
-        targetPath: s.containerPath,
+    // Validate the target
+    if (!isConfiguredForSyncMode(target)) {
+      log.warn({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`),
       })
+      return
+    }
 
-      const localPathDescription = chalk.white(s.sourcePath)
-      const remoteDestinationDescription = `${chalk.white(s.containerPath)} in ${chalk.white(resourceName)}`
+    if (!containerName) {
+      log.warn({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`),
+      })
+      return
+    }
 
-      let sourceDescription: string
-      let targetDescription: string
+    const namespace = target.metadata.namespace || defaultNamespace
 
-      const mode = s.mode || defaultSyncMode
+    const localPath = getLocalSyncPath(s.sourcePath, basePath)
+    const remoteDestination = await getKubectlExecDestination({
+      ctx,
+      log,
+      namespace,
+      containerName,
+      resourceName,
+      targetPath: s.containerPath,
+    })
 
-      if (isReverseMode(mode)) {
-        sourceDescription = remoteDestinationDescription
-        targetDescription = localPathDescription
+    const mode = s.mode || defaultSyncMode
+
+    log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
+
+    await mutagen.ensureSync({
+      log,
+      key,
+      logSection: action.key(),
+      sourceDescription,
+      targetDescription,
+      config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
+    })
+
+    // Wait for initial sync to complete
+    await mutagen.flushSync(log, key)
+
+    expectedKeys.push(key)
+  })
+
+  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+
+  for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
+    log.info({ section: action.key(), msg: chalk.gray(`Terminating unexpected/outdated sync ${sync.name}`) })
+    await mutagen.terminateSync(log, sync.name)
+  }
+
+  mutagen.stopMonitoring()
+}
+
+export async function stopSyncs(params: StopSyncsParams) {
+  const { ctx, log, action } = params
+
+  const mutagen = new Mutagen({ ctx, log })
+
+  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+  const syncs = allSyncs.filter((sync) => sync.name.startsWith(keyPrefix))
+
+  for (const sync of syncs) {
+    log.debug({ section: action.key(), msg: chalk.gray(`Terminating sync ${sync.name}`) })
+    await mutagen.terminateSync(log, sync.name)
+  }
+}
+
+export async function getSyncStatus(params: GetSyncStatusParams): Promise<GetSyncStatusResult> {
+  const { ctx, log, basePath, action, defaultNamespace, actionDefaults, defaultTarget, syncs, monitor } = params
+
+  const mutagen = new Mutagen({ ctx, log })
+  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const syncsByName = keyBy(allSyncs, "name")
+
+  const provider = ctx.provider
+  const providerDefaults = provider.config.sync?.defaults || {}
+
+  let allActive = true
+  let someActive = false
+  let failed = false
+  const expectedKeys: string[] = []
+
+  // TODO: dedupe from startSync
+  await Bluebird.map(syncs, async (s) => {
+    const resourceSpec = s.target || defaultTarget
+
+    if (!resourceSpec) {
+      // This will have been caught and warned about elsewhere
+      return
+    }
+
+    const { key, sourceDescription, targetDescription, target, resourceName, containerName } = await prepareSync({
+      ...params,
+      resourceSpec,
+      spec: s,
+    })
+
+    // Validate the target
+    if (!isConfiguredForSyncMode(target)) {
+      log.debug({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} is not deployed in sync mode, cannot start sync.`),
+      })
+      return
+    }
+
+    if (!containerName) {
+      log.debug({
+        section: action.key(),
+        msg: chalk.yellow(`Resource ${resourceName} doesn't have any containers, cannot start sync.`),
+      })
+      return
+    }
+
+    const namespace = target.metadata.namespace || defaultNamespace
+
+    const localPath = getLocalSyncPath(s.sourcePath, basePath)
+    const remoteDestination = await getKubectlExecDestination({
+      ctx,
+      log,
+      namespace,
+      containerName,
+      resourceName,
+      targetPath: s.containerPath,
+    })
+
+    const session = syncsByName[key]
+
+    if (session) {
+      if (session.status === "disconnected") {
+        failed = true
       } else {
-        sourceDescription = localPathDescription
-        targetDescription = remoteDestinationDescription
+        someActive = true
       }
+    } else {
+      allActive = false
+    }
 
-      const description = `${sourceDescription} to ${targetDescription}`
+    expectedKeys.push(key)
 
-      log.info({ symbol: "info", section: action.key(), msg: chalk.gray(`Syncing ${description} (${mode})`) })
-
-      await mutagenDaemon.ensureSync({
+    if (monitor) {
+      mutagen.monitorSync({
         key,
-        logSection: action.name,
+        logSection: action.key(),
         sourceDescription,
         targetDescription,
         config: makeSyncConfig({ providerDefaults, actionDefaults, opts: s, localPath, remoteDestination }),
       })
     }
   })
+
+  if (monitor) {
+    // TODO: emit log events instead of using Log instance on Mutagen instance
+    await mutagen.startMonitoring()
+
+    ctx.events.on("abort", () => {
+      mutagen.stopMonitoring()
+      params.ctx.events.emit("done")
+    })
+  }
+
+  const keyPrefix = getSyncKeyPrefix(ctx, action)
+
+  let extraSyncs = false
+
+  for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
+    log.debug({ section: action.key(), msg: chalk.gray(`Found unexpected/outdated sync ${sync.name}`) })
+    extraSyncs = true
+  }
+
+  let state: SyncState = "not-active"
+
+  if (failed) {
+    state = "failed"
+  } else if (extraSyncs || someActive) {
+    state = "outdated"
+  } else if (allActive) {
+    state = "active"
+  }
+
+  return {
+    state,
+  }
+}
+
+function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
+  return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
+}
+
+async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec }: PrepareSyncParams) {
+  const provider = ctx.provider
+
+  const target = await getTargetResource({
+    ctx,
+    log,
+    provider,
+    manifests,
+    action,
+    query: resourceSpec,
+  })
+
+  const resourceName = getResourceKey(target)
+
+  const key = `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}`
+
+  const localPathDescription = chalk.white(spec.sourcePath)
+  const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
+
+  let sourceDescription: string
+  let targetDescription: string
+
+  const mode = spec.mode || defaultSyncMode
+
+  if (isReverseMode(mode)) {
+    sourceDescription = remoteDestinationDescription
+    targetDescription = localPathDescription
+  } else {
+    sourceDescription = localPathDescription
+    targetDescription = remoteDestinationDescription
+  }
+
+  const description = `${sourceDescription} to ${targetDescription}`
+
+  const containerName = spec.target?.containerName || getResourcePodSpec(target)?.containers[0]?.name
+
+  return {
+    key,
+    description,
+    sourceDescription,
+    targetDescription,
+    target,
+    resourceName,
+    containerName,
+  }
 }
 
 export function makeSyncConfig({
@@ -595,6 +812,45 @@ export function makeSyncConfig({
     defaultDirectoryMode,
     defaultFileMode,
   }
+}
+
+export async function getKubectlExecDestination({
+  ctx,
+  log,
+  namespace,
+  containerName,
+  resourceName,
+  targetPath,
+}: {
+  ctx: KubernetesPluginContext
+  log: Log
+  namespace: string
+  containerName: string
+  resourceName: string
+  targetPath: string
+}) {
+  const kubectl = ctx.tools["kubernetes.kubectl"]
+  const kubectlPath = await kubectl.getPath(log)
+
+  const connectionOpts = prepareConnectionOpts({
+    provider: ctx.provider,
+    namespace,
+  })
+
+  const command = [
+    kubectlPath,
+    "exec",
+    "-i",
+    ...connectionOpts,
+    "--container",
+    containerName,
+    resourceName,
+    "--",
+    mutagenAgentPath,
+    "synchronizer",
+  ]
+
+  return `exec:'${command.join(" ")}':${targetPath}`
 }
 
 const isReverseMode = (mode: string) => mode === "one-way-reverse" || mode === "one-way-replica-reverse"

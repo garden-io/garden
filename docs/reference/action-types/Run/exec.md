@@ -24,9 +24,6 @@ The values in the schema below are the default values.
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
 
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
-
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
 type:
@@ -151,6 +148,8 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
+kind:
+
 # Set a timeout for the run to complete, in seconds.
 timeout:
 
@@ -197,14 +196,6 @@ The schema version of this config (currently not used).
 | Type     | Allowed Values | Default          | Required |
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
-
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
 
 ### `type`
 
@@ -409,6 +400,12 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `string` | No       |
 
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Run"          | Yes      |
+
 ### `timeout`
 
 Set a timeout for the run to complete, in seconds.
@@ -499,9 +496,31 @@ Environment variables to set when running the command.
 The following keys are available via the `${actions.run.<name>}` template string key for `exec`
 modules.
 
+### `${actions.run.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.run.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.run.my-run.disabled}
+```
+
 ### `${actions.run.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -513,17 +532,9 @@ Example:
 my-variable: ${actions.run.my-run.buildPath}
 ```
 
-### `${actions.run.<name>.name}`
+### `${actions.run.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.run.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -532,33 +543,33 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.run.my-run.path}
+my-variable: ${actions.run.my-run.sourcePath}
+```
+
+### `${actions.run.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.run.my-run.mode}
 ```
 
 ### `${actions.run.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.run.<name>.var.<variable-name>}`
+### `${actions.run.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.run.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.run.my-run.version}
-```

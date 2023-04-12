@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,7 +23,6 @@ import {
   containerModuleSpecSchema,
 } from "@garden-io/core/build/src/plugins/container/moduleConfig"
 import { joi } from "@garden-io/core/build/src/config/common"
-import { renderOutputStream } from "@garden-io/core/build/src/util/util"
 import { baseBuildSpecSchema } from "@garden-io/core/build/src/config/module"
 import { ConfigureModuleParams } from "@garden-io/core/build/src/plugin/handlers/Module/configure"
 import { containerHelpers } from "@garden-io/core/build/src/plugins/container/helpers"
@@ -180,26 +179,30 @@ export const gardenPlugin = () =>
                 openJdkPath = await openJdk.getPath(log)
               }
 
-              const statusLine = log.makeNewLogContext({ level: LogLevel.verbose, fixLevel: true })
+              const statusLine = log.createLog({ fixLevel: LogLevel.verbose })
 
               let projectType = spec.projectType
 
               if (!projectType) {
                 projectType = detectProjectType(action)
-                statusLine.info(renderOutputStream(`Detected project type ${projectType}`))
+                statusLine.info(`Detected project type ${projectType}`)
               }
 
               let buildLog = ""
 
               const logEventContext: PluginEventLogContext = {
+                level: "verbose",
                 origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
-                log: log.makeNewLogContext({ level: LogLevel.verbose }),
               }
 
               const outputStream = split2()
               outputStream.on("error", () => {})
               outputStream.on("data", (data: Buffer) => {
-                ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
+                ctx.events.emit("log", {
+                  timestamp: new Date().toISOString(),
+                  msg: data.toString(),
+                  ...logEventContext,
+                })
                 buildLog += data.toString()
               })
 

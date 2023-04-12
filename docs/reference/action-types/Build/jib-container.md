@@ -7,7 +7,7 @@ tocTitle: "`jib-container` Build"
 
 ## Description
 
-Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.50/examples/jib-container) to see it in action.
+Extends the [container type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.51/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -35,9 +35,6 @@ The values in the schema below are the default values.
 ```yaml
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
-
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
 
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
@@ -123,6 +120,8 @@ variables:
 #
 # If a listed varfile cannot be found, it is ignored.
 varfiles: []
+
+kind:
 
 # When false, disables publishing this build to remote registries via the publish command.
 allowPublish: true
@@ -279,14 +278,6 @@ The schema version of this config (currently not used).
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
 ### `type`
 
 The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers.
@@ -435,6 +426,12 @@ Example:
 varfiles:
   "my-action.env"
 ```
+
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Build"        | Yes      |
 
 ### `allowPublish`
 
@@ -736,9 +733,31 @@ Specify extra flags to pass to maven/gradle when building the container image.
 The following keys are available via the `${actions.build.<name>}` template string key for `jib-container`
 modules.
 
+### `${actions.build.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.build.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.build.my-build.disabled}
+```
+
 ### `${actions.build.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -750,17 +769,9 @@ Example:
 my-variable: ${actions.build.my-build.buildPath}
 ```
 
-### `${actions.build.<name>.name}`
+### `${actions.build.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.build.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -769,33 +780,33 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.build.my-build.path}
+my-variable: ${actions.build.my-build.sourcePath}
+```
+
+### `${actions.build.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.build.my-build.mode}
 ```
 
 ### `${actions.build.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.build.<name>.var.<variable-name>}`
+### `${actions.build.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.build.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.build.my-build.version}
-```

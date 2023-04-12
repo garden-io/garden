@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -34,6 +34,7 @@ describe("test actions", () => {
       log: garden.log,
       configsByKey: {},
       router: await garden.getActionRouter(),
+      mode: "default",
     })) as TestAction
     return await garden.resolveAction<TestAction>({ action, log: garden.log })
   }
@@ -65,7 +66,7 @@ describe("test actions", () => {
 
     it("should correctly call the corresponding plugin handler", async () => {
       const action = await getResolvedAction(actionConfig)
-      const result = await actionRouter.test.run({
+      const { result } = await actionRouter.test.run({
         log,
         action,
         interactive: true,
@@ -93,19 +94,20 @@ describe("test actions", () => {
       const testVersion = action.versionString()
       const event1 = garden.events.eventLog[0]
       const event2 = garden.events.eventLog[1]
+
       expect(event1).to.exist
-      expect(event1.name).to.eql("testStatus")
-      expect(event1.payload.testName).to.eql("test")
-      expect(event1.payload.actionName).to.eql("test")
-      expect(event1.payload.testVersion).to.eql(testVersion)
-      expect(event1.payload.actionUid).to.be.ok
-      expect(event1.payload.status.state).to.eql("running")
       expect(event2).to.exist
+
+      expect(event1.name).to.eql("testStatus")
+      expect(event1.payload.actionName).to.eql("test")
+      expect(event1.payload.actionUid).to.be.ok
+      expect(event1.payload.state).to.eql("processing")
+      expect(event1.payload.status.state).to.eql("running")
+
       expect(event2.name).to.eql("testStatus")
-      expect(event2.payload.testName).to.eql("test")
       expect(event2.payload.actionName).to.eql("test")
-      expect(event2.payload.testVersion).to.eql(testVersion)
       expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
+      expect(event2.payload.state).to.eql("ready")
       expect(event2.payload.status.state).to.eql("succeeded")
     })
 
@@ -160,7 +162,7 @@ describe("test actions", () => {
     it("should correctly call the corresponding plugin handler", async () => {
       const action = await garden.resolveAction({ action: graph.getTest("module-a-unit"), log, graph })
 
-      const result = await actionRouter.test.getResult({
+      const { result } = await actionRouter.test.getResult({
         log,
         action,
         graph,
@@ -175,7 +177,7 @@ describe("test actions", () => {
     })
   })
 
-  it("should emit a testStatus event", async () => {
+  it("should emit testStatus events", async () => {
     const action = await garden.resolveAction({ action: graph.getTest("module-a-unit"), log, graph })
     garden.events.eventLog = []
 
@@ -184,14 +186,22 @@ describe("test actions", () => {
       action,
       graph,
     })
-    const event = garden.events.eventLog[0]
+    const event1 = garden.events.eventLog[0]
+    const event2 = garden.events.eventLog[1]
 
-    expect(event).to.exist
-    expect(event.name).to.eql("testStatus")
-    expect(event.payload.testName).to.eql("module-a-unit")
-    expect(event.payload.moduleVersion).to.eql(module.version.versionString)
-    expect(event.payload.testVersion).to.eql(action.versionString())
-    expect(event.payload.actionUid).to.be.undefined
-    expect(event.payload.status.state).to.eql("succeeded")
+    expect(event1).to.exist
+    expect(event2).to.exist
+
+    expect(event1.name).to.eql("testStatus")
+    expect(event1.payload.moduleName).to.eql("module-a")
+    expect(event1.payload.actionUid).to.be.ok
+    expect(event1.payload.state).to.eql("getting-status")
+    expect(event1.payload.status.state).to.eql("unknown")
+
+    expect(event2.name).to.eql("testStatus")
+    expect(event1.payload.moduleName).to.eql("module-a")
+    expect(event2.payload.actionUid).to.eql(event1.payload.actionUid)
+    expect(event2.payload.state).to.eql("cached")
+    expect(event2.payload.status.state).to.eql("succeeded")
   })
 })

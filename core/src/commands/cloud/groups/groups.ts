@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,7 +18,7 @@ import { noApiMsg, applyFilter } from "../helpers"
 
 // TODO: Add created at and updated at timestamps. Need to add it to the API response first.
 interface Groups {
-  id: number
+  id: string
   name: string
   description: string
   defaultAdminGroup: boolean
@@ -33,7 +33,8 @@ export class GroupsCommand extends CommandGroup {
 
 export const groupsListOpts = {
   "filter-names": new StringsParameter({
-    help: deline`Filter on group name. Use comma as a separator to filter on multiple names. Accepts glob patterns.`,
+    help: deline`Filter on group name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.`,
+    spread: true,
   }),
 }
 

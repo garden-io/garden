@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,19 +17,14 @@ import {
   createIngressResources,
   supportedIngressApiVersions,
 } from "../../../../../../src/plugins/kubernetes/container/ingress"
-import { defaultDeploymentStrategy } from "../../../../../../src/plugins/container/config"
-import {
-  ContainerDeployAction,
-  ContainerDeploySpec,
-  defaultContainerResources,
-} from "../../../../../../src/plugins/container/moduleConfig"
+import { ContainerDeployAction } from "../../../../../../src/plugins/container/moduleConfig"
 import { ServicePortProtocol, ContainerIngressSpec } from "../../../../../../src/plugins/container/moduleConfig"
 import { defaultSystemNamespace } from "../../../../../../src/plugins/kubernetes/system"
 import { getContainerTestGarden } from "./container"
 import { PartialBy } from "../../../../../../src/util/util"
 import { Resolved } from "../../../../../../src/actions/types"
 import { actionFromConfig } from "../../../../../../src/graph/actions"
-import { DeployAction, DeployActionConfig } from "../../../../../../src/actions/deploy"
+import { DeployAction } from "../../../../../../src/actions/deploy"
 
 const namespace = "my-namespace"
 const ports = [
@@ -46,9 +41,9 @@ type PartialConfig = PartialBy<KubernetesConfig, "context">
 const basicConfig: PartialConfig = {
   name: "local-kubernetes",
   buildMode: "local-docker",
-  defaultHostname: "my.domain.com",
+  defaultHostname: "hostname.invalid",
   deploymentRegistry: {
-    hostname: "foo.garden",
+    hostname: "registry.invalid",
     port: 5000,
     namespace: "boo",
     insecure: true,
@@ -367,7 +362,7 @@ describe("createIngressResources", () => {
       graph,
       config: {
         internal: {
-          basePath: garden.projectRoot
+          basePath: garden.projectRoot,
         },
         kind: "Deploy",
         name: "my-service",
@@ -378,6 +373,7 @@ describe("createIngressResources", () => {
           ports,
         },
       },
+      mode: "default",
     })) as DeployAction
 
     return await garden.resolveAction({ action: unresolved, graph, log })
@@ -405,6 +401,7 @@ describe("createIngressResources", () => {
       annotations: {},
       path: "/",
       port: "http",
+      hostname: "hostname.invalid",
     })
 
     const api = await getKubeApi(basicProvider)
@@ -425,7 +422,7 @@ describe("createIngressResources", () => {
       expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.be.undefined
       expect(ingress.spec.rules).to.eql([
         {
-          host: "my.domain.com",
+          host: "hostname.invalid",
           http: {
             paths: [
               {
@@ -448,7 +445,7 @@ describe("createIngressResources", () => {
       expect(ingress.metadata.annotations?.["kubernetes.io/ingress.class"]).to.equal("nginx")
       expect(ingress.spec.rules).to.eql([
         {
-          host: "my.domain.com",
+          host: "hostname.invalid",
           http: {
             paths: [
               {
@@ -485,6 +482,7 @@ describe("createIngressResources", () => {
         annotations: {},
         path: "/",
         port: "http",
+        hostname: "hostname.invalid",
       },
       {
         annotations: {},
@@ -500,7 +498,7 @@ describe("createIngressResources", () => {
     expect(ingresses.length).to.equal(2)
 
     expect(ingresses[0].metadata.name).to.equal(`${action.name}-0`)
-    expect(ingresses[0].spec?.rules?.[0].host).to.equal("my.domain.com")
+    expect(ingresses[0].spec?.rules?.[0].host).to.equal("hostname.invalid")
     expect(ingresses[0].spec?.rules?.[0].http?.paths[0].path).to.equal("/")
 
     expect(ingresses[1].metadata.name).to.equal(`${action.name}-1`)
@@ -513,6 +511,7 @@ describe("createIngressResources", () => {
       annotations: {},
       path: "/",
       port: "http",
+      hostname: "my.domain.com",
     })
 
     const api = await getKubeApi(singleTlsProvider)

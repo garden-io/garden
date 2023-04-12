@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,7 @@ import { execBuildActionSchema } from "../../../../src/plugins/exec/config"
 import { PublishActionResult, PublishBuildAction } from "../../../../src/plugin/handlers/Build/publish"
 import { createGardenPlugin, GardenPlugin } from "../../../../src/plugin/plugin"
 import { ConvertModuleParams } from "../../../../src/plugin/handlers/Module/convert"
+import { PublishTask } from "../../../../src/tasks/publish"
 
 const projectRootB = getDataDir("test-project-b")
 
@@ -122,89 +123,24 @@ describe("PublishCommand", () => {
 
     expect(taskResultOutputs(result!)).to.eql({
       "publish.module-a": {
-        detail: {
-          identifier: versionA,
-          published: true,
-        },
         outputs: {},
+        detail: {},
         state: "ready",
         version: versionA,
       },
       "publish.module-b": {
-        detail: {
-          identifier: versionB,
-          published: true,
-        },
         outputs: {},
+        detail: {},
         state: "ready",
         version: versionB,
       },
       "publish.module-c": {
-        detail: {
-          published: false,
-        },
         outputs: {},
+        detail: {},
         state: "ready",
         version: versionC,
       },
     })
-  })
-
-  it("should apply the specified tag to the published builds", async () => {
-    const garden = await getTestGarden()
-    const log = garden.log
-    const tag = "foo"
-
-    const { result } = await command.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: {
-        names: undefined,
-      },
-      opts: withDefaultGlobalOpts({
-        "force-build": false,
-        tag,
-      }),
-    })
-
-    const publishActionResult = taskResultOutputs(result!)
-
-    expect(publishActionResult["publish.module-a"].detail.published).to.be.true
-    expect(publishActionResult["publish.module-a"].detail.identifier).to.equal(tag)
-    expect(publishActionResult["publish.module-b"].detail.published).to.be.true
-    expect(publishActionResult["publish.module-b"].detail.identifier).to.equal(tag)
-  })
-
-  it("should resolve a templated tag and apply to the builds", async () => {
-    const garden = await getTestGarden()
-    const log = garden.log
-    const tag = "v1.0-${module.name}-${module.version}"
-
-    const { result } = await command.action({
-      garden,
-      log,
-      headerLog: log,
-      footerLog: log,
-      args: {
-        names: undefined,
-      },
-      opts: withDefaultGlobalOpts({
-        "force-build": false,
-        tag,
-      }),
-    })
-
-    const publishActionResult = taskResultOutputs(result!)
-    const graph = await garden.getResolvedConfigGraph({ log, emit: false })
-    const verA = graph.getBuild("module-a").versionString()
-    const verB = graph.getBuild("module-b").versionString()
-
-    expect(publishActionResult["publish.module-a"].detail.published).to.be.true
-    expect(publishActionResult["publish.module-a"].detail.identifier).to.equal(`v1.0-module-a-${verA}`)
-    expect(publishActionResult["publish.module-b"].detail.published).to.be.true
-    expect(publishActionResult["publish.module-b"].detail.identifier).to.equal(`v1.0-module-b-${verB}`)
   })
 
   it("should optionally force new build", async () => {
@@ -297,7 +233,66 @@ describe("PublishCommand", () => {
 
     expect(res).to.exist
     expect(res.state).to.equal("unknown")
-    expect(res.detail.published).to.be.false
     expect(res.detail.message).to.be.equal(chalk.yellow("No publish handler available for type test"))
+  })
+})
+
+describe("PublishTask", () => {
+  it("should apply the specified tag to the published build", async () => {
+    const garden = await getTestGarden()
+    const log = garden.log
+    const tag = "foo"
+    const graph = await garden.getConfigGraph({ log, emit: true })
+    const builds = graph.getBuilds()
+
+    const tasks = builds.map((action) => {
+      return new PublishTask({
+        garden,
+        graph,
+        log,
+        action,
+        forceBuild: false,
+        tagTemplate: tag,
+        force: false,
+      })
+    })
+
+    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const graphResultsMap = processed.results.getMap()
+    expect(graphResultsMap["publish.module-a"]!.result.detail.published).to.be.true
+    expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal(tag)
+    expect(graphResultsMap["publish.module-b"]!.result.detail.published).to.be.true
+    expect(graphResultsMap["publish.module-b"]!.result.detail.identifier).to.equal(tag)
+  })
+
+  it("should resolve a templated tag and apply to the builds", async () => {
+    const garden = await getTestGarden()
+    const log = garden.log
+    const tag = "v1.0-${module.name}-${module.version}"
+
+    const graph = await garden.getConfigGraph({ log, emit: true })
+    const builds = graph.getBuilds()
+
+    const tasks = builds.map((action) => {
+      return new PublishTask({
+        garden,
+        graph,
+        log,
+        action,
+        forceBuild: false,
+        tagTemplate: tag,
+        force: false,
+      })
+    })
+
+    const processed = await garden.processTasks({ tasks, log, throwOnError: true })
+    const graphResultsMap = processed.results.getMap()
+    const verA = graph.getBuild("module-a").versionString()
+    const verB = graph.getBuild("module-b").versionString()
+
+    expect(graphResultsMap["publish.module-a"]!.result.detail.published).to.be.true
+    expect(graphResultsMap["publish.module-a"]!.result.detail.identifier).to.equal(`v1.0-module-a-${verA}`)
+    expect(graphResultsMap["publish.module-b"]!.result.detail.published).to.be.true
+    expect(graphResultsMap["publish.module-b"]!.result.detail.identifier).to.equal(`v1.0-module-b-${verB}`)
   })
 })

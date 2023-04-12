@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,22 +12,18 @@ import { includes } from "lodash"
 import {
   pickKeys,
   getEnvVarName,
-  deepOmitUndefined,
-  deepFilter,
-  splitLast,
   exec,
   createOutputStream,
   makeErrorMsg,
-  renderOutputStream,
   spawn,
   relationshipClasses,
-  safeDumpYaml,
   isValidDateInstance,
 } from "../../../../src/util/util"
 import { expectError } from "../../../helpers"
-import { splitFirst } from "../../../../src/util/util"
-import { getLogger } from "../../../../src/logger/logger"
+import { splitLast, splitFirst } from "../../../../src/util/string"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { dedent } from "../../../../src/util/string"
+import { safeDumpYaml } from "../../../../src/util/serialization"
 
 function isLinuxOrDarwin() {
   return process.platform === "darwin" || process.platform === "linux"
@@ -124,26 +120,26 @@ describe("util", () => {
     })
 
     it("should optionally pipe stdout to an output stream", async () => {
-      const logger = getLogger()
-      const log = logger.makeNewLogContext()
+      const logger = getRootLogger()
+      const log = logger.createLog()
 
       await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
-      expect(log.getLatestEntry().msg).to.equal(renderOutputStream("hello"))
+      expect(log.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should optionally pipe stderr to an output stream", async () => {
-      const logger = getLogger()
-      const log = logger.makeNewLogContext()
+      const logger = getRootLogger()
+      const log = logger.createLog()
 
       await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(log) })
 
-      expect(log.getLatestEntry().msg).to.equal(renderOutputStream("hello"))
+      expect(log.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should buffer outputs when piping to stream", async () => {
-      const logger = getLogger()
-      const log = logger.makeNewLogContext()
+      const logger = getRootLogger()
+      const log = logger.createLog()
 
       const res = await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
@@ -236,84 +232,6 @@ describe("util", () => {
       await expectError(() => pickKeys(obj, <any>["a", "foo", "bar"], "banana"), {
         contains: "Could not find banana(s): foo, bar",
       })
-    })
-  })
-
-  describe("deepFilter", () => {
-    const fn = (v) => v !== 99
-
-    it("should filter keys in a simple object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: 99,
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2 })
-    })
-
-    it("should filter keys in a nested object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: { d: 3, e: 99 },
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: { d: 3 } })
-    })
-
-    it("should filter values in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [3, 99],
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [3] })
-    })
-
-    it("should filter keys in objects in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [{ d: 3, e: 99 }],
-      }
-      expect(deepFilter(obj, fn)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
-    })
-  })
-
-  describe("deepOmitUndefined", () => {
-    it("should omit keys with undefined values in a simple object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: undefined,
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2 })
-    })
-
-    it("should omit keys with undefined values in a nested object", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: { d: 3, e: undefined },
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: { d: 3 } })
-    })
-
-    it("should omit undefined values in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [3, undefined],
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [3] })
-    })
-
-    it("should omit undefined values in objects in lists", () => {
-      const obj = {
-        a: 1,
-        b: 2,
-        c: [{ d: 3, e: undefined }],
-      }
-      expect(deepOmitUndefined(obj)).to.eql({ a: 1, b: 2, c: [{ d: 3 }] })
     })
   })
 

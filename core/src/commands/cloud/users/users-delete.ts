@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,7 @@ import { ApiCommandError, confirmDelete, DeleteResult, handleBulkOperationResult
 export const usersDeleteArgs = {
   ids: new StringsParameter({
     help: deline`The IDs of the users to delete.`,
+    spread: true,
   }),
 }
 
@@ -30,7 +31,7 @@ export class UsersDeleteCommand extends Command<Args> {
     which you which you can get from the \`garden cloud users list\` command.
 
     Examples:
-        garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
+        garden cloud users delete 1 2 3   # delete users with IDs 1, 2, and 3.
   `
 
   arguments = usersDeleteArgs
@@ -56,7 +57,7 @@ export class UsersDeleteCommand extends Command<Args> {
       throw new ConfigurationError(noApiMsg("delete", "user"), {})
     }
 
-    const cmdLog = log.makeNewLogContext({ section: "users-command" })
+    const cmdLog = log.createLog({ section: "users-command" })
     cmdLog.info("Deleting users...")
 
     let count = 1

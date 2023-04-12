@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -94,7 +94,6 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
     for (const volume of spec.volumes) {
       if (volume.module) {
-        // TODO-G2: change this to validation instead, require explicit dependency
         moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
         spec.dependencies.push(volume.module)
       }
@@ -213,6 +212,12 @@ function convertContainerModuleRuntimeActions(
   const { module, services, tasks, tests, prepareRuntimeDependencies } = convertParams
   const actions: ContainerActionConfig[] = []
 
+  let deploymentImageId = module.spec.image
+  if (deploymentImageId) {
+    // If `module.spec.image` is set, but the image id is missing a tag, we need to add the module version as the tag.
+    deploymentImageId = containerHelpers.getModuleDeploymentImageId(module, module.version, undefined)
+  }
+
   for (const service of services) {
     const action: ContainerActionConfig = {
       kind: "Deploy",
@@ -226,7 +231,7 @@ function convertContainerModuleRuntimeActions(
 
       spec: {
         ...omit(service.spec, ["name", "dependencies", "disabled"]),
-        image: module.spec.image,
+        image: deploymentImageId,
         volumes: [], // added later
       },
     }
@@ -351,9 +356,9 @@ export const gardenPlugin = () =>
           schema: containerBuildSpecSchema(),
           handlers: {
             async getOutputs({ action }) {
-              // TODO-G2B: figure out why this cast is needed here
+              // TODO: figure out why this cast is needed here
               return {
-                outputs: (getContainerBuildActionOutputs(action) as unknown) as DeepPrimitiveMap,
+                outputs: getContainerBuildActionOutputs(action) as unknown as DeepPrimitiveMap,
               }
             },
 
@@ -375,9 +380,13 @@ export const gardenPlugin = () =>
           staticOutputsSchema: containerDeployOutputsSchema(),
           handlers: {
             // Other handlers are implemented by other providers (e.g. kubernetes)
+            async configure({ config }) {
+              return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
+            },
 
             async validate({ action }) {
               // make sure ports are correctly configured
+              validateRuntimeCommon(action)
               const spec = action.getSpec()
               const definedPorts = spec.ports
               const portsByName = keyBy(spec.ports, "name")
@@ -456,7 +465,7 @@ export const gardenPlugin = () =>
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
             async validate({ action }) {
-              validateCommon(action)
+              validateRuntimeCommon(action)
               return {}
             },
           },
@@ -474,7 +483,11 @@ export const gardenPlugin = () =>
           runtimeOutputsSchema: containerTestOutputSchema(),
           handlers: {
             // Implemented by other providers (e.g. kubernetes)
-          },
+            async validate({ action }) {
+              validateRuntimeCommon(action)
+              return {}
+            },
+          }
         },
       ],
     },
@@ -543,8 +556,7 @@ export const gardenPlugin = () =>
           {
             platform: "windows",
             architecture: "amd64",
-            url:
-              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
+            url: "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
             sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
             extract: {
               format: "zip",
@@ -556,7 +568,7 @@ export const gardenPlugin = () =>
     ],
   })
 
-function validateCommon(action: Resolved<ContainerRuntimeAction>) {
+function validateRuntimeCommon(action: Resolved<ContainerRuntimeAction>) {
   const { build } = action.getConfig()
   const { image } = action.getSpec()
 
@@ -572,7 +584,7 @@ function validateCommon(action: Resolved<ContainerRuntimeAction>) {
       }
     )
   } else if (build) {
-    const buildAction = action.getDependency({ kind: "Build", name: build })
+    const buildAction = action.getDependency({ kind: "Build", name: build }, { includeDisabled: true })
     if (buildAction && !buildAction?.isCompatible("container")) {
       throw new ConfigurationError(
         `${action.longDescription()} build field must specify a container Build, or a compatible type.`,

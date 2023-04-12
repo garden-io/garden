@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -78,9 +78,9 @@ describe("BuildCommand", () => {
 
     function getBuildResultVersion(r: ProcessCommandResult, name: string): string {
       const buildActionResults = r!.graphResults
-      const moduleKey = nodeKey("build", name)
-      const buildResult = buildActionResults[moduleKey]
-      return buildResult!.version
+      const key = nodeKey("build", name)
+      const buildResult = buildActionResults[key]
+      return buildResult!.inputVersion
     }
 
     const buildModuleAVersion = getBuildResultVersion(result!, "module-a")
@@ -300,9 +300,15 @@ describe("BuildCommand", () => {
 
       const allResults2 = getAllTaskResults(result2!.graphResults!)
 
-      expect(allResults2["build.aaa-service"]!.version).not.to.be.eq(allResults1["build.aaa-service"]!.version)
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version).not.to.be.eq(allResults1["build.ccc-service"]!.version)
+      expect(allResults2["build.aaa-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.aaa-service"]!.inputVersion
+      )
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
+      )
     })
 
     it("should rebuild module and dependants if with-dependants flag has been passed", async () => {
@@ -330,9 +336,15 @@ describe("BuildCommand", () => {
 
       expect(graphResult2["build.aaa-service"]).to.exist // <-- The dependant should be added to the main output
 
-      expect(allResults2["build.aaa-service"]!.version).not.to.be.eq(allResults1["build.aaa-service"]!.version)
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version).not.to.be.eq(allResults1["build.ccc-service"]!.version)
+      expect(allResults2["build.aaa-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.aaa-service"]!.inputVersion
+      )
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
+      )
     })
 
     it("should rebuild only necessary modules after changes even if with-dependants flag has been passed", async () => {
@@ -356,10 +368,14 @@ describe("BuildCommand", () => {
 
       const allResults2 = getAllTaskResults(result2!.graphResults!)
 
-      expect(allResults2["build.aaa-service"]!.version).not.to.be.eq(allResults1["build.aaa-service"]!.version)
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version, "c should be equal as it has not been changed").to.be.eq(
-        allResults1["build.ccc-service"]!.version
+      expect(allResults2["build.aaa-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.aaa-service"]!.inputVersion
+      )
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion, "c should be equal as it has not been changed").to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
       )
     })
 
@@ -384,9 +400,11 @@ describe("BuildCommand", () => {
 
       const allResults2 = getAllTaskResults(result2!.graphResults!)
 
-      expect(allResults2["build.bbb-service"]!.version).not.to.be.eq(allResults1["build.bbb-service"]!.version)
-      expect(allResults2["build.ccc-service"]!.version, "c should be equal as it has not been changed").to.be.eq(
-        allResults1["build.ccc-service"]!.version
+      expect(allResults2["build.bbb-service"]!.inputVersion).not.to.be.eq(
+        allResults1["build.bbb-service"]!.inputVersion
+      )
+      expect(allResults2["build.ccc-service"]!.inputVersion, "c should be equal as it has not been changed").to.be.eq(
+        allResults1["build.ccc-service"]!.inputVersion
       )
     })
   })

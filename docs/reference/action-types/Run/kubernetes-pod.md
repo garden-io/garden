@@ -7,9 +7,9 @@ tocTitle: "`kubernetes-pod` Run"
 
 ## Description
 
-Run an ad-hoc instance of a Kubernetes Pod and wait for it to complete.
+Executes a Run in an ad-hoc instance of a Kubernetes Pod and waits for it to complete.
 
-TODO-G2
+The pod spec can be provided directly via the `podSpec` field, or the `resource` field can be used to find the pod spec in the Kubernetes manifests provided via the `files` and/or `manifests` fields.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
@@ -25,9 +25,6 @@ The values in the schema below are the default values.
 ```yaml
 # The schema version of this config (currently not used).
 apiVersion: garden.io/v0
-
-# The kind of action you want to define (one of Build, Deploy, Run or Test).
-kind:
 
 # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be
 # defined by your configured providers.
@@ -153,6 +150,8 @@ varfiles: []
 # structure, the output directory for the referenced `exec` Build would be the source.
 build:
 
+kind:
+
 # Set a timeout for the run to complete, in seconds.
 timeout:
 
@@ -187,12 +186,29 @@ spec:
   # characters.
   namespace:
 
-  # Specify a Kubernetes resource to derive the Pod spec from for the run.
+  # List of Kubernetes resource manifests to be searched (using `resource`e for the pod spec for the Run. If `files`
+  # is also specified, this is combined with the manifests read from the files.
+  manifests:
+    - # The API version of the resource.
+      apiVersion:
+
+      # The kind of the resource.
+      kind:
+
+      metadata:
+        # The name of the resource.
+        name:
+
+  # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
+  # Garden template strings, which will be resolved before searching the manifests for the resource that contains the
+  # Pod spec for the Run.
+  files: []
+
+  # Specify a Kubernetes resource to derive the Pod spec from for the Run.
   #
-  # This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously
-  # (say, by configuring a dependency on a `helm` or `kubernetes` Deploy).
+  # This resource will be selected from the manifests provided in this Run's `files` or `manifests` config field.
   #
-  # The following fields from the Pod will be used (if present) when executing the task:
+  # The following fields from the Pod will be used (if present) when executing the Run:
   # * `affinity`
   # * `automountServiceAccountToken`
   # * `containers`
@@ -237,10 +253,10 @@ spec:
     containerName:
 
   # Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be
-  # modified for the run, including overriding with other fields you may set here (such as `args` and `env`), and
+  # modified for the Run, including overriding with other fields you may set here (such as `args` and `env`), and
   # removing certain fields that are not supported.
   #
-  # The following Pod spec fields from the will be used (if present) when executing the task:
+  # The following Pod spec fields from the selected `resource` will be used (if present) when executing the Run:
   # * `affinity`
   # * `automountServiceAccountToken`
   # * `containers`
@@ -568,14 +584,6 @@ The schema version of this config (currently not used).
 | -------- | -------------- | ---------------- | -------- |
 | `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
 
-### `kind`
-
-The kind of action you want to define (one of Build, Deploy, Run or Test).
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | Yes      |
-
 ### `type`
 
 The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will be defined by your configured providers.
@@ -779,6 +787,12 @@ This would mean that instead of looking for manifest files relative to this acti
 | -------- | -------- |
 | `string` | No       |
 
+### `kind`
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "Run"          | Yes      |
+
 ### `timeout`
 
 Set a timeout for the run to complete, in seconds.
@@ -926,15 +940,73 @@ A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (
 | -------- | -------- |
 | `string` | No       |
 
+### `spec.manifests[]`
+
+[spec](#spec) > manifests
+
+List of Kubernetes resource manifests to be searched (using `resource`e for the pod spec for the Run. If `files` is also specified, this is combined with the manifests read from the files.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `spec.manifests[].apiVersion`
+
+[spec](#spec) > [manifests](#specmanifests) > apiVersion
+
+The API version of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.manifests[].kind`
+
+[spec](#spec) > [manifests](#specmanifests) > kind
+
+The kind of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.manifests[].metadata`
+
+[spec](#spec) > [manifests](#specmanifests) > metadata
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | Yes      |
+
+### `spec.manifests[].metadata.name`
+
+[spec](#spec) > [manifests](#specmanifests) > [metadata](#specmanifestsmetadata) > name
+
+The name of the resource.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+### `spec.files[]`
+
+[spec](#spec) > files
+
+POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before searching the manifests for the resource that contains the Pod spec for the Run.
+
+| Type               | Default | Required |
+| ------------------ | ------- | -------- |
+| `array[posixPath]` | `[]`    | No       |
+
 ### `spec.resource`
 
 [spec](#spec) > resource
 
-Specify a Kubernetes resource to derive the Pod spec from for the run.
+Specify a Kubernetes resource to derive the Pod spec from for the Run.
 
-This resource will be fetched from the target namespace, so you'll need to make sure it's been deployed previously (say, by configuring a dependency on a `helm` or `kubernetes` Deploy).
+This resource will be selected from the manifests provided in this Run's `files` or `manifests` config field.
 
-The following fields from the Pod will be used (if present) when executing the task:
+The following fields from the Pod will be used (if present) when executing the Run:
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`
@@ -1012,9 +1084,9 @@ The name of a container in the target. Specify this if the target contains more 
 
 [spec](#spec) > podSpec
 
-Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the run, including overriding with other fields you may set here (such as `args` and `env`), and removing certain fields that are not supported.
+Supply a custom Pod specification. This should be a normal Kubernetes Pod manifest. Note that the spec will be modified for the Run, including overriding with other fields you may set here (such as `args` and `env`), and removing certain fields that are not supported.
 
-The following Pod spec fields from the will be used (if present) when executing the task:
+The following Pod spec fields from the selected `resource` will be used (if present) when executing the Run:
 * `affinity`
 * `automountServiceAccountToken`
 * `containers`
@@ -1688,9 +1760,31 @@ List of volumes that can be mounted by containers belonging to the pod. More inf
 The following keys are available via the `${actions.run.<name>}` template string key for `kubernetes-pod`
 modules.
 
+### `${actions.run.<name>.name}`
+
+The name of the action.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${actions.run.<name>.disabled}`
+
+Whether the action is disabled.
+
+| Type      |
+| --------- |
+| `boolean` |
+
+Example:
+
+```yaml
+my-variable: ${actions.run.my-run.disabled}
+```
+
 ### `${actions.run.<name>.buildPath}`
 
-The build path of the action/module.
+The local path to the action build directory.
 
 | Type     |
 | -------- |
@@ -1702,17 +1796,9 @@ Example:
 my-variable: ${actions.run.my-run.buildPath}
 ```
 
-### `${actions.run.<name>.name}`
+### `${actions.run.<name>.sourcePath}`
 
-The name of the action/module.
-
-| Type     |
-| -------- |
-| `string` |
-
-### `${actions.run.<name>.path}`
-
-The source path of the action/module.
+The local path to the action source directory.
 
 | Type     |
 | -------- |
@@ -1721,36 +1807,36 @@ The source path of the action/module.
 Example:
 
 ```yaml
-my-variable: ${actions.run.my-run.path}
+my-variable: ${actions.run.my-run.sourcePath}
+```
+
+### `${actions.run.<name>.mode}`
+
+The mode that the action should be executed in (e.g. 'sync' or 'local' for Deploy actions). Set to 'default' if no special mode is being used.
+
+| Type     | Default     |
+| -------- | ----------- |
+| `string` | `"default"` |
+
+Example:
+
+```yaml
+my-variable: ${actions.run.my-run.mode}
 ```
 
 ### `${actions.run.<name>.var.*}`
 
-A map of all variables defined in the module.
+The variables configured on the action.
 
 | Type     | Default |
 | -------- | ------- |
 | `object` | `{}`    |
 
-### `${actions.run.<name>.var.<variable-name>}`
+### `${actions.run.<name>.var.<name>}`
 
 | Type                                                 |
 | ---------------------------------------------------- |
 | `string \| number \| boolean \| link \| array[link]` |
-
-### `${actions.run.<name>.version}`
-
-The current version of the module.
-
-| Type     |
-| -------- |
-| `string` |
-
-Example:
-
-```yaml
-my-variable: ${actions.run.my-run.version}
-```
 
 ### `${actions.run.<name>.outputs.log}`
 

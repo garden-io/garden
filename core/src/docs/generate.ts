@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,10 +21,11 @@ import { renderProviderReference } from "./provider"
 import { defaultEnvironment, defaultNamespace } from "../config/project"
 import { GardenPlugin, GardenPluginReference } from "../plugin/plugin"
 import { workflowConfigSchema } from "../config/workflow"
-import { moduleTemplateSchema } from "../config/module-template"
+import { configTemplateSchema } from "../config/config-template"
 import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
 import { DEFAULT_API_VERSION } from "../constants"
+import { renderTemplateConfigSchema } from "../config/render-template"
 
 /* eslint-disable no-console */
 
@@ -109,7 +110,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   const actionTypeDefinitions = await garden.getActionTypes()
 
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
-    actionsReadme.push(`* \`kind\``)
+    actionsReadme.push(`* ${kind}`)
     for (const [type, definition] of Object.entries(types)) {
       const dir = resolve(actionTypeDir, kind)
       await mkdirp(dir)
@@ -154,5 +155,6 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
 
   await renderConfigTemplate("project", renderProjectConfigReference())
   await renderConfigTemplate("workflow", renderConfigReference(workflowConfigSchema()))
-  await renderConfigTemplate("module-template", renderConfigReference(moduleTemplateSchema()))
+  await renderConfigTemplate("config-template", renderConfigReference(configTemplateSchema()))
+  await renderConfigTemplate("render-template", renderConfigReference(renderTemplateConfigSchema()))
 }

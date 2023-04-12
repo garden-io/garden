@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@ import { uniq } from "lodash"
 import { getEntityVersion } from "../vcs/vcs"
 import { NamespaceStatus, namespaceStatusesSchema } from "./namespace"
 import type { LogLevel } from "../logger/logger"
-import type { ActionState } from "../actions/types"
+import type { ActionMode } from "../actions/types"
 import type { ModuleGraph } from "../graph/modules"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
@@ -72,27 +72,13 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
   }
 }
 
-export const serviceStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
-export type ServiceState = typeof serviceStates[number]
-
-const serviceStateMap: { [key in ServiceState]: ActionState } = {
-  ready: "ready",
-  deploying: "not-ready",
-  stopped: "not-ready",
-  unhealthy: "failed",
-  unknown: "unknown",
-  outdated: "outdated",
-  missing: "not-ready",
-}
-
-export function serviceStateToActionState(state: ServiceState): ActionState {
-  return serviceStateMap[state]
-}
+export const deployStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
+export type DeployState = typeof deployStates[number]
 
 /**
  * Given a list of states, return a single state representing the list.
  */
-export function combineStates(states: ServiceState[]): ServiceState {
+export function combineStates(states: DeployState[]): DeployState {
   const unique = uniq(states)
 
   if (unique.length === 1) {
@@ -198,8 +184,7 @@ const forwardablePortSchema = createSchema({
 export interface ServiceStatus<D = any, O = PrimitiveMap> {
   createdAt?: string
   detail: D
-  syncMode?: boolean
-  localMode?: boolean
+  mode?: ActionMode
   namespaceStatuses?: NamespaceStatus[]
   externalId?: string
   externalVersion?: string
@@ -209,9 +194,8 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   lastError?: string
   outputs?: O
   runningReplicas?: number
-  state: ServiceState
+  deployState: DeployState
   updatedAt?: string
-  version?: string
 }
 
 export interface ServiceStatusMap {
@@ -224,8 +208,7 @@ export const serviceStatusSchema = () =>
     .keys({
       createdAt: joi.string().description("When the service was first deployed by the provider."),
       detail: joi.object().meta({ extendable: true }).description("Additional detail, specific to the provider."),
-      syncMode: joi.boolean().description("Whether the service was deployed with sync enabled."),
-      localMode: joi.boolean().description("Whether the service was deployed with local mode enabled."),
+      mode: joi.string().default("default").description("The mode the action is deployed in."),
       namespaceStatuses: namespaceStatusesSchema().optional(),
       externalId: joi
         .string()
@@ -244,9 +227,9 @@ export const serviceStatusSchema = () =>
       lastError: joi.string().description("Latest error status message of the service (if any)."),
       outputs: joiVariables().description("A map of values output from the deployment."),
       runningReplicas: joi.number().description("How many replicas of the service are currently running."),
-      state: joi
+      deployState: joi
         .string()
-        .valid(...serviceStates)
+        .valid(...deployStates)
         .default("unknown")
         .description("The current deployment status of the service."),
       updatedAt: joi.string().description("When the service was last updated by the provider."),

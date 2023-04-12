@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -51,11 +51,7 @@ describe("kubernetes build flow", () => {
 
   async function executeBuild(buildActionName: string) {
     const action = await garden.resolveAction({ action: graph.getBuild(buildActionName), graph, log })
-    const result = await garden.processTask(
-      new BuildTask({ action, force: true, garden, graph, localModeDeployNames: [], log, syncModeDeployNames: [] }),
-      log,
-      {}
-    )
+    const result = await garden.processTask(new BuildTask({ action, force: true, garden, graph, log }), log, {})
     return result?.result?.executedAction!
   }
 
@@ -182,7 +178,7 @@ describe("kubernetes build flow", () => {
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
       const action = cloneDeep(graph.getBuild("remote-registry-test"))
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       action.getFullVersion().versionString = "v-0000000000"
 
@@ -201,7 +197,7 @@ describe("kubernetes build flow", () => {
 
     it("should throw if attempting to pull from private registry without access", async () => {
       const action = graph.getBuild("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await expectError(
         async () =>
@@ -282,9 +278,9 @@ describe("kubernetes build flow", () => {
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
       const action = graph.getBuild("simple-service")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action.getConfig().spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -297,7 +293,7 @@ describe("kubernetes build flow", () => {
 
     it("should throw if attempting to pull from private registry without access", async () => {
       const action = graph.getBuild("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await expectError(
         async () =>
@@ -368,9 +364,9 @@ describe("kubernetes build flow", () => {
 
     it("should return ready=false status when image doesn't exist in registry", async () => {
       const action = graph.getBuild("simple-service")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
-      action.getConfig().spec.image = "skee-ba-dee-skoop"
+      action["_config"].spec.image = "skee-ba-dee-skoop"
 
       const status = await k8sGetContainerBuildStatus({
         ctx,
@@ -383,7 +379,7 @@ describe("kubernetes build flow", () => {
 
     it("should throw if attempting to pull from private registry without access", async () => {
       const action = graph.getBuild("inaccessible-base")
-      await garden.buildStaging.syncFromSrc(action, garden.log)
+      await garden.buildStaging.syncFromSrc({ action, log: garden.log })
 
       await expectError(
         async () =>

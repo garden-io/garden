@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -36,6 +36,7 @@ import { ToolsCommand } from "./tools"
 import { UtilCommand } from "./util/util"
 import { SelfUpdateCommand } from "./self-update"
 import { memoize } from "lodash"
+import { SyncCommand } from "./sync/sync"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
@@ -60,6 +61,7 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new ServeCommand(),
   new SelfUpdateCommand(),
   new SetCommand(),
+  new SyncCommand(),
   new TestCommand(),
   new ToolsCommand(),
   new UnlinkCommand(),
@@ -68,6 +70,10 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new ValidateCommand(),
 ]
 
+export function flattenCommands(commands: (Command | CommandGroup)[]) {
+  return commands.flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
+}
+
 export const getBuiltinCommands = memoize(() => {
-  return getCoreCommands().flatMap((cmd) => (cmd instanceof CommandGroup ? [cmd, ...cmd.getSubCommands()] : [cmd]))
+  return flattenCommands(getCoreCommands())
 })

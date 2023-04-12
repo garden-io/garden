@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -194,7 +194,7 @@ export const gardenPlugin = () =>
                 config.include.push(dockerfilePath)
               }
 
-              return { config }
+              return { config, supportedModes: {} }
             },
 
             run: async ({ ctx, log, action }) => {
@@ -342,8 +342,7 @@ export const gardenPlugin = () =>
 
               include: [module.spec.dockerfilePath],
 
-              // TODO-G2 schema validation fails if the timeout is defined
-              // timeout: 10,
+              timeout: 10,
 
               spec: {
                 dockerfilePath: module.spec.dockerfilePath,

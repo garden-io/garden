@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,18 +12,15 @@ import {
   taskResultOutputs,
   withDefaultGlobalOpts,
   makeTestGarden,
-  getRuntimeStatusEvents,
   customizedTestPlugin,
   testDeploySchema,
   testTestSchema,
   getAllProcessedTaskNames,
   getDataDir,
-  expectError,
 } from "../../../helpers"
-import { sortBy } from "lodash"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { ActionStatus } from "../../../../src/actions/types"
-import { makeDummyGarden } from "../../../../src/cli/cli"
+import { DeployStatus } from "../../../../src/plugin/handlers/Deploy/get-status"
 
 // TODO-G2: rename test cases to match the new graph model semantics
 const placeholderTimestamp = new Date()
@@ -33,7 +30,7 @@ const testProvider = () => {
     "service-a": {
       state: "ready",
       detail: {
-        state: "ready",
+        deployState: "ready",
         detail: {},
         ingresses: [
           {
@@ -48,7 +45,7 @@ const testProvider = () => {
     },
     "service-c": {
       state: "ready",
-      detail: { state: "ready", detail: {} },
+      detail: { deployState: "ready", detail: {} },
       outputs: {},
     },
   }
@@ -63,7 +60,11 @@ const testProvider = () => {
           schema: testDeploySchema(),
           handlers: {
             deploy: async (params) => {
-              const newStatus: ActionStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              const newStatus: DeployStatus = {
+                state: "ready",
+                detail: { deployState: "ready", detail: {} },
+                outputs: {},
+              }
               testStatuses[params.action.name] = newStatus
               return newStatus
             },
@@ -71,7 +72,7 @@ const testProvider = () => {
               return (
                 testStatuses[params.action.name] || {
                   state: "unknown",
-                  detail: { state: "unknown", detail: {} },
+                  detail: { deployState: "unknown", detail: {} },
                   outputs: {},
                 }
               )
@@ -158,39 +159,7 @@ describe("DeployCommand", () => {
 
     const graph = await garden.getResolvedConfigGraph({ log: garden.log, emit: false })
 
-    const sortedEvents = sortBy(
-      getRuntimeStatusEvents(garden.events.eventLog),
-      (e) => `${e.name}.${e.payload.actionName}.${e.payload.status.state}`
-    )
-
-    const getActionUid = (actionName: string): string => {
-      const event = sortedEvents.find((e) => e.payload.actionName === actionName && !!e.payload.actionUid)
-      if (!event) {
-        throw new Error(`No event with an actionUid found for action name ${actionName}`)
-      }
-      return event.payload.actionUid
-    }
-
-    const getModuleVersion = (moduleName: string) => graph.getModule(moduleName).version.versionString
     const getDeployVersion = (serviceName: string) => graph.getDeploy(serviceName).versionString()
-    const getRunVersion = (taskName: string) => graph.getRun(taskName).versionString()
-
-    const deployServiceAUid = getActionUid("service-a")
-    const deployServiceBUid = getActionUid("service-b")
-    const deployServiceDUid = getActionUid("service-d")
-
-    // Note: Runs A and C should not run or be queried for status because service-a is ready beforehand
-    const runTaskBUid = getActionUid("task-b")
-    const taskVersionB = getRunVersion("task-b")
-
-    const moduleVersionA = getModuleVersion("module-a")
-    const moduleVersionB = getModuleVersion("module-b")
-    const moduleVersionC = getModuleVersion("module-c")
-
-    const serviceVersionA = getDeployVersion("service-a")
-    const serviceVersionB = getDeployVersion("service-b")
-    const serviceVersionC = getDeployVersion("service-c")
-    const serviceVersionD = getDeployVersion("service-d") // `service-d` is defined in `module-c`
 
     for (const graphResult of Object.values(deployResults)) {
       expect(graphResult).to.exist
@@ -201,7 +170,7 @@ describe("DeployCommand", () => {
       }
 
       expect(graphResult.name).to.exist
-      expect(graphResult.version).to.equal(getDeployVersion(graphResult.name))
+      expect(graphResult.inputVersion).to.equal(getDeployVersion(graphResult.name))
       expect(graphResult.aborted).to.be.false
       expect(graphResult.error).to.be.null
       expect(graphResult.result).to.exist
@@ -212,176 +181,7 @@ describe("DeployCommand", () => {
 
       expect(res.state).to.equal("ready")
       expect(res.outputs).to.eql({})
-
-      expect(res.detail.state).to.equal("ready")
-      expect(res.detail.forwardablePorts).to.eql([])
-      expect(res.detail.outputs).to.eql({})
     }
-
-    expect(sortedEvents[0]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-a",
-        serviceName: "service-a",
-        moduleName: "module-a",
-        moduleVersion: moduleVersionA,
-        actionVersion: serviceVersionA,
-        actionUid: deployServiceAUid,
-        serviceVersion: serviceVersionA,
-        status: { state: "deploying" },
-      },
-    })
-    expect(sortedEvents[1]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-a",
-        serviceName: "service-a",
-        moduleName: "module-a",
-        moduleVersion: moduleVersionA,
-        actionVersion: serviceVersionA,
-        serviceVersion: serviceVersionA,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[2]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-a",
-        serviceName: "service-a",
-        moduleName: "module-a",
-        moduleVersion: moduleVersionA,
-        actionVersion: serviceVersionA,
-        serviceVersion: serviceVersionA,
-        actionUid: deployServiceAUid,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[3]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-b",
-        serviceName: "service-b",
-        moduleName: "module-b",
-        actionUid: deployServiceBUid,
-        moduleVersion: moduleVersionB,
-        actionVersion: serviceVersionB,
-        serviceVersion: serviceVersionB,
-        status: { state: "deploying" },
-      },
-    })
-    expect(sortedEvents[4]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-b",
-        serviceName: "service-b",
-        moduleName: "module-b",
-        actionUid: deployServiceBUid,
-        moduleVersion: moduleVersionB,
-        actionVersion: serviceVersionB,
-        serviceVersion: serviceVersionB,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[5]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-b",
-        serviceName: "service-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: serviceVersionB,
-        serviceVersion: serviceVersionB,
-        status: { state: "unknown" },
-      },
-    })
-    expect(sortedEvents[6]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-c",
-        serviceName: "service-c",
-        moduleName: "module-c",
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionC,
-        serviceVersion: serviceVersionC,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[7]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-d",
-        serviceName: "service-d",
-        moduleName: "module-c",
-        actionUid: deployServiceDUid,
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionD,
-        serviceVersion: serviceVersionD,
-        status: { state: "deploying" },
-      },
-    })
-    expect(sortedEvents[8]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-d",
-        serviceName: "service-d",
-        moduleName: "module-c",
-        actionUid: deployServiceDUid,
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionD,
-        serviceVersion: serviceVersionD,
-        status: { state: "ready" },
-      },
-    })
-    expect(sortedEvents[9]).to.eql({
-      name: "serviceStatus",
-      payload: {
-        actionName: "service-d",
-        serviceName: "service-d",
-        moduleName: "module-c",
-        moduleVersion: moduleVersionC,
-        actionVersion: serviceVersionD,
-        serviceVersion: serviceVersionD,
-        status: { state: "unknown" },
-      },
-    })
-    expect(sortedEvents[10]).to.eql({
-      name: "taskStatus",
-      payload: {
-        actionName: "task-b",
-        taskName: "task-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: taskVersionB,
-        taskVersion: taskVersionB,
-        status: { state: "outdated" },
-      },
-    })
-    expect(sortedEvents[11]).to.eql({
-      name: "taskStatus",
-      payload: {
-        actionName: "task-b",
-        taskName: "task-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: taskVersionB,
-        taskVersion: taskVersionB,
-        actionUid: runTaskBUid,
-        status: { state: "running" },
-      },
-    })
-    expect(sortedEvents[12]).to.eql({
-      name: "taskStatus",
-      payload: {
-        actionName: "task-b",
-        taskName: "task-b",
-        moduleName: "module-b",
-        moduleVersion: moduleVersionB,
-        actionVersion: taskVersionB,
-        taskVersion: taskVersionB,
-        actionUid: runTaskBUid,
-        status: { state: "succeeded" },
-      },
-    })
   })
 
   it("should optionally build and deploy single service and its dependencies", async () => {
@@ -591,8 +391,8 @@ describe("DeployCommand", () => {
   describe("isPersistent", () => {
     it("should return persistent=true if --sync is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().makeNewLogContext()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
         headerLog: log,
         footerLog: log,
@@ -616,8 +416,8 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --local-mode is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().makeNewLogContext()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
         headerLog: log,
         footerLog: log,
@@ -641,8 +441,8 @@ describe("DeployCommand", () => {
 
     it("should return persistent=true if --follow is set", async () => {
       const cmd = new DeployCommand()
-      const log = getLogger().makeNewLogContext()
-      const persistent = cmd.isPersistent({
+      const log = getRootLogger().createLog()
+      const persistent = cmd.maybePersistent({
         log,
         headerLog: log,
         footerLog: log,

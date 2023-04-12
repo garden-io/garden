@@ -34,10 +34,12 @@ spec:
 
 kind: Test
 name: vote-integ
-type: container
-build: vote-image
+type: kubernetes-exec
 dependencies:
   - deploy.vote
 timeout: 60
 spec:
+  resource:
+    kind: Deployment
+    name: vote
   args: [npm, run, test:integ]

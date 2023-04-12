@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,6 @@ import {
 } from "../../../../../src/plugins/kubernetes/util"
 import { createWorkloadManifest } from "../../../../../src/plugins/kubernetes/container/deployment"
 import { getHelmTestGarden } from "./helm/common"
-import { deline } from "../../../../../src/util/string"
 import { getChartResources } from "../../../../../src/plugins/kubernetes/helm/common"
 import { Log } from "../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../src/tasks/build"
@@ -90,6 +89,7 @@ describe("util", () => {
         log: helmGarden.log,
         configsByKey: {},
         router,
+        mode: "default",
       })) as BuildAction
       return new BuildTask({
         garden: helmGarden,
@@ -97,9 +97,6 @@ describe("util", () => {
         log,
         action,
         force: false,
-        syncModeDeployNames: [],
-
-        localModeDeployNames: [],
       })
     })
     const results = await helmGarden.processTasks({ tasks })
@@ -134,8 +131,6 @@ describe("util", () => {
           graph,
           log: garden.log,
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -145,9 +140,7 @@ describe("util", () => {
           ctx,
           imageId: action.getSpec().image,
           namespace: provider.config.namespace!.name!,
-          enableSyncMode: false,
 
-          enableLocalMode: false,
           log: garden.log,
           production: false,
         })
@@ -180,9 +173,6 @@ describe("util", () => {
           graph,
           log: garden.log,
           action,
-
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -205,12 +195,12 @@ describe("util", () => {
 
   describe("getServiceResourceSpec", () => {
     it("should return the spec on the given module if it has no base module", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
       expect(getServiceResourceSpec(module, undefined)).to.eql(module.spec.serviceResource)
     })
 
     it("should return the spec on the base module if there is none on the module", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
       const baseModule = helmGraph.getModule("postgres")
       module.spec.base = "postgres"
       delete module.spec.serviceResource
@@ -219,7 +209,8 @@ describe("util", () => {
     })
 
     it("should merge the specs if both module and base have specs", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
+      module.spec.serviceResource.containerModule = "api-image"
       const baseModule = helmGraph.getModule("postgres")
       module.spec.base = "postgres"
       module.buildDependencies = { postgres: baseModule }
@@ -231,7 +222,7 @@ describe("util", () => {
     })
 
     it("returns undefined if there is no serviceResource spec", async () => {
-      const module = helmGraph.getModule("api")
+      const module = helmGraph.getModule("artifacts")
       delete module.spec.serviceResource
       const spec = getServiceResourceSpec(module, undefined)
       expect(spec).to.be.undefined
@@ -239,15 +230,14 @@ describe("util", () => {
   })
 
   describe("getTargetResource", () => {
-    it("should return the resource specified by serviceResource", async () => {
+    it("should return the resource specified by the query", async () => {
       const rawAction = helmGraph.getDeploy("api")
       const action = await helmGarden.resolveAction<HelmDeployAction>({ action: rawAction, log: helmGarden.log })
       await helmGarden.executeAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       const result = await getTargetResource({
@@ -265,14 +255,13 @@ describe("util", () => {
       expect(result).to.eql(expected)
     })
 
-    it("should throw if no resourceSpec or serviceResource is specified", async () => {
+    it("should throw if no query is specified", async () => {
       const rawAction = helmGraph.getDeploy("api")
       const action = await helmGarden.resolveAction<DeployAction>({ action: rawAction, log: helmGarden.log })
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       delete action._config.spec.serviceResource
@@ -284,17 +273,9 @@ describe("util", () => {
             provider: ctx.provider,
             action,
             manifests,
-            query: {
-              // getServiceResourceSpec() <- Use this once it's sgv2 ready
-              /* TODO-G2 */
-            },
+            query: {},
           }),
-        (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            deline`helm module api doesn't specify a serviceResource in its configuration.
-          You must specify a resource in the module config in order to use certain Garden features,
-          such as sync, local mode, tasks and tests.`
-          )
+        (err) => expect(stripAnsi(err.message)).to.include("Neither kind nor podSelector set in resource query")
       )
     })
 
@@ -304,14 +285,9 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
-      const resourceSpec = {
-        ...action._config.spec.defaultTarget,
-        kind: "DaemonSet" as SyncableKind,
-      }
       await expectError(
         () =>
           getTargetResource({
@@ -320,9 +296,12 @@ describe("util", () => {
             provider: ctx.provider,
             action,
             manifests,
-            query: resourceSpec,
+            query: {
+              ...action._config.spec.defaultTarget,
+              kind: "DaemonSet" as SyncableKind,
+            },
           }),
-        (err) => expect(stripAnsi(err.message)).to.equal("helm module api contains no DaemonSets.")
+        (err) => expect(stripAnsi(err.message)).to.include("does not contain specified DaemonSet")
       )
     })
 
@@ -332,14 +311,9 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
-      const resourceSpec = {
-        ...action._config.spec.defaultTarget,
-        name: "foo",
-      }
       await expectError(
         () =>
           getTargetResource({
@@ -348,9 +322,12 @@ describe("util", () => {
             provider: ctx.provider,
             action,
             manifests,
-            query: resourceSpec,
+            query: {
+              ...action._config.spec.defaultTarget,
+              name: "foo",
+            },
           }),
-        (err) => expect(stripAnsi(err.message)).to.equal("helm module api does not contain specified Deployment foo")
+        (err) => expect(stripAnsi(err.message)).to.contain("does not contain specified Deployment foo")
       )
     })
 
@@ -360,8 +337,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       const deployment = find(manifests, (r) => r.kind === "Deployment")
@@ -376,13 +352,12 @@ describe("util", () => {
             action,
             manifests,
             query: {
-              // getServiceResourceSpec() <- Use this once it's sgv2 ready
-              /* TODO-G2 */
+              kind: "Deployment",
             },
           }),
         (err) =>
-          expect(stripAnsi(err.message)).to.equal(
-            "helm module api contains multiple Deployments. You must specify a resource name in the appropriate config in order to identify the correct Deployment to use."
+          expect(stripAnsi(err.message)).to.include(
+            "contains multiple Deployments. You must specify a resource name in the appropriate config in order to identify the correct Deployment to use."
           )
       )
     })
@@ -393,11 +368,9 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
         log,
       })
-      action._config.spec.defaultTarget!.name = `{{ template "postgresql.primary.fullname" . }}`
+      action._config.spec.defaultTarget = { name: `{{ template "postgresql.primary.fullname" . }}` }
       const result = await getTargetResource({
         ctx,
         log,
@@ -405,8 +378,8 @@ describe("util", () => {
         action,
         manifests,
         query: {
-          // getServiceResourceSpec() <- Use this once it's sgv2 ready
-          /* TODO-G2 */
+          name: "postgres",
+          kind: "StatefulSet",
         },
       })
       const expected = find(manifests, (r) => r.kind === "StatefulSet")
@@ -424,8 +397,6 @@ describe("util", () => {
           graph: helmGraph,
           log: helmGarden.log,
           action,
-          syncModeDeployNames: [],
-          localModeDeployNames: [],
         })
 
         await helmGarden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -477,10 +448,7 @@ describe("util", () => {
 
               query: resourceSpec,
             }),
-          (err) =>
-            expect(stripAnsi(err.message)).to.equal(
-              "Could not find any Pod matching provided podSelector (app.kubernetes.io/name=boo,app.kubernetes.io/instance=foo) for resource in helm module api"
-            )
+          (err) => expect(stripAnsi(err.message)).to.include("Could not find any Pod matching provided podSelector")
         )
       })
     })
@@ -538,8 +506,7 @@ describe("util", () => {
       const manifests = await getChartResources({
         ctx,
         action,
-        syncMode: false,
-        localMode: false,
+
         log,
       })
       return <KubernetesWorkload>find(manifests, (r) => r.kind === "Deployment")!

@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { encodeYamlMulti } from "../../util/util"
+import { encodeYamlMulti } from "../../util/serialization"
 import { ExecParams, PluginTool } from "../../util/ext-tools"
 import { Log } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
@@ -131,14 +131,7 @@ export async function apply({
   }
 }
 
-export async function deleteResources({
-  log,
-  ctx,
-  provider,
-  namespace,
-  resources,
-  includeUninitialized = false,
-}: {
+export async function deleteResources(params: {
   log: Log
   ctx: PluginContext
   provider: KubernetesProvider
@@ -146,7 +139,26 @@ export async function deleteResources({
   resources: KubernetesResource[]
   includeUninitialized?: boolean
 }) {
-  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...resources.map(getResourceKey)]
+  const keys = params.resources.map(getResourceKey)
+  return deleteResourceKeys({ ...params, keys })
+}
+
+export async function deleteResourceKeys({
+  log,
+  ctx,
+  provider,
+  namespace,
+  keys,
+  includeUninitialized = false,
+}: {
+  log: Log
+  ctx: PluginContext
+  provider: KubernetesProvider
+  namespace: string
+  keys: string[]
+  includeUninitialized?: boolean
+}) {
+  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...keys]
 
   includeUninitialized && args.push("--include-uninitialized")
 

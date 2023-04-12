@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,35 +18,30 @@ import {
   memoize,
   omit,
   pick,
-  pickBy,
   range,
   some,
   trimEnd,
   uniqBy,
 } from "lodash"
-import { ResolvableProps } from "bluebird"
+import type { ResolvableProps } from "bluebird"
 import exitHook from "async-exit-hook"
-import Cryo from "cryo"
 import _spawn from "cross-spawn"
-import { readFile, writeFile } from "fs-extra"
+import { readFile } from "fs-extra"
 import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
-import highlight from "cli-highlight"
-import chalk from "chalk"
-import { DumpOptions, safeDump, safeLoad } from "js-yaml"
+import { safeLoad } from "js-yaml"
 import { createHash } from "crypto"
 import { dedent, tailString } from "./string"
 import { Readable, Writable } from "stream"
-import { Log } from "../logger/log-entry"
-import { PrimitiveMap } from "../config/common"
+import type { Log } from "../logger/log-entry"
+import type { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
-import { gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import split2 = require("split2")
 import Bluebird = require("bluebird")
 import execa = require("execa")
 import { execSync } from "child_process"
 
-export { v4 as uuidv4 } from "uuid"
 export { apply as jsonMerge } from "json-merge-patch"
 
 export type HookCallback = (callback?: () => void) => void
@@ -84,6 +79,7 @@ const MAX_BUFFER_SIZE = 1024 * 1024
 
 // Used to control process-level operations during testing
 export const testFlags = {
+  expandErrors: false,
   disableShutdown: false,
 }
 
@@ -108,17 +104,33 @@ export function getPackageVersion(): string {
   return version
 }
 
+type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
+
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
  * otherwise "Garden Enterprise".
  *
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
-export function getCloudDistributionName(domain: string) {
+export function getCloudDistributionName(domain: string): CloudDistroName {
+  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
+    return "Cloud Dashboard"
+  }
+
   if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
     return "Garden Enterprise"
   }
   return "Garden Cloud"
+}
+
+export function getCloudLogSectionName(distroName: CloudDistroName): string {
+  if (distroName === "Cloud Dashboard") {
+    return "cloud-dashboard"
+  } else if (distroName === "Garden Cloud") {
+    return "garden-cloud"
+  } else {
+    return "garden-enterprise"
+  }
 }
 
 export async function sleep(msec: number) {
@@ -140,24 +152,17 @@ export function defer<T>() {
 }
 
 /**
- * Extracting to a separate function so that we can test output streams
- */
-export function renderOutputStream(msg: string, command?: string) {
-  return command ? chalk.gray(`[${command}]: ${msg}`) : chalk.gray(msg)
-}
-
-/**
  * Creates an output stream that updates a log entry on data events (in an opinionated way).
  *
  * Note that new entries are not created but rather the passed log entry gets updated.
  * It's therefore recommended to pass a placeholder entry, for example: `log.placeholder(LogLevel.debug)`
  */
-export function createOutputStream(log: Log) {
+export function createOutputStream(log: Log, origin?: string) {
   const outputStream = split2()
 
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    log.info(renderOutputStream(line.toString()))
+    log.info({ msg: line.toString(), origin })
   })
 
   return outputStream
@@ -379,82 +384,6 @@ export function spawn(cmd: string, args: string[], opts: SpawnOpts = {}) {
   })
 }
 
-export async function dumpYaml(yamlPath: string, data: any) {
-  return writeFile(yamlPath, safeDumpYaml(data, { noRefs: true }))
-}
-
-/**
- * Wraps safeDump and enforces that invalid values are skipped
- */
-export function safeDumpYaml(data: any, opts: DumpOptions = {}) {
-  return safeDump(data, { ...opts, skipInvalid: true })
-}
-
-/**
- * Encode multiple objects as one multi-doc YAML file
- */
-export function encodeYamlMulti(objects: object[]) {
-  return objects.map((s) => safeDumpYaml(s, { noRefs: true }) + "---\n").join("")
-}
-
-/**
- * Encode and write multiple objects as a multi-doc YAML file
- */
-export async function dumpYamlMulti(yamlPath: string, objects: object[]) {
-  return writeFile(yamlPath, encodeYamlMulti(objects))
-}
-
-/**
- * Splits the input string on the first occurrence of `delimiter`.
- */
-export function splitFirst(s, delimiter) {
-  const parts = s.split(delimiter)
-  return [parts[0], parts.slice(1).join(delimiter)]
-}
-
-/**
- * Splits the input string on the last occurrence of `delimiter`.
- */
-export function splitLast(s: string, delimiter: string) {
-  const parts = s.split(delimiter)
-  return [parts.slice(0, parts.length - 1).join(delimiter), parts[parts.length - 1]]
-}
-
-/**
- * Recursively process all values in the given input,
- * walking through all object keys _and array items_.
- */
-export function deepMap<T extends object, U extends object = T>(
-  value: T | Iterable<T>,
-  fn: (value: any, key: string | number) => any,
-  key?: number | string
-): U | Iterable<U> {
-  if (isArray(value)) {
-    return value.map((v, k) => <U>deepMap(v, fn, k))
-  } else if (isPlainObject(value)) {
-    return <U>mapValues(value, (v, k) => deepMap(<T>(<unknown>v), fn, k))
-  } else {
-    return <U>fn(value, key || 0)
-  }
-}
-
-/**
- * Recursively filter all keys and values in the given input,
- * walking through all object keys _and array items_.
- */
-export function deepFilter<T extends object, U extends object = T>(
-  value: T | Iterable<T>,
-  fn: (value: any, key: string | number) => boolean
-): U | Iterable<U> {
-  if (isArray(value)) {
-    return <Iterable<U>>value.filter(fn).map((v) => deepFilter(v, fn))
-  } else if (isPlainObject(value)) {
-    return <U>mapValues(pickBy(<U>value, fn), (v) => deepFilter(v, fn))
-  } else {
-    return <U>value
-  }
-}
-
 /**
  * Recursively resolves all promises in the given input,
  * walking through all object keys and array items.
@@ -497,47 +426,8 @@ export async function asyncDeepMap<T>(
   }
 }
 
-export function omitUndefined(o: object) {
-  return pickBy(o, (v: any) => v !== undefined)
-}
-
-/**
- * Recursively go through an object or array and strip all keys with undefined values, as well as undefined
- * values from arrays. Note: Also iterates through arrays recursively.
- */
-export function deepOmitUndefined(obj: object) {
-  return deepFilter(obj, (v) => v !== undefined)
-}
-
-export function serializeObject(o: any): string {
-  return Buffer.from(Cryo.stringify(o)).toString("base64")
-}
-
-export function deserializeObject(s: string) {
-  return Cryo.parse(Buffer.from(s, "base64"))
-}
-
-export function serializeValues(o: { [key: string]: any }): { [key: string]: string } {
-  return mapValues(o, serializeObject)
-}
-
-export function deserializeValues(o: object) {
-  return mapValues(o, deserializeObject)
-}
-
 export function getEnumKeys(Enum) {
   return Object.values(Enum).filter((k) => typeof k === "string") as string[]
-}
-
-export function highlightYaml(s: string) {
-  return highlight(s, {
-    language: "yaml",
-    theme: {
-      keyword: chalk.white.italic,
-      literal: chalk.white.italic,
-      string: chalk.white,
-    },
-  })
 }
 
 export async function loadYamlFile(path: string): Promise<any> {

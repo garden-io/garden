@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -33,7 +33,6 @@ import {
 } from "./common"
 import { differenceBy, isEmpty } from "lodash"
 import chalk from "chalk"
-import { LogLevel } from "../../../../logger/logger"
 import { getDockerBuildFlags } from "../../../container/build"
 import { k8sGetContainerBuildActionOutputs } from "../handlers"
 import { stringifyResources } from "../util"
@@ -117,7 +116,7 @@ export const kanikoBuild: BuildHandler = async (params) => {
     // Make sure the Kaniko Pod namespace has the auth secret ready
     const secretRes = await ensureBuilderSecret({
       provider,
-      log: log.makeNewLogContext({}),
+      log: log.createLog({}),
       api,
       namespace: kanikoNamespace,
     })
@@ -372,14 +371,12 @@ async function runKaniko({
     pod.spec.nodeSelector = provider.config.kaniko?.nodeSelector
   }
 
-  const logEventContext = {
-    origin: "kaniko",
-    log: log.makeNewLogContext({ level: LogLevel.verbose }),
-  }
-
   const runner = new PodRunner({
     ctx,
-    logEventContext,
+    logEventContext: {
+      origin: "kaniko",
+      level: "verbose",
+    },
     api,
     pod,
     provider,

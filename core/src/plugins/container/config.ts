@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -118,7 +118,7 @@ interface Annotations {
 }
 
 const deploymentStrategies = ["RollingUpdate", "Recreate"] as const
-export type DeploymentStrategy = typeof deploymentStrategies[number]
+export type DeploymentStrategy = (typeof deploymentStrategies)[number]
 export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -191,7 +191,7 @@ export const syncDefaultFileModeSchema = () =>
   joi
     .number()
     .min(0)
-    .max(0o777)
+    .max(777)
     .description(
       "The default permission bits, specified as an octal, to set on files at the sync target. Defaults to 0600 (user read/write). " +
         permissionsDocs
@@ -201,7 +201,7 @@ export const syncDefaultDirectoryModeSchema = () =>
   joi
     .number()
     .min(0)
-    .max(0o777)
+    .max(777)
     .description(
       "The default permission bits, specified as an octal, to set on directories at the sync target. Defaults to 0700 (user read/write). " +
         permissionsDocs
@@ -233,15 +233,12 @@ export const syncTargetPathSchema = () =>
 const containerSyncSchema = () =>
   joi.object().keys({
     source: joi
-      .posixPath()
-      .relativeOnly()
-      .subPathOnly()
-      .allowGlobs()
+      .string()
       .default(".")
       .description(
         deline`
-        POSIX-style path of the directory to sync to the target, relative to the config's directory.
-        Must be a relative path. Defaults to the config's directory if no value is provided.`
+        POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
+        `
       )
       .example("src"),
     target: syncTargetPathSchema(),
@@ -372,7 +369,7 @@ export const containerLocalModeSchema = () =>
     The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
     Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
 
-    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` command.
     Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
     Health checks are disabled for services running in local mode.
@@ -599,7 +596,7 @@ export const volumeSchemaBase = () =>
 const volumeSchema = () =>
   volumeSchemaBase()
     .keys({
-      // TODO-0.13: remove when kubernetes-container type is ready, better to swap out with raw k8s references
+      // TODO-0.13.0: remove when kubernetes-container type is ready, better to swap out with raw k8s references
       action: joi
         .actionReference()
         .kind("Deploy")
@@ -613,7 +610,6 @@ const volumeSchema = () =>
         ),
     })
     .oxor("hostPath", "action")
-
 
 export function getContainerVolumesSchema(schema: CustomObjectSchema) {
   return joiSparseArray(schema).unique("name").description(dedent`

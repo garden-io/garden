@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,7 +16,8 @@ import { StringsParameter, BooleanParameter } from "../../cli/params"
 
 const unlinkSourceArguments = {
   sources: new StringsParameter({
-    help: "The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.",
+    help: "The name(s) of the source(s) to unlink. You may specify multiple sources, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return configDump.sources.map((s) => s.name)
     },
@@ -58,7 +59,7 @@ export class UnlinkSourceCommand extends Command<Args, Opts> {
     const { sources = [] } = args
 
     if (opts.all) {
-      await garden.configStore.set("linkedProjectSources", {})
+      await garden.localConfigStore.set("linkedProjectSources", {})
       log.info("Unlinked all sources")
       return { result: [] }
     }

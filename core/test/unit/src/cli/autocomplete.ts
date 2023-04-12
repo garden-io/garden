@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -47,7 +47,11 @@ describe("Autocompleter", () => {
     expect(result[0]).to.eql({
       type: "command",
       line: "build",
-      command: ["build"],
+      command: {
+        name: ["build"],
+        cliOnly: false,
+        stringArguments: [],
+      },
       priority: 1,
     })
   })
@@ -75,24 +79,51 @@ describe("Autocompleter", () => {
     expect(lines).to.eql(["build --force", "build --force-refresh"])
   })
 
+  it("returns the command itself when matched verbatim", () => {
+    const result = ac.getSuggestions("build")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("build")
+  })
+
+  it("returns the input with command info on full match with option flag", () => {
+    const result = ac.getSuggestions("build --force")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("build --force")
+  })
+
+  it("deduplicates matched command names, preferring canonical ones", () => {
+    const result = ac.getSuggestions("clean")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("cleanup namespace")
+    expect(lines).to.not.include("cleanup ns")
+  })
+
+  it("deduplicates matched aliases, preferring shorter ones", () => {
+    const result = ac.getSuggestions("del")
+    const lines = result.map((s) => s.line)
+    expect(lines).to.include("del ns")
+    expect(lines).to.not.include("delete namespace")
+    expect(lines).to.not.include("delete ns")
+  })
+
   context("without config dump", () => {
     it("returns option flags after matched command", () => {
       const result = ac.getSuggestions("build")
 
-      const lines = result.map((s) => s.line)
-
-      for (const s of flags) {
-        expect(lines).to.include("build " + s)
+      for (const f of flags) {
+        const matched = result.find((s) => s.line === "build " + f)
+        expect(matched).to.exist
+        expect(matched?.command.stringArguments).to.eql([f])
       }
     })
 
     it("skips global option flags when ignoreGlobalFlags=true", () => {
-      const result = ac.getSuggestions("build")
+      const result = ac.getSuggestions("build", { ignoreGlobalFlags: true })
 
       const lines = result.map((s) => s.line)
 
-      for (const s of buildFlags.map((f) => "--" + f)) {
-        expect(lines).to.include("build " + s)
+      for (const s of globalFlags.map((f) => "--" + f)) {
+        expect(lines).to.not.include("build " + s)
       }
     })
   })
@@ -105,10 +136,10 @@ describe("Autocompleter", () => {
     it("returns suggested positional args and option flags after matched command", () => {
       const result = ac.getSuggestions("build")
 
-      const lines = result.map((s) => s.line)
-
-      for (const s of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
-        expect(lines).to.include("build " + s)
+      for (const f of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
+        const matched = result.find((s) => s.line === "build " + f)
+        expect(matched).to.exist
+        expect(matched?.command.stringArguments).to.eql([f])
       }
     })
 
@@ -129,6 +160,41 @@ describe("Autocompleter", () => {
       for (const s of [...flags, ...Object.keys(configDump.actionConfigs.Build)]) {
         expect(lines).to.include("build " + s)
       }
+    })
+
+    it("returns the input with command info on full match with positional argument", () => {
+      const result = ac.getSuggestions("build module-a")
+      const lines = result.map((s) => s.line)
+      expect(lines).to.include("build module-a")
+    })
+
+    it("returns more (unique) suggestions for variadic args after first arg", () => {
+      const input = "build module-a "
+      const result = ac.getSuggestions(input)
+
+      const lines = result.map((s) => s.line)
+
+      for (const s of ["module-b", "module-c", ...flags]) {
+        expect(lines).to.include(input + s)
+      }
+
+      // Should not suggest already entered suggestions
+      expect(lines).to.not.include(input + "module-a")
+    })
+
+    it("returns more (unique) suggestions for variadic args after second arg", () => {
+      const input = "build module-a module-b "
+      const result = ac.getSuggestions(input)
+
+      const lines = result.map((s) => s.line)
+
+      for (const s of ["module-c", ...flags]) {
+        expect(lines).to.include(input + s)
+      }
+
+      // Should not suggest already entered suggestions
+      expect(lines).to.not.include(input + "module-a")
+      expect(lines).to.not.include(input + "module-b")
     })
 
     it("returns nothing if typing a positional argument that matches no suggested value", () => {

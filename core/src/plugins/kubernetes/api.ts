@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,6 +30,7 @@ import {
   Log as K8sLog,
   NetworkingV1Api,
   ApiextensionsV1Api,
+  HttpError,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
@@ -38,7 +39,7 @@ import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
 import WebSocket from "isomorphic-ws"
 
-import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
+import { Omit, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
 import { GardenBaseError, RuntimeError, ConfigurationError } from "../../exceptions"
 import {
@@ -58,6 +59,8 @@ import { Writable, Readable, PassThrough } from "stream"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 import { LogLevel } from "../../logger/logger"
+import { safeDumpYaml } from "../../util/serialization"
+import pRetry = require("p-retry")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -690,6 +693,7 @@ export class KubeApi {
    * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
    */
   async execInPod({
+    log,
     buffer,
     namespace,
     podName,
@@ -701,6 +705,7 @@ export class KubeApi {
     tty,
     timeoutSec,
   }: {
+    log: Log
     buffer: boolean
     namespace: string
     podName: string
@@ -759,8 +764,6 @@ export class KubeApi {
       }
     }
 
-    const execHandler = new Exec(this.config)
-
     return new Promise(async (resolve, reject) => {
       let done = false
 
@@ -777,6 +780,55 @@ export class KubeApi {
         }
       }
 
+      const execWithRetry = async () => {
+        const execHandler = new Exec(this.config)
+
+        const description = "Pod exec"
+
+        let retryLog: Log | undefined
+
+        try {
+          return await pRetry(
+            () =>
+              execHandler.exec(
+                namespace,
+                podName,
+                containerName,
+                command,
+                _stdout,
+                _stderr,
+                stdin || null,
+                tty,
+                (status) => {
+                  finish(false, getExecExitCode(status))
+                }
+              ),
+            {
+              retries: 5,
+              minTimeout: 1000,
+              onFailedAttempt(error) {
+                if (error.cause instanceof HttpError && error.cause.statusCode) {
+                  // only retry if there is no risk that the command will be executed twice.
+                  const recoverableStatusCodes = [500, 502, 503, 429]
+                  if (recoverableStatusCodes.includes(error.cause.statusCode)) {
+                    retryLog = retryLog || log.debug("")
+                    retryLog.error(deline`
+                      ${description} failed with error ${error.cause.message}.
+                      HTTP status code ${error.cause.statusCode} is recoverable:
+                      Retrying after backoff (${error.attemptNumber}/${error.retriesLeft})`)
+                    return
+                  }
+                }
+
+                throw error
+              },
+            }
+          )
+        } catch (err) {
+          throw wrapError(description, err)
+        }
+      }
+
       if (timeoutSec) {
         setTimeout(() => {
           if (!done) {
@@ -786,21 +838,7 @@ export class KubeApi {
       }
 
       try {
-        const ws = attachWebsocketKeepalive(
-          await execHandler.exec(
-            namespace,
-            podName,
-            containerName,
-            command,
-            _stdout,
-            _stderr,
-            stdin || null,
-            tty,
-            (status) => {
-              finish(false, getExecExitCode(status))
-            }
-          )
-        )
+        const ws = attachWebsocketKeepalive(await execWithRetry())
 
         ws.on("error", (err) => {
           done = true
@@ -984,7 +1022,7 @@ async function requestWithRetry<R>(
       return await req()
     } catch (err) {
       if (shouldRetry(err)) {
-        retryLog = retryLog || log.makeNewLogContext({ level: LogLevel.debug })
+        retryLog = retryLog || log.createLog({ fixLevel: LogLevel.debug })
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
           retryLog.info(deline`

@@ -1,23 +1,41 @@
-kind: Module
+kind: Build
+name: backend
+description: Backend service container image
+type: container
+
+dependencies:
+  - build.shared-config
+
+copyFrom:
+  - build: shared-config
+    sourcePath: "config.json"
+    targetPath: "config/"
+
+---
+
+kind: Deploy
 name: backend
 description: Backend service container
 type: container
-build:
-  dependencies:
-    - name: shared-config
-      copy:
-        - source: "config.json"
-          target: "config/"
-services:
-  - name: backend
-    ports:
-      - name: http
-        containerPort: 8080
-        # Maps service:80 -> container:8080
-        servicePort: 80
-    ingresses:
-      - path: /hello-backend
-        port: http
-tasks:
-  - name: test
-    command: ["sh", "-c", "echo task output"]
+
+build: backend
+
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+      # Maps service:80 -> container:8080
+      servicePort: 80
+  ingresses:
+    - path: /hello-backend
+      port: http
+
+---
+
+kind: Run
+name: backend
+description: Simple run task
+type: container
+
+spec:
+  command: [ "sh", "-c", "echo task output" ]

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,6 +32,7 @@ import { customMinimist } from "../lib/minimist"
 import { removeSlice } from "../util/util"
 import { join } from "path"
 import { getBuiltinCommands } from "./commands"
+import { Log } from "../logger/log-entry"
 
 function convertArgSpec(spec: CustomCommandOption) {
   const params = {
@@ -75,6 +76,7 @@ export class CustomCommandWrapper extends Command {
   isCustom = true
 
   allowUndefinedArguments = true
+  noProject = true
 
   constructor(public spec: CommandResource) {
     super()
@@ -123,7 +125,7 @@ export class CustomCommandWrapper extends Command {
       const exec = validateWithPath({
         config: resolveTemplateStrings(this.spec.exec, commandContext),
         schema: customCommandExecSchema(),
-        path: this.spec.path,
+        path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `exec field in custom Command '${this.name}'`,
       })
@@ -167,7 +169,7 @@ export class CustomCommandWrapper extends Command {
       let gardenCommand = validateWithPath({
         config: resolveTemplateStrings(this.spec.gardenCommand, commandContext),
         schema: customCommandGardenCommandSchema(),
-        path: this.spec.path,
+        path: this.spec.internal.basePath,
         projectRoot: garden.projectRoot,
         configType: `gardenCommand field in custom Command '${this.name}'`,
       })
@@ -227,12 +229,12 @@ export class CustomCommandWrapper extends Command {
   }
 }
 
-export async function getCustomCommands(projectRoot: string) {
+export async function getCustomCommands(log: Log, projectRoot: string) {
   // Look for Command resources in the project root directory
   const rootFiles = await listDirectory(projectRoot, { recursive: false })
   const paths = rootFiles.filter(isConfigFilename).map((p) => join(projectRoot, p))
 
-  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(projectRoot, path)))
+  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(log, projectRoot, path)))
 
   const builtinNames = getBuiltinCommands().flatMap((c) => c.getPaths().map((p) => p.join(" ")))
 
@@ -263,7 +265,7 @@ export async function getCustomCommands(projectRoot: string) {
           exec: joi.any(),
           gardenCommand: joi.any(),
         }),
-        path: config.path,
+        path: (<CommandResource>config).internal.basePath,
         projectRoot,
         configType: `custom Command '${config.name}'`,
       })

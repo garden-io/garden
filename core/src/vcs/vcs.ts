@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,6 +30,7 @@ import { validateInstall } from "../util/validateInstall"
 import { isActionConfig } from "../actions/base"
 import type { BaseActionConfig } from "../actions/types"
 import { Garden } from "../garden"
+import chalk = require("chalk")
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -62,7 +63,7 @@ export interface TreeVersions {
   [moduleName: string]: TreeVersion
 }
 
-// TODO-G2: rename, maybe to ResourceVersion
+// TODO: rename, maybe to ResourceVersion
 export interface ModuleVersion {
   versionString: string
   dependencyVersions: DependencyVersions
@@ -188,14 +189,14 @@ export abstract class VcsHandler {
         })
 
         if (files.length > fileCountWarningThreshold) {
-          // TODO-G2: This will be repeated for modules and actions resulting from module conversion
+          // TODO-0.13.0: This will be repeated for modules and actions resulting from module conversion
           await this.garden?.emitWarning({
             key: `${projectName}-filecount-${config.name}`,
             log,
-            message: dedent`
+            message: chalk.yellow(dedent`
               Large number of files (${files.length}) found in ${description}. You may need to configure file exclusions.
               See https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories for details.
-            `,
+            `),
           })
         }
 

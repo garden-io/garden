@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,8 @@ import { TerraformProvider } from "."
 import chalk = require("chalk")
 import { DeployAction, DeployActionConfig } from "@garden-io/core/build/src/actions/deploy"
 import { DeployActionHandler } from "@garden-io/core/build/src/plugin/action-types"
+import { DeployState } from "@garden-io/core/build/src/types/service"
+import { deployStateToActionState } from "@garden-io/core/build/src/plugin/handlers/Deploy/get-status"
 
 export interface TerraformDeploySpec extends TerraformBaseSpec {
   root: string
@@ -86,13 +88,13 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
     workspace,
   })
 
-  const state = status === "up-to-date" ? "ready" : "outdated"
+  const deployState: DeployState = status === "up-to-date" ? "ready" : "outdated"
 
   return {
-    state,
+    state: deployStateToActionState(deployState),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {
-      state,
+      deployState,
       detail: {},
     },
   }
@@ -124,7 +126,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
     state: "ready",
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {
-      state: "ready",
+      deployState: "ready",
       detail: {},
     },
   }
@@ -133,13 +135,14 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
 export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeploy> = async ({ ctx, log, action }) => {
   const provider = ctx.provider as TerraformProvider
   const spec = action.getSpec()
+  const deployState: DeployState = "outdated"
 
   if (!spec.allowDestroy) {
     log.warn({ section: action.key(), msg: "allowDestroy is set to false. Not calling terraform destroy." })
     return {
-      state: "outdated",
+      state: deployStateToActionState(deployState),
       detail: {
-        state: "outdated",
+        deployState,
         detail: {},
       },
       outputs: {},
@@ -159,7 +162,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
     state: "not-ready",
     outputs: {},
     detail: {
-      state: "missing",
+      deployState: "missing",
       detail: {},
     },
   }

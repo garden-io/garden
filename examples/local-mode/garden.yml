@@ -23,3 +23,5 @@ providers:
         namespace: default
 variables:
   userId: ${local.username}
+  localMode1: ${command.params contains 'local' && (isEmpty(command.params.local) || command.params.local contains 'backend-1')}
+  localMode2: ${command.params contains 'local' && (isEmpty(command.params.local) || command.params.local contains 'backend-2')}

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { apply, merge } from "json-merge-patch"
-import { dedent, deline } from "../util/string"
+import { dedent, deline, naturalList } from "../util/string"
 import {
   apiVersionSchema,
   createSchema,
@@ -170,6 +170,10 @@ export interface OutputSpec {
   value: Primitive
 }
 
+export interface ProxyConfig {
+  hostname: string
+}
+
 export interface ProjectConfig {
   apiVersion: string
   kind: "Project"
@@ -178,11 +182,12 @@ export interface ProjectConfig {
   id?: string
   domain?: string
   configPath?: string
+  proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFile: string
   dotIgnoreFiles?: string[]
   environments: EnvironmentConfig[]
-  modules?: {
+  scan?: {
     include?: string[]
     exclude?: string[]
   }
@@ -202,15 +207,15 @@ export const projectNameSchema = () =>
 
 export const projectRootSchema = () => joi.string().description("The path to the project root.")
 
-const projectModulesSchema = createSchema({
-  name: "project-modules",
+const projectScanSchema = createSchema({
+  name: "project-scan",
   keys: () => ({
     include: joi
       .array()
       .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
-        Specify a list of POSIX-style paths or globs that should be scanned for Garden modules.
+        Specify a list of POSIX-style paths or globs that should be scanned for Garden configuration files.
 
         Note that you can also _exclude_ path using the \`exclude\` field or by placing \`.gardenignore\` files in your source tree, which use the same format as \`.gitignore\` files. See the [Configuration Files guide](${includeGuideLink}) for details.
 
@@ -224,7 +229,7 @@ const projectModulesSchema = createSchema({
       .items(joi.posixPath().allowGlobs().subPathOnly())
       .description(
         dedent`
-        Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for modules.
+        Specify a list of POSIX-style paths or glob patterns that should be excluded when scanning for configuration files.
 
         The filters here also affect which files and directories are watched for changes. So if you have a large number of directories in your project that should not be watched, you should specify them here.
 
@@ -288,8 +293,7 @@ export const projectSchema = createSchema({
         "Please refer to individual plugins/providers for details on how to configure them."
     ),
     defaultEnvironment: joi
-      .string()
-      .hostname()
+      .environment()
       .allow("")
       .default("")
       .description(
@@ -330,7 +334,20 @@ export const projectSchema = createSchema({
     `
       )
       .example(".gitignore"),
-    modules: projectModulesSchema().description("Control where to scan for modules in the project."),
+    proxy: joi.object().keys({
+      hostname: joi
+        .string()
+        .default("localhost")
+        .description(
+          dedent`
+        The URL that Garden uses when creating port forwards. Defaults to "localhost".
+
+        Note that the \`GARDEN_PROXY_DEFAULT_ADDRESS\` environment variable takes precedence over this value.
+        `
+        )
+        .example(["127.0.0.1"]),
+    }),
+    scan: projectScanSchema().description("Control where to scan for configuration files in the project."),
     outputs: joiSparseArray(projectOutputSchema())
       .unique("name")
       .description(
@@ -366,6 +383,7 @@ export const projectSchema = createSchema({
       "Key/value map of variables to configure for all environments. " + joiVariablesDescription
     ),
   }),
+  rename: [["modules", "scan"]],
 })
 
 export function getDefaultEnvironmentName(defaultName: string, config: ProjectConfig): string {
@@ -393,7 +411,7 @@ export function getDefaultEnvironmentName(defaultName: string, config: ProjectCo
  * @param config raw project configuration
  */
 export function resolveProjectConfig({
-  defaultName,
+  defaultEnvironmentName,
   config,
   artifactsPath,
   vcsInfo,
@@ -403,7 +421,7 @@ export function resolveProjectConfig({
   secrets,
   commandInfo,
 }: {
-  defaultName: string
+  defaultEnvironmentName: string
   config: ProjectConfig
   artifactsPath: string
   vcsInfo: VcsInfo
@@ -443,7 +461,7 @@ export function resolveProjectConfig({
       ...config,
       ...globalConfig,
       name,
-      defaultEnvironment: defaultName,
+      defaultEnvironment: defaultEnvironmentName,
       // environments are validated later
       environments: [{ defaultNamespace: null, name: "fake-env-only-here-for-inital-load", variables: {} }],
       sources: [],
@@ -466,7 +484,7 @@ export function resolveProjectConfig({
     sources,
   }
 
-  config.defaultEnvironment = getDefaultEnvironmentName(defaultName, config)
+  config.defaultEnvironment = getDefaultEnvironmentName(defaultEnvironmentName, config)
 
   return config
 }
@@ -525,12 +543,19 @@ export const pickEnvironment = profileAsync(async function _pickEnvironment({
   let environmentConfig = findByName(environments, environment)
 
   if (!environmentConfig) {
-    throw new ParameterError(`Project ${projectName} does not specify environment ${environment}`, {
-      projectName,
-      environmentName: environment,
-      namespace,
-      definedEnvironments: getNames(environments),
-    })
+    const definedEnvironments = getNames(environments)
+
+    throw new ParameterError(
+      `Project ${projectName} does not specify environment ${environment} (found ${naturalList(
+        definedEnvironments.map((e) => `'${e}'`)
+      )})`,
+      {
+        projectName,
+        environmentName: environment,
+        namespace,
+        definedEnvironments,
+      }
+    )
   }
 
   const projectVarfileVars = await loadVarfile({

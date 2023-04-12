@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,14 +30,15 @@ const MAX_USERS_PER_REQUEST = 100
 export const secretsCreateArgs = {
   users: new StringsParameter({
     help: deline`The VCS usernames and the names of the users to create, separated by '='.
-      Use comma as a separator to specify multiple VCS username/name pairs. Note
+      You may specify multiple VCS username/name pairs, separated by spaces. Note
       that you can also leave this empty and have Garden read the users from file.`,
+    spread: true,
   }),
 }
 
 export const secretsCreateOpts = {
   "add-to-groups": new StringsParameter({
-    help: deline`Add the user to the group with the given ID. Use comma as a separator to add the user to multiple groups.`,
+    help: deline`Add the user to the group with the given ID. You may add the user to multiple groups by setting this flag multiple times.`,
   }),
   "from-file": new PathParameter({
     help: deline`Read the users from the file at the given path. The file should have standard "dotenv"
@@ -66,7 +67,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     gordon99="Gordon G"
 
     Examples:
-        garden cloud users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
+        garden cloud users create fatema_m="Fatema M" gordon99="Gordon G"  # create two users
         garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
         garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
   `
@@ -79,7 +80,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
-    const addToGroups = (opts["add-to-groups"] || []).map((groupId) => parseInt(groupId, 10))
+    const addToGroups: string[] = opts["add-to-groups"] || []
     const fromFile = opts["from-file"] as string | undefined
     let users: StringMap
 
@@ -119,7 +120,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       throw new ConfigurationError(noApiMsg("create", "users"), {})
     }
 
-    const cmdLog = log.makeNewLogContext({ section: "users-command" })
+    const cmdLog = log.createLog({ section: "users-command" })
     cmdLog.info("Creating users...")
 
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({

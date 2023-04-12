@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,8 +9,7 @@
 import Joi, { SchemaLike } from "@hapi/joi"
 import Ajv from "ajv"
 import addFormats from "ajv-formats"
-import { splitLast } from "../util/util"
-import { deline, dedent, naturalList, titleize } from "../util/string"
+import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
 import { DEFAULT_API_VERSION } from "../constants"
@@ -19,6 +18,9 @@ import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
 
 export const objectSpreadKey = "$merge"
+export const conditionalKey = "$if"
+export const conditionalThenKey = "$then"
+export const conditionalElseKey = "$else"
 export const arrayConcatKey = "$concat"
 export const arrayForEachKey = "$forEach"
 export const arrayForEachReturnKey = "$return"
@@ -84,6 +86,9 @@ export interface JoiDescription extends Joi.Description {
     presence?: string
     only?: boolean
   }
+  metas?: {
+    [key: string]: object
+  }[]
 }
 
 // Unfortunately we need to explicitly extend each type (just extending the AnySchema doesn't work).
@@ -458,10 +463,7 @@ export interface ActionReference<K extends ActionKind = ActionKind> {
 }
 
 const actionRefParseError = (reference: any) => {
-  const validActionKinds = naturalList(
-    actionKindsLower.map((k) => "'" + k + "'"),
-    "or"
-  )
+  const validActionKinds = naturalList(actionKindsLower, { trailingWord: "or", quote: true })
 
   const refStr = JSON.stringify(reference)
 
@@ -485,6 +487,8 @@ export interface CreateSchemaParams {
   meta?: MetadataKeys
   allowUnknown?: boolean
   required?: boolean
+  rename?: [string, string][]
+  or?: string[]
   xor?: string[]
 }
 
@@ -555,6 +559,14 @@ export function createSchema(spec: CreateSchemaParams): CreateSchemaOutput {
       }
       if (spec.required) {
         schema = schema.required()
+      }
+      if (spec.rename) {
+        for (const r of spec.rename) {
+          schema = schema.rename(r[0], r[1])
+        }
+      }
+      if (spec.or) {
+        schema = schema.or(...spec.or)
       }
       if (spec.xor) {
         schema = schema.xor(...spec.xor)

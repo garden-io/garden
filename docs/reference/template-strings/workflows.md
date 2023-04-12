@@ -1,9 +1,9 @@
 ---
-order: 8
-title: Workflow configuration context
+order: 10
+title: Workflow template context
 ---
 
-# Workflow configuration context
+# Workflow template context
 
 The below keys are available in template strings for [Workflow](../../using-garden/workflows.md) configurations, as well as the commands defined in [Custom Commands](../../advanced/custom-commands.md).
 
@@ -144,8 +144,6 @@ my-variable: ${command.name}
 ### `${command.params.*}`
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
-
-For example, to see if a service is in sync mode, you might do something like `${command.params contains 'sync' && command.params.sync contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
 
 Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
 
@@ -380,6 +378,52 @@ Example:
 ```yaml
 my-variable: ${environment.namespace}
 ```
+
+### `${inputs.*}`
+
+The inputs provided to the config through a template, if applicable.
+
+| Type     | Default |
+| -------- | ------- |
+| `object` | `{}`    |
+
+### `${inputs.<input-key>}`
+
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
+
+### `${parent.*}`
+
+Information about the config parent, if any (usually a template, if applicable).
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${parent.name}`
+
+The name of the parent config.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${template.*}`
+
+Information about the template used when generating the config, if applicable.
+
+| Type     |
+| -------- |
+| `object` |
+
+### `${template.name}`
+
+The name of the template.
+
+| Type     |
+| -------- |
+| `string` |
 
 ### `${steps.*}`
 

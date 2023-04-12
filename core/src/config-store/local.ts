@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,6 +30,9 @@ const analyticsSchema = z.object({
 
 const localSchema = z.object({
   analytics: analyticsSchema,
+
+  devCommandHistory: z.array(z.string()).default([]),
+  defaultEnv: z.string().default("").describe("An environment override, set with the `set env` command."),
 
   linkedModuleSources: z.record(linkedSourceSchema),
   linkedProjectSources: z.record(linkedSourceSchema),
@@ -63,6 +66,8 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
   protected async initConfig(migrate: boolean) {
     let config: LocalConfig = {
       analytics: {},
+      devCommandHistory: [],
+      defaultEnv: "",
       linkedModuleSources: {},
       linkedProjectSources: {},
       warnings: {},

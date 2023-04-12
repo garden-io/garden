@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { isString, mapValues, memoize, omit, pick } from "lodash"
+import { cloneDeep, isEqual, mapValues, memoize, omit, pick, uniq } from "lodash"
 import {
   Action,
   ActionConfig,
@@ -16,6 +16,8 @@ import {
   ActionDependencyAttributes,
   ActionKind,
   actionKinds,
+  ActionMode,
+  ActionModeMap,
   ActionWrapperParams,
   Executed,
   Resolved,
@@ -23,6 +25,7 @@ import {
 import {
   actionReferenceToString,
   addActionDependency,
+  baseRuntimeActionConfigSchema,
   describeActionConfig,
   describeActionConfigWithPath,
 } from "../actions/base"
@@ -31,26 +34,32 @@ import { DeployAction, deployActionConfigSchema, isDeployActionConfig } from "..
 import { RunAction, runActionConfigSchema, isRunActionConfig } from "../actions/run"
 import { TestAction, testActionConfigSchema, isTestActionConfig } from "../actions/test"
 import { noTemplateFields } from "../config/base"
-import { ActionReference, describeSchema, parseActionReference } from "../config/common"
+import { ActionReference, describeSchema, JoiDescription, parseActionReference } from "../config/common"
 import type { GroupConfig } from "../config/group"
 import { ActionConfigContext } from "../config/template-contexts/actions"
-import { ProjectConfigContext } from "../config/template-contexts/project"
 import { validateWithPath } from "../config/validation"
 import { ConfigurationError, InternalError, PluginError, ValidationError } from "../exceptions"
 import type { Garden } from "../garden"
 import type { Log } from "../logger/log-entry"
-import { ActionTypeDefinition } from "../plugin/action-types"
+import type { ActionTypeDefinition } from "../plugin/action-types"
 import { getActionTypeBases } from "../plugins"
 import type { ActionRouter } from "../router/router"
 import { getExecuteTaskForAction } from "../tasks/helpers"
 import { ResolveActionTask } from "../tasks/resolve-action"
-import { getActionTemplateReferences, resolveTemplateStrings } from "../template-string/template-string"
-import { dedent } from "../util/string"
+import {
+  getActionTemplateReferences,
+  maybeTemplateString,
+  resolveTemplateString,
+  resolveTemplateStrings,
+} from "../template-string/template-string"
+import { dedent, naturalList } from "../util/string"
 import { resolveVariables } from "./common"
 import { ConfigGraph, MutableConfigGraph } from "./config-graph"
 import type { ModuleGraph } from "./modules"
 import chalk from "chalk"
-import { MaybeUndefined } from "../util/util"
+import type { MaybeUndefined } from "../util/util"
+import minimatch from "minimatch"
+import { ConfigContext } from "../config/template-contexts/base"
 
 export async function actionConfigsToGraph({
   garden,
@@ -58,12 +67,14 @@ export async function actionConfigsToGraph({
   groupConfigs,
   configs,
   moduleGraph,
+  actionModes,
 }: {
   garden: Garden
   log: Log
   groupConfigs: GroupConfig[]
   configs: ActionConfig[]
   moduleGraph: ModuleGraph
+  actionModes: ActionModeMap
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -97,19 +108,59 @@ export async function actionConfigsToGraph({
 
   const router = await garden.getActionRouter()
 
-  // TODO-G2: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
+  // TODO: Maybe we could optimize resolving tree versions, avoid parallel scanning of the same directory etc.
   const graph = new MutableConfigGraph({ actions: [], moduleGraph, groups: groupConfigs })
 
-  await Bluebird.map(Object.values(configsByKey), async (config) => {
+  await Bluebird.map(Object.entries(configsByKey), async ([key, config]) => {
+    // Apply action modes
+    let mode: ActionMode = "default"
+    let explicitMode = false // set if a key is explicitly set (as opposed to a wildcard match)
+
+    for (const pattern of actionModes.sync || []) {
+      if (key === pattern) {
+        explicitMode = true
+        mode = "sync"
+        log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+        break
+      } else if (minimatch(key, pattern)) {
+        mode = "sync"
+        log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+        break
+      }
+    }
+
+    // Local mode takes precedence over sync
+    // TODO: deduplicate
+    for (const pattern of actionModes.local || []) {
+      if (key === pattern) {
+        explicitMode = true
+        mode = "local"
+        log.silly(`Action ${key} set to ${mode} mode, matched on exact key`)
+        break
+      } else if (minimatch(key, pattern)) {
+        mode = "local"
+        log.silly(`Action ${key} set to ${mode} mode, matched with pattern '${pattern}'`)
+        break
+      }
+    }
+
     try {
-      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey })
+      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey, mode })
+
+      if (!action.supportsMode(mode)) {
+        if (explicitMode) {
+          log.warn(chalk.yellow(`${action.longDescription()} is not configured for or does not support ${mode} mode`))
+        }
+      }
+
       graph.addAction(action)
     } catch (error) {
       throw new ConfigurationError(
         chalk.redBright(
-          `\nError parsing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
+          `\nError processing config for ${chalk.white.bold(config.kind)} action ${chalk.white.bold(config.name)}:\n`
         ) + chalk.red(error.message),
-        { error, config }
+        { config },
+        error
       )
     }
   })
@@ -122,10 +173,11 @@ export async function actionConfigsToGraph({
 export async function actionFromConfig({
   garden,
   graph,
-  config,
+  config: inputConfig,
   router,
   log,
   configsByKey,
+  mode,
 }: {
   garden: Garden
   graph: ConfigGraph
@@ -133,17 +185,23 @@ export async function actionFromConfig({
   router: ActionRouter
   log: Log
   configsByKey: ActionConfigsByKey
+  mode: ActionMode
 }) {
   let action: Action
 
   // Call configure handler and validate
-  config = await preprocessActionConfig({ garden, config, router, log })
+  const { config, supportedModes, templateContext } = await preprocessActionConfig({
+    garden,
+    config: inputConfig,
+    router,
+    log,
+  })
 
   const actionTypes = await garden.getActionTypes()
   const definition = actionTypes[config.kind][config.type]?.spec
   const compatibleTypes = [config.type, ...getActionTypeBases(definition, actionTypes[config.kind]).map((t) => t.name)]
 
-  const dependencies = dependenciesFromActionConfig(config, configsByKey, definition)
+  const dependencies = dependenciesFromActionConfig(log, config, configsByKey, definition, templateContext)
   const treeVersion = await garden.vcs.getTreeVersion(log, garden.projectName, config)
 
   const variables = await resolveVariables({
@@ -163,6 +221,8 @@ export async function actionFromConfig({
     variables,
     moduleName: config.internal.moduleName,
     moduleVersion: config.internal.moduleVersion,
+    mode,
+    supportedModes,
   }
 
   if (isBuildActionConfig(config)) {
@@ -220,8 +280,6 @@ export async function resolveAction<T extends Action>({
     graph,
     log,
     force: true,
-    syncModeDeployNames: [],
-    localModeDeployNames: [],
   })
 
   const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
@@ -259,8 +317,6 @@ export async function resolveActions<T extends Action>({
         graph,
         log,
         force: true,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
   )
 
@@ -279,32 +335,40 @@ export async function executeAction<T extends Action>({
   graph,
   action,
   log,
+  statusOnly,
 }: {
   garden: Garden
   graph: ConfigGraph
   action: T
   log: Log
+  statusOnly?: boolean
 }): Promise<Executed<T>> {
   const task = getExecuteTaskForAction(action, {
     garden,
     graph,
     log,
     force: true,
-    syncModeDeployNames: [],
-    localModeDeployNames: [],
   })
 
-  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true })
+  const results = await garden.processTasks({ tasks: [task], log, throwOnError: true, statusOnly })
 
   return <Executed<T>>(<unknown>results.results.getResult(task)!.result!.executedAction)
 }
 
-const getActionConfigContextKeys = memoize(() => {
-  const schema = buildActionConfigSchema()
-  const configKeys = schema.describe().keys
-  return Object.entries(configKeys)
-    .map(([k, v]) => ((<any>v).meta?.templateContext === ProjectConfigContext ? k : null))
-    .filter(isString)
+const getBuiltinConfigContextKeys = memoize(() => {
+  const keys: string[] = []
+
+  for (const schema of [buildActionConfigSchema(), baseRuntimeActionConfigSchema()]) {
+    const configKeys = schema.describe().keys
+
+    for (const [k, v] of Object.entries(configKeys)) {
+      if ((<JoiDescription>v).metas?.find((m) => m.templateContext === ActionConfigContext)) {
+        keys.push(k)
+      }
+    }
+  }
+
+  return uniq(keys)
 })
 
 function getActionSchema(kind: ActionKind) {
@@ -335,19 +399,55 @@ async function preprocessActionConfig({
   router: ActionRouter
   log: Log
 }) {
-  const projectContextKeys = getActionConfigContextKeys()
-  const builtinFieldContext = new ActionConfigContext(garden)
+  const description = describeActionConfig(config)
+  const templateName = config.internal.templateName
+
+  if (templateName) {
+    // Partially resolve inputs
+    const partiallyResolvedInputs = resolveTemplateStrings(
+      config.internal.inputs || {},
+      new ActionConfigContext(garden, { ...config, internal: { ...config.internal, inputs: {} } }),
+      {
+        allowPartial: true,
+      }
+    )
+
+    const template = garden.configTemplates[templateName]
+
+    // Note: This shouldn't happen in normal user flows
+    if (!template) {
+      throw new InternalError(
+        `${description} references template '${
+          config.internal.templateName
+        }' which cannot be found. Available templates: ${naturalList(Object.keys(garden.configTemplates)) || "(none)"}`,
+        { templateName }
+      )
+    }
+
+    // Validate inputs schema
+    config.internal.inputs = validateWithPath({
+      config: cloneDeep(partiallyResolvedInputs),
+      configType: `inputs for ${description}`,
+      path: config.internal.basePath,
+      schema: template.inputsSchema,
+      projectRoot: garden.projectRoot,
+    })
+  }
+
+  const builtinConfigKeys = getBuiltinConfigContextKeys()
+  const builtinFieldContext = new ActionConfigContext(garden, config)
 
   function resolveTemplates() {
     // Fully resolve built-in fields that only support ProjectConfigContext
-    // TODO-G2: better error messages when something goes wrong here
-    const resolvedBuiltin = resolveTemplateStrings(pick(config, projectContextKeys), builtinFieldContext, {
+    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
+    const resolvedBuiltin = resolveTemplateStrings(pick(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: false,
     })
     config = { ...config, ...resolvedBuiltin }
     const { spec = {}, variables = {} } = config
 
     // Validate fully resolved keys (the above + those that don't allow any templating)
+    // TODO-0.13.1: better error messages when something goes wrong here
     config = validateWithPath({
       config: {
         ...config,
@@ -355,7 +455,7 @@ async function preprocessActionConfig({
         spec: {},
       },
       schema: getActionSchema(config.kind),
-      configType: `${describeActionConfig(config)}`,
+      configType: describeActionConfig(config),
       name: config.name,
       path: config.internal.basePath,
       projectRoot: garden.projectRoot,
@@ -363,7 +463,7 @@ async function preprocessActionConfig({
 
     config = { ...config, variables, spec }
 
-    // TODO-G2: handle this
+    // TODO-0.13.0: handle this
     // if (config.repositoryUrl) {
     //   const linkedSources = await getLinkedSources(garden, "module")
     //   config.path = await garden.loadExtSourcePath({
@@ -375,8 +475,8 @@ async function preprocessActionConfig({
     // }
 
     // Partially resolve other fields
-    // TODO-G2: better error messages when something goes wrong here
-    const resolvedOther = resolveTemplateStrings(omit(config, projectContextKeys), builtinFieldContext, {
+    // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)
+    const resolvedOther = resolveTemplateStrings(omit(config, builtinConfigKeys), builtinFieldContext, {
       allowPartial: true,
     })
     config = { ...config, ...resolvedOther }
@@ -384,16 +484,14 @@ async function preprocessActionConfig({
 
   resolveTemplates()
 
-  const description = describeActionConfig(config)
-
-  const { config: updatedConfig } = await router.configureAction({ config, log })
+  const { config: updatedConfig, supportedModes } = await router.configureAction({ config, log })
 
   // -> Throw if trying to modify no-template fields
   for (const field of noTemplateFields) {
-    if (config[field] !== updatedConfig[field]) {
+    if (!isEqual(config[field], updatedConfig[field])) {
       throw new PluginError(
         `Configure handler for ${description} attempted to modify the ${field} field, which is not allowed. Please report this as a bug.`,
-        { config, field }
+        { config, field, original: config[field], modified: updatedConfig[field] }
       )
     }
   }
@@ -401,7 +499,7 @@ async function preprocessActionConfig({
   config = updatedConfig
 
   // -> Resolve templates again after configure handler
-  // TODO-G2: avoid this if nothing changed in the configure handler
+  // TODO: avoid this if nothing changed in the configure handler
   try {
     resolveTemplates()
   } catch (error) {
@@ -411,13 +509,15 @@ async function preprocessActionConfig({
     )
   }
 
-  return config
+  return { config, supportedModes, templateContext: builtinFieldContext }
 }
 
 function dependenciesFromActionConfig(
+  log: Log,
   config: ActionConfig,
   configsByKey: ActionConfigsByKey,
-  definition: MaybeUndefined<ActionTypeDefinition<any>>
+  definition: MaybeUndefined<ActionTypeDefinition<any>>,
+  templateContext: ConfigContext
 ) {
   const description = describeActionConfig(config)
 
@@ -441,7 +541,7 @@ function dependenciesFromActionConfig(
   if (config.kind === "Build") {
     // -> Build copyFrom field
     for (const copyFrom of config.copyFrom || []) {
-      // TODO-G2: need to update this for parameterized actions
+      // TODO: need to update this for parameterized actions
       const ref: ActionReference = { kind: "Build", name: copyFrom.build }
       const buildKey = actionReferenceToString(ref)
 
@@ -477,6 +577,17 @@ function dependenciesFromActionConfig(
     let needsExecuted = false
 
     const outputKey = ref.fullRef[4]
+
+    if (maybeTemplateString(ref.name)) {
+      try {
+        ref.name = resolveTemplateString(ref.name, templateContext, { allowPartial: false })
+      } catch (err) {
+        log.warn(
+          `Unable to infer dependency from action reference in ${description}, because template string '${ref.name}' could not be resolved. Either fix the dependency or specify it explicitly.`
+        )
+        continue
+      }
+    }
 
     if (ref.fullRef[3] === "outputs" && outputKey && !staticKeys?.includes(<string>outputKey)) {
       needsExecuted = true

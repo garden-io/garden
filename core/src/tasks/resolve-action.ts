@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -48,7 +48,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
   }
 
   resolveProcessDependencies(): BaseTask[] {
-    // TODO-G2B
+    // TODO-0.13.1
     // If we get a resolved task upfront, e.g. from module conversion, we could avoid resolving any dependencies.
     // if (this.action.getConfig().internal?.resolved) {
     //   return []
@@ -73,12 +73,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     dependencyResults,
   }: ActionTaskProcessParams<T, ResolveActionResults<T>>): Promise<ResolveActionResults<T>> {
     const action = this.action
+    const config = action.getConfig()
 
     // Collect dependencies
     const resolvedDependencies: ResolvedAction[] = []
     const executedDependencies: ExecutedAction[] = []
 
-    // TODO-G2: get this to a type-safer place
+    // TODO: get this to a type-safer place
     for (const task of dependencyResults.getTasks()) {
       if (task instanceof ResolveActionTask) {
         const r = dependencyResults.getResult(task)
@@ -95,6 +96,20 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       }
     }
 
+    // Resolve template inputs
+    const inputsContext = new ActionSpecContext({
+      garden: this.garden,
+      resolvedProviders: await this.garden.resolveProviders(this.log),
+      action,
+      modules: this.graph.getModules(),
+      partialRuntimeResolution: false,
+      resolvedDependencies,
+      executedDependencies,
+      variables: {},
+      inputs: {},
+    })
+    const inputs = resolveTemplateStrings(config.internal.inputs || {}, inputsContext, { allowPartial: false })
+
     // Resolve variables
     let groupVariables: DeepPrimitiveMap = {}
     const groupName = action.groupName()
@@ -104,20 +119,9 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
 
       groupVariables = resolveTemplateStrings(
         await resolveVariables({ basePath: group.path, variables: group.variables, varfiles: group.varfiles }),
-        new ActionSpecContext({
-          garden: this.garden,
-          resolvedProviders: await this.garden.resolveProviders(this.log),
-          action,
-          modules: this.graph.getModules(),
-          partialRuntimeResolution: false,
-          resolvedDependencies,
-          executedDependencies,
-          variables: {},
-        })
+        inputsContext
       )
     }
-
-    const config = action.getConfig()
 
     const actionVariables = resolveTemplateStrings(
       await resolveVariables({
@@ -134,6 +138,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         resolvedDependencies,
         executedDependencies,
         variables: groupVariables,
+        inputs,
       })
     )
 
@@ -154,6 +159,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
         resolvedDependencies,
         executedDependencies,
         variables,
+        inputs,
       })
     )
 
@@ -173,6 +179,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
       executedDependencies,
       resolvedDependencies,
       variables,
+      inputs,
       spec,
       staticOutputs: {},
     }) as Resolved<T>
@@ -189,7 +196,13 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     const actionRouter = router.getRouterForActionKind(resolvedAction.kind)
     await actionRouter.validateActionOutputs(resolvedAction, "static", staticOutputs)
 
-    // TODO-G2B: avoid this private assignment
+    await actionRouter.callHandler({
+      handlerType: "validate",
+      params: { action: resolvedAction, graph: resolvedGraph, log: this.log, events: undefined },
+      defaultHandler: async (p) => ({}),
+    })
+
+    // TODO: avoid this private assignment
     resolvedAction["_staticOutputs"] = staticOutputs
 
     return {

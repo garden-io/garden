@@ -1,12 +1,11 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import chalk from "chalk"
 import { BuildTask } from "./build"
 import { ActionTaskProcessParams, BaseActionTask, BaseActionTaskParams } from "../tasks/base"
 import { resolveTemplateString } from "../template-string/template-string"
@@ -55,7 +54,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
   }
 
   async getStatus() {
-    // TODO-G2
+    // TODO-0.13.1
     return null
   }
 
@@ -89,6 +88,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
         partialRuntimeResolution: false,
         resolvedDependencies: action.getResolvedDependencies(),
         executedDependencies: action.getExecutedDependencies(),
+        inputs: action.getInternal().inputs || {},
         variables: action.getVariables(),
       })
 
@@ -98,24 +98,21 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
       // TODO: validate the tag?
     }
 
-    const log = this.log
-      .makeNewLogContext({
-        section: action.key(),
-      })
-      .info("Publishing with tag " + tag)
+    const log = this.log.createLog().info("Publishing with tag " + tag)
 
     const router = await this.garden.getActionRouter()
 
     let result: PublishActionResult
     try {
-      result = await router.build.publish({ action, log, graph: this.graph, tag })
+      const output = await router.build.publish({ action, log, graph: this.graph, tag })
+      result = output.result
     } catch (err) {
       log.error(`Failed publishing build ${action.name}`)
       throw err
     }
 
     if (result.detail?.published) {
-      log.setSuccess(chalk.green(result.detail.message || `Ready`))
+      log.success(result.detail.message || `Ready`)
     } else if (result.detail?.message) {
       log.warn(result.detail.message)
     }

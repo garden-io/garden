@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,8 +8,8 @@
 
 import { PluginContext } from "../../../plugin-context"
 import { Log } from "../../../logger/log-entry"
-import { ServiceStatus, ForwardablePort, serviceStateToActionState } from "../../../types/service"
-import { createContainerManifests, startContainerDevSync } from "./deployment"
+import { ServiceStatus, ForwardablePort, DeployState, ServiceIngress } from "../../../types/service"
+import { createContainerManifests } from "./deployment"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { DeploymentError } from "../../../exceptions"
 import { sleep } from "../../../util/util"
@@ -22,17 +22,20 @@ import { KubernetesPluginContext } from "../config"
 import { KubernetesServerResource, KubernetesWorkload } from "../types"
 import { DeployActionHandler } from "../../../plugin/action-types"
 import { getDeployedImageId } from "./util"
-import { Resolved } from "../../../actions/types"
+import { ActionMode, Resolved } from "../../../actions/types"
+import { deployStateToActionState, DeployStatus } from "../../../plugin/handlers/Deploy/get-status"
+import { NamespaceStatus } from "../../../types/namespace"
 
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
   workload: KubernetesWorkload | null
+  selectorChangedResourceKeys: string[]
 }
 
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail, ContainerDeployOutputs>
 
 export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", ContainerDeployAction> = async (params) => {
-  const { ctx, action, log, syncMode, localMode } = params
+  const { ctx, action, log } = params
   const k8sCtx = <KubernetesPluginContext>ctx
 
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -40,7 +43,6 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
   const api = await KubeApi.factory(log, ctx, provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
-  const enableSyncMode = syncMode && !!action.getSpec("sync")
   const imageId = getDeployedImageId(action, provider)
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
@@ -50,62 +52,82 @@ export const k8sGetContainerDeployStatus: DeployActionHandler<"getStatus", Conta
     log,
     action,
     imageId,
-    enableSyncMode,
-    enableLocalMode: localMode,
   })
-  const {
+  let {
     state,
     remoteResources,
-    deployedWithSyncMode: deployedWithDevMode,
-    deployedWithLocalMode,
+    mode: deployedMode,
+    selectorChangedResourceKeys,
   } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(action, api, provider)
 
-  // Local mode has its own port-forwarding configuration
-  const forwardablePorts: ForwardablePort[] = deployedWithLocalMode
-    ? []
-    : action
-        .getSpec("ports")
-        .filter((p) => p.protocol === "TCP")
-        .map((p) => {
-          return {
-            name: p.name,
-            protocol: "TCP",
-            targetPort: p.servicePort,
-            preferredLocalPort: p.localPort,
-            // TODO: this needs to be configurable
-            // urlProtocol: "http",
-          }
-        })
+  return prepareContainerDeployStatus({
+    action,
+    deployedMode,
+    imageId,
+    remoteResources,
+    workload,
+    selectorChangedResourceKeys,
+    state,
+    namespaceStatus,
+    ingresses,
+  })
+}
 
-  const detail = {
+export function prepareContainerDeployStatus({
+  action,
+  deployedMode,
+  imageId,
+  remoteResources,
+  workload,
+  selectorChangedResourceKeys,
+  state,
+  namespaceStatus,
+  ingresses,
+}: {
+  action: Resolved<ContainerDeployAction>
+  deployedMode: ActionMode
+  imageId: string
+  remoteResources: KubernetesServerResource[]
+  workload: KubernetesWorkload
+  selectorChangedResourceKeys: string[]
+  state: DeployState
+  namespaceStatus: NamespaceStatus
+  ingresses: ServiceIngress[] | undefined
+}): DeployStatus<ContainerDeployAction> {
+  // Local mode has its own port-forwarding configuration
+  const forwardablePorts: ForwardablePort[] =
+    deployedMode === "local"
+      ? []
+      : action
+          .getSpec("ports")
+          .filter((p) => p.protocol === "TCP")
+          .map((p) => {
+            return {
+              name: p.name,
+              protocol: "TCP",
+              targetPort: p.servicePort,
+              preferredLocalPort: p.localPort,
+              // TODO: this needs to be configurable
+              // urlProtocol: "http",
+            }
+          })
+
+  const outputs: ContainerDeployOutputs = { deployedImageId: imageId }
+  const detail: ContainerServiceStatus = {
     forwardablePorts,
     ingresses,
-    state,
+    deployState: state,
     namespaceStatuses: [namespaceStatus],
-    version: state === "ready" ? action.versionString() : undefined,
-    detail: { remoteResources, workload },
-    syncMode: deployedWithDevMode,
-    localMode: deployedWithLocalMode,
-    outputs: {
-      deployedImageId: imageId,
-    },
-  }
-
-  if (state === "ready" && syncMode) {
-    // If the service is already deployed, we still need to make sure the sync is started
-    await startContainerDevSync({
-      ctx: <KubernetesPluginContext>ctx,
-      log,
-      status: detail,
-      action,
-    })
+    detail: { remoteResources, workload, selectorChangedResourceKeys },
+    mode: deployedMode,
+    outputs,
   }
 
   return {
-    state: serviceStateToActionState(state),
+    state: deployStateToActionState(state),
     detail,
-    outputs: detail.outputs,
+    outputs,
   }
 }
 
@@ -117,8 +139,6 @@ export async function waitForContainerService(
   ctx: PluginContext,
   log: Log,
   action: Resolved<ContainerDeployAction>,
-  syncMode: boolean,
-  localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
   const startTime = new Date().getTime()
@@ -128,11 +148,11 @@ export async function waitForContainerService(
       ctx,
       log,
       action,
-      syncMode,
-      localMode,
     })
 
-    if (status.state === "ready" || status.state === "outdated") {
+    const deployState = status.detail?.deployState
+
+    if (deployState === "ready" || deployState === "outdated") {
       return
     }
 

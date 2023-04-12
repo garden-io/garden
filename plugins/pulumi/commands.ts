@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -170,8 +170,8 @@ const pulumiCommandSpecs: PulumiCommandSpec[] = [
 ]
 
 const makePluginContextForDeploy = async (params: PulumiParams & { garden: Garden; graph: ConfigGraph }) => {
-  const { garden, provider, ctx } = params
-  const templateContext = new ActionConfigContext(garden)
+  const { garden, provider, ctx, action } = params
+  const templateContext = new ActionConfigContext(garden, action.getConfig())
   const ctxForDeploy = await garden.getPluginContext({ provider, templateContext, events: ctx.events })
   return ctxForDeploy
 }
@@ -215,9 +215,6 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
       force: false,
       action,
       graph,
-
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
     this.commandName = commandName
     this.commandDescription = commandDescription
@@ -269,11 +266,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
   }
 
   async process({ dependencyResults }: ActionTaskProcessParams<PulumiDeploy, PulumiCommandResult>) {
-    const log = this.log
-      .makeNewLogContext({
-        section: this.action.key(),
-      })
-      .info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
+    const log = this.log.createLog().info(chalk.gray(`Running ${chalk.white(this.commandDescription)}`))
 
     const params = { ...this.pulumiParams, action: this.getResolvedAction(this.action, dependencyResults) }
 
@@ -286,7 +279,7 @@ class PulumiPluginCommandTask extends PluginActionTask<PulumiDeploy, PulumiComma
         graph: this.graph,
       })
       const result = await this.runFn({ ...params, ctx: ctxForService })
-      log.setSuccess({
+      log.success({
         msg: chalk.green(`Success (took ${log.getDuration(1)} sec)`),
       })
       return result
@@ -343,7 +336,7 @@ function makePulumiCommand({ name, commandDescription, beforeFn, runFn, afterFn 
       const actions = graph.getDeploys({ names }).filter((a) => a.type === "pulumi")
 
       const tasks = await Bluebird.map(actions, async (action) => {
-        const templateContext = new ActionConfigContext(garden)
+        const templateContext = new ActionConfigContext(garden, action.getConfig())
         const pulumiParams: PulumiBaseParams = {
           ctx: await garden.getPluginContext({ provider, templateContext, events: ctx.events }),
           provider,

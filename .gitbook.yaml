@@ -35,6 +35,8 @@ redirects:
   module-types/openfaas: ./reference/module-types/openfaas.md
   module-types/persistentvolumeclaim: ./reference/module-types/persistentvolumeclaim.md
   module-types/terraform: ./reference/module-types/terraform.md
+  reference/module-template-config: ./reference/config-template-config.md
+  using-garden/module-templates: ./using-garden/config-templates.md
   # Redirects after docs restructure (https://github.com/garden-io/garden/pull/3467)
   advanced/terraform: ./terraform-plugin/about.md
   advanced/pulumi: ./pulumi-plugin/about.md

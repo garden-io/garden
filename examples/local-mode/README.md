@@ -11,16 +11,10 @@ There are 2 local service implementations available for each backend:
 1. [backend-local-1](./backend-local-1)
 2. [backend-local-2](./backend-local-2)
 
-To build the local backend services, locate to each service's directory and run the following commands:
-
-```shell
-# optional command to re-generate `main.mod` file
-go mod init main
-# build binary
-go build -o main
-# make the binary executable
-chmod +x main
-```
+Each local backend application has its own `garden.yml` config that defines a single `Run` action to compile the binary
+of the local app. Each `Deploy` action defined in the [backend-1](./backend-1/garden.yml)
+and [backend-2](./backend-2/garden.yml) depends on the corresponding `Run` action of the `backend-local-1`
+and `backend-local-2` when deployment is running in local mode.
 
 To start the backend(s) in local mode, try the following commands:
 

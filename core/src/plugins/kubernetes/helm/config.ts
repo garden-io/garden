@@ -1,38 +1,54 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DeepPrimitiveMap, joi, joiIdentifier, joiPrimitive, joiSparseArray } from "../../../config/common"
 import {
+  createSchema,
+  DeepPrimitiveMap,
+  joi,
+  joiIdentifier,
+  joiPrimitive,
+  joiSparseArray,
+} from "../../../config/common"
+import {
+  kubernetesCommonRunSchemaKeys,
+  KubernetesCommonRunSpec,
   KubernetesTargetResourceSpec,
   namespaceNameSchema,
   PortForwardSpec,
   portForwardsSchema,
+  runPodResourceSchema,
   targetResourceSpecSchema,
 } from "../config"
 import { kubernetesDeploySyncSchema, KubernetesDeploySyncSpec } from "../sync"
 import { DeployAction, DeployActionConfig } from "../../../actions/deploy"
 import { dedent, deline } from "../../../util/string"
 import { kubernetesLocalModeSchema, KubernetesLocalModeSpec } from "../local-mode"
+import { RunActionConfig, RunAction } from "../../../actions/run"
+import { TestAction, TestActionConfig } from "../../../actions/test"
+import { ObjectSchema } from "@hapi/joi"
+import { KubernetesRunOutputs } from "../kubernetes-type/config"
 
 // DEPLOY //
 
 export const defaultHelmTimeout = 300
 export const defaultHelmRepo = "https://charts.helm.sh/stable"
 
+interface HelmChartSpec {
+  name?: string // Formerly `chart` on Helm modules
+  path?: string // Formerly `chartPath`
+  repo?: string
+  url?: string
+  version?: string
+}
+
 interface HelmDeployActionSpec {
-  atomicInstall: boolean
-  chart?: {
-    name?: string // Formerly `chart` on Helm modules
-    path?: string // Formerly `chartPath`
-    repo?: string // Formerly `repo`
-    url?: string
-    version?: string // Formerly `version`
-  }
+  atomic: boolean
+  chart?: HelmChartSpec
   defaultTarget?: KubernetesTargetResourceSpec
   sync?: KubernetesDeploySyncSpec
   localMode?: KubernetesLocalModeSpec
@@ -53,18 +69,38 @@ const parameterValueSchema = () =>
     )
     .id("parameterValue")
 
+const helmReleaseNameSchema = () =>
+  joiIdentifier().description(
+    "Optionally override the release name used when installing (defaults to the Deploy name)."
+  )
+
+const helmValuesSchema = () =>
+  joi
+    .object()
+    .pattern(/.+/, parameterValueSchema())
+    .default(() => ({})).description(deline`
+    Map of values to pass to Helm when rendering the templates. May include arrays and nested objects.
+    When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
+    in \`valueFiles\`).
+  `)
+
+const helmValueFilesSchema = () =>
+  joiSparseArray(joi.posixPath()).description(dedent`
+    Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
+    bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
+    this list will have the highest precedence.
+
+    If you _also_ specify keys under the \`values\` field, those will effectively be added as another file at the end
+    of this list, so they will take precedence over other files listed here.
+
+    Note that the paths here should be relative to the _config_ root, and the files should be contained in
+    this action config's directory.
+  `)
+
 export const helmCommonSchemaKeys = () => ({
-  atomicInstall: joi
-    .boolean()
-    .default(true)
-    .description(
-      "Whether to set the --atomic flag during installs and upgrades. Set to false if e.g. you want to see more information about failures and then manually roll back, instead of having Helm do it automatically on failure."
-    ),
   namespace: namespaceNameSchema(),
   portForwards: portForwardsSchema(),
-  releaseName: joiIdentifier().description(
-    "Optionally override the release name used when installing (defaults to the module name)."
-  ),
+  releaseName: helmReleaseNameSchema(),
   timeout: joi
     .number()
     .integer()
@@ -72,25 +108,8 @@ export const helmCommonSchemaKeys = () => ({
     .description(
       "Time in seconds to wait for Helm to complete any individual Kubernetes operation (like Jobs for hooks)."
     ),
-  values: joi
-    .object()
-    .pattern(/.+/, parameterValueSchema())
-    .default(() => ({})).description(deline`
-      Map of values to pass to Helm when rendering the templates. May include arrays and nested objects.
-      When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
-      in \`valueFiles\`).
-    `),
-  valueFiles: joiSparseArray(joi.posixPath()).description(dedent`
-      Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
-      bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
-      this list will have the highest precedence.
-
-      If you _also_ specify keys under the \`values\` field, those will effectively be added as another file at the end
-      of this list, so they will take precedence over other files listed here.
-
-      Note that the paths here should be relative to the _module_ root, and the files should be contained in
-      your module directory.
-    `),
+  values: helmValuesSchema(),
+  valueFiles: helmValueFilesSchema(),
 })
 
 export const helmChartNameSchema = () =>
@@ -110,9 +129,9 @@ export const helmChartVersionSchema = () => joi.string().description("The chart 
 export const defaultTargetSchema = () =>
   targetResourceSpecSchema().description(
     dedent`
-    Specify a default resource in the deployment to use for syncs, and for the \`garden exec\` command.
+    Specify a default resource in the deployment to use for syncs, local mode, and for the \`garden exec\` command.
 
-    Specify either \`kind\` and \`name\`, or a \`podSelector\`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing).
+    Specify either \`kind\` and \`name\`, or a \`podSelector\`. The resource should be one of the resources deployed by this action (otherwise the target is not guaranteed to be deployed with adjustments required for syncing or local mode).
 
     Set \`containerName\` to specify a container to connect to in the remote Pod. By default the first container in the Pod is used.
 
@@ -120,42 +139,51 @@ export const defaultTargetSchema = () =>
     `
   )
 
+const helmChartSpecSchema = () =>
+  joi
+    .object()
+    .keys({
+      name: helmChartNameSchema(),
+      path: joi
+        .posixPath()
+        .subPathOnly()
+        .description(
+          "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
+        ),
+      repo: helmChartRepoSchema(),
+      url: joi.string().uri().description("An absolute URL to a packaged URL."),
+      version: helmChartVersionSchema(),
+    })
+    .with("name", ["version"])
+    .without("path", ["name", "repo", "version", "url"])
+    .without("url", ["name", "repo", "version", "path"])
+    .xor("name", "path", "url")
+    .description(
+      dedent`
+  Specify the Helm chart to use.
+
+  If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
+
+  If the chart is remote, you must specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
+
+  You may also specify an absolute URL to a packaged chart via \`chart.url\`.
+
+  One of \`chart.name\`, \`chart.path\` or \`chart.url\` must be specified.
+  `
+    )
+
 export const helmDeploySchema = () =>
   joi
     .object()
     .keys({
       ...helmCommonSchemaKeys(),
-      chart: joi
-        .object()
-        .keys({
-          name: helmChartNameSchema(),
-          path: joi
-            .posixPath()
-            .subPathOnly()
-            .description(
-              "The path, relative to the action path, to the chart sources (i.e. where the Chart.yaml file is, if any)."
-            ),
-          repo: helmChartRepoSchema(),
-          url: joi.string().uri().description("An absolute URL to a packaged URL."),
-          version: helmChartVersionSchema(),
-        })
-        .with("name", ["version"])
-        .without("path", ["name", "repo", "version", "url"])
-        .without("url", ["name", "repo", "version", "path"])
-        .xor("name", "path", "url")
+      atomic: joi
+        .boolean()
+        .default(false)
         .description(
-          dedent`
-        Specify the Helm chart to deploy.
-
-        If the chart is defined in the same directory as the action, you can skip this, and the chart sources will be detected. If the chart is in the source tree but in a sub-directory, you should set \`chart.path\` to the directory path, relative to the action directory.
-
-        If the chart is remote, you must specify \`chart.name\` and \`chart.version\, and optionally \`chart.repo\` (if the chart is not in the default "stable" repo).
-
-        You may also specify an absolute URL to a packaged chart via \`chart.url\`.
-
-        One of \`chart.name\`, \`chart.path\` or \`chart.url\` must be specified.
-        `
+          "Whether to set the --atomic flag during installs and upgrades. Set to true if you'd like the changes applied to be reverted on failure."
         ),
+      chart: helmChartSpecSchema(),
       defaultTarget: defaultTargetSchema(),
       sync: kubernetesDeploySyncSchema(),
       localMode: kubernetesLocalModeSchema(),
@@ -165,6 +193,54 @@ export const helmDeploySchema = () =>
 export type HelmDeployConfig = DeployActionConfig<"helm", HelmDeployActionSpec>
 export type HelmDeployAction = DeployAction<HelmDeployConfig, {}>
 
-// NOTE: Runs and Tests are handled as `kubernetes` Run and Test actions
+// RUN & TEST //
 
-export type HelmActionConfig = HelmDeployConfig
+export interface HelmPodRunActionSpec extends KubernetesCommonRunSpec {
+  chart?: HelmChartSpec
+  namespace?: string
+  releaseName?: string
+  timeout: number
+  values: DeepPrimitiveMap
+  valueFiles: string[]
+  resource?: KubernetesTargetResourceSpec
+}
+
+// Maintaining this cache to avoid errors when `kubernetesRunPodSchema` is called more than once with the same `kind`.
+const runSchemas: { [name: string]: ObjectSchema } = {}
+
+export const helmPodRunSchema = (kind: string) => {
+  const name = `${kind}:helm-pod`
+  if (runSchemas[name]) {
+    return runSchemas[name]
+  }
+  const schema = createSchema({
+    name: `${kind}:helm-pod`,
+    keys: () => ({
+      ...kubernetesCommonRunSchemaKeys(),
+      releaseName: helmReleaseNameSchema().description(
+        `Optionally override the release name used when rendering the templates (defaults to the ${kind} name).`
+      ),
+      chart: helmChartSpecSchema(),
+      values: helmValuesSchema(),
+      valueFiles: helmValueFilesSchema(),
+      resource: runPodResourceSchema("Run"),
+      timeout: joi
+        .number()
+        .integer()
+        .default(defaultHelmTimeout)
+        .description("Time in seconds to wait for Helm to render templates."),
+    }),
+    xor: ["resource", "podSpec"],
+  })()
+  runSchemas[name] = schema
+  return schema
+}
+
+export type HelmPodRunConfig = RunActionConfig<"helm-pod", HelmPodRunActionSpec>
+export type HelmPodRunAction = RunAction<HelmPodRunConfig, KubernetesRunOutputs>
+
+export interface HelmPodTestActionSpec extends HelmPodRunActionSpec {}
+export type HelmPodTestConfig = TestActionConfig<"helm-pod", HelmPodTestActionSpec>
+export type HelmPodTestAction = TestAction<HelmPodTestConfig, KubernetesRunOutputs>
+
+export type HelmActionConfig = HelmDeployConfig | HelmPodRunConfig | HelmPodTestConfig

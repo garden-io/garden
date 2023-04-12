@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,15 +7,15 @@
  */
 
 import { expect } from "chai"
-import { getLogger } from "../../../../src/logger/logger"
+import { getRootLogger } from "../../../../src/logger/logger"
 import { gardenEnv } from "../../../../src/constants"
 import { CloudApi } from "../../../../src/cloud/api"
-import { uuidv4 } from "../../../../src/util/util"
+import { uuidv4 } from "../../../../src/util/random"
 import { randomString } from "../../../../src/util/string"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 
 describe("CloudApi", () => {
-  const log = getLogger().makeNewLogContext()
+  const log = getRootLogger().createLog()
   const domain = "https://garden." + randomString()
   const globalConfigStore = new GlobalConfigStore()
 

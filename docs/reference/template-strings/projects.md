@@ -1,9 +1,9 @@
 ---
 order: 1
-title: Project configuration context
+title: Project template context
 ---
 
-# Project configuration context
+# Project template context
 
 The following keys are available in any template strings within Project configurations, except the `name` field (which cannot be templated). See the [Environment](./environments.md) and [Provider](./providers.md) sections for additional keys available when configuring `environments` and `providers`, respectively.
 
@@ -142,8 +142,6 @@ my-variable: ${command.name}
 ### `${command.params.*}`
 
 A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
-
-For example, to see if a service is in sync mode, you might do something like `${command.params contains 'sync' && command.params.sync contains 'my-service'}`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
 
 Option values can be referenced by the option's default name (e.g. `local-mode`) or its alias (e.g. `local`) if one is defined for that option.
 

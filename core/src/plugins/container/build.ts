@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,13 +8,13 @@
 
 import { containerHelpers } from "./helpers"
 import { ConfigurationError } from "../../exceptions"
-import { LogLevel } from "../../logger/logger"
 import { PrimitiveMap } from "../../config/common"
 import split2 from "split2"
 import { BuildActionHandler } from "../../plugin/action-types"
 import { ContainerBuildAction, ContainerBuildOutputs, defaultDockerfileName } from "./config"
 import { joinWithPosix } from "../../util/fs"
 import { Resolved } from "../../actions/types"
+import dedent from "dedent"
 
 export const getContainerBuildStatus: BuildActionHandler<"getStatus", ContainerBuildAction> = async ({
   ctx,
@@ -47,8 +47,10 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
   // make sure we can build the thing
   if (!hasDockerfile) {
     throw new ConfigurationError(
-      `Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
-      Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.`,
+      dedent`
+      Dockerfile not found at ${spec.dockerfile || defaultDockerfileName} for build ${action.name}.
+      Please make sure the file exists, and is not excluded by include/exclude fields or .gardenignore files.
+    `,
       { spec }
     )
   }
@@ -66,13 +68,13 @@ export const buildContainer: BuildActionHandler<"build", ContainerBuildAction> =
 
   const logEventContext = {
     origin: "docker build",
-    log: log.makeNewLogContext({ level: LogLevel.verbose }),
+    level: "verbose" as const,
   }
 
   const outputStream = split2()
   outputStream.on("error", () => {})
   outputStream.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), msg: line.toString(), ...logEventContext })
   })
   const timeout = action.getConfig("timeout")
   const res = await containerHelpers.dockerCli({

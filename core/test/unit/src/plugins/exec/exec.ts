@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,9 +12,9 @@ import { join } from "path"
 import psTree from "ps-tree"
 
 import { Garden } from "../../../../../src/garden"
-import { ExecProvider, gardenPlugin, getLogFilePath } from "../../../../../src/plugins/exec/exec"
+import { ExecProvider, gardenPlugin } from "../../../../../src/plugins/exec/exec"
 import { Log } from "../../../../../src/logger/log-entry"
-import { keyBy } from "lodash"
+import { keyBy, omit } from "lodash"
 import {
   getDataDir,
   makeTestModule,
@@ -48,6 +48,7 @@ import { ProjectConfig } from "../../../../../src/config/project"
 import { BuildActionConfig } from "../../../../../src/actions/build"
 import { DeployActionConfig } from "../../../../../src/actions/deploy"
 import { RunActionConfig } from "../../../../../src/actions/run"
+import { getLogFilePath } from "../../../../../src/plugins/exec/deploy"
 
 describe("exec plugin", () => {
   context("test-project based tests", () => {
@@ -316,8 +317,6 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
       const result = await _garden.processTask(taskTask, _garden.log, { throwOnError: true })
 
@@ -342,8 +341,6 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(_garden.artifactsPath)
@@ -366,8 +363,6 @@ describe("exec plugin", () => {
         log: _garden.log,
         force: false,
         forceBuild: false,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       await emptyDir(_garden.artifactsPath)
@@ -404,7 +399,7 @@ describe("exec plugin", () => {
         const action = graph.getBuild("module-local")
         const actions = await garden.getActionRouter()
         const resolvedAction = await garden.resolveAction({ action, log, graph })
-        const res = await actions.build.build({ log, action: resolvedAction, graph })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         const expectedBuildLog = join(garden.projectRoot, "module-local")
         expect(res.detail).to.eql({ buildLog: expectedBuildLog, fresh: true })
@@ -418,7 +413,7 @@ describe("exec plugin", () => {
         action._config.spec.shell = false
 
         const resolvedAction = await garden.resolveAction({ log, graph, action })
-        const res = await actions.build.build({ log, action: resolvedAction, graph })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
       })
@@ -431,7 +426,7 @@ describe("exec plugin", () => {
         action._config.spec.shell = false
 
         const resolvedAction = await garden.resolveAction({ log, graph, action })
-        const res = await actions.build.build({ log, action: resolvedAction, graph })
+        const { result: res } = await actions.build.build({ log, action: resolvedAction, graph })
 
         expect(res.detail).to.eql({ buildLog: action.versionString(), fresh: true })
       })
@@ -462,10 +457,11 @@ describe("exec plugin", () => {
             },
           } as TestActionConfig,
           configsByKey: {},
+          mode: "default",
         })) as TestAction
 
         const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
-        const res = await router.test.run({
+        const { result: res } = await router.test.run({
           log,
           interactive: false,
           graph,
@@ -499,9 +495,10 @@ describe("exec plugin", () => {
             },
           } as TestActionConfig,
           configsByKey: {},
+          mode: "default",
         })) as TestAction
         const action = await garden.resolveAction({ action: rawAction, graph, log })
-        const res = await router.test.run({
+        const { result: res } = await router.test.run({
           log,
           action,
           interactive: true,
@@ -517,7 +514,7 @@ describe("exec plugin", () => {
         const actions = await garden.getActionRouter()
         const task = graph.getRun("pwd")
         const action = await garden.resolveAction({ action: task, graph, log })
-        const res = await actions.run.run({
+        const { result: res } = await actions.run.run({
           log,
           action,
           interactive: true,
@@ -536,7 +533,7 @@ describe("exec plugin", () => {
         action._config.spec.shell = true
         action._config.spec.command = ["echo", "$GARDEN_ACTION_VERSION"]
 
-        const res = await actions.run.run({
+        const { result: res } = await actions.run.run({
           log,
           action,
           interactive: true,
@@ -560,17 +557,15 @@ describe("exec plugin", () => {
           const rawAction = graph.getDeploy("echo")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ log, graph, action: rawAction })
-          const res = await router.deploy.deploy({
-            syncMode: false,
+          const { result: res } = await router.deploy.deploy({
             force: false,
 
-            localMode: false,
             log,
             action,
             graph,
           })
           expect(res.state).to.eql("ready")
-          expect(res.detail?.state).to.eql("ready")
+          expect(res.detail?.deployState).to.eql("ready")
           expect(res.detail?.detail.deployCommandOutput).to.eql("deployed echo service")
         })
 
@@ -578,11 +573,9 @@ describe("exec plugin", () => {
           const rawAction = graph.getDeploy("empty")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
-          const res = await router.deploy.deploy({
-            syncMode: false,
+          const { result: res } = await router.deploy.deploy({
             force: false,
 
-            localMode: false,
             log,
             action,
             graph,
@@ -597,10 +590,8 @@ describe("exec plugin", () => {
           await expectError(
             async () =>
               await router.deploy.deploy({
-                syncMode: false,
                 force: false,
 
-                localMode: false,
                 log,
                 action,
                 graph,
@@ -615,9 +606,17 @@ describe("exec plugin", () => {
             `)
           )
         })
-        context("syncMode", () => {
+        context("persistent", () => {
           // We set the pid in the "it" statements.
           let pid = -1
+
+          beforeEach(async () => {
+            graph = await garden.getConfigGraph({
+              log: garden.log,
+              emit: false,
+              actionModes: { sync: ["deploy.sync-*"] },
+            })
+          })
 
           afterEach(async () => {
             if (pid > 1) {
@@ -642,11 +641,8 @@ describe("exec plugin", () => {
             const rawAction = graph.getDeploy("sync-mode")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const res = await router.deploy.deploy({
-              syncMode: true,
+            const { result: res } = await router.deploy.deploy({
               force: false,
-
-              localMode: false,
               log,
               action,
               graph,
@@ -661,11 +657,8 @@ describe("exec plugin", () => {
             const rawAction = graph.getDeploy("sync-mode-with-logs")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const res = await router.deploy.deploy({
-              syncMode: true,
+            const { result: res } = await router.deploy.deploy({
               force: false,
-
-              localMode: false,
               log,
               action,
               graph,
@@ -679,43 +672,37 @@ describe("exec plugin", () => {
             expect(pid).to.be.a("number")
             expect(pid).to.be.greaterThan(0)
 
-            const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: action.name })
+            const logFilePath = getLogFilePath({ ctx, deployName: action.name })
             const logFileContents = (await readFile(logFilePath)).toString()
             const logEntriesWithoutTimestamps = logFileContents
               .split("\n")
               .filter((line) => !!line)
               .map((line) => JSON.parse(line))
-              .map((parsed) => {
-                return {
-                  serviceName: parsed.serviceName,
-                  msg: parsed.msg,
-                  level: parsed.level,
-                }
-              })
+              .map((parsed) => omit(parsed, "timestamp"))
 
             expect(logEntriesWithoutTimestamps).to.eql([
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 1",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 2",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 3",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 4",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-logs",
+                name: "sync-mode-with-logs",
                 msg: "Hello 5",
                 level: 2,
               },
@@ -726,11 +713,8 @@ describe("exec plugin", () => {
             const rawAction = graph.getDeploy("sync-mode-with-empty-log-lines")
             const router = await garden.getActionRouter()
             const action = await garden.resolveAction({ graph, log, action: rawAction })
-            const res = await router.deploy.deploy({
-              syncMode: true,
+            const { result: res } = await router.deploy.deploy({
               force: false,
-
-              localMode: false,
               log,
               action,
               graph,
@@ -742,48 +726,42 @@ describe("exec plugin", () => {
 
             pid = res.detail?.detail.pid
 
-            const logFilePath = getLogFilePath({ projectRoot: garden.projectRoot, deployName: action.name })
+            const logFilePath = getLogFilePath({ ctx, deployName: action.name })
             const logFileContents = (await readFile(logFilePath)).toString()
             const logEntriesWithoutTimestamps = logFileContents
               .split("\n")
               .filter((line) => !!line)
               .map((line) => JSON.parse(line))
-              .map((parsed) => {
-                return {
-                  serviceName: parsed.serviceName,
-                  msg: parsed.msg,
-                  level: parsed.level,
-                }
-              })
+              .map((parsed) => omit(parsed, "timestamp"))
 
             expect(logEntriesWithoutTimestamps).to.eql([
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "1",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "2",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "Hello",
                 level: 2,
               },
               {
-                serviceName: "sync-mode-with-empty-log-lines",
+                name: "sync-mode-with-empty-log-lines",
                 msg: "3",
                 level: 2,
               },
@@ -796,10 +774,7 @@ describe("exec plugin", () => {
             let error: any
             try {
               await router.deploy.deploy({
-                syncMode: true,
                 force: false,
-
-                localMode: false,
                 log,
                 action,
                 graph,
@@ -811,9 +786,9 @@ describe("exec plugin", () => {
             pid = error.detail.pid
             expect(pid).to.be.a("number")
             expect(pid).to.be.greaterThan(0)
-            expect(error.detail.serviceName).to.eql("sync-mode-timeout")
+            expect(error.detail.deployName).to.eql("sync-mode-timeout")
             expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
-            expect(error.detail.timeout).to.eql(3)
+            expect(error.detail.statusTimeout).to.eql(3)
             expect(error.message).to.include(`Timed out waiting for local service sync-mode-timeout to be ready.`)
             expect(error.message).to.include(`The last exit code was 1.`)
             expect(error.message).to.include(`Command output:\nStatus command output`)
@@ -836,8 +811,7 @@ describe("exec plugin", () => {
           const actionRes = res[actionName]
           expect(actionRes.state).to.equal("unknown")
           const detail = actionRes.detail!
-          expect(detail.state).to.equal("unknown")
-          expect(detail.version).to.equal(action.versionString())
+          expect(detail.deployState).to.equal("unknown")
           expect(detail.detail).to.be.empty
         })
 
@@ -847,9 +821,6 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           await router.deploy.deploy({
-            syncMode: false,
-
-            localMode: false,
             force: false,
             log,
             action,
@@ -864,12 +835,11 @@ describe("exec plugin", () => {
           const actionRes = res[actionName]
           expect(actionRes.state).to.equal("ready")
           const detail = actionRes.detail!
-          expect(detail.state).to.equal("ready")
-          expect(detail.version).to.equal(action.versionString())
+          expect(detail.deployState).to.equal("ready")
           expect(detail.detail.statusCommandOutput).to.equal("already deployed")
         })
 
-        it("returns 'outdated' if statusCommand returns non-zero exit code", async () => {
+        it("returns 'not-ready' if statusCommand returns non-zero exit code", async () => {
           const actionName = "touch"
           const rawAction = graph.getDeploy(actionName)
           const router = await garden.getActionRouter()
@@ -881,10 +851,10 @@ describe("exec plugin", () => {
           })
 
           const actionRes = res[actionName]
-          expect(actionRes.state).to.equal("outdated")
+          expect(actionRes.state).to.equal("not-ready")
           const detail = actionRes.detail!
-          expect(detail.state).to.equal("outdated")
-          expect(detail.version).to.equal(action.versionString())
+          // The deploy state is different (has more states) than the action state
+          expect(detail.deployState).to.equal("outdated")
           expect(detail.detail.statusCommandOutput).to.be.empty
         })
       })
@@ -895,15 +865,12 @@ describe("exec plugin", () => {
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
           await router.deploy.deploy({
-            syncMode: false,
-
-            localMode: false,
             force: false,
             log,
             action,
             graph,
           })
-          const res = await router.deploy.delete({
+          const { result: res } = await router.deploy.delete({
             log,
             graph,
             action,
@@ -911,7 +878,7 @@ describe("exec plugin", () => {
 
           expect(res.state).to.equal("not-ready")
           const detail = res.detail!
-          expect(detail.state).to.equal("missing")
+          expect(detail.deployState).to.equal("missing")
           expect(detail.detail.cleanupCommandOutput).to.equal("cleaned up")
         })
 
@@ -919,14 +886,14 @@ describe("exec plugin", () => {
           const rawAction = graph.getDeploy("echo")
           const router = await garden.getActionRouter()
           const action = await garden.resolveAction({ graph, log, action: rawAction })
-          const res = await router.deploy.delete({
+          const { result: res } = await router.deploy.delete({
             log,
             graph,
             action,
           })
 
           expect(res.state).to.equal("unknown")
-          expect(res.detail?.state).to.equal("unknown")
+          expect(res.detail?.deployState).to.equal("unknown")
         })
 
         it("throws if cleanupCommand returns with non-zero code", async () => {
@@ -1214,8 +1181,8 @@ describe("exec plugin", () => {
 
           const moduleNameA = "module-a"
           const buildCommandA = ["echo", moduleNameA]
-          const serviceNameA = "service-a"
-          const deployCommandA = ["echo", "deployed", serviceNameA]
+          const deployNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", deployNameA]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1226,7 +1193,7 @@ describe("exec plugin", () => {
               },
               services: [
                 {
-                  name: serviceNameA,
+                  name: deployNameA,
                   deployCommand: deployCommandA,
                   dependencies: [],
                   disabled: false,
@@ -1257,7 +1224,7 @@ describe("exec plugin", () => {
           expect(buildA).to.exist
           expect(buildA.dependencies).to.eql([])
 
-          const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
+          const deployA = findActionConfigInGroup(groupA, "Deploy", deployNameA)! as DeployActionConfig
           expect(deployA).to.exist
           expect(deployA.build).to.eql(moduleNameA)
           expect(deployA.dependencies).to.eql([])
@@ -1270,8 +1237,8 @@ describe("exec plugin", () => {
           // service spec
 
           const moduleNameA = "module-a"
-          const serviceNameA = "service-a"
-          const deployCommandA = ["echo", "deployed", serviceNameA]
+          const deployNameA = "service-a"
+          const deployCommandA = ["echo", "deployed", deployNameA]
           const moduleConfigA = makeModuleConfig<ExecModuleConfig>(garden.projectRoot, {
             name: moduleNameA,
             type: "exec",
@@ -1282,7 +1249,7 @@ describe("exec plugin", () => {
               },
               services: [
                 {
-                  name: serviceNameA,
+                  name: deployNameA,
                   deployCommand: deployCommandA,
                   dependencies: [],
                   disabled: false,
@@ -1314,7 +1281,7 @@ describe("exec plugin", () => {
           // build action must be missing
           expect(buildA).to.not.exist
 
-          const deployA = findActionConfigInGroup(groupA, "Deploy", serviceNameA)! as DeployActionConfig
+          const deployA = findActionConfigInGroup(groupA, "Deploy", deployNameA)! as DeployActionConfig
           expect(deployA).to.exist
           // no build name expected here
           expect(deployA.build).to.not.exist

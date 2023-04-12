@@ -130,4 +130,4 @@ Please find more info in the ["Issuing an ACME certificate using HTTP validation
 
 ---
 
-If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in [our Discord community](https://discord.gg/gxeuDgp6Xt).
+If have any issue, find a bug, or something is not clear from the documentation, please don't hesitate opening a new [GitHub issue](https://github.com/garden-io/garden/issues/new?template=BUG_REPORT.md) or ask us questions in [our Discord community](https://discord.gg/FrmhuUjFs6).

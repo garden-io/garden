@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,10 +15,11 @@ import hasAnsi = require("has-ansi")
 
 import { LogEntry } from "./log-entry"
 import { JsonLogEntry } from "./writers/json-terminal-writer"
-import { highlightYaml, safeDumpYaml } from "../util/util"
-import { Logger, logLevelMap, LogLevel, formatGardenErrorWithDetail } from "./logger"
+import { highlightYaml, safeDumpYaml } from "../util/serialization"
+import { Logger, logLevelMap, LogLevel } from "./logger"
+import { toGardenError, formatGardenErrorWithDetail } from "../exceptions"
 
-type RenderFn = (entry: LogEntry) => string
+type RenderFn = (entry: LogEntry, logger: Logger) => string
 
 /*** STYLE HELPERS ***/
 
@@ -37,20 +38,22 @@ export const errorStyle = (s: string) => (hasAnsi(s) ? s : chalk.red(s))
 /**
  * Combines the render functions and returns a string with the output value
  */
-export function combineRenders(entry: LogEntry, renderers: RenderFn[]): string {
-  return renderers.map((renderer) => renderer(entry)).join("")
+export function combineRenders(entry: LogEntry, logger: Logger, renderers: RenderFn[]): string {
+  return renderers.map((renderer) => renderer(entry, logger)).join("")
 }
 
 export function renderError(entry: LogEntry): string {
   const { error } = entry
   if (error) {
-    return formatGardenErrorWithDetail(error)
+    return formatGardenErrorWithDetail(toGardenError(error))
   }
 
   return entry.msg || ""
 }
 
 export function renderSymbol(entry: LogEntry): string {
+  const section = renderSection(entry)
+
   let symbol = entry.symbol
 
   if (symbol === "empty") {
@@ -58,15 +61,15 @@ export function renderSymbol(entry: LogEntry): string {
   }
 
   // Always show symbol with sections
-  if (!symbol && entry.section) {
+  if (!symbol && (entry.type === "actionLogEntry" || section)) {
     symbol = "info"
   }
 
   return symbol ? `${logSymbols[symbol]} ` : ""
 }
 
-export function renderTimestamp(entry: LogEntry): string {
-  if (!entry.root.showTimestamps) {
+export function renderTimestamp(entry: LogEntry, logger: Logger): string {
+  if (!logger.showTimestamps) {
     return ""
   }
   return `[${getTimestamp(entry)}] `
@@ -77,7 +80,7 @@ export function getTimestamp(entry: LogEntry): string {
 }
 
 export function renderMsg(entry: LogEntry): string {
-  const { level, msg } = entry
+  const { level, msg, origin } = entry
 
   if (!msg) {
     return ""
@@ -85,7 +88,7 @@ export function renderMsg(entry: LogEntry): string {
 
   const styleFn = level === LogLevel.error ? errorStyle : msgStyle
 
-  return styleFn(msg)
+  return styleFn(origin ? `[${hasAnsi(origin) ? origin : chalk.gray(origin)}] ${msg}` : msg)
 }
 
 export function renderData(entry: LogEntry): string {
@@ -104,6 +107,12 @@ export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
   const { msg } = entry
   let { section } = entry
+
+  if (entry.type === "actionLogEntry") {
+    section = `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
+  } else if (entry.context.name) {
+    section = entry.context.name
+  }
 
   // For log levels higher than "info" we print the log level name.
   // This should technically happen when we render the symbol but it's harder
@@ -136,7 +145,7 @@ export function renderSection(entry: LogEntry): string {
 /**
  * Formats entries for the terminal writer.
  */
-export function formatForTerminal(entry: LogEntry): string {
+export function formatForTerminal(entry: LogEntry, logger: Logger): string {
   const { msg: msg, section, symbol, data } = entry
   const empty = [msg, section, symbol, data].every((val) => val === undefined)
 
@@ -144,7 +153,14 @@ export function formatForTerminal(entry: LogEntry): string {
     return ""
   }
 
-  return combineRenders(entry, [renderTimestamp, renderSymbol, renderSection, renderMsg, renderData, () => "\n"])
+  return combineRenders(entry, logger, [
+    renderTimestamp,
+    renderSymbol,
+    renderSection,
+    renderMsg,
+    renderData,
+    () => "\n",
+  ])
 }
 
 export function cleanForJSON(input?: string | string[]): string {
@@ -160,17 +176,10 @@ export function cleanWhitespace(str: string) {
   return str.replace(/\s+/g, " ")
 }
 
-export function render(entry: LogEntry, logger: Logger): string | null {
-  if (logger.level >= entry.level) {
-    return formatForTerminal(entry)
-  }
-  return null
-}
-
 // TODO: Include individual message states with timestamp
 export function formatForJson(entry: LogEntry): JsonLogEntry {
   const { msg, metadata, section } = entry
-  const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(entry.error) : undefined
+  const errorDetail = entry.error && entry ? formatGardenErrorWithDetail(toGardenError(entry.error)) : undefined
   const jsonLogEntry: JsonLogEntry = {
     msg: cleanForJSON(msg),
     data: entry.data,

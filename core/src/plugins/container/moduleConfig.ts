@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -86,7 +86,7 @@ export const defaultTag = "latest"
 
 const containerBuildSpecSchema = () =>
   baseBuildSpecSchema().keys({
-    target: joi.string().description(deline`
+    targetImage: joi.string().description(deline`
       For multi-stage Dockerfiles, specify which image/stage to build (see
       https://docs.docker.com/engine/reference/commandline/build/#specifying-target-build-stage---target for
       details).
@@ -116,7 +116,6 @@ const containerServiceSchema = () =>
     })
     .rename("devMode", "sync")
 
-// TODO-G2: peel out build action keys
 export const containerModuleSpecSchema = () =>
   joi
     .object()

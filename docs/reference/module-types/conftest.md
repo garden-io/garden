@@ -113,7 +113,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -170,9 +170,6 @@ namespace: main
 
 # Set to true to use the conftest --combine flag
 combine: false
-
-# A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
-files:
 ```
 
 ## Configuration Keys
@@ -393,7 +390,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -502,14 +499,6 @@ Set to true to use the conftest --combine flag
 | --------- | ------- | -------- |
 | `boolean` | `false` | No       |
 
-### `files[]`
-
-A list of files to test with the given policy. Must be POSIX-style paths, and may include wildcards.
-
-| Type               | Required |
-| ------------------ | -------- |
-| `array[posixPath]` | Yes      |
-
 
 ## Outputs
 
@@ -520,7 +509,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -534,7 +523,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -542,7 +531,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |

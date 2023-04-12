@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,7 @@ export class ValidateCommand extends Command {
 
   async action({ garden, log }: CommandParams): Promise<CommandResult> {
     // This implicitly validates modules and actions.
-    await garden.getConfigGraph({ log, emit: false })
+    await garden.getResolvedConfigGraph({ log, emit: false })
 
     /*
      * Normally, workflow configs are only resolved when they're run via the `run-workflow` command (and only the

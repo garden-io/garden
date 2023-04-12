@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { ConfigurationError, CloudApiError } from "../../../exceptions"
 import { ListUsersResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -20,10 +20,10 @@ import { getCloudDistributionName } from "../../../util/util"
 
 export const usersListOpts = {
   "filter-names": new StringsParameter({
-    help: deline`Filter on user name. Use comma as a separator to filter on multiple names. Accepts glob patterns.`,
+    help: deline`Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.`,
   }),
   "filter-groups": new StringsParameter({
-    help: deline`Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.`,
+    help: deline`Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.`,
   }),
 }
 
@@ -59,7 +59,7 @@ export class UsersListCommand extends Command<{}, Opts> {
     const project = await api.getProject()
 
     if (!project) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
         {}
       )

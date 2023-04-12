@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -55,12 +55,12 @@ describe("DeployTask", () => {
             handlers: {
               deploy: async (params) => ({
                 state: "ready",
-                detail: { detail: {}, state: "ready" },
+                detail: { detail: {}, deployState: "ready" },
                 outputs: { log: params.action.getSpec().log },
               }),
               getStatus: async (params) => ({
                 state: "ready",
-                detail: { detail: {}, state: "ready" },
+                detail: { detail: {}, deployState: "ready" },
                 outputs: { log: params.action.getSpec().log },
               }),
             },
@@ -159,8 +159,6 @@ describe("DeployTask", () => {
         forceBuild: false,
 
         log: garden.log,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       expect(forcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force).to
@@ -174,8 +172,6 @@ describe("DeployTask", () => {
         forceBuild: false,
 
         log: garden.log,
-        syncModeDeployNames: [],
-        localModeDeployNames: [],
       })
 
       expect(unforcedDeployTask.resolveProcessDependencies({ status: null }).find((dep) => dep.type === "run")!.force)

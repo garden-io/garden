@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import Bluebird from "bluebird"
 
 import { Events, EventName, EventBus, pipedEventNames } from "../events"
-import { LogEntryMetadata, Log, LogEntry } from "../logger/log-entry"
+import { LogMetadata, Log, LogEntry } from "../logger/log-entry"
 import { got } from "../util/http"
 
 import { LogLevel } from "../logger/logger"
@@ -30,7 +30,7 @@ export interface LogEntryEventPayload {
   timestamp: string
   level: LogLevel
   message: LogEntryMessage
-  metadata?: LogEntryMetadata
+  metadata?: LogMetadata
 }
 
 export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayload {

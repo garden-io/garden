@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -45,13 +45,15 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
   outputsSchema = () =>
     getRunResultSchema()
       .keys({
-        artifacts: joiArray(joi.string()).description("Local file paths to any exported artifacts from the task run."),
+        artifacts: joiArray(joi.string()).description(
+          "Local file paths to any exported artifacts from the Run's execution."
+        ),
       })
-      .description("The output from the task. May also return null if no task result is found.")
+      .description("The output from the Run. May also return null if no Run result is found.")
 
   printHeader({ headerLog, args }) {
     const taskName = args.name
-    printHeader(headerLog, `Task result for task ${chalk.cyan(taskName)}`, "🚀")
+    printHeader(headerLog, `Run result for ${chalk.cyan(taskName)}`, "🚀")
   }
 
   async action({ garden, log, args }: CommandParams<Args>) {
@@ -62,7 +64,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
 
     const resolved = await garden.resolveAction({ action, graph, log })
 
-    const res = await router.run.getResult({
+    const { result: res } = await router.run.getResult({
       log,
       action: resolved,
       graph,
@@ -84,7 +86,7 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
       log.info(`Could not find results for ${action.longDescription()}`)
     } else {
       if (res.detail === undefined) {
-        log.error(`Type ${action.type} for Run ${args.name} does not support storing/getting task results.`)
+        log.error(`Type ${action.type} for Run ${args.name} does not support storing/getting Run results.`)
       } else {
         log.info({ data: res })
       }

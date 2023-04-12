@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,7 @@ export const gardenPlugin = () =>
     docs: dedent`
     The \`local-kubernetes\` provider is a specialized version of the [\`kubernetes\` provider](${providerUrl}) that automates and simplifies working with local Kubernetes clusters.
 
-    For general Kubernetes usage information, please refer to the [Kubernetes plugin section](${DOCS_BASE_URL}/kubernetes-plugins/about) in the docs. For local clusters a good place to start is the [Local Kubernetes guide](${DOCS_BASE_URL}/kubernetes-plugins/local-k8s) guide.
+    For general Kubernetes usage information, please refer to the [Kubernetes guides](${DOCS_BASE_URL}/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](${DOCS_BASE_URL}/kubernetes-plugins/local-k8s) guide. The [Quickstart Guide](${DOCS_BASE_URL}/basics/quickstart) guide is also helpful as an introduction.
 
     If you're working with a remote Kubernetes cluster, please refer to the [\`kubernetes\` provider](${providerUrl}) docs, and the [Remote Kubernetes guide](${DOCS_BASE_URL}/kubernetes-plugins/remote-k8s) guide.
   `,
@@ -29,12 +29,3 @@ export const gardenPlugin = () =>
       configureProvider,
     },
   })
-
-// TODO-G2: pull image before deploying on local k8s
-// if (await containerHelpers.imageExistsLocally(module, log, ctx)) {
-//   return { fresh: false }
-// }
-// log.setState(`Pulling image ${image}...`)
-// const identifier = helpers.getPublicImageId(module)
-// await helpers.dockerCli({ cwd: module.buildPath, args: ["pull", identifier], log, ctx })
-// return { fetched: true }

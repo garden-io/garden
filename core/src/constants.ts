@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,10 +17,8 @@ export const GARDEN_CLI_ROOT = isPkg ? resolve(process.execPath, "..") : resolve
 export const STATIC_DIR = isPkg ? resolve(process.execPath, "..", "static") : resolve(GARDEN_CORE_ROOT, "..", "static")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
 export const MUTAGEN_DIR_NAME = "mutagen"
-export const LATEST_MUTAGEN_DATA_DIR_NAME = "latest"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
-export const LOGS_DIR = join(DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"
 export const PROJECT_SOURCES_DIR_NAME = join("sources", "project")
 export const MODULE_SOURCES_DIR_NAME = join("sources", "module")
@@ -30,7 +28,7 @@ export const DEFAULT_PORT_PROTOCOL = "TCP"
 export const DEFAULT_API_VERSION = "garden.io/v0"
 
 export const DEFAULT_TEST_TIMEOUT = 60 * 1000
-export const DEFAULT_TASK_TIMEOUT = 60 * 1000
+export const DEFAULT_RUN_TIMEOUT = 60 * 1000
 
 export type SupportedPlatform = "linux" | "darwin" | "win32"
 export const SUPPORTED_PLATFORMS: SupportedPlatform[] = ["linux", "darwin", "win32"]
@@ -44,6 +42,8 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 
 export const DOCS_BASE_URL = "https://docs.garden.io"
 export const VERSION_CHECK_URL = "https://get.garden.io/version"
+
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden"
 
 /**
  * Environment variables, with defaults where appropriate.

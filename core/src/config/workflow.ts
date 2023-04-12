@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,8 @@ import { resolveTemplateStrings } from "../template-string/template-string"
 import { validateWithPath } from "./validation"
 import { ConfigurationError } from "../exceptions"
 import { EnvironmentConfig, getNamespace } from "./project"
-import { omitUndefined } from "../util/util"
+import { omitUndefined } from "../util/objects"
+import { BaseGardenResource, GardenResource } from "./base"
 
 export const minimumWorkflowRequests = {
   cpu: 50, // 50 millicpu
@@ -50,18 +51,15 @@ export const defaultWorkflowResources = {
   limits: defaultWorkflowLimits,
 }
 
-export interface WorkflowConfig {
+export interface WorkflowConfig extends BaseGardenResource {
   apiVersion: string
   description?: string
-  name: string
   envVars: PrimitiveMap
   kind: "Workflow"
-  path: string
   resources: {
     requests: ServiceLimitSpec
     limits: ServiceLimitSpec
   }
-  configPath?: string
   keepAliveHours?: number
   files?: WorkflowFileSpec[]
   limits?: ServiceLimitSpec
@@ -352,6 +350,8 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
   const partialConfig = {
     // Don't allow templating in names and triggers
     ...omit(config, "name", "triggers"),
+    // Inputs can be partially resolved
+    internal: omit(config.internal, "inputs"),
     // Defer resolution of step commands and scripts (the dummy script will be overwritten again below)
     steps: config.steps.map((s) => ({ ...s, command: undefined, script: "echo" })),
   }
@@ -365,13 +365,19 @@ export function resolveWorkflowConfig(garden: Garden, config: WorkflowConfig) {
     resolvedPartialConfig.triggers = config.triggers
   }
 
+  if (config.internal.inputs) {
+    resolvedPartialConfig.internal.inputs = resolveTemplateStrings(config.internal.inputs, context, {
+      allowPartial: true,
+    })
+  }
+
   log.silly(`Validating config for workflow ${config.name}`)
 
   resolvedPartialConfig = validateWithPath({
     config: resolvedPartialConfig,
     configType: "workflow",
     schema: workflowConfigSchema(),
-    path: config.path,
+    path: config.internal.basePath,
     projectRoot: garden.projectRoot,
   })
 
@@ -445,4 +451,8 @@ export function populateNamespaceForTriggers(config: WorkflowConfig, environment
   } catch (err) {
     throw new ConfigurationError(`Invalid namespace in trigger for workflow ${config.name}: ${err.message}`, { err })
   }
+}
+
+export function isWorkflowConfig(resource: GardenResource): resource is WorkflowConfig {
+  return resource.kind === "Workflow"
 }

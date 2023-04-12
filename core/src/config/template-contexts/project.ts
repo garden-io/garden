@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,10 +11,12 @@ import chalk from "chalk"
 import { PrimitiveMap, joiIdentifierMap, joiStringMap, joiPrimitive, DeepPrimitiveMap, joiVariables } from "../common"
 import { joi } from "../common"
 import { deline, dedent } from "../../util/string"
-import { schema, ConfigContext, ContextKeySegment, EnvironmentContext } from "./base"
+import { schema, ConfigContext, ContextKeySegment, EnvironmentContext, ParentContext, TemplateContext } from "./base"
 import { CommandInfo } from "../../plugin-context"
 import { Garden } from "../../garden"
 import { VcsInfo } from "../../vcs/vcs"
+import type { ActionConfig } from "../../actions/types"
+import type { WorkflowConfig } from "../workflow"
 
 class LocalContext extends ConfigContext {
   @schema(
@@ -193,7 +195,7 @@ class VcsContext extends ConfigContext {
   }
 }
 
-const commandSyncModeExample = "${command.params contains 'sync' && command.params.sync contains 'my-service'}"
+const commandSyncModeExample = "${this.mode == 'sync'}"
 
 class CommandContext extends ConfigContext {
   @schema(
@@ -215,8 +217,6 @@ class CommandContext extends ConfigContext {
       .description(
         dedent`
         A map of all parameters set when calling the current command. This includes both positional arguments and option flags, and includes any default values set by the framework or specific command. This can be powerful if used right, but do take care since different parameters are only available in certain commands, some have array values etc.
-
-        For example, to see if a service is in sync mode, you might do something like \`${commandSyncModeExample}\`. Notice that you currently need to check both for the existence of the parameter, and also to correctly handle the array value.
 
         Option values can be referenced by the option's default name (e.g. \`local-mode\`) or its alias (e.g. \`local\`) if one is defined for that option.
         `
@@ -402,7 +402,7 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
       artifactsPath: garden.artifactsPath,
       vcsInfo: garden.vcsInfo,
       username: garden.username,
-      loggedIn: !!garden.cloudApi,
+      loggedIn: garden.isLoggedIn(),
       enterpriseDomain: garden.cloudApi?.domain,
       secrets: garden.secrets,
       commandInfo: garden.commandInfo,
@@ -411,5 +411,35 @@ export class RemoteSourceConfigContext extends EnvironmentConfigContext {
 
     const fullEnvName = garden.namespace ? `${garden.namespace}.${garden.environmentName}` : garden.environmentName
     this.environment = new EnvironmentContext(this, garden.environmentName, fullEnvName, garden.namespace)
+  }
+}
+
+export class TemplatableConfigContext extends RemoteSourceConfigContext {
+  @schema(
+    joiVariables().description(`The inputs provided to the config through a template, if applicable.`).meta({
+      keyPlaceholder: "<input-key>",
+    })
+  )
+  public inputs: DeepPrimitiveMap
+
+  @schema(
+    ParentContext.getSchema().description(
+      `Information about the config parent, if any (usually a template, if applicable).`
+    )
+  )
+  public parent?: ParentContext
+
+  @schema(
+    TemplateContext.getSchema().description(
+      `Information about the template used when generating the config, if applicable.`
+    )
+  )
+  public template?: TemplateContext
+
+  constructor(garden: Garden, config: ActionConfig | WorkflowConfig) {
+    super(garden, garden.variables)
+    this.inputs = config.internal.inputs || {}
+    this.parent = config.internal.parentName ? new ParentContext(this, config.internal.parentName) : undefined
+    this.template = config.internal.templateName ? new TemplateContext(this, config.internal.templateName) : undefined
   }
 }

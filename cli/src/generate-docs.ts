@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,7 @@
 
 import { generateDocs } from "@garden-io/core/build/src/docs/generate"
 import { resolve } from "path"
-import { Logger, LogLevel } from "@garden-io/core/build/src/logger/logger"
+import { LogLevel, RootLogger } from "@garden-io/core/build/src/logger/logger"
 import { GARDEN_CLI_ROOT } from "@garden-io/core/build/src/constants"
 import { getBundledPlugins } from "./cli"
 import { getSupportedPlugins } from "@garden-io/core/build/src/plugins/plugins"
@@ -17,9 +17,9 @@ require("source-map-support").install()
 
 // make sure logger is initialized
 try {
-  Logger.initialize({
+  RootLogger.initialize({
     level: LogLevel.info,
-    type: "quiet",
+    displayWriterType: "quiet",
     storeEntries: false,
     // level: LogLevel.debug,
     // writers: [new TerminalWriter()],

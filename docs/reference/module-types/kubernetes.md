@@ -117,7 +117,7 @@ allowPublish: true
 # generate (and template) any supporting files needed for the module.
 generateFiles:
   - # POSIX-style filename to read the source file contents from, relative to the path of the module (or the
-    # ModuleTemplate configuration file if one is being applied).
+    # ConfigTemplate configuration file if one is being applied).
     # This file may contain template strings, much like any other field in the configuration.
     sourcePath:
 
@@ -237,8 +237,8 @@ sync:
 
   # Specify one or more source files or directories to automatically sync with the running container.
   paths:
-    - # POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a
-      # relative path. Defaults to the config's directory if no value is provided.
+    - # POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no
+      # value is provided.
       source: .
 
       # POSIX-style absolute path to sync to inside the container. The root path (i.e. "/") is not allowed.
@@ -277,20 +277,23 @@ sync:
   # workload is used.
   containerName:
 
-# Configures the local application which will send and receive network requests instead of the target resource
-# specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for
-# the action.
+# [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target
+# resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local
+# mode for the action.
 #
 # The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
 # server to proxy requests.
 # Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 #
-# Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+# Local mode is enabled by setting the `--local` option on the `garden deploy` command.
 # Local mode always takes the precedence over sync mode if there are any conflicting service names.
 #
 # Health checks are disabled for services running in local mode.
 #
 # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+#
+# Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+# release.
 localMode:
   # The reverse port-forwards configuration for the local application.
   ports:
@@ -780,7 +783,7 @@ A list of files to write to the module directory when resolving this module. Thi
 
 [generateFiles](#generatefiles) > sourcePath
 
-POSIX-style filename to read the source file contents from, relative to the path of the module (or the ModuleTemplate configuration file if one is being applied).
+POSIX-style filename to read the source file contents from, relative to the path of the module (or the ConfigTemplate configuration file if one is being applied).
 This file may contain template strings, much like any other field in the configuration.
 
 | Type        | Required |
@@ -1056,11 +1059,11 @@ Specify one or more source files or directories to automatically sync with the r
 
 [sync](#sync) > [paths](#syncpaths) > source
 
-POSIX-style path of the directory to sync to the target, relative to the config's directory. Must be a relative path. Defaults to the config's directory if no value is provided.
+POSIX-style or Windows path of the directory to sync to the target. Defaults to the config's directory if no value is provided.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"."`   | No       |
 
 Example:
 
@@ -1175,17 +1178,19 @@ Optionally specify the name of a specific container to sync to. If not specified
 
 ### `localMode`
 
-Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource specified by `localMode.target` or `defaultTarget`. One of those fields must be specified to enable local mode for the action.
 
 The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
 Reverse port-forwarding will be automatically configured to route traffic to the locally run application and back.
 
-Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode is enabled by setting the `--local` option on the `garden deploy` command.
 Local mode always takes the precedence over sync mode if there are any conflicting service names.
 
 Health checks are disabled for services running in local mode.
 
 See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1906,7 +1911,7 @@ modules.
 
 ### `${modules.<module-name>.buildPath}`
 
-The build path of the action/module.
+The build path of the module.
 
 | Type     |
 | -------- |
@@ -1920,7 +1925,7 @@ my-variable: ${modules.my-module.buildPath}
 
 ### `${modules.<module-name>.name}`
 
-The name of the action/module.
+The name of the module.
 
 | Type     |
 | -------- |
@@ -1928,7 +1933,7 @@ The name of the action/module.
 
 ### `${modules.<module-name>.path}`
 
-The source path of the action/module.
+The source path of the module.
 
 | Type     |
 | -------- |

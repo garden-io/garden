@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,8 +19,9 @@ import { VcsHandler } from "../vcs/vcs"
 import { Log } from "../logger/log-entry"
 import { ModuleConfig } from "../config/module"
 import pathIsInside from "path-is-inside"
-import { uuidv4, exec } from "./util"
+import { exec } from "./util"
 import type Micromatch from "micromatch"
+import { uuidv4 } from "./random"
 
 export const defaultConfigFilename = "garden.yml"
 export const configFilenamePattern = "*garden.y*ml"

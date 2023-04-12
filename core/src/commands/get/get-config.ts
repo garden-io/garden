@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,8 +25,7 @@ export const getConfigOptions = {
     help: "Exclude disabled action and module configs from output.",
   }),
   "resolve": new ChoicesParameter({
-    help:
-      "Choose level of resolution of config templates. Defaults to full. Specify --resolve=partial to avoid resolving providers.",
+    help: "Choose level of resolution of config templates. Defaults to full. Specify --resolve=partial to avoid resolving providers.",
     // TODO: add "raw" option, to just scan for configs and return completely unresolved
     choices: ["full", "partial"],
     defaultValue: "full",
@@ -96,7 +95,7 @@ export class GetConfigCommand extends Command<{}, Opts, ConfigDump> {
       config.moduleConfigs = filteredModuleConfigs
 
       for (const configs of Object.values(config.actionConfigs)) {
-        // TODO-G2: work out why c resolves as any
+        // TODO: work out why c resolves as any
         for (const [key, c] of Object.entries(configs)) {
           if (c.disabled) {
             delete configs[key]

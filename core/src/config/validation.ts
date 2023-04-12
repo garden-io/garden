@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,7 +10,7 @@ import Joi from "@hapi/joi"
 import { ConfigurationError, LocalConfigError } from "../exceptions"
 import chalk from "chalk"
 import { relative } from "path"
-import { uuidv4 } from "../util/util"
+import { uuidv4 } from "../util/random"
 import { metadataFromDescription } from "./common"
 
 export const joiPathPlaceholder = uuidv4()

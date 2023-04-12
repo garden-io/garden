@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,13 +20,8 @@ import { getProviderActionDescriptions, ProviderHandlers } from "../../../../src
 import { createProjectConfig, makeTestGarden, projectRootA } from "../../../helpers"
 
 export async function getRouterTestData() {
-  const {
-    basePlugin,
-    dateUsedForCompleted,
-    returnWrongOutputsCfgKey,
-    testPluginA,
-    testPluginB,
-  } = getRouterUnitTestPlugins()
+  const { basePlugin, dateUsedForCompleted, returnWrongOutputsCfgKey, testPluginA, testPluginB } =
+    getRouterUnitTestPlugins()
   const garden = await makeTestGarden(projectRootA, {
     plugins: [basePlugin, testPluginA, testPluginB],
     config: createProjectConfig({
@@ -267,15 +262,8 @@ function getRouterUnitTestPlugins() {
           convert: async (params) => {
             validateParams(params, moduleActionDescriptions.convert.paramsSchema)
 
-            const {
-              module,
-              services,
-              tasks,
-              tests,
-              dummyBuild,
-              convertBuildDependency,
-              convertRuntimeDependencies,
-            } = params
+            const { module, services, tasks, tests, dummyBuild, convertBuildDependency, convertRuntimeDependencies } =
+              params
 
             const actions: (BuildActionConfig | BaseRuntimeActionConfig)[] = []
 
@@ -423,7 +411,7 @@ function getRouterUnitTestPlugins() {
             getStatus: async (params) => {
               return {
                 state: "ready",
-                detail: { state: "ready", detail: {} },
+                detail: { deployState: "ready", detail: {} },
                 outputs: getTestPluginOutputs(params),
               }
             },
@@ -432,13 +420,13 @@ function getRouterUnitTestPlugins() {
               // validateParams(params, moduleActionDescriptions.deployService.paramsSchema)
               return {
                 state: "ready",
-                detail: { state: "ready", detail: {} },
+                detail: { deployState: "ready", detail: {} },
                 outputs: getTestPluginOutputs(params),
               }
             },
 
             delete: async (_params) => {
-              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
             },
 
             exec: async (_params) => {

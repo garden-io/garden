@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +18,8 @@ import { execInHelmDeploy } from "./exec"
 import { getHelmDeployLogs } from "./logs"
 import { getHelmDeployStatus } from "./status"
 import { posix } from "path"
+import { k8sContainerStopSync } from "../container/sync"
+import { helmGetSyncStatus, helmStartSync } from "./sync"
 
 export const helmDeployDocs = dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
@@ -36,6 +38,10 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
     exec: execInHelmDeploy,
     getLogs: getHelmDeployLogs,
     getStatus: getHelmDeployStatus,
+
+    startSync: helmStartSync,
+    stopSync: k8sContainerStopSync,
+    getSyncStatus: helmGetSyncStatus,
 
     getPortForward: async (params) => {
       const { ctx, log, action } = params
@@ -64,7 +70,7 @@ export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction>
         config.include = config.include.map((path) => posix.join(chartPath, path))
       }
 
-      return { config }
+      return { config, supportedModes: { sync: !!config.spec.sync, local: !!config.spec.localMode } }
     },
   },
 })

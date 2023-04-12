@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ import type {
   WrappedActionHandler,
 } from "../plugin/base"
 import type { GardenPlugin, ActionHandler, PluginMap } from "../plugin/plugin"
-import type { PluginEventBroker } from "../plugin-context"
+import type { PluginContext, PluginEventBroker } from "../plugin-context"
 import type { ConfigContext } from "../config/template-contexts/base"
 import type { BaseAction } from "../actions/base"
 import type { ActionKind, BaseActionConfig, Resolved } from "../actions/types"
@@ -149,11 +149,16 @@ type HandlerParams<K extends ActionKind, H extends keyof ActionTypeClasses<K>> =
 }
 
 type WrapRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
-  (params: HandlerParams<K, H>): Promise<GetActionTypeResults<ActionTypeClasses<K>[H]>>
+  (params: HandlerParams<K, H>): Promise<ActionRouterHandlerOutput<GetActionTypeResults<ActionTypeClasses<K>[H]>>>
 }
 
 export type WrappedActionRouterHandlers<K extends ActionKind> = {
   [H in keyof Omit<ActionTypeClasses<K>, CommonHandlers>]: WrapRouterHandler<K, H>
+}
+
+interface ActionRouterHandlerOutput<R> {
+  ctx: PluginContext
+  result: R
 }
 
 type ActionRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses<K>> = {
@@ -166,7 +171,7 @@ type ActionRouterHandler<K extends ActionKind, H extends keyof ActionTypeClasses
       events: PluginEventBroker | undefined
       pluginName?: string
     }
-  ): Promise<GetActionTypeResults<ActionTypeClasses<K>[H]>>
+  ): Promise<ActionRouterHandlerOutput<GetActionTypeResults<ActionTypeClasses<K>[H]>>>
 }
 
 export type ActionRouterHandlers<K extends ActionKind> = {
@@ -235,9 +240,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       throw new InternalError(`Attempted to call ${this.kind} handler for ${config.kind} action`, {})
     }
 
-    // TODO-G2B: work out why this cast is needed
+    // TODO: work out why this cast is needed
     const defaultHandler: any = async (params) => {
-      return { config: params.config }
+      return { config: params.config, supportedModes: {} }
     }
 
     const handler = await this.getHandler({
@@ -246,7 +251,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
       defaultHandler,
     })
 
-    const templateContext = new ActionConfigContext(this.garden)
+    const templateContext = new ActionConfigContext(this.garden, config)
 
     const commonParams = await this.commonParams(handler, log, templateContext, undefined)
 
@@ -271,7 +276,7 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     } & Omit<GetActionTypeParams<ActionTypeClasses<K>[T]>, keyof PluginActionParamsBase>
     handlerType: T
     defaultHandler?: GetActionTypeHandler<ActionTypeClasses<K>[T], T>
-  }): Promise<GetActionTypeResults<ActionTypeClasses<K>[T]>> {
+  }): Promise<ActionRouterHandlerOutput<GetActionTypeResults<ActionTypeClasses<K>[T]>>> {
     const { action, pluginName, log, graph } = params
 
     log.silly(`Getting '${String(handlerType)}' handler for ${action.longDescription()}`)
@@ -297,9 +302,10 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
           modules: graph.getModules(),
           resolvedDependencies: action.getResolvedDependencies(),
           executedDependencies: action.getExecutedDependencies(),
+          inputs: action.getInternal().inputs || {},
           variables: action.getVariables(),
         })
-      : new ActionConfigContext(this.garden)
+      : new ActionConfigContext(this.garden, action.getConfig())
 
     const handlerParams = {
       ...(await this.commonParams(handler, params.log, templateContext, params.events)),
@@ -311,9 +317,9 @@ export abstract class BaseActionRouter<K extends ActionKind> extends BaseRouter 
     const result: GetActionTypeResults<ActionTypeClasses<K>[T]> = await handler(handlerParams)
 
     // Validate result
-    // TODO-G2
+    // TODO-0.13.0
 
-    return result
+    return { ctx: handlerParams.ctx, result }
   }
 
   async validateActionOutputs<T extends BaseAction>(action: T, type: "static" | "runtime", outputs: any) {

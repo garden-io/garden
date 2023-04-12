@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,10 +28,9 @@ const gardenAnnotationPrefix = "garden.io/"
 export type GardenAnnotationKey =
   | "actionType"
   | "action"
-  | "sync-mode"
+  | "mode"
   | "generated"
   | "helm-migrated"
-  | "local-mode"
   | "manifest-hash"
   | "module"
   | "moduleVersion"
@@ -76,7 +75,10 @@ export function base64(str: string) {
  * Returns an array of strings, joined together as a string in a natural language manner.
  * Example: `naturalList(["a", "b", "c"])` -> `"a, b and c"`
  */
-export function naturalList(list: string[], trailingWord = "and") {
+export function naturalList(list: string[], { trailingWord = "and", quote = false } = {}) {
+  if (quote) {
+    list = list.map((s) => "'" + s + "'")
+  }
   if (list.length === 0) {
     return ""
   } else if (list.length === 1) {
@@ -178,4 +180,20 @@ export function stripQuotes(string: string) {
 
 export function titleize(string: string) {
   return _titleize(string)
+}
+
+/**
+ * Splits the input string on the first occurrence of `delimiter`.
+ */
+export function splitFirst(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts[0], parts.slice(1).join(delimiter)]
+}
+
+/**
+ * Splits the input string on the last occurrence of `delimiter`.
+ */
+export function splitLast(s: string, delimiter: string) {
+  const parts = s.split(delimiter)
+  return [parts.slice(0, parts.length - 1).join(delimiter), parts[parts.length - 1]]
 }

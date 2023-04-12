@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -56,7 +56,7 @@ export function getConfigKey(type: ExternalSourceType) {
  * Returns all linked sources if typed not specified.
  */
 export async function getLinkedSources(garden: Garden, type?: ExternalSourceType): Promise<LinkedSource[]> {
-  const localConfig = await garden.configStore.get()
+  const localConfig = await garden.localConfigStore.get()
   const linkedModuleSources = Object.values(localConfig.linkedModuleSources)
   const linkedProjectSources = Object.values(localConfig.linkedProjectSources)
   if (type === "module") {
@@ -78,7 +78,7 @@ export async function addLinkedSources({
   sources: LinkedSource[]
 }): Promise<LinkedSource[]> {
   const linked = keyBy([...(await getLinkedSources(garden, sourceType)), ...sources], "name")
-  await garden.configStore.set(getConfigKey(sourceType), linked)
+  await garden.localConfigStore.set(getConfigKey(sourceType), linked)
   return Object.values(linked)
 }
 
@@ -107,6 +107,6 @@ export async function removeLinkedSources({
   }
 
   const linked = currentlyLinked.filter(({ name }) => !names.includes(name))
-  await garden.configStore.set(getConfigKey(sourceType), keyBy(linked, "name"))
+  await garden.localConfigStore.set(getConfigKey(sourceType), keyBy(linked, "name"))
   return linked
 }

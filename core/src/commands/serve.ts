@@ -1,25 +1,27 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { InteractiveCommand, PrepareParams } from "./base"
+import { ConsoleCommand, PrepareParams } from "./base"
 import { Command, CommandResult, CommandParams } from "./base"
 import { GardenServer, startServer } from "../server/server"
-import { Parameters, IntegerParameter, ChoicesParameter, StringParameter } from "../cli/params"
+import { Parameters, IntegerParameter, ChoicesParameter, StringParameter, StringsParameter } from "../cli/params"
 import { printHeader } from "../logger/util"
 import { Garden } from "../garden"
-import { dedent } from "../util/string"
+import { dedent, naturalList } from "../util/string"
 import { getLogLevelChoices, LogLevel } from "../logger/logger"
-import { getBuiltinCommands } from "./commands"
+import { flattenCommands, getBuiltinCommands } from "./commands"
 import { getCustomCommands } from "./custom"
 import { Log } from "../logger/log-entry"
 import { CommandLine } from "../cli/command-line"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import chalk from "chalk"
+import { RuntimeError } from "../exceptions"
+import { isMatch } from "micromatch"
 
 export const defaultServerPort = 9700
 
@@ -68,12 +70,17 @@ export class ServeCommand<
 
   terminate() {
     super.terminate()
+    // Note: This will stop monitors. The CLI wrapper will wait for those to halt.
     this.garden?.events.emit("_exit", {})
     this.server?.close().catch(() => {})
   }
 
-  isPersistent() {
+  maybePersistent() {
     return true
+  }
+
+  allowInDevCommand() {
+    return false
   }
 
   async prepare({ log, footerLog, opts }: PrepareParams<ServeCommandArgs, ServeCommandOpts>) {
@@ -97,6 +104,16 @@ export class ServeCommand<
 
   async action({ garden, log }: CommandParams<A, O>): Promise<CommandResult<R>> {
     this.garden = garden
+    const loggedIn = this.garden?.isLoggedIn()
+    if (!loggedIn) {
+      log.warn(
+        chalk.yellow(
+          "The local dashboard has been removed. To use the new Garden Cloud Dashboard, please log in first."
+        )
+      )
+      throw new RuntimeError("You are not logged in. Please run `garden login` before running `garden serve`.", {})
+    }
+
     this.autocompleter = new Autocompleter({ log, commands: [], configDump: undefined })
 
     return new Promise((resolve, reject) => {
@@ -125,6 +142,8 @@ export class ServeCommand<
       const configDump = await newGarden.dumpConfig({ log })
       const commands = await this.getCommands(newGarden)
 
+      // TODO: restart monitors
+
       this.garden = newGarden
       await this.commandLine?.update(newGarden, configDump, commands)
       await this.server?.setGarden(newGarden)
@@ -143,14 +162,17 @@ export class ServeCommand<
 
   async getCommands(garden: Garden) {
     const builtinCommands = getBuiltinCommands()
-    const customCommands = await getCustomCommands(garden.projectRoot)
+    const customCommands = await getCustomCommands(garden.log, garden.projectRoot)
 
     return [
       ...builtinCommands,
       ...customCommands,
-      new AutocompleteCommand(this),
-      new ReloadCommand(this),
-      new LogLevelCommand(),
+      ...flattenCommands([
+        new AutocompleteCommand(this),
+        new ReloadCommand(this),
+        new LogLevelCommand(),
+        new HideCommand(),
+      ]),
     ]
   }
 
@@ -173,7 +195,12 @@ const autocompleteArguments = {
 
 type AutocompleteArguments = typeof autocompleteArguments
 
-class AutocompleteCommand extends InteractiveCommand<AutocompleteArguments> {
+interface AutocompleteResult {
+  input: string
+  suggestions: AutocompleteSuggestion[]
+}
+
+class AutocompleteCommand extends ConsoleCommand<AutocompleteArguments> {
   name = "autocomplete"
   help = "Given an input string, provide a list of suggestions for available Garden commands."
   hidden = true
@@ -184,14 +211,19 @@ class AutocompleteCommand extends InteractiveCommand<AutocompleteArguments> {
     super()
   }
 
-  async action({ args }: CommandParams<AutocompleteArguments>): Promise<CommandResult<AutocompleteSuggestion[]>> {
+  async action({ args }: CommandParams<AutocompleteArguments>): Promise<CommandResult<AutocompleteResult>> {
+    const { input } = args
+
     return {
-      result: this.serverCommand.getAutocompleteSuggestions(args.input),
+      result: {
+        input,
+        suggestions: this.serverCommand.getAutocompleteSuggestions(input),
+      },
     }
   }
 }
 
-class ReloadCommand extends InteractiveCommand {
+class ReloadCommand extends ConsoleCommand {
   name = "reload"
   help = "Reload the project and action/module configuration."
 
@@ -218,7 +250,7 @@ type LogLevelArguments = typeof logLevelArguments
 // These are the only writers for which we want to dynamically update the log level
 const displayWriterTypes = ["basic", "ink"]
 
-class LogLevelCommand extends InteractiveCommand<LogLevelArguments> {
+class LogLevelCommand extends ConsoleCommand<LogLevelArguments> {
   name = "log-level"
   help = "Change the max log level of (future) printed logs in the console."
 
@@ -229,13 +261,71 @@ class LogLevelCommand extends InteractiveCommand<LogLevelArguments> {
 
     const logger = log.root
 
-    for (const writer of logger.getWriters()) {
+    const writers = logger.getWriters()
+    for (const writer of [writers.display, ...writers.file]) {
       if (displayWriterTypes.includes(writer.type)) {
-        writer.level = (level as unknown) as LogLevel
+        writer.level = level as unknown as LogLevel
       }
     }
 
     commandLine?.flashMessage(`Log level set to ${level}`)
+
+    return {}
+  }
+}
+
+const hideArgs = {
+  type: new ChoicesParameter({
+    help: "The type of monitor to stop. Skip to stop all monitoring.",
+    choices: ["log", "logs", "sync", "syncs", "local", ""],
+    defaultValue: "",
+  }),
+  names: new StringsParameter({
+    help: "The name(s) of the deploy(s) to stop monitoring for (skip to stop monitoring all of them). You may specify multiple names, separated by spaces.",
+    spread: true,
+    getSuggestions: ({ configDump }) => {
+      return Object.keys(configDump.actionConfigs.Deploy)
+    },
+  }),
+}
+
+type HideArgs = typeof hideArgs
+
+class HideCommand extends ConsoleCommand<HideArgs> {
+  name = "hide"
+  help = "Stop monitoring for logs for all or specified Deploy actions"
+
+  arguments = hideArgs
+
+  async action({ garden, log, args }: CommandParams<HideArgs>) {
+    let type = args.type
+    const names = !args.names || args.names.length === 0 ? ["*"] : args.names
+
+    // Support plurals as aliases
+    if (type === "logs" || type === "syncs") {
+      type = type.slice(0, -1)
+    }
+
+    log.info("")
+
+    if (!type) {
+      log.info("Stopping all monitors...")
+    } else if (names.includes("*")) {
+      log.info(`Stopping all ${type} monitors...`)
+    } else {
+      log.info(`Stopping ${type} monitors for Deploy(s) matching ` + naturalList(names, { quote: true }))
+    }
+
+    const monitors = garden.monitors.getActive()
+
+    for (const monitor of monitors) {
+      if (monitor && (!type || monitor.type === type) && isMatch(monitor.key(), names)) {
+        log.info(`Stopping ${monitor.description()}...`)
+        garden.monitors.stop(monitor, log)
+      }
+    }
+
+    log.info("Done!\n")
 
     return {}
   }

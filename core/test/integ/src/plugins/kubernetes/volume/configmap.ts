@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -72,8 +72,6 @@ describe("configmap module", () => {
       action,
       force: true,
       forceBuild: false,
-      syncModeDeployNames: [],
-      localModeDeployNames: [],
     })
 
     await garden.processTasks({ tasks: [deployTask], throwOnError: true })
@@ -84,9 +82,9 @@ describe("configmap module", () => {
       graph,
     })
 
-    const remoteResources = status.detail["remoteResources"]
+    const remoteResources = status.test.detail?.detail.remoteResources
 
-    expect(status.state.state === "ready")
+    expect(status.test.state === "ready")
     expect(remoteResources.length).to.equal(1)
     expect(
       isSubset(remoteResources[0], {

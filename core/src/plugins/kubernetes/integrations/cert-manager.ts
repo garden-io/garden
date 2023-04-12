@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,10 +21,9 @@ import yaml from "js-yaml"
 import { checkResourceStatuses } from "../status/status"
 import { KubernetesServerResource } from "../types"
 import { V1Pod } from "@kubernetes/client-node"
-import { ServiceState } from "../../../types/service"
+import { DeployState } from "../../../types/service"
 import { EnvironmentStatus } from "../../../plugin/handlers/Provider/getEnvironmentStatus"
 import { PrimitiveMap } from "../../../config/common"
-import chalk from "chalk"
 import { defaultIngressClass } from "../constants"
 
 /**
@@ -95,7 +94,7 @@ export async function waitForResourcesWith({
   const startTime = new Date().getTime()
 
   const statusLine = log
-    .makeNewLogContext({
+    .createLog({
       section: resourcesType,
     })
     .info(`Waiting for resources to be ready...`)
@@ -163,7 +162,7 @@ export async function getAllCertificates(
  *
  * @export
  * @param {*} { provider, log, namespace = "cert-manager" }
- * @returns {Promise<ServiceState>}
+ * @returns {Promise<DeployState>}
  */
 export async function checkCertManagerStatus({
   ctx,
@@ -175,7 +174,7 @@ export async function checkCertManagerStatus({
   ctx: PluginContext
   provider: KubernetesProvider
   namespace?: string
-}): Promise<ServiceState> {
+}): Promise<DeployState> {
   const api = await KubeApi.factory(log, ctx, provider)
   const systemPods = await api.core.listNamespacedPod(namespace)
   const certManagerPods: KubernetesServerResource<V1Pod>[] = []
@@ -216,7 +215,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
   const { systemCertManagerReady, systemManagedCertificatesReady } = status.detail
 
   if (!systemCertManagerReady || !systemManagedCertificatesReady) {
-    const certsLog = log.makeNewLogContext({ section: "cert-manager" })
+    const certsLog = log.createLog({ name: "cert-manager", showDuration: true })
     certsLog.info(`Verifying installation...`)
     // const certsLog = log.info({
     //   section: "cert-manager",
@@ -298,7 +297,7 @@ export async function setupCertManager({ ctx, provider, log, status }: SetupCert
         certsLog.info("No certificates found...")
       }
     }
-    certsLog.setSuccess(chalk.green(`Done (took ${certsLog.getDuration(1)} sec)`))
+    certsLog.success(`Done`)
   }
 }
 

@@ -44,8 +44,9 @@ Optionally stays running and automatically builds when sources (or dependencies'
 
 Examples:
 
-    garden build            # build everything in the project
-    garden build my-image   # only build my-image
+    garden build                   # build everything in the project
+    garden build my-image          # only build my-image
+    garden build image-a image-b   # build image-a and image-b
     garden build --force    # force re-builds, even if builds had already been performed at current version
 
 #### Usage
@@ -56,14 +57,14 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify builds to run. Use comma as a separator to specify multiple names.
+  | `names` | No | Specify Builds to run. You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-build.
-  | `--with-dependants` |  | boolean | Also rebuild any builds that depend on one of the builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of build names is specified as CLI arguments (since otherwise, every build in the project will be performed anyway).
+  | `--with-dependants` |  | boolean | Also rebuild any Builds that depend on one of the Builds specified as CLI arguments (recursively). Note: This option has no effect unless a list of Build names is specified as CLI arguments (since otherwise, every Build in the project will be performed anyway).
 
 #### Outputs
 
@@ -183,7 +184,7 @@ This can be useful if you find the namespace to be in an inconsistent state, or 
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
 
@@ -227,6 +228,10 @@ deployStatuses:
     outputs:
       <name>:
 
+    # Set to true if the action handler is running a process persistently and attached to the Garden process after
+    # returning.
+    attached:
+
     detail:
       # When the service was first deployed by the provider.
       createdAt:
@@ -234,11 +239,8 @@ deployStatuses:
       # Additional detail, specific to the provider.
       detail:
 
-      # Whether the service was deployed with sync enabled.
-      syncMode:
-
-      # Whether the service was deployed with local mode enabled.
-      localMode:
+      # The mode the action is deployed in.
+      mode:
 
       namespaceStatuses:
         - pluginName:
@@ -304,7 +306,7 @@ deployStatuses:
       runningReplicas:
 
       # The current deployment status of the service.
-      state:
+      deployState:
 
       # When the service was last updated by the provider.
       updatedAt:
@@ -334,13 +336,13 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to delete. Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the deploy(s) (or services if using modules) to delete. You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--dependants-first` |  | boolean | Clean up deployments/services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
+  | `--dependants-first` |  | boolean | Clean up Deploy(s) (or services if using modules) in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling &#x60;garden cleanup namespace service-a,service-b --dependants-first&#x60;.
 
 When this flag is not used, all services in the project are cleaned up simultaneously.
   | `--with-dependants` |  | boolean | Also clean up deployments/services that have dependencies on one of the deployments/services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of names is specified as CLI arguments (since then, every deploy/service in the project will be deleted).
@@ -357,6 +359,10 @@ When this flag is not used, all services in the project are cleaned up simultane
   outputs:
     <name>:
 
+  # Set to true if the action handler is running a process persistently and attached to the Garden process after
+  # returning.
+  attached:
+
   detail:
     # When the service was first deployed by the provider.
     createdAt:
@@ -364,11 +370,8 @@ When this flag is not used, all services in the project are cleaned up simultane
     # Additional detail, specific to the provider.
     detail:
 
-    # Whether the service was deployed with sync enabled.
-    syncMode:
-
-    # Whether the service was deployed with local mode enabled.
-    localMode:
+    # The mode the action is deployed in.
+    mode:
 
     namespaceStatuses:
       - pluginName:
@@ -434,7 +437,7 @@ When this flag is not used, all services in the project are cleaned up simultane
     runningReplicas:
 
     # The current deployment status of the service.
-    state:
+    deployState:
 
     # When the service was last updated by the provider.
     updatedAt:
@@ -461,13 +464,13 @@ Examples:
     garden deploy my-deploy            # only deploy my-deploy
     garden deploy deploy-a,deploy-b    # only deploy deploy-a and deploy-b
     garden deploy --force              # force re-deploy, even for deploys already deployed and up-to-date
-    garden deploy --sync=my-deploy     # deploys all deploys, with sync enabled for my-deploy
-    garden deploy --sync               # deploys all compatible deploys with sync enabled
-    garden deploy --local=my-deploy    # deploys all deploys, with local mode enabled for my-deploy
-    garden deploy --local              # deploys all compatible deploys with local mode enabled
-    garden deploy --env stage          # deploy your deploys to an environment called stage
+    garden deploy --sync=my-deploy     # deploys all Deploys, with sync enabled for my-deploy
+    garden deploy --sync               # deploys all compatible Deploys with sync enabled
+    garden deploy --local=my-deploy    # deploys all Deploys, with local mode enabled for my-deploy
+    garden deploy --local              # deploys all compatible Deploys with local mode enabled
+    garden deploy --env stage          # deploy your Deploys to an environment called stage
     garden deploy --skip deploy-b      # deploy everything except deploy-b
-    garden deploy --forward            # deploy everything and start port forwards without watching for changes
+    garden deploy --forward            # deploy everything and start port forwards without sync or local mode
 
 #### Usage
 
@@ -477,7 +480,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) (or deploys if using modules) to deploy (skip to deploy everything). Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the Deploy(s) (or services if using modules) to deploy (skip to deploy everything). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -485,12 +488,20 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force re-deploy.
   | `--force-build` |  | boolean | Force re-build of build dependencies.
-  | `--sync` |  | array:string | The name(s) of the deploys to deploy with sync enabled. Use comma as a separator to specify multiple names. Use * to deploy all supported deployments with sync enabled.
-  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of the deploy(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple deploys. Use * to deploy all deploys with local mode enabled. When this option is used, the command is run in persistent mode.
-This always takes the precedence over sync mode if there are any conflicts, i.e. if the same deploys are passed to both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
-  | `--skip` |  | array:string | The name(s) of deploys you&#x27;d like to skip.
-  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
-  | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. This is unnecessary and ignored if any of --sync or --local/--local-mode are set.
+  | `--sync` |  | array:string | The name(s) of the Deploy(s) to deploy with sync enabled.
+You may specify multiple names by setting this flag multiple times.
+Use * to deploy all supported deployments with sync enabled.
+
+Important: The syncs stay active after the command exits. To stop the syncs, use the &#x60;sync stop&#x60; command.
+  | `--local-mode` |  | array:string | [EXPERIMENTAL] The name(s) of Deploy(s) to be started locally with local mode enabled.
+
+You may specify multiple Deploys by setting this flag multiple times. Use * to deploy all Deploys with local mode enabled. When this option is used,
+the command stays running until explicitly aborted.
+
+This always takes the precedence over sync mode if there are any conflicts, i.e. if the same Deploys are matched with both &#x60;--sync&#x60; and &#x60;--local&#x60; options.
+  | `--skip` |  | array:string | The name(s) of Deploys you&#x27;d like to skip.
+  | `--skip-dependencies` |  | boolean | Deploy the specified actions, but don&#x27;t build, deploy or run any dependencies. This option can only be used when a list of Deploy names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to run specific Deploys in sync mode without building, deploying or running dependencies that may have changed since you last deployed.
+  | `--forward` |  | boolean | Create port forwards and leave process running after deploying. This is implied if any of --sync or --local/--local-mode are set.
 
 #### Outputs
 
@@ -509,14 +520,14 @@ graphResults:
 
 **Executes a command (such as an interactive shell) in a running service.**
 
-Finds an active container for a deployed service and executes the given command within the container.
+Finds an active container for a deployed Deploy and executes the given command within the container.
 Supports interactive shells.
 
-_NOTE: This command may not be supported for all module types._
+_NOTE: This command may not be supported for all action types._
 
 Examples:
 
-     garden exec my-service /bin/sh   # runs a shell in the my-service container
+     garden exec my-service /bin/sh   # runs a shell in the my-service Deploy's container
 
 #### Usage
 
@@ -526,7 +537,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `deploy` | Yes | The service to exec the command in.
+  | `deploy` | Yes | The running Deploy action to exec the command in.
   | `command` | Yes | The command to run.
 
 #### Options
@@ -570,9 +581,9 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--filter-envs` |  | array:string | Filter on environment. Use comma as a separator to filter on multiple environments. Accepts glob patterns.&quot;
-  | `--filter-user-ids` |  | array:string | Filter on user ID. Use comma as a separator to filter on multiple user IDs. Accepts glob patterns.
-  | `--filter-names` |  | array:string | Filter on secret name. Use comma as a separator to filter on multiple secret names. Accepts glob patterns.
+  | `--filter-envs` |  | array:string | Filter on environment. You may filter on multiple environments by setting this flag multiple times. Accepts glob patterns.&quot;
+  | `--filter-user-ids` |  | array:string | Filter on user ID. You may filter on multiple user IDs by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on secret name. You may filter on multiple secret names by setting this flag multiple times. Accepts glob patterns.
 
 
 ### garden cloud secrets create
@@ -588,7 +599,7 @@ To scope secrets to a user, you will need the user's ID which you can get from t
 You can optionally read the secrets from a file.
 
 Examples:
-    garden cloud secrets create DB_PASSWORD=my-pwd,ACCESS_KEY=my-key   # create two secrets
+    garden cloud secrets create DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two secrets
     garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
     garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
     garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
@@ -601,7 +612,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. Use comma as a separator to specify multiple secret name/value pairs. Note that you can also leave this empty and have Garden read the secrets from file.
+  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret name/value pairs, separated by spaces. Note that you can also leave this empty and have Garden read the secrets from file.
 
 #### Options
 
@@ -620,7 +631,7 @@ Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to 
 which you which you can get from the `garden cloud secrets list` command.
 
 Examples:
-    garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
+    garden cloud secrets delete 1 2 3   # delete secrets with IDs 1, 2, and 3.
 
 #### Usage
 
@@ -630,7 +641,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `ids` | No | The IDs of the secrets to delete.
+  | `ids` | No | The ID(s) of the secrets to delete.
 
 
 
@@ -653,8 +664,8 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on user name. Use comma as a separator to filter on multiple names. Accepts glob patterns.
-  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. Use comma as a separator to filter on multiple groups. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.
 
 
 ### garden cloud users create
@@ -674,7 +685,7 @@ fatema_m="Fatema M"
 gordon99="Gordon G"
 
 Examples:
-    garden cloud users create fatema_m="Fatema M",gordon99="Gordon G"      # create two users
+    garden cloud users create fatema_m="Fatema M" gordon99="Gordon G"  # create two users
     garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
     garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
 
@@ -686,13 +697,13 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. Use comma as a separator to specify multiple VCS username/name pairs. Note that you can also leave this empty and have Garden read the users from file.
+  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple VCS username/name pairs, separated by spaces. Note that you can also leave this empty and have Garden read the users from file.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. Use comma as a separator to add the user to multiple groups.
+  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. You may add the user to multiple groups by setting this flag multiple times.
   | `--from-file` |  | path | Read the users from the file at the given path. The file should have standard &quot;dotenv&quot; format (as defined by [dotenv](https://github.com/motdotla/dotenv#rules)) where the VCS username is the key and the name is the value.
 
 
@@ -704,7 +715,7 @@ Delete users in Garden Cloud. You will nee the IDs of the users you want to dele
 which you which you can get from the `garden cloud users list` command.
 
 Examples:
-    garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
+    garden cloud users delete 1 2 3   # delete users with IDs 1, 2, and 3.
 
 #### Usage
 
@@ -737,7 +748,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on group name. Use comma as a separator to filter on multiple names. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on group name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
 
 
 ### garden get graph
@@ -1109,9 +1120,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1203,6 +1211,8 @@ actionConfigs:
 
       # The spec for the specific action type.
       spec:
+
+      kind:
 
       # When false, disables publishing this build to remote registries via the publish command.
       allowPublish:
@@ -1283,9 +1293,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1417,6 +1424,8 @@ actionConfigs:
       # This would mean that instead of looking for manifest files relative to this action's location in your project
       # structure, the output directory for the referenced `exec` Build would be the source.
       build:
+
+      kind:
 
   # Run action configs in the project.
   Run:
@@ -1424,9 +1433,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1558,6 +1564,8 @@ actionConfigs:
       # This would mean that instead of looking for manifest files relative to this action's location in your project
       # structure, the output directory for the referenced `exec` Build would be the source.
       build:
+
+      kind:
 
       # Set a timeout for the run to complete, in seconds.
       timeout:
@@ -1568,9 +1576,6 @@ actionConfigs:
       # The schema version of this config (currently not used).
       apiVersion:
 
-      # The kind of action you want to define (one of Build, Deploy, Run or Test).
-      kind:
-
       # The type of action, e.g. `exec`, `container` or `kubernetes`. Some are built into Garden but mostly these will
       # be defined by your configured providers.
       type:
@@ -1702,6 +1707,8 @@ actionConfigs:
       # This would mean that instead of looking for manifest files relative to this action's location in your project
       # structure, the output directory for the referenced `exec` Build would be the source.
       build:
+
+      kind:
 
       # Set a timeout for the test to complete, in seconds.
       timeout:
@@ -2197,7 +2204,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | Specify module(s) to list. Use comma as a separator to specify multiple modules. Skip to return all modules.
+  | `modules` | No | Specify module(s) to list. You may specify multiple modules, separated by spaces. Skip to return all modules.
 
 #### Options
 
@@ -2554,6 +2561,10 @@ actions:
       outputs:
         <name>:
 
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
+
   # A map of statuses for each configured Deploy.
   Deploy:
     <name>:
@@ -2565,6 +2576,10 @@ actions:
       outputs:
         <name>:
 
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
+
       detail:
         # When the service was first deployed by the provider.
         createdAt:
@@ -2572,11 +2587,8 @@ actions:
         # Additional detail, specific to the provider.
         detail:
 
-        # Whether the service was deployed with sync enabled.
-        syncMode:
-
-        # Whether the service was deployed with local mode enabled.
-        localMode:
+        # The mode the action is deployed in.
+        mode:
 
         namespaceStatuses:
           - pluginName:
@@ -2642,7 +2654,7 @@ actions:
         runningReplicas:
 
         # The current deployment status of the service.
-        state:
+        deployState:
 
         # When the service was last updated by the provider.
         updatedAt:
@@ -2660,6 +2672,10 @@ actions:
       # dependencies and in templating.
       outputs:
         <name>:
+
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
       detail:
         # Whether the module was successfully run.
@@ -2696,6 +2712,10 @@ actions:
       # dependencies and in templating.
       outputs:
         <name>:
+
+      # Set to true if the action handler is running a process persistently and attached to the Garden process after
+      # returning.
+      attached:
 
       detail:
         # Whether the module was successfully run.
@@ -2736,7 +2756,7 @@ actions:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify run(s)/task(s) to list. Use comma as a separator to specify multiple names.
+  | `names` | No | Specify run(s)/task(s) to list. You may specify multiple names, separated by spaces.
 
 
 
@@ -2753,7 +2773,7 @@ actions:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | Specify tests(s) to list. Use comma as a separator to specify multiple tests.
+  | `names` | No | Specify tests(s) to list. You may specify multiple test names, separated by spaces.
 
 
 
@@ -2784,6 +2804,10 @@ state:
 outputs:
   <name>:
 
+# Set to true if the action handler is running a process persistently and attached to the Garden process after
+# returning.
+attached:
+
 detail:
   # Whether the module was successfully run.
   success:
@@ -2809,7 +2833,7 @@ detail:
 
     state:
 
-# Local file paths to any exported artifacts from the task run.
+# Local file paths to any exported artifacts from the Run's execution.
 artifacts:
 ```
 
@@ -2840,6 +2864,10 @@ state:
 # dependencies and in templating.
 outputs:
   <name>:
+
+# Set to true if the action handler is running a process persistently and attached to the Garden process after
+# returning.
+attached:
 
 detail:
   # Whether the module was successfully run.
@@ -2906,7 +2934,7 @@ Note that this may include sensitive data, depending on the provider and your co
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `workflows` | No | Specify workflow(s) to list. Use comma as a separator to specify multiple workflows.
+  | `workflows` | No | Specify workflow(s) to list. You may specify multiple workflows, separated by spaces.
 
 
 
@@ -2982,19 +3010,43 @@ sources:
     path:
 ```
 
+### garden login
+
+**Log in to Garden Cloud.**
+
+Logs you in to Garden Cloud. Subsequent commands will have access to cloud features.
+
+#### Usage
+
+    garden login 
+
+
+
+### garden logout
+
+**Log out of Garden Cloud.**
+
+Logs you out of Garden Cloud.
+
+#### Usage
+
+    garden logout 
+
+
+
 ### garden logs
 
-**Retrieves the most recent logs for the specified service(s).**
+**Retrieves the most recent logs for the specified Deploy(s).**
 
-Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-to getting logs from the last minute when in `--follow` mode. You can change this with the `--since` option.
+Outputs logs for all or specified Deploys, and optionally waits for news logs to come in. Defaults to getting logs
+from the last minute when in `--follow` mode. You can change this with the `--since` or `--tail` options.
 
 Examples:
 
-    garden logs                            # interleaves color-coded logs from all services (up to a certain limit)
-    garden logs --since 2d                 # interleaves color-coded logs from all services from the last 2 days
-    garden logs --tail 100                 # interleaves the last 100 log lines from all services
-    garden logs service-a,service-b        # interleaves color-coded logs for service-a and service-b
+    garden logs                            # interleaves color-coded logs from all Deploys (up to a certain limit)
+    garden logs --since 2d                 # interleaves color-coded logs from all Deploys from the last 2 days
+    garden logs --tail 100                 # interleaves the last 100 log lines from all Deploys
+    garden logs deploy-a,deploy-b          # interleaves color-coded logs for deploy-a and deploy-b
     garden logs --follow                   # keeps running and streams all incoming logs to the console
     garden logs --tag container=service-a  # only shows logs from containers with names matching the pattern
 
@@ -3006,14 +3058,14 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the deploy(s) to log (skip to get logs from all deploys in the project). Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the Deploy(s) to log (skip to get logs from all Deploys in the project). You may specify multiple names, separated by spaces.
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
-  | `--follow` |  | boolean | Continuously stream new logs.
+  | `--follow` |  | boolean | Continuously stream new logs. When the &#x60;--follow&#x60; option is set, we default to &#x60;--since 1m&#x60;.
   | `--tail` |  | number | Number of lines to show for each deployment. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
   | `--timestamps` |  | boolean | Show timestamps with log output.
@@ -3040,13 +3092,13 @@ Examples:
 
 #### Usage
 
-    garden migrate [configPaths] [options]
+    garden migrate [config-paths] [options]
 
 #### Arguments
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `configPaths` | No | Specify the path to a &#x60;garden.yml&#x60; file to convert. Use comma as a separator to specify multiple files.
+  | `config-paths` | No | Specify the path to a &#x60;garden.yml&#x60; file to convert. You may specify multiple files by setting this flag multiple times.
 
 #### Options
 
@@ -3132,7 +3184,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the builds (or modules) to publish (skip to publish every build). Use comma as a separator to specify multiple names.
+  | `names` | No | The name(s) of the builds (or modules) to publish (skip to publish every build). You may specify multiple names, separated by spaces.
 
 #### Options
 
@@ -3163,6 +3215,10 @@ published:
     # dependencies and in templating.
     outputs:
       <name>:
+
+    # Set to true if the action handler is running a process persistently and attached to the Garden process after
+    # returning.
+    attached:
 
     detail:
       # Set to true if the build was published.
@@ -3202,7 +3258,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the Run action(s) to perform. Use comma as a separator to specify multiple names. Accepts glob patterns (e.g. init* would run both &#x27;init&#x27; and &#x27;initialize&#x27;).
+  | `names` | No | The name(s) of the Run action(s) to perform. You may specify multiple names, separated by spaces. Accepts glob patterns (e.g. init* would run both &#x27;init&#x27; and &#x27;initialize&#x27;).
 
 #### Options
 
@@ -3210,11 +3266,11 @@ Examples:
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Run even if the action is disabled for the environment, and/or a successful result is found in cache.
   | `--force-build` |  | boolean | Force re-build of Build dependencies before running.
-  | `--module` |  | array:string | The name(s) of one or modules to pull Runs/tasks from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
+  | `--module` |  | array:string | The name(s) of one or modules to pull Runs (or tasks if using modules) from. If both this and Run names are specified, the Run names filter the tasks found in the specified modules.
   | `--skip` |  | array:string | The name(s) of Runs you&#x27;d like to skip. Accepts glob patterns (e.g. init* would skip both &#x27;init&#x27; and &#x27;initialize&#x27;).
   | `--skip-dependencies` |  | boolean | Don&#x27;t perform any Deploy or Run actions that the requested Runs depend on.
-This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
-dependencies without redeploying any service dependencies that may have changed since you last deployed.
+This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime
+dependencies without redeploying any Deploy (or service if using modules) dependencies that may have changed since you last deployed.
 
 Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of
 your test suites are up to date when this option is used.
@@ -3266,7 +3322,9 @@ Examples:
 
    garden self-update          # update to the latest Garden CLI version
    garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
-   garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
+   garden self-update 0.12.24  # switch to the 0.12.24 stable version of the CLI
+   garden self-update 0.13.0-0 # switch to the 0.13.0-0 pre-release version of the CLI
+   garden self-update --major  # install the latest major version (if it exists) greater than the current one
    garden self-update --force  # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
 
@@ -3278,7 +3336,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `version` | No | Specify which version to switch/update to.
+  | `version` | No | Specify which version to switch/update to. It can be either a stable release, a pre-release, or an edge release version.
 
 #### Options
 
@@ -3287,18 +3345,117 @@ Examples:
   | `--force` |  | boolean | Install the Garden CLI even if the specified or detected latest version is the same as the current version.
   | `--install-dir` |  | string | Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.
   | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
+  | `--major` |  | boolean | Install the latest major version greater than the current one. Falls back to the current version if the greater major version does not exist.
+
+Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.
+
+
+### garden set default-env
+
+**Locally override the default environment for the project.**
+
+Override the default environment for the project for this working copy.
+
+Examples:
+
+  garden set default-env remote       # Set the default env to remote (with the configured default namespace)
+  garden set default-env dev.my-env   # Set the default env to dev.my-env
+  garden set default-env              # Clear any previously set override
+
+#### Usage
+
+    garden set default-env [env] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `env` | No | The default environment to set for the current project
+
+
+
+### garden sync start
+
+**Start any configured syncs to the given Deploy action(s).**
+
+Start a sync between your local project directory and one or more Deploys.
+
+Examples:
+    # start syncing to the 'api' Deploy, fail if it's not already deployed in sync mode
+    garden start sync api
+
+    # deploy 'api' in sync mode and dependencies if needed, then start syncing
+    garden start sync api --deploy
+
+    # start syncing to every Deploy already deployed in sync mode
+    garden start sync '*'
+
+    # start syncing to every Deploy that supports it, deploying if needed
+    garden start sync '*' --deploy
+
+    # start syncing to every Deploy that supports it, deploying if needed including runtime dependencies
+    garden start sync '*' --deploy --include-dependencies
+
+    # start syncing to the 'api' and 'worker' Deploys
+    garden start sync api worker
+
+    # start syncing to the 'api' Deploy and keep the process running, following sync status messages
+    garden start sync api -f
+
+#### Usage
+
+    garden sync start <names> [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--deploy` |  | boolean | Deploy the specified actions, if they&#x27;re out of date and/or not deployed in sync mode.
+  | `--with-dependencies` |  | boolean | When deploying actions, also include any runtime dependencies. Ignored if --deploy is not set.
+  | `--monitor` |  | boolean | Keep the process running and print sync status logs after starting them.
+
+
+### garden sync stop
+
+**Stop any active syncs to the given Deploy action(s).**
+
+Stops one or more active syncs.
+
+Examples:
+    # stop syncing to the 'api' Deploy
+    garden stop sync api
+
+    # stop all active syncs
+    garden stop sync '*'
+
+#### Usage
+
+    garden sync stop <names> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `names` | Yes | The name(s) of one or more Deploy(s) (or services if using modules) to sync. You may specify multiple names, separated by spaces. To start all possible syncs, specify &#x27;*&#x27; as an argument.
+
 
 
 ### garden test
 
 **Run all or specified Test actions in the project.**
 
-Runs all or specified tests defined in the project. Also run builds and other dependencies,
-including deploys if needed.
+Runs all or specified Tests defined in the project. Also run builds and other dependencies,
+including Deploys if needed.
 
 Examples:
 
-    garden test                     # run all tests in the project
+    garden test                     # run all Tests in the project
     garden test my-test             # run the my-test Test action
     garden test --module my-module  # run all Tests in the my-module module
     garden test *integ*             # run all Tests with a name containing 'integ'
@@ -3313,20 +3470,20 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `names` | No | The name(s) of the Test action(s) to test (skip to run all tests in the project). Use comma as a separator to specify multiple tests. Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `names` | No | The name(s) of the Test action(s) to test (skip to run all tests in the project). You may specify multiple test names, separated by spaces. Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
 
 #### Options
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--name` |  | array:string | DEPRECATED: This now does the exact same as the positional arguments.
-Only run tests with the specfied name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+Only run tests with the specified name (e.g. unit or integ). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
   | `--force` |  | boolean | Force re-run of Test, even if a successful result is found in cache.
   | `--force-build` |  | boolean | Force rebuild of any Build dependencies encountered.
-  | `--interactive` |  | boolean | Run the specified test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
+  | `--interactive` |  | boolean | Run the specified Test in interactive mode (i.e. to allow attaching to a shell). A single test must be selected, otherwise an error is thrown.
   | `--module` |  | array:string | The name(s) of one or modules to run tests from. If both this and test names are specified, the test names filter the tests found in the specified modules.
   | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
-  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
+  | `--skip-dependencies` |  | boolean | Don&#x27;t deploy any Deploys (or services if using modules) or run any Run actions (or tasks if using modules) that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run Tests with runtime dependencies without redeploying any Deploy (or service) dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
 
 #### Outputs
 
@@ -3404,7 +3561,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the source(s) to unlink. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the source(s) to unlink. You may specify multiple sources, separated by spaces.
 
 #### Options
 
@@ -3433,7 +3590,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the module(s) to unlink. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the module(s) to unlink. You may specify multiple modules, separated by spaces.
 
 #### Options
 
@@ -3462,7 +3619,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
+  | `sources` | No | The name(s) of the remote source(s) to update. You may specify multiple sources, separated by spaces.
 
 #### Options
 
@@ -3504,7 +3661,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
+  | `modules` | No | The name(s) of the remote module(s) to update. You may specify multiple modules, separated by spaces.
 
 #### Options
 
@@ -3605,6 +3762,25 @@ Hides the specified warning message. The command and key is generally provided a
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
   | `key` | Yes | The key of the warning to hide (this will be shown along with relevant warning messages).
+
+
+
+### garden util mutagen
+
+**Run any Mutagen CLI command in the context of the current project.**
+
+The Mutagen tool is used for various functions in Garden, most notably syncs (formerly "dev mode") to containers. When experiencing issues with synchronization, it may be helpful to use the Mutagen CLI directly to troubleshoot or gather more information.
+
+This command simply runs the Mutagen CLI with environment variables appropriately set to interact with the syncs created in the context of this project. All arguments and flags are passed directly to Mutagen.
+
+Examples:
+
+    garden util mutagen sync list     # list all active syncs
+    garden util mutagen sync monitor  # continuously monitor all syncs
+
+#### Usage
+
+    garden util mutagen 
 
 
 

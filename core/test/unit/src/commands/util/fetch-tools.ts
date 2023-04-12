@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,14 @@
  */
 
 import { getPlatform, getArchitecture } from "../../../../../src/util/util"
-import { createProjectConfig, makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts } from "../../../../helpers"
+import {
+  createProjectConfig,
+  makeTempDir,
+  makeTempGarden,
+  TempDirectory,
+  TestGarden,
+  withDefaultGlobalOpts,
+} from "../../../../helpers"
 import { FetchToolsCommand } from "../../../../../src/commands/util/fetch-tools"
 import { expect } from "chai"
 import { GARDEN_GLOBAL_PATH } from "../../../../../src/constants"
@@ -60,23 +67,19 @@ describe("FetchToolsCommand", () => {
   })
 
   it("should fetch tools for configured providers", async () => {
-    const garden: any = await TestGarden.factory(tmpDir.path, {
+    const { garden } = await makeTempGarden({
       plugins: [plugin],
       config: createProjectConfig({
-        path: tmpDir.path,
         providers: [{ name: "test" }],
       }),
     })
-
-    garden.providerConfigs = [{ name: "test" }]
-    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 
     const log = garden.log
     const command = new FetchToolsCommand()
 
-    const result = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,
@@ -85,38 +88,30 @@ describe("FetchToolsCommand", () => {
       opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
 
-    expect(result).to.eql({
-      result: {
-        "test.tool-a": {
-          type: "binary",
-          path: expectedPathA,
-        },
-        "test.tool-b": {
-          type: "binary",
-          path: expectedPathB,
-        },
-      },
+    expect(result["test.tool-a"]).to.eql({
+      type: "binary",
+      path: expectedPathA,
+    })
+    expect(result["test.tool-b"]).to.eql({
+      type: "binary",
+      path: expectedPathB,
     })
   })
 
   it("should fetch no tools when no providers are configured", async () => {
-    const garden: any = await TestGarden.factory(tmpDir.path, {
+    const { garden } = await makeTempGarden({
       plugins: [plugin],
       config: createProjectConfig({
-        path: tmpDir.path,
-        providers: [{ name: "test" }],
+        providers: [],
       }),
     })
-
-    garden.providerConfigs = []
-    garden.registeredPlugins = [plugin]
 
     await garden.resolveProviders(garden.log)
 
     const log = garden.log
     const command = new FetchToolsCommand()
 
-    const result = await command.action({
+    const { result } = await command.action({
       garden,
       log,
       headerLog: log,
@@ -125,9 +120,8 @@ describe("FetchToolsCommand", () => {
       opts: withDefaultGlobalOpts({ "all": false, "garden-image-build": false }),
     })
 
-    expect(result).to.eql({
-      result: {},
-    })
+    expect(result["test.tool-a"]).to.not.exist
+    expect(result["test.tool-b"]).to.not.exist
   })
 
   it("should fetch tools for all providers with --all", async () => {

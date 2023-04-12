@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,19 +15,20 @@ import { resolve } from "path"
 import { defaultDotIgnoreFile, findConfigPathsInPath } from "../util/fs"
 import { GitHandler } from "../vcs/git"
 import { DEFAULT_GARDEN_DIR_NAME } from "../constants"
-import { exec, safeDumpYaml } from "../util/util"
+import { exec } from "../util/util"
 import Bluebird from "bluebird"
 import { loadAndValidateYaml, findProjectConfig } from "../config/base"
 import { BooleanParameter, StringsParameter } from "../cli/params"
 import { TreeCache } from "../cache"
+import { safeDumpYaml } from "../util/serialization"
 
 const migrateOpts = {
   write: new BooleanParameter({ help: "Update the `garden.yml` in place." }),
 }
 
 const migrateArgs = {
-  configPaths: new StringsParameter({
-    help: "Specify the path to a `garden.yml` file to convert. Use comma as a separator to specify multiple files.",
+  "config-paths": new StringsParameter({
+    help: "Specify the path to a `garden.yml` file to convert. You may specify multiple files by setting this flag multiple times.",
   }),
 }
 
@@ -70,7 +71,7 @@ export class MigrateCommand extends Command<Args, Opts> {
 
   async action({ garden, log, args, opts }: CommandParams<Args, Opts>): Promise<CommandResult<MigrateCommandResult>> {
     // opts.root defaults to current directory
-    const projectConfig = await findProjectConfig(opts.root, true)
+    const projectConfig = await findProjectConfig(log, opts.root, true)
 
     if (!projectConfig) {
       throw new ConfigurationError(`Not a project directory (or any of the parent directories): ${opts.root}`, {
@@ -83,8 +84,8 @@ export class MigrateCommand extends Command<Args, Opts> {
     const updatedConfigs: { path: string; specs: any[] }[] = []
 
     let configPaths: string[] = []
-    if (args.configPaths && args.configPaths.length > 0) {
-      configPaths = args.configPaths.map((path) => resolve(root, path))
+    if (args["config-paths"] && args["config-paths"].length > 0) {
+      configPaths = args["config-paths"].map((path) => resolve(root, path))
     } else {
       const vcs = new GitHandler({
         garden,

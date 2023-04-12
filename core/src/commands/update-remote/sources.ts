@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,7 +22,8 @@ import { StringsParameter, ParameterValues } from "../../cli/params"
 
 const updateRemoteSourcesArguments = {
   sources: new StringsParameter({
-    help: "The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.",
+    help: "The name(s) of the remote source(s) to update. You may specify multiple sources, separated by spaces.",
+    spread: true,
     getSuggestions: ({ configDump }) => {
       return configDump.sources.map((s) => s.name)
     },

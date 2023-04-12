@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,7 @@ import { dedent, wordWrap, deline } from "../util/string"
 import { Garden } from "../garden"
 import { WorkflowStepSpec, WorkflowConfig, WorkflowFileSpec } from "../config/workflow"
 import { Log } from "../logger/log-entry"
-import { GardenError, WorkflowScriptError } from "../exceptions"
+import { formatGardenErrorWithDetail, GardenError, WorkflowScriptError } from "../exceptions"
 import {
   WorkflowConfigContext,
   WorkflowStepConfigContext,
@@ -28,7 +28,7 @@ import Bluebird from "bluebird"
 import { getDurationMsec, toEnvVars } from "../util/util"
 import { runScript } from "../util/util"
 import { ExecaError } from "execa"
-import { LogLevel, formatGardenErrorWithDetail } from "../logger/logger"
+import { LogLevel } from "../logger/logger"
 import { registerWorkflowRun } from "../cloud/workflow-lifecycle"
 import { parseCliArgs, pickCommand, processCliArgs } from "../cli/helpers"
 import { GlobalOptions, ParameterValues, StringParameter } from "../cli/params"
@@ -74,7 +74,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
   }
 
   async action({ cli, garden, log, args, opts }: CommandParams<Args, {}>): Promise<CommandResult<WorkflowRunOutput>> {
-    const outerLog = log.makeNewLogContext({})
+    const outerLog = log.createLog({})
     // Prepare any configured files before continuing
     const workflow = await garden.getWorkflowConfig(args.workflow)
 
@@ -112,9 +112,9 @@ export class RunWorkflowCommand extends Command<Args, {}> {
       const metadata = {
         workflowStep: { index },
       }
-      const stepHeaderLog = outerLog.makeNewLogContext({ metadata })
-      const stepBodyLog = outerLog.makeNewLogContext({ metadata })
-      const stepFooterLog = outerLog.makeNewLogContext({ metadata })
+      const stepHeaderLog = outerLog.createLog({ metadata })
+      const stepBodyLog = outerLog.createLog({ metadata })
+      const stepFooterLog = outerLog.createLog({ metadata })
       garden.log.info({ metadata })
 
       if (step.skip) {
@@ -151,6 +151,7 @@ export class RunWorkflowCommand extends Command<Args, {}> {
         garden,
         resolvedSteps: result.steps,
         stepName,
+        workflow,
       })
 
       const stepStartedAt = new Date()
@@ -324,7 +325,7 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
 
   if (!command) {
     // Check for custom command
-    const customCommands = await getCustomCommands(garden.projectRoot)
+    const customCommands = await getCustomCommands(garden.log, garden.projectRoot)
     const picked = pickCommand(customCommands, rawArgs)
     command = picked.command
     rest = picked.rest
@@ -359,11 +360,11 @@ export async function runStepCommand(params: RunStepCommandParams): Promise<Comm
     opts,
   }
 
-  const persistent = command.isPersistent(commandParams)
+  const persistent = command.maybePersistent(commandParams)
 
   if (persistent) {
     throw new ConfigurationError(
-      `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, commands with watch flags set etc.)`,
+      `Workflow steps cannot run Garden commands that are persistent (e.g. the dev command, interactive commands, commands with monitor flags set etc.)`,
       {
         step,
       }
