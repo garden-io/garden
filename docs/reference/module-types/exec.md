@@ -224,7 +224,7 @@ services:
     cleanupCommand:
 
     # The maximum duration (in seconds) to wait for a local script to exit.
-    timeout:
+    timeout: 600
 
     # Environment variables to set when running the deploy and status commands.
     env: {}
@@ -765,9 +765,9 @@ If the top level `local` directive is set to `true`, the command runs in the mod
 
 The maximum duration (in seconds) to wait for a local script to exit.
 
-| Type     | Required |
-| -------- | -------- |
-| `number` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `600`   | No       |
 
 ### `services[].env`
 

@@ -23,6 +23,7 @@ import { artifactsSchema, ExecSyncModeSpec } from "./config"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../plugin/handlers/Module/configure"
 import { ConfigurationError } from "../../exceptions"
 import { omit } from "lodash"
+import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -87,7 +88,7 @@ export interface ExecServiceSpec extends CommonServiceSpec {
   deployCommand: string[]
   statusCommand?: string[]
   syncMode?: ExecSyncModeSpec
-  timeout?: number
+  timeout: number
   env: { [key: string]: string }
 }
 
@@ -130,8 +131,7 @@ export const execServiceSchema = () =>
           ${execPathDoc}
           `
         ),
-      // TODO-0.13.0: Set a default in v0.13.0.
-      timeout: joi.number().description(dedent`
+      timeout: joi.number().integer().min(1).default(DEFAULT_RUN_TIMEOUT_SEC).description(dedent`
         The maximum duration (in seconds) to wait for a local script to exit.
       `),
       env: joiEnvVars().description("Environment variables to set when running the deploy and status commands."),
