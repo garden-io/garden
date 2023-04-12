@@ -20,10 +20,17 @@ import { DeployAction } from "../actions/deploy"
 import { DeployStatus } from "../plugin/handlers/Deploy/get-status"
 import { displayState, resolvedActionToExecuted } from "../actions/helpers"
 import { PluginEventBroker } from "../plugin-context"
+import { ActionLog } from "../logger/log-entry"
 
 export interface DeployTaskParams extends BaseActionTaskParams<DeployAction> {
   events?: PluginEventBroker
   startSync?: boolean
+}
+
+function printIngresses(status: DeployStatus, log: ActionLog) {
+  for (const ingress of status.detail?.ingresses || []) {
+    log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+  }
 }
 
 @Profile()
@@ -63,6 +70,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     if (!statusOnly) {
       if (status.state === "ready") {
         log.info(chalk.green(`${action.longDescription()} is already deployed.`))
+        printIngresses(status, log)
       } else {
         const state = status.detail?.deployState || displayState(status.state)
         log.info(chalk.green(`${action.longDescription()} is ${state}.`))
@@ -106,9 +114,7 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
 
     const executedAction = resolvedActionToExecuted(action, { status })
 
-    for (const ingress of status.detail?.ingresses || []) {
-      log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
-    }
+    printIngresses(status, log)
 
     // Start syncing, if requested
     if (this.startSync && action.mode() === "sync") {
