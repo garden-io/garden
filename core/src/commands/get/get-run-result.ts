@@ -14,6 +14,7 @@ import { getArtifactFileList, getArtifactKey } from "../../util/artifacts"
 import { joiArray, joi } from "../../config/common"
 import { StringParameter } from "../../cli/params"
 import { GetRunResult, getRunResultSchema } from "../../plugin/handlers/Run/get-result"
+import { createActionLog } from "../../logger/log-entry"
 
 const getRunResultArgs = {
   name: new StringParameter({
@@ -63,9 +64,10 @@ export class GetRunResultCommand extends Command<Args, {}, GetRunResultCommandRe
     const router = await garden.getActionRouter()
 
     const resolved = await garden.resolveAction({ action, graph, log })
+    const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
 
     const { result: res } = await router.run.getResult({
-      log,
+      log: actionLog,
       action: resolved,
       graph,
     })

@@ -81,11 +81,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
     delete: async (params) => {
       const { action, router, handlers } = params
 
-      const log = params.log
-        .createLog({
-          section: action.key(),
-        })
-        .info("Cleaning up...")
+      const log = params.log.createLog().info("Cleaning up...")
 
       const statusOutput = await handlers.getStatus({ ...params })
       const status = statusOutput.result

@@ -15,7 +15,7 @@ import getPort = require("get-port")
 import { ServiceStatus, ForwardablePort } from "./types/service"
 import { Garden } from "./garden"
 import { registerCleanupFunction, sleep } from "./util/util"
-import { Log } from "./logger/log-entry"
+import { createActionLog, Log } from "./logger/log-entry"
 import { ConfigGraph } from "./graph/config-graph"
 import { DeployAction } from "./actions/deploy"
 import { GetPortForwardResult } from "./plugin/handlers/Deploy/get-port-forward"
@@ -116,7 +116,8 @@ async function createProxy({ garden, graph, log, action, spec, events }: StartPo
       log.debug(`Starting port forward to ${key}`)
 
       try {
-        const output = await router.deploy.getPortForward({ action, log, graph, events, ...spec })
+        const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+        const output = await router.deploy.getPortForward({ action, log: actionLog, graph, events, ...spec })
         fwd = output.result
       } catch (err) {
         const msg = err.message.trim()
@@ -308,8 +309,9 @@ export async function stopPortProxy({ garden, graph, log, action, proxy, events 
   closeProxyServer(proxy)
 
   const router = await garden.getActionRouter()
+  const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
 
-  await router.deploy.stopPortForward({ log, graph, action, events, ...proxy.spec })
+  await router.deploy.stopPortForward({ log: actionLog, graph, action, events, ...proxy.spec })
 }
 
 function getHostname(action: DeployAction, spec: ForwardablePort) {

@@ -11,7 +11,7 @@ import { fromPairs } from "lodash"
 import { deepFilter } from "../../util/objects"
 import { Command, CommandResult, CommandParams } from "../base"
 import { ResolvedConfigGraph } from "../../graph/config-graph"
-import { Log } from "../../logger/log-entry"
+import { createActionLog, Log } from "../../logger/log-entry"
 import chalk from "chalk"
 import { deline } from "../../util/string"
 import { EnvironmentStatusMap } from "../../plugin/handlers/Provider/getEnvironmentStatus"
@@ -106,7 +106,8 @@ async function getBuildStatuses(router: ActionRouter, graph: ResolvedConfigGraph
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { result } = await router.build.getStatus({ action, log, graph })
+      const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.build.getStatus({ action, log: actionLog, graph })
       return [action.name, result]
     })
   )
@@ -117,7 +118,8 @@ async function getTestStatuses(router: ActionRouter, graph: ResolvedConfigGraph,
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { result } = await router.test.getResult({ action, log, graph })
+      const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.test.getResult({ action, log: actionLog, graph })
       return [action.name, result]
     })
   )
@@ -128,7 +130,8 @@ async function getRunStatuses(router: ActionRouter, graph: ResolvedConfigGraph, 
 
   return fromPairs(
     await Bluebird.map(actions, async (action) => {
-      const { result } = await router.run.getResult({ action, log, graph })
+      const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+      const { result } = await router.run.getResult({ action, log: actionLog, graph })
       return [action.name, result]
     })
   )

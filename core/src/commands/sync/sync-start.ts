@@ -16,6 +16,7 @@ import Bluebird from "bluebird"
 import chalk from "chalk"
 import { ParameterError, RuntimeError } from "../../exceptions"
 import { SyncMonitor } from "../../monitors/sync"
+import { createActionLog } from "../../logger/log-entry"
 
 const syncStartArgs = {
   names: new StringsParameter({
@@ -204,7 +205,8 @@ export class SyncStartCommand extends Command<Args, Opts> {
           }
           // Attempt to start sync even if service is outdated but in sync mode
           try {
-            await router.deploy.startSync({ log, action: executedAction, graph })
+            const actionLog = createActionLog({ log: log, actionName: executedAction.name, actionKind: executedAction.kind })
+            await router.deploy.startSync({ log: actionLog, action: executedAction, graph })
             someSyncStarted = true
 
             if (opts.monitor) {

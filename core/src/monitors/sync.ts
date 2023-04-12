@@ -9,7 +9,7 @@
 import type { DeployAction } from "../actions/deploy"
 import { Executed } from "../actions/types"
 import { ConfigGraph } from "../graph/config-graph"
-import { Log } from "../logger/log-entry"
+import { createActionLog, Log } from "../logger/log-entry"
 import { PluginEventBroker } from "../plugin-context"
 import { MonitorBaseParams, Monitor } from "./base"
 
@@ -48,8 +48,9 @@ export class SyncMonitor extends Monitor {
 
   async start() {
     const router = await this.garden.getActionRouter()
+    const actionLog = createActionLog({ log: this.log, actionName: this.action.name, actionKind: this.action.kind })
     await router.deploy.getSyncStatus({
-      log: this.log,
+      log: actionLog,
       action: this.action,
       monitor: true,
       graph: this.graph,

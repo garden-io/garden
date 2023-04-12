@@ -13,6 +13,7 @@ import { dedent, naturalList } from "../../util/string"
 import { Command, CommandParams, CommandResult } from "../base"
 import Bluebird from "bluebird"
 import chalk from "chalk"
+import { createActionLog } from "../../logger/log-entry"
 
 const syncStopArgs = {
   names: new StringsParameter({
@@ -104,14 +105,15 @@ export class SyncStopCommand extends Command<Args, Opts> {
     const router = await garden.getActionRouter()
 
     await Bluebird.map(actions, async (action) => {
-      log.info({ section: action.key(), msg: "Stopping active syncs (if any)..." })
+      const actionLog = createActionLog({ log: log, actionName: action.name, actionKind: action.kind })
+      actionLog.info("Stopping active syncs (if any)...")
 
-      await router.deploy.stopSync({ log, action, graph })
+      await router.deploy.stopSync({ log: actionLog, action, graph })
 
       // Halt any active monitors for the sync
       garden.monitors.find({ type: "sync", key: action.name }).map((m) => m.stop())
 
-      log.info({ section: action.key(), msg: "Syncing successfully stopped." })
+      actionLog.info("Syncing successfully stopped." )
     })
 
     log.info(chalk.green("\nDone!"))
