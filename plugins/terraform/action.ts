@@ -88,13 +88,13 @@ export const getTerraformStatus: DeployActionHandler<"getStatus", TerraformDeplo
     workspace,
   })
 
-  const deployState: DeployState = status === "up-to-date" ? "ready" : "outdated"
+  const state: DeployState = status === "up-to-date" ? "ready" : "outdated"
 
   return {
-    state: deployStateToActionState(deployState),
+    state: deployStateToActionState(state),
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {
-      deployState,
+      state,
       detail: {},
     },
   }
@@ -126,7 +126,7 @@ export const deployTerraform: DeployActionHandler<"deploy", TerraformDeploy> = a
     state: "ready",
     outputs: await getTfOutputs({ log, ctx, provider, root }),
     detail: {
-      deployState: "ready",
+      state: "ready",
       detail: {},
     },
   }
@@ -142,7 +142,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
     return {
       state: deployStateToActionState(deployState),
       detail: {
-        deployState,
+        state: deployState,
         detail: {},
       },
       outputs: {},
@@ -162,7 +162,7 @@ export const deleteTerraformModule: DeployActionHandler<"delete", TerraformDeplo
     state: "not-ready",
     outputs: {},
     detail: {
-      deployState: "missing",
+      state: "missing",
       detail: {},
     },
   }

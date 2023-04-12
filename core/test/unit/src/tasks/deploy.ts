@@ -55,12 +55,12 @@ describe("DeployTask", () => {
             handlers: {
               deploy: async (params) => ({
                 state: "ready",
-                detail: { detail: {}, deployState: "ready" },
+                detail: { detail: {}, state: "ready" },
                 outputs: { log: params.action.getSpec().log },
               }),
               getStatus: async (params) => ({
                 state: "ready",
-                detail: { detail: {}, deployState: "ready" },
+                detail: { detail: {}, state: "ready" },
                 outputs: { log: params.action.getSpec().log },
               }),
             },

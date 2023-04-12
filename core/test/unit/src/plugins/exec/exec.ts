@@ -565,7 +565,7 @@ describe("exec plugin", () => {
             graph,
           })
           expect(res.state).to.eql("ready")
-          expect(res.detail?.deployState).to.eql("ready")
+          expect(res.detail?.state).to.eql("ready")
           expect(res.detail?.detail.deployCommandOutput).to.eql("deployed echo service")
         })
 
@@ -811,7 +811,7 @@ describe("exec plugin", () => {
           const actionRes = res[actionName]
           expect(actionRes.state).to.equal("unknown")
           const detail = actionRes.detail!
-          expect(detail.deployState).to.equal("unknown")
+          expect(detail.state).to.equal("unknown")
           expect(detail.detail).to.be.empty
         })
 
@@ -835,7 +835,7 @@ describe("exec plugin", () => {
           const actionRes = res[actionName]
           expect(actionRes.state).to.equal("ready")
           const detail = actionRes.detail!
-          expect(detail.deployState).to.equal("ready")
+          expect(detail.state).to.equal("ready")
           expect(detail.detail.statusCommandOutput).to.equal("already deployed")
         })
 
@@ -854,7 +854,7 @@ describe("exec plugin", () => {
           expect(actionRes.state).to.equal("not-ready")
           const detail = actionRes.detail!
           // The deploy state is different (has more states) than the action state
-          expect(detail.deployState).to.equal("outdated")
+          expect(detail.state).to.equal("outdated")
           expect(detail.detail.statusCommandOutput).to.be.empty
         })
       })
@@ -878,7 +878,7 @@ describe("exec plugin", () => {
 
           expect(res.state).to.equal("not-ready")
           const detail = res.detail!
-          expect(detail.deployState).to.equal("missing")
+          expect(detail.state).to.equal("missing")
           expect(detail.detail.cleanupCommandOutput).to.equal("cleaned up")
         })
 
@@ -893,7 +893,7 @@ describe("exec plugin", () => {
           })
 
           expect(res.state).to.equal("unknown")
-          expect(res.detail?.deployState).to.equal("unknown")
+          expect(res.detail?.state).to.equal("unknown")
         })
 
         it("throws if cleanupCommand returns with non-zero code", async () => {

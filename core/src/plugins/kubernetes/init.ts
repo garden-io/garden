@@ -252,7 +252,7 @@ export async function prepareSystem({
   }
 
   const deployStatuses: DeployStatusMap = (status.detail && status.detail.deployStatuses) || {}
-  const serviceStates = Object.values(deployStatuses).map((s) => s.detail?.deployState || "unknown")
+  const serviceStates = Object.values(deployStatuses).map((s) => s.detail?.state || "unknown")
   const combinedState = combineStates(serviceStates)
 
   const remoteCluster = provider.name !== "local-kubernetes"

@@ -68,7 +68,7 @@ const moduleConfigs: ModuleConfig[] = [
 
 const missingDeployStatus: ActionStatus = {
   state: "not-ready",
-  detail: { deployState: "missing", forwardablePorts: [], outputs: {}, detail: {}, mode: "default" },
+  detail: { state: "missing", forwardablePorts: [], outputs: {}, detail: {}, mode: "default" },
   outputs: {},
 }
 
@@ -98,15 +98,15 @@ describe("DeleteEnvironmentCommand", () => {
           schema: execDeployActionSchema(),
           handlers: {
             deploy: async (_params) => {
-              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             getStatus: async (_params) => {
-              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             delete: async (params) => {
               deletedServices.push(params.action.name)
               deleteOrder.push(params.action.name)
-              return { state: "not-ready", detail: { deployState: "missing", detail: {} }, outputs: {} }
+              return { state: "not-ready", detail: { state: "missing", detail: {} }, outputs: {} }
             },
           },
         },
@@ -202,10 +202,10 @@ describe("DeleteDeployCommand", () => {
           schema: execDeployActionSchema(),
           handlers: {
             deploy: async (_params) => {
-              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             getStatus: async (_params) => {
-              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             delete: async (params) => {
               deleteOrder.push(params.action.name)
