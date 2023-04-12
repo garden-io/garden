@@ -30,7 +30,7 @@ const testProvider = () => {
     "service-a": {
       state: "ready",
       detail: {
-        deployState: "ready",
+        state: "ready",
         detail: {},
         ingresses: [
           {
@@ -45,7 +45,7 @@ const testProvider = () => {
     },
     "service-c": {
       state: "ready",
-      detail: { deployState: "ready", detail: {} },
+      detail: { state: "ready", detail: {} },
       outputs: {},
     },
   }
@@ -60,11 +60,7 @@ const testProvider = () => {
           schema: testDeploySchema(),
           handlers: {
             deploy: async (params) => {
-              const newStatus: DeployStatus = {
-                state: "ready",
-                detail: { state: "ready", detail: {} },
-                outputs: {},
-              }
+              const newStatus: DeployStatus = { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
               testStatuses[params.action.name] = newStatus
               return newStatus
             },

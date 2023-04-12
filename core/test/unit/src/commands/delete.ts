@@ -68,7 +68,7 @@ const moduleConfigs: ModuleConfig[] = [
 
 const missingDeployStatus: ActionStatus = {
   state: "not-ready",
-  detail: { deployState: "missing", forwardablePorts: [], outputs: {}, detail: {}, mode: "default" },
+  detail: { state: "missing", forwardablePorts: [], outputs: {}, detail: {}, mode: "default" },
   outputs: {},
 }
 
