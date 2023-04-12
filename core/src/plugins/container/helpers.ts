@@ -130,10 +130,11 @@ const helpers = {
 
     const host = registryConfig.port ? `${registryConfig.hostname}:${registryConfig.port}` : registryConfig.hostname
 
+    const repository = [parsedId.host, parsedId.namespace, parsedId.repository].filter((s) => s).join("/")
     return helpers.unparseImageId({
       host,
       namespace: registryConfig.namespace,
-      repository: parsedId.repository,
+      repository,
       tag: undefined,
     })
   },
