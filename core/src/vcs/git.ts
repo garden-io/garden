@@ -558,67 +558,75 @@ export class GitHandler extends VcsHandler {
 
   // TODO Better auth handling
   async ensureRemoteSource({ url, name, log, sourceType, failOnPrompt = false }: RemoteSourceParams): Promise<string> {
-    const remoteSourcesPath = join(this.gardenDirPath, this.getRemoteSourcesDirname(sourceType))
-    await ensureDir(remoteSourcesPath)
+    return this.getRemoteSourceLock(sourceType, name, async () => {
+      const remoteSourcesPath = this.getRemoteSourcesLocalPath(sourceType)
+      await ensureDir(remoteSourcesPath)
 
-    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
-    const isCloned = await pathExists(absPath)
+      const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
+      const isCloned = await pathExists(absPath)
 
-    if (!isCloned) {
-      const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
-      const { repositoryUrl, hash } = parseGitUrl(url)
+      if (!isCloned) {
+        const gitLog = log.createLog({ name, showDuration: true }).info(`Fetching from ${url}`)
+        const { repositoryUrl, hash } = parseGitUrl(url)
 
-      try {
-        await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
-      } catch (err) {
-        gitLog.error(`Failed fetching from ${url}`)
-        throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
-          repositoryUrl: url,
-          message: err.message,
-        })
+        try {
+          await this.cloneRemoteSource(log, repositoryUrl, hash, absPath, failOnPrompt)
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError(`Downloading remote ${sourceType} failed with error: \n\n${err}`, {
+            repositoryUrl: url,
+            message: err.message,
+          })
+        }
+
+        gitLog.success("Done")
       }
 
-      gitLog.success("Done")
-    }
-
-    return absPath
+      return absPath
+    })
   }
 
   async updateRemoteSource({ url, name, sourceType, log, failOnPrompt = false }: RemoteSourceParams) {
-    const absPath = join(this.gardenDirPath, this.getRemoteSourceRelPath(name, url, sourceType))
+    const absPath = this.getRemoteSourceLocalPath(name, url, sourceType)
     const git = this.gitCli(log, absPath, failOnPrompt)
     const { repositoryUrl, hash } = parseGitUrl(url)
 
     await this.ensureRemoteSource({ url, name, sourceType, log, failOnPrompt })
 
-    const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
-    await git("remote", "update")
+    await this.getRemoteSourceLock(sourceType, name, async () => {
+      const gitLog = log.createLog({ name, showDuration: true }).info("Getting remote state")
+      await git("remote", "update")
 
-    const localCommitId = (await git("rev-parse", "HEAD"))[0]
-    const remoteCommitId = this.isHashSHA1(hash)
-      ? hash
-      : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
+      const localCommitId = (await git("rev-parse", "HEAD"))[0]
+      const remoteCommitId = this.isHashSHA1(hash)
+        ? hash
+        : getCommitIdFromRefList(await git("ls-remote", repositoryUrl, hash))
 
-    if (localCommitId !== remoteCommitId) {
-      gitLog.info(`Fetching from ${url}`)
+      if (localCommitId !== remoteCommitId) {
+        gitLog.info(`Fetching from ${url}`)
 
-      try {
-        await git("fetch", "--depth=1", "origin", hash)
-        await git("reset", "--hard", `origin/${hash}`)
-        // Update submodules if applicable (no-op if no submodules in repo)
-        await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
-      } catch (err) {
-        gitLog.error(`Failed fetching from ${url}`)
-        throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
-          repositoryUrl: url,
-          message: err.message,
-        })
+        try {
+          await git("fetch", "--depth=1", "origin", hash)
+          await git("reset", "--hard", `origin/${hash}`)
+          // Update submodules if applicable (no-op if no submodules in repo)
+          await git("-c", "protocol.file.allow=always", "submodule", "update", "--recursive")
+        } catch (err) {
+          gitLog.error(`Failed fetching from ${url}`)
+          throw new RuntimeError(`Updating remote ${sourceType} failed with error: \n\n${err}`, {
+            repositoryUrl: url,
+            message: err.message,
+          })
+        }
+
+        gitLog.success("Source updated")
+      } else {
+        gitLog.success("Source already up to date")
       }
+    })
+  }
 
-      gitLog.success("Source updated")
-    } else {
-      gitLog.success("Source already up to date")
-    }
+  private getRemoteSourceLock(sourceType: string, name: string, func: () => Promise<any>) {
+    return this.lock.acquire(`remote-source-${sourceType}-${name}`, func)
   }
 
   /**

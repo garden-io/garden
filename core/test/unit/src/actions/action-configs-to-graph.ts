@@ -44,6 +44,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -73,6 +74,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -102,6 +104,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -131,6 +134,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -167,6 +171,7 @@ describe("actionConfigsToGraph", () => {
       configs: [],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const actions = graph.getActions()
@@ -206,6 +211,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -250,6 +256,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getDeploy("bar")
@@ -295,6 +302,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -341,6 +349,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -376,6 +385,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -401,6 +411,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("bar")
@@ -429,6 +440,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -461,6 +473,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -498,6 +511,7 @@ describe("actionConfigsToGraph", () => {
       ],
       moduleGraph: new ModuleGraph([], {}),
       actionModes: {},
+      linkedSources: {},
     })
 
     const action = graph.getBuild("foo")
@@ -529,6 +543,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         sync: ["deploy.foo"],
       },
@@ -557,6 +572,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["deploy.foo"],
       },
@@ -590,6 +606,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["deploy.foo"],
         sync: ["deploy.foo"],
@@ -619,6 +636,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["*"],
       },
@@ -647,6 +665,7 @@ describe("actionConfigsToGraph", () => {
         },
       ],
       moduleGraph: new ModuleGraph([], {}),
+      linkedSources: {},
       actionModes: {
         local: ["deploy.f*"],
       },
@@ -677,6 +696,7 @@ describe("actionConfigsToGraph", () => {
           ],
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
+          linkedSources: {},
         }),
       (err) => expect(err.message).to.equal("Unknown action kind: Boop")
     )
@@ -711,6 +731,7 @@ describe("actionConfigsToGraph", () => {
           ],
           moduleGraph: new ModuleGraph([], {}),
           actionModes: {},
+          linkedSources: {},
         }),
       {
         contains: ["Found two actions of the same name and kind:"],

@@ -70,7 +70,7 @@ describe("Autocompleter", () => {
 
   it("returns subcommands when matching on command group", () => {
     const result = ac.getSuggestions("link")
-    expect(result.map((s) => s.line).sort()).to.eql(["link module", "link source"])
+    expect(result.map((s) => s.line).sort()).to.eql(["link action", "link module", "link source"])
   })
 
   it("filters option flags", () => {

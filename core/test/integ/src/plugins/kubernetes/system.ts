@@ -69,6 +69,7 @@ describe("System services", () => {
         log: systemGarden.log,
         router,
         mode: "default",
+        linkedSources: {},
       })) as TestAction<any, any>
       const resolved = await systemGarden.resolveAction<TestAction>({ action, graph, log: systemGarden.log })
       const testTask = new TestTask({

@@ -1,0 +1,12 @@
+kind: Build
+type: test
+name: c
+
+---
+
+kind: Test
+type: test
+name: c-unit
+build: c
+spec:
+  command: [echo, OK]

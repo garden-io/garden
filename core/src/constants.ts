@@ -20,8 +20,6 @@ export const MUTAGEN_DIR_NAME = "mutagen"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
 export const ERROR_LOG_FILENAME = "error.log"
-export const PROJECT_SOURCES_DIR_NAME = join("sources", "project")
-export const MODULE_SOURCES_DIR_NAME = join("sources", "module")
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 

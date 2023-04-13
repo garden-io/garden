@@ -24,6 +24,7 @@ import { uniqByName } from "../util/util"
 import { deline } from "../util/string"
 import { isBuildAction } from "../actions/build"
 import { watchParameter, watchRemovedWarning } from "./helpers"
+import { warnOnLinkedActions } from "../actions/helpers"
 
 const buildArgs = {
   names: new StringsParameter({
@@ -101,6 +102,8 @@ export class BuildCommand extends Command<Args, Opts> {
         ),
       ])
     }
+
+    await warnOnLinkedActions(garden, log, actions)
 
     const tasks = flatten(
       await Bluebird.map(

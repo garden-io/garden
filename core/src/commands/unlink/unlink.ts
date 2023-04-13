@@ -9,10 +9,11 @@
 import { CommandGroup } from "../base"
 import { UnlinkSourceCommand } from "./source"
 import { UnlinkModuleCommand } from "./module"
+import { UnlinkActionCommand } from "./action"
 
 export class UnlinkCommand extends CommandGroup {
   name = "unlink"
   help = "Unlink a remote source or module from its local path."
 
-  subCommands = [UnlinkSourceCommand, UnlinkModuleCommand]
+  subCommands = [UnlinkSourceCommand, UnlinkActionCommand, UnlinkModuleCommand]
 }

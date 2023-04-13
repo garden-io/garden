@@ -10,10 +10,16 @@ import { CommandGroup } from "../base"
 import { UpdateRemoteSourcesCommand } from "./sources"
 import { UpdateRemoteModulesCommand } from "./modules"
 import { UpdateRemoteAllCommand } from "./all"
+import { UpdateRemoteActionsCommand } from "./actions"
 
 export class UpdateRemoteCommand extends CommandGroup {
   name = "update-remote"
-  help = "Pulls the latest version of remote sources or modules from their repository."
+  help = "Pulls the latest version of remote sources, actions or modules from their repository."
 
-  subCommands = [UpdateRemoteSourcesCommand, UpdateRemoteModulesCommand, UpdateRemoteAllCommand]
+  subCommands = [
+    UpdateRemoteSourcesCommand,
+    UpdateRemoteActionsCommand,
+    UpdateRemoteModulesCommand,
+    UpdateRemoteAllCommand,
+  ]
 }

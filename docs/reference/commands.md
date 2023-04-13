@@ -1154,7 +1154,7 @@ actionConfigs:
       # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is ina git repository!
+        # is in a git repository!
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
@@ -1327,7 +1327,7 @@ actionConfigs:
       # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is ina git repository!
+        # is in a git repository!
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
@@ -1467,7 +1467,7 @@ actionConfigs:
       # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is ina git repository!
+        # is in a git repository!
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
@@ -1610,7 +1610,7 @@ actionConfigs:
       # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
-        # is ina git repository!
+        # is in a git repository!
         path:
 
         # When set, Garden will import the action source from this repository, but use this action configuration (and
@@ -2163,7 +2163,7 @@ sources:
 
 ### garden get linked-repos
 
-**Outputs a list of all linked remote sources and modules for this project.**
+**Outputs a list of all linked remote sources, actions and modules for this project.**
 
 
 #### Usage
@@ -2987,6 +2987,40 @@ sources:
     path:
 ```
 
+### garden link action
+
+**Link a remote action to a local directory.**
+
+After linking a remote action, Garden will read the source from the linked local directory instead of the remote repository. Garden can only link actions that have a remote source, i.e. actions that specify a `source.repository.url` in their configuration.
+
+Examples:
+
+    garden link action build.my-build path/to/my-build # links Build my-build to its local version at the given path
+
+#### Usage
+
+    garden link action <action> <path> 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `action` | Yes | The full key of the action (e.g. deploy.api).
+  | `path` | Yes | Path to the local directory that contains the action.
+
+
+#### Outputs
+
+```yaml
+# A list of all locally linked remote actions.
+sources:
+  - # The key of the linked action.
+    name:
+
+    # The local directory path of the linked repo clone.
+    path:
+```
+
 ### garden link module
 
 **Link a remote module to a local directory.**
@@ -3583,6 +3617,34 @@ Examples:
   | `--all` |  | boolean | Unlink all sources.
 
 
+### garden unlink action
+
+**Unlink a previously linked remote action from its local directory.**
+
+After unlinking a remote action, Garden will go back to reading the action's source from its remote repository instead of its local directory.
+
+Examples:
+
+    garden unlink action build.my-build  # unlinks Build my-build
+    garden unlink action --all           # unlink all actions
+
+#### Usage
+
+    garden unlink action [actions] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `actions` | No | The name(s) of the action(s) to unlink. You may specify multiple actions, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--all` |  | boolean | Unlink all actions.
+
+
 ### garden unlink module
 
 **Unlink a previously linked remote module from its local directory.**
@@ -3653,6 +3715,47 @@ sources:
     repositoryUrl:
 ```
 
+### garden update-remote actions
+
+**Update remote actions.**
+
+Updates remote actions, i.e. actions that have a `source.repository.url` field set in their config that points to a remote repository.
+
+Examples:
+
+    garden update-remote actions --parallel      # update all remote actions in parallel mode
+    garden update-remote actions                 # update all remote actions in the project
+    garden update-remote action build.my-build   # update remote Build my-build
+
+#### Usage
+
+    garden update-remote actions [actions] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `actions` | No | The name(s) of the remote action(s) to update. You may specify multiple actions, separated by spaces.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
+
+#### Outputs
+
+```yaml
+# A list of all external action sources in the project.
+sources:
+  - # The name of the action.
+    name:
+
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
+    repositoryUrl:
+```
+
 ### garden update-remote modules
 
 **Update remote modules.**
@@ -3697,12 +3800,12 @@ sources:
 
 ### garden update-remote all
 
-**Update all remote sources and modules.**
+**Update all remote sources, actions and modules.**
 
 Examples:
 
-    garden update-remote all --parallel # update all remote sources and modules in the project in parallel mode
-    garden update-remote all            # update all remote sources and modules in the project
+    garden update-remote all             # update all remote sources, actions and modules in the project
+    garden update-remote all --parallel  # update all remote sources in the project in parallel mode
 
 #### Usage
 
@@ -3720,6 +3823,15 @@ Examples:
 # A list of all configured external project sources.
 projectSources:
   - # The name of the source to import
+    name:
+
+    # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific
+    # branch or tag, with the format: <git remote url>#<branch|tag>
+    repositoryUrl:
+
+# A list of all external action sources in the project.
+actionSources:
+  - # The name of the action.
     name:
 
     # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a specific

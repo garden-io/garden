@@ -90,6 +90,7 @@ describe("util", () => {
         configsByKey: {},
         router,
         mode: "default",
+        linkedSources: {},
       })) as BuildAction
       return new BuildTask({
         garden: helmGarden,

@@ -9,8 +9,10 @@
 import chalk from "chalk"
 import { memoize } from "lodash"
 import { joi } from "../config/common"
+import { Garden } from "../garden"
 import { Log } from "../logger/log-entry"
 import { renderDivider } from "../logger/util"
+import { getLinkedSources } from "../util/ext-source-util"
 import { buildActionConfigSchema, ExecutedBuildAction, isBuildAction, ResolvedBuildAction } from "./build"
 import { deployActionConfigSchema, ExecutedDeployAction, isDeployAction, ResolvedDeployAction } from "./deploy"
 import { ExecutedRunAction, isRunAction, ResolvedRunAction, runActionConfigSchema } from "./run"
@@ -69,10 +71,12 @@ export const actionConfigSchema = memoize(() =>
 )
 
 // TODO: maybe do this implicitly
-export function warnOnLinkedActions(log: Log, actions: Action[]) {
+export async function warnOnLinkedActions(garden: Garden, log: Log, actions: Action[]) {
   // Let the user know if any actions are linked to a local path
+  const linkedSources = await getLinkedSources(garden, "project")
+
   const linkedActionsMsg = actions
-    .filter((a) => a.isLinked())
+    .filter((a) => a.isLinked(linkedSources))
     .map((a) => `${a.longDescription()} linked to path ${chalk.white(a.basePath())}`)
     .map((msg) => "  " + msg) // indent list
 

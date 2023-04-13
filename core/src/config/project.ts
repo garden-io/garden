@@ -129,6 +129,14 @@ export interface SourceConfig {
   repositoryUrl: string
 }
 
+export const actionSourceSchema = createSchema({
+  name: "action-source",
+  keys: () => ({
+    name: joi.string().hostname().required().description("The name of the action.").example("build.my-external-build"),
+    repositoryUrl: joiRepositoryUrl().required(),
+  }),
+})
+
 export const moduleSourceSchema = createSchema({
   name: "module-source",
   keys: () => ({
@@ -153,6 +161,14 @@ export const linkedSourceSchema = createSchema({
   name: "linked-source",
   keys: () => ({
     name: joiUserIdentifier().description("The name of the linked source."),
+    path: joi.string().description("The local directory path of the linked repo clone."),
+  }),
+})
+
+export const linkedActionSchema = createSchema({
+  name: "linked-action",
+  keys: () => ({
+    name: joi.string().hostname().description("The key of the linked action."),
     path: joi.string().description("The local directory path of the linked repo clone."),
   }),
 })

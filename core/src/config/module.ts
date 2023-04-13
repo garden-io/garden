@@ -263,7 +263,8 @@ export interface ModuleConfig<M extends {} = any, S extends {} = any, T extends 
   extends BaseModuleSpec {
   path: string
   configPath?: string
-  plugin?: string // used to identify modules that are bundled as part of a plugin
+  basePath?: string // The directory of the config. Disambiguates `path` when the module has a remote source.
+  plugin?: string // Used to identify modules that are bundled as part of a plugin.
   buildConfig?: any
   serviceConfigs: ServiceConfig<S>[]
   testConfigs: TestConfig<T>[]

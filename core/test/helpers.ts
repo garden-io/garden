@@ -38,7 +38,7 @@ import { ModuleVersion } from "../src/vcs/vcs"
 import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv } from "../src/constants"
 import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { ConfigureModuleParams } from "../src/plugin/handlers/Module/configure"
-import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
+import { ExternalSourceType, getRemoteSourceLocalPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
 import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store/global"
@@ -86,7 +86,7 @@ export const testModuleVersion: ModuleVersion = {
 }
 
 // All test projects use this git URL
-export const testGitUrl = "https://my-git-server.com/my-repo.git#main"
+export const testGitUrl = "https://example.com/my-repo.git#main"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
 
 /**
@@ -612,25 +612,37 @@ export async function resetLocalConfig(gardenDirPath: string) {
 }
 
 /**
- * Idempotently initializes the test-project-ext-project-sources project and returns
+ * Idempotently initializes the test-projects/ext-project-sources project and returns
  * the Garden class.
  */
 export async function makeExtProjectSourcesGarden(opts: TestGardenOpts = {}) {
-  const projectRoot = getDataDir("test-project-ext-project-sources")
+  const projectRoot = getDataDir("test-projects", "ext-project-sources")
   // Borrow the external sources from here:
-  const extSourcesRoot = getDataDir("test-project-local-project-sources")
+  const extSourcesRoot = getDataDir("test-projects", "local-project-sources")
   const sourceNames = ["source-a", "source-b", "source-c"]
   return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "project", opts })
 }
 
 /**
- * Idempotently initializes the test-project-ext-project-sources project and returns
+ * Idempotently initializes the test-project/ext-action-sources project and returns
+ * the Garden class.
+ */
+export async function makeExtActionSourcesGarden(opts: TestGardenOpts = {}) {
+  const projectRoot = getDataDir("test-projects", "ext-action-sources")
+  // Borrow the external sources from here:
+  const extSourcesRoot = getDataDir("test-projects", "local-action-sources")
+  const sourceNames = ["build.a", "build.b"]
+  return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "action", opts })
+}
+
+/**
+ * Idempotently initializes the test-projects/ext-project-sources project and returns
  * the Garden class.
  */
 export async function makeExtModuleSourcesGarden(opts: TestGardenOpts = {}) {
-  const projectRoot = getDataDir("test-project-ext-module-sources")
+  const projectRoot = getDataDir("test-projects", "ext-module-sources")
   // Borrow the external sources from here:
-  const extSourcesRoot = getDataDir("test-project-local-module-sources")
+  const extSourcesRoot = getDataDir("test-projects", "local-module-sources")
   const sourceNames = ["module-a", "module-b", "module-c"]
   return prepareRemoteGarden({ projectRoot, extSourcesRoot, sourceNames, type: "module", opts })
 }
@@ -658,8 +670,7 @@ async function prepareRemoteGarden({
   await mkdirp(sourcesPath)
   // Copy the sources to the `.garden/sources` dir and git init them
   await Bluebird.map(sourceNames, async (name) => {
-    const remoteSourceRelPath = getRemoteSourceRelPath({ name, url: testGitUrl, sourceType: type })
-    const targetPath = join(garden.projectRoot, ".garden", remoteSourceRelPath)
+    const targetPath = getRemoteSourceLocalPath({ gardenDirPath: garden.gardenDirPath, name, url: testGitUrl, type })
     await copy(join(extSourcesRoot, name), targetPath)
     await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
   })
@@ -673,7 +684,7 @@ async function prepareRemoteGarden({
 export function trimLineEnds(str: string) {
   return str
     .split("\n")
-    .map((line) => line.trimRight())
+    .map((line) => line.trimEnd())
     .join("\n")
 }
 

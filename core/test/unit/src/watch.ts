@@ -394,7 +394,7 @@ describe.skip("Watcher", () => {
 
       garden = await makeExtProjectSourcesGarden({ noCache: true })
 
-      localProjectSourceDir = getDataDir("test-project-local-project-sources")
+      localProjectSourceDir = getDataDir("test-projects", "local-project-sources")
       localSourcePathA = join(localProjectSourceDir, "source-a")
       localSourcePathB = join(localProjectSourceDir, "source-b")
 

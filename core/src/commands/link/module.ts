@@ -14,7 +14,7 @@ import { ParameterError } from "../../exceptions"
 import { Command, CommandResult, CommandParams } from "../base"
 import { LinkedSource } from "../../config-store/local"
 import { printHeader } from "../../logger/util"
-import { addLinkedSources, hasRemoteSource } from "../../util/ext-source-util"
+import { addLinkedSources, moduleHasRemoteSource } from "../../util/ext-source-util"
 import { joiArray, joi } from "../../config/common"
 import { linkedModuleSchema } from "../../config/project"
 import { StringParameter, PathParameter } from "../../cli/params"
@@ -70,9 +70,9 @@ export class LinkModuleCommand extends Command<Args> {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const moduleToLink = graph.getModule(moduleName)
 
-    const isRemote = [moduleToLink].filter(hasRemoteSource)[0]
+    const isRemote = [moduleToLink].filter(moduleHasRemoteSource)[0]
     if (!isRemote) {
-      const modulesWithRemoteSource = graph.getModules().filter(hasRemoteSource).sort()
+      const modulesWithRemoteSource = graph.getModules().filter(moduleHasRemoteSource).sort()
 
       throw new ParameterError(
         `Expected module(s) ${chalk.underline(moduleName)} to have a remote source.` +
