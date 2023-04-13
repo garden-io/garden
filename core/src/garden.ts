@@ -463,10 +463,7 @@ export class Garden {
 
       if (!existing || !existing.hidden) {
         this.emittedWarnings.add(key)
-        log.warn({
-          symbol: "warning",
-          msg: message + `\n→ Run ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`,
-        })
+        log.warn(message + `\n→ Run ${chalk.underline(`garden util hide-warning ${key}`)} to disable this warning.`)
       }
     })
   }

@@ -35,13 +35,10 @@ export const getEnvironmentStatus: ProviderHandlers["getEnvironmentStatus"] = as
     if (autoApply) {
       return { ready: false, outputs: {} }
     } else {
-      log.warn({
-        symbol: "warning",
-        msg: chalk.yellow(deline`
-          Terraform stack is not up-to-date and ${chalk.underline("autoApply")} is not enabled. Please run
-          ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
-        `),
-      })
+      log.warn(deline`
+        Terraform stack is not up-to-date and ${chalk.underline("autoApply")} is not enabled. Please run
+        ${chalk.white.bold("garden plugins terraform apply-root")} to make sure the stack is in the intended state.
+      `)
       const outputs = await getTfOutputs({ log, ctx, provider, root })
       // Make sure the status is not cached when the stack is not up-to-date
       return { ready: true, outputs, disableCache: true }

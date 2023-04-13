@@ -378,12 +378,9 @@ ${renderCommands(commands)}
           nsLog.info(`Running in Garden environment ${chalk.cyan(`${garden.environmentName}.${garden.namespace}`)}`)
 
           if (!cloudApi && garden.projectId) {
-            log.warn({
-              symbol: "warning",
-              msg: `You are not logged in into Garden Cloud. Please log in via the ${chalk.green(
+            log.warn(`You are not logged in into Garden Cloud. Please log in via the ${chalk.green(
                 "garden login"
-              )} command.`,
-            })
+              )} command.`)
             log.info("")
           }
 

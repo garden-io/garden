@@ -22,9 +22,6 @@ export function emitNonRepeatableWarning(log: Log, message: string) {
     return
   }
 
-  log.warn({
-    symbol: "warning",
-    msg: chalk.yellow(message),
-  })
+  log.warn(message)
   loggerContext.history.add(message)
 }

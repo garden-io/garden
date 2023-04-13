@@ -146,7 +146,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
   constructor({ log, dataDir }: MutagenMonitorParams) {
     super()
-    this.log = log.createLog({ name: mutagenLogSection })
+    this.log = log.createLog({ name: mutagenLogSection })
     this.configLock = new AsyncLock()
     this.dataDir = dataDir
 
@@ -169,7 +169,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         return
       }
 
-      const log = this.log.createLog({ name: mutagenLogSection })
+      const log = this.log.createLog({ name: mutagenLogSection })
 
       const mutagenPath = await mutagenCli.getPath(log)
       const dataDir = this.dataDir
@@ -198,10 +198,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
 
       proc.on("exit", (code: number) => {
         if (code && code !== 0) {
-          log.warn({
-            symbol: "empty",
-            msg: chalk.yellow(`Synchronization monitor exited with code ${code}.`),
-          })
+          log.warn(`Synchronization monitor exited with code ${code}.`)
         }
       })
 
@@ -211,7 +208,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
         // it'll basically work for the next 979 years :P.
         const msg = chalk.gray(str.startsWith("2") ? str.split(" ").slice(3).join(" ") : str)
         if (msg.includes("Unable") && lastDaemonError !== msg) {
-          log.warn({ symbol: "warning", msg })
+          log.warn(msg)
           // Make sure we don't spam with repeated messages
           lastDaemonError = msg
         } else {
@@ -328,26 +325,23 @@ export class Mutagen {
       ]
 
       const { logSection: section } = activeSync
-      const syncLog = this.log.createLog({ name: section })
+      const syncLog = this.log.createLog({ name: section })
 
       for (const problem of problems) {
         if (!activeSync.lastProblems.includes(problem)) {
-          syncLog.warn({ symbol: "warning", msg: chalk.yellow(problem) })
+          syncLog.warn(problem)
         }
       }
 
       if (session.alpha.connected && !activeSync.sourceConnected) {
-        syncLog.info({
-          symbol: "info",
-          msg: chalk.gray(`Connected to sync source ${sourceDescription}`),
-        })
+        syncLog.info(`Connected to sync source ${sourceDescription}`)
         activeSync.sourceConnected = true
       }
 
       if (session.beta.connected && !activeSync.targetConnected) {
         syncLog.info({
           symbol: "success",
-          msg: chalk.gray(`Connected to sync target ${targetDescription}`),
+          msg: `Connected to sync target ${targetDescription}`,
         })
         activeSync.targetConnected = true
       }
@@ -383,10 +377,7 @@ export class Mutagen {
       }
 
       if (statusMsg) {
-        syncLog.info({
-          symbol: "info",
-          msg: chalk.gray(`${syncLogPrefix} ${statusMsg}`),
-        })
+        syncLog.info(`${syncLogPrefix} ${statusMsg}`)
       }
 
       activeSync.lastSyncCount = syncCount
@@ -518,12 +509,11 @@ export class Mutagen {
       onFailedAttempt: async (err) => {
         const unableToFlush = err.message.match(/unable to flush session/)
         if (unableToFlush) {
-          this.log.warn({
-            symbol: "empty",
-            msg: chalk.gray(
+          this.log.warn(
+            chalk.gray(
               `Could not flush synchronization changes, retrying (attempt ${err.attemptNumber}/${err.retriesLeft})...`
-            ),
-          })
+            )
+          )
         } else {
           throw err
         }
@@ -609,10 +599,7 @@ export class Mutagen {
         const unableToConnect = err.message.match(/unable to connect to daemon/)
         if (unableToConnect && loops < 10) {
           loops += 1
-          this.log.warn({
-            symbol: "empty",
-            msg: chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`),
-          })
+          this.log.warn(chalk.gray(`Could not connect to sync daemon, retrying (attempt ${loops}/${maxRetries})...`))
           await this.ensureDaemon()
           await sleep(2000 + loops * 500)
         } else {

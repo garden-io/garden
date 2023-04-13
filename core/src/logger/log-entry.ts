@@ -99,17 +99,16 @@ interface LogConstructor<C extends BaseContext> extends Omit<LogConfig<C>, "key"
 
 interface CreateLogParams
   extends Pick<LogConfig<LogContext>, "metadata" | "fixLevel" | "showDuration">,
-  Pick<LogContext, "origin"> { }
+    Pick<LogContext, "origin"> {}
 
 interface CreateCoreLogParams
   extends Pick<LogConfig<CoreLogContext>, "metadata" | "fixLevel" | "showDuration">,
-  Pick<CoreLogContext, "name" | "origin"> {
+    Pick<CoreLogContext, "name" | "origin"> {
   name: string
   origin?: string
 }
 
-export interface LogEntry<C extends BaseContext = LogContext>
-  extends Pick<LogConfig<C>, "metadata" | "context"> {
+export interface LogEntry<C extends BaseContext = LogContext> extends Pick<LogConfig<C>, "metadata" | "context"> {
   timestamp: string
   /**
    * A unique ID that's assigned to the entry when it's created.
@@ -131,9 +130,13 @@ export interface LogEntry<C extends BaseContext = LogContext>
   error?: GardenError
 }
 
+interface LogParamsBase
+  extends Pick<LogEntry, "metadata" | "msg" | "data" | "dataFormat" | "error">,
+    Pick<LogContext, "origin"> {}
+
 interface LogParams
-  extends Pick<LogEntry, "metadata" | "msg" | "symbol" | "data" | "dataFormat" | "error">,
-  Pick<LogContext, "origin"> {}
+  extends Pick<LogEntry, "metadata" | "msg" | "symbol" |  "data" | "dataFormat" | "error">,
+    Pick<LogContext, "origin"> {}
 
 interface CreateLogEntryParams extends LogParams {
   level: LogLevel
@@ -289,15 +292,15 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
     return this.log(this.resolveCreateParams(LogLevel.verbose, params))
   }
 
-  info(params: string | LogParams) {
+  info(params: string | (LogParamsBase & { symbol?: Extract<LogSymbol, "empty" | "success"> })) {
     return this.log(this.resolveCreateParams(LogLevel.info, params))
   }
 
-  warn(params: string | LogParams) {
+  warn(params: string | Omit<LogParams, "symbol">) {
     return this.log(this.resolveCreateParams(LogLevel.warn, params))
   }
 
-  error(params: string | LogParams) {
+  error(params: string | Omit<LogParams, "symbol">) {
     const config = {
       ...this.resolveCreateParams(LogLevel.error, params || {}),
       symbol: "error" as LogSymbol,
@@ -312,7 +315,7 @@ export class Log<C extends BaseContext = LogContext> implements LogConfig<C> {
       symbol: "success" as LogSymbol,
     }
     config.msg = chalk.green(this.withDuration(config).msg)
-    return this.info(config)
+    return this.log(this.resolveCreateParams(LogLevel.info, config))
   }
 
   getConfig(): LogConfig<C> {

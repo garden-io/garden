@@ -251,15 +251,14 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
     const formattedType = chalk.bold(type)
     const formattedPluginName = chalk.bold(pluginName)
 
-    log.info({
-      symbol: "info",
-      msg: wordWrap(
+    log.info(
+      wordWrap(
         dedent`
         For more information about ${formattedType} modules, please check out ${moduleTypeUrlFormatted}, and the ${formattedPluginName} provider docs at ${providerUrl}. For general information about Garden configuration files, take a look at ${configFilesUrl}.
         `,
         120
-      ),
-    })
+      )
+    )
 
     log.info("")
 

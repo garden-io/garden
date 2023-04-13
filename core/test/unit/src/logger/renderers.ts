@@ -72,7 +72,7 @@ describe("renderers", () => {
       expect(rendered).to.equal(`${withWhitespace} → `)
     })
     it("should not render arrow if message is empty", () => {
-      const log = logger.createLog().info({ symbol: "info" })
+      const log = logger.createLog().info({ symbol: "success" })
       const withWhitespace = "hello".padEnd(SECTION_PADDING, " ")
       const rendered = stripAnsi(renderSection(log.entries[0]))
       expect(rendered).to.equal(`${withWhitespace}`)
@@ -96,7 +96,7 @@ describe("renderers", () => {
       const logMsg = logger.createLog().info({ msg: "msg" })
       expect(formatForTerminal(logMsg.entries[0], logger)).contains("\n")
 
-      const logSection = logger.createLog().info({ symbol: "info" })
+      const logSection = logger.createLog().info({ symbol: "success" })
       expect(formatForTerminal(logSection.entries[0], logger)).contains("\n")
 
       const logSymbol = logger.createLog().info({ symbol: "success" })
@@ -155,7 +155,6 @@ describe("renderers", () => {
           .createLog()
           .info({
             msg: "hello",
-            symbol: "info",
             data: { foo: "bar" },
             metadata: { task: taskMetadata },
           })

@@ -240,10 +240,7 @@ export async function createWorkloadManifest({
   }
 
   if (mode === "sync" && configuredReplicas > 1) {
-    log.warn({
-      msg: chalk.gray(`Ignoring replicas config on container service ${action.name} while in sync mode`),
-      symbol: "warning",
-    })
+    log.warn(`Ignoring replicas config on container service ${action.name} while in sync mode`)
     configuredReplicas = 1
   }
 

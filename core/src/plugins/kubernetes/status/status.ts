@@ -217,7 +217,7 @@ export async function waitForResources({
   if (resources.length === 0) {
     const noResourcesMsg = `No resources to wait`
     emitLog(noResourcesMsg)
-    statusLine.info({ symbol: "info", msg: noResourcesMsg })
+    statusLine.info(noResourcesMsg)
     return []
   }
 

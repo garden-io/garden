@@ -78,10 +78,7 @@ export class LogOutCommand extends Command {
       const msg = dedent`
       The following issue occurred while logging out from ${distroName} (your session will be cleared regardless): ${err.message}\n
       `
-      log.warn({
-        symbol: "warning",
-        msg,
-      })
+      log.warn(msg)
     } finally {
       await CloudApi.clearAuthToken(log, garden.globalConfigStore, cloudDomain)
       log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
