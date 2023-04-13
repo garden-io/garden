@@ -372,13 +372,20 @@ spec:
         # more information.
         defaultGroup:
 
+    # Overrides for the container command and/or arguments for when in sync mode
     overrides:
-      - target:
-          # The kind of the Kubernetes resource to modify.
+      - # The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`.
+        target:
+          # The kind of Kubernetes resource to find.
           kind:
 
-          # The name of the resource.
+          # The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
           name:
+
+          # A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod
+          # with matching labels will be picked as a target, so make sure the labels will always match a specific Pod
+          # type.
+          podSelector:
 
           # The name of a container in the target. Specify this if the target contains more than one container and the
           # main container is not the first container in the spec.
@@ -1225,6 +1232,8 @@ Set the default group on files and directories at the target. Specify either an 
 
 [spec](#spec) > [sync](#specsync) > overrides
 
+Overrides for the container command and/or arguments for when in sync mode
+
 | Type            | Required |
 | --------------- | -------- |
 | `array[object]` | No       |
@@ -1232,6 +1241,8 @@ Set the default group on files and directories at the target. Specify either an 
 ### `spec.sync.overrides[].target`
 
 [spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > target
+
+The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1241,7 +1252,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > [target](#specsyncoverridestarget) > kind
 
-The kind of the Kubernetes resource to modify.
+The kind of Kubernetes resource to find.
 
 | Type     | Allowed Values                           | Required |
 | -------- | ---------------------------------------- | -------- |
@@ -1251,11 +1262,21 @@ The kind of the Kubernetes resource to modify.
 
 [spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > [target](#specsyncoverridestarget) > name
 
-The name of the resource.
+The name of the resource, of the specified `kind`. If specified, you must also specify `kind`.
 
 | Type     | Required |
 | -------- | -------- |
-| `string` | Yes      |
+| `string` | No       |
+
+### `spec.sync.overrides[].target.podSelector`
+
+[spec](#spec) > [sync](#specsync) > [overrides](#specsyncoverrides) > [target](#specsyncoverridestarget) > podSelector
+
+A map of string key/value labels to match on any Pods in the namespace. When specified, a random ready Pod with matching labels will be picked as a target, so make sure the labels will always match a specific Pod type.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `spec.sync.overrides[].target.containerName`
 
