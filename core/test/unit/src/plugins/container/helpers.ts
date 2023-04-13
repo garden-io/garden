@@ -29,9 +29,6 @@ import { containerHelpers as helpers, DEFAULT_BUILD_TIMEOUT } from "../../../../
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { dedent } from "../../../../../src/util/string"
 import { ModuleVersion } from "../../../../../src/vcs/vcs"
-import { BuildAction } from "../../../../../src/actions/build"
-import { actionFromConfig } from "../../../../../src/graph/actions"
-import { actionToResolved } from "../../../../../src/actions/helpers"
 
 describe("containerHelpers", () => {
   const projectRoot = getDataDir("test-project-container")

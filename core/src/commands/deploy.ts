@@ -199,7 +199,7 @@ export class DeployCommand extends Command<Args, Opts> {
     const force = opts.force
     const startSync = !!opts.sync
 
-    warnOnLinkedActions(log, actions)
+    await warnOnLinkedActions(garden, log, actions)
 
     if (forward) {
       // Start port forwards for ready deployments

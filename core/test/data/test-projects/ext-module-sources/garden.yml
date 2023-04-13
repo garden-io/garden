@@ -1,0 +1,6 @@
+kind: Project
+name: ext-project-sources
+environments:
+  - name: local
+providers:
+  - name: test-plugin

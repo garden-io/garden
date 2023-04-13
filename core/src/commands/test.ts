@@ -21,6 +21,7 @@ import { StringsParameter, BooleanParameter } from "../cli/params"
 import { dedent, deline } from "../util/string"
 import { ParameterError } from "../exceptions"
 import { watchParameter, watchRemovedWarning } from "./helpers"
+import { warnOnLinkedActions } from "../actions/helpers"
 
 export const testArgs = {
   names: new StringsParameter({
@@ -140,6 +141,10 @@ export class TestCommand extends Command<Args, Opts> {
       await watchRemovedWarning(garden, log)
     }
 
+    if (opts["skip-dependants"]) {
+      log.warn("The --skip-dependants option no longer has any effect, since dependants are not processed by default.")
+    }
+
     const graph = await garden.getConfigGraph({ log, emit: true })
 
     let includeNames: string[] | undefined = undefined
@@ -162,6 +167,8 @@ export class TestCommand extends Command<Args, Opts> {
       excludeNames: opts.skip,
     })
 
+    await warnOnLinkedActions(garden, log, actions)
+
     const tasks = actions.map(
       (action) =>
         new TestTask({
@@ -171,7 +178,6 @@ export class TestCommand extends Command<Args, Opts> {
           force,
           forceBuild: opts["force-build"],
           action,
-
           skipRuntimeDependencies,
           interactive: opts.interactive,
         })

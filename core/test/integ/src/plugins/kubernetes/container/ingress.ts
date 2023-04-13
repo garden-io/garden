@@ -374,6 +374,7 @@ describe("createIngressResources", () => {
         },
       },
       mode: "default",
+      linkedSources: {},
     })) as DeployAction
 
     return await garden.resolveAction({ action: unresolved, graph, log })

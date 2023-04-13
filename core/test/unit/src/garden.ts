@@ -2342,7 +2342,7 @@ describe("Garden", () => {
     })
 
     it("should resolve template strings in project source definitions", async () => {
-      const garden = await makeTestGarden(getDataDir("test-project-ext-project-sources"))
+      const garden = await makeTestGarden(getDataDir("test-projects", "ext-project-sources"))
       const sourcesPath = join(garden.gardenDirPath, "sources")
 
       if (await pathExists(sourcesPath)) {
@@ -2350,7 +2350,7 @@ describe("Garden", () => {
         await mkdirp(sourcesPath)
       }
 
-      const localSourcePath = getDataDir("test-project-local-project-sources", "source-a")
+      const localSourcePath = getDataDir("test-projects", "local-project-sources", "source-a")
       const _tmpDir = await makeTempDir()
 
       try {
@@ -4611,7 +4611,7 @@ describe("Garden", () => {
     })
   })
 
-  describe("loadExtSourcePath", () => {
+  describe("resolveExtSourcePath", () => {
     let garden: TestGarden
     let linkedSources: LinkedSource[]
 
@@ -4626,7 +4626,7 @@ describe("Garden", () => {
       })
 
       it("should return the path to the project source if source type is project", async () => {
-        const path = await garden.loadExtSourcePath({
+        const path = await garden.resolveExtSourcePath({
           linkedSources,
           repositoryUrl: testGitUrl,
           name: "source-a",
@@ -4636,7 +4636,7 @@ describe("Garden", () => {
       })
 
       it("should return the local path of the project source if linked", async () => {
-        const localProjectSourceDir = getDataDir("test-project-local-project-sources")
+        const localProjectSourceDir = getDataDir("test-projects", "local-project-sources")
         const linkedSourcePath = join(localProjectSourceDir, "source-a")
 
         const linked: LinkedSource[] = [
@@ -4646,7 +4646,7 @@ describe("Garden", () => {
           },
         ]
 
-        const path = await garden.loadExtSourcePath({
+        const path = await garden.resolveExtSourcePath({
           name: "source-a",
           linkedSources: linked,
           repositoryUrl: testGitUrl,
@@ -4664,7 +4664,7 @@ describe("Garden", () => {
       })
 
       it("should return the path to the module source if source type is module", async () => {
-        const path = await garden.loadExtSourcePath({
+        const path = await garden.resolveExtSourcePath({
           linkedSources,
           repositoryUrl: testGitUrl,
           name: "module-a",
@@ -4674,7 +4674,7 @@ describe("Garden", () => {
       })
 
       it("should return the local path of the module source if linked", async () => {
-        const localModuleSourceDir = getDataDir("test-project-local-module-sources")
+        const localModuleSourceDir = getDataDir("test-projects", "local-module-sources")
         const linkedModulePath = join(localModuleSourceDir, "module-a")
 
         const linked: LinkedSource[] = [
@@ -4684,7 +4684,7 @@ describe("Garden", () => {
           },
         ]
 
-        const path = await garden.loadExtSourcePath({
+        const path = await garden.resolveExtSourcePath({
           name: "module-a",
           linkedSources: linked,
           repositoryUrl: testGitUrl,

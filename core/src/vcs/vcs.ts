@@ -15,7 +15,7 @@ import { join, relative, isAbsolute } from "path"
 import { GARDEN_VERSIONFILE_NAME as GARDEN_TREEVERSION_FILENAME } from "../constants"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { ConfigurationError } from "../exceptions"
-import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../util/ext-source-util"
+import { ExternalSourceType, getRemoteSourceLocalPath, getRemoteSourcesPath } from "../util/ext-source-util"
 import { ModuleConfig, serializeConfig } from "../config/module"
 import type { Log } from "../logger/log-entry"
 import { treeVersionSchema } from "../config/common"
@@ -221,15 +221,18 @@ export abstract class VcsHandler {
     return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
-  getRemoteSourcesDirname(type: ExternalSourceType) {
-    return getRemoteSourcesDirname(type)
+  /**
+   * Returns the absolute path to the local directory for all remote sources
+   */
+  getRemoteSourcesLocalPath(type: ExternalSourceType) {
+    return getRemoteSourcesPath({ gardenDirPath: this.gardenDirPath, type })
   }
 
   /**
-   * Returns the path to the remote source directory, relative to the project level Garden directory (.garden)
+   * Returns the absolute path to the local directory for the remote source
    */
-  getRemoteSourceRelPath(name: string, url: string, sourceType: ExternalSourceType) {
-    return getRemoteSourceRelPath({ name, url, sourceType })
+  getRemoteSourceLocalPath(name: string, url: string, type: ExternalSourceType) {
+    return getRemoteSourceLocalPath({ gardenDirPath: this.gardenDirPath, name, url, type })
   }
 }
 

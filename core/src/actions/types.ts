@@ -19,6 +19,7 @@ import type { GraphResults } from "../graph/results"
 import type { BaseAction } from "./base"
 import type { ValidResultType } from "../tasks/base"
 import type { BaseGardenResource, GardenResourceInternalFields } from "../config/base"
+import type { LinkedSource } from "../config-store/local"
 
 // TODO: split this file
 
@@ -62,7 +63,8 @@ export interface BaseActionConfig<K extends ActionKind = ActionKind, T = string,
   internal: GardenResourceInternalFields & {
     groupName?: string
     resolved?: boolean // Set to true if no resolution is required, e.g. set for actions converted from modules
-    // For backwards-compatibility, applied on actions returned from module conversion handlers
+    // For forwards-compatibility, applied on actions returned from module conversion handlers
+    remoteClonePath?: string
     moduleName?: string
     moduleVersion?: ModuleVersion
   }
@@ -195,10 +197,12 @@ export interface ActionWrapperParams<C extends BaseActionConfig> {
   config: C
   dependencies: ActionDependency[]
   graph: ConfigGraph
+  linkedSource: LinkedSource | null
   moduleName?: string
   moduleVersion?: ModuleVersion
   mode: ActionMode
   projectRoot: string
+  remoteSourcePath: string | null
   supportedModes: ActionModes
   treeVersion: TreeVersion
   variables: DeepPrimitiveMap

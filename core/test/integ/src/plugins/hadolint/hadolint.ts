@@ -182,6 +182,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -254,6 +255,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -320,6 +322,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -380,6 +383,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -430,6 +434,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction
@@ -483,6 +488,7 @@ describe("hadolint provider", () => {
         config: actions[0],
         log: garden.log,
         configsByKey: {},
+        linkedSources: {},
         router: await garden.getActionRouter(),
         mode: "default",
       })) as TestAction

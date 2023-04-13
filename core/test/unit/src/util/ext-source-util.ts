@@ -9,11 +9,10 @@
 import { expect } from "chai"
 
 import {
-  getRemoteSourcesDirname,
   getLinkedSources,
   addLinkedSources,
   removeLinkedSources,
-  getRemoteSourceRelPath,
+  getRemoteSourceLocalPath,
   hashRepoUrl,
 } from "../../../../src/util/ext-source-util"
 import { expectError, makeTestGardenA } from "../../../helpers"
@@ -35,41 +34,44 @@ describe("ext-source-util", () => {
     garden = await makeTestGardenA()
   })
 
-  describe("getExtSourcesDirName", () => {
-    it("should return the relative path to the remote projects directory", () => {
-      const dirName = getRemoteSourcesDirname("project")
-      expect(dirName).to.equal(join("sources", "project"))
-    })
-
-    it("should return the relative path to the remote modules directory", () => {
-      const dirName = getRemoteSourcesDirname("module")
-      expect(dirName).to.equal(join("sources", "module"))
-    })
-  })
-
-  describe("getRemoteSourceRelPath", () => {
-    it("should return the relative path to a remote project source", () => {
+  describe("getRemoteSourceLocalPath", () => {
+    it("should return the path to a remote project source", () => {
       const url = "banana"
       const urlHash = hashRepoUrl(url)
 
-      const path = getRemoteSourceRelPath({
+      const path = getRemoteSourceLocalPath({
+        gardenDirPath: garden.gardenDirPath,
         url,
         name: "my-source",
-        sourceType: "project",
+        type: "project",
       })
-      expect(path).to.equal(join("sources", "project", `my-source--${urlHash}`))
+      expect(path).to.equal(join(garden.gardenDirPath, "sources", "project", `my-source--${urlHash}`))
+    })
+
+    it("should return the relative path to a remote action source", () => {
+      const url = "banana"
+      const urlHash = hashRepoUrl(url)
+
+      const path = getRemoteSourceLocalPath({
+        gardenDirPath: garden.gardenDirPath,
+        url,
+        name: "my-action",
+        type: "action",
+      })
+      expect(path).to.equal(join(garden.gardenDirPath, "sources", "action", `my-action--${urlHash}`))
     })
 
     it("should return the relative path to a remote module source", () => {
       const url = "banana"
       const urlHash = hashRepoUrl(url)
 
-      const path = getRemoteSourceRelPath({
+      const path = getRemoteSourceLocalPath({
+        gardenDirPath: garden.gardenDirPath,
         url,
         name: "my-module",
-        sourceType: "module",
+        type: "module",
       })
-      expect(path).to.equal(join("sources", "module", `my-module--${urlHash}`))
+      expect(path).to.equal(join(garden.gardenDirPath, "sources", "module", `my-module--${urlHash}`))
     })
   })
 

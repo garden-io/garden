@@ -61,6 +61,8 @@ import { TestAction } from "./test"
 import { RunAction } from "./run"
 import { uuidv4 } from "../util/random"
 import { createActionLog, Log } from "../logger/log-entry"
+import { joinWithPosix } from "../util/fs"
+import { LinkedSource } from "../config-store/local"
 
 // TODO: split this file
 
@@ -84,7 +86,7 @@ const actionSourceSpecSchema = () =>
         .posixPath()
         .relativeOnly()
         .description(
-          `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is ina git repository!`
+          `A relative POSIX-style path to the source directory for this action. You must make sure this path exists and is in a git repository!`
         ),
       repository: joi
         .object()
@@ -106,7 +108,7 @@ const actionSourceSpecSchema = () =>
         For \`source.repository\` behavior, please refer to the [Remote Sources guide](${DOCS_BASE_URL}/advanced/using-remote-sources).
       `
     )
-    .xor("path", "repository")
+    .oxor("path", "repository")
     .meta({ name: "action-source", advanced: true, templateContext: ActionConfigContext })
 
 export const includeExcludeSchema = () => joi.array().items(joi.posixPath().allowGlobs().subPathOnly())
@@ -297,7 +299,6 @@ export interface ActionDescription {
   config: BaseActionConfig<any>
   configVersion: string
   group: string | undefined
-  isLinked: boolean
   key: string
   kind: ActionKind
   longDescription: string
@@ -330,6 +331,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
   protected readonly compatibleTypes: string[]
   protected readonly dependencies: ActionDependency[]
   protected readonly graph: ConfigGraph
+  protected readonly linkedSource: LinkedSource | null
+  protected readonly remoteSourcePath: string | null
   protected readonly _moduleName?: string // TODO: remove in 0.14
   protected readonly _moduleVersion?: ModuleVersion // TODO: remove in 0.14
   protected readonly _mode: ActionMode
@@ -346,6 +349,8 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     this.compatibleTypes = params.compatibleTypes
     this.dependencies = params.dependencies
     this.graph = params.graph
+    this.linkedSource = params.linkedSource
+    this.remoteSourcePath = params.remoteSourcePath
     this._moduleName = params.moduleName
     this._moduleVersion = params.moduleVersion
     this._mode = params.mode
@@ -396,11 +401,27 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
 
   /**
    * Check if the action is linked, including those within an external project source.
-   * Returns true if module path is not under the project root or alternatively if the module is a Garden module.
    */
-  // TODO-0.13.0: this is ported from another function but the logic seems a little suspect to me... - JE
-  isLinked(): boolean {
-    return !pathIsInside(this.basePath(), this.projectRoot)
+  isLinked(linkedSources: LinkedSource[]): boolean {
+    if (this.hasRemoteSource() && !!this.linkedSource) {
+      // Action is linked directly
+      return true
+    }
+
+    const path = this.basePath()
+
+    for (const source of linkedSources) {
+      if (path === source.path || pathIsInside(path, source.path)) {
+        // Action is in a project source
+        return true
+      }
+    }
+
+    return false
+  }
+
+  hasRemoteSource() {
+    return !!this._config.source?.repository?.url
   }
 
   groupName() {
@@ -408,10 +429,17 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
     return internal?.groupName
   }
 
+  // TODO: rename to sourcePath
   basePath(): string {
-    // TODO-0.13.0
-    // TODO: handle repository.url
-    return this._config.internal.basePath
+    const basePath = this.remoteSourcePath || this._config.internal.basePath
+    const sourceRelPath = this._config.source?.path
+
+    if (sourceRelPath) {
+      // TODO: validate that this is a directory here?
+      return joinWithPosix(basePath, sourceRelPath)
+    } else {
+      return basePath
+    }
   }
 
   configPath() {
@@ -573,7 +601,6 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       config: this.getConfig(),
       configVersion: this.configVersion(),
       group: this.groupName(),
-      isLinked: this.isLinked(),
       key: this.key(),
       kind: this.kind,
       longDescription: this.longDescription(),
@@ -761,8 +788,12 @@ export abstract class ExecutedRuntimeAction<
   }
 }
 
-export function actionReferenceToString(ref: ActionReference) {
-  return `${ref.kind.toLowerCase()}.${ref.name}`
+export function actionReferenceToString(ref: ActionReference | string) {
+  if (isString(ref)) {
+    return ref
+  } else {
+    return `${ref.kind.toLowerCase()}.${ref.name}`
+  }
 }
 
 export function actionReferencesToMap(refs: ActionReference[]) {

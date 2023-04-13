@@ -199,7 +199,7 @@ export class ResolveActionTask<T extends Action> extends BaseActionTask<T, Resol
     await actionRouter.callHandler({
       handlerType: "validate",
       params: { action: resolvedAction, graph: resolvedGraph, log: this.log, events: undefined },
-      defaultHandler: async (p) => ({}),
+      defaultHandler: async (_) => ({}),
     })
 
     // TODO: avoid this private assignment

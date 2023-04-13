@@ -950,6 +950,8 @@ export class Garden {
     }
 
     // Resolve configs to Actions
+    const linkedSources = keyBy(await getLinkedSources(this, "action"), "name")
+
     const graph = await actionConfigsToGraph({
       garden: this,
       configs: Object.values(actionConfigs),
@@ -957,6 +959,7 @@ export class Garden {
       log: graphLog,
       moduleGraph,
       actionModes,
+      linkedSources,
     })
 
     // TODO-0.13.1: detect overlap on Build actions
@@ -1011,6 +1014,7 @@ export class Garden {
           log: graphLog,
           configsByKey: actionConfigs,
           mode: actionModes[key] || "default",
+          linkedSources,
         })
 
         graph.addAction(action)
@@ -1181,7 +1185,7 @@ export class Garden {
       const linkedSources = await getLinkedSources(this, "project")
       const projectSources = this.getProjectSources()
       const extSourcePaths = await Bluebird.map(projectSources, ({ name, repositoryUrl }) => {
-        return this.loadExtSourcePath({
+        return this.resolveExtSourcePath({
           name,
           linkedSources,
           repositoryUrl,
@@ -1383,7 +1387,7 @@ export class Garden {
   /**
    * Clones the project/module source if needed and returns the path (either from .garden/sources or from a local path)
    */
-  public async loadExtSourcePath({
+  public async resolveExtSourcePath({
     name,
     linkedSources,
     repositoryUrl,

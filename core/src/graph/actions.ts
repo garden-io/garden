@@ -60,6 +60,7 @@ import chalk from "chalk"
 import type { MaybeUndefined } from "../util/util"
 import minimatch from "minimatch"
 import { ConfigContext } from "../config/template-contexts/base"
+import { LinkedSource, LinkedSourceMap } from "../config-store/local"
 
 export async function actionConfigsToGraph({
   garden,
@@ -68,6 +69,7 @@ export async function actionConfigsToGraph({
   configs,
   moduleGraph,
   actionModes,
+  linkedSources,
 }: {
   garden: Garden
   log: Log
@@ -75,6 +77,7 @@ export async function actionConfigsToGraph({
   configs: ActionConfig[]
   moduleGraph: ModuleGraph
   actionModes: ActionModeMap
+  linkedSources: LinkedSourceMap
 }): Promise<MutableConfigGraph> {
   const configsByKey: ActionConfigsByKey = {}
 
@@ -145,7 +148,7 @@ export async function actionConfigsToGraph({
     }
 
     try {
-      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey, mode })
+      const action = await actionFromConfig({ garden, graph, config, router, log, configsByKey, mode, linkedSources })
 
       if (!action.supportsMode(mode)) {
         if (explicitMode) {
@@ -178,6 +181,7 @@ export async function actionFromConfig({
   log,
   configsByKey,
   mode,
+  linkedSources,
 }: {
   garden: Garden
   graph: ConfigGraph
@@ -186,6 +190,7 @@ export async function actionFromConfig({
   log: Log
   configsByKey: ActionConfigsByKey
   mode: ActionMode
+  linkedSources: LinkedSourceMap
 }) {
   let action: Action
 
@@ -210,6 +215,30 @@ export async function actionFromConfig({
     varfiles: config.varfiles,
   })
 
+  let linked: LinkedSource | null = null
+  let remoteSourcePath: string | null = null
+
+  const repositoryUrl = config.source?.repository?.url
+  const key = actionReferenceToString(config)
+
+  if (repositoryUrl) {
+    if (config.internal.remoteClonePath) {
+      // Carry over clone path from converted module
+      remoteSourcePath = config.internal.remoteClonePath
+    } else {
+      remoteSourcePath = await garden.resolveExtSourcePath({
+        name: key,
+        sourceType: "action",
+        repositoryUrl,
+        linkedSources: Object.values(linkedSources),
+      })
+    }
+
+    if (linkedSources[key]) {
+      linked = linkedSources[key]
+    }
+  }
+
   const params: ActionWrapperParams<any> = {
     baseBuildDirectory: garden.buildStaging.buildDirPath,
     compatibleTypes,
@@ -219,6 +248,8 @@ export async function actionFromConfig({
     projectRoot: garden.projectRoot,
     treeVersion,
     variables,
+    linkedSource: linked,
+    remoteSourcePath,
     moduleName: config.internal.moduleName,
     moduleVersion: config.internal.moduleVersion,
     mode,
@@ -462,17 +493,6 @@ async function preprocessActionConfig({
     })
 
     config = { ...config, variables, spec }
-
-    // TODO-0.13.0: handle this
-    // if (config.repositoryUrl) {
-    //   const linkedSources = await getLinkedSources(garden, "module")
-    //   config.path = await garden.loadExtSourcePath({
-    //     name: config.name,
-    //     linkedSources,
-    //     repositoryUrl: config.repositoryUrl,
-    //     sourceType: "module",
-    //   })
-    // }
 
     // Partially resolve other fields
     // TODO-0.13.1: better error messages when something goes wrong here (missing inputs for example)

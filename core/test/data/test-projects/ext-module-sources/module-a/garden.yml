@@ -1,9 +1,9 @@
 kind: Module
-name: module-c
-repositoryUrl: https://my-git-server.com/my-repo.git#main
+name: module-a
+repositoryUrl: https://example.com/my-repo.git#main
 type: test
 services:
-  - name: service-c
+  - name: service-a
 build:
   command: [echo, A]
 tests:

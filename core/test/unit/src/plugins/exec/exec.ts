@@ -458,6 +458,7 @@ describe("exec plugin", () => {
           } as TestActionConfig,
           configsByKey: {},
           mode: "default",
+          linkedSources: {},
         })) as TestAction
 
         const action = await garden.resolveAction<TestAction>({ action: rawAction, graph, log })
@@ -495,6 +496,7 @@ describe("exec plugin", () => {
             },
           } as TestActionConfig,
           configsByKey: {},
+          linkedSources: {},
           mode: "default",
         })) as TestAction
         const action = await garden.resolveAction({ action: rawAction, graph, log })

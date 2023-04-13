@@ -24,6 +24,10 @@ const linkedSourceSchema = z.object({
 
 export type LinkedSource = z.infer<typeof linkedSourceSchema>
 
+export interface LinkedSourceMap {
+  [key: string]: LinkedSource
+}
+
 const analyticsSchema = z.object({
   projectId: z.string().optional(),
 })
@@ -34,8 +38,9 @@ const localSchema = z.object({
   devCommandHistory: z.array(z.string()).default([]),
   defaultEnv: z.string().default("").describe("An environment override, set with the `set env` command."),
 
-  linkedModuleSources: z.record(linkedSourceSchema),
-  linkedProjectSources: z.record(linkedSourceSchema),
+  linkedActionSources: z.record(linkedSourceSchema).default({}),
+  linkedModuleSources: z.record(linkedSourceSchema).default({}),
+  linkedProjectSources: z.record(linkedSourceSchema).default({}),
 
   warnings: z.record(
     z.object({
@@ -68,6 +73,7 @@ export class LocalConfigStore extends ConfigStore<typeof localSchema> {
       analytics: {},
       devCommandHistory: [],
       defaultEnv: "",
+      linkedActionSources: {},
       linkedModuleSources: {},
       linkedProjectSources: {},
       warnings: {},
