@@ -50,12 +50,6 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
     }
   }
 
-  const provider = ctx.provider as PulumiProvider
-
-  if (!moduleConfig.spec.version) {
-    moduleConfig.spec.version = provider.config.version
-  }
-
   moduleConfig.serviceConfigs = [
     {
       name: moduleConfig.name,

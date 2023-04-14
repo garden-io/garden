@@ -17,7 +17,6 @@ import {
   PulumiDeployConfig,
   pulumiDeploySpecSchema,
   PulumiModule,
-  PulumiProvider,
   pulumiProviderConfigSchema,
 } from "./config"
 import { ExecBuildConfig } from "@garden-io/core/build/src/plugins/exec/config"
@@ -59,16 +58,6 @@ export const gardenPlugin = () =>
           schema: pulumiDeploySpecSchema(),
           runtimeOutputsSchema: outputsSchema(),
           handlers: {
-            configure: async ({ ctx, config }) => {
-              const provider = ctx.provider as PulumiProvider
-
-              if (!config.spec.version) {
-                config.spec.version = provider.config.version
-              }
-
-              return { config, supportedModes: {} }
-            },
-
             validate: async ({ action }) => {
               const root = action.getSpec("root")
               if (root) {
