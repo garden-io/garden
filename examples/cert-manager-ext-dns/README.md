@@ -17,7 +17,7 @@ This project deploys a small React service in a Kubernetes Cluster and exposes i
 | cert-manager  |  v1.11.0   |
 | external-dns  |   v6.13.3  |
 
-In this example, we are utilizing the `container` and `helm` modules supported by Garden, providing automation and security to the process.
+In this example, we are utilizing the brand new actions introduced in Garden Bonsai, providing automation and security to the process.
 
 ### Folder structure
 
@@ -34,7 +34,7 @@ In the following block, you will find the structure we followed for this cert-ma
 │   ├── package-lock.json
 │   ├── public
 │   └── src
-├── garden.yml <- Contains the module config for external-dns & cert-manager
+├── garden.yml <- Contains the actions to deploy external-dns & cert-manager
 ├── project.garden.yml <- Contains the project configuration/env-vars.
 └── README.md
 ````

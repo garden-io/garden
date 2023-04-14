@@ -1,28 +1,31 @@
-kind: Module
+# Builds the frontend React App
+kind: Build
 type: container
-name: react-app
-description: React App for TLS and DNS example
-build:
-  dependencies:
-    - name: cluster-issuers
-services:
-  - name: frontend
-    dependencies: [cluster-issuers]
-    ports:
-      - name: http
-        containerPort: 3000
-    ingresses:
-      - path: /
-        port: http
-        hostname: react.${var.base-hostname}
-    devMode: # This is the dev mode for the module, make sure to run it with `garden deploy --dev-mode --watch`
-      command: [npm, start]
-      sync:
-        - source: ./src
-          target: /app/src
-          exclude: [node_modules]
-        - source: package.json
-          target: /package.json
-tests:
-  - name: unit
-    args: ["npm", "test"]
+name: frontend
+description: React App Build for TLS and DNS example
+---
+# Deploys the frontend React App
+kind: Deploy
+type: container
+name: frontend
+description: React App Deploy for TLS and DNS example
+build: frontend
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      containerPort: 3000
+  ingresses:
+    - path: /
+      hostname: "react.${var.base-hostname}"
+      port: http
+---
+# Setup tests for the frontend React App
+kind: Test
+name: react-unit
+type: container
+build: frontend
+spec:
+  args: [npm, test]
+dependencies:
+  - deploy.frontend
