@@ -57,25 +57,25 @@ export class SyncStartCommand extends Command<Args, Opts> {
 
     Examples:
         # start syncing to the 'api' Deploy, fail if it's not already deployed in sync mode
-        garden start sync api
+        garden sync start api
 
         # deploy 'api' in sync mode and dependencies if needed, then start syncing
-        garden start sync api --deploy
+        garden sync start api --deploy
 
         # start syncing to every Deploy already deployed in sync mode
-        garden start sync '*'
+        garden sync start '*'
 
         # start syncing to every Deploy that supports it, deploying if needed
-        garden start sync '*' --deploy
+        garden sync start '*' --deploy
 
         # start syncing to every Deploy that supports it, deploying if needed including runtime dependencies
-        garden start sync '*' --deploy --include-dependencies
+        garden sync start '*' --deploy --include-dependencies
 
         # start syncing to the 'api' and 'worker' Deploys
-        garden start sync api worker
+        garden sync start api worker
 
         # start syncing to the 'api' Deploy and keep the process running, following sync status messages
-        garden start sync api -f
+        garden sync start api -f
   `
 
   outputsSchema = () => joi.object()

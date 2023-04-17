@@ -45,10 +45,10 @@ export class SyncStopCommand extends Command<Args, Opts> {
 
     Examples:
         # stop syncing to the 'api' Deploy
-        garden stop sync api
+        garden sync stop api
 
         # stop all active syncs
-        garden stop sync '*'
+        garden sync stop '*'
   `
 
   outputsSchema = () => joi.object()
