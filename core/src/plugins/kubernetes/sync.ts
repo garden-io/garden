@@ -578,7 +578,7 @@ export async function startSyncs(params: StartSyncsParams) {
     expectedKeys.push(key)
   })
 
-  const allSyncs = await mutagen.getActiveSyncSessions(log)
+  const allSyncs = expectedKeys.length === 0 ? [] : await mutagen.getActiveSyncSessions(log)
   const keyPrefix = getSyncKeyPrefix(ctx, action)
 
   for (const sync of allSyncs.filter((s) => s.name.startsWith(keyPrefix) && !expectedKeys.includes(s.name))) {
