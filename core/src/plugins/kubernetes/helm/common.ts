@@ -379,7 +379,7 @@ export async function renderHelmTemplateString({
  * We therefore need to use the `loadAll` function. See the following link for a conversation on using
  * `loadAll` in this context: https://github.com/kubeapps/kubeapps/issues/636.
  */
-export function loadTemplate(template: string) {
+export function loadTemplate(template: string): KubernetesResource[] {
   return loadAll(template || "", undefined, { json: true })
     .filter((obj) => obj !== null)
     .map((obj) => {

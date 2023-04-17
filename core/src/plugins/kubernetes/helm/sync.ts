@@ -12,7 +12,7 @@ import { getActionNamespace } from "../namespace"
 import { getSyncStatus, startSyncs } from "../sync"
 import { getReleaseName } from "./common"
 import { HelmDeployAction } from "./config"
-import { getRenderedResources } from "./status"
+import { getDeployedChartResources } from "./status"
 
 export const helmStartSync: DeployActionHandler<"startSync", HelmDeployAction> = async (params) => {
   const { ctx, log, action } = params
@@ -33,7 +33,7 @@ export const helmStartSync: DeployActionHandler<"startSync", HelmDeployAction> =
     provider: k8sCtx.provider,
   })
 
-  const resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
+  const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
   await startSyncs({
     ctx: k8sCtx,
@@ -43,7 +43,7 @@ export const helmStartSync: DeployActionHandler<"startSync", HelmDeployAction> =
     defaultTarget: spec.defaultTarget,
     basePath: action.basePath(),
     defaultNamespace: namespace,
-    manifests: resources,
+    manifests: deployedResources,
     syncs: spec.sync.paths,
   })
 
@@ -71,7 +71,7 @@ export const helmGetSyncStatus: DeployActionHandler<"getSyncStatus", HelmDeployA
     provider: k8sCtx.provider,
   })
 
-  const resources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
+  const resources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
   return getSyncStatus({
     ctx: k8sCtx,

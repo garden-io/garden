@@ -12,10 +12,10 @@ import { helm } from "./helm-cli"
 import { getReleaseName, loadTemplate } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts } from "../port-forward"
-import { KubernetesServerResource } from "../types"
+import { KubernetesResource, KubernetesServerResource } from "../types"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getTargetResource, isWorkload } from "../util"
-import { isConfiguredForLocalMode } from "../status/status"
+import { getDeployedResource, isConfiguredForLocalMode } from "../status/status"
 import { KubeApi } from "../api"
 import Bluebird from "bluebird"
 import { getK8sIngresses } from "../status/ingress"
@@ -23,6 +23,7 @@ import { DeployActionHandler } from "../../../plugin/action-types"
 import { HelmDeployAction } from "./config"
 import { ActionMode, Resolved } from "../../../actions/types"
 import { deployStateToActionState } from "../../../plugin/handlers/Deploy/get-status"
+import { isTruthy } from "../../../util/util"
 
 export const gardenCloudAECPauseAnnotation = "garden.io/aec-status"
 
@@ -65,7 +66,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   try {
     helmStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
     state = helmStatus.deployState
-    deployedMode = helmStatus.mode || "default"
+    deployedMode = helmStatus.detail.mode || "default"
   } catch (err) {
     state = "missing"
   }
@@ -76,7 +77,7 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   const spec = action.getSpec()
 
   if (state !== "missing") {
-    const deployedResources = await getRenderedResources({ ctx: k8sCtx, action, releaseName, log })
+    const deployedResources = await getDeployedChartResources({ ctx: k8sCtx, action, releaseName, log })
 
     forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(deployedResources, action)
     ingresses = getK8sIngresses(deployedResources)
@@ -124,6 +125,28 @@ export const getHelmDeployStatus: DeployActionHandler<"getStatus", HelmDeployAct
   }
 }
 
+/**
+ * Renders the chart for the provided Helm Deploy and fetches all matching resources for the rendered manifests
+ * from the cluster.
+ */
+export async function getDeployedChartResources({
+  ctx,
+  releaseName,
+  log,
+  action,
+}: {
+  ctx: KubernetesPluginContext
+  releaseName: string
+  log: Log
+  action: Resolved<HelmDeployAction>
+}): Promise<KubernetesResource[]> {
+  const manifests = await getRenderedResources({ ctx, action, releaseName, log })
+  const deployedResources = (await Bluebird.map(manifests, (resource) =>
+    getDeployedResource(ctx, ctx.provider, resource, log)
+  )).filter(isTruthy)
+  return deployedResources
+}
+
 export async function getRenderedResources({
   ctx,
   releaseName,
@@ -134,7 +157,7 @@ export async function getRenderedResources({
   releaseName: string
   log: Log
   action: Resolved<HelmDeployAction>
-}) {
+}): Promise<KubernetesResource[]> {
   const namespace = await getActionNamespace({
     ctx,
     log,
