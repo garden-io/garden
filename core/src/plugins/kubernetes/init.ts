@@ -23,12 +23,6 @@ import { millicpuToString, megabytesToString } from "./util"
 import chalk from "chalk"
 import { deline, dedent, gardenAnnotationKey } from "../../util/string"
 import { combineStates, DeployState } from "../../types/service"
-import {
-  setupCertManager,
-  checkCertManagerStatus,
-  checkCertificateStatusByName,
-  getCertificateName,
-} from "./integrations/cert-manager"
 import { ConfigurationError } from "../../exceptions"
 import Bluebird from "bluebird"
 import { readSecret } from "./secrets"
@@ -119,41 +113,6 @@ export async function getEnvironmentStatus({
   const variables = getKubernetesSystemVariables(provider.config)
   const sysGarden = await getSystemGarden(k8sCtx, variables || {}, log)
 
-  if (provider.config.certManager) {
-    const certManagerStatus = await checkCertManagerStatus({ ctx, provider, log })
-
-    // A running cert-manager installation couldn't be found.
-    if (certManagerStatus !== "ready") {
-      if (!provider.config.certManager.install) {
-        // Cert manager installation couldn't be found AND user doesn't want to let garden install it.
-        throw new ConfigurationError(
-          deline`
-          Couldn't find a running installation of cert-manager in namespace "cert-manager".
-          Please set providers[].certManager.install == true or install cert-manager manually.
-        `,
-          {}
-        )
-      } else {
-        // garden will proceed with intstallation and certificate creation.
-        result.ready = false
-        detail.systemCertManagerReady = false
-        detail.systemManagedCertificatesReady = false
-      }
-    } else {
-      // A running cert-manager installation has been found and we can safely check for the status of the certificates.
-      const certManager = provider.config.certManager
-      const certificateNames = provider.config.tlsCertificates
-        .filter((cert) => cert.managedBy === "cert-manager")
-        .map((cert) => getCertificateName(certManager, cert))
-      const certificatesStatus = await checkCertificateStatusByName({ ctx, log, provider, resources: certificateNames })
-      if (!certificatesStatus) {
-        // Some certificates are not ready/created and will be taken care of by the integration.
-        result.ready = false
-        detail.systemManagedCertificatesReady = false
-      }
-    }
-  }
-
   // Check if builder auth secret is up-to-date
   let secretsUpToDate = true
 
@@ -228,7 +187,6 @@ export async function prepareEnvironment(
   // Prepare system services
   await prepareSystem({ ...params, clusterInit: false })
   const ns = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
-  await setupCertManager({ ctx: k8sCtx, provider: k8sCtx.provider, log, status })
 
   return { status: { namespaceStatuses: [ns], ready: true, outputs: status.outputs } }
 }
