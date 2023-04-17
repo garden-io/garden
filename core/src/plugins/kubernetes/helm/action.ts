@@ -24,7 +24,7 @@ import { helmGetSyncStatus, helmStartSync } from "./sync"
 export const helmDeployDocs = dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-  Refer to the [Helm guide](${DOCS_BASE_URL}/kubernetes-plugins/module-types/helm) for usage instructions.
+  Refer to the [Helm guide](${DOCS_BASE_URL}/kubernetes-plugins/action-types/helm) for usage instructions.
 `
 
 export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction> => ({

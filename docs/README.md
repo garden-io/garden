@@ -47,7 +47,7 @@
 * [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
   * [1. Install Local Kubernetes](./k8s-plugins/local-k8s/install.md)
   * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
-* [Module Configuration](./k8s-plugins/action-types/README.md)
+* [Action Configuration](./k8s-plugins/action-types/README.md)
   * [Container](./k8s-plugins/action-types/container.md)
   * [Kubernetes](./k8s-plugins/action-types/kubernetes.md)
   * [Helm](./k8s-plugins/action-types/helm.md)
@@ -82,7 +82,6 @@
 * [Code Synchronization](./guides/code-synchronization.md)
 * [Connecting a local service to a K8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
 * [Environments and namespaces](./guides/namespaces.md)
-* [Hot Reload](./guides/hot-reload.md)
 * [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
