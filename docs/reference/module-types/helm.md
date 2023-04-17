@@ -97,8 +97,8 @@ include:
 # Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
 # for details.
 #
-# Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-# directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+# Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+# directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
 # directories that should not be watched for changes.
 exclude:
 
@@ -785,7 +785,7 @@ Specify a list of POSIX-style paths or glob patterns that should be excluded fro
 
 Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the [Configuration Files guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for details.
 
-Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large directories that should not be watched for changes.
+Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large directories that should not be watched for changes.
 
 | Type               | Required |
 | ------------------ | -------- |
