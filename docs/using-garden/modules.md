@@ -45,7 +45,7 @@ A Garden project is usually split up into the project-level configuration file,
 You can also choose any `*.garden.yml` filename for each module configuration file. For example, you might prefer to set the module name in the filename, e.g. `my-module.garden.yml` to make it easier to find in a large project.
 
 {% hint style="info" %}
-It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the the project-level configuration. If you only have a couple of modules, you might for example define them together in a single `modules.garden.yml` file. See [below](#multiple-modules-in-the-same-directory) for more details.
+It's also possible to [define several modules in the same `garden.yml` file](#multiple-modules-in-the-same-directory) and/or in the same file as the project-level configuration. If you only have a couple of modules, you might for example define them together in a single `modules.garden.yml` file. See [below](#multiple-modules-in-the-same-directory) for more details.
 {% endhint %}
 
 Modules must have a type. Different [module _types_](#module-types) behave in different ways. For example, the `container` module type corresponds to a Docker image, either built from a local Dockerfile or pulled from a remote repository.
@@ -90,7 +90,7 @@ Here, we only include the `Dockerfile` and all the `.py` files under `my-sources
 
 If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude` files or patterns, those are filtered out of the files matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all files in the module directory.
 
-Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `modules.exclude` field](./projects.md#) for that purpose.
+Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `scan.exclude` field](./projects.md#) for that purpose.
 
 You can also use [.gardenignore files](./configuration-overview.md#ignore-files), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
 

@@ -885,9 +885,9 @@ providers:
         # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
-        # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
-        # and directories are watched for changes. Use the project `modules.exclude` field to affect those, if you
-        # have large directories that should not be watched for changes.
+        # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+        # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
+        # directories that should not be watched for changes.
         exclude:
 
         # A remote repository URL. Currently only supports git servers. Must contain a hash suffix pointing to a
@@ -1785,8 +1785,8 @@ moduleConfigs:
     # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
-    # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-    # directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+    # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+    # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
     # directories that should not be watched for changes.
     exclude:
 
@@ -2290,8 +2290,8 @@ modules:
     # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
-    # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
-    # directories are watched for changes. Use the project `modules.exclude` field to affect those, if you have large
+    # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
+    # directories are watched for changes. Use the project `scan.exclude` field to affect those, if you have large
     # directories that should not be watched for changes.
     exclude:
 
