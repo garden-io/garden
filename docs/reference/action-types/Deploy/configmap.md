@@ -9,7 +9,7 @@ tocTitle: "`configmap` Deploy"
 
 Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/k8s-plugins/module-types/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
+See the [Mounting Kubernetes ConfigMaps](https://docs.garden.io/k8s-plugins/action-types/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
 
 Below is the full schema reference for the action. For an introduction to configuring Garden, please look at our [Configuration
 guide](../../../using-garden/configuration-overview.md).
