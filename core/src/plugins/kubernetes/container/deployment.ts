@@ -616,10 +616,7 @@ export function configureVolumes(
       })
     } else if (volume.action) {
       // Make sure the action is a supported type
-      const volumeAction = action.getDependency({
-        kind: "Deploy",
-        name: volume.action as any
-      })
+      const volumeAction = action.getDependency(volume.action)
 
       if (!volumeAction) {
         throw new ConfigurationError(
