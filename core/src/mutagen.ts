@@ -26,6 +26,7 @@ import { ExecaReturnValue } from "execa"
 import EventEmitter from "events"
 import split2 from "split2"
 import { TypedEventEmitter } from "./util/events"
+import pMemoize from "./lib/p-memoize"
 
 const maxRestarts = 10
 const mutagenLogSection = "<mutagen>"
@@ -135,6 +136,15 @@ interface MonitorEvents {
 }
 
 /**
+ * We memoize this function for performance reasons, since we only need to create this dir once (assuming that the
+ * user doesn't do anything silly like delete the <project-root>/.garden/mutagen directory while the command is
+ * running).
+ */
+const ensureDataDir = pMemoize(async (dataDir: string) => {
+  await mkdirp(dataDir)
+})
+
+/**
  * Wrapper around `mutagen sync monitor`. This is used as a singleton, and emits events for instances of
  * `Mutagen` to subscribe to and log as appropriate.
  */
@@ -174,7 +184,7 @@ class _MutagenMonitor extends TypedEventEmitter<MonitorEvents> {
       const mutagenPath = await mutagenCli.getPath(log)
       const dataDir = this.dataDir
 
-      await mkdirp(dataDir)
+      await ensureDataDir(dataDir)
 
       const proc = respawn([mutagenPath, "sync", "monitor", "--template", "{{ json . }}", "--long"], {
         cwd: dataDir,
@@ -601,6 +611,7 @@ export class Mutagen {
   private async execCommand(log: Log, args: string[]) {
     let loops = 0
     const maxRetries = 10
+    await ensureDataDir(this.dataDir)
 
     while (true) {
       try {
