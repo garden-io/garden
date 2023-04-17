@@ -88,7 +88,6 @@
 
 ## 🌷 Advanced
 
-* [cert-manager Integration](./advanced/cert-manager-integration.md)
 * [Using Remote Sources](./advanced/using-remote-sources.md)
 * [Custom Commands](./advanced/custom-commands.md)
 

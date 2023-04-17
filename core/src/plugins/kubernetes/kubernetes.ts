@@ -29,7 +29,6 @@ import { resolve } from "path"
 import { dedent } from "../../util/string"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/module-config"
-import pluralize from "pluralize"
 import { getSystemMetadataNamespaceName } from "./system"
 import { DOCS_BASE_URL } from "../../constants"
 import { defaultIngressClass } from "./constants"
@@ -86,17 +85,6 @@ export async function configureProvider({
 
   if (config.kubeconfig) {
     config.kubeconfig = resolve(projectRoot, config.kubeconfig)
-  }
-
-  const managedCertificates = config.tlsCertificates.filter((cert) => cert.managedBy === "cert-manager")
-  if (managedCertificates.length > 0 && !config.certManager) {
-    throw new ConfigurationError(
-      `cert-manager: found ${managedCertificates.length} ${pluralize(
-        "certificate",
-        managedCertificates.length
-      )} managed by cert-manager but no certManager configuration.`,
-      { config }
-    )
   }
 
   return { config }
