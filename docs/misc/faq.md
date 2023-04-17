@@ -9,11 +9,11 @@ title: FAQ
 
 ### How do I include multiple modules with multiple Dockerfiles in the same directory?
 
-You will have to use the module-level [`include`](https://docs.garden.io/reference/module-types/container#include) directive to specify which files belong to each module. You will also have to provide the path to the Dockerfile with the [`dockerfile`](https://docs.garden.io/reference/module-types/container#dockerfile) directive.
+You will have to use the module-level [`include`](../reference/module-types/container.md#include) directive to specify which files belong to each module. You will also have to provide the path to the Dockerfile with the [`dockerfile`](../reference/module-types/container.md#dockerfile) directive.
 
 If the module only has a Dockerfile but no other files, say because it's a 3rd party image, you should set `include: []`.
 
-See [this section](https://docs.garden.io/using-garden/configuration-overview#multiple-modules-in-the-same-file) of our docs for more.
+See [this section](../using-garden/configuration-overview.md#multiple-modules-in-the-same-file) of our docs for more.
 
 ### Should I `.gitignore` the `.garden` dir?
 
@@ -21,7 +21,7 @@ Yes.
 
 ### How do I disable modules based on environments?
 
-You can use the `disabled` field to disable [modules](https://docs.garden.io/using-garden/modules#disabling-modules), [services](https://docs.garden.io/using-garden/services#disabling-services), [tests](https://docs.garden.io/using-garden/tests#disabling-tests), and [tasks](https://docs.garden.io/using-garden/tasks#disabling-tasks).
+You can use the `disabled` field to disable [modules](../using-garden/modules.md#disabling-modules), [services](../using-garden/services.md#disabling-services), [tests](../using-garden/tests.md#disabling-tests), and [tasks](../using-garden/tasks.md#disabling-tasks).
 
 ### How do I use the `image` field in `container` modules? Is it for pulling or publishing images?
 
@@ -35,7 +35,7 @@ We aim to change to this behavior and make it more user-friendly with our next m
 
 ### When should I use the module-level `include`/`exclude` fields? How are they different from the project-level `module.include/module.exclude` fields? What about ignore files?
 
-Read all about it in [this section](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) of our docs.
+Read all about it in [this section](../using-garden/configuration-overview.md#including-excluding-files-and-directories) of our docs.
 
 ### How do I share a single service (like a database) across multiple namespaces?
 
@@ -45,7 +45,7 @@ You can also deploy `kubernetes` and `helm` modules to their own namespaces.
 
 ### How do I share code between modules?
 
-You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/build-dependencies).
+You can use the [copy directive](../reference/module-types/container.md#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.51/examples/build-dependencies).
 
 Alternatively you can hoist your `garden.yml` file so that it is at the same level or parent to all relevant build context and use the `include` field.
 
@@ -61,7 +61,7 @@ You may notice that a _build version_ (e.g. an image tag for a `container` modul
 
 ### How do I target a specific image from a multi-stage Dockerfile?
 
-Use the [`targetImage` field](https://docs.garden.io/reference/module-types/container#build-targetimage).
+Use the [`targetImage` field](../reference/module-types/container.md#build-targetimage).
 
 ### How do I use base images?
 
@@ -119,7 +119,7 @@ See [this example project](https://github.com/garden-io/garden/tree/0.12.51/exam
 
 ### How do I add Docker specific flags to the build command?
 
-Use the module-level [`extraFlags` field](https://docs.garden.io/module-types/container#extraflags).
+Use the module-level [`extraFlags` field](../module-types/container.md#extraflags).
 
 ### How do I use different Dockerfiles for different environments?
 
@@ -145,11 +145,11 @@ It removes all cluster-wide Garden services.
 
 ### How do I pull a base image (using the FROM directive) from a private registry in in-cluster build mode?
 
-See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#pulling-base-images-from-private-registries) of our docs.
+See [this section](../kubernetes-plugins/advanced/in-cluster-building.md#pulling-base-images-from-private-registries) of our docs.
 
 ### How do I use my own private registry in in-cluster build mode?
 
-See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#configuring-a-deployment-registry) of our docs.
+See [this section](../kubernetes-plugins/advanced/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
 
 ## Tasks and Tests
 
@@ -199,15 +199,15 @@ This will run the task even if the result is cached.
 
 ### How do I pass secrets to container modules?
 
-See [this section](https://docs.garden.io/k8s-plugins/action-types/container#secrets) of our docs.
+See [this section](../k8s-plugins/action-types/container.md#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
-You'll need to use the [`kubernetes`](https://docs.garden.io/reference/module-types/kubernetes) or [`helm`](https://docs.garden.io/reference/module-types/helm) module types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
+You'll need to use the [`kubernetes`](../reference/module-types/kubernetes.md) or [`helm`](../reference/module-types/helm.md) module types for that. Here's the official [Kubernetes guide](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets-as-files-from-a-pod) for mounting secrets as files.
 
 ### Can I use Kubernetes secrets as `buildArgs`?
 
-No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/k8s-plugins/action-types/container#secrets) of our docs for more.
+No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](../k8s-plugins/action-types/container.md#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -219,19 +219,19 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ### How do I mount persistent volumes?
 
-See [this section](https://docs.garden.io/k8s-plugins/action-types/container#mounting-volumes) of our docs.
+See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of our docs.
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
-You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](https://docs.garden.io/using-garden/tests#test-artifacts) of this.
+You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/test.mds#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/k8s-plugins/action-types/container#mounting-volumes) of our docs for more.
+You can also use the [`persistentvolumeclaim`](../reference/module-types/persistentvolumeclaim.md) module type to store data and share it across modules. See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of our docs for more.
 
 ## Kubernetes
 
 ### How do I annotate ingresses?
 
-You can set annotations on ingresses under the [`services[].ingresses[]` field](https://docs.garden.io/reference/module-types/container#services-ingresses-annotations).
+You can set annotations on ingresses under the [`services[].ingresses[]` field](../reference/module-types/container.md#services-ingresses-annotations).
 
 ### What versions and variations of Kubernetes does Garden support?
 
@@ -239,7 +239,7 @@ Garden interfaces with your cluster via `kubectl` and by using the Kubernetes AP
 
 ### Can I add Kubernetes-specific fields to `container` modules (e.g. annotations and labels)?
 
-No, you have to use the [`kubernetes`](https://docs.garden.io/reference/module-types/kubernetes) module type for that.
+No, you have to use the [`kubernetes`](../reference/module-types/kubernetes.md) module type for that.
 
 ## Misc
 

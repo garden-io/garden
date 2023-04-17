@@ -167,7 +167,7 @@ source directory instead.
 
 ### Kubernetes and Helm Modules
 
-Because a Kubernetes or Helm module can contain any number of Kubernetes resources, a `serviceResource` needs to be specified to determine the pod spec for the task pod. You can see the whole pod spec used in the reference docs for [kubernetes](https://docs.garden.io/reference/module-types/kubernetes#tasks-.resource) and [helm modules](https://docs.garden.io/reference/module-types/helm#tasks-.resource). Please note that the `startupProbe`, `livenessProbe` and `readinessProbe` are stripped from your pod spec. Health checks for your application might fail when the container is used for testing because the main process usually running in that container is replaced by the task command.
+Because a Kubernetes or Helm module can contain any number of Kubernetes resources, a `serviceResource` needs to be specified to determine the pod spec for the task pod. You can see the whole pod spec used in the reference docs for [kubernetes](../reference/module-types/kubernetes.md#tasks-.resource) and [helm modules](../reference/module-types/helm.md#tasks-.resource). Please note that the `startupProbe`, `livenessProbe` and `readinessProbe` are stripped from your pod spec. Health checks for your application might fail when the container is used for testing because the main process usually running in that container is replaced by the task command.
 
 ## Further Reading
 

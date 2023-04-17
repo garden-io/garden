@@ -7,7 +7,7 @@ Each environment can be broken down into several "namespaces", and each Garden r
 To specify which Garden namespace to use, you can use either of the following:
 
 - Set a specific namespace using the CLI with the `--env` flag and prepending the namespace to the environment name using the following format `--env <namespace>.<environment>`
-- Specify the default namespace in your Garden configuration file, using the [`defaultNamespace`](https://docs.garden.io/reference/project-config#environments-.defaultnamespace) field under the `environments` specification.
+- Specify the default namespace in your Garden configuration file, using the [`defaultNamespace`](../reference/project-config.md#environments-.defaultnamespace) field under the `environments` specification.
 
 ## Using namespaces
 
