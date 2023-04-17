@@ -44,7 +44,7 @@ export type KubernetesExecRunAction = RunAction<KubernetesExecRunActionConfig, K
 // Maintaining this cache to avoid errors when `kubernetesRunExecSchema` is called more than once with the same `kind`.
 const runSchemas: { [name: string]: ObjectSchema } = {}
 
-export const kuberneteExecRunSchema = (kind: string) => {
+export const kubernetesExecRunSchema = (kind: string) => {
   const name = `${kind}:kubernetes-exec`
   if (runSchemas[name]) {
     return runSchemas[name]
@@ -67,7 +67,7 @@ export const kubernetesExecRunDefinition = (): RunActionDefinition<KubernetesExe
 
     The \`resource\` field is used to find the target Pod in the cluster.
   `,
-  schema: kuberneteExecRunSchema("Run"),
+  schema: kubernetesExecRunSchema("Run"),
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
     run: async (params) => {
@@ -94,7 +94,7 @@ export const kubernetesExecTestDefinition = (): TestActionDefinition<KubernetesE
 
     The \`resource\` field is used to find the target Pod in the cluster.
   `,
-  schema: kuberneteExecRunSchema("Test"),
+  schema: kubernetesExecRunSchema("Test"),
   runtimeOutputsSchema: kubernetesRunOutputsSchema(),
   handlers: {
     run: async (params) => {
