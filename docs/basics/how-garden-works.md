@@ -29,7 +29,7 @@ kind: Deploy
 name: db
 type: container
 spec:
-  image: postgres:11.7-alpine
+  image: postgres:12
     # ...
 ---
 kind: Run

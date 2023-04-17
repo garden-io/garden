@@ -21,7 +21,7 @@ The Stack Graph is essentially an opinionated graph structure, with a handful of
 
 * **Project**: The root of the graph. Contains one or more _actions_ and configures _providers_.
 * **Provider**: Providers are configured at the project level. They take care of initializing deployment environments, and control what happens within each node of the graph, e.g. how actions are built, deployed or tests run etc. They also specify _action types_ and how they are configured.
-* Actions are divided into four different kinds Each specifies a type (e.g. `container` or `helm`) which dictates how it is executed.
+* Actions are divided into four different kinds. Each specifies a type (e.g. `container` or `helm`) which dictates how it is executed.
   * **Build**: A build action describes something you _build_.
   * **Deploy**: A deploy is something you _deploy_ and expect to stay up and running. 
   * **Run**: A run is something you _run_ and wait for to finish.
