@@ -5,33 +5,37 @@ order: 6
 
 ## Mounting Kubernetes ConfigMaps
 
-Very similarly to the [PeristentVolumeClaim module](./persistentvolumeclaim.md), you can also mount Kubernetes ConfigMaps on `container` modules using the `configmap` module type ([see here for the full reference](../../reference/module-types/configmap.md)).
+Very similarly to the [PeristentVolumeClaim action type](./persistentvolumeclaim.md), you can also mount Kubernetes ConfigMaps on `container` deploy actions using the `configmap` action type. ([see here for the full reference](../../reference/module-types/configmap.md)). 
 
 Example:
 
 ```yaml
-kind: Module
-name: my-configmap
+kind: Deploy
 type: configmap
-data:
-  config.properties: |
-    some: data
-    or: something
+name: my-configmap
+spec:
+  data:
+    config.properties: |
+      some: data
+      or: something
+...
 ---
-kind: Module
-name: my-module
+
+kind: Deploy
+name: my-app
 type: container
-services:
-  - name: my-service
-    volumes:
-      - name: my-configmap
-        module: my-configmap
-        containerPath: /config
-    ...
+spec:
+  volumes:
+    - name: configuration
+      containerPath: /config
+
+      # The name of a the configmap Deploy that should be mounted at `containerPath`.
+      action: my-configmap
+...
 ```
 
-This mounts all the keys in the `data` field on the `my-configmap` module under the `/config` directory in the container. In this case, you'll find the file `/config/config.properties` there, with the value above (`some: data ...`) as the file contents.
+This mounts all the keys in the `data` field on the `my-configmap` action under the `/config` directory in the container. In this case, you'll find the file `/config/config.properties` there, with the value above (`some: data ...`) as the file contents.
 
-You can do the same for tests and tasks using the [`tests.volumes`](../../reference/module-types/container.md#testsvolumes) and [`tasks.volumes`](../../reference/module-types/container.md#tasksvolumes) fields. `configmap` volumes can of course also be referenced in `kubernetes` and `helm` modules, since they are deployed as standard ConfigMap resources.
+You can do the same for tests and tasks using the relative [test `spec.volumes`](../../reference/action-types/Test/container.md#specvolumes) and [task `spec.volumes`](../../reference/action-types/Task/container.md#specvolumes) fields. `configmap` volumes can of course also be referenced in `kubernetes` and `helm` actions, since they are deployed as standard ConfigMap resources.
 
-Take a look at the [`configmap` module type](../../reference/module-types/configmap.md) and [`container` module](../../reference/module-types/container.md#servicesvolumes) docs for more details.
+Take a look at the [action reference](../../reference/action-types/README.md) for more details.
