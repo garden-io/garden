@@ -11,7 +11,6 @@ import { dedent } from "../../../util/string"
 import { BaseVolumeSpec, baseVolumeSpecKeys } from "../../base-volume"
 import { V1ConfigMap } from "@kubernetes/client-node"
 import { ModuleTypeDefinition } from "../../../plugin/plugin"
-import { DOCS_BASE_URL } from "../../../constants"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams } from "../../../plugin/handlers/Module/configure"
 import { GardenModule } from "../../../types/module"
@@ -22,6 +21,7 @@ import { DeployActionDefinition } from "../../../plugin/action-types"
 import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../../actions/deploy"
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { Resolved } from "../../../actions/types"
+import { makeDocsLink } from "../../../docs/common"
 
 // TODO: If we make a third one in addition to this and `persistentvolumeclaim`, we should dedupe some code.
 
@@ -46,15 +46,15 @@ type ConfigMapModule = GardenModule<ConfigMapSpec, ConfigMapSpec>
 type ConfigmapActionConfig = DeployActionConfig<"configmap", ConfigmapDeploySpec>
 type ConfigmapAction = DeployAction<ConfigmapActionConfig, {}>
 
-const docs = dedent`
+const getDocs = () => dedent`
   Creates a [ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) in your namespace, that can be referenced and mounted by other resources and [container modules](./container.md).
 
-  See the [Mounting Kubernetes ConfigMaps](${DOCS_BASE_URL}/k8s-plugins/action-types/container#mounting-kubernetes-configmaps) guide for more info and usage examples.
+  See the [Mounting Kubernetes ConfigMaps](${makeDocsLink`k8s-plugins/action-types/configmap`}) guide for more info and usage examples.
 `
 
 export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAction> => ({
   name: "configmap",
-  docs,
+  docs: getDocs(),
   schema: joi.object().keys(commonSpecKeys()),
   handlers: {
     configure: async ({ config }) => {
@@ -85,7 +85,7 @@ export const configmapDeployDefinition = (): DeployActionDefinition<ConfigmapAct
 
 export const configMapModuleDefinition = (): ModuleTypeDefinition => ({
   name: "configmap",
-  docs,
+  docs: getDocs(),
   schema: joi.object().keys({
     build: baseBuildSpecSchema(),
     dependencies: joiSparseArray(joiIdentifier()).description(

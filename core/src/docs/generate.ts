@@ -26,26 +26,28 @@ import { renderActionTypeReference } from "./action-type"
 import { ActionKind } from "../plugin/action-types"
 import { DEFAULT_API_VERSION } from "../constants"
 import { renderTemplateConfigSchema } from "../config/render-template"
+import { pMemoizeClearAll } from "../lib/p-memoize"
+import { makeDocsLinkOpts } from "./common"
 
 /* eslint-disable no-console */
 
-export async function generateDocs(targetDir: string, plugins: GardenPluginReference[]) {
+export async function generateDocs(targetDir: string, getPlugins: () => (GardenPlugin | GardenPluginReference)[]) {
   const docsRoot = resolve(process.cwd(), targetDir)
 
   console.log("Updating command references...")
   writeCommandReferenceDocs(docsRoot)
   console.log("Updating config references...")
-  await writeConfigReferenceDocs(
-    docsRoot,
-    plugins.map((p) => p.callback())
-  )
+  await writeConfigReferenceDocs(docsRoot, getPlugins)
   console.log("Updating template string reference...")
   writeTemplateStringReferenceDocs(docsRoot)
   console.log("Generating table of contents...")
   await writeTableOfContents(docsRoot, "README.md")
 }
 
-export async function writeConfigReferenceDocs(docsRoot: string, plugins: GardenPlugin[]) {
+export async function writeConfigReferenceDocs(
+  docsRoot: string,
+  getPlugins: () => (GardenPlugin | GardenPluginReference)[]
+) {
   const referenceDir = resolve(docsRoot, "reference")
 
   const providers = [
@@ -62,35 +64,42 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
     { name: "terraform" },
     { name: "pulumi" },
   ]
-  const garden = await Garden.factory(__dirname, {
-    commandInfo: { name: "generate-docs", args: {}, opts: {} },
-    config: {
-      path: __dirname,
-      apiVersion: DEFAULT_API_VERSION,
-      kind: "Project",
-      name: "generate-docs",
-      defaultEnvironment,
-      dotIgnoreFile: defaultDotIgnoreFile,
-      variables: {},
-      environments: [
-        {
-          name: "default",
-          defaultNamespace,
-          variables: {},
-        },
-      ],
-      providers,
-    },
-    plugins,
-  })
+  const getFreshGarden = async () => {
+    return await Garden.factory(__dirname, {
+      commandInfo: { name: "generate-docs", args: {}, opts: {} },
+      config: {
+        path: __dirname,
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "generate-docs",
+        defaultEnvironment,
+        dotIgnoreFile: defaultDotIgnoreFile,
+        variables: {},
+        environments: [
+          {
+            name: "default",
+            defaultNamespace,
+            variables: {},
+          },
+        ],
+        providers,
+      },
+      plugins: getPlugins(),
+    })
+  }
 
   const providerDir = resolve(docsRoot, "reference", "providers")
-  const allPlugins = await garden.getAllPlugins()
+  makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../../"
+  const allPlugins = await (await getFreshGarden()).getAllPlugins()
   const pluginsByName = keyBy(allPlugins, "name")
   const providersReadme = ["---", "order: 1", "title: Providers", "---", "", "# Providers", ""]
 
-  for (const plugin of plugins) {
+  for (const plugin of allPlugins) {
     const name = plugin.name
+
+    if (plugin.name === "templated") {
+      continue
+    }
 
     const path = resolve(providerDir, `${name}.md`)
     console.log("->", path)
@@ -102,12 +111,14 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   }
 
   writeFileSync(resolve(providerDir, `README.md`), providersReadme.join("\n"))
+  pMemoizeClearAll()
 
-  // Render module types
+  // Render action types
   const actionTypeDir = resolve(docsRoot, "reference", "action-types")
+  makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../../../"
   await mkdirp(actionTypeDir)
   const actionsReadme = ["---", "order: 2", "title: Action Types", "---", "", "# Action Types", ""]
-  const actionTypeDefinitions = await garden.getActionTypes()
+  const actionTypeDefinitions = await (await getFreshGarden()).getActionTypes()
 
   for (const [kind, types] of Object.entries(actionTypeDefinitions)) {
     actionsReadme.push(`* ${kind}`)
@@ -126,11 +137,13 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   }
 
   await writeFile(resolve(actionTypeDir, `README.md`), actionsReadme.join("\n"))
+  pMemoizeClearAll()
 
   // Render module types
   const moduleTypeDir = resolve(docsRoot, "reference", "module-types")
+  makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH = "../../"
   const moduleReadme = ["---", "order: 3", "title: Module Types", "---", "", "# Module Types", ""]
-  const moduleTypeDefinitions = await garden.getModuleTypes()
+  const moduleTypeDefinitions = await (await getFreshGarden()).getModuleTypes()
 
   for (const { name } of moduleTypes) {
     const path = resolve(moduleTypeDir, `${name}.md`)
@@ -142,6 +155,7 @@ export async function writeConfigReferenceDocs(docsRoot: string, plugins: Garden
   }
 
   writeFileSync(resolve(moduleTypeDir, `README.md`), moduleReadme.join("\n"))
+  pMemoizeClearAll()
 
   // Render other config file references
   async function renderConfigTemplate(configType: string, context: any) {
