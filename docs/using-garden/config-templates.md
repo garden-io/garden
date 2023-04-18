@@ -17,7 +17,7 @@ This feature has been updated in 0.13 to support actions and workflows, in addit
 
 ## How it works
 
-We'll use the [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container) to illustrate how templates work. This example has a `k8s-container` template, that generates one `container` module for building an image, and one `kubernetes` module for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
+We'll use the [`templated-k8s-container example`](../../examples/templated-k8s-container) to illustrate how templates work. This example has a `k8s-container` template, that generates one `container` module for building an image, and one `kubernetes` module for deploying that image. A template like this is useful to customize the Kubernetes manifests for your services, but of course it's just one simple example of what you could do.
 
 The template is defined like this:
 
@@ -196,7 +196,7 @@ _Note that for a reference like this to work, that module also needs to be speci
 
 - [ConfigTemplate reference docs](../reference/config-template-config.md).
 - [RenderTemplate reference docs](../reference/render-template-config.md).
-- [`templated-k8s-container example`](https://github.com/garden-io/garden/tree/0.12.51/examples/templated-k8s-container).
+- [`templated-k8s-container example`](../../examples/templated-k8s-container).
 
 ## Next steps
 
