@@ -149,7 +149,7 @@ async function pullFromExternalRegistry(
   let namespace: string
   let authSecretName: string
 
-  if (buildMode === "cluster-buildkit") {
+  if (buildMode === "cluster-buildkit" || buildMode === "kaniko") {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
 
     const { authSecret } = await ensureBuilderSecret({
