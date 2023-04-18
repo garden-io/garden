@@ -285,7 +285,8 @@ export async function execInWorkload({
     const logEventContext = {
       // To avoid an awkwardly long prefix for the log lines when rendered, we set a max length here.
       origin: truncate(command.join(" "), 25),
-      level: "verbose" as const,
+      level: "info" as const,
+      // level: "verbose" as const,
     }
 
     const outputStream = new PassThrough()

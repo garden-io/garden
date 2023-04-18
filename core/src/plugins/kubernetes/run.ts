@@ -219,7 +219,8 @@ export async function runAndCopy({
     outputStream.on("error", () => {})
     outputStream.on("data", (data: Buffer) => {
       ctx.events.emit("log", {
-        level: "verbose",
+        level: "info",
+        // level: "verbose",
         timestamp: new Date().toISOString(),
         msg: data.toString(),
         ...logEventContext,
@@ -820,7 +821,8 @@ export class PodRunner extends PodRunnerParams {
         isoTimestamp = new Date().toISOString()
       }
       events.emit("log", {
-        level: "verbose",
+        level: "info",
+        // level: "verbose",
         timestamp: isoTimestamp,
         msg,
         ...logEventContext,
