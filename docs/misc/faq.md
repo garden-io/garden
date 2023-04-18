@@ -119,7 +119,7 @@ See [this example project](https://github.com/garden-io/garden/tree/0.12.51/exam
 
 ### How do I add Docker specific flags to the build command?
 
-Use the module-level [`extraFlags` field](../module-types/container.md#extraflags).
+Use the module-level [`extraFlags` field](../k8s-plugins/action-types/container.md#extraflags).
 
 ### How do I use different Dockerfiles for different environments?
 
@@ -145,11 +145,11 @@ It removes all cluster-wide Garden services.
 
 ### How do I pull a base image (using the FROM directive) from a private registry in in-cluster build mode?
 
-See [this section](../kubernetes-plugins/advanced/in-cluster-building.md#pulling-base-images-from-private-registries) of our docs.
+See [this section](../k8s-plugins/advanced/in-cluster-building.md#pulling-base-images-from-private-registries) of our docs.
 
 ### How do I use my own private registry in in-cluster build mode?
 
-See [this section](../kubernetes-plugins/advanced/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
+See [this section](../k8s-plugins/advanced/in-cluster-building.md#configuring-a-deployment-registry) of our docs.
 
 ## Tasks and Tests
 
@@ -223,7 +223,7 @@ See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
-You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/test.mds#test-artifacts) of this.
+You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](../using-garden/tests.md#test-artifacts) of this.
 
 You can also use the [`persistentvolumeclaim`](../reference/module-types/persistentvolumeclaim.md) module type to store data and share it across modules. See [this section](../k8s-plugins/action-types/container.md#mounting-volumes) of our docs for more.
 

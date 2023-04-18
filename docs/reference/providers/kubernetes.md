@@ -7,11 +7,11 @@ tocTitle: "`kubernetes`"
 
 ## Description
 
-The `kubernetes` provider allows you to deploy [`container` actions](../action-types/container.md) to
-Kubernetes clusters, and adds the [`helm`](../action-types/helm.md) and
-[`kubernetes`](../action-types/kubernetes.md) action types.
+The `kubernetes` provider allows you to deploy [`container` actions](../../k8s-plugins/action-types/container.md) to
+Kubernetes clusters, and adds the [`helm`](../../k8s-plugins/action-types/helm.md) and
+[`kubernetes`](../../k8s-plugins/action-types/kubernetes.md) action types.
 
-For usage information, please refer to the [guides section](https://docs.garden.io/guides). A good place to start is
+For usage information, please refer to the [guides section](../../guides). A good place to start is
 the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
 The [Quickstart guide](../../basics/quickstart.md) guide is also helpful as an introduction.
 

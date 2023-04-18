@@ -869,7 +869,7 @@ providers:
         #
         # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
         # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-        # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Also note that specifying an empty list here means _no sources_ should be included.
@@ -882,7 +882,7 @@ providers:
         # Note that you can also explicitly _include_ files using the `include` field. If you also specify the
         # `include` field, the files/patterns specified here are filtered from the files matched by `include`. See the
         # [Configuration Files
-        # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+        # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
         # for details.
         #
         # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files
@@ -1138,7 +1138,7 @@ actionConfigs:
       # If using `source.path`, you must make sure the target path is in a git repository.
       #
       # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](../advanced/using-remote-sources).
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
         # is ina git repository!
@@ -1267,7 +1267,7 @@ actionConfigs:
       #
       # You can _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your source tree,
       # which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -1311,7 +1311,7 @@ actionConfigs:
       # If using `source.path`, you must make sure the target path is in a git repository.
       #
       # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](../advanced/using-remote-sources).
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
         # is ina git repository!
@@ -1364,7 +1364,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -1374,7 +1374,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -1451,7 +1451,7 @@ actionConfigs:
       # If using `source.path`, you must make sure the target path is in a git repository.
       #
       # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](../advanced/using-remote-sources).
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
         # is ina git repository!
@@ -1504,7 +1504,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -1514,7 +1514,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -1594,7 +1594,7 @@ actionConfigs:
       # If using `source.path`, you must make sure the target path is in a git repository.
       #
       # For `source.repository` behavior, please refer to the [Remote Sources
-      # guide](../advanced/using-remote-sources).
+      # guide](https://docs.garden.io/advanced/using-remote-sources).
       source:
         # A relative POSIX-style path to the source directory for this action. You must make sure this path exists and
         # is ina git repository!
@@ -1647,7 +1647,7 @@ actionConfigs:
       #
       # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
       # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-      # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       include:
 
@@ -1657,7 +1657,7 @@ actionConfigs:
       # For actions other than _Build_ actions, this is usually not necessary to specify, or is implicitly inferred.
       # For _Deploy_, _Run_ and _Test_ actions, the exclusions specified here only applied on top of explicitly set
       # `include` paths, or such paths inferred by providers. See the [Configuration Files
-      # guide](../using-garden/configuration-overview#including-excluding-files-and-directories)
+      # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories)
       # for details.
       #
       # Unlike the `scan.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -1769,7 +1769,7 @@ moduleConfigs:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](../using-garden/configuration-overview#including-excluding-files-and-directories) for
+    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
@@ -1782,7 +1782,7 @@ moduleConfigs:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](../using-garden/configuration-overview#including-excluding-files-and-directories) for
+    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
     # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and
@@ -2079,7 +2079,7 @@ workflowConfigs:
         #
         # `never`: This step will always be ignored.
         #
-        # See the [workflows guide](../using-garden/workflows#the-skip-and-when-options) for
+        # See the [workflows guide](https://docs.garden.io/using-garden/workflows#the-skip-and-when-options) for
         # details
         # and examples.
         when:
@@ -2274,7 +2274,7 @@ modules:
     #
     # Note that you can also _exclude_ files using the `exclude` field or by placing `.gardenignore` files in your
     # source tree, which use the same format as `.gitignore` files. See the [Configuration Files
-    # guide](../using-garden/configuration-overview#including-excluding-files-and-directories) for
+    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
     # Also note that specifying an empty list here means _no sources_ should be included.
@@ -2287,7 +2287,7 @@ modules:
     # Note that you can also explicitly _include_ files using the `include` field. If you also specify the `include`
     # field, the files/patterns specified here are filtered from the files matched by `include`. See the
     # [Configuration Files
-    # guide](../using-garden/configuration-overview#including-excluding-files-and-directories) for
+    # guide](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) for
     # details.
     #
     # Unlike the `modules.exclude` field in the project config, the filters here have _no effect_ on which files and

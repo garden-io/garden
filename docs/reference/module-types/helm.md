@@ -9,7 +9,7 @@ tocTitle: "`helm`"
 
 Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-Refer to the [Helm guide](https://docs.garden.io/kubernetes-plugins/action-types/helm) for usage instructions.
+Refer to the [Helm guide](../../k8s-plugins/action-types/helm.md) for usage instructions.
 
 Below is the full schema reference. For an introduction to configuring Garden modules, please look at our [Configuration
 guide](../../using-garden/configuration-overview.md).
