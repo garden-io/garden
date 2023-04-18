@@ -856,12 +856,10 @@ export const moduleVersionSchema = createSchema({
   }),
 })
 
-export const apiVersionSchema = () =>
-  joi
-    .string()
-    .default(DEFAULT_API_VERSION)
-    .valid(DEFAULT_API_VERSION)
-    .description("The schema version of this config (currently not used).")
+export const apiVersionSchema = () => apiVersionSchemaWithoutDefault().default(DEFAULT_API_VERSION)
+
+export const apiVersionSchemaWithoutDefault = () =>
+  joi.string().valid(DEFAULT_API_VERSION).description("The schema version of this config.")
 
 /**
  * A little hack to allow unknown fields on the schema and recursively on all object schemas nested in it.

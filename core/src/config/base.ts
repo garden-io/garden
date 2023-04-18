@@ -192,8 +192,15 @@ export function prepareResource({
 
   let kind = spec.kind
 
-  if (!spec.apiVersion) {
+  // Allow the default api version for all kinds except for Project where we expect it to be defined
+  // explicitly from 0.13 and forward.
+  if (!spec.apiVersion && spec.kind !== "Project") {
     spec.apiVersion = DEFAULT_API_VERSION
+  } else {
+    throw new ConfigurationError(
+      `"apiVersion: garden.io/v0.13" is missing in the Project config. The "apiVersion"-field is required from 0.13 (Bonsai). A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
+      { spec, path: configFilePath }
+    )
   }
 
   const basePath = dirname(configFilePath)
