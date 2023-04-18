@@ -151,5 +151,5 @@ export function makeDocsLink(docsPathInput: string | TemplateStringsArray, fragm
     return `${makeDocsLinkOpts.GARDEN_RELATIVE_DOCS_PATH}${docsPath}.md${fragment}`
   }
 
-  return `${DOCS_BASE_URL}/${docsPath}/${fragment}`
+  return `${DOCS_BASE_URL}/${docsPath}${fragment}`
 }
