@@ -27,7 +27,7 @@ This happens because Azure with [RBAC enabled](https://docs.microsoft.com/en-us/
 
 This issue often comes up on Linux, and in other scenarios where the filesystem doesn't support event-based file watching.
 
-Thankfully, you can in most cases avoid this problem using the `scan.exclude` field in your project config, and/or the `exclude` field in your individual module configs. See the [Including/excluding files and directories](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
+Thankfully, you can in most cases avoid this problem using the `scan.exclude` field in your project config, and/or the `exclude` field in your individual action and module configs. See the [Including/excluding files and directories](../using-garden/configuration-overview.md#includingexcluding-files-and-directories) section in our Configuration Files guide for details.
 
 ### I'm getting an "EPERM: operation not permitted, rename..." error on Windows.
 
@@ -50,7 +50,7 @@ This could be because Garden is scanning the project files. Make sure you exclud
 
 Garden does create the ingress at the Kubernetes level. However, it does not print the ingresses with the CLI output and the Garden command call won't work. This is a [known issue](https://github.com/garden-io/garden/issues/718).
 
-Pinging the service will still work and you'll see the Ingress resource if you run `kubectl get ingress --namespace <my-namspace>`.
+Pinging the service will still work, and you'll see the Ingress resource if you run `kubectl get ingress --namespace <my-namspace>`.
 
 ### A deployment is failing with: `<release-name> has no deployed releases`.
 
@@ -60,7 +60,17 @@ There's an [open pull request](https://github.com/helm/helm/pull/7653) for a fix
 
 ### Files are missing from build context.
 
-This is likely because they're being excluded somewhere, e.g. in `.gitignore` or `.gardenignore`. Garden currently respects `.gitignore` but we plan to change that in our next major release.
+This is likely because they're being excluded somewhere, e.g. in `.gitignore` or `.gardenignore`.
+
+{% hint style="warning" %}
+Prior to Garden 0.13.0, `.gitignore` files were respected by default.
+In Garden 0.13.0 that behaviour was changed.
+Now it's possible to only specify a [single ".ignore" file](../using-garden/configuration-overview.md#ignore-file)
+in the [project-level configuration](../reference/project-config.md#dotIgnoreFile).
+{% endhint %}
+
+Please check your [dotIgnoreFile(s) configuration](../using-garden/configuration-overview.md#ignore-file)
+and the [project-level file exclusions](../using-garden/configuration-overview.md#including-and-excluding-files-across-the-project).
 
 ### `ErrImagePull` when referencing an image from a `container` module in a `helm` module.
 

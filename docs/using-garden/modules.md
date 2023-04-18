@@ -92,7 +92,7 @@ If you specify a list with `include`, only those files/patterns are included. If
 
 Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `scan.exclude` field](./projects.md#) for that purpose.
 
-You can also use [.gardenignore files](./configuration-overview.md#ignore-files), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
+You can also use [.gardenignore file](./configuration-overview.md#ignore-file), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
 
 ### Multiple modules in the same directory
 
