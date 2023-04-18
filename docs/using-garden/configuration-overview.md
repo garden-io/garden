@@ -27,10 +27,13 @@ By default, all directories under the project root are scanned for Garden module
 Garden provides three different ways to achieve this:
 
 1. The `scan.include` and `scan.exclude` fields in _project_ configuration files.
-2. ".ignore" files, e.g. `.gitignore` and `.gardenignore`.
+2. The [".ignore" file](#ignore-file), e.g. `.gitignore` or `.gardenignore`.
 3. The `include` and `exclude` fields in [_module_ configuration files](./modules.md#including-and-excluding-files).
+4. The `include` and `exclude` fields in _action_ configuration files (TODO: create an actions guide and add the link here).
 
-The first two are described below, and the module-specific includes/excludes are described in the [section on modules](./modules.md#including-and-excluding-files).
+The first two are described below.
+The module-specific includes/excludes are described in the [section on modules](./modules.md#including-and-excluding-files).
+The action-specific includes/excludes are described in the section on actions (TODO: create an actions guide and add the link here).
 
 ### Including and excluding files across the project
 
@@ -55,7 +58,7 @@ If you specify a list with `include`, only those patterns are included. If you t
 
 The `scan.exclude` field is also used to limit the number of files and directories Garden watches for changes while running. Use that if you have a large number of files/directories in your project that you do not need to watch, or if you are seeing excessive CPU/RAM usage. The `scan.include` field has no effect on which paths Garden watches for changes.
 
-### .ignore files
+### .ignore file
 
 {% hint style="warning" %}
 Prior to Garden 0.12.0, `.gitignore` files were also respected by default. The default is now to only respect `.gardenignore` files. See below how you can revert to the previous behavior.
@@ -76,16 +79,20 @@ This would cause Garden to ignore `node_modules` and `public` directories across
 Note that _these take precedence over both `scan.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
 
 {% hint style="warning" %}
-Prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files using the `dotIgnoreFiles` field in a project configuration:
+Prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files
+using the [`dotIgnoreFiles`](../reference/project-config.md#dotIgnoreFiles) field in a project configuration:
 
 ```yaml
 kind: Project
 name: my-project
 dotIgnoreFiles: [.gardenignore, .gitignore]
 ```
+
+This behaviour was changed in Garden 0.13.0.
 {% endhint %}
 
-You can override which filename to use as a _single_ ".ignore" file using the `dotIgnoreFile` field in your project configuration:
+You can override which filename to use as a _single_ ".ignore" file
+using the [`dotIgnoreFile`](../reference/project-config.md#dotIgnoreFile) field in your project configuration:
 
 ```yaml
 kind: Project
