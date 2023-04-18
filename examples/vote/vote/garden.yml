@@ -18,6 +18,9 @@ spec:
       - target: /app/src
         source: src
         mode: two-way
+      - target: /app/tests
+        source: tests
+        mode: two-way
   ports:
     - name: http
       containerPort: 8080
@@ -41,6 +44,7 @@ spec:
   args: [npm, run, test:unit]
 
 ---
+
 kind: Test
 name: vote-integ
 type: container
@@ -49,4 +53,16 @@ dependencies:
   - deploy.vote
 timeout: 60
 spec:
+  args: [npm, run, test:integ]
+
+---
+
+kind: Test
+name: vote-integ-dev
+type: kubernetes-exec
+timeout: 60
+spec:
+  resource:
+    kind: Deployment
+    name: vote
   args: [npm, run, test:integ]
