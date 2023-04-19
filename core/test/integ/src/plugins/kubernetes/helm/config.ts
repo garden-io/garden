@@ -81,7 +81,7 @@ describe("configureHelmModule", () => {
         ingress: {
           enabled: true,
           paths: ["/"],
-          hosts: ["api.local.app.garden"],
+          hosts: ["api.local.demo.garden"],
         },
       },
       valueFiles: [],

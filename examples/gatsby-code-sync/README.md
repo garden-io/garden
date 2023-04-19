@@ -18,7 +18,7 @@ garden deploy --sync
 
 This tells Garden to reload the files into the container, without re-building and re-deploying.
 
-Now, open `http://gatsby-sync.local.app.garden/` in your browser, and then try changing some of the website code. For example, open [src/pages/index.js](src/pages/index.js) and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
+Now, open `http://gatsby-sync.local.demo.garden/` in your browser, and then try changing some of the website code. For example, open [src/pages/index.js](src/pages/index.js) and change the text in the `h1` tag. You'll notice the page updates immediately in the browser!
 
 ## Notes
 

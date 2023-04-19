@@ -247,9 +247,9 @@ No, you have to use the [`kubernetes`](../reference/module-types/kubernetes.md) 
 
 We're exploring how we can release it incrementally. Please let us know if this is something you're interested in.
 
-### How does Garden resolve the `*.local.app.garden` domain?
+### How does Garden resolve the `*.local.demo.garden` domain?
 
-The `*.local.app.garden` domain resolves to 127.0.0.1 via our DNS provider for convenience. If you want to use a different hostname for local development, you’ll have to add the corresponding entry to your hosts file.
+The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider for convenience. If you want to use a different hostname for local development, you’ll have to add the corresponding entry to your hosts file.
 
 ### Does garden support bi-directional syncing?
 

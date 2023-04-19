@@ -16,16 +16,16 @@ garden deploy
 
 **Note:** If you're running _minikube_, you may need to add the appropriate entries to your `/etc/hosts` file.
 Find the IP for your local cluster by running `minikube ip` and add an entry with that IP for each of
-`vote.vote.local.app.garden`, `result.vote.local.app.garden` and `api.vote.local.app.garden`.
+`vote.vote.local.demo.garden`, `result.vote.local.demo.garden` and `api.vote.local.demo.garden`.
 This is not necessary when using Docker for Desktop, because your cluster will then be exposed directly on _localhost_.
 
 ### To Vote
 
-The voting UI is at http://vote.vote.local.app.garden/. Open a browser tab, and try voting a few times.
+The voting UI is at http://vote.vote.local.demo.garden/. Open a browser tab, and try voting a few times.
 
 ### View Results
 
-In a separate tab, open http://result.vote.local.app.garden. The results there will reflect in real-time your voting.
+In a separate tab, open http://result.vote.local.demo.garden. The results there will reflect in real-time your voting.
 
 ### Try out code synchronization
 
