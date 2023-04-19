@@ -124,7 +124,7 @@ async function pullFromInClusterRegistry(
     ...containerHelpers.parseImageId(imageId),
     // Note: using localhost directly here has issues with Docker for Mac.
     // https://github.com/docker/for-mac/issues/3611
-    host: `local.app.garden:${fwd.localPort}`,
+    host: `local.demo.garden:${fwd.localPort}`,
   })
 
   await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["pull", pullImageId], log, ctx })

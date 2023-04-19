@@ -147,7 +147,7 @@ describe("Helm common functions", () => {
               app.kubernetes.io/managed-by: Helm
           spec:
             rules:
-              - host: "api.local.app.garden"
+              - host: "api.local.demo.garden"
                 http:
                   paths:
                     - path: /
@@ -172,7 +172,7 @@ describe("Helm common functions", () => {
               app.kubernetes.io/managed-by: Helm
           spec:
             rules:
-              - host: "api.local.app.garden"
+              - host: "api.local.demo.garden"
                 http:
                   paths:
                     - path: /
@@ -299,7 +299,7 @@ ${expectedIngressOutput}
           spec: {
             rules: [
               {
-                host: "api.local.app.garden",
+                host: "api.local.demo.garden",
                 http: {
                   paths: [
                     {
@@ -337,7 +337,7 @@ ${expectedIngressOutput}
           spec: {
             rules: [
               {
-                host: "api.local.app.garden",
+                host: "api.local.demo.garden",
                 http: {
                   paths: [
                     {

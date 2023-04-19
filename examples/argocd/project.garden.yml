@@ -16,7 +16,7 @@ variables:
 environments:
   - name: local
     variables:
-      baseHostname: vote.local.app.garden
+      baseHostname: vote.local.demo.garden
   - name: gke-gitops-dev
     defaultNamespace: ${var.dev-k8s-namespace}
     variables:

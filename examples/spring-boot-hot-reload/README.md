@@ -33,13 +33,13 @@ Deploy 🚀
 took 0.4 sec)
 ✔ devtools                  → Deploying version v-c6b9091207... → Done (
 took 67 sec)
-    → Ingress: http://spring-boot-hot-reload.local.app.garden
+    → Ingress: http://spring-boot-hot-reload.local.demo.garden
 🌻  Garden dashboard and API server running on http://localhost:50934
 
 🕑  Waiting for code changes
 ```
 
-Open the ingress URL (http://spring-boot-hot-reload.local.app.garden above) in a web browser.
+Open the ingress URL (http://spring-boot-hot-reload.local.demo.garden above) in a web browser.
 
 Now, change the value of the `MESSAGE` constant in `devtools/src/main/java/sample/devtools/Message.java` to something else than `"Message"`, and run `mvn compile` (again in the `devtools` directory).
 

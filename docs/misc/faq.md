@@ -299,9 +299,9 @@ Furthermore, the `openfaas` provider installs some components necessary for Open
 
 Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/main/static) under `kubernetes/system` and `openfaas/system`.
 
-### How does Garden resolve the `*.local.app.garden` domain?
+### How does Garden resolve the `*.local.demo.garden` domain?
 
-The `*.local.app.garden` domain resolves to 127.0.0.1 via our DNS provider for convenience. If you want to use a different hostname for local development, you’ll have to add the corresponding entry to your hosts file.
+The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider for convenience. If you want to use a different hostname for local development, you’ll have to add the corresponding entry to your hosts file.
 
 ### Does garden support bi-directional syncing?
 

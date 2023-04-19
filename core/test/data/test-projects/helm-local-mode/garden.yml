@@ -5,7 +5,7 @@ environments:
   - name: local
     defaultNamespace: local-mode-helm-default
     variables:
-      baseHostname: ${project.name}.local.app.garden
+      baseHostname: ${project.name}.local.demo.garden
   - name: remote
     defaultNamespace: local-mode-helm-${var.userId}
     variables:
