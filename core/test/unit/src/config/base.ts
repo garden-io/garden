@@ -22,6 +22,7 @@ import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
 import { getRootLogger } from "../../../../src/logger/logger"
+import { ConfigurationError } from "../../../../src/exceptions"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -92,7 +93,7 @@ describe("prepareProjectResource", () => {
     expect(migratedProjectResource).to.eql(expectedProjectResource)
   })
 
-  it("throw an error is multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
+  it("throw an error if multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
     const projectResource = {
       ...projectResourceTemplate,
       dotIgnoreFiles: [".somedotignore", ".gitignore"],
@@ -102,6 +103,26 @@ describe("prepareProjectResource", () => {
     expect(processConfigAction).to.throw(
       "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
     )
+  })
+
+  it("should throw an error if the apiVersion is not defined", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: undefined,
+    }
+
+    const processConfigAction = () => prepareProjectResource(log, projectResource)
+    expect(processConfigAction).to.throw(ConfigurationError, /"apiVersion" is missing/)
+  })
+
+  it("should throw an error if the apiVersion is not known", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: "unknown",
+    }
+
+    const processConfigAction = () => prepareProjectResource(log, projectResource)
+    expect(processConfigAction).to.throw(ConfigurationError, /"apiVersion: unknown" is unknown/)
   })
 })
 
@@ -263,7 +284,6 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
         kind: configTemplateKind,
         name: "combo",
 

@@ -12,7 +12,7 @@ import addFormats from "ajv-formats"
 import { splitLast, deline, dedent, naturalList, titleize } from "../util/string"
 import { cloneDeep, isArray, isPlainObject, isString, mapValues, memoize } from "lodash"
 import { joiPathPlaceholder } from "./validation"
-import { DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../constants"
 import { ActionKind, actionKinds, actionKindsLower } from "../actions/types"
 import { ConfigurationError, InternalError } from "../exceptions"
 import type { ConfigContextType } from "./template-contexts/base"
@@ -859,7 +859,7 @@ export const moduleVersionSchema = createSchema({
 export const apiVersionSchema = () => apiVersionSchemaWithoutDefault().default(DEFAULT_API_VERSION)
 
 export const apiVersionSchemaWithoutDefault = () =>
-  joi.string().valid(DEFAULT_API_VERSION).description("The schema version of this config.")
+  joi.string().valid(PREVIOUS_API_VERSION, DEFAULT_API_VERSION).description("The schema version of this config.")
 
 /**
  * A little hack to allow unknown fields on the schema and recursively on all object schemas nested in it.

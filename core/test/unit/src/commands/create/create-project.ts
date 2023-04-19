@@ -15,6 +15,7 @@ import { basename, join } from "path"
 import { pathExists, readFile, writeFile } from "fs-extra"
 import { safeLoadAll } from "js-yaml"
 import { safeDumpYaml } from "../../../../../src/util/serialization"
+import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 
 describe("CreateProjectCommand", () => {
   const command = new CreateProjectCommand()
@@ -198,6 +199,7 @@ describe("CreateProjectCommand", () => {
 
   it("should throw if a project is already in the directory", async () => {
     const existing = {
+      apiVersion: DEFAULT_API_VERSION,
       kind: "Project",
       name: "foo",
     }

@@ -14,7 +14,7 @@ import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig, ModuleConfig } from "./module"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
-import { DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../constants"
 import { ProjectConfig, ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
@@ -194,14 +194,16 @@ export function prepareResource({
 
   // Allow the default api version for all kinds except for Project where we expect it to be defined
   // explicitly from 0.13 and forward.
-  if (!spec.apiVersion && spec.kind !== "Project") {
-    spec.apiVersion = DEFAULT_API_VERSION
-  } else {
+  /*if (!spec.apiVersion && spec.kind === "Project") {
     throw new ConfigurationError(
-      `"apiVersion: garden.io/v0.13" is missing in the Project config. The "apiVersion"-field is required from 0.13 (Bonsai). A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
+      `"apiVersion" is missing in the Project config. The "apiVersion"-field is required from 0.13 (Bonsai). Use "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12 or "${DEFAULT_API_VERSION}" for 0.13. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
       { spec, path: configFilePath }
     )
   }
+
+  if (!spec.apiVersion) {
+    spec.apiVersion = DEFAULT_API_VERSION
+  }*/
 
   const basePath = dirname(configFilePath)
 
@@ -316,7 +318,40 @@ function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectRe
   return projectSpec
 }
 
-const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [handleDotIgnoreFiles, handleProjectModules]
+function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): ProjectResource {
+  // Field 'modules' was intentionally removed from the internal interface `ProjectResource`,
+  // but it still can be presented in the runtime if the old config format is used.
+  if (!projectSpec["apiVersion"]) {
+    throw new ConfigurationError(
+      `"apiVersion" is missing in the Project config. The "apiVersion"-field is required from 0.13 (Bonsai). Use "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12 or "${DEFAULT_API_VERSION}" for 0.13. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
+      {
+        projectSpec,
+      }
+    )
+  } else {
+    if (projectSpec["apiVersion"] === PREVIOUS_API_VERSION) {
+      emitNonRepeatableWarning(
+        log,
+        `Project "apiVersion" running with backwards compatibility against "${PREVIOUS_API_VERSION}".`
+      )
+    } else if (projectSpec["apiVersion"] !== DEFAULT_API_VERSION) {
+      throw new ConfigurationError(
+        `Project "apiVersion: ${projectSpec["apiVersion"]}" is unknown. Valid values are ${DEFAULT_API_VERSION} or ${PREVIOUS_API_VERSION}.`,
+        {
+          projectSpec,
+        }
+      )
+    }
+  }
+
+  return projectSpec
+}
+
+const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
+  handleMissingApiVersion,
+  handleDotIgnoreFiles,
+  handleProjectModules,
+]
 
 export function prepareProjectResource(log: Log, spec: any): ProjectResource {
   let projectSpec = <ProjectResource>spec

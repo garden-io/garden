@@ -58,6 +58,7 @@ describe("PluginsCommand", () => {
     await writeFile(
       join(tmpDir.path, "garden.yml"),
       dedent`
+      apiVersion: garden.io/v1
       kind: Project
       name: test
       environments:
