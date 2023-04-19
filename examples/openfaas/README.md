@@ -34,7 +34,7 @@ Use the `call` command to get the output of the hello-container endpoint:
 ```sh
 garden call hello-container/hello
 
-✔ Sending HTTP GET request to http://openfaas.local.app.garden/hello
+✔ Sending HTTP GET request to http://openfaas.local.demo.garden/hello
 
 200 OK
 
@@ -49,7 +49,7 @@ or call the function directly:
 ```sh
 garden call hello-function/function/hello-function
 
-✔ Sending HTTP GET request to http://openfaas.local.app.garden/function/hello-function
+✔ Sending HTTP GET request to http://openfaas.local.demo.garden/function/hello-function
 
 200 OK
 

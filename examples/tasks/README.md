@@ -35,7 +35,7 @@ The simplest way to see this in action is to run `garden deploy` or `garden dev`
 Run `garden call hello`, and you should see the following output:
 ```sh
 garden call hello
-✔ Sending HTTP GET request to http://tasks.local.app.garden/hello
+✔ Sending HTTP GET request to http://tasks.local.demo.garden/hello
 
 200 OK
 

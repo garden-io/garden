@@ -49,7 +49,7 @@ const testProvider = () => {
       state: "ready",
       ingresses: [
         {
-          hostname: "service-a.test-project-b.local.app.garden",
+          hostname: "service-a.test-project-b.local.demo.garden",
           path: "/path-a",
           port: 80,
           protocol: "http",
