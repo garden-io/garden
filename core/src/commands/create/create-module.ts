@@ -166,7 +166,7 @@ export class CreateModuleCommand extends Command<CreateModuleArgs, CreateModuleO
 
     // Throw if module with same name already exists
     if (await pathExists(configPath)) {
-      const configs = await loadConfigResources(configDir, configPath)
+      const configs = await loadConfigResources({ log: undefined, projectRoot: configDir, configPath })
 
       if (configs.filter((c) => c.kind === "Module" && c.name === name).length > 0) {
         throw new CreateError(
