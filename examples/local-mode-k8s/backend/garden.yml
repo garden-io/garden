@@ -67,7 +67,7 @@ spec:
       spec:
         ingressClassName: nginx
         rules:
-          - host: local-mode.local.app.garden
+          - host: local-mode.local.demo.garden
             http:
               paths:
                 - path: /hello-backend

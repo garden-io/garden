@@ -283,7 +283,7 @@ values:
   ingress:
     enabled: true
     paths: [/]
-    hosts: [result-helm.local.app.garden]
+    hosts: [result-helm.local.demo.garden]
 tests:
   - name: integ
     args: [echo, ok]

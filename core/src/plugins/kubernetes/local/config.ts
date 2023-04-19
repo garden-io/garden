@@ -158,7 +158,7 @@ export async function configureProvider(params: ConfigureProviderParams<LocalKub
   }
 
   if (!config.defaultHostname) {
-    config.defaultHostname = `${projectName}.local.app.garden`
+    config.defaultHostname = `${projectName}.local.demo.garden`
   }
 
   return { config }
