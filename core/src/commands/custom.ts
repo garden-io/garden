@@ -230,7 +230,9 @@ export async function getCustomCommands(builtinCommands: (Command | CommandGroup
   const rootFiles = await listDirectory(projectRoot, { recursive: false })
   const paths = rootFiles.filter(isConfigFilename).map((p) => join(projectRoot, p))
 
-  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(projectRoot, path)))
+  const resources = flatten(
+    await Bluebird.map(paths, (path) => loadConfigResources({ log: undefined, projectRoot, configPath: path }))
+  )
 
   const builtinNames = builtinCommands.flatMap((c) => c.getPaths().map((p) => p.join(" ")))
 

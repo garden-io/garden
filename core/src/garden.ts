@@ -1078,7 +1078,7 @@ export class Garden {
   private async loadResources(configPath: string): Promise<GardenResource[]> {
     configPath = resolve(this.projectRoot, configPath)
     this.log.silly(`Load module and workflow configs from ${configPath}`)
-    const resources = await loadConfigResources(this.projectRoot, configPath)
+    const resources = await loadConfigResources({ log: this.log, projectRoot: this.projectRoot, configPath })
     this.log.silly(`Loaded module and workflow configs from ${configPath}`)
     return <GardenResource[]>resources.filter((r) => r.kind && r.kind !== "Project")
   }

@@ -22,6 +22,7 @@ import { isConfigFilename } from "../util/fs"
 import { TemplateKind, templateKind } from "./module-template"
 import { isTruthy } from "../util/util"
 import { PrimitiveMap } from "./common"
+import { LogEntry } from "../logger/log-entry"
 
 export interface GardenResource {
   apiVersion: string
@@ -58,11 +59,17 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
   }
 }
 
-export async function loadConfigResources(
-  projectRoot: string,
-  configPath: string,
-  allowInvalid = false
-): Promise<GardenResource[]> {
+export async function loadConfigResources({
+  log,
+  projectRoot,
+  configPath,
+  allowInvalid = false,
+}: {
+  log: LogEntry | undefined
+  projectRoot: string
+  configPath: string
+  allowInvalid?: boolean
+}): Promise<GardenResource[]> {
   let fileData: Buffer
 
   try {
@@ -77,7 +84,7 @@ export async function loadConfigResources(
   rawSpecs = rawSpecs.filter(Boolean)
 
   const resources = <GardenResource[]>(
-    rawSpecs.map((s) => prepareResource({ spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
+    rawSpecs.map((s) => prepareResource({ log, spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
   )
 
   return resources
@@ -87,11 +94,13 @@ export async function loadConfigResources(
  * Each YAML document in a garden.yml file defines a project, a module or a workflow.
  */
 function prepareResource({
+  log,
   spec,
   configPath,
   projectRoot,
   allowInvalid = false,
 }: {
+  log: LogEntry | undefined
   spec: any
   configPath: string
   projectRoot: string
@@ -126,10 +135,8 @@ function prepareResource({
       path: relPath,
     })
   } else {
-    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, {
-      kind,
-      path: relPath,
-    })
+    log?.warn(`Found config with unknown kind '${kind}' in config at ${relPath}. Ignoring.`)
+    return null
   }
 }
 
@@ -221,7 +228,12 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
 
     for (const configFile of configFiles) {
-      const resources = await loadConfigResources(path, join(path, configFile), allowInvalid)
+      const resources = await loadConfigResources({
+        log: undefined,
+        projectRoot: path,
+        configPath: join(path, configFile),
+        allowInvalid,
+      })
 
       const projectSpecs = resources.filter((s) => s.kind === "Project")
 
