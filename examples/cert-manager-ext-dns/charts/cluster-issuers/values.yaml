@@ -1,0 +1,7 @@
+cloudflare:
+  email: default@letsencrypt.com
+  apiToken: replace-me # Cloudflare API Token
+  cfDomain: replace-me.com # Cloudflare Domain
+
+generateStgCert: false
+generateProdCert: false

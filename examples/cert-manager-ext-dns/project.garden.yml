@@ -1,0 +1,45 @@
+kind: Project
+name: cert-manager-ext-dns
+defaultEnvironment: prod
+
+environments:
+  - name: prod
+    production: true
+    defaultNamespace: ${var.DEFAULT_NAMESPACE}
+    variables:
+      base-hostname: ${var.CF_DOMAIN[0]} # This is the domain we want to use for our services, select one of the CF_DOMAIN array
+
+providers:
+  - name: kubernetes
+    environments: [prod]
+    context: gke_devrel-348008_europe-north1_gke-terraform # Make sure to change this to your own context
+    namespace: ${var.DEFAULT_NAMESPACE}
+    setupIngressController: nginx
+    buildMode: kaniko
+    # tlsCertificates: # You can start testing this with the staging certificates, but you should use production certificates in production
+    #   - name: staging-cert
+    #     secretRef:
+    #       name: staging-cert
+    deploymentRegistry:
+      hostname: "${var.registryHostname}"
+      namespace: "${var.registryNamespace}"
+    imagePullSecrets:
+    - name: regcred
+      namespace: default
+
+variables:
+  # Variables for Docker Registry
+  registryHostname: docker.io
+  registryNamespace: shankyweb # Dockerhub username
+  # Variables for Kubernetes
+  DEFAULT_NAMESPACE: default # Frontend will be deployed in this namespace.
+  # Cert-Manager variables
+  CERT_MANAGER_INSTALL_CRDS: true
+  GENERATE_PROD_CERTS: false # Set this to true if you want to generate production certificates
+  GENERATE_STG_CERTS: false # Set this to true if you want to generate staging certificates
+  # External-DNS variables
+  CF_DNS_PROVIDER: cloudflare # This demo only supports Cloudflare at the moment
+  CF_DOMAIN: [ your-domain-name.com ] # Has to be an array, even if you only have one domain
+  CF_UPDATE_STRATEGY: sync # Be careful with this, it can cause downtime if you're not careful
+  CF_EMAIL: your-email@something.com # This is the email you use to login to Cloudflare
+  CF_PROXIED: false # Set this to true if you want to use Cloudflare's proxy service, it won't work with cert-manager if you do
