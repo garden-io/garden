@@ -6,7 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { DOCS_BASE_URL } from "../../../constants"
 import { DeployActionDefinition } from "../../../plugin/action-types"
 import { dedent } from "../../../util/string"
 import { KubernetesPluginContext } from "../config"
@@ -20,16 +19,17 @@ import { getHelmDeployStatus } from "./status"
 import { posix } from "path"
 import { k8sContainerStopSync } from "../container/sync"
 import { helmGetSyncStatus, helmStartSync } from "./sync"
+import { makeDocsLink } from "../../../docs/common"
 
-export const helmDeployDocs = dedent`
+export const getHelmDeployDocs = () => dedent`
   Specify a Helm chart (either in your repository or remote from a registry) to deploy.
 
-  Refer to the [Helm guide](${DOCS_BASE_URL}/kubernetes-plugins/module-types/helm) for usage instructions.
+  Refer to the [Helm guide](${makeDocsLink`k8s-plugins/action-types/helm`}) for usage instructions.
 `
 
 export const helmDeployDefinition = (): DeployActionDefinition<HelmDeployAction> => ({
   name: "helm",
-  docs: helmDeployDocs,
+  docs: getHelmDeployDocs(),
   schema: helmDeploySchema(),
   // outputsSchema: helmDeployOutputsSchema(),
   handlers: {

@@ -7,7 +7,7 @@ Each environment can be broken down into several "namespaces", and each Garden r
 To specify which Garden namespace to use, you can use either of the following:
 
 - Set a specific namespace using the CLI with the `--env` flag and prepending the namespace to the environment name using the following format `--env <namespace>.<environment>`
-- Specify the default namespace in your Garden configuration file, using the [`defaultNamespace`](https://docs.garden.io/reference/project-config#environments-.defaultnamespace) field under the `environments` specification.
+- Specify the default namespace in your Garden configuration file, using the [`defaultNamespace`](../reference/project-config.md#environments-.defaultnamespace) field under the `environments` specification.
 
 ## Using namespaces
 
@@ -69,10 +69,10 @@ providers:
     # ...
 ```
 
-This allows each developer to get a unique namespace and a unique hostname for each service. Some further notes:
+This allows each developer to get a unique namespace and a unique hostname for each deploy. Some further notes:
 
 * The `dev-env-name` namespace will be something like `my-project-janedoe` so each developer has a unique namespace per project.
-* The hostname variable can be re-used in the module configuration. When using the container module type, you can e.g. set hostname: `my-service.${var.hostname}` under the [`services.ingress`](https://docs.garden.io/reference/module-types/container#services-.ingresses) field. A similar approach can be used for other module types.
+* The hostname variable can be re-used in the action configuration. When using the container deploy type, you can e.g. set hostname: `my-service.${var.hostname}` under the [`spec.ingresses[].hostname`](../reference/action-types/Deploy/container.md#specingresseshostname) field. A similar approach can be used for other action types.
 
 This serves as a good base for naming your hostnames and namespaces, but you can tweak it further to meet your specific needs. For example, at Garden we use a similar scheme for our CI and preview environments, but we use the PR or build number as a further unique identifier.
 

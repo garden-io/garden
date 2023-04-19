@@ -26,10 +26,10 @@ try {
   })
 } catch (_) {}
 
-const plugins = [...getBundledPlugins(), ...getSupportedPlugins()]
+const getPlugins = () => [...getBundledPlugins(), ...getSupportedPlugins()]
 
 if (require.main === module) {
-  generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), plugins)
+  generateDocs(resolve(GARDEN_CLI_ROOT, "..", "docs"), getPlugins)
     .then(() => {
       // eslint-disable-next-line no-console
       console.log("Done!")

@@ -50,7 +50,7 @@ garden --env=<env-name> plugins terraform apply-root -- -auto-approve
 
 ### Exec Provider
 
-One way to inject variables into new terraform manifests is to add an [exec provider](https://docs.garden.io/reference/providers/exec) that calls an [initScript](https://docs.garden.io/reference/providers/exec#providers-.initscript) in the project.garden.yaml file. Exec providers allow us to run scripts while initiating other providers. An `initScript` runs in the project root when initializing those providers.
+One way to inject variables into new terraform manifests is to add an [exec provider](../reference/providers/exec.md) that calls an [initScript](../reference/providers/exec.md#providers-.initscript) in the project.garden.yaml file. Exec providers allow us to run scripts while initiating other providers. An `initScript` runs in the project root when initializing those providers.
 
 In this sample `terraform/backend.tf` manifest, we need to replace the `key` based on which environment we are building.
 

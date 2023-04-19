@@ -30,7 +30,6 @@ import { dedent } from "../../util/string"
 import { kubernetesModuleSpecSchema } from "./kubernetes-type/module-config"
 import { helmModuleSpecSchema, helmModuleOutputsSchema } from "./helm/module-config"
 import { getSystemMetadataNamespaceName } from "./system"
-import { DOCS_BASE_URL } from "../../constants"
 import { defaultIngressClass } from "./constants"
 import { pvcModuleDefinition, persistentvolumeclaimDeployDefinition } from "./volumes/persistentvolumeclaim"
 import { helm3Spec } from "./helm/helm-cli"
@@ -43,7 +42,7 @@ import {
   k8sContainerRunExtension,
   k8sContainerTestExtension,
 } from "./container/extensions"
-import { helmDeployDefinition, helmDeployDocs } from "./helm/action"
+import { helmDeployDefinition, getHelmDeployDocs } from "./helm/action"
 import { k8sJibContainerBuildExtension, jibContainerHandlers } from "./jib-container"
 import { kubernetesDeployDefinition, kubernetesDeployDocs } from "./kubernetes-type/deploy"
 import { kustomizeSpec } from "./kubernetes-type/kustomize"
@@ -51,6 +50,7 @@ import { syncPause, syncResume, syncStatus } from "./commands/sync"
 import { helmPodRunDefinition, helmPodTestDefinition } from "./helm/helm-pod"
 import { kubernetesPodRunDefinition, kubernetesPodTestDefinition } from "./kubernetes-type/kubernetes-pod"
 import { kubernetesExecRunDefinition, kubernetesExecTestDefinition } from "./kubernetes-type/kubernetes-exec"
+import { makeDocsLink } from "../../docs/common"
 
 export async function configureProvider({
   namespace,
@@ -131,18 +131,20 @@ const outputsSchema = joi.object().keys({
   "default-hostname": joi.string().description("The default hostname configured on the provider."),
 })
 
-export const gardenPlugin = () =>
-  createGardenPlugin({
+export const gardenPlugin = () => {
+  return createGardenPlugin({
     name: "kubernetes",
     dependencies: [{ name: "container" }, { name: "jib", optional: true }],
     docs: dedent`
-    The \`kubernetes\` provider allows you to deploy [\`container\` modules](../module-types/container.md) to
-    Kubernetes clusters, and adds the [\`helm\`](../module-types/helm.md) and
-    [\`kubernetes\`](../module-types/kubernetes.md) module types.
+    The \`kubernetes\` provider allows you to deploy [\`container\` actions](${makeDocsLink(
+      "k8s-plugins/action-types/container"
+    )}) to
+    Kubernetes clusters, and adds the [\`helm\`](${makeDocsLink`k8s-plugins/action-types/helm`}) and
+    [\`kubernetes\`](${makeDocsLink("k8s-plugins/action-types/kubernetes")}) action types.
 
-    For usage information, please refer to the [guides section](${DOCS_BASE_URL}/guides). A good place to start is
-    the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
-    The [Quickstart guide](../../basics/quickstart.md) guide is also helpful as an introduction.
+    For usage information, please refer to the [guides section](../../guides). A good place to start is
+    the [Remote Kubernetes guide](${makeDocsLink`k8s-plugins/remote-k8s/README`}) guide if you're connecting to remote clusters.
+    The [Quickstart guide](${makeDocsLink`basics/quickstart`}) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
   `,
@@ -186,7 +188,7 @@ export const gardenPlugin = () =>
     createModuleTypes: [
       {
         name: "helm",
-        docs: helmDeployDocs,
+        docs: getHelmDeployDocs(),
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
         handlers: helmModuleHandlers,
@@ -219,3 +221,4 @@ export const gardenPlugin = () =>
     ],
     tools: [kubectlSpec, kustomizeSpec, helm3Spec, mutagenCliSpec],
   })
+}

@@ -2107,3 +2107,23 @@ Set this to null or false to skip installing/enabling the `nginx` ingress contro
 | -------- | --------- | -------- |
 | `string` | `"nginx"` | No       |
 
+
+## Outputs
+
+The following keys are available via the `${providers.<provider-name>}` template string key for `local-kubernetes` providers.
+
+### `${providers.<provider-name>.outputs.app-namespace}`
+
+The primary namespace used for resource deployments.
+
+| Type     |
+| -------- |
+| `string` |
+
+### `${providers.<provider-name>.outputs.default-hostname}`
+
+The default hostname configured on the provider.
+
+| Type     |
+| -------- |
+| `string` |

@@ -166,7 +166,7 @@ kind: Module
 type: container
 name: postgres
 description: Postgres container for storing voting results
-image: postgres:11.7-alpine
+image: postgres:12
 
 # Module services -> Deploy spec
 services:
@@ -215,7 +215,7 @@ description: Postgres container for storing voting results
 spec:
   # When specifying an image instead of a Build,
   # do so in the spec section
-  image: postgres:11.7-alpine
+  image: postgres:12
   volumes:
     - name: data
       containerPath: /db-data
@@ -238,7 +238,7 @@ type: container
 name: db-init
 dependencies: [deploy.db]
 spec:
-  image: postgres:11.7-alpine
+  image: postgres:12
   command:
     [
       "/bin/sh",
@@ -256,7 +256,7 @@ type: container
 name: db-clear
 dependencies: [deploy.db]
 spec:
-  image: postgres:11.7-alpine
+  image: postgres:12
   command: ["/bin/sh", "-c", "psql -w --host=db --port=5432 -d $PGDATABASE -c 'TRUNCATE votes'"]
   env:
     PGDATABASE: ${var.postgres-database}

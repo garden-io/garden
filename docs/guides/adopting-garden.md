@@ -9,7 +9,7 @@ This page contains a high-level overview of the steps required to adopt Garden. 
 
 ## Step 1 — Pick your plugins
 
-The first thing you do when adopting Garden is to pick the plugins you want to use. Plugins are configured via the `providers` field in the project level configuration. Plugins also define module types that we'll get to below.
+The first thing you do when adopting Garden is to pick the plugins you want to use. Plugins are configured via the `providers` field in the project level configuration. Plugins also define action types that we'll get to below.
 
 The provider configuration will look something like this, depending on the plugins you're using (we're omitting some details here):
 
@@ -47,7 +47,7 @@ To use the [Kubernetes plugin](../k8s-plugins/remote-k8s/README.md) you'll need 
 This is a great pick for _teams_ building apps that run on Kubernetes because:
 
 - It allows you develop in remote, production-like environments that scale with your stack.
-- You don't need any dependencies on your laptop, even the builds happen remotely.
+- You don't need any dependencies on your laptop, even the builds can be performed remotely.
 - It allows you to share build and test caches with your entire team and across environments. This can dramatically speed up pipelines and development.
 - It allows you to easily create preview environments that you can share with others,
   e.g. for pull requests.
@@ -73,21 +73,22 @@ The [Exec plugin](../other-plugins/exec.md) allows you to execute arbitrary scri
 
 It's great for executing auth scripts, running services locally, and as a general purpose escape hatch.
 
-It's built in which means you don't need to specify it in the project level configuration and you can simply add `exec` modules right away.
+It's built in, which means you don't need to specify it in the project level configuration and you can simply add `exec` actions right away.
 
-## Step 2 — Add your modules
+## Step 2 — Add your actions
 
 {% hint style="info" %}
-Garden modules and their configuration can be spread across different files and even across git repos.
+Garden actions and their configuration can be spread across different files and even across git repos.
 {% endhint %}
 
-Once you've configured your plugin(s), it's time to add modules.
+Once you've configured your plugin(s), it's time to add actions.
 
-Modules are the components that make up your stack and can contain services, tests, and tasks.
+Actions are the components that make up your stack.
+The four kinds of actions are `deploy`, `test`, `run` and `build`.
 
-How they're configured depends on the module types and plugins you're using.
+How they're configured depends on the kind and plugins you're using (kind).
 
-We recommend putting each module in its own `garden.yml` file and locate it next to any source files. For demonstration purposes, here's what a (slightly simplified) Garden project could look like in a _single file_:
+We recommend putting each action in its own `garden.yml` file and locate it next to any source files. For demonstration purposes, here's what a (slightly simplified) Garden project could look like in a _single file_:
 
 ```yaml
 # At the root of your project.
@@ -103,37 +104,50 @@ providers:
 
 ---
 
-kind: Module
+kind: Deploy
+type: helm
 name: db
-repo: https://charts.bitnami.com/bitnami
-chart: postgresql
-version: 12.1.2
-tasks:
-  - name: db-seed
-    command: ["/bin/sh", "-c", "psql -U postgres <...>"]
+spec:
+  chart:
+    name: postgresql
+    repo: https://charts.bitnami.com/bitnami
+    version: "11.6.12"
 
 ---
 
-kind: Module
+kind: Run
+name: db-init
+type: container
+dependencies: [deploy.db]
+spec:
+  image: postgres:11.6-alpine
+  command: ["/bin/sh", "db-init-script.sh"]
+
+---
+
+kind: Deploy
 name: api
 type: kubernetes
-files: [path/to/your/k8s/manifests]
-dependencies: [db-seed]
+dependencies: [run.db-init]
+spec:
+  files: [ manifest.yml ]
 
 ---
 
-kind: Module
-name: web
+kind: Test
+name: api-integ
 type: container
-dependencies: [api]
-tests:
-  - name: e2e
-services:
-  - name: web-service
+build: api
+dependencies:
+  - deploy.api
+timeout: 200
+spec:
+  args: [python, /app/test.py]
     # ...
+
 ```
 
-Depending on the size of your project, you may want to add a handful of modules to get started and then gradually add more as needed.
+Depending on the size of your project, you may want to add a handful of actions to get started and then gradually add more as needed.
 
 ## Step 3 — Add more plugins and environments
 
@@ -172,17 +186,17 @@ providers:
  - name: terraform # <--- Use the Terraform plugin for the staging environment to provision a DB
    environments: ["staging"]
 ---
-kind: Module
+kind: Deploy
 name: db
 type: helm
 disabled: "${environment.name != 'dev'}" # <--- Toggle based on env
 ---
-kind: Module
+kind: Deploy
 name: db
 type: terraform
 disabled: "${environment.name != 'staging'}" # <--- Toggle based on env
 ---
-kind: Module
+kind: Deploy
 name: web
 type: kubernetes
 files: "[path/to/your/${environment.name}/k8s/manifests]" # <--- Pick manifests based on env
