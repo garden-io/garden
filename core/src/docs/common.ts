@@ -27,8 +27,11 @@ export abstract class BaseKeyDescription<T = any> {
   }
 
   abstract getChildren(renderPatternKeys?: boolean): BaseKeyDescription[]
+
   abstract getDefaultValue(): T | undefined
+
   abstract formatExample(): string | undefined
+
   abstract formatAllowedValues(): string | undefined
 
   formatName() {
@@ -129,14 +132,13 @@ export function isArrayType(type: string) {
   return type === "array" || type === "sparseArray"
 }
 
-
 // Override this externally to change the behaviour of makeDocsLink
 export const makeDocsLinkOpts = {
   GARDEN_RELATIVE_DOCS_PATH: "",
 }
 /**
  *
- * @param docsPathInput path to the file as from the /docs direcotry
+ * @param docsPathInput path to the file as from the /docs directory
  * @param fragment URI fragment
  * @returns a functioning url
  *
