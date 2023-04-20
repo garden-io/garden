@@ -23,6 +23,10 @@ import { joi } from "../../../config/common"
  */
 export type BuildState = "fetching" | "fetched" | "outdated" | "building" | "built" | "failed"
 
+export interface BuildStatusForEventPayload {
+  state: BuildState
+}
+
 interface GetBuildStatusParams<T extends BuildAction = BuildAction> extends PluginBuildActionParamsBase<T> {}
 
 export interface BuildResult {
