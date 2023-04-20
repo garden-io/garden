@@ -30,9 +30,6 @@ export const syncStatus: PluginCommand = {
     if (!(await pathExists(dataDir))) {
       log.info(dedent`
         No active sync session found.
-
-        Garden needs to be running in dev mode in this project for sync statuses to
-        be available.
       `)
 
       logSuccess(log)

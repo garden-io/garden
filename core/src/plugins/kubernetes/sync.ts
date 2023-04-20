@@ -34,7 +34,6 @@ import {
   KubernetesResource,
   SupportedRuntimeAction,
   SyncableKind,
-  syncableKinds,
   SyncableResource,
   SyncableRuntimeAction,
 } from "./types"
@@ -46,7 +45,6 @@ import {
   KubernetesProvider,
   KubernetesTargetResourceSpec,
   ServiceResourceSpec,
-  targetContainerNameSchema,
   targetResourceSpecSchema,
 } from "./config"
 import { isConfiguredForSyncMode } from "./status/status"
@@ -64,6 +62,7 @@ import { HelmModule, HelmService } from "./helm/module-config"
 import { convertServiceResource } from "./kubernetes-type/common"
 import { prepareConnectionOpts } from "./kubectl"
 import { GetSyncStatusResult, SyncState } from "../../plugin/handlers/Deploy/get-sync-status"
+import { ConfigurationError } from "../../exceptions"
 
 export const builtInExcludes = ["/**/*.git", "**/*.garden"]
 
@@ -163,11 +162,7 @@ export const kubernetesDeploySyncPathSchema = () =>
     )
 
 export interface KubernetesDeployOverrideSpec {
-  target: {
-    kind: SyncableKind
-    name: string
-    containerName?: string
-  }
+  target?: KubernetesTargetResourceSpec
   command?: string[]
   args?: string[]
 }
@@ -180,15 +175,9 @@ export interface KubernetesDeploySyncSpec {
 
 const syncModeOverrideSpec = () =>
   joi.object().keys({
-    target: joi.object().keys({
-      kind: joi
-        .string()
-        .valid(...syncableKinds)
-        .required()
-        .description("The kind of the Kubernetes resource to modify."),
-      name: joi.string().required().description("The name of the resource."),
-      containerName: targetContainerNameSchema(),
-    }),
+    target: targetResourceSpecSchema().description(
+      "The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`."
+    ),
     command: joi.array().items(joi.string()).description("Override the command/entrypoint in the matched container."),
     args: joi.array().items(joi.string()).description("Override the args in the matched container."),
   })
@@ -204,7 +193,10 @@ export const kubernetesDeploySyncSchema = () =>
         .array()
         .items(kubernetesDeploySyncPathSchema())
         .description("A list of syncs to start once the Deploy is successfully started."),
-      overrides: joi.array().items(syncModeOverrideSpec()),
+      overrides: joi
+        .array()
+        .items(syncModeOverrideSpec())
+        .description("Overrides for the container command and/or arguments for when in sync mode."),
     })
     .rename("syncs", "paths")
     .description(
@@ -240,6 +232,7 @@ export function convertKubernetesModuleDevModeSpec(
             kind: target.kind,
             name: target.name,
             containerName: target.containerName,
+            podSelector: target.podSelector,
           },
           command: syncSpec.command,
           args: syncSpec.args,
@@ -332,7 +325,16 @@ export async function configureSyncMode({
   }
 
   for (const override of spec.overrides || []) {
-    const { target } = override
+    const target = override.target || defaultTarget
+    if (!target) {
+      throw new ConfigurationError(
+        dedent`Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+        Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\``,
+        {
+          override,
+        }
+      )
+    }
     if (target.kind && target.name) {
       const key = targetKey(target)
       overridesByTarget[key] = override
@@ -344,12 +346,10 @@ export async function configureSyncMode({
     const target = sync.target || defaultTarget
 
     if (!target) {
-      log.warn(
-        chalk.yellow(
-          `Dev mode sync on ${action.longDescription()} doesn't specify a target, and none is set as a default.`
-        )
+      throw new ConfigurationError(
+        `Sync configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.`,
+        { sync }
       )
-      continue
     }
 
     if (target.podSelector) {
@@ -377,7 +377,11 @@ export async function configureSyncMode({
   })
 
   for (const override of spec.overrides || []) {
-    const { target } = override
+    const target = override.target || defaultTarget
+    if (!target) {
+      continue
+    }
+
     const key = targetKey(target)
     const resolved = resolvedTargets[key]
 
