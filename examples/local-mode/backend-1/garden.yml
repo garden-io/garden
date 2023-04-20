@@ -14,7 +14,7 @@ type: container
 build: backend-1
 dependencies: "${var.localMode1 ? ['run.build-backend-local-1'] : []}"
 
-# You can specify variables here at the module level
+# You can specify variables here at the action level
 variables:
   ingressPath: /hello-backend-1
 
