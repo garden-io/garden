@@ -59,10 +59,10 @@ export const execInHelmDeploy: DeployActionHandler<"exec", HelmDeployAction> = a
   })
 
   // TODO: this check should probably live outside of the plugin
-  if (!target || !includes(["ready", "outdated"], status.detail?.deployState)) {
+  if (!target || !includes(["ready", "outdated"], status.detail?.state)) {
     throw new DeploymentError(`${action.longDescription()} is not running`, {
       name: action.name,
-      state: status.detail?.deployState || status.state,
+      state: status.detail?.state || status.state,
     })
   }
 

@@ -117,7 +117,7 @@ export function prepareContainerDeployStatus({
   const detail: ContainerServiceStatus = {
     forwardablePorts,
     ingresses,
-    deployState: state,
+    state,
     namespaceStatuses: [namespaceStatus],
     detail: { remoteResources, workload, selectorChangedResourceKeys },
     mode: deployedMode,
@@ -150,7 +150,7 @@ export async function waitForContainerService(
       action,
     })
 
-    const deployState = status.detail?.deployState
+    const deployState = status.detail?.state
 
     if (deployState === "ready" || deployState === "outdated") {
       return

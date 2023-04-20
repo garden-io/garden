@@ -276,11 +276,11 @@ export const testPlugin = () =>
               return { config, supportedModes: { sync: !!config.spec.syncMode, local: true } }
             },
             deploy: async ({}) => {
-              return { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
+              return { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             getStatus: async ({ ctx, action }) => {
               const result = get(ctx.provider, ["_actionStatuses", action.kind, action.name])
-              return result || { state: "ready", detail: { deployState: "ready", detail: {} }, outputs: {} }
+              return result || { state: "ready", detail: { state: "ready", detail: {} }, outputs: {} }
             },
             exec: async ({ command }) => {
               return { code: 0, output: "Ran command: " + command.join(" ") }

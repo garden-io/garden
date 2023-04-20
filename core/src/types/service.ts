@@ -194,7 +194,7 @@ export interface ServiceStatus<D = any, O = PrimitiveMap> {
   lastError?: string
   outputs?: O
   runningReplicas?: number
-  deployState: DeployState
+  state: DeployState
   updatedAt?: string
 }
 
@@ -227,7 +227,7 @@ export const serviceStatusSchema = () =>
       lastError: joi.string().description("Latest error status message of the service (if any)."),
       outputs: joiVariables().description("A map of values output from the deployment."),
       runningReplicas: joi.number().description("How many replicas of the service are currently running."),
-      deployState: joi
+      state: joi
         .string()
         .valid(...deployStates)
         .default("unknown")

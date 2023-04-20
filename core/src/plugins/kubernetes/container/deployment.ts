@@ -678,7 +678,7 @@ export const deleteContainerDeploy: DeployActionHandler<"delete", ContainerDeplo
     includeUninitialized: false,
   })
 
-  return { state: "ready", detail: { deployState: "missing", detail: {} }, outputs: {} }
+  return { state: "ready", detail: { state: "missing", detail: {} }, outputs: {} }
 }
 
 /**

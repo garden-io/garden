@@ -57,7 +57,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("deployStatus", {
         ...payloadAttrs,
         state: "processing",
-        status: { deployState: "deploying" },
+        status: { state: "deploying" },
       })
 
       const output = await router.callHandler({ params, handlerType: "deploy" })
@@ -90,7 +90,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       const statusOutput = await handlers.getStatus({ ...params })
       const status = statusOutput.result
 
-      if (status.detail?.deployState === "missing") {
+      if (status.detail?.state === "missing") {
         log.success({
           section: action.key(),
           msg: "Not found",
@@ -106,7 +106,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
           p.log.error(msg)
           return {
             state: "not-ready" as ActionState,
-            detail: { deployState: "missing" as DeployState, detail: {} },
+            detail: { state: "missing" as DeployState, detail: {} },
             outputs: {},
           }
         },
@@ -160,7 +160,7 @@ export const deployRouter = (baseParams: BaseRouterParams) =>
       garden.events.emit("deployStatus", {
         ...payloadAttrs,
         state: "getting-status",
-        status: { deployState: "unknown" },
+        status: { state: "unknown" },
       })
 
       const output = await router.callHandler({ params, handlerType: "getStatus" })
