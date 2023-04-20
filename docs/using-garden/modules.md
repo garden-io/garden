@@ -6,7 +6,7 @@ title: Modules
 # Modules
 
 {% hint style="warning" %}
-Modules are deprecated and will be removed in version `0.14`. Please use [action](./actions.md)-based configuration instead.
+Modules are deprecated and will be removed in version `0.14`. Please use [action](./actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../tutorials/migrating-to-bonsai.md) for details.
 {% endhint %}
 
 Modules are the basic **unit of building** in Garden. They are usually the first thing you add after creating the project-level configuration.
