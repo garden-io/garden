@@ -28,6 +28,7 @@
 * [Workflows](./using-garden/workflows.md)
 * [Variables and templating](./using-garden/variables-and-templating.md)
 * [Config Templates](./using-garden/config-templates.md)
+* [Actions](./using-garden/actions.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
 ## 🌿 Kubernetes Plugins
