@@ -372,7 +372,7 @@ spec:
         # more information.
         defaultGroup:
 
-    # Overrides for the container command and/or arguments for when in sync mode
+    # Overrides for the container command and/or arguments for when in sync mode.
     overrides:
       - # The Kubernetes resources to override. If specified, this is used instead of `spec.defaultTarget`.
         target:
@@ -1232,7 +1232,7 @@ Set the default group on files and directories at the target. Specify either an 
 
 [spec](#spec) > [sync](#specsync) > overrides
 
-Overrides for the container command and/or arguments for when in sync mode
+Overrides for the container command and/or arguments for when in sync mode.
 
 | Type            | Required |
 | --------------- | -------- |
