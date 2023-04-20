@@ -10,12 +10,12 @@ On the other hand, the optional new configuration format is easier to read and w
 
 Here is the list of breaking changes when upgrading your `garden` CLI tool. This lets you use your old Module-style configuration files with minimal changes.
 
-- `cert-manager` integration has been deprecated. New documentation coming soon here: [ext dns and cert manager example](https://github.com/garden-io/garden/pull/3988)
+- `cert-manager` integration has been removed. New documentation has been created in the [ext dns and cert manager example](../../examples/cert-manager-ext-dns)
 - `dev-mode` has been renamed to `sync`, both in the configuration as well as on the CLI
 - `garden delete` has been renamed to `garden cleanup`
 - `garden delete env` has been renamed to `garden cleanup namespace` with an alias of `garden cleanup ns`
-- `dotIgnoreFiles` has been renamed to `dotIgnoreFile` and only supports one file
-- project config `modules.*` will be renamed to `scan.*`: [tracking issue](https://github.com/garden-io/garden/issues/3512)
+- `dotIgnoreFiles` has been renamed to `dotIgnoreFile` and only supports one file. The old `dotIgnoreFiles` field is still supported with a deprecation warning. Now it supports only 1 filename defined in the array, otherwise an error will be thrown.
+- project config `modules.*` has been renamed to `scan.*`. The old syntax is still supported with a deprecation warning.
 - removed default `environments`, please specify the field in project configuration
 - template configurations will use `camelCase` everywhere, no more `snake_case` or `kebab-case`: [tracking issue](https://github.com/garden-io/garden/issues/3513)
 - the deprecated `hot-reload` has been removed, use `sync` instead
