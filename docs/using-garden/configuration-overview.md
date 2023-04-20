@@ -29,11 +29,11 @@ Garden provides three different ways to achieve this:
 1. The `scan.include` and `scan.exclude` fields in _project_ configuration files.
 2. The [".ignore" file](#ignore-file), e.g. `.gitignore` or `.gardenignore`.
 3. The `include` and `exclude` fields in [_module_ configuration files](./modules.md#including-and-excluding-files).
-4. The `include` and `exclude` fields in _action_ configuration files (TODO: create an actions guide and add the link here).
+4. The `include` and `exclude` fields in [_action_ configuration files](./actions.md#including-and-excluding-files).
 
 The first two are described below.
 The module-specific includes/excludes are described in the [section on modules](./modules.md#including-and-excluding-files).
-The action-specific includes/excludes are described in the section on actions (TODO: create an actions guide and add the link here).
+The action-specific includes/excludes are described in the [section on actions](./actions.md#including-and-excluding-files).
 
 ### Including and excluding files across the project
 
@@ -79,7 +79,7 @@ This would cause Garden to ignore `node_modules` and `public` directories across
 Note that _these take precedence over both `scan.include` fields in your project config, and `include` fields in your module configs_. If a path is matched by one of the ignore files, the path will not be included in your project or modules.
 
 {% hint style="warning" %}
-Prior to Garden 0.13.0, it was possible to specify _multiple_ ".ignore" files
+Prior to Garden `0.13`, it was possible to specify _multiple_ ".ignore" files
 using the [`dotIgnoreFiles`](../reference/project-config.md#dotIgnoreFiles) field in a project configuration:
 
 ```yaml
@@ -88,7 +88,7 @@ name: my-project
 dotIgnoreFiles: [.gardenignore, .gitignore]
 ```
 
-This behaviour was changed in Garden 0.13.0.
+This behaviour was changed in Garden `0.13`.
 {% endhint %}
 
 You can override which filename to use as a _single_ ".ignore" file
