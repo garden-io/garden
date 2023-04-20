@@ -328,7 +328,8 @@ export async function configureSyncMode({
     const target = override.target || defaultTarget
     if (!target) {
       throw new ConfigurationError(
-        `Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.`,
+        dedent`Sync override configuration on ${action.longDescription()} doesn't specify a target, and none is set as a default.
+        Either specify a target via the \`spec.sync.overrides[].target\` or \`spec.defaultTarget\``,
         {
           override,
         }
