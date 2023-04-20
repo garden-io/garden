@@ -33,7 +33,7 @@ export interface PulumiParams {
 
 export interface PulumiConfig {
   config: DeepPrimitiveMap
-  backend: { url: string }
+  backend?: { url: string }
 }
 
 interface PulumiManifest {
@@ -269,9 +269,10 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
-  // if (params.module.backendURL) {
-  //   stackConfig.backend.url = !params.module.backendURL ? params.provider.backendURL : params.module.backendURL
-  // }
+  const backendUrl = getBackendUrl(params.provider, params.module)
+  if (backendUrl !== null) {
+    stackConfig.backend = { url: backendUrl }
+  }
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
       stack config file exists but no variables are defined in pulumiVars or pulumiVarfiles - skip writing stack config
@@ -421,6 +422,14 @@ function getOrgName(provider: PulumiProvider, module: PulumiModule): string | nu
     return module.spec.orgName
   } else {
     return provider.config.orgName || null
+  }
+}
+
+function getBackendUrl(provider: PulumiProvider, module: PulumiModule): string | null {
+  if (module.spec.backendURL || module.spec.backendURL === null) {
+    return module.spec.backendURL
+  } else {
+    return provider.config.backendURL || null
   }
 }
 
