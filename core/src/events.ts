@@ -9,7 +9,7 @@
 import { omit } from "lodash"
 import { EventEmitter2 } from "eventemitter2"
 import type { LogEntryEventPayload } from "./cloud/buffered-event-stream"
-import type { DeployState, ServiceStatus } from "./types/service"
+import type { DeployState, DeployStatusForEventPayload } from "./types/service"
 import type { RunState, RunStatusForEventPayload } from "./plugin/base"
 import type { Omit } from "./util/util"
 import type { AuthTokenResponse } from "./cloud/api"
@@ -18,7 +18,7 @@ import type { CommandInfo } from "./plugin-context"
 import type { ActionReference } from "./config/common"
 import type { GraphResult } from "./graph/results"
 import { NamespaceStatus } from "./types/namespace"
-import { BuildState } from "./plugin/handlers/Build/get-status"
+import { BuildState, BuildStatusForEventPayload } from "./plugin/handlers/Build/get-status"
 import { ActionStateForEvent } from "./actions/types"
 import { sanitizeValue } from "./util/logging"
 
@@ -65,8 +65,6 @@ export class EventBus extends EventEmitter2 {
 export type GraphResultEventPayload = Omit<GraphResult, "task" | "dependencyResults" | "error"> & {
   error: string | null
 }
-
-export type DeployStatusForEventPayload = Omit<ServiceStatus, "detail">
 
 export interface CommandInfoPayload extends CommandInfo {
   // Contains additional context for the command info available during init
@@ -244,7 +242,7 @@ export interface Events {
    * are no associated logs or timestamps to track).
    */
 
-  buildStatus: ActionStatusPayload<{ state: BuildState }>
+  buildStatus: ActionStatusPayload<BuildStatusForEventPayload>
   runStatus: ActionStatusPayload<RunStatusForEventPayload>
   testStatus: ActionStatusPayload<RunStatusForEventPayload>
   deployStatus: ActionStatusPayload<DeployStatusForEventPayload>

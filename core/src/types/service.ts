@@ -28,6 +28,7 @@ import { NamespaceStatus, namespaceStatusesSchema } from "./namespace"
 import type { LogLevel } from "../logger/logger"
 import type { ActionMode } from "../actions/types"
 import type { ModuleGraph } from "../graph/modules"
+import { Omit } from "../util/util"
 
 export interface GardenService<M extends GardenModule = GardenModule, S extends GardenModule = GardenModule> {
   name: string
@@ -74,6 +75,8 @@ export function serviceFromConfig<M extends GardenModule = GardenModule>(
 
 export const deployStates = ["ready", "deploying", "stopped", "unhealthy", "unknown", "outdated", "missing"] as const
 export type DeployState = typeof deployStates[number]
+
+export type DeployStatusForEventPayload = Omit<ServiceStatus, "detail">
 
 /**
  * Given a list of states, return a single state representing the list.
