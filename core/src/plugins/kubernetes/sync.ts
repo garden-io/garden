@@ -196,7 +196,7 @@ export const kubernetesDeploySyncSchema = () =>
       overrides: joi
         .array()
         .items(syncModeOverrideSpec())
-        .description("Overrides for the container command and/or arguments for when in sync mode"),
+        .description("Overrides for the container command and/or arguments for when in sync mode."),
     })
     .rename("syncs", "paths")
     .description(
