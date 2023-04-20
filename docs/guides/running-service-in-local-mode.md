@@ -2,6 +2,7 @@
 title: Connecting a local service to a K8s cluster (Local Mode)
 order: 4
 ---
+
 # Connecting a local service to a K8s cluster (Local Mode)
 
 ## Glossary
@@ -26,13 +27,13 @@ stability and usability. It means that:
 By configuring a Garden service in _local mode_, one can replace a target Kubernetes workload in a k8s cluster with a
 local service (i.e. an application running on your local machine).
 
-_Local mode_ feature is only supported by certain module types and providers.
+_Local mode_ feature is only supported by certain action types and providers.
 
-### Supported module types
+### Supported action types
 
-* [`container`](../reference/module-types/container.md)
-* [`kubernetes`](../reference/module-types/kubernetes.md)
-* [`helm`](../reference/module-types/helm.md)
+* [`container`](../reference/action-types/Deploy/container.md)
+* [`kubernetes`](../reference/action-types/Deploy/kubernetes.md)
+* [`helm`](../reference/action-types/Deploy/helm.md)
 
 ### Supported providers
 
@@ -73,8 +74,9 @@ The _local mode_ is not supported natively for Windows OS. It should be used wit
 
 ### Number of the services in local mode
 
-Only one container can be run in local mode for each [`kubernetes`](../reference/module-types/kubernetes.md)
-or [`helm`](../reference/module-types/helm.md) service. This limitation is planned to be removed in Garden Core `0.13`.
+Only one container can be run in local mode for each [`kubernetes`](../reference/action-types/Deploy/kubernetes.md)
+or [`helm`](../reference/action-types/Deploy/helm.md) service. This limitation is planned to be removed in Garden
+Core `0.13`.
 
 ### Cluster state on exit
 
@@ -113,7 +115,7 @@ why you need [OpenSSH 7.6](https://www.openssh.com/txt/release-7.6) or higher.
 
 ## Configuration
 
-To configure a service for local mode, add `localMode` to your module/service configuration to specify your target
+To configure a service for local mode, add `localMode` to your `Deploy` action configuration to specify your target
 services.
 
 ### Health-checks
@@ -132,56 +134,68 @@ The liveness checks can cause unnecessary re-deployment of the proxy container i
 Also, those checks create some extra traffic to the local service. That might be noisy and unnecessary if the local
 service is running in the debugger.
 
-### Configuring local mode for `container` modules
+### Configuring local mode for `container` action type
 
 ```yaml
-kind: Module
+kind: Build
 name: node-service
 type: container
-services:
-  - name: node-service
-    args: [ npm, start ]
-    localMode:
-      ports:
-        - local: 8090 # The port of the local app, will be used for port-forward setup.
-          remote: 8080 # The port of the remote app, will be used for port-forward setup.
-      # Starts the local app which will replace the target one in the k8s cluster.
-      # Optional. If not specified, then the local app should be started manually.
-      command: [ npm, run, serve ]
-      # Defines how to restart the local app on failure/exit.
-      # Optional. If not specified, then the default values will be applied.
-      restart:
-        delayMsec: 2000 # 2 sec delay between local app restarts
-        max: 100 # limit restart attempts to 100
 
+---
+
+kind: Deploy
+name: node-service
+type: container
+build: node-service
+...
+spec:
+  localMode:
+    ports:
+      - local: 8090 # The port of the local app, will be used for port-forward setup.
+        remote: 8080 # The port of the remote app, will be used for port-forward setup.
+    # Starts the local app which will replace the target one in the k8s cluster.
+    # Optional. If not specified, then the local app should be started manually.
+    command: [ npm, run, serve ]
+    # Defines how to restart the local app on failure/exit.
+    # Optional. If not specified, then the default values will be applied.
+    restart:
+      delayMsec: 2000 # 2 sec delay between local app restarts
+      max: 100 # limit restart attempts to 100
+    ...
 ...
 ```
 
 An example can be found in the [`local-mode project`](../../examples/local-mode).
 
-### Configuring local mode for `kubernetes` and `helm` modules
+### Configuring local mode for `kubernetes` and `helm` action types
 
 ```yaml
-kind: Module
+kind: Build
 name: backend
-type: kubernetes # this example looks the same for helm modules (i.e. with `type: helm`)
+type: container
+
+---
+
+kind: Deploy
+name: backend
+type: kubernetes # this example looks the same for helm actions (i.e. with `type: helm`)
+build: backend
 localMode:
   ports:
     - local: 8090
       remote: 8080
   command: [ "../backend-local/main" ]
-  containerName: backend
-
-serviceResource:
-  kind: Deployment
-  name: backend-deployment
-
+  # Target resource selector is necessary for `kubernetes` and `helm` action types
+  target:
+    kind: Deployment
+    name: backend-deployment
+    containerName: backend
 ...
 # manifests or files
 ```
 
-A `kubernetes` module example can be found in the [`local-mode-k8s project`](../../examples/local-mode-k8s).
-A `helm` module example can be found in the [`local-mode-helm project`](../../examples/local-mode-helm).
+A `kubernetes` example can be found in the [`local-mode-k8s project`](../../examples/local-mode-k8s).
+A `helm` example can be found in the [`local-mode-helm project`](../../examples/local-mode-helm).
 
 ## Deploying with local mode
 
