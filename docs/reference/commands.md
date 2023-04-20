@@ -306,7 +306,7 @@ deployStatuses:
       runningReplicas:
 
       # The current deployment status of the service.
-      deployState:
+      state:
 
       # When the service was last updated by the provider.
       updatedAt:
@@ -437,7 +437,7 @@ When this flag is not used, all services in the project are cleaned up simultane
     runningReplicas:
 
     # The current deployment status of the service.
-    deployState:
+    state:
 
     # When the service was last updated by the provider.
     updatedAt:
@@ -2654,7 +2654,7 @@ actions:
         runningReplicas:
 
         # The current deployment status of the service.
-        deployState:
+        state:
 
         # When the service was last updated by the provider.
         updatedAt:
