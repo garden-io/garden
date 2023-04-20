@@ -1,9 +1,9 @@
 ---
-title: Connecting a local service to a K8s cluster (Local Mode)
+title: Connecting a local application to a K8s cluster (Local Mode)
 order: 4
 ---
 
-# Connecting a local service to a K8s cluster (Local Mode)
+# Connecting a local application to a K8s cluster (Local Mode)
 
 ## Glossary
 
@@ -11,7 +11,7 @@ order: 4
 * **Target Kubernetes workload** or **target k8s workload** -
   a [Kubernetes Workload](https://kubernetes.io/docs/concepts/workloads/) deployed in a k8s cluster on the basis of the
   Garden service config.
-* **Local service** - a locally deployed and running application which is supposed to replace a target Garden service
+* **Local app** - a locally deployed and running application which is supposed to replace a target Garden service
   configured in _local mode_.
 
 ## Development status
@@ -25,7 +25,7 @@ stability and usability. It means that:
 ## Introduction
 
 By configuring a Garden service in _local mode_, one can replace a target Kubernetes workload in a k8s cluster with a
-local service (i.e. an application running on your local machine).
+local app (i.e. an application running on your local machine).
 
 _Local mode_ feature is only supported by certain action types and providers.
 
@@ -96,16 +96,16 @@ cluster in the deployment phase:
    on **[openssh-server](https://docs.linuxserver.io/images/docker-openssh-server)**. This container exposes its SSH
    port and the same HTTP ports as the target Garden service.
 2. The number of replicas of the target k8s workload is always set to `1`.
-3. The local service is started by Garden if `localMode.command` configuration option is specified in the
-   service's `garden.yml`. Otherwise, the local service should be started manually.
+3. The local app is started by Garden if `localMode.command` configuration option is specified in the
+   service's `garden.yml`. Otherwise, the local app should be started manually.
 4. The SSH port forwarding from a randomly assigned local port to the proxy container SSH port is initialized by means
    of `kubectl port-forward` command.
 5. The reverse port forwarding (on top of the previous SSH port forwarding) between the remote proxy container's HTTP
    port and the local application HTTP port is established by means of `ssh` command.
 
-This connection schema allows to route the target k8s workload's traffic to the local service and back over the proxy
+This connection schema allows to route the target k8s workload's traffic to the local app and back over the proxy
 container deployed in the k8s cluster. The actual service is running on a local machine, and the workload k8s service is
-replaced by the proxy container which connects the local service with the k8s cluster via port-forwarding.
+replaced by the proxy container which connects the local app with the k8s cluster via port-forwarding.
 
 In order to maintain secure connections, Garden generates a new SSH key pair for each service running in _local mode_ on
 every CLI execution.
@@ -123,15 +123,15 @@ services.
 The startup, readiness and liveness probes are disabled for all services running in local mode. This has been done
 because of some technical reasons.
 
-The lifecycle of a local service can be completely controlled by a user. Thus, the health checks may be unwanted and
+The lifecycle of a local app can be completely controlled by a user. Thus, the health checks may be unwanted and
 obstructing.
 
-The k8s cluster readiness checks are applied to a proxy container which sends the traffic to the local service.
-When a readiness probe happens, the target local service and the relevant port forward are not ready yet. Thus, the
+The k8s cluster readiness checks are applied to a proxy container which sends the traffic to the local app.
+When a readiness probe happens, the target local app and the relevant port forward are not ready yet. Thus, the
 readiness probe can cause the failure of the _local mode_ startup.
 
 The liveness checks can cause unnecessary re-deployment of the proxy container in the target cluster.
-Also, those checks create some extra traffic to the local service. That might be noisy and unnecessary if the local
+Also, those checks create some extra traffic to the local app. That might be noisy and unnecessary if the local
 service is running in the debugger.
 
 ### Configuring local mode for `container` action type
