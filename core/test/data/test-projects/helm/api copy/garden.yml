@@ -16,4 +16,4 @@ values:
   ingress:
     enabled: true
     paths: [/]
-    hosts: [api-module.local.app.garden]
+    hosts: [api-module.local.demo.garden]
