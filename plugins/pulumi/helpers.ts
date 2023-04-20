@@ -33,6 +33,7 @@ export interface PulumiParams {
 
 export interface PulumiConfig {
   config: DeepPrimitiveMap
+  backend: { url: string }
 }
 
 interface PulumiManifest {
@@ -236,7 +237,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     stackConfigFileExists = true
   } catch (err) {
     log.debug(`No pulumi stack configuration file for module ${module.name} found at ${stackConfigPath}`)
-    stackConfig = { config: {} }
+    stackConfig = { config: {}, backend: { url: "" } }
     stackConfigFileExists = false
   }
   const pulumiVars = module.spec.pulumiVariables
@@ -268,7 +269,9 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
-
+  // if (params.module.backendURL) {
+  //   stackConfig.backend.url = !params.module.backendURL ? params.provider.backendURL : params.module.backendURL
+  // }
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
       stack config file exists but no variables are defined in pulumiVars or pulumiVarfiles - skip writing stack config

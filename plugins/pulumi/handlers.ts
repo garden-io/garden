@@ -106,6 +106,7 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
   const pulumiParams = { log, ctx, provider, module: pulumiModule }
   const { autoApply, deployFromPreview } = pulumiModule.spec
   const serviceVersion = service.version
+  const { cacheStatus } = pulumiModule.spec
   await selectStack(pulumiParams)
 
   if (!autoApply && !deployFromPreview) {
@@ -148,8 +149,9 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
     ctx,
     errorPrefix: "Error when applying pulumi stack",
   })
-  await setStackVersionTag({ ...pulumiParams, serviceVersion })
-
+  if (cacheStatus) {
+    await setStackVersionTag({ ...pulumiParams, serviceVersion })
+  }
   return {
     state: "ready",
     version: serviceVersion,
