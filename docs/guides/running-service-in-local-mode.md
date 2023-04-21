@@ -1,16 +1,16 @@
 ---
-title: Connecting a local application to a K8s cluster (Local Mode)
+title: Connecting a local application to a Kubernetes cluster (Local Mode)
 order: 4
 ---
 
-# Connecting a local application to a K8s cluster (Local Mode)
+# Connecting a local application to a Kubernetes cluster (Local Mode)
 
 ## Glossary
 
 * **Local app** - a locally running application that can be used instead of a `Deploy` action with a _local mode_
-configuration.
-* **Target k8s workload** -
-  a [Kubernetes Workload](https://kubernetes.io/docs/concepts/workloads/) produced from a `Deploy` action with a 
+  configuration.
+* **Target kubernetes workload** -
+  a [Kubernetes Workload](https://kubernetes.io/docs/concepts/workloads/) produced from a `Deploy` action with a
   _local mode_ configuration that's deployed to the target kubernetes cluster.
 
 ## Development status
@@ -23,7 +23,7 @@ stability and usability. It means that:
 
 ## Introduction
 
-A local application can be used instead of a kubernetes workload by adding a _local mode_ configuration 
+A local application can be used instead of a kubernetes workload by adding a _local mode_ configuration
 to the `Deploy action`
 
 _Local mode_ feature is only supported by certain action types and providers.
@@ -55,10 +55,10 @@ There is a number of functional limitations in the current version.
 ### Reachability of the underlying workloads
 
 The best matching use-case for _local mode_ is to locally run an "isolated" application, i.e. an application that does
-not make any calls to other resources in the k8s cluster (i.e. databases or other applications).
+not make any calls to other resources in the kubernetes cluster (i.e. databases or other applications).
 
-If your application makes HTTP calls to some other k8s resources using k8s DNS names, then such calls will fail because
-the local DNS configuration is not aware about any DNS names configured in the k8s cluster.
+If your application makes HTTP calls to some other kubernetes resources using kubernetes DNS names, then such calls will
+fail because the local DNS configuration is not aware about any DNS names configured in the kubernetes cluster.
 
 A concrete example can be found in the [`local-mode project`](../../examples/local-mode).
 
@@ -79,30 +79,31 @@ or [`helm`](../reference/action-types/Deploy/helm.md) `Deploy` action.
 
 ### Cluster state on exit
 
-The _local mode_ leaves the proxy container deployed in the target k8s cluster after exit. The affected `Deploy`s must
-be re-deployed manually by using `garden deploy`.
+The _local mode_ leaves the proxy container deployed in the target kubernetes cluster after exit. The affected `Deploy`s
+must be re-deployed manually by using `garden deploy`.
 
 ## How it works
 
-Usually, a Garden `Deploy` action _declares_ a configuration and a deployment policy of a k8s workload.
+Usually, a Garden `Deploy` action _declares_ a configuration and a deployment policy of a kubernetes workload.
 A typical deployment flow looks like this:
 
 1. build a container image if necessary
 2. configure a docker container for the image
-3. prepare k8s workloads to be deployed
-4. deploy the configured k8s workloads to the target k8s cluster
+3. prepare kubernetes workloads to be deployed
+4. deploy the configured kubernetes workloads to the target kubernetes cluster
 
 The _local mode_ changes the usual deployment flow by changing the manifest configuration step (item 3 from the list
 above) and the deployment step (item 4).
 
 ### Changes in workload configuration
 
-_Local mode_ does the following modifications in the target k8s workload configuration before the actual deployment:
+_Local mode_ does the following modifications in the target kubernetes workload configuration before the actual
+deployment:
 
-1. Replaces target k8s workload's container with a special proxy container that is based
+1. Replaces target kubernetes workload's container with a special proxy container that is based
    on **[openssh-server](https://docs.linuxserver.io/images/docker-openssh-server)**. This container exposes its `SSH`
    port and the same `HTTP` ports as the `Deploy` action configured in _local mode_.
-2. Sets the number of replicas of the target k8s workload is always set to `1`.
+2. Sets the number of replicas of the target kubernetes workload is always set to `1`.
 3. Disables the basic health-checks (startup, readiness and liveness probes). See the section below for details.
 
 #### Health-checks
@@ -113,7 +114,7 @@ done because of some technical reasons.
 The lifecycle of a local app can be completely controlled by a user. Thus, the health checks may be unwanted and
 obstructing.
 
-The k8s cluster readiness checks are applied to a proxy container which sends the traffic to the local app.
+The kubernetes cluster readiness checks are applied to a proxy container which sends the traffic to the local app.
 When a readiness probe happens, the target local app and the relevant port forward are not ready yet. Thus, the
 readiness probe can cause the failure of the _local mode_ startup.
 
@@ -123,7 +124,7 @@ running in the debugger.
 
 ### Changes in deployment execution
 
-Once the k8s workloads are configured, _local mode_ executes the deployment step in a specific way:
+Once the kubernetes workloads are configured, _local mode_ executes the deployment step in a specific way:
 
 1. The local app is started by Garden if `localMode.command` field is specified in the `Deploy` action configuration.
    Otherwise, the local app should be started manually.
@@ -132,10 +133,10 @@ Once the k8s workloads are configured, _local mode_ executes the deployment step
 3. The reverse port forwarding (on top of the previous SSH port forwarding) between the remote proxy container's HTTP
    port and the local application HTTP port is established by means of `ssh` command.
 
-As a result, the original target k8s workload is replaced by a workload that runs a proxy container, let's call it
-a proxy-workload. The proxy-workload is connected with the local app via the 2-layered port-forwarding described above.
-This connection schema allows to route the target k8s workload's traffic to the local app and back. For the rest
-entities in the k8s cluster, the local app acts as an original kubernetes workload.
+As a result, the original target kubernetes workload is replaced by a workload that runs a proxy container, let's call
+it a proxy-workload. The proxy-workload is connected with the local app via the 2-layered port-forwarding described
+above. This connection schema allows to route the target kubernetes workload's traffic to the local app and back. For
+the rest entities in the kubernetes cluster, the local app acts as an original kubernetes workload.
 
 In order to maintain secure connections, Garden generates a new SSH key pair for each `Deploy` action running in _local
 mode_ on **every** CLI execution.
@@ -167,7 +168,7 @@ spec:
     ports:
       - local: 8090 # The port of the local app, will be used for port-forward setup.
         remote: 8080 # The port of the remote app, will be used for port-forward setup.
-    # Starts the local app which will replace the target one in the k8s cluster.
+    # Starts the local app which will replace the target one in the kubernetes cluster.
     # Optional. If not specified, then the local app should be started manually.
     command: [ npm, run, serve ]
     # Defines how to restart the local app on failure/exit.
