@@ -21,6 +21,9 @@ import {
   getStackStatusFromTag,
   selectStack,
   setStackVersionTag,
+  getLoggedInBackendUrl,
+  getBackendUrlFromConfig,
+  switchBackend
 } from "./helpers"
 import { PulumiModule, PulumiProvider } from "./config"
 import { ServiceStatus } from "@garden-io/core/build/src/types/service"
@@ -107,7 +110,6 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
   const { autoApply, deployFromPreview } = pulumiModule.spec
   const serviceVersion = service.version
   const { cacheStatus } = pulumiModule.spec
-  await selectStack(pulumiParams)
 
   if (!autoApply && !deployFromPreview) {
     log.info(`${pulumiModule.name} has autoApply = false, but no planPath was provided. Skipping deploy.`)
@@ -118,11 +120,24 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
       detail: {},
     }
   }
+  console.log("from handler before loginURL")
 
+  // haxxy and prone to break on changes to pulumi credentials.json schema
+  // is there a better way to get the backend url or cache it to garden?
+  const loggedInBackendUrl = await getLoggedInBackendUrl(pulumiParams)
+  console.log("from handler")
+  console.log(loggedInBackendUrl)
+  const backendURLFromConfig = getBackendUrlFromConfig(provider, pulumiModule)
+  if (backendURLFromConfig !== loggedInBackendUrl && backendURLFromConfig !== null) {
+    await switchBackend(pulumiParams, backendURLFromConfig)
+  } else {
+    await switchBackend(pulumiParams, "")
+  }
   const root = getModuleStackRoot(pulumiModule)
   const env = defaultPulumiEnv
 
   let planPath: string | null
+  // TODO: does the plan include the backend config?
   if (deployFromPreview) {
     // A pulumi plan for this module has already been generated, so we use that.
     planPath = getPlanPath(ctx, pulumiModule)
@@ -131,6 +146,7 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
     await applyConfig(pulumiParams)
     planPath = null
   }
+  await selectStack(pulumiParams)
   log.verbose(`Applying pulumi stack...`)
   const upArgs = [
     "up",

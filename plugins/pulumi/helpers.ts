@@ -269,9 +269,9 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
-  const backendUrl = getBackendUrl(params.provider, params.module)
-  if (backendUrl !== null) {
-    stackConfig.backend = { url: backendUrl }
+  const configBackendUrl = getBackendUrlFromConfig(params.provider, params.module)
+  if (configBackendUrl !== null) {
+    stackConfig.backend = { url: configBackendUrl }
   }
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
@@ -425,12 +425,37 @@ function getOrgName(provider: PulumiProvider, module: PulumiModule): string | nu
   }
 }
 
-function getBackendUrl(provider: PulumiProvider, module: PulumiModule): string | null {
+export async function getLoggedInBackendUrl({ module, ctx, provider, log }: PulumiParams): Promise<string | null> {
+  try {
+    const res = await pulumi(ctx, provider).exec({
+      log,
+      args: [ "whoami", "--json", "--non-interactive" ],
+      cwd: getModuleStackRoot(module),
+      env: defaultPulumiEnv,
+    })
+    console.log("from helper")
+    console.log(res)
+    return JSON.parse(res.stdout).url
+  } catch (err) {
+    return null
+  }
+}
+
+export function getBackendUrlFromConfig(provider: PulumiProvider, module: PulumiModule): string | null {
   if (module.spec.backendURL || module.spec.backendURL === null) {
     return module.spec.backendURL
   } else {
     return provider.config.backendURL || null
   }
+}
+
+export async function switchBackend({ module, ctx, provider, log }: PulumiParams, backendURL: string): Promise<void> {
+  const res = await pulumi(ctx, provider).exec({
+    log,
+    args: [ "login", backendURL ],
+    cwd: getModuleStackRoot(module),
+    env: defaultPulumiEnv,
+  })
 }
 
 export function getPlanPath(ctx: PluginContext, module: PulumiModule): string {
