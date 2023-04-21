@@ -1,4 +1,23 @@
 
+<a name="0.12.54"></a>
+## [0.12.54](https://github.com/garden-io/garden/compare/0.12.53...0.12.54) (2023-04-19)
+
+### Bug Fixes
+
+* use the correct secret in pullFromExternalRegistry in kaniko builds ([#4094](https://github.com/garden-io/garden/issues/4094)) ([9b81a288a](https://github.com/garden-io/garden/commit/9b81a288a))
+* **docs:** move pvc shared volumes info to the right page ([1fdb7e087](https://github.com/garden-io/garden/commit/1fdb7e087))
+
+### Features
+
+* support pre-release versions in `self-update` command ([#4022](https://github.com/garden-io/garden/issues/4022)) ([06e9e56a1](https://github.com/garden-io/garden/commit/06e9e56a1))
+
+### Improvements
+
+* more granular version control in `self-update` command ([#3999](https://github.com/garden-io/garden/issues/3999)) ([9607b9219](https://github.com/garden-io/garden/commit/9607b9219))
+* add additional info to error message when sh is not found ([#3980](https://github.com/garden-io/garden/issues/3980)) ([69d11b1fb](https://github.com/garden-io/garden/commit/69d11b1fb))
+* **k8s:** catch internal etcdserver throttling error from API ([95d2108d1](https://github.com/garden-io/garden/commit/95d2108d1))
+* **logger:** various fixes to make basic logger render nicer ([96f6721fe](https://github.com/garden-io/garden/commit/96f6721fe))
+
 <a name="0.12.53"></a>
 ## [0.12.53](https://github.com/garden-io/garden/compare/0.12.52...0.12.53) (2023-03-17)
 
