@@ -7,8 +7,8 @@ order: 4
 
 ## Glossary
 
-* **Local app** - a locally deployed and running application which is supposed to replace a `Deploy` action configured
-  in _local mode_.
+* **Local app** - a locally running application that can be used instead of a `Deploy` action with a _local mode_
+configuration.
 * **Target k8s workload** -
   a [Kubernetes Workload](https://kubernetes.io/docs/concepts/workloads/) produced from a `Deploy` action configured in
   _local mode_ and deployed in a target k8s cluster.
