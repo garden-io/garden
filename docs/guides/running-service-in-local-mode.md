@@ -23,8 +23,8 @@ stability and usability. It means that:
 
 ## Introduction
 
-By configuring a `Deploy` action in _local mode_, one can "replace" a target k8s workload in a k8s cluster with a
-local app.
+A local application can be used instead of a kubernetes workload by adding a _local mode_ configuration 
+to the `Deploy action`
 
 _Local mode_ feature is only supported by certain action types and providers.
 
