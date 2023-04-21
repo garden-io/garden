@@ -181,23 +181,16 @@ garden logs my-deploy
 garden logs my-deploy --follow  # or -f for short
 ```
 
-[//]: # (TODO: update `garden dev` usage guide)
 ## garden dev
 
-The `garden dev` command builds, deploys and tests all parts of your project, and also runs any tasks that are listed as dependencies for your services and tests. It then waits for any code changes, and automatically re-builds, re-deploys and re-runs any parts affected by your code changes.
+The `garden dev` command runs the Garden interactive development console.
+In that console you can execute the Garden commands in interactive mode, like `build`, `deploy`, `run`, `test` and others.
+To see the full list of available commands, please execute `help` command in the development console.
 
-This is handy for small projects, and when your code changes don't tend to trigger a lot of heavy operations, but may be too "busy" to run for large projects or when you're making big changes to your code.
-
-### Running garden dev
+### Running interactive development console
 
 ```sh
 garden dev
-```
-
-### Running garden dev but skipping tests
-
-```sh
-garden dev --skip-tests
 ```
 
 [//]: # (TODO: revisit th dashboard guide, should it be removed?)
