@@ -20,7 +20,6 @@ import { Log } from "../logger/log-entry"
 import { CommandLine } from "../cli/command-line"
 import { Autocompleter, AutocompleteSuggestion } from "../cli/autocomplete"
 import chalk from "chalk"
-import { RuntimeError } from "../exceptions"
 import { isMatch } from "micromatch"
 
 export const defaultServerPort = 9700
