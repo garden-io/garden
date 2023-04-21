@@ -275,14 +275,6 @@ Here we initialize the cluster configured for the `dev` environment:
 garden plugins kubernetes cluster-init --env=dev
 ```
 
-### Cleaning up the in-cluster builder and registry
-
-When you use in-cluster building, the image caches build up over time and need to be cleaned up periodically. Use this command for that:
-
-```sh
-garden plugins kubernetes cleanup-cluster-registry --env=dev
-```
-
 ### Planning and applying Terraform stacks
 
 The `terraform` provider includes several commands that facilitate interaction with the Terraform stacks in your project. See the [Terraform guide](../terraform-plugin/README.md#planning-and-applying) for more information.
