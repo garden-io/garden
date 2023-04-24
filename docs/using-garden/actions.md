@@ -194,8 +194,8 @@ There will still be some specific semantics for different types of dependencies,
 
 ## Examples
 
-You can learn more about different action types in
-the [action type reference docs](../reference/action-types/README.md).
+In this section we consider a few very basic examples with configuration code-snippets.
+See more examples in the [examples on our GitHut repository](../../examples).
 
 ### Container Build action
 
@@ -265,6 +265,8 @@ image: postgres:11.7-alpine
 Disabling a module disables all services, tasks and tests defined in the module.
 Note, however, that if a disabled module is referenced as a build dependency of another module, the module will still be
 built when needed, to ensure the dependant module can be built as expected.
+
+See the [disabled-config example](../../examples/disabled-configs) for more details.
 
 ## Further Reading
 
