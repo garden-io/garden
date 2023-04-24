@@ -8,12 +8,13 @@
 
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { defaultPulumiEnv, pulumi } from "./cli"
+import { pulumi } from "./cli"
 import { ModuleActionHandlers, PluginActionHandlers, ServiceActionHandlers } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import {
   applyConfig,
   clearStackVersionTag,
+  ensureEnv,
   getModuleStackRoot,
   getPlanPath,
   getStackConfigPath,
@@ -21,9 +22,6 @@ import {
   getStackStatusFromTag,
   selectStack,
   setStackVersionTag,
-  getLoggedInBackendUrl,
-  getBackendUrlFromConfig,
-  switchBackend
 } from "./helpers"
 import { PulumiModule, PulumiProvider } from "./config"
 import { ServiceStatus } from "@garden-io/core/build/src/types/service"
@@ -120,21 +118,8 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
       detail: {},
     }
   }
-  console.log("from handler before loginURL")
-
-  // haxxy and prone to break on changes to pulumi credentials.json schema
-  // is there a better way to get the backend url or cache it to garden?
-  const loggedInBackendUrl = await getLoggedInBackendUrl(pulumiParams)
-  console.log("from handler")
-  console.log(loggedInBackendUrl)
-  const backendURLFromConfig = getBackendUrlFromConfig(provider, pulumiModule)
-  if (backendURLFromConfig !== loggedInBackendUrl && backendURLFromConfig !== null) {
-    await switchBackend(pulumiParams, backendURLFromConfig)
-  } else {
-    await switchBackend(pulumiParams, "")
-  }
   const root = getModuleStackRoot(pulumiModule)
-  const env = defaultPulumiEnv
+  const env = ensureEnv(pulumiParams)
 
   let planPath: string | null
   // TODO: does the plan include the backend config?
@@ -190,7 +175,7 @@ export const deletePulumiService: ServiceActionHandlers["deleteService"] = async
   const provider = ctx.provider as PulumiProvider
   const pulumiParams = { log, ctx, provider, module: pulumiModule }
   const root = getModuleStackRoot(pulumiModule)
-  const env = defaultPulumiEnv
+  const env = ensureEnv(pulumiParams)
   await selectStack(pulumiParams)
 
   const cli = pulumi(ctx, provider)

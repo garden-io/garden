@@ -283,7 +283,6 @@ class PulumiPluginCommandTask extends PluginTask {
       status: "active",
     })
     try {
-      console.log("from process")
       await selectStack(this.pulumiParams)
       // We need to make sure that the template resolution context is specific to this service's module.
       const ctxForService = await makePluginContextForService({
