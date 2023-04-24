@@ -193,21 +193,6 @@ To see the full list of available commands, please execute `help` command in the
 garden dev
 ```
 
-[//]: # (TODO: revisit th dashboard guide, should it be removed?)
-## The dashboard
-
-The [garden dev](#garden-dev) command runs a web dashboard that you can open in a browser.
-
-The CLI will print a URL which you can copy or click (or Cmd/Ctrl-click, depending on your terminal). The dashboard stays connected while the command is running.
-
-![The Stack Graph](../stack-graph-screenshot.png "The Stack Graph, shown in the Garden dashboard")
-
-The dashboard gives you:
-
-- An overview of all the parts of your project, including links to any configured _ingresses_ on your `Deploy`s.
-- A visualization of your Stack Graph, where you can see the status of each node, and click them to get the most recent status or logs.
-- A log viewer, which you can use to fetch the latest logs for your `Deploy`s.
-
 ## Sync mode
 
 For rapid iteration on a running `Deploy` action, you can use a feature called _sync mode_.
