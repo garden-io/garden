@@ -1,4 +1,15 @@
 
+<a name="0.12.55"></a>
+## [0.12.55](https://github.com/garden-io/garden/compare/0.12.54...0.12.55) (2023-04-24)
+
+### Features
+
+* retry k8s api calls on ECONNREFUSED and 500 errors ([64cdeabdb](https://github.com/garden-io/garden/commit/64cdeabdb))
+
+### Bug Fixes
+
+* revert: remove noProject flag from custom commands ([016c5eab9](https://github.com/garden-io/garden/commit/016c5eab9))
+
 <a name="0.12.54"></a>
 ## [0.12.54](https://github.com/garden-io/garden/compare/0.12.53...0.12.54) (2023-04-19)
 
