@@ -4,40 +4,41 @@ order: 1
 ---
 
 {% hint style="info" %}
-The `container` module type is an abstraction that can be used by multiple plugins. [See here](../../other-plugins/container.md) for an in-depth guide on the module type itself. Continue reading for how to deploy it with the Kubernetes plugin.
+The `container` action type is an abstraction that can be used with multiple plugins. [See here](../../other-plugins/container.md) for an in-depth guide on the action type itself. Continue reading for more information on the container deploy action type that can be used with the Kubernetes plugin.
 {% endhint %}
 
-The Kubernetes plugins can deploy `container` modules that define one or more `services`.
+The Kubernetes plugins can deploy `container` deploy actions.
 
-Garden will take the simplified `container` service specification and convert it to the corresponding Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
+Garden will take the simplified `container` deploy specification and convert it to Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
 Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/0.12.51/examples/demo-project):
 
 ```yaml
-kind: Module
+kind: Deploy
 name: frontend
-description: Frontend service container
 type: container
-services:
-  - name: frontend
-    ports:
-      - name: http
-        containerPort: 8080
-    healthCheck:
-      httpGet:
-        path: /hello-frontend
-        port: http
-    ingresses:
-      - path: /hello-frontend
-        port: http
-      - path: /call-backend
-        port: http
-    dependencies:
-      - backend
+
+build: frontend
+dependencies:
+  - deploy.backend
+
+spec:
+  ports:
+    - name: http
+      containerPort: 8080
+  healthCheck:
+    httpGet:
+      path: /hello-frontend
+      port: http
+  ingresses:
+    - path: /hello-frontend
+      port: http
+    - path: /call-backend
+      port: http
 ...
 ```
 
-This, first of all, tells Garden that it should deploy the built `frontend` container as a service with the same name. We also configure a health check, a couple of ingress endpoints, and specify that this service depends on the `backend` service. There is a number of other options, which you can find in the `container` module [reference](../../reference/module-types/container.md#services).
+The `build` field is used to specify a build action that builds the contianer that's used for the deploy. We also configure a health check, a couple of ingress endpoints, and specify that this deploy depends on the `backend` deploy. There is a number of other options, which you can find in the `container` action [reference](../../reference/action-types/Deploy/container.md).
 
 If you need to use advanced (or otherwise very specific) features of the underlying platform, you may need to use more platform-specific module types (e.g. `kubernetes` or `helm`). The `container` module type is not intended to capture all those features.
 
@@ -46,40 +47,34 @@ If you need to use advanced (or otherwise very specific) features of the underly
 Container services can specify environment variables, using the `services[].env` field:
 
 ```yaml
-kind: Module
+kind: Deploy
+name: frontend
 type: container
-name: my-container
-services:
-  - name: my-container-service
-    ...
-    env:
-      MY_ENV_VAR: foo
-      MY_TEMPLATED_ENV_VAR: ${var.some-project-variable}
-    ...
+spec:
+  env:
+    MY_ENV_VAR: foo
+    MY_TEMPLATED_ENV_VAR: ${var.some-project-variable}
 ...
 ```
 
-`env` is a simple mapping of "name: value". Above, we see a simple example with a string value, but you'll also commonly use [template strings](../../using-garden/variables-and-templating.md#template-string-basics) to interpolate variables to be consumed by the container service.
+`env` is a simple mapping of "name: value". [Template strings](../../using-garden/variables-and-templating.md#template-string-basics) can also be used to interpolate values.
 
 ### Secrets
 
-As of Garden v0.10.1 you can reference secrets in environment variables. For Kubernetes, this translates to `valueFrom.secretKeyRef` fields in the Pod specs, which direct Kubernetes to mount values from `Secret` resources that you have created in the application namespace, as environment variables in the Pod.
+You can reference secrets in environment variables. For Kubernetes, this translates to `valueFrom.secretKeyRef` fields in the Pod specs, which direct Kubernetes to mount values from `Secret` resources that you have created in the application namespace, as environment variables in the Pod.
 
 For example:
 
 ```yaml
-kind: Module
+kind: Deploy
+name: frontend
 type: container
-name: my-container
-services:
-  - name: my-container-service
-    ...
-    env:
-      MY_SECRET_VAR:
-        secretRef:
-          name: my-secret
-          key: some-key-in-secret
-    ...
+spec:
+  env:
+    MY_SECRET_VAR:
+      secretRef:
+        name: my-secret
+        key: some-key-in-secret
 ...
 ```
 
