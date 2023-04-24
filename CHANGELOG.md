@@ -1,4 +1,11 @@
 
+<a name="0.12.55-0"></a>
+## [0.12.55-0](https://github.com/garden-io/garden/compare/0.12.54...0.12.55-0) (2023-04-24)
+
+### Features
+
+* retry k8s api calls on ECONNREFUSED and 500 errors ([64cdeabdb](https://github.com/garden-io/garden/commit/64cdeabdb))
+
 <a name="0.12.54"></a>
 ## [0.12.54](https://github.com/garden-io/garden/compare/0.12.53...0.12.54) (2023-04-19)
 
