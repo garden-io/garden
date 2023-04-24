@@ -40,7 +40,7 @@ export class UsersDeleteCommand extends Command<Args> {
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
-    const usersToDelete = (args.ids || []).map((id) => parseInt(id, 10))
+    const usersToDelete = args.ids || []
     if (usersToDelete.length === 0) {
       throw new CommandError(`No user IDs provided.`, {
         args,
