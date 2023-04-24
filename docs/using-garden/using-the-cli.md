@@ -64,12 +64,6 @@ See the [Code synchronization guide](../guides/code-synchronization.md) for more
 garden deploy my-service --sync=*
 ```
 
-### Running a single ad-hoc service and attaching
-
-```sh
-garden run service my-service --interactive  # or -i for short
-```
-
 ### Executing a command in a running service container
 
 ```sh
