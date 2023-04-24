@@ -1,5 +1,5 @@
 kind: Deploy
-description: Helm chart for the worker container
+description: Helm deploy for the worker container
 type: helm
 name: worker-deploy
 dependencies: [build.worker-image]
