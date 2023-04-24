@@ -60,7 +60,6 @@ import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 import { LogLevel } from "../../logger/logger"
 import { safeDumpYaml } from "../../util/serialization"
-import pRetry = require("p-retry")
 
 interface ApiGroupMap {
   [groupVersion: string]: V1APIGroup
@@ -782,47 +781,23 @@ export class KubeApi {
 
       const execWithRetry = async () => {
         const execHandler = new Exec(this.config)
-
         const description = "Pod exec"
 
-        let retryLog: Log | undefined
-
         try {
-          return await pRetry(
-            () =>
-              execHandler.exec(
-                namespace,
-                podName,
-                containerName,
-                command,
-                _stdout,
-                _stderr,
-                stdin || null,
-                tty,
-                (status) => {
-                  finish(false, getExecExitCode(status))
-                }
-              ),
-            {
-              retries: 5,
-              minTimeout: 1000,
-              onFailedAttempt(error) {
-                if (error.cause instanceof HttpError && error.cause.statusCode) {
-                  // only retry if there is no risk that the command will be executed twice.
-                  const recoverableStatusCodes = [500, 502, 503, 429]
-                  if (recoverableStatusCodes.includes(error.cause.statusCode)) {
-                    retryLog = retryLog || log.debug("")
-                    retryLog.error(deline`
-                      ${description} failed with error ${error.cause.message}.
-                      HTTP status code ${error.cause.statusCode} is recoverable:
-                      Retrying after backoff (${error.attemptNumber}/${error.retriesLeft})`)
-                    return
-                  }
-                }
-
-                throw error
-              },
-            }
+          return await requestWithRetry(log, description, () =>
+            execHandler.exec(
+              namespace,
+              podName,
+              containerName,
+              command,
+              _stdout,
+              _stderr,
+              stdin || null,
+              tty,
+              (status) => {
+                finish(false, getExecExitCode(status))
+              }
+            )
           )
         } catch (err) {
           throw wrapError(description, err)
@@ -1058,15 +1033,19 @@ async function requestWithRetry<R>(
 function shouldRetry(err: any): boolean {
   const msg = err.message || ""
   let code: number | undefined = undefined
-  if (err instanceof requestErrors.StatusCodeError || err instanceof KubernetesError) {
+
+  if (err instanceof requestErrors.StatusCodeError || err instanceof KubernetesError || err instanceof HttpError) {
     code = err.statusCode
   }
+
   return (code && statusCodesForRetry.includes(code)) || !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
 }
 
 const statusCodesForRetry: number[] = [
   httpStatusCodes.REQUEST_TIMEOUT,
   httpStatusCodes.TOO_MANY_REQUESTS,
+
+  httpStatusCodes.INTERNAL_SERVER_ERROR,
   httpStatusCodes.BAD_GATEWAY,
   httpStatusCodes.SERVICE_UNAVAILABLE,
   httpStatusCodes.GATEWAY_TIMEOUT,
@@ -1081,6 +1060,11 @@ const errorMessageRegexesForRetry = [
   /ETIMEDOUT/,
   /ENOTFOUND/,
   /EAI_AGAIN/,
+  // This usually isn't retryable
+  // However on github actions there seems to be flakiness
+  // And connections get refused temporarily only
+  // So we retry those as well
+  /ECONNREFUSED/,
   // This can happen if etcd is overloaded
   // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
   /too many requests/,
