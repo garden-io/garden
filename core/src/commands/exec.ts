@@ -34,6 +34,7 @@ const execArgs = {
 const execOpts = {
   interactive: new BooleanParameter({
     help: "Set to false to skip interactive mode and just output the command result",
+    aliases: ["i"],
     defaultValue: false,
     cliDefault: true,
     cliOnly: true,
