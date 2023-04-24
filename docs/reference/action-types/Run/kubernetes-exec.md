@@ -156,35 +156,8 @@ kind:
 timeout:
 
 spec:
-  # Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your
-  # project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version
-  # changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
-  cacheResult: true
-
-  # The command/entrypoint used to run inside the container.
+  # The command to run inside the kubernetes workload.
   command:
-
-  # The arguments to pass to the command/entypoint used for execution.
-  args:
-
-  # Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with
-  # `GARDEN`) and values must be primitives or references to secrets.
-  env: {}
-
-  # Specify artifacts to copy out of the container after the run. The artifacts are stored locally under
-  # the `.garden/artifacts` directory.
-  artifacts:
-    - # A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-      source:
-
-      # A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at
-      # `.garden/artifacts`.
-      target: .
-
-  # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
-  # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
-  # characters.
-  namespace:
 
   # Specify a Kubernetes resource to derive the Pod spec from for the Run.
   #
@@ -233,6 +206,11 @@ spec:
     # The name of a container in the target. Specify this if the target contains more than one container and the main
     # container is not the first container in the spec.
     containerName:
+
+  # A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters,
+  # numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63
+  # characters.
+  namespace:
 ```
 
 ## Configuration Keys
@@ -468,21 +446,11 @@ Set a timeout for the run to complete, in seconds.
 | -------- | -------- |
 | `object` | No       |
 
-### `spec.cacheResult`
-
-[spec](#spec) > cacheResult
-
-Set to false if you don't want the task's result to be cached. Use this if the task needs to be run any time your project (or one or more of the task's dependants) is deployed. Otherwise the task is only re-run when its version changes (i.e. the module or one of its dependencies is modified), or when you run `garden run`.
-
-| Type      | Default | Required |
-| --------- | ------- | -------- |
-| `boolean` | `true`  | No       |
-
 ### `spec.command[]`
 
 [spec](#spec) > command
 
-The command/entrypoint used to run inside the container.
+The command to run inside the kubernetes workload.
 
 | Type            | Required |
 | --------------- | -------- |
@@ -494,112 +462,10 @@ Example:
 spec:
   ...
   command:
-    - /bin/sh
-    - '-c'
+    - npm
+    - run
+    - 'test:integ'
 ```
-
-### `spec.args[]`
-
-[spec](#spec) > args
-
-The arguments to pass to the command/entypoint used for execution.
-
-| Type            | Required |
-| --------------- | -------- |
-| `array[string]` | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  args:
-    - rake
-    - 'db:migrate'
-```
-
-### `spec.env`
-
-[spec](#spec) > env
-
-Key/value map of environment variables. Keys must be valid POSIX environment variable names (must not start with `GARDEN`) and values must be primitives or references to secrets.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `object` | `{}`    | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  env:
-      - MY_VAR: some-value
-        MY_SECRET_VAR:
-          secretRef:
-            name: my-secret
-            key: some-key
-      - {}
-```
-
-### `spec.artifacts[]`
-
-[spec](#spec) > artifacts
-
-Specify artifacts to copy out of the container after the run. The artifacts are stored locally under
-the `.garden/artifacts` directory.
-
-| Type            | Default | Required |
-| --------------- | ------- | -------- |
-| `array[object]` | `[]`    | No       |
-
-### `spec.artifacts[].source`
-
-[spec](#spec) > [artifacts](#specartifacts) > source
-
-A POSIX-style path or glob to copy. Must be an absolute path. May contain wildcards.
-
-| Type        | Required |
-| ----------- | -------- |
-| `posixPath` | Yes      |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - source: "/output/**/*"
-```
-
-### `spec.artifacts[].target`
-
-[spec](#spec) > [artifacts](#specartifacts) > target
-
-A POSIX-style path to copy the artifacts to, relative to the project artifacts directory at `.garden/artifacts`.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-spec:
-  ...
-  artifacts:
-    - target: "outputs/foo/"
-```
-
-### `spec.namespace`
-
-[spec](#spec) > namespace
-
-A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
 
 ### `spec.resource`
 
@@ -678,6 +544,16 @@ A map of string key/value labels to match on any Pods in the namespace. When spe
 [spec](#spec) > [resource](#specresource) > containerName
 
 The name of a container in the target. Specify this if the target contains more than one container and the main container is not the first container in the spec.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `spec.namespace`
+
+[spec](#spec) > namespace
+
+A valid Kubernetes namespace name. Must be a valid RFC1035/RFC1123 (DNS) label (may contain lowercase letters, numbers and dashes, must start with a letter, and cannot end with a dash) and must not be longer than 63 characters.
 
 | Type     | Required |
 | -------- | -------- |

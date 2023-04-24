@@ -12,7 +12,7 @@ import { runResultToActionState } from "../../../actions/base"
 import { RunAction, RunActionConfig } from "../../../actions/run"
 import { TestAction, TestActionConfig } from "../../../actions/test"
 import { Resolved } from "../../../actions/types"
-import { createSchema } from "../../../config/common"
+import { createSchema, joi } from "../../../config/common"
 import { ConfigurationError } from "../../../exceptions"
 import { Log } from "../../../logger/log-entry"
 import { PluginContext } from "../../../plugin-context"
@@ -21,10 +21,9 @@ import { RunResult } from "../../../plugin/base"
 import { dedent, deline } from "../../../util/string"
 import { KubeApi } from "../api"
 import {
-  kubernetesCommonRunSchemaKeys,
-  KubernetesCommonRunSpec,
   KubernetesPluginContext,
   KubernetesTargetResourceSpec,
+  namespaceNameSchema,
   runPodResourceSchema,
 } from "../config"
 import { getActionNamespaceStatus } from "../namespace"
@@ -35,8 +34,10 @@ import { KubernetesRunOutputs, kubernetesRunOutputsSchema } from "./config"
 
 // RUN //
 
-export interface KubernetesExecRunActionSpec extends Omit<KubernetesCommonRunSpec, "artifacts" | "command"> {
+export interface KubernetesExecRunActionSpec {
   resource: KubernetesTargetResourceSpec
+  command: string[]
+  namespace?: string
 }
 export type KubernetesExecRunActionConfig = RunActionConfig<"kubernetes-exec", KubernetesExecRunActionSpec>
 export type KubernetesExecRunAction = RunAction<KubernetesExecRunActionConfig, KubernetesRunOutputs>
@@ -52,8 +53,13 @@ export const kubernetesExecRunSchema = (kind: string) => {
   const schema = createSchema({
     name,
     keys: () => ({
-      ...kubernetesCommonRunSchemaKeys(),
+      command: joi
+        .sparseArray()
+        .items(joi.string().allow(""))
+        .description("The command to run inside the kubernetes workload.")
+        .example(["npm", "run", "test:integ"]),
       resource: runPodResourceSchema(kind).required(),
+      namespace: namespaceNameSchema(),
     }),
   })()
   runSchemas[name] = schema
@@ -119,7 +125,7 @@ async function readAndExec({
   log: Log
   action: Resolved<KubernetesExecRunAction | KubernetesExecTestAction>
 }): Promise<RunResult> {
-  const { resource, args } = action.getSpec()
+  const { resource, command } = action.getSpec()
   const k8sCtx = <KubernetesPluginContext>ctx
   const provider = k8sCtx.provider
   const api = await KubeApi.factory(log, k8sCtx, provider)
@@ -163,7 +169,7 @@ async function readAndExec({
     log,
     namespace,
     workload: target,
-    command: args,
+    command,
     interactive: false,
     streamLogs: true,
   })
