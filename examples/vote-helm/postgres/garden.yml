@@ -17,34 +17,31 @@ spec:
 ---
 kind: Run
 name: db-init
-type: container
+type: kubernetes-exec
 dependencies: [deploy.db]
 spec:
-  image: postgres:11.6-alpine
-  # The postgres health check appears to go through before the server accepts remote connections, so we need to
-  # sleep for a while.
-  # https://github.com/CrunchyData/crunchy-containers/issues/653
+  resource:
+    kind: "StatefulSet"
+    name: "postgres"
   command:
     [
       "/bin/sh",
       "-c",
-      "sleep 15 && psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
+      "PGPASSWORD=postgres psql -w -U postgres --host=postgres --port=5432 -d postgres -c 'CREATE TABLE IF NOT EXISTS votes (id VARCHAR(255) NOT NULL UNIQUE, vote VARCHAR(255) NOT NULL, created_at timestamp default NULL)'",
     ]
-  env:
-    PGPASSWORD: postgres
 
 ---
 kind: Run
 name: db-clear
-type: container
+type: kubernetes-exec
 dependencies: [deploy.db]
 spec:
-  image: postgres:11.6-alpine
+  resource:
+    kind: "StatefulSet"
+    name: "postgres"
   command:
     [
       "/bin/sh",
       "-c",
-      "sleep 15 && psql -w -U postgres --host postgres --port=5432 -d postgres -c 'TRUNCATE votes'",
+      "PGPASSWORD=postgres psql -w -U postgres --host postgres --port=5432 -d postgres -c 'TRUNCATE votes'",
     ]
-  env:
-    PGPASSWORD: postgres
