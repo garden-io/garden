@@ -21,7 +21,7 @@ Generally, a Garden project may contain multiple _components_ like applications,
 Each component can have multiple actions. For example, a single application can have different build and deployment
 scenarios (`Build` snd `Deploy` actions), multiple test suites (`Test` actions), and various helper scripts (`Run` actions).
 
-Each action can be defined in own Garden configuration file. But, for the sake of simplicity and maintainability, it
+Each action can be defined in it's own Garden configuration file, but for the sake of simplicity and maintainability it
 might be easier to have one `garden.yml` configuration file per project's component.
 
 Below is a simple example of the action configurations of the `backend` application (from
@@ -37,7 +37,7 @@ type: container
 
 kind: Deploy
 name: backend
-description: Backend app container
+description: Backend app container deployment
 type: container
 
 build: backend
@@ -75,7 +75,7 @@ configuration style pattern makes the migration to `0.13` easier and faster.
 
 ## How it Works
 
-A Garden project is usually split up into the project-level configuration file, and several action-level configuration
+A Garden project is usually split up into the project-level configuration file and several action-level configuration
 files, each in the root directory of the respective part of the project:
 
 ```console
@@ -92,7 +92,7 @@ files, each in the root directory of the respective part of the project:
      └── ...
 ```
 
-You can also choose any `*.garden.yml` filename for each configuration file.
+Filenames ending with `.garden.yml` will be picked up by Garden.
 For example, you might prefer to set the application name in the filename, e.g. `application-a.actions.garden.yml` to
 make it easier to find in a large project.
 
@@ -146,8 +146,8 @@ By default, all files in the same directory as an action configuration file are 
 action.
 Sometimes you need more granular control over the context, not least if you have multiple actions in the same directory.
 
-The `include` and `exclude` fields are a simple way to explicitly specify which sources should belong to a particular
-action. They both accept a list of POSIX-style paths or globs. For example:
+The `include` and `exclude` fields are used to explicitly specify which sources should belong to a particular
+action. Both of them accept a list of POSIX-style paths or globs. For example:
 
 ```yaml
 kind: Build
@@ -161,7 +161,7 @@ exclude:
 ...
 ```
 
-Here, we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp`
+Here we only include the `Dockerfile` and all the `.py` files under `my-sources/`, but exclude the `my-sources/tmp`
 directory.
 
 If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude`
@@ -177,7 +177,7 @@ sub-directories of actions.
 
 ### Multiple actions in the same directory
 
-Sometimes, it's useful to define several actions in the same `garden.yml` file. One common situation is where more than
+Sometimes it's useful to define several actions in the same `garden.yml` file. One common situation is where more than
 one `Dockerfile` is in use (e.g. one for a development build and one for a production build). You may only have a
 handful of actions, and it may be the cleanest approach to define all of them in `actions.garden.yml` in your project
 root.
