@@ -184,7 +184,7 @@ garden logs my-deploy --follow  # or -f for short
 ## garden dev
 
 The `garden dev` command runs the Garden interactive development console.
-In that console you can execute the Garden commands in interactive mode, like `build`, `deploy`, `run`, `test` and others.
+In that console you can execute Garden commands in interactive mode, like `build`, `deploy`, `run`, `test` and others.
 To see the full list of available commands execute the `help` command in the development console.
 
 ### Running interactive development console
