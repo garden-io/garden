@@ -237,7 +237,7 @@ source code of its own.
 
 ```yaml
 kind: Build
-name: backend
+name: postgres-db
 description: Postgres DB container
 type: container
 image: postgres:11.7-alpine
@@ -253,7 +253,7 @@ like this:
 
 ```yaml
 kind: Build
-name: backend
+name: postgres-db
 description: Postgres DB container
 type: container
 disabled: ${environment.name == "prod"}
