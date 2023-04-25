@@ -108,10 +108,6 @@ directories are included in a single action.
 ### Action types
 
 Each [`kind`](#action-kinds) of action must have a _type_. Different action _types_ behave in different ways.
-For example, the `container` type of the `Build` action corresponds to a Docker image, either built from a
-local `Dockerfile` or pulled from a remote repository.
-
-You use the `garden build` command to execute your `Build` actions.
 
 Garden is pluggable and features a number of action types. You can find all of them and their full reference
 documentation [here](../reference/action-types/README.md), but we'll provide a high-level overview of the most commonly
