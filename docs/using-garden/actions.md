@@ -195,7 +195,7 @@ There will still be some specific semantics for different types of dependencies,
 ## Examples
 
 In this section we consider a few very basic examples with configuration code-snippets.
-See more [examples on our GitHut repository](../../examples).
+See more [examples on our GitHub repository](../../examples).
 
 ### Container Build action
 
