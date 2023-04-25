@@ -5,6 +5,10 @@ title: Modules
 
 # Modules
 
+{% hint style="warning" %}
+Modules are deprecated and will be removed in version `0.14`. Please use [action](./actions.md)-based configuration instead. See the [0.12 to Bonsai migration guide](../tutorials/migrating-to-bonsai.md) for details.
+{% endhint %}
+
 Modules are the basic **unit of building** in Garden. They are usually the first thing you add after creating the project-level configuration.
 
 A module can correspond to a Dockerfile and its associated code, a remote Docker image, a Helm chart, Kubernetes manifests, and more, all depending on the module type.
@@ -26,7 +30,7 @@ tests:
 
 ## How it Works
 
-A Garden project is usually split up into the project-level configuration file, and several module-level configuration files, each in the root directory of the respective module:
+A Garden project is usually split up into the project-level configuration file, and several module-level configuration files, each in the root directory of the respective module:
 
 ```console
 .
@@ -90,9 +94,9 @@ Here, we only include the `Dockerfile` and all the `.py` files under `my-sources
 
 If you specify a list with `include`, only those files/patterns are included. If you then specify one or more `exclude` files or patterns, those are filtered out of the files matched by `include`. If you _only_ specify `exclude`, those patterns will be filtered out of all files in the module directory.
 
-Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `scan.exclude` field](./projects.md#) for that purpose.
+Note that the module `include` and `exclude` fields have no effect on which paths Garden watches for changes. Use the [project `scan.exclude` field](./projects.md) for that purpose.
 
-You can also use [.gardenignore file](./configuration-overview.md#ignore-file), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
+You can also use [.gardenignore file](./configuration-overview.md#ignore-file), much like `.gitignore` files, to exclude files across your project. You can place them in your project root, in module roots, and even in individual sub-directories of modules.
 
 ### Multiple modules in the same directory
 
@@ -151,7 +155,7 @@ You can learn more about different module types in the [module type reference do
 
 ### Container Module
 
-Below is the configuration for a simple container module. Here we're assuming that the the Dockerfile and source files are in the same directory as the `garden.yml` file.
+Below is the configuration for a simple container module. Here we're assuming that the `Dockerfile` and source files are in the same directory as the `garden.yml` file.
 
 ```yaml
 kind: Module
@@ -162,7 +166,7 @@ type: container
 
 ### Multiple Modules in the Same File
 
-In this example, we declare multiple container modules in the same file. We use the `include` directive to tell Garden where the source code for each modules resides.
+In this example, we declare multiple container modules in the same file. We use the `include` directive to tell Garden where the source code for each module resides.
 
 ```yaml
 kind: Module

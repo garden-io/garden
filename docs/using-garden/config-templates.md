@@ -12,7 +12,7 @@ This provides a powerful yet easy-to-use mechanism to tailor Garden's functional
 These templates can be defined within a project, or in a separate repository that can be shared across multiple projects (using remote sources).
 
 {% hint style="info" %}
-This feature has been updated in 0.13 to support actions and workflows, in addition to modules. The `ModuleTemplate` resource kind has been renamed to `ConfigTemplate`, and instead of `templated` _Modules_, there is now a specific `RenderTemplate` kind to render the templates. The older declarations will still work until version 0.14, and are converted at runtime.
+This feature has been updated in `0.13` to support actions and workflows, in addition to modules. The `ModuleTemplate` resource kind has been renamed to `ConfigTemplate`, and instead of `templated` _Modules_, there is now a specific `RenderTemplate` kind to render the templates. The older declarations will still work until version `0.14`, and are converted at runtime.
 {% endhint %}
 
 ## How it works
@@ -144,7 +144,7 @@ Garden will then scan that repo when starting up, and you can reference the temp
 ### Defining modules
 
 {% hint style="warning" %}
-Modules are deprecated and this feature will be removed in version 0.14.
+Modules are deprecated and this feature will be removed in version `0.14`.
 {% endhint %}
 
 Each template can include one or more modules under the `modules` key. The schema for each module is exactly the same as for normal [Modules](./modules.md) with just a couple of differences:
@@ -188,7 +188,7 @@ Here's a section from the manifests file in our example:
               containerPort: ${inputs.containerPort}
 ```
 
-Notice the `image` field above. We use bracket notation to template the module name, whose outputs we want to reference: `${modules["${parent.name}-image"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}-image` module in the same template.
+Notice the `image` field above. We use bracket notation to template the module name, whose outputs we want to reference: `${modules["${parent.name}-image"].outputs.deployment-image-id}`. Here we're using that to get the built image ID of the `${parent.name}-image` module in the same template.
 
 _Note that for a reference like this to work, that module also needs to be specified as a build dependency._
 
