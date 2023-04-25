@@ -138,6 +138,36 @@ Examples:
   | `--name` |  | string | Name of the project (defaults to current directory name).
 
 
+### garden create actions
+
+**Create a new Garden actions configuration.**
+
+Creates a new Garden module configuration. The generated config includes some default values, as well as the
+schema of the config in the form of commented-out fields.
+
+Examples:
+
+    garden create actions                      # create a Garden actions configuration in the current directory
+    garden create actions --dir some-dir       # create a Garden actions configuration in the ./some-dir directory
+    garden create actions --name my-actions    # set the actions configuration file name to my-actions
+    garden create actions --interactive=false --kind=build --type=container # don't prompt for user inputs when creating the actions configuration
+
+#### Usage
+
+    garden create actions [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dir` |  | path | Directory to place the actions in (defaults to current directory).
+  | `--filename` |  | string | Filename to place the actions config in (defaults to garden.yml).
+  | `--interactive` |  | boolean | Set to false to disable interactive prompts.
+  | `--kind` |  | string | Kind of the action. Required if --interactive&#x3D;false.
+  | `--name` |  | string | Name of the action (defaults to current directory name).
+  | `--type` |  | string | The action type to create. Required if --interactive&#x3D;false.
+
+
 ### garden create module
 
 **Create a new Garden module.**
