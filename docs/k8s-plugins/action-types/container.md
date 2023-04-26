@@ -11,7 +11,7 @@ The Kubernetes plugins can deploy `container` deploy actions.
 
 Garden will take the simplified `container` deploy specification and convert it to Kubernetes manifests, i.e. Deployment, Service and (if applicable) Ingress resources.
 
-Here, for example, is the spec for the `frontend` service in our example [demo project](https://github.com/garden-io/garden/tree/0.12.51/examples/demo-project):
+Here, for example, is the spec for the `frontend` service in our example [demo project](../../../examples/demo-project/README.md):
 
 ```yaml
 kind: Deploy
@@ -90,5 +90,5 @@ kubectl --namespace <my-app-namespace> create secret generic --from-literal=some
 
 Where `<my-app-namespace>` is your project namespace (which is either set with `namespace` in your provider config, or defaults to your project name). There are notably other, more secure ways to create secrets via `kubectl`. Please refer to the official [Kubernetes Secrets docs](https://kubernetes.io/docs/concepts/configuration/secret/#creating-a-secret-using-kubectl-create-secret) for details.
 
-Also check out the [Kubernetes Secrets example project](https://github.com/garden-io/garden/tree/0.12.51/examples/kubernetes-secrets) for a working example.
+Also check out the [Kubernetes Secrets example project](../../../examples/kubernetes-secrets/README.md) for a working example.
 

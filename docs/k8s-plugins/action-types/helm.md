@@ -7,15 +7,15 @@ order: 3
 
 The [Helm](https://helm.sh/) package manager is one of the most commonly used tools for managing Kubernetes manifests. Garden supports using your own Helm charts, alongside your container builds, via the `kubernetes` and `local-kubernetes` providers. This guide shows you how to configure and use 3rd-party (or otherwise external) Helm charts, as well as your own charts in your Garden project. We also go through how to set up tests, runs and code synchronization for your charts.
 
-In this guide we'll be using the [vote-helm](https://github.com/garden-io/garden/tree/0.12.51/examples/vote-helm) project. If you prefer to just check out a complete example, the project itself is also a good resource.
+In this guide we'll be using the [vote-helm](../../../examples/vote-helm/README.md) project. If you prefer to just check out a complete example, the project itself is also a good resource.
 
 You may also want have a look at the reference documentation for the helm [`deploy`](../../reference/action-types/Deploy/helm.md) action type.
 [`helm-pod` run](../../reference/action-types/Run/helm-pod.md), [`helm-pod` test](../../reference/action-types/Test/helm-pod.md) and `kubernetes-exec` 
 actions can be used for testing and task porposes.
 
 _Note: If you only need a way to deploy some Kubernetes manifests and don't need all the features of Helm, you can_
-_use the simpler `kubernetes` module type instead. Check out the_
-_[kubernetes-module](https://github.com/garden-io/garden/tree/0.12.51/examples/kubernetes-module) example for more info._
+_use the simpler `kubernetes` action type instead. Check out the_
+_[kubernetes guide](./kubernetes.md) for more info._
 
 ## Referencing external charts
 
@@ -75,7 +75,7 @@ For tasks and tests either the `helm-pod` or `kubernetes-exec` action types can 
 Kubernetes Pod and wait for it to complete. These actions are not cached. They can be used with deploys running in sync mode
 for rapid testing and development. These actions should depend on the the deploy action that creates the kubernetes workloads they run in.
 
-Here's a run action from the [vote-helm example](https://github.com/garden-io/garden/tree/0.12.51/examples/vote-helm/postgres/garden.yml)
+Here's a run action from the [vote-helm example](../../../examples/vote-helm/postgres/garden.yml)
 that initialazes the database by running a command in the already deployed kuberneted workload.
 
 ```yaml
@@ -105,7 +105,7 @@ cluster is used, test results are stored there which allows to share test result
 
 `helm-pod` don't have to depend on the deploy actions. The manifests are gathered from the rendered helm charts and deployed to the cluster.
 
-Here's a test action from the [vote-helm example](https://github.com/garden-io/garden/tree/0.12.51/examples/vote-helm/vote/garden.yml.
+Here's a test action from the [vote-helm example](../../../examples/vote-helm/vote/garden.yml).
 
 ```yaml
 kind: Test
@@ -247,7 +247,7 @@ You can define a remote environment as a `production` environment by setting the
 ## Next steps
 
 Check out the full [action reference](../../reference/action-types/README.md) for more details 
-and the [vote-helm](https://github.com/garden-io/garden/tree/0.12.51/examples/vote-helm) example project for a full project
+and the [vote-helm](../../../examples/vote-helm/README.md) example project for a full project
 that showcases Garden's Helm support.
 
 Also check out the [Kubernetes action type](./kubernetes.md) if you don't need all the features of Helm.
