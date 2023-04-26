@@ -19,7 +19,7 @@ import { CommandResult } from "../base"
 import { userPrompt } from "../../util/util"
 
 export interface DeleteResult {
-  id: number
+  id: string | number
   status: string
 }
 
