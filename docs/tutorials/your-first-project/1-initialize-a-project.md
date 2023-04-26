@@ -5,7 +5,8 @@ order: 1
 
 # 1. Initialize a Project
 
-With the Garden CLI [installed](../../basics/quickstart.md#step-1-install-garden), we'll kick off by configuring a simple example project for use with Garden.
+With the Garden CLI [installed](../../basics/quickstart.md#step-1-install-garden), we'll kick off by configuring a
+simple example project for use with Garden.
 
 Start by cloning our repo and finding the example project:
 
@@ -14,7 +15,8 @@ git clone https://github.com/garden-io/garden.git
 cd garden/examples/demo-project-start
 ```
 
-This directory contains two directories, with one container service each, `backend` and `frontend`. We'll first define a boilerplate Garden project, and then a Garden module for each of the services.
+This directory contains two directories, with one container service each, `backend` and `frontend`. We'll first define a
+boilerplate Garden project, and then a Garden module for each of the services.
 
 To initialize the project, we can use a helper command:
 
@@ -43,7 +45,8 @@ garden create module
 cd ..
 ```
 
-You'll get a suggestion to make it a `container` module. Pick that, and give it the default name as well. Then do the same for the `frontend` module:
+You'll get a suggestion to make it a `container` module. Pick that, and give it the default name as well. Then do the
+same for the `frontend` module:
 
 ```sh
 cd frontend
@@ -51,9 +54,11 @@ garden create module
 cd ..
 ```
 
-This is now enough configuration to build the project. Before we can deploy, we need to configure `services` in each module configuration, as well as set up a local cluster or connect to a remote cluster.
+This is now enough configuration to build the project. Before we can deploy, we need to configure `services` in each
+module configuration, as well as set up a local cluster or connect to a remote cluster.
 
-Starting with the former, go ahead and open the newly created `backend/garden.yml` file. Just to keep things simple for now, go ahead and append to the file the following:
+Starting with the former, go ahead and open the newly created `backend/garden.yml` file. Just to keep things simple for
+now, go ahead and append to the file the following:
 
 ```yaml
 services:
@@ -67,7 +72,8 @@ services:
         port: http
 ```
 
-This is enough information for Garden to be able to deploy and expose the `backend` service. Now do the same for the `frontend` service, with the following block:
+This is enough information for Garden to be able to deploy and expose the `backend` service. Now do the same for
+the `frontend` service, with the following block:
 
 ```yaml
 services:
@@ -84,6 +90,7 @@ services:
       - backend
 ```
 
-This does the same for the `frontend` service, with the addition of declaring a runtime dependency on the `backend` service.
+This does the same for the `frontend`service, with the addition of declaring a runtime dependency on the `backend`
+service.
 
 Now, let's move on to our next section, and [connect to a Kubernetes cluster](./2-connect-to-a-cluster.md).
