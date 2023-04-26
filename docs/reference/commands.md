@@ -1053,11 +1053,11 @@ Examples:
 
 **Delete secrets.**
 
-Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
+Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
 which you which you can get from the `garden cloud secrets list` command.
 
 Examples:
-    garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
+    garden cloud secrets delete <ID 1>,<ID 2>,<ID 3>   # delete three secrets with the given IDs.
 
 #### Usage
 
@@ -1137,11 +1137,12 @@ Examples:
 
 **Delete users.**
 
-Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
-which you which you can get from the `garden cloud users list` command.
+Delete users in Garden Cloud. You will need the IDs of the users you want to delete,
+which you which you can get from the `garden cloud users list` command. Use a comma-
+separated list to delete multiple users.
 
 Examples:
-    garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
+    garden cloud users delete <ID 1>,<ID 2>,<ID 3>   # delete three users with the given IDs.
 
 #### Usage
 
