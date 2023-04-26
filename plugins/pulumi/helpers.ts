@@ -273,7 +273,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
-  
+
   const backendUrl = getBackendUrl(params.provider, params.module)
   stackConfig.backend = { url: backendUrl }
 

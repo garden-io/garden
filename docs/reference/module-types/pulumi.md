@@ -205,18 +205,15 @@ pulumiVariables: {}
 pulumiVarfiles: []
 
 # The name of the pulumi organization to use. Overrides the `orgName` set on the pulumi provider (if any).
-# To use the default org, set to null. Works only with Pulumi service managed state backends.
+# To use the default org, set to null.
 orgName:
 
-# The endpoint used to manage Pulumi state backend. Overrides the provider-level `backendURL` option
-# (works with Pulumi versions 3.64.0 and above).
-#
-# Defaults to "https://api.pulumi.com"
+# The name of the Pulumi backend URL to use. Overrides the `backendURL` set on the pulumi provider (if any).
 backendURL:
 
 # When set to true, the pulumi stack will be tagged with the Garden service version when deploying. The tag
 # will then be used for service status checks for this service. If the version doesn't change between deploys,
-# the subsequent deploy is skipped. `cacheStatus: true` works only with Pulumi service managed backend.
+# the subsequent deploy is skipped.
 #
 # Note that this will not pick up changes to stack outputs referenced via stack references in your pulumi stack,
 # unless they're referenced via template strings in the module configuration.
@@ -627,12 +624,11 @@ To use the default org, set to null.
 
 ### `backendURL`
 
-The URL of the state backend endpoint used. Overrides this provider-level `backendURL` option
-(works with Pulumi versions 3.64.0 and above).
+The name of the Pulumi backend URL to use. Overrides the `backendURL` set on the pulumi provider (if any).
 
-| Type     | Default                        | Required |
-| -------- | ------------------------------ | -------- |
-| `string` | `"https://api.pulumi.com"`     | No       |
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
 
 ### `cacheStatus`
 
@@ -819,3 +815,4 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
+
