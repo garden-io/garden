@@ -10,7 +10,7 @@ relevant.
 To follow along, you should have:
 
 * Basic familiarity with
-  Garden ([Projects](../using-garden/projects.md), [Modules](../using-garden/modules.md), [Dev mode](./code-synchronization.md)).
+  Garden ([Projects](../using-garden/projects.md), [Actions](../using-garden/actions.md), [Sync mode](./code-synchronization.md)).
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) running locally.
 * A local Kubernetes cluster running inside Docker Desktop.
 * A project that currently uses Docker Compose (or follow along using the provided example).
@@ -20,8 +20,8 @@ To follow along, you should have:
 Clone our [example Docker Compose application](https://github.com/garden-io/garden-docker-compose) and take a look
 around. In summary, our application is built with a backend (Express), a frontend (React), and a database (MongoDB).
 
-The frontend and backend modules each have their own Dockerfile, and there is a top-level `docker-compose.yml` file to
-tie them together and to add MongoDB.
+The frontend and backend applications each have their own `Dockerfile`, and there is a top-level `docker-compose.yml`
+file to tie them together and to add MongoDB.
 
 This application is based on the one at https://github.com/docker/awesome-compose/tree/master/react-express-mongodb.
 We've added four `*.garden.yml` files, which we'll walk through now in detail.
@@ -49,133 +49,133 @@ configure `local-kubernetes` (a Kubernetes cluster running in Docker Desktop) as
 
 ### The `backend/backend.garden.yml` file
 
-For our backend module, we've added another Garden configuration file with the following contents:
+For our `backend` application, we've added another Garden configuration file:
 
 ```yaml
-kind: Module
+kind: Build
+apiVersion: garden.io/v1
 name: backend
-description: The backend server.
+description: The backend server image
 type: container
-services:
-  - name: backend
-    sync:
-      paths:
-        - source: ./
-          target: /usr/src/app
-          mode: "one-way-replica"
-    ports:
-      - name: http
-        containerPort: 3000
-    healthCheck:
-      httpGet:
-        path: /api
-        port: http
-    ingresses:
-      - path: /
-        port: http
-        hostname: backend.${var.base-hostname}
-    dependencies:
-      - mongo
+
+---
+kind: Deploy
+apiVersion: garden.io/v1
+name: backend
+description: The backend server container
+type: container
+build: backend
+dependencies:
+  - deploy.mongo
+spec:
+  sync:
+    paths:
+      - source: ./
+        target: /usr/src/app
+        mode: "one-way-replica"
+  ports:
+    - name: http
+      containerPort: 3000
+  healthCheck:
+    httpGet:
+      path: /api
+      port: http
+  ingresses:
+    - path: /
+      port: http
+      hostname: backend.${var.base-hostname}
 ```
 
-This one is a `Module` instead of a `Project`. Under `sync`, we set up syncing from the root folder to our built `app`
-folder so we can see code changes live when in developer mode. Under `ports`, we specify the same port as in our Docker
-Compose file (3000). We set up a health check for the the `/api` route, as that is what this module serves, and an
-ingress on a subdomain. In our case, this will let us access our backend service on `compose2garden.local.demo.garden`.
+It defines 2 actions: a trivial `Build` action, and a `Deploy` action.
+Let's consider `Deploy` action in a bit more details.
+
+Under `sync` we set up syncing from the root folder to our built `app` folder, so we can see code changes live when in
+developer mode.
+
+Under `ports` we specify the same port as in our Docker Compose file (`3000`).
+
+We set up a health check for the `/api` route, as that is what this module serves, and an ingress on a subdomain. In our
+case, this will let us access our `backend` application on `compose2garden.local.demo.garden`.
+
 Finally, we specify the dependency on the `mongo` module, which we will define in a bit.
 
 ### The `frontend/frontend.garden.yml` file
 
-For the frontend, we create another Garden module with the following contents:
+For the `frontend` we create another Garden configuration file:
 
 ```yaml
-kind: Module
+kind: Build
+apiVersion: garden.io/v1
 name: frontend
-description: The frontend server and UI components.
+description: The frontend server and UI components image
 type: container
 exclude:
   - node_modules/**/*
-services:
-  - name: frontend
-    env:
-      DANGEROUSLY_DISABLE_HOST_CHECK: true
-    sync:
-      paths:
-        - source: ./src
-          target: /usr/src/app/src
-          mode: "one-way-replica"
-    ports:
-      - name: http
-        containerPort: 3000
-    healthCheck:
-      httpGet:
-        path: /
-        port: http
-    ingresses:
-      - path: /
-        port: http
-    dependencies:
-      - backend
+
+---
+kind: Deploy
+apiVersion: garden.io/v1
+name: frontend
+description: The frontend server and UI components container
+type: container
+build: frontend
+dependencies:
+  - deploy.backend
+spec:
+  env:
+    DANGEROUSLY_DISABLE_HOST_CHECK: true
+  sync:
+    paths:
+      - source: ./src
+        target: /usr/src/app/src
+        mode: "one-way-replica"
+  ports:
+    - name: http
+      containerPort: 3000
+  healthCheck:
+    httpGet:
+      path: /
+      port: http
+  ingresses:
+    - path: /
+      port: http
 ```
 
-This is similar to the backend module, but we specify the backend as a dependency, which makes the database (`mongo`) an
-indirect dependency.
+This is similar to the `backend` application, but we specify the `backend` deployment as a dependency, which makes
+the database (`mongo`) an indirect dependency.
 
 ### The `mongo/mongo.garden.yml` file
 
 Here we've created a `mongo` folder, as it did not exist as an explicit module in our original Docker Compose project.
-The folder contains only the Garden configuration file, which contains:
+The folder contains only the Garden configuration file:
 
 ```yaml
-kind: Module
-description: Mongodb for storing todo items
+kind: Deploy
+apiVersion: garden.io/v1
+description: MongoDB for storing todo items
 type: container
 name: mongo
-image: mongo:4.2.0
-services:
-  - name: mongo
-    volumes:
-      - name: data
-        containerPath: /data/db
-    ports:
-      - name: db
-        containerPort: 27017
+
+spec:
+  image: mongo:4.2.0
+  volumes:
+    - name: data
+      containerPath: /data/db
+  ports:
+    - name: db
+      containerPort: 27017
 ```
 
 This specifies the same volume and port that we previously specified in Docker Compose.
 
-## Running a development version of the project on Garden
-
-With the four config files added, we can test our service on Garden. We've moved from running on Docker to running on a
-local Kuberenetes cluster now, so make sure your Docker Desktop is configured accordingly.
-
-Now run:
-
-```bash
-garden deploy
-```
-
-in the project folder. Garden will start up locally. You should see output in your terminal showing that this worked
-successfully.
-
-![Garden Dev terminal](./img/garden-dev.png)
-
-If you visit the URL, you'll see the Garden dashboard, where you'll see the status of the three individual modules.
-
-![Garden dashboard](./img/garden-dashboard.png)
-
-If you click on "Stack Graph", you'll see the dependency graph that Garden calculated. Building `mongo`, `backend`,
-and `frontend` can each be done independently, but deploying the frontend requires the backend to be deployed first,
-which in turn relies on `mongo`.
-
-![Garden Stack Graph](./img/stack-graph.png)
-
 ## Deploying the Garden project to Kubernetes
 
-To build and deploy your project, terminate the `garden dev` process and run `garden deploy`. Once this has completed,
-you'll have the example "To Do" application running on your local Kubernetes cluster.
+To build and deploy your project run `garden deploy`. Once this has completed, you'll have the example "To Do"
+application running on your local Kubernetes cluster.
 
 ![To Do](./img/todo.png)
+
+Use `frontend` application's ingress URL from the console output to open the application.
 
 ## Larger migrations
 
