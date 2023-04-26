@@ -474,7 +474,7 @@ export class CloudApi {
     const requestObj = {
       method,
       headers: {
-        "x-garden-client-version": gardenClientVersion,
+        "x-garden-client-version": "0.13.0",
         "x-garden-client-name": gardenClientName,
         ...headers,
         ...makeAuthHeader(token || ""),
