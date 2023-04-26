@@ -14,7 +14,7 @@ We'll go through:
 4. How you can go from there and [configure your own project](./4-configure-your-project.md)
 
 You'll need to have Garden installed to follow along with this guide. You'll find the instructions in
-our [Quickstart uigde](../../basics/quickstart.md).
+our [Quickstart guide](../../basics/quickstart.md).
 
 We also recommend quickly reading the [How Garden Works](../../basics/how-garden-works.md) page before carrying on.
 
