@@ -273,10 +273,10 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
-  const configBackendUrl = getBackendUrlFromConfig(params.provider, params.module)
-  if (configBackendUrl !== null) {
-    stackConfig.backend = { url: configBackendUrl }
-  }
+  
+  const backendUrl = getBackendUrl(params.provider, params.module)
+  stackConfig.backend = { url: backendUrl }
+
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
       stack config file exists but no variables are defined in pulumiVars or pulumiVarfiles - skip writing stack config
@@ -409,7 +409,7 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
 
 // Lower-level helpers
 
-function getBackendUrlFromConfig(provider: PulumiProvider, module: PulumiModule): string {
+function getBackendUrl(provider: PulumiProvider, module: PulumiModule): string {
   if (module.spec.backendURL) {
     return module.spec.backendURL
   } else {
@@ -418,8 +418,8 @@ function getBackendUrlFromConfig(provider: PulumiProvider, module: PulumiModule)
 }
 
 export function ensureEnv(pulumiParams: PulumiParams): { [key: string]: string } {
-  const backendURLFromConfig = getBackendUrlFromConfig(pulumiParams.provider, pulumiParams.module)
-  return { PULUMI_BACKEND_URL: backendURLFromConfig, ...defaultPulumiEnv }
+  const backendUrl = getBackendUrl(pulumiParams.provider, pulumiParams.module)
+  return { PULUMI_BACKEND_URL: backendUrl, ...defaultPulumiEnv }
 }
 
 export async function selectStack({ module, ctx, provider, log }: PulumiParams) {

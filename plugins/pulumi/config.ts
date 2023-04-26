@@ -52,7 +52,7 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
       overrides this provider-level option.
     `),
     backendURL: joi.string().description(dedent`
-      The URL of the pulumi backend endpoint to use. This option can also be set on the module level, in which case it
+      The URL of the state backend endpoint used. This option can also be set on the module level, in which case it
       overrides this  provider-level option.
     `),
     pluginTaskConcurrencyLimit: joi.number().default(5).description(dedent`
