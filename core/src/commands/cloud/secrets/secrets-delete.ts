@@ -27,11 +27,11 @@ export class SecretsDeleteCommand extends Command<Args> {
   name = "delete"
   help = "Delete secrets from Garden Cloud."
   description = dedent`
-    Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
+    Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
     which you which you can get from the \`garden cloud secrets list\` command.
 
     Examples:
-        garden cloud secrets delete 1 2 3   # delete secrets with IDs 1, 2, and 3.
+        garden cloud secrets delete <ID 1> <ID 2> <ID 3>   # delete three secrets with the given IDs.
   `
 
   arguments = secretsDeleteArgs
@@ -41,7 +41,7 @@ export class SecretsDeleteCommand extends Command<Args> {
   }
 
   async action({ garden, args, log, opts }: CommandParams<Args>): Promise<CommandResult<DeleteResult[]>> {
-    const secretsToDelete = (args.ids || []).map((id) => parseInt(id, 10))
+    const secretsToDelete = args.ids || []
     if (secretsToDelete.length === 0) {
       throw new CommandError(`No secret IDs provided.`, {
         args,
