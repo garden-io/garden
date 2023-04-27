@@ -18,7 +18,7 @@ import { Log } from "../../logger/log-entry"
 import Bluebird from "bluebird"
 import { KubernetesProvider } from "./config"
 import { PluginContext } from "../../plugin-context"
-import { checkPodStatus, getPodLogs } from "./status/pod"
+import { getPodLogs } from "./status/pod"
 import { isValidDateInstance, sleep } from "../../util/util"
 import { Writable } from "stream"
 import request from "request"
@@ -318,25 +318,30 @@ export class K8sLogFollower<T extends LogEntryBase> {
      */
     const stopRetrying = (why: string) => {
       this.log.silly(`<Will stop retrying connecting to ${description}. Reason: ${why}>`)
-
       connection.shouldRetry = false
     }
 
     try {
       const pod = await this.k8sApi.core.readNamespacedPodStatus(connection.pod.metadata.name, connection.namespace)
-      const podStatus = checkPodStatus(pod)
 
+      // we want to retry anyway if fetching logs failed recently
       const wasError = prevStatus === "error" || status === "error"
-      if (podStatus === "missing" && !wasError) {
-        stopRetrying("The pod was missing")
-      } else if (podStatus === "stopped" && !wasError) {
-        stopRetrying("The pod was stopped")
+
+      // Check if Pod phase is terminal. If so, there is no reason to keep looking for new logs.
+      // See phases https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
+      const phase = pod.status.phase || "Unknown"
+      if (["Succeeded", "Failed"].includes(phase) && !wasError) {
+        stopRetrying(`The Pod phase is terminal (${phase})`)
       } else {
-        this.log.silly(`<Will retry connecting to ${description}. Reason: The pod status is still ${podStatus}>`)
+        this.log.silly(`<Will retry connecting to ${description}. Reason: The Pod phase is still ${phase}>`)
       }
     } catch (e) {
-      this.log.silly(`<Encountered error while fetching Pod status for ${description}. Reason: ${e.message}>`)
-      if (!(e instanceof KubernetesError)) {
+      if (e instanceof KubernetesError) {
+        this.log.silly(`<Encountered error while fetching Pod status for ${description}. Reason: ${e.message}>`)
+        if (e.statusCode === 404) {
+          stopRetrying("The pod or the namespace does not exist")
+        }
+      } else {
         throw e
       }
     }
