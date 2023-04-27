@@ -8,6 +8,7 @@
 
 import { Command, CommandGroup } from "./base"
 import { BuildCommand } from "./build"
+import { CommunityCommand } from "./community"
 import { CreateCommand } from "./create/create"
 import { DeleteCommand } from "./delete"
 import { DeployCommand } from "./deploy"
@@ -41,6 +42,7 @@ import { SyncCommand } from "./sync/sync"
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
   new ConfigCommand(),
+  new CommunityCommand(),
   new CreateCommand(),
   new DeleteCommand(),
   new DeployCommand(),
