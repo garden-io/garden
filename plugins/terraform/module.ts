@@ -66,7 +66,10 @@ export const terraformModuleSchema = () =>
     workspace: joi.string().allow(null).description("Use the specified Terraform workspace."),
   })
 
-export const configureTerraformModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
+export const configureTerraformModule: ModuleActionHandlers<TerraformModule>["configure"] = async ({
+  ctx,
+  moduleConfig,
+}) => {
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {

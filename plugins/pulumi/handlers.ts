@@ -35,7 +35,7 @@ export const cleanupEnvironment: PluginActionHandlers["cleanupEnvironment"] = as
   return {}
 }
 
-export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
+export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configure"] = async ({ ctx, moduleConfig }) => {
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {
@@ -51,8 +51,24 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
 
   const provider = ctx.provider as PulumiProvider
 
-  if (!moduleConfig.spec.version) {
-    moduleConfig.spec.version = provider.config.version
+  const backendUrl = moduleConfig.spec.backendURL || provider.config.backendURL
+  const orgName = moduleConfig.spec.orgName || provider.config.orgName
+
+  // Check to avoid using `orgName` or `cacheStatus: true` with non-pulumi managed backends
+  if (!backendUrl.startsWith("https://")) {
+    if (orgName) {
+      throw new ConfigurationError("Pulumi: orgName is not supported for self-managed backends", {
+        moduleConfig,
+        providerConfig: provider.config,
+      })
+    }
+
+    if (moduleConfig.spec.cacheStatus) {
+      throw new ConfigurationError("Pulumi: `cacheStatus: true` is not supported for self-managed backends", {
+        moduleConfig,
+        providerConfig: provider.config,
+      })
+    }
   }
 
   moduleConfig.serviceConfigs = [

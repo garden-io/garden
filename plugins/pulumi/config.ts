@@ -18,7 +18,7 @@ type PulumiProviderConfig = GenericProviderConfig & {
   version: string | null
   previewDir: string | null
   orgName?: string
-  backendURL?: string
+  backendURL: string
   pluginTaskConcurrencyLimit: number
 }
 
@@ -51,7 +51,7 @@ export const pulumiProviderConfigSchema = providerConfigBaseSchema()
       The name of the pulumi organization to use. This option can also be set on the module level, in which case it
       overrides this provider-level option.
     `),
-    backendURL: joi.string().description(dedent`
+    backendURL: joi.string().uri().default("https://api.pulumi.com").required().description(dedent`
       The URL of the state backend endpoint used. This option can also be set on the module level, in which case it
       overrides this  provider-level option. Set this option as per list of available self-managed state backends on
       https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
@@ -135,7 +135,7 @@ export const pulumiModuleSchema = () =>
       The name of the pulumi organization to use. Overrides the \`orgName\` set on the pulumi provider (if any).
       To use the default org, set to null.
     `),
-    backendURL: joi.string().optional().allow(null).description(dedent`
+    backendURL: joi.string().uri().optional().allow(null).description(dedent`
       The name of the Pulumi backend URL to use. Overrides the \`backendURL\` set on the pulumi provider (if any).
       Set this option as per list of available self-managed state backends on
       https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend

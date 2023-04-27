@@ -413,7 +413,7 @@ function getBackendUrl(provider: PulumiProvider, module: PulumiModule): string {
   if (module.spec.backendURL) {
     return module.spec.backendURL
   } else {
-    return provider.config.backendURL || "https://api.pulumi.com"
+    return provider.config.backendURL
   }
 }
 
