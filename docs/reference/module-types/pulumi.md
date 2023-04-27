@@ -209,6 +209,8 @@ pulumiVarfiles: []
 orgName:
 
 # The name of the Pulumi backend URL to use. Overrides the `backendURL` set on the pulumi provider (if any).
+# Set this option as per list of available self-managed state backends on
+# https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
 backendURL:
 
 # When set to true, the pulumi stack will be tagged with the Garden service version when deploying. The tag
@@ -220,6 +222,8 @@ backendURL:
 #
 # When using stack references to other pulumi modules in your project, we recommend including them in this
 # module's `stackReferences` config field (see the documentation for that field on this page).
+#
+# `cacheStatus: true` is not supported for self-managed state backends.
 cacheStatus: false
 
 # When setting `cacheStatus` to true for this module, you should include all stack references used by this
@@ -625,6 +629,8 @@ To use the default org, set to null.
 ### `backendURL`
 
 The name of the Pulumi backend URL to use. Overrides the `backendURL` set on the pulumi provider (if any).
+Set this option as per list of available self-managed state backends on
+https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
 
 | Type     | Required |
 | -------- | -------- |
@@ -641,6 +647,8 @@ unless they're referenced via template strings in the module configuration.
 
 When using stack references to other pulumi modules in your project, we recommend including them in this
 module's `stackReferences` config field (see the documentation for that field on this page).
+
+`cacheStatus: true` is not supported for self-managed state backends.
 
 | Type      | Default | Required |
 | --------- | ------- | -------- |
