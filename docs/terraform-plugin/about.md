@@ -11,13 +11,13 @@ It's strongly recommended that you [learn about Terraform](https://www.terraform
 
 ## How it works
 
-Under the hood, Garden simply wraps Terraform, so there's no magic involved. Garden just automates its execution and makes stack outputs available to your Garden providers and modules.
+Under the hood, Garden simply wraps Terraform, so there's no magic involved. Garden just automates its execution and makes stack outputs available to your Garden providers and actions.
 
-The `terraform` provider can both provision a Terraform stack when initializing Garden, or through `terraform` modules that are deployed like other services in your stack.
+The `terraform` provider can both provision a Terraform stack when initializing Garden, or through `terraform` actions that are utilized like other actions in your stack.
 
 The former, having a single Terraform stack for your whole project, is most helpful if other provider configurations need to reference the outputs from your Terraform stack, or if most/all of your services depend on the infrastructure provisioned in your Terraform stack. A good example of this is the [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.51/examples/terraform-gke) project, which provisions a GKE cluster that the `kubernetes` provider then runs on, along with the services in the project. The drawback is that Garden doesn't currently watch for changes in those Terraform files, and you need to restart to apply new changes, or apply them manually.
 
-The latter method, using one or more `terraform` _modules_, can be better if your other providers don't need to reference the stack outputs but your _services, tasks and tests_ do. In this style, you can basically create small Terraform stacks that are part of your Stack Graph much like other services. A good example would be deploying a database instance, that other services in your project can then connect to.
+The latter method, using one or more `terraform` _Deploy actions_, can be better if your other providers don't need to reference the stack outputs but your other Deploy, Run and Test actions do. In this style, you can basically create small Terraform stacks that are part of your Stack Graph much like other services. A good example would be deploying a database instance, that other services in your project can then connect to.
 
 You can also use a combination of the two if you'd like. Below we'll walk through how each of these work.
 
@@ -46,7 +46,7 @@ garden --env=<env-name> plugins terraform apply-root -- -auto-approve
 
 ## Injecting Environment Variables Into Backend Manifests
 
-[Terraform does not interpolate named values in backend manifests](https://www.terraform.io/language/settings/backends/configuration). Below are two solutions (using an `exec` provider and using both an `exec` and a `teraform` module).
+[Terraform does not interpolate named values in backend manifests](https://www.terraform.io/language/settings/backends/configuration). Below is a solution using an `exec` provider.
 
 ### Exec Provider
 
@@ -70,10 +70,9 @@ terraform {
 }
 ```
 
-In the `project.garden.yaml` file for this sample, the exec provider calls an initScript that replaces in-place the pre-existing state file with a copy that substitutes the s3 bucket name with the environment name in the `backend.tf` file.
+In the `project.garden.yaml` file for this sample, the `exec` provider calls an `initScript` that replaces in-place the pre-existing state file with a copy that substitutes the s3 bucket name with the environment name in the `backend.tf` file.
 
 ```yaml
-...
 providers:
   - name: exec
     initScript: rm -rf terraform/.terraform* && sed -i .bak 's;key *= *"projects/[a-zA-Z0-9]*/terraform.tfstate";key = "projects/${environment.name}/terraform.tfstate";g' terraform/backend.tf
@@ -88,6 +87,6 @@ Now when you deploy a new Terraformed environment, the new backend statefile wil
 
 ## Next steps
 
-Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.51/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../reference/providers/terraform.md) and the [Terraform module type reference](../reference/module-types/terraform.md) for details on all the configuration parameters.
+Check out the [terraform-gke example](https://github.com/garden-io/garden/tree/0.12.51/examples/terraform-gke) project. Also take a look at the [Terraform provider reference](../reference/providers/terraform.md) and the [Terraform Deploy action type reference](../reference/action-types/Deploy/terraform.md) for details on all the configuration parameters.
 
 If you're having issues with Terraform itself, please refer to the [official docs](https://www.terraform.io/docs/index.html).

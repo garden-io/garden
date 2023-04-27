@@ -41,5 +41,4 @@ providers:
 
 The `initRoot` parameter tells Garden that there is a Terraform working directory at the specified path. If you don't specify this, Garden doesn't attempt to apply a stack when initializing the provider.
 
-Notice also that we're providing an output value from the stack to the `kubernetes` provider. This can be very powerful, and allows you to fully codify your full project setup, not just the services running in your environment. Any Garden module can also reference the provider outputs in the exact same way, so you can easily provide your services with any information they need to operate.
-
+Notice also that we're providing an output value from the stack to the `kubernetes` provider. This can be very powerful, and allows you to fully codify your full project setup, not just the services running in your environment. Any Garden action can also reference the provider outputs in the exact same way, so you can easily provide your services with any information they need to operate.
