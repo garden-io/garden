@@ -6,47 +6,49 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { Command, CommandGroup } from "./base"
 import { BuildCommand } from "./build"
+import { CloudCommand } from "./cloud/cloud"
+import { Command, CommandGroup } from "./base"
+import { CommunityCommand } from "./community"
+import { ConfigCommand } from "./config/config"
 import { CreateCommand } from "./create/create"
 import { DeleteCommand } from "./delete"
 import { DeployCommand } from "./deploy"
 import { DevCommand } from "./dev"
+import { ExecCommand } from "./exec"
 import { GetCommand } from "./get/get"
-import { CloudCommand } from "./cloud/cloud"
 import { LinkCommand } from "./link/link"
+import { LoginCommand } from "./login"
+import { LogOutCommand } from "./logout"
 import { LogsCommand } from "./logs"
+import { memoize } from "lodash"
 import { MigrateCommand } from "./migrate"
+import { OptionsCommand } from "./options"
+import { PluginsCommand } from "./plugins"
 import { PublishCommand } from "./publish"
 import { RunCommand } from "./run"
 import { RunWorkflowCommand } from "./run-workflow"
+import { SelfUpdateCommand } from "./self-update"
+import { ServeCommand } from "./serve"
 import { SetCommand } from "./set"
+import { SyncCommand } from "./sync/sync"
 import { TestCommand } from "./test"
+import { ToolsCommand } from "./tools"
 import { UnlinkCommand } from "./unlink/unlink"
 import { UpdateRemoteCommand } from "./update-remote/update-remote"
-import { ValidateCommand } from "./validate"
-import { ExecCommand } from "./exec"
-import { ServeCommand } from "./serve"
-import { OptionsCommand } from "./options"
-import { ConfigCommand } from "./config/config"
-import { PluginsCommand } from "./plugins"
-import { LoginCommand } from "./login"
-import { LogOutCommand } from "./logout"
-import { ToolsCommand } from "./tools"
 import { UtilCommand } from "./util/util"
-import { SelfUpdateCommand } from "./self-update"
-import { memoize } from "lodash"
-import { SyncCommand } from "./sync/sync"
+import { ValidateCommand } from "./validate"
 
 export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new BuildCommand(),
+  new CloudCommand(),
+  new CommunityCommand(),
   new ConfigCommand(),
   new CreateCommand(),
   new DeleteCommand(),
   new DeployCommand(),
   new DevCommand(),
   new ExecCommand(),
-  new CloudCommand(),
   new GetCommand(),
   new LinkCommand(),
   new LoginCommand(),
@@ -58,8 +60,8 @@ export const getCoreCommands = (): (Command | CommandGroup)[] => [
   new PublishCommand(),
   new RunCommand(),
   new RunWorkflowCommand(),
-  new ServeCommand(),
   new SelfUpdateCommand(),
+  new ServeCommand(),
   new SetCommand(),
   new SyncCommand(),
   new TestCommand(),
