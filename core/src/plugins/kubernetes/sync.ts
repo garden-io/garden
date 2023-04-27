@@ -527,12 +527,19 @@ export async function startSyncs(params: StartSyncsParams) {
       return
     }
 
-    const { key, description, sourceDescription, targetDescription, target, resourceName, containerName } =
-      await prepareSync({
-        ...params,
-        resourceSpec,
-        spec: s,
-      })
+    const {
+      key,
+      description,
+      sourceDescription,
+      targetDescription,
+      target,
+      resourceName,
+      containerName,
+    } = await prepareSync({
+      ...params,
+      resourceSpec,
+      spec: s,
+    })
 
     // Validate the target
     if (!isConfiguredForSyncMode(target)) {
@@ -730,7 +737,31 @@ function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
   return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
 }
 
-async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec }: PrepareSyncParams) {
+function sanitizeForSyncKey(value: string): string {
+  return value
+    .replaceAll(".", "") // remove all periods from relative paths
+    .replaceAll(/\/+/g, "-") // convert each sequence of slashes to a single dash
+    .replaceAll(/\\+/g, "-") // convert each sequence of backslashes to a single dash
+    .replace(":", "") // remove ':' from Windows paths
+    .replace(/^-+/, "") // remove possible extra dashes from the start
+    .replace(/-+$/, "") // remove possible extra dashes from the end
+}
+
+/**
+ * Generates a unique key for sa single sync.
+ * IMPORTANT!!! The key will be used as an argument in the `mutagen` shell command.
+ *  It cannot contain any characters that can break the command execution (like / \ < > | :).
+ */
+function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
+  const sourcePath = sanitizeForSyncKey(spec.sourcePath)
+  const containerPath = sanitizeForSyncKey(spec.containerPath)
+  return`${getSyncKeyPrefix(ctx, action)}${target.kind}--${
+    target.metadata.name
+  }-from-${sourcePath}-to-${containerPath}`
+}
+
+async function prepareSync(params: PrepareSyncParams) {
+  const { ctx, log, manifests, action, resourceSpec, spec } = params
   const provider = ctx.provider
 
   const target = await getTargetResource({
@@ -744,7 +775,7 @@ async function prepareSync({ ctx, log, manifests, action, resourceSpec, spec }: 
 
   const resourceName = getResourceKey(target)
 
-  const key = `${getSyncKeyPrefix(ctx, action)}${target.kind}--${target.metadata.name}`
+  const key = getSyncKey(params, target)
 
   const localPathDescription = chalk.white(spec.sourcePath)
   const remoteDestinationDescription = `${chalk.white(spec.containerPath)} in ${chalk.white(resourceName)}`
