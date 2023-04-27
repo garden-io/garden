@@ -26,6 +26,7 @@ import { KubernetesServerResource, KubernetesWorkload } from "../types"
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
   workload: KubernetesWorkload | null
+  selectorChangedResourceKeys: string[]
 }
 
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail>
@@ -65,6 +66,7 @@ export async function getContainerServiceStatus({
     deployedWithDevMode,
     deployedWithHotReloading,
     deployedWithLocalMode,
+    selectorChangedResourceKeys,
   } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(service, api, provider)
 
@@ -90,7 +92,7 @@ export async function getContainerServiceStatus({
     state,
     namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? service.version : undefined,
-    detail: { remoteResources, workload },
+    detail: { remoteResources, workload, selectorChangedResourceKeys },
     devMode: deployedWithDevMode || deployedWithHotReloading,
     localMode: deployedWithLocalMode,
   }

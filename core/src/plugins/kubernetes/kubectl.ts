@@ -13,7 +13,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
-import { hashManifest } from "./util"
+import { getResourceKey, hashManifest } from "./util"
 import { PluginToolSpec } from "../../types/plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
@@ -132,14 +132,7 @@ export async function apply({
   }
 }
 
-export async function deleteResources({
-  log,
-  ctx,
-  provider,
-  namespace,
-  resources,
-  includeUninitialized = false,
-}: {
+export async function deleteResources(params: {
   log: LogEntry
   ctx: PluginContext
   provider: KubernetesProvider
@@ -147,12 +140,26 @@ export async function deleteResources({
   resources: KubernetesResource[]
   includeUninitialized?: boolean
 }) {
-  const args = [
-    "delete",
-    "--wait=true",
-    "--ignore-not-found=true",
-    ...resources.map((r) => `${r.kind}/${r.metadata.name}`),
-  ]
+  const keys = params.resources.map(getResourceKey)
+  return deleteResourceKeys({ ...params, keys })
+}
+
+export async function deleteResourceKeys({
+  log,
+  ctx,
+  provider,
+  namespace,
+  keys,
+  includeUninitialized = false,
+}: {
+  log: LogEntry
+  ctx: PluginContext
+  provider: KubernetesProvider
+  namespace: string
+  keys: string[]
+  includeUninitialized?: boolean
+}) {
+  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...keys]
 
   includeUninitialized && args.push("--include-uninitialized")
 

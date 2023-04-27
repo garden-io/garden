@@ -14,7 +14,10 @@ import { KubeApi } from "../../../../../../src/plugins/kubernetes/api"
 import {
   createContainerManifests,
   createWorkloadManifest,
+  getDeploymentLabels,
+  handleChangedSelector,
 } from "../../../../../../src/plugins/kubernetes/container/deployment"
+import { ActionRouter } from "../../../../../../src/actions"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../../src/plugins/kubernetes/config"
 import { V1ConfigMap, V1Secret } from "@kubernetes/client-node"
 import { KubernetesResource, KubernetesWorkload } from "../../../../../../src/plugins/kubernetes/types"
@@ -29,7 +32,7 @@ import { isConfiguredForDevMode } from "../../../../../../src/plugins/kubernetes
 import { ContainerService } from "../../../../../../src/plugins/container/config"
 import { apply } from "../../../../../../src/plugins/kubernetes/kubectl"
 import { getAppNamespace } from "../../../../../../src/plugins/kubernetes/namespace"
-import { gardenAnnotationKey } from "../../../../../../src/util/string"
+import { gardenAnnotationKey, gardenAnnotationPrefix } from "../../../../../../src/util/string"
 import {
   k8sReverseProxyImageName,
   k8sSyncUtilImageName,
@@ -291,6 +294,7 @@ describe("kubernetes container deployment handlers", () => {
       const buildVersion = service.module.version.versionString
 
       const spec = service.spec
+      const labels = getDeploymentLabels(service, false)
 
       expect(resource).to.eql({
         kind: "Deployment",
@@ -299,14 +303,14 @@ describe("kubernetes container deployment handlers", () => {
           name: "simple-service",
           annotations: { "garden.io/configured.replicas": "1" },
           namespace,
-          labels: { module: "simple-service", service: "simple-service" },
+          labels,
         },
         spec: {
           selector: { matchLabels: { service: "simple-service" } },
           template: {
             metadata: {
               annotations: {},
-              labels: { module: "simple-service", service: "simple-service" },
+              labels,
             },
             spec: {
               containers: [
@@ -1039,6 +1043,180 @@ describe("kubernetes container deployment handlers", () => {
           `index.docker.io/gardendev/${service.name}:${service.module.version.versionString}`
         )
       })
+    })
+  })
+
+  describe("handleChangedSelector", () => {
+    let router: ActionRouter
+
+    before(async () => {
+      await init("local")
+      router = await garden.getActionRouter()
+    })
+
+    const deploySpecChangedSimpleService = async (service: ContainerService) => {
+      const namespace = provider.config.namespace!.name
+      const serviceName = service.name
+      const deploymentManifest = await createWorkloadManifest({
+        api,
+        provider,
+        service,
+        namespace,
+        enableDevMode: false,
+        enableHotReload: false,
+        enableLocalMode: false,
+        log: garden.log,
+        production: false,
+        blueGreen: false,
+        runtimeContext: emptyRuntimeContext,
+      })
+
+      // The 0.13+ selector for services/Deploys - hardcoded, since we don't have the relevant helpers in 0.12.
+      const actionLabel = {
+        [gardenAnnotationPrefix + "action"]: `deploy.${serviceName}`,
+      }
+
+      // Override to test spec change detection logic.
+      deploymentManifest.spec.selector.matchLabels = {
+        service: serviceName,
+        ...actionLabel,
+      }
+      deploymentManifest.metadata.labels = {
+        service: serviceName,
+        ...actionLabel,
+      }
+      deploymentManifest.spec.template!.metadata!.labels = {
+        service: serviceName,
+        ...actionLabel,
+      }
+      const pruneLabels = {
+        service: serviceName, // The pre-0.13 selector
+        module: serviceName,
+      }
+
+      await apply({ log: garden.log, ctx, api, provider, manifests: [deploymentManifest], namespace, pruneLabels })
+    }
+
+    const cleanupSpecChangedSimpleService = async (serviceName: string) => {
+      await api.apps.deleteNamespacedDeployment(serviceName, provider.config.namespace!.name)
+    }
+
+    const simpleServiceIsRunning = async (serviceName: string) => {
+      try {
+        await api.apps.readNamespacedDeployment(serviceName, provider.config.namespace!.name)
+        return true
+      } catch (err) {
+        if (err.statusCode === 404) {
+          return false
+        } else {
+          throw err
+        }
+      }
+    }
+
+    it("should delete resources if production = false", async () => {
+      const service = graph.getService("simple-service")
+      const serviceName = service.name
+      await cleanupSpecChangedSimpleService(serviceName) // Clean up in case we're re-running the test case
+      await deploySpecChangedSimpleService(service)
+      expect(await simpleServiceIsRunning(serviceName)).to.eql(true)
+
+      const status = await router.getServiceStatus({
+        graph,
+        service,
+        log: garden.log,
+        devMode: false,
+        hotReload: false,
+        localMode: false,
+        runtimeContext: emptyRuntimeContext,
+      })
+
+      const specChangedResourceKeys: string[] = status.detail.selectorChangedResourceKeys || []
+      expect(specChangedResourceKeys).to.eql(["Deployment/simple-service"])
+
+      await handleChangedSelector({
+        serviceName,
+        ctx,
+        namespace: provider.config.namespace!.name,
+        log: garden.log,
+        specChangedResourceKeys,
+        production: false, // <----
+        force: false,
+      })
+
+      expect(await simpleServiceIsRunning(serviceName)).to.eql(false)
+    })
+
+    it("should delete resources if production = true and force = true", async () => {
+      const service = graph.getService("simple-service")
+      const serviceName = service.name
+      await deploySpecChangedSimpleService(service)
+      expect(await simpleServiceIsRunning(serviceName)).to.eql(true)
+
+      const status = await router.getServiceStatus({
+        graph,
+        service,
+        log: garden.log,
+        devMode: false,
+        hotReload: false,
+        localMode: false,
+        runtimeContext: emptyRuntimeContext,
+      })
+
+      const specChangedResourceKeys: string[] = status.detail.selectorChangedResourceKeys || []
+      expect(specChangedResourceKeys).to.eql(["Deployment/simple-service"])
+
+      await handleChangedSelector({
+        serviceName,
+        ctx,
+        namespace: provider.config.namespace!.name,
+        log: garden.log,
+        specChangedResourceKeys,
+        production: true, // <----
+        force: true, // <---
+      })
+
+      expect(await simpleServiceIsRunning(serviceName)).to.eql(false)
+    })
+
+    it("should not delete resources and throw an error if production = true and force = false", async () => {
+      const service = graph.getService("simple-service")
+      const serviceName = service.name
+      await deploySpecChangedSimpleService(service)
+      expect(await simpleServiceIsRunning(serviceName)).to.eql(true)
+
+      const status = await router.getServiceStatus({
+        graph,
+        service,
+        log: garden.log,
+        devMode: false,
+        hotReload: false,
+        localMode: false,
+        runtimeContext: emptyRuntimeContext,
+      })
+
+      const specChangedResourceKeys: string[] = status.detail.selectorChangedResourceKeys || []
+      expect(specChangedResourceKeys).to.eql(["Deployment/simple-service"])
+
+      await expectError(
+        () =>
+          handleChangedSelector({
+            serviceName,
+            ctx,
+            namespace: provider.config.namespace!.name,
+            log: garden.log,
+            specChangedResourceKeys,
+            production: true, // <----
+            force: false, // <---
+          }),
+        (err) =>
+          expect(stripAnsi(err.message)).to.equal(
+            "Deploy simple-service was deployed with a different spec.selector and needs to be deleted before redeploying. Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the --force flag when deploying e.g. with the garden deploy command. You can also delete the resource from your cluster manually and try again."
+          )
+      )
+
+      expect(await simpleServiceIsRunning(serviceName)).to.eql(true)
+      await cleanupSpecChangedSimpleService(serviceName)
     })
   })
 })

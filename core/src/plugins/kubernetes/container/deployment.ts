@@ -14,13 +14,13 @@ import { ContainerModule, ContainerService, ContainerServiceConfig, ContainerVol
 import { createIngressResources } from "./ingress"
 import { createServiceResources } from "./service"
 import { compareDeployedResources, waitForResources } from "../status/status"
-import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
+import { apply, deleteObjectsBySelector, deleteResourceKeys, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { getAppNamespace, getAppNamespaceStatus } from "../namespace"
 import { PluginContext } from "../../../plugin-context"
 import { KubeApi } from "../api"
 import { KubernetesPluginContext, KubernetesProvider } from "../config"
 import { KubernetesResource, KubernetesWorkload } from "../types"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, DeploymentError } from "../../../exceptions"
 import { ContainerServiceStatus, getContainerServiceStatus } from "./status"
 import { LogEntry } from "../../../logger/log-entry"
 import { DeployServiceParams } from "../../../types/plugin/service/deployService"
@@ -47,28 +47,44 @@ export const PRODUCTION_MINIMUM_REPLICAS = 3
 export async function deployContainerService(
   params: DeployServiceParams<ContainerModule>
 ): Promise<ContainerServiceStatus> {
-  const { ctx, service, log, devMode, localMode } = params
+  const { ctx, service, log, devMode, localMode, force } = params
   const deployWithDevMode = devMode && !!service.spec.devMode
   const { deploymentStrategy } = params.ctx.provider.config
   const k8sCtx = <KubernetesPluginContext>ctx
   const api = await KubeApi.factory(log, k8sCtx, k8sCtx.provider)
 
   if (deploymentStrategy === "blue-green") {
+    // Note: Since blue-green deployments don't update existing deployments, there's no need to apply the
+    // immutable spec detection logic that we use for rolling deployments below.
     await deployContainerServiceBlueGreen({ ...params, devMode: deployWithDevMode, api })
   } else {
+    const status = await getContainerServiceStatus(params)
+    const specChangedResourceKeys: string[] = status.detail.selectorChangedResourceKeys || []
+    if (specChangedResourceKeys.length > 0) {
+      const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
+      await handleChangedSelector({
+        serviceName: service.name,
+        specChangedResourceKeys,
+        ctx: k8sCtx,
+        namespace: namespaceStatus.namespaceName,
+        log,
+        production: ctx.production,
+        force,
+      })
+    }
     await deployContainerServiceRolling({ ...params, devMode: deployWithDevMode, api })
   }
 
-  const status = await getContainerServiceStatus(params)
+  const postDeployStatus = await getContainerServiceStatus(params)
 
   // Make sure port forwards work after redeployment
-  killPortForwards(service, status.forwardablePorts || [], log)
+  killPortForwards(service, postDeployStatus.forwardablePorts || [], log)
 
   if (devMode) {
     await startContainerDevSync({
       ctx: k8sCtx,
       log,
-      status,
+      status: postDeployStatus,
       service,
     })
   }
@@ -77,12 +93,12 @@ export async function deployContainerService(
     await startLocalMode({
       ctx: k8sCtx,
       log,
-      status,
+      status: postDeployStatus,
       service,
     })
   }
 
-  return status
+  return postDeployStatus
 }
 
 export async function startContainerDevSync({
@@ -878,5 +894,62 @@ export async function deleteService(params: DeleteServiceParams): Promise<Contai
     includeUninitialized: false,
   })
 
-  return { state: "missing", detail: { remoteResources: [], workload: null } }
+  return { state: "missing", detail: { remoteResources: [], workload: null, selectorChangedResourceKeys: [] } }
+}
+
+/**
+ * Deletes matching deployed resources for the given service, unless deploying against a production environment
+ * with `force = false`.
+ */
+export async function handleChangedSelector({
+  serviceName,
+  specChangedResourceKeys,
+  ctx,
+  namespace,
+  log,
+  production,
+  force,
+}: {
+  serviceName: string
+  specChangedResourceKeys: string[]
+  ctx: KubernetesPluginContext
+  namespace: string
+  log: LogEntry
+  production: boolean
+  force: boolean
+}) {
+  const msgPrefix = `Deploy ${chalk.white(serviceName)} was deployed with a different ${chalk.white(
+    "spec.selector"
+  )} and needs to be deleted before redeploying.`
+  if (production && !force) {
+    throw new DeploymentError(
+      `${msgPrefix} Since this environment has production = true, Garden won't automatically delete this resource. To do so, use the ${chalk.white(
+        "--force"
+      )} flag when deploying e.g. with the ${chalk.white(
+        "garden deploy"
+      )} command. You can also delete the resource from your cluster manually and try again.`,
+      {
+        deployName: serviceName,
+      }
+    )
+  } else {
+    if (production && force) {
+      log.warn(
+        chalk.yellow(`${msgPrefix} Since we're deploying with force = true, we'll now delete it before redeploying.`)
+      )
+    } else if (!production) {
+      log.warn(
+        chalk.yellow(
+          `${msgPrefix} Since this environment does not have production = true, we'll now delete it before redeploying.`
+        )
+      )
+    }
+    await deleteResourceKeys({
+      ctx,
+      log,
+      provider: ctx.provider,
+      namespace,
+      keys: specChangedResourceKeys,
+    })
+  }
 }

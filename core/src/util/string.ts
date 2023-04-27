@@ -22,7 +22,7 @@ export const deline = _deline
 export const urlJoin = _urlJoin as (...args: string[]) => string
 export const stableStringify = _stableStringify
 
-const gardenAnnotationPrefix = "garden.io/"
+export const gardenAnnotationPrefix = "garden.io/"
 
 export type GardenAnnotationKey =
   | "dev-mode"
