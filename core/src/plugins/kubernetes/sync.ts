@@ -737,7 +737,7 @@ function getSyncKeyPrefix(ctx: PluginContext, action: SupportedRuntimeAction) {
   return `k8s--${ctx.environmentName}--${ctx.namespace}--${action.name}--`
 }
 
-function safeShellArgument(value: string): string {
+function sanitizeForSyncKey(value: string): string {
   return value
     .replaceAll(".", "") // remove all periods from relative paths
     .replaceAll(/\/+/g, "-") // convert each sequence of slashes to a single dash
@@ -753,8 +753,8 @@ function safeShellArgument(value: string): string {
  *  It cannot contain any characters that can break the command execution (like / \ < > | :).
  */
 function getSyncKey({ ctx, action, spec }: PrepareSyncParams, target: SyncableResource): string {
-  const sourcePath = safeShellArgument(spec.sourcePath)
-  const containerPath = safeShellArgument(spec.containerPath)
+  const sourcePath = sanitizeForSyncKey(spec.sourcePath)
+  const containerPath = sanitizeForSyncKey(spec.containerPath)
   return`${getSyncKeyPrefix(ctx, action)}${target.kind}--${
     target.metadata.name
   }-from-${sourcePath}-to-${containerPath}`
