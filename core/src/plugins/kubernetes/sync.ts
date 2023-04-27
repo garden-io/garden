@@ -527,12 +527,19 @@ export async function startSyncs(params: StartSyncsParams) {
       return
     }
 
-    const { key, description, sourceDescription, targetDescription, target, resourceName, containerName } =
-      await prepareSync({
-        ...params,
-        resourceSpec,
-        spec: s,
-      })
+    const {
+      key,
+      description,
+      sourceDescription,
+      targetDescription,
+      target,
+      resourceName,
+      containerName,
+    } = await prepareSync({
+      ...params,
+      resourceSpec,
+      spec: s,
+    })
 
     // Validate the target
     if (!isConfiguredForSyncMode(target)) {
