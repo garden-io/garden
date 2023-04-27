@@ -15,7 +15,7 @@ git clone https://github.com/garden-io/garden.git
 cd garden/examples/demo-project-start
 ```
 
-The example directory contains two directories: `backend` and `frontend`. Each one is a simple application with
+The example directory has two directories: `backend` and `frontend`. Each contains simple application with
 a `Dockerfile`. We'll first define a boilerplate Garden project, and then Garden action configurations for each
 application.
 
