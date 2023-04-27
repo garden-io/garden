@@ -42,6 +42,10 @@ export function getAnnotation(obj: KubernetesResource, key: string): string | nu
   return get(obj, ["metadata", "annotations", key])
 }
 
+export function getResourceKey(resource: KubernetesResource) {
+  return `${resource.kind}/${resource.metadata.name}`
+}
+
 /**
  * Returns a hash of the manifest. We use this instead of the raw manifest when setting the
  * "manifest-hash" annotation. This prevents "Too long annotation" errors for long manifests.
