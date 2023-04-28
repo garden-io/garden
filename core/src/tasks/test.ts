@@ -44,6 +44,10 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
     this.interactive = interactive
   }
 
+  protected getDependencyParams(): TestTaskParams {
+    return { ...super.getDependencyParams(), silent: this.silent, interactive: this.interactive }
+  }
+
   getDescription() {
     return this.action.longDescription()
   }

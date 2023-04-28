@@ -35,6 +35,14 @@ export class DeleteDeployTask extends BaseActionTask<DeployAction, DeployStatus>
     this.deleteDeployNames = params.deleteDeployNames || [params.action.name]
   }
 
+  protected getDependencyParams(): DeleteDeployTaskParams {
+    return {
+      ...super.getDependencyParams(),
+      dependantsFirst: this.dependantsFirst,
+      deleteDeployNames: this.deleteDeployNames,
+    }
+  }
+
   resolveProcessDependencies() {
     const resolveTask = this.getResolveTask(this.action)
 

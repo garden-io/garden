@@ -32,6 +32,10 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     this.tagTemplate = params.tagTemplate
   }
 
+  protected getDependencyParams(): PublishTaskParams {
+    return { ...super.getDependencyParams(), tagTemplate: this.tagTemplate }
+  }
+
   resolveStatusDependencies() {
     return []
   }
