@@ -30,7 +30,10 @@ export const terraformModuleSchema = () =>
     ...terraformDeploySchemaKeys(),
   })
 
-export const configureTerraformModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
+export const configureTerraformModule: ModuleActionHandlers<TerraformModule>["configure"] = async ({
+  ctx,
+  moduleConfig,
+}) => {
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {
