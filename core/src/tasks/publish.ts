@@ -42,7 +42,7 @@ export class PublishTask extends BaseActionTask<BuildAction, PublishActionResult
     }
     return [
       new BuildTask({
-        ...this.getBaseDependencyParams(),
+        ...this.getDependencyParams(),
         action: this.action,
         force: !!this.forceActions.find((ref) => this.action.matchesRef(ref)),
       }),

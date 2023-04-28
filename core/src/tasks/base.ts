@@ -293,7 +293,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
   // Helpers //
 
-  protected getBaseDependencyParams(): BaseActionTaskParams<T> {
+  protected getDependencyParams(): BaseActionTaskParams<T> {
     return {
       garden: this.garden,
       action: this.action,
@@ -347,7 +347,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getResolveTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getResolveTaskForAction(action, { ...this.getBaseDependencyParams(), force })
+    return getResolveTaskForAction(action, { ...this.getDependencyParams(), force })
   }
 
   /**
@@ -357,7 +357,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
    */
   protected getExecuteTask(action: Action) {
     const force = !!this.forceActions.find((r) => r.kind === action.kind && r.name === action.name)
-    return getExecuteTaskForAction(action, { ...this.getBaseDependencyParams(), force })
+    return getExecuteTaskForAction(action, { ...this.getDependencyParams(), force })
   }
 }
 
