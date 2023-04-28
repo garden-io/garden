@@ -147,13 +147,13 @@ export class TestCommand extends Command<Args, Opts> {
 
     const graph = await garden.getConfigGraph({ log, emit: true })
 
-    let includeNames: string[] | undefined = undefined
+    let names: string[] | undefined = undefined
     const nameArgs = [...(args.names || []), ...(opts.name || [])]
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
 
     if (nameArgs.length > 0) {
-      includeNames = nameArgs
+      names = nameArgs
     }
 
     // Validate module names if specified.
@@ -162,9 +162,10 @@ export class TestCommand extends Command<Args, Opts> {
     }
 
     const actions = graph.getActionsByKind("Test", {
-      includeNames,
+      names,
       moduleNames: opts.module,
       excludeNames: opts.skip,
+      ignoreMissing: false,
     })
 
     await warnOnLinkedActions(garden, log, actions)
