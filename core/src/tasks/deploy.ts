@@ -47,6 +47,13 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
     this.startSync = !!params.startSync
   }
 
+  protected getDependencyParams(): DeployTaskParams {
+    return {
+      ...super.getDependencyParams(),
+      startSync: this.startSync,
+    }
+  }
+
   getDescription() {
     return this.action.longDescription()
   }
