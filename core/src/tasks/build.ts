@@ -7,16 +7,12 @@
  */
 
 import chalk from "chalk"
-import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "../tasks/base"
+import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "../tasks/base"
 import { Profile } from "../util/profiling"
 import { BuildAction } from "../actions/build"
 import pluralize from "pluralize"
 import { BuildStatus } from "../plugin/handlers/Build/get-status"
 import { resolvedActionToExecuted } from "../actions/helpers"
-
-export interface BuildTaskParams extends BaseActionTaskParams<BuildAction> {
-  force: boolean
-}
 
 @Profile()
 export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {

@@ -6,14 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { BaseActionTaskParams, ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
+import { ActionTaskProcessParams, ActionTaskStatusParams, ExecuteActionTask } from "./base"
 import { Profile } from "../util/profiling"
 import { RunAction } from "../actions/run"
 import { GetRunResult } from "../plugin/handlers/Run/get-result"
 import { resolvedActionToExecuted } from "../actions/helpers"
 import chalk from "chalk"
-
-export interface RunTaskParams extends BaseActionTaskParams<RunAction> {}
 
 class RunTaskError extends Error {
   toString() {

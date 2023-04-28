@@ -28,8 +28,6 @@ import { Memoize } from "typescript-memoize"
 import { getExecuteTaskForAction, getResolveTaskForAction } from "./helpers"
 import { TypedEventEmitter } from "../util/events"
 
-export class TaskDefinitionError extends Error {}
-
 export function makeBaseKey(type: string, name: string) {
   return `${type}.${name}`
 }
