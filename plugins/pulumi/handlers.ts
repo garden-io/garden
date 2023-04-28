@@ -8,12 +8,13 @@
 
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { defaultPulumiEnv, pulumi } from "./cli"
+import { pulumi } from "./cli"
 import { ModuleActionHandlers, ProviderHandlers } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import {
   applyConfig,
   clearStackVersionTag,
+  ensureEnv,
   getActionStackRoot,
   getPlanPath,
   getStackConfigPath,
@@ -46,6 +47,28 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
     if (!exists) {
       throw new ConfigurationError(`Pulumi: configured working directory '${root}' does not exist`, {
         moduleConfig,
+      })
+    }
+  }
+
+  const provider = ctx.provider as PulumiProvider
+
+  const backendUrl = moduleConfig.spec.backendURL || provider.config.backendURL
+  const orgName = moduleConfig.spec.orgName || provider.config.orgName
+
+  // Check to avoid using `orgName` or `cacheStatus: true` with non-pulumi managed backends
+  if (!backendUrl.startsWith("https://")) {
+    if (orgName) {
+      throw new ConfigurationError("Pulumi: orgName is not supported for self-managed backends", {
+        moduleConfig,
+        providerConfig: provider.config,
+      })
+    }
+
+    if (moduleConfig.spec.cacheStatus) {
+      throw new ConfigurationError("Pulumi: `cacheStatus: true` is not supported for self-managed backends", {
+        moduleConfig,
+        providerConfig: provider.config,
       })
     }
   }
@@ -97,8 +120,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
   const provider = ctx.provider as PulumiProvider
   const pulumiParams = { log, ctx, provider, action }
   const { autoApply, deployFromPreview } = action.getSpec()
-
-  await selectStack(pulumiParams)
+  const { cacheStatus } = action.getSpec()
 
   if (!autoApply && !deployFromPreview) {
     log.info(`${action.longDescription()} has autoApply = false, but no planPath was provided. Skipping deploy.`)
@@ -113,9 +135,10 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
   }
 
   const root = getActionStackRoot(action)
-  const env = defaultPulumiEnv
+  const env = ensureEnv(pulumiParams)
 
   let planPath: string | null
+  // TODO: does the plan include the backend config?
   if (deployFromPreview) {
     // A pulumi plan for this module has already been generated, so we use that.
     planPath = getPlanPath(ctx, action)
@@ -124,6 +147,7 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
     await applyConfig(pulumiParams)
     planPath = null
   }
+  await selectStack(pulumiParams)
   log.verbose(`Applying pulumi stack...`)
   const upArgs = ["up", "--yes", "--color", "always", "--config-file", getStackConfigPath(action, ctx.environmentName)]
   planPath && upArgs.push("--plan", planPath)
@@ -135,7 +159,9 @@ export const deployPulumi: DeployActionHandlers<PulumiDeploy>["deploy"] = async 
     ctx,
     errorPrefix: "Error when applying pulumi stack",
   })
-  await setStackVersionTag(pulumiParams)
+  if (cacheStatus) {
+    await setStackVersionTag(pulumiParams)
+  }
 
   return {
     state: "ready",
@@ -162,7 +188,7 @@ export const deletePulumiDeploy: DeployActionHandlers<PulumiDeploy>["delete"] = 
   const provider = ctx.provider as PulumiProvider
   const pulumiParams = { log, ctx, provider, action }
   const root = getActionStackRoot(action)
-  const env = defaultPulumiEnv
+  const env = ensureEnv(pulumiParams)
   await selectStack(pulumiParams)
 
   const cli = pulumi(ctx, provider)
