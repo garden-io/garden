@@ -123,11 +123,14 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
 
   // Which dependencies must be resolved to call this task's getStatus method
   abstract resolveStatusDependencies(): BaseTask[]
+
   // Which dependencies must be resolved to call this task's process method, in addition to the above
   abstract resolveProcessDependencies(params: ResolveProcessDependenciesParams<O>): BaseTask[]
 
   abstract getDescription(): string
+
   abstract getStatus(params: TaskProcessParams): Promise<O | null>
+
   abstract process(params: TaskProcessParams): Promise<O>
 
   /**
@@ -193,6 +196,7 @@ export abstract class BaseTask<O extends ValidResultType = ValidResultType> exte
 }
 
 export interface ActionTaskStatusParams<_ extends Action> extends TaskProcessParams {}
+
 export interface ActionTaskProcessParams<T extends Action, S extends ValidResultType>
   extends ActionTaskStatusParams<T> {
   status: S | null
@@ -228,6 +232,7 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
   }
 
   abstract getStatus(params: ActionTaskStatusParams<T>): Promise<O | null>
+
   abstract process(params: ActionTaskProcessParams<T, O>): Promise<O>
 
   getName() {
@@ -288,9 +293,11 @@ export abstract class BaseActionTask<T extends Action, O extends ValidResultType
 
   // Helpers //
 
-  protected getBaseDependencyParams() {
+  protected getBaseDependencyParams(): BaseActionTaskParams<T> {
     return {
       garden: this.garden,
+      action: this.action,
+      force: false,
       log: this.log,
       graph: this.graph,
       forceActions: this.forceActions,
@@ -365,5 +372,6 @@ export abstract class ExecuteActionTask<
   executeTask = true
 
   abstract getStatus(params: ActionTaskStatusParams<T>): Promise<(O & ExecuteActionOutputs<T>) | null>
+
   abstract process(params: ActionTaskProcessParams<T, O>): Promise<O & ExecuteActionOutputs<T>>
 }
