@@ -59,6 +59,54 @@ export class GlobalPulumi extends CliWrapper {
 }
 
 export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
+  "3.64.0": {
+    name: "pulumi-3-64-0",
+    description: "The pulumi CLI, v3.64.0",
+    type: "binary",
+    _includeInGardenImage: true,
+    builds: [
+      {
+        platform: "darwin",
+        architecture: "and64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.64.0/pulumi-v3.64.0-darwin-x64.tar.gz",
+        sha256: "ee62df4a40ab7cb016491f529e0256761a8ced6962dea28f88409d692cafcc82",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "darwin",
+        architecture: "arm64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.64.0/pulumi-v3.64.0-darwin-arm64.tar.gz",
+        sha256: "a531dc361dd016a72c22476d2981f71cc9892d210d11c19b4e1fcc8d6c629d1a",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "linux",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.64.0/pulumi-v3.64.0-linux-x64.tar.gz",
+        sha256: "2560cce127c838c8367541e9493ec12ae9a3144884f98c2afb99b01a14b6b0f7",
+        extract: {
+          format: "tar",
+          targetPath: "pulumi/pulumi",
+        },
+      },
+      {
+        platform: "windows",
+        architecture: "amd64",
+        url: "https://github.com/pulumi/pulumi/releases/download/v3.64.0/pulumi-v3.64.0-windows-x64.zip",
+        sha256: "b0424ad34a2abbd196f78b62cac9a72bafe080c84c6068bede3a4e31e48a0a48",
+        extract: {
+          format: "zip",
+          targetPath: "pulumi/bin/pulumi.exe",
+        },
+      },
+    ],
+  },
   "3.48.0": {
     name: "pulumi-3-48-0",
     description: "The pulumi CLI, v3.48.0",
@@ -256,4 +304,4 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
 export const supportedVersions = Object.keys(pulumiCliSPecs)
 
 // Default to latest pulumi version
-export const defaultPulumiVersion = "3.48.0"
+export const defaultPulumiVersion = "3.64.0"

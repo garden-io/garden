@@ -8,12 +8,13 @@
 
 import { join } from "path"
 import { pathExists } from "fs-extra"
-import { defaultPulumiEnv, pulumi } from "./cli"
+import { pulumi } from "./cli"
 import { ModuleActionHandlers, PluginActionHandlers, ServiceActionHandlers } from "@garden-io/sdk/types"
 import { ConfigurationError } from "@garden-io/sdk/exceptions"
 import {
   applyConfig,
   clearStackVersionTag,
+  ensureEnv,
   getModuleStackRoot,
   getPlanPath,
   getStackConfigPath,
@@ -34,7 +35,7 @@ export const cleanupEnvironment: PluginActionHandlers["cleanupEnvironment"] = as
   return {}
 }
 
-export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({ ctx, moduleConfig }) => {
+export const configurePulumiModule: ModuleActionHandlers<PulumiModule>["configure"] = async ({ ctx, moduleConfig }) => {
   // Make sure the configured root path exists
   const root = moduleConfig.spec.root
   if (root) {
@@ -50,8 +51,24 @@ export const configurePulumiModule: ModuleActionHandlers["configure"] = async ({
 
   const provider = ctx.provider as PulumiProvider
 
-  if (!moduleConfig.spec.version) {
-    moduleConfig.spec.version = provider.config.version
+  const backendUrl = moduleConfig.spec.backendURL || provider.config.backendURL
+  const orgName = moduleConfig.spec.orgName || provider.config.orgName
+
+  // Check to avoid using `orgName` or `cacheStatus: true` with non-pulumi managed backends
+  if (!backendUrl.startsWith("https://")) {
+    if (orgName) {
+      throw new ConfigurationError("Pulumi: orgName is not supported for self-managed backends", {
+        moduleConfig,
+        providerConfig: provider.config,
+      })
+    }
+
+    if (moduleConfig.spec.cacheStatus) {
+      throw new ConfigurationError("Pulumi: `cacheStatus: true` is not supported for self-managed backends", {
+        moduleConfig,
+        providerConfig: provider.config,
+      })
+    }
   }
 
   moduleConfig.serviceConfigs = [
@@ -106,7 +123,7 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
   const pulumiParams = { log, ctx, provider, module: pulumiModule }
   const { autoApply, deployFromPreview } = pulumiModule.spec
   const serviceVersion = service.version
-  await selectStack(pulumiParams)
+  const { cacheStatus } = pulumiModule.spec
 
   if (!autoApply && !deployFromPreview) {
     log.info(`${pulumiModule.name} has autoApply = false, but no planPath was provided. Skipping deploy.`)
@@ -117,11 +134,11 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
       detail: {},
     }
   }
-
   const root = getModuleStackRoot(pulumiModule)
-  const env = defaultPulumiEnv
+  const env = ensureEnv(pulumiParams)
 
   let planPath: string | null
+  // TODO: does the plan include the backend config?
   if (deployFromPreview) {
     // A pulumi plan for this module has already been generated, so we use that.
     planPath = getPlanPath(ctx, pulumiModule)
@@ -130,6 +147,7 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
     await applyConfig(pulumiParams)
     planPath = null
   }
+  await selectStack(pulumiParams)
   log.verbose(`Applying pulumi stack...`)
   const upArgs = [
     "up",
@@ -148,8 +166,9 @@ export const deployPulumiService: ServiceActionHandlers["deployService"] = async
     ctx,
     errorPrefix: "Error when applying pulumi stack",
   })
-  await setStackVersionTag({ ...pulumiParams, serviceVersion })
-
+  if (cacheStatus) {
+    await setStackVersionTag({ ...pulumiParams, serviceVersion })
+  }
   return {
     state: "ready",
     version: serviceVersion,
@@ -172,7 +191,7 @@ export const deletePulumiService: ServiceActionHandlers["deleteService"] = async
   const provider = ctx.provider as PulumiProvider
   const pulumiParams = { log, ctx, provider, module: pulumiModule }
   const root = getModuleStackRoot(pulumiModule)
-  const env = defaultPulumiEnv
+  const env = ensureEnv(pulumiParams)
   await selectStack(pulumiParams)
 
   const cli = pulumi(ctx, provider)

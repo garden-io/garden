@@ -33,6 +33,7 @@ export interface PulumiParams {
 
 export interface PulumiConfig {
   config: DeepPrimitiveMap
+  backend?: { url: string }
 }
 
 interface PulumiManifest {
@@ -116,7 +117,7 @@ export async function previewStack(
     // We write the plan to the `.garden` directory for subsequent use by the deploy handler.
     args: ["preview", "--color", "always", "--config-file", configPath, "--save-plan", planPath],
     cwd: getModuleStackRoot(module),
-    env: defaultPulumiEnv,
+    env: ensureEnv(params),
   })
   const plan = await readPulumiPlan(module, planPath)
   const affectedResourcesCount = countAffectedResources(plan)
@@ -144,7 +145,7 @@ export async function getStackOutputs({ log, ctx, provider, module }: PulumiPara
   const res = await pulumi(ctx, provider).json({
     log,
     args: ["stack", "output", "--json"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, module }),
     cwd: getModuleStackRoot(module),
   })
   log.debug(`stack outputs for ${module.name}: ${JSON.stringify(res, null, 2)}`)
@@ -156,7 +157,7 @@ export async function getDeployment({ log, ctx, provider, module }: PulumiParams
   const res = await pulumi(ctx, provider).json({
     log,
     args: ["stack", "export"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, module }),
     cwd: getModuleStackRoot(module),
   })
   log.silly(`stack export for ${module.name}: ${JSON.stringify(res, null, 2)}`)
@@ -172,12 +173,16 @@ export async function setStackVersionTag({
   module,
   serviceVersion,
 }: PulumiParams & { serviceVersion: string }): Promise<string> {
-  await pulumi(ctx, provider).stdout({
-    log,
-    args: ["stack", "tag", "set", stackVersionKey, serviceVersion],
-    env: defaultPulumiEnv,
-    cwd: getModuleStackRoot(module),
-  })
+  try {
+    await pulumi(ctx, provider).stdout({
+      log,
+      args: ["stack", "tag", "set", stackVersionKey, serviceVersion],
+      env: ensureEnv({ log, ctx, provider, module }),
+      cwd: getModuleStackRoot(module),
+    })
+  } catch (err) {
+    throw err.message + "\n\nHint: consider setting 'cacheStatus: false'\n"
+  }
   return serviceVersion
 }
 
@@ -188,7 +193,7 @@ export async function getStackVersionTag({ log, ctx, provider, module }: PulumiP
     res = await pulumi(ctx, provider).stdout({
       log,
       args: ["stack", "tag", "get", stackVersionKey],
-      env: defaultPulumiEnv,
+      env: ensureEnv({ log, ctx, provider, module }),
       cwd: getModuleStackRoot(module),
     })
   } catch (err) {
@@ -204,7 +209,7 @@ export async function clearStackVersionTag({ log, ctx, provider, module }: Pulum
   await pulumi(ctx, provider).stdout({
     log,
     args: ["stack", "tag", "rm", stackVersionKey],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, module }),
     cwd: getModuleStackRoot(module),
   })
 }
@@ -236,7 +241,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
     stackConfigFileExists = true
   } catch (err) {
     log.debug(`No pulumi stack configuration file for module ${module.name} found at ${stackConfigPath}`)
-    stackConfig = { config: {} }
+    stackConfig = { config: {}, backend: { url: "" } }
     stackConfigFileExists = false
   }
   const pulumiVars = module.spec.pulumiVariables
@@ -268,6 +273,9 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   vars = <DeepPrimitiveMap>merge(vars, pulumiVars || {})
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
+
+  const backendUrl = getBackendUrl(params.provider, params.module)
+  stackConfig.backend = { url: backendUrl }
 
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
@@ -347,7 +355,7 @@ export async function cancelUpdate({ module, ctx, provider, log }: PulumiParams)
     log,
     ignoreError: true,
     args: ["cancel", "--yes", "--color", "always"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, module }),
     cwd: getModuleStackRoot(module),
   })
   log.info(res.stdout)
@@ -368,7 +376,7 @@ export async function refreshResources(params: PulumiParams): Promise<void> {
     log,
     ignoreError: false,
     args: ["refresh", "--yes", "--color", "always", "--config-file", configPath],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, module }),
     cwd: getModuleStackRoot(module),
   })
   log.info(res.stdout)
@@ -386,7 +394,7 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
     log,
     ignoreError: false,
     args: ["stack", "export"],
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, module }),
     cwd,
   })
   await cli.exec({
@@ -394,12 +402,25 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
     ignoreError: false,
     args: ["stack", "import"],
     input: exportRes.stdout,
-    env: defaultPulumiEnv,
+    env: ensureEnv({ log, ctx, provider, module }),
     cwd,
   })
 }
 
 // Lower-level helpers
+
+function getBackendUrl(provider: PulumiProvider, module: PulumiModule): string {
+  if (module.spec.backendURL) {
+    return module.spec.backendURL
+  } else {
+    return provider.config.backendURL
+  }
+}
+
+export function ensureEnv(pulumiParams: PulumiParams): { [key: string]: string } {
+  const backendUrl = getBackendUrl(pulumiParams.provider, pulumiParams.module)
+  return { PULUMI_BACKEND_URL: backendUrl, ...defaultPulumiEnv }
+}
 
 export async function selectStack({ module, ctx, provider, log }: PulumiParams) {
   const root = getModuleStackRoot(module)
@@ -409,7 +430,8 @@ export async function selectStack({ module, ctx, provider, log }: PulumiParams) 
   const qualifiedStackName = orgName ? `${orgName}/${stackName}` : stackName
   const args = ["stack", "select", qualifiedStackName]
   module.spec.createStack && args.push("--create")
-  await pulumi(ctx, provider).spawnAndWait({ args, cwd: root, log, env: defaultPulumiEnv })
+  const env = ensureEnv({ module, ctx, provider, log })
+  await pulumi(ctx, provider).spawnAndWait({ args, cwd: root, log, env })
   return stackName
 }
 

@@ -53,7 +53,7 @@ This ensures that Garden deploys `pulumi-module-b` before `pulumi-module-a` when
 
 If you make sure to include all stack references to pulumi modules in your project in the `stackReferences` field, you can safely set `cacheStatus: true` for your module, since Garden will factor the stack output values into its version calculations.
 
-If `cacheStatus` is set to `false`, Garden runs `pulumi up` on every deploy. While this is safe and easy to reason about, it's much slower and more resource-intensive than using `cacheStatus = true`.
+If `cacheStatus` is set to `false`, Garden runs `pulumi up` on every deploy. While this is safe and easy to reason about, it's much slower and more resource-intensive than using `cacheStatus = true`. However setting `cacheStatus = true` is only possible for Pulumi service managed state backends.
 
 This is because running `pulumi up` is a much more expensive operation (in terms of CPU, RAM and time used) than the calls to `pulumi stack tag set/get` that Garden uses when `cacheStatus = true`.
 
@@ -84,6 +84,6 @@ garden plugins pulumi preview -- my-pulumi-module my-other-pulumi-module
 
 Check out the [`pulumi` example](https://github.com/garden-io/garden/tree/0.12.55/examples/pulumi) project.
 
-Also take a look at the [pulumi provider reference]() and the [pulumi module type reference] for details on all the configuration parameters.
+Also take a look at the [pulumi provider reference](https://docs.garden.io/reference/providers/pulumi) and the [pulumi module type reference](https://docs.garden.io/reference/module-types/pulumi) for details on all the configuration parameters.
 
 If you're having issues with pulumi itself, please refer to the [official docs](https://www.pulumi.com/docs/).
