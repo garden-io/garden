@@ -79,6 +79,208 @@ success:
 graphResults:
 ```
 
+### garden cloud secrets list
+
+**List secrets defined in Garden Cloud.**
+
+List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
+
+Examples:
+    garden cloud secrets list                                          # list all secrets
+    garden cloud secrets list --filter-envs dev                        # list all secrets from the dev environment
+    garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
+
+#### Usage
+
+    garden cloud secrets list [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--filter-envs` |  | array:string | Filter on environment. You may filter on multiple environments by setting this flag multiple times. Accepts glob patterns.&quot;
+  | `--filter-user-ids` |  | array:string | Filter on user ID. You may filter on multiple user IDs by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-names` |  | array:string | Filter on secret name. You may filter on multiple secret names by setting this flag multiple times. Accepts glob patterns.
+
+
+### garden cloud secrets create
+
+**Create secrets in Garden Cloud.**
+
+Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
+them to an environment, or an environment and a user.
+
+To scope secrets to a user, you will need the user's ID which you can get from the
+`garden cloud users list` command.
+
+You can optionally read the secrets from a file.
+
+Examples:
+    garden cloud secrets create DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two secrets
+    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
+    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
+    garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
+
+#### Usage
+
+    garden cloud secrets create [secrets] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret name/value pairs, separated by spaces. Note that you can also leave this empty and have Garden read the secrets from file.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--scope-to-user-id` |  | number | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
+  | `--scope-to-env` |  | string | Scope the secret to an environment. Note that this does not default to the environment that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if you want to create an environment scoped secret.
+  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
+
+
+### garden cloud secrets delete
+
+**Delete secrets from Garden Cloud.**
+
+Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
+which you which you can get from the `garden cloud secrets list` command.
+
+Examples:
+    garden cloud secrets delete <ID 1> <ID 2> <ID 3>   # delete three secrets with the given IDs.
+
+#### Usage
+
+    garden cloud secrets delete [ids] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `ids` | No | The ID(s) of the secrets to delete.
+
+
+
+### garden cloud users list
+
+**List users defined in Garden Cloud.**
+
+List all users from Garden Cloud. Optionally filter on group names or user names.
+
+Examples:
+    garden cloud users list                            # list all users
+    garden cloud users list --filter-names Gordon*     # list all the Gordons in Garden Cloud. Useful if you have a lot of Gordons.
+    garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
+
+#### Usage
+
+    garden cloud users list [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--filter-names` |  | array:string | Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
+  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.
+
+
+### garden cloud users create
+
+**Create users in Garden Cloud.**
+
+Create users in Garden Cloud and optionally add the users to specific groups.
+You can get the group IDs from the `garden cloud users list` command.
+
+To create a user, you'll need their GitHub or GitLab username, depending on which one is your VCS provider, and the name
+they should have in Garden Cloud. Note that it **must** the their GitHub/GitLab username, not their email, as people
+can have several emails tied to their GitHub/GitLab accounts.
+
+You can optionally read the users from a file. The file must have the format vcs-username="Actual Username". For example:
+
+fatema_m="Fatema M"
+gordon99="Gordon G"
+
+Examples:
+    garden cloud users create fatema_m="Fatema M" gordon99="Gordon G"  # create two users
+    garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
+    garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
+
+#### Usage
+
+    garden cloud users create [users] [options]
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple VCS username/name pairs, separated by spaces. Note that you can also leave this empty and have Garden read the users from file.
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. You may add the user to multiple groups by setting this flag multiple times.
+  | `--from-file` |  | path | Read the users from the file at the given path. The file should have standard &quot;dotenv&quot; format (as defined by [dotenv](https://github.com/motdotla/dotenv#rules)) where the VCS username is the key and the name is the value.
+
+
+### garden cloud users delete
+
+**Delete users from Garden Cloud.**
+
+Delete users in Garden Cloud. You will need the IDs of the users you want to delete,
+which you which you can get from the `garden cloud users list` command. Use a comma-
+separated list to delete multiple users.
+
+Examples:
+    garden cloud users delete <ID 1> <ID 2> <ID 3>   # delete three users with the given IDs.
+
+#### Usage
+
+    garden cloud users delete [ids] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `ids` | No | The IDs of the users to delete.
+
+
+
+### garden cloud groups list
+
+**List groups defined in Garden Cloud.**
+
+List all groups from Garden Cloud. This is useful for getting the group IDs when creating
+users via the `garden cloud users create` command.
+
+Examples:
+    garden cloud groups list                       # list all groups
+    garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
+
+#### Usage
+
+    garden cloud groups list [options]
+
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--filter-names` |  | array:string | Filter on group name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
+
+
+### garden community
+
+**Join our community Discord to chat with us!**
+
+Opens the Garden Community Discord invite link
+
+#### Usage
+
+    garden community 
+
+
+
 ### garden config analytics-enabled
 
 **Update your preferences regarding analytics.**
@@ -561,196 +763,6 @@ stdout:
 # The stderr output of the executed command (if available).
 stderr:
 ```
-
-### garden cloud secrets list
-
-**List secrets defined in Garden Cloud.**
-
-List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
-
-Examples:
-    garden cloud secrets list                                          # list all secrets
-    garden cloud secrets list --filter-envs dev                        # list all secrets from the dev environment
-    garden cloud secrets list --filter-envs dev --filter-names *_DB_*  # list all secrets from the dev environment that have '_DB_' in their name.
-
-#### Usage
-
-    garden cloud secrets list [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--filter-envs` |  | array:string | Filter on environment. You may filter on multiple environments by setting this flag multiple times. Accepts glob patterns.&quot;
-  | `--filter-user-ids` |  | array:string | Filter on user ID. You may filter on multiple user IDs by setting this flag multiple times. Accepts glob patterns.
-  | `--filter-names` |  | array:string | Filter on secret name. You may filter on multiple secret names by setting this flag multiple times. Accepts glob patterns.
-
-
-### garden cloud secrets create
-
-**Create secrets in Garden Cloud.**
-
-Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
-them to an environment, or an environment and a user.
-
-To scope secrets to a user, you will need the user's ID which you can get from the
-`garden cloud users list` command.
-
-You can optionally read the secrets from a file.
-
-Examples:
-    garden cloud secrets create DB_PASSWORD=my-pwd ACCESS_KEY=my-key   # create two secrets
-    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci    # create a secret and scope it to the ci environment
-    garden cloud secrets create ACCESS_KEY=my-key --scope-to-env ci --scope-to-user 9  # create a secret and scope it to the ci environment and user with ID 9
-    garden cloud secrets create --from-file /path/to/secrets.txt  # create secrets from the key value pairs in the secrets.txt file
-
-#### Usage
-
-    garden cloud secrets create [secrets] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `secrets` | No | The names and values of the secrets to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple secret name/value pairs, separated by spaces. Note that you can also leave this empty and have Garden read the secrets from file.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--scope-to-user-id` |  | number | Scope the secret to a user with the given ID. User scoped secrets must be scoped to an environment as well.
-  | `--scope-to-env` |  | string | Scope the secret to an environment. Note that this does not default to the environment that the command runs in (i.e. the one set via the --env flag) and that you need to set this explicitly if you want to create an environment scoped secret.
-  | `--from-file` |  | path | Read the secrets from the file at the given path. The file should have standard &quot;dotenv&quot; format, as defined by [dotenv](https://github.com/motdotla/dotenv#rules).
-
-
-### garden cloud secrets delete
-
-**Delete secrets from Garden Cloud.**
-
-Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
-which you which you can get from the `garden cloud secrets list` command.
-
-Examples:
-    garden cloud secrets delete <ID 1> <ID 2> <ID 3>   # delete three secrets with the given IDs.
-
-#### Usage
-
-    garden cloud secrets delete [ids] 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `ids` | No | The ID(s) of the secrets to delete.
-
-
-
-### garden cloud users list
-
-**List users defined in Garden Cloud.**
-
-List all users from Garden Cloud. Optionally filter on group names or user names.
-
-Examples:
-    garden cloud users list                            # list all users
-    garden cloud users list --filter-names Gordon*     # list all the Gordons in Garden Cloud. Useful if you have a lot of Gordons.
-    garden cloud users list --filter-groups devs-*     # list all users in groups that with names that start with 'dev-'
-
-#### Usage
-
-    garden cloud users list [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on user name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
-  | `--filter-groups` |  | array:string | Filter on the groups the user belongs to. You may filter on multiple groups by setting this flag multiple times. Accepts glob patterns.
-
-
-### garden cloud users create
-
-**Create users in Garden Cloud.**
-
-Create users in Garden Cloud and optionally add the users to specific groups.
-You can get the group IDs from the `garden cloud users list` command.
-
-To create a user, you'll need their GitHub or GitLab username, depending on which one is your VCS provider, and the name
-they should have in Garden Cloud. Note that it **must** the their GitHub/GitLab username, not their email, as people
-can have several emails tied to their GitHub/GitLab accounts.
-
-You can optionally read the users from a file. The file must have the format vcs-username="Actual Username". For example:
-
-fatema_m="Fatema M"
-gordon99="Gordon G"
-
-Examples:
-    garden cloud users create fatema_m="Fatema M" gordon99="Gordon G"  # create two users
-    garden cloud users create fatema_m="Fatema M" --add-to-groups 1,2  # create a user and add two groups with IDs 1,2
-    garden cloud users create --from-file /path/to/users.txt           # create users from the key value pairs in the users.txt file
-
-#### Usage
-
-    garden cloud users create [users] [options]
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `users` | No | The VCS usernames and the names of the users to create, separated by &#x27;&#x3D;&#x27;. You may specify multiple VCS username/name pairs, separated by spaces. Note that you can also leave this empty and have Garden read the users from file.
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--add-to-groups` |  | array:string | Add the user to the group with the given ID. You may add the user to multiple groups by setting this flag multiple times.
-  | `--from-file` |  | path | Read the users from the file at the given path. The file should have standard &quot;dotenv&quot; format (as defined by [dotenv](https://github.com/motdotla/dotenv#rules)) where the VCS username is the key and the name is the value.
-
-
-### garden cloud users delete
-
-**Delete users from Garden Cloud.**
-
-Delete users in Garden Cloud. You will need the IDs of the users you want to delete,
-which you which you can get from the `garden cloud users list` command. Use a comma-
-separated list to delete multiple users.
-
-Examples:
-    garden cloud users delete <ID 1> <ID 2> <ID 3>   # delete three users with the given IDs.
-
-#### Usage
-
-    garden cloud users delete [ids] 
-
-#### Arguments
-
-| Argument | Required | Description |
-| -------- | -------- | ----------- |
-  | `ids` | No | The IDs of the users to delete.
-
-
-
-### garden cloud groups list
-
-**List groups defined in Garden Cloud.**
-
-List all groups from Garden Cloud. This is useful for getting the group IDs when creating
-users via the `garden cloud users create` command.
-
-Examples:
-    garden cloud groups list                       # list all groups
-    garden cloud groups list --filter-names dev-*  # list all groups that start with 'dev-'
-
-#### Usage
-
-    garden cloud groups list [options]
-
-#### Options
-
-| Argument | Alias | Type | Description |
-| -------- | ----- | ---- | ----------- |
-  | `--filter-names` |  | array:string | Filter on group name. You may filter on multiple names by setting this flag multiple times. Accepts glob patterns.
-
 
 ### garden get graph
 
