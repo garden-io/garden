@@ -3,7 +3,7 @@ description: Postgres database for storing user names
 type: helm
 name: postgres
 chart: postgresql
-repo: https://charts.bitnami.com/bitnami
+repo: https://raw.githubusercontent.com/bitnami/charts/archive-full-index/bitnami
 version: "8.10.5"
 serviceResource:
   kind: StatefulSet
