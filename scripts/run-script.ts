@@ -18,6 +18,7 @@ const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
 
+// CI test 1
 async function runInPackages(args: string[]) {
   const argv = minimist(args, { boolean: ["bail", "parallel"], default: { bail: true } })
   const script = argv._[0]
