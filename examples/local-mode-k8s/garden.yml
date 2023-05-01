@@ -1,3 +1,4 @@
+apiVersion: garden.io/v1
 kind: Project
 name: local-mode-k8s
 environments:
