@@ -1,4 +1,4 @@
-apiVersion: garden.io/v0
+apiVersion: garden.io/v1
 kind: Project
 name: garden-core
 defaultEnvironment: testing
