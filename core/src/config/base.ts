@@ -306,13 +306,14 @@ function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectRe
 }
 
 function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): ProjectResource {
-  // Field 'modules' was intentionally removed from the internal interface `ProjectResource`,
-  // but it still can be presented in the runtime if the old config format is used.
+  // We conservatively set the apiVersion to be compatible with 0.12.
   if (!projectSpec["apiVersion"]) {
     emitNonRepeatableWarning(
       log,
-      `"apiVersion" is missing in the Project config. The "apiVersion"-field is mandatory when using the new action Kind-configs. Use "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12 or "${DEFAULT_API_VERSION}" for 0.13. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`
+      `"apiVersion" is missing in the Project config. Assuming "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`
     )
+
+    return { ...projectSpec, apiVersion: PREVIOUS_API_VERSION }
   } else {
     if (projectSpec["apiVersion"] === PREVIOUS_API_VERSION) {
       emitNonRepeatableWarning(
@@ -373,7 +374,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   // Built-in keys are validated here and the rest are put into the `spec` field
   const path = dirname(configPath)
   const config: ModuleConfig = {
-    apiVersion: spec.apiVersion || DEFAULT_API_VERSION,
+    apiVersion: spec.apiVersion || PREVIOUS_API_VERSION,
     kind: "Module",
     allowPublish: spec.allowPublish,
     build: {

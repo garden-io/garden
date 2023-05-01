@@ -116,14 +116,20 @@ describe("prepareProjectResource", () => {
     expect(processConfigAction).to.throw(ConfigurationError, /"apiVersion: unknown" is unknown/)
   })
 
-  it("should log a warning if the apiVersion is not defined", async () => {
+  it("should fall back to the previous apiVersion when not defined", async () => {
     const projectResource = {
       ...projectResourceTemplate,
       apiVersion: undefined,
     }
 
     const returnedProjectResource = prepareProjectResource(log, projectResource)
-    expect(returnedProjectResource).to.eql(projectResource)
+
+    // The apiVersion is set to the previous version for backwards compatibility.
+    const expectedProjectResource = {
+      ...projectResource,
+      apiVersion: PREVIOUS_API_VERSION,
+    }
+    expect(returnedProjectResource).to.eql(expectedProjectResource)
 
     const logEntries = logger.getLogEntries()
     expect(logEntries).to.have.length(1)
