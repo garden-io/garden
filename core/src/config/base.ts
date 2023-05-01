@@ -192,19 +192,6 @@ export function prepareResource({
 
   let kind = spec.kind
 
-  // Allow the default api version for all kinds except for Project where we expect it to be defined
-  // explicitly from 0.13 and forward.
-  /*if (!spec.apiVersion && spec.kind === "Project") {
-    throw new ConfigurationError(
-      `"apiVersion" is missing in the Project config. The "apiVersion"-field is required from 0.13 (Bonsai). Use "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12 or "${DEFAULT_API_VERSION}" for 0.13. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
-      { spec, path: configFilePath }
-    )
-  }
-
-  if (!spec.apiVersion) {
-    spec.apiVersion = DEFAULT_API_VERSION
-  }*/
-
   const basePath = dirname(configFilePath)
 
   if (!allowInvalid) {
@@ -322,11 +309,9 @@ function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): Projec
   // Field 'modules' was intentionally removed from the internal interface `ProjectResource`,
   // but it still can be presented in the runtime if the old config format is used.
   if (!projectSpec["apiVersion"]) {
-    throw new ConfigurationError(
-      `"apiVersion" is missing in the Project config. The "apiVersion"-field is required from 0.13 (Bonsai). Use "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12 or "${DEFAULT_API_VERSION}" for 0.13. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
-      {
-        projectSpec,
-      }
+    emitNonRepeatableWarning(
+      log,
+      `"apiVersion" is missing in the Project config. The "apiVersion"-field is mandatory when using the new action Kind-configs. Use "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12 or "${DEFAULT_API_VERSION}" for 0.13. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`
     )
   } else {
     if (projectSpec["apiVersion"] === PREVIOUS_API_VERSION) {

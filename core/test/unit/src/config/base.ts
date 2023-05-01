@@ -18,7 +18,7 @@ import {
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
 import { getRootLogger } from "../../../../src/logger/logger"
@@ -31,7 +31,8 @@ const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
-const log = getRootLogger().createLog()
+const logger = getRootLogger()
+const log = logger.createLog()
 
 // TODO-0.14: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
@@ -105,16 +106,6 @@ describe("prepareProjectResource", () => {
     )
   })
 
-  it("should throw an error if the apiVersion is not defined", async () => {
-    const projectResource = {
-      ...projectResourceTemplate,
-      apiVersion: undefined,
-    }
-
-    const processConfigAction = () => prepareProjectResource(log, projectResource)
-    expect(processConfigAction).to.throw(ConfigurationError, /"apiVersion" is missing/)
-  })
-
   it("should throw an error if the apiVersion is not known", async () => {
     const projectResource = {
       ...projectResourceTemplate,
@@ -123,6 +114,34 @@ describe("prepareProjectResource", () => {
 
     const processConfigAction = () => prepareProjectResource(log, projectResource)
     expect(processConfigAction).to.throw(ConfigurationError, /"apiVersion: unknown" is unknown/)
+  })
+
+  it("should log a warning if the apiVersion is not defined", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: undefined,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+    expect(returnedProjectResource).to.eql(projectResource)
+
+    const logEntries = logger.getLogEntries()
+    expect(logEntries).to.have.length(1)
+    expect(logEntries[0].msg).to.include(`"apiVersion" is missing in the Project config`)
+  })
+
+  it("should log a warning if the apiVersion is against the previous version", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: PREVIOUS_API_VERSION,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+    expect(returnedProjectResource).to.eql(projectResource)
+
+    const logEntries = logger.getLogEntries()
+    expect(logEntries).to.have.length(1)
+    expect(logEntries[0].msg).to.include(`Project "apiVersion" running with backwards compatibility`)
   })
 })
 
