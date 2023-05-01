@@ -307,7 +307,7 @@ function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectRe
 
 function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): ProjectResource {
   // We conservatively set the apiVersion to be compatible with 0.12.
-  if (!projectSpec["apiVersion"]) {
+  if (projectSpec["apiVersion"] === undefined) {
     emitNonRepeatableWarning(
       log,
       `"apiVersion" is missing in the Project config. Assuming "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`

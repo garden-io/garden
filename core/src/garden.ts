@@ -69,6 +69,7 @@ import {
   gardenEnv,
   SupportedArchitecture,
   SUPPORTED_ARCHITECTURES,
+  DEFAULT_API_VERSION,
 } from "./constants"
 import { Log } from "./logger/log-entry"
 import { EventBus } from "./events"
@@ -214,6 +215,7 @@ export interface GardenParams {
   workingCopyId: string
   forceRefresh?: boolean
   cloudApi?: CloudApi | null
+  projectApiVersion: string
 }
 
 @Profile()
@@ -245,6 +247,7 @@ export class Garden {
   public readonly production: boolean
   public readonly projectRoot: string
   public readonly projectName: string
+  public readonly projectApiVersion: string
   public readonly environmentName: string
   public readonly environmentConfigs: EnvironmentConfig[]
   public readonly namespace: string
@@ -296,6 +299,7 @@ export class Garden {
     this.projectName = params.projectName
     this.projectRoot = params.projectRoot
     this.projectSources = params.projectSources || []
+    this.projectApiVersion = params.projectApiVersion
     this.providerConfigs = params.providerConfigs
     this.variables = params.variables
     this.cliVariables = params.cliVariables
@@ -1266,6 +1270,15 @@ export class Garden {
       let actionsCount = 0
 
       for (const kind of actionKinds) {
+        // Verify that the project apiVersion is defined as compatible with action kinds
+        // This is only available with apiVersion `garden.io/v1` or newer.
+        if (this.projectApiVersion !== DEFAULT_API_VERSION) {
+          throw new ConfigurationError(
+            `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}". A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
+            {}
+          )
+        }
+
         for (const config of groupedResources[kind] || []) {
           this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
@@ -1547,6 +1560,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
 
   const _username = (await username()) || ""
   const projectName = config.name
+  const projectApiVersion = config.apiVersion
 
   const { sources: projectSources, path: projectRoot } = config
   const commandInfo = opts.commandInfo
@@ -1758,6 +1772,7 @@ export const resolveGardenParams = profileAsync(async function _resolveGardenPar
     forceRefresh: opts.forceRefresh,
     cloudApi,
     cache: treeCache,
+    projectApiVersion,
   }
 })
 
