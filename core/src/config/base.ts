@@ -8,10 +8,10 @@
 
 import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
-import { safeLoad, safeLoadAll } from "js-yaml"
+import { safeLoad } from "js-yaml"
 import yamlLint from "yaml-lint"
 import { pathExists, readFile } from "fs-extra"
-import { omit, isPlainObject, isArray } from "lodash"
+import { omit, isPlainObject, isArray, get } from "lodash"
 import { coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig, ModuleConfig } from "./module"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
@@ -27,6 +27,7 @@ import { ActionKind, actionKinds } from "../actions/types"
 import { mayContainTemplateString } from "../template-string/template-string"
 import { Log } from "../logger/log-entry"
 import { deline } from "../util/string"
+import { LineCounter, Parser, Composer, Document, ParsedNode, Scalar } from "yaml"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -80,6 +81,74 @@ export type ConfigKind = "Module" | "Workflow" | "Project" | ConfigTemplateKind 
 
 export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKind, renderTemplateKind, ...actionKinds]
 
+function parseYamlWithContext(content: string): any[] {
+  const lineCounter = new LineCounter()
+  const parser = new Parser(lineCounter.addNewLine)
+
+  const tokens = parser.parse(content)
+  const docsGenerator = new Composer().compose(tokens)
+
+  const docs = Array.from(docsGenerator) as any[]
+
+  const docWithError = docs.find((doc) => doc.errors.length > 0)
+
+  // If there is an error, throw it
+  if (docWithError) {
+    throw docWithError.errors[0]
+  }
+
+  const objectCaches: Map<Document.Parsed<ParsedNode>, any> = new Map()
+
+  const makeYamlProxyObject = (
+    lineCounter: LineCounter,
+    doc: Document.Parsed<ParsedNode>,
+    currentPath: (string | symbol)[] = []
+  ): any => {
+    // We need to cache the JS objects for performance,
+    // but also because the objects are mutable
+    if (!objectCaches.has(doc)) {
+      objectCaches.set(doc, doc.toJS())
+    }
+    const jsObject = objectCaches.get(doc)
+    const jsDoc = currentPath.length === 0 ? jsObject : get(jsObject, currentPath)
+
+    if (jsDoc === undefined) {
+      return undefined
+    }
+
+    const proxy = new Proxy(jsDoc, {
+      get: (_target, key) => {
+        const keyString = key.toString()
+        if (keyString.endsWith("__context")) {
+          const cleanedKey = keyString.replace("__context", "")
+          const node = doc.getIn([...currentPath, cleanedKey], true) as Scalar
+          const [rangeStart, rangeEnd] = node.range!
+          const length = rangeEnd - rangeStart
+          const startPos = lineCounter.linePos(rangeStart)
+          const endPos = lineCounter.linePos(rangeEnd)
+
+          return {
+            value: jsDoc[cleanedKey],
+            start: startPos,
+            end: endPos,
+            length,
+          }
+        }
+        const value = jsDoc[key]
+        const isDeeperObject = Array.isArray(value) || isPlainObject(value)
+
+        if (isDeeperObject) {
+          return makeYamlProxyObject(lineCounter, doc, [...currentPath, key])
+        }
+        return jsDoc[key]
+      },
+    })
+
+    return proxy
+  }
+
+  return docs.map((doc) => makeYamlProxyObject(lineCounter, doc))
+}
 /**
  * Attempts to parse content as YAML, and applies a linter to produce more informative error messages when
  * content is not valid YAML.
@@ -89,7 +158,7 @@ export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKi
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
   try {
-    return safeLoadAll(content) || []
+    return parseYamlWithContext(content) || []
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
@@ -138,7 +207,6 @@ export async function validateRawConfig({
   allowInvalid?: boolean
 }) {
   let rawSpecs = await loadAndValidateYaml(rawConfig, configPath)
-
   // Ignore empty resources
   rawSpecs = rawSpecs.filter(Boolean)
 
@@ -250,9 +318,13 @@ export function prepareResource({
       path: relPath,
     })
   } else {
+    const context = spec.kind__context
     throw new ConfigurationError(`Unknown kind ${kind} in ${description}`, {
       kind,
       path: relPath,
+      absolutePath: configFilePath,
+      start: context.start,
+      end: context.end
     })
   }
 }

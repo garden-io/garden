@@ -10,6 +10,28 @@ import { isEmpty, isString } from "lodash"
 import { stringify } from "yaml"
 import { withoutInternalFields, sanitizeValue } from "./util/logging"
 import { testFlags } from "./util/util"
+import { readFileSync } from "fs"
+import chalk from "chalk"
+import { highlightYaml } from "./util/serialization"
+
+export type ErrorYamlFileContext = {
+  absolutePath: string
+  start: { line: number; col: number }
+  end: { line: number; col: number}
+}
+
+function hasYamlFileContext (context: unknown): context is ErrorYamlFileContext {
+  return (
+    !!context &&
+    (context as ErrorYamlFileContext).absolutePath !== undefined &&
+    (context as ErrorYamlFileContext).start !== undefined &&
+    (context as ErrorYamlFileContext).end !== undefined &&
+    typeof (context as ErrorYamlFileContext).start.line === "number" &&
+    typeof (context as ErrorYamlFileContext).start.col === "number" &&
+    typeof (context as ErrorYamlFileContext).end.line === "number" &&
+    typeof (context as ErrorYamlFileContext).end.col === "number"
+  )
+}
 
 export interface GardenError<D extends object = any> extends Error {
   type: string
@@ -160,6 +182,33 @@ function filterErrorDetail(detail: any) {
   return withoutInternalFields(sanitizeValue(detail))
 }
 
+interface LineContext {
+  before: string[]
+  lines: string[]
+  after: string[]
+}
+
+const getLineWithContext = function (fileLines: string[], linesStart: number, linesEnd: number, context: number): LineContext {
+  const lines: number[] = []
+
+  for (let i = linesStart; i <= linesEnd; i++) {
+    // Lines start at 1, arrays at 0
+    lines.push(i - 1)
+  }
+
+  const first = lines[0]
+  const last = lines[lines.length - 1]
+
+  const firstLine = first > context ? first - context : 0
+  const lastLine = last + context < fileLines.length ? last + context : fileLines.length
+
+  return {
+    before: fileLines.slice(firstLine, first),
+    lines: lines.map((lineNumber) => fileLines[lineNumber]),
+    after: fileLines.slice(last + 1, lastLine + 1),
+  }
+}
+
 export function formatGardenErrorWithDetail(error: GardenError) {
   const { detail, message, stack } = error
   let out = stack || message || ""
@@ -175,5 +224,19 @@ export function formatGardenErrorWithDetail(error: GardenError) {
       out += `\n\nUnable to render error details:\n${err.message}`
     }
   }
+
+  if (hasYamlFileContext(error.detail)) {
+    const yamlFile = readFileSync(error.detail.absolutePath, "utf-8")
+    const highlighted = highlightYaml(yamlFile)
+    const fileLines = highlighted.split("\n")
+    const contextSize = 2
+    const context = getLineWithContext(fileLines, error.detail.start.line, error.detail.end.line, contextSize)
+
+    const logLines = [...context.before, ...context.lines.map((line) => chalk.underline.bgRed(line)), ...context.after]
+    const logLinesWithLineNumbers = logLines.map((line, index) => `${chalk.dim.italic(error.detail.start.line - contextSize + index + 1)} ${line}`)
+    console.log(logLinesWithLineNumbers.join("\n"))
+    out += `\n\n${logLinesWithLineNumbers.join("\n")}`
+  }
+
   return out
 }
