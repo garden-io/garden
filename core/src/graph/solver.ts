@@ -112,7 +112,7 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
       const output = await new Promise<SolveResult>((resolve, reject) => {
         const requests = keyBy(
           tasks.map((t) => {
-            return this.requestTask({ solver: _this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
+            return _this.requestTask({ solver: _this, task: t, batchId, statusOnly: !!statusOnly, completeHandler })
           }),
           (r) => r.task.getKey()
         )
@@ -191,15 +191,15 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
           }
         }
 
-        this.on("abort", cleanup)
+        _this.on("abort", cleanup)
 
-        this.start()
+        _this.start()
+      }).finally(() => {
+        // Clean up
+        // TODO-0.13.1: needs revising for concurrency, shortcutting just for now
+        _this.nodes = {}
+        _this.pendingNodes = {}
       })
-
-      // Clean up
-      // TODO-0.13.1: needs revising for concurrency, shortcutting just for now
-      this.nodes = {}
-      this.pendingNodes = {}
 
       return output
     })
@@ -210,16 +210,18 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const graph = new DependencyGraph<TaskNode>()
 
     const addNode = (node: TaskNode) => {
+      const key = node.getKey()
+
       if (node.isComplete()) {
         return
       }
-      graph.addNode(node.getKey(), node)
+      graph.addNode(key, node)
 
       const deps = node.getRemainingDependencies()
 
       for (const dep of deps) {
         addNode(dep)
-        graph.addDependency(node.getKey(), dep.getKey())
+        graph.addDependency(key, dep.getKey())
       }
     }
 
@@ -344,6 +346,9 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
             node.complete({ startedAt, error, aborted: true, result: null })
             // Abort execution on internal error
             this.emit("abort", { error })
+          })
+          .finally(() => {
+            delete this.inProgress[key]
           })
       }
     } finally {
@@ -507,12 +512,6 @@ export class GraphSolver extends TypedEventEmitter<SolverEvents> {
     const divider = renderDivider()
     log.silly(chalk.gray(`Full error with stack trace:\n${divider}\n${formatGardenErrorWithDetail(error)}\n${divider}`))
   }
-
-  // // Overriding to ease debugging
-  // emit<N extends keyof SolverEvents>(event: N, payload: SolverEvents[N]): boolean {
-  //   this.log.silly(`Emit event ${event} with payload ${JSON.stringify(payload)}`)
-  //   return super.emit(event, payload)
-  // }
 }
 
 interface TaskStartEvent extends TaskEventBase {
