@@ -40,5 +40,5 @@ values:
     tag: ${modules.api-image.version}
   ingress:
     enabled: true
-    paths: [/]
+    paths: [/api-module/]
     hosts: [api.local.demo.garden]

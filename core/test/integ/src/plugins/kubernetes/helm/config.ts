@@ -80,7 +80,7 @@ describe("configureHelmModule", () => {
         },
         ingress: {
           enabled: true,
-          paths: ["/"],
+          paths: ["/api-module/"],
           hosts: ["api.local.demo.garden"],
         },
       },
