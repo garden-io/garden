@@ -131,9 +131,8 @@ describe("prepareProjectResource", () => {
     }
     expect(returnedProjectResource).to.eql(expectedProjectResource)
 
-    const logEntries = logger.getLogEntries()
-    expect(logEntries).to.have.length(1)
-    expect(logEntries[0].msg).to.include(`"apiVersion" is missing in the Project config`)
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
   })
 
   it("should log a warning if the apiVersion is against the previous version", async () => {
@@ -145,9 +144,8 @@ describe("prepareProjectResource", () => {
     const returnedProjectResource = prepareProjectResource(log, projectResource)
     expect(returnedProjectResource).to.eql(projectResource)
 
-    const logEntries = logger.getLogEntries()
-    expect(logEntries).to.have.length(1)
-    expect(logEntries[0].msg).to.include(`Project "apiVersion" running with backwards compatibility`)
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(`Project "apiVersion" running with backwards compatibility`)
   })
 })
 
