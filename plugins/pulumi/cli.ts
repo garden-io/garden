@@ -111,7 +111,7 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
     name: "pulumi-3-48-0",
     description: "The pulumi CLI, v3.48.0",
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
