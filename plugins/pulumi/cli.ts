@@ -67,7 +67,7 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
     builds: [
       {
         platform: "darwin",
-        architecture: "and64",
+        architecture: "amd64",
         url: "https://github.com/pulumi/pulumi/releases/download/v3.64.0/pulumi-v3.64.0-darwin-x64.tar.gz",
         sha256: "ee62df4a40ab7cb016491f529e0256761a8ced6962dea28f88409d692cafcc82",
         extract: {
@@ -111,7 +111,7 @@ export const pulumiCliSPecs: { [version: string]: PluginToolSpec } = {
     name: "pulumi-3-48-0",
     description: "The pulumi CLI, v3.48.0",
     type: "binary",
-    _includeInGardenImage: true,
+    _includeInGardenImage: false,
     builds: [
       {
         platform: "darwin",
