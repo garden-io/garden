@@ -54,6 +54,7 @@
   * [Helm](./k8s-plugins/action-types/helm.md)
   * [PersistentVolumeClaim](./k8s-plugins/action-types/persistentvolumeclaim.md)
   * [ConfigMap](./k8s-plugins/action-types/configmap.md)
+  * [Kubernetes-exec](./k8s-plugins/action-types/kubernetes-exec.md)
 * [Advanced](./k8s-plugins/advanced/README.md)
   * [In-Cluster Building](./k8s-plugins/advanced/in-cluster-building.md)
   * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/advanced/rbac-config.md)
