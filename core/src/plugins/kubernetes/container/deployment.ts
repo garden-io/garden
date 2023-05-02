@@ -155,7 +155,7 @@ export const deployContainerServiceRolling = async (
     namespace,
     ctx,
     provider,
-    actionName: action.name,
+    actionName: action.key(),
     resources: manifests,
     log,
     timeoutSec: action.getSpec("timeout") || KUBECTL_DEFAULT_TIMEOUT,

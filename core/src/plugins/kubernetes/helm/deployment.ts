@@ -140,7 +140,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     namespace,
     ctx,
     provider,
-    actionName: action.name,
+    actionName: action.key(),
     resources: manifests,
     log,
     timeoutSec: spec.timeout,
