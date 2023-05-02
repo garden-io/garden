@@ -57,7 +57,7 @@ describe("readManifests", () => {
     const expectedErr = "kustomize.extraArgs must not include any of -o, --output, -h, --help"
 
     it("throws if --output is set in extraArgs", async () => {
-      action.getSpec().kustomize!.extraArgs = ["--output", "foo"]
+      action["_config"].spec.kustomize!.extraArgs = ["--output", "foo"]
 
       await expectError(
         () => readManifests(ctx, action, garden.log, false),
@@ -66,7 +66,7 @@ describe("readManifests", () => {
     })
 
     it("throws if -o is set in extraArgs", async () => {
-      action.getSpec().kustomize!.extraArgs = ["-o", "foo"]
+      action["_config"].spec.kustomize!.extraArgs = ["-o", "foo"]
 
       await expectError(
         () => readManifests(ctx, action, garden.log, false),
@@ -75,7 +75,7 @@ describe("readManifests", () => {
     })
 
     it("throws if -h is set in extraArgs", async () => {
-      action.getSpec().kustomize!.extraArgs = ["-h"]
+      action["_config"].spec.kustomize!.extraArgs = ["-h"]
 
       await expectError(
         () => readManifests(ctx, action, garden.log, false),
@@ -84,7 +84,7 @@ describe("readManifests", () => {
     })
 
     it("throws if --help is set in extraArgs", async () => {
-      action.getSpec().kustomize!.extraArgs = ["--help"]
+      action["_config"].spec.kustomize!.extraArgs = ["--help"]
 
       await expectError(
         () => readManifests(ctx, action, garden.log, false),
@@ -99,7 +99,7 @@ describe("readManifests", () => {
     })
 
     it("adds extraArgs if specified to the build command", async () => {
-      action.getSpec().kustomize!.extraArgs = ["--reorder", "none"]
+      action["_config"].spec.kustomize!.extraArgs = ["--reorder", "none"]
       const result = await readManifests(ctx, action, garden.log, true)
       const kinds = result.map((r) => r.kind)
       expect(kinds).to.eql(["Deployment", "Service", "ConfigMap"])

@@ -332,7 +332,7 @@ describe("kubernetes container deployment handlers", () => {
       const action = await resolveDeployAction("simple-service")
       const namespace = provider.config.namespace!.name!
 
-      action.getSpec().annotations = { "annotation.key": "someValue" }
+      action["_config"].spec.annotations = { "annotation.key": "someValue" }
 
       const resource = await createWorkloadManifest({
         ctx,
@@ -357,7 +357,7 @@ describe("kubernetes container deployment handlers", () => {
         memory: 321,
       }
 
-      action.getSpec().limits = limits
+      action["_config"].spec.limits = limits
 
       const resource = await createWorkloadManifest({
         ctx,
@@ -379,9 +379,9 @@ describe("kubernetes container deployment handlers", () => {
     it("should apply security context fields if specified", async () => {
       const action = await resolveDeployAction("simple-service")
       const namespace = provider.config.namespace!.name!
-      action.getSpec().privileged = true
-      action.getSpec().addCapabilities = ["SYS_TIME"]
-      action.getSpec().dropCapabilities = ["NET_ADMIN"]
+      action["_config"].spec.privileged = true
+      action["_config"].spec.addCapabilities = ["SYS_TIME"]
+      action["_config"].spec.dropCapabilities = ["NET_ADMIN"]
 
       const resource = await createWorkloadManifest({
         ctx,
@@ -602,7 +602,7 @@ describe("kubernetes container deployment handlers", () => {
       const action = await resolveDeployAction("volume-reference")
       const namespace = provider.config.namespace!.name!
 
-      action.getSpec().volumes = [
+      action["_config"].spec.volumes = [
         { name: "test", containerPath: "TODO-G2", action: { name: "simple-service", kind: "Deploy" } },
       ]
 
@@ -730,7 +730,7 @@ describe("kubernetes container deployment handlers", () => {
 
       it("should ignore empty env vars in status check comparison", async () => {
         const action = await resolveDeployAction("simple-service")
-        action.getSpec().env = {
+        action["_config"].spec.env = {
           FOO: "banana",
           BAR: "",
           BAZ: null,
