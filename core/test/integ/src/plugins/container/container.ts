@@ -6,11 +6,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import sinon from "sinon"
 import td from "testdouble"
 
 import { PluginContext } from "../../../../../src/plugin-context"
 import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/container/container"
-import { expectError, getDataDir, getPropertyName, makeTestGarden, TestGarden } from "../../../../helpers"
+import { expectError, getDataDir, makeTestGarden, TestGarden } from "../../../../helpers"
 import { ActionLog, createActionLog } from "../../../../../src/logger/log-entry"
 import { expect } from "chai"
 import { ContainerBuildAction, ContainerBuildActionSpec } from "../../../../../src/plugins/container/moduleConfig"
@@ -20,6 +21,8 @@ import { Executed } from "../../../../../src/actions/types"
 import { BuildActionConfig } from "../../../../../src/actions/build"
 import { containerHelpers, minDockerVersion } from "../../../../../src/plugins/container/helpers"
 import { getDockerBuildFlags } from "../../../../../src/plugins/container/build"
+
+const testVersionedId = "some/image:12345"
 
 describe("plugins.container", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -51,16 +54,14 @@ describe("plugins.container", () => {
   })
 
   async function getTestBuild(cfg: BuildActionConfig): Promise<Executed<ContainerBuildAction>> {
-    td.replace(
-      containerHelpers,
-      getPropertyName(containerHelpers, (h) => h.actionHasDockerfile),
-      () => true
-    )
-    td.replace(
-      containerHelpers,
-      getPropertyName(containerHelpers, (h) => h.dockerCli),
-      () => ({ all: "test log", stdout: "some/image:12345" })
-    )
+    sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
+    sinon.replace(containerHelpers, "dockerCli", async () => ({
+      all: "test log",
+      stdout: testVersionedId,
+      stderr: "",
+      code: 0,
+      proc: <any>null,
+    }))
 
     garden.setActionConfigs([cfg])
     const graph = await garden.getConfigGraph({ emit: false, log })
@@ -72,116 +73,92 @@ describe("plugins.container", () => {
   describe("publishContainerBuild", () => {
     it("should publish image", async () => {
       const config = cloneDeep(baseConfig)
-      config.spec.localId = "some/image:12345"
-      const action = td.object(await getTestBuild(config))
+      config.spec.localId = testVersionedId
 
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.actionHasDockerfile),
-        () => true
-      )
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.getPublicImageId),
-        () => "some/image:12345"
-      )
+      sinon.replace(containerHelpers, "getPublicImageId", () => testVersionedId)
 
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.dockerCli),
-        async ({ cwd, args, ctx: _ctx }) => {
-          if (args[0] === "tag") {
-            return { all: "log" }
-          }
-          expect(cwd).to.equal(action.getBuildPath())
-          expect(args).to.eql(["push", "some/image:12345"])
-          expect(_ctx).to.exist
-          return { all: "log" }
+      const action = await getTestBuild(config)
+
+      sinon.restore()
+
+      sinon.replace(containerHelpers, "getPublicImageId", () => testVersionedId)
+      sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
+
+      sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
+        const out = { all: "log", stdout: "", stderr: "", code: 0, proc: <any>null }
+        if (args[0] === "tag") {
+          return out
         }
-      )
+        expect(cwd).to.equal(action.getBuildPath())
+        expect(args).to.eql(["push", testVersionedId])
+        expect(_ctx).to.exist
+        return out
+      })
 
       const result = await publishContainerBuild({ ctx, log, action })
       expect(result.detail).to.eql({ message: "Published some/image:12345", published: true })
     })
 
     it("should tag image if remote id differs from local id", async () => {
+      const publishId = "some/image:1.1"
+
       const config = cloneDeep(baseConfig)
-      config.spec.localId = "some/image:12345"
-      const action = td.object(await getTestBuild(config))
 
-      td.replace(action, "getOutput", (o: string) =>
-        o === "localImageId" ? "some/image:12345" : action.getOutput(<any>o)
-      )
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.getPublicImageId),
-        () => "some/image:1.1"
-      )
+      config.spec.publishId = publishId
 
-      const dockerCli = td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.dockerCli)
+      const action = await getTestBuild(config)
+
+      sinon.replace(action, "getOutput", (o: string) =>
+        o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
       )
+      sinon.restore()
+
+      const dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action })
       expect(result.detail).to.eql({ message: "Published some/image:1.1", published: true })
 
-      td.verify(
-        dockerCli({
-          cwd: action.getBuildPath(),
-          args: ["tag", "some/image:12345", "some/image:1.1"],
-          log: td.matchers.anything(),
-          ctx: td.matchers.anything(),
-        })
-      )
+      sinon.assert.calledWithMatch(dockerCli.firstCall, {
+        cwd: action.getBuildPath(),
+        args: ["tag", action.getOutput("local-image-id"), publishId],
+      })
 
-      td.verify(
-        dockerCli({
-          cwd: action.getBuildPath(),
-          args: ["push", "some/image:1.1"],
-          log: td.matchers.anything(),
-          ctx: td.matchers.anything(),
-        })
-      )
+      sinon.assert.calledWithMatch(dockerCli.secondCall, {
+        cwd: action.getBuildPath(),
+        args: ["push", publishId],
+      })
     })
 
     it("should use specified tag if provided", async () => {
       const config = cloneDeep(baseConfig)
       const action = td.object(await getTestBuild(config))
 
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.actionHasDockerfile),
-        () => true
+      sinon.restore()
+
+      sinon.replace(action, "getOutput", (o: string) =>
+        o === "localImageId" ? testVersionedId : action.getOutput(<any>o)
       )
 
-      td.replace(action, "getOutput", (o: string) =>
-        o === "localImageId" ? "some/image:12345" : action.getOutput(<any>o)
-      )
+      sinon.replace(containerHelpers, "actionHasDockerfile", async () => true)
 
-      const dockerCli = td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.dockerCli)
-      )
+      const dockerCli = sinon.stub(containerHelpers, "dockerCli")
 
       const result = await publishContainerBuild({ ctx, log, action, tag: "custom-tag" })
       expect(result.detail).to.eql({ message: "Published test:custom-tag", published: true })
 
-      td.verify(
-        dockerCli({
+      sinon.assert.calledWith(
+        dockerCli,
+        sinon.match({
           cwd: action.getBuildPath(),
-          args: ["tag", "some/image:12345", "test:custom-tag"],
-          log: td.matchers.anything(),
-          ctx: td.matchers.anything(),
+          args: ["tag", testVersionedId, "test:custom-tag"],
         })
       )
 
-      td.verify(
-        dockerCli({
+      sinon.assert.calledWith(
+        dockerCli,
+        sinon.match({
           cwd: action.getBuildPath(),
           args: ["push", "test:custom-tag"],
-          log: td.matchers.anything(),
-          ctx: td.matchers.anything(),
         })
       )
     })
@@ -232,11 +209,6 @@ describe("plugins.container", () => {
 
   describe("getDockerBuildFlags", () => {
     it("should include extraFlags", async () => {
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.actionHasDockerfile),
-        () => true
-      )
       const config = cloneDeep(baseConfig)
       config.spec.extraFlags = ["--cache-from", "some-image:latest"]
 
@@ -249,11 +221,6 @@ describe("plugins.container", () => {
     })
 
     it("should set GARDEN_ACTION_VERSION", async () => {
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (h) => h.actionHasDockerfile),
-        () => true
-      )
       const config = cloneDeep(baseConfig)
 
       const buildAction = await getTestBuild(config)

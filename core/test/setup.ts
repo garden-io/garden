@@ -6,6 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import sinon from "sinon"
 import td from "testdouble"
 import timekeeper from "timekeeper"
 import { getDefaultProfiler } from "../src/util/profiling"
@@ -35,6 +36,7 @@ exports.mochaHooks = {
   beforeEach() {},
 
   afterEach() {
+    sinon.restore()
     td.reset()
     timekeeper.reset()
   },
