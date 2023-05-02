@@ -15,7 +15,7 @@ import { gardenAnnotationKey } from "../../../util/string"
 import { KubeApi } from "../api"
 import type { KubernetesPluginContext } from "../config"
 import { configureSyncMode, convertKubernetesModuleDevModeSpec } from "../sync"
-import { apply, deleteObjectsBySelector } from "../kubectl"
+import { apply, deleteObjectsBySelector, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { streamK8sLogs } from "../logs"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
@@ -57,15 +57,14 @@ export const kubernetesHandlers: Partial<ModuleActionHandlers<KubernetesModule>>
 
       build: dummyBuild?.name,
       dependencies: prepareRuntimeDependencies(module.spec.dependencies, dummyBuild),
-
       include: module.spec.files,
+      timeout: service.spec.timeout,
 
       spec: {
         ...omit(module.spec, ["name", "build", "dependencies", "serviceResource", "tasks", "tests", "sync", "devMode"]),
         files,
         manifests,
         sync: convertKubernetesModuleDevModeSpec(module, service, serviceResource),
-        timeout: service.spec.timeout,
       },
     }
 
@@ -183,11 +182,13 @@ export const getKubernetesDeployStatus: DeployActionHandler<"getStatus", Kuberne
   })
   const preparedManifests = prepareResult.manifests
 
-  let {
-    state,
-    remoteResources,
-    mode: deployedMode,
-  } = await compareDeployedResources(k8sCtx, api, namespace, preparedManifests, log)
+  let { state, remoteResources, mode: deployedMode } = await compareDeployedResources(
+    k8sCtx,
+    api,
+    namespace,
+    preparedManifests,
+    log
+  )
 
   // Local mode has its own port-forwarding configuration
   const forwardablePorts = deployedMode === "local" ? [] : getForwardablePorts(remoteResources, action)
@@ -252,7 +253,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       actionName: action.key(),
       resources: namespaceManifests,
       log,
-      timeoutSec: spec.timeout,
+      timeoutSec: action.getConfig("timeout") || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 
@@ -284,7 +285,7 @@ export const kubernetesDeploy: DeployActionHandler<"deploy", KubernetesDeployAct
       actionName: action.key(),
       resources: preparedManifests,
       log,
-      timeoutSec: spec.timeout,
+      timeoutSec: action.getConfig("timeout") || KUBECTL_DEFAULT_TIMEOUT,
     })
   }
 

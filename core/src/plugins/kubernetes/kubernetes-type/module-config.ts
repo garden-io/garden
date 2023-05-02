@@ -38,6 +38,7 @@ export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec extends KubernetesTypeCommonDeploySpec {
   dependencies: string[]
+  timeout: number
   sync?: KubernetesModuleDevModeSpec
   localMode?: KubernetesLocalModeSpec
   serviceResource?: ServiceResourceSpec

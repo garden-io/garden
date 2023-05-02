@@ -201,9 +201,6 @@ spec:
   # the Build action. If no `build` reference is set, the command is run from the source directory of this action.
   cleanupCommand:
 
-  # The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
-  timeout: 600
-
   # The maximum duration (in seconds) to wait for a for the `statusCommand` to return a zero exit code. Ignored if no
   # `statusCommand` is set.
   statusTimeout: 10
@@ -508,16 +505,6 @@ Note that if a Build is referenced in the `build` field, the command will be run
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
-
-### `spec.timeout`
-
-[spec](#spec) > timeout
-
-The maximum duration (in seconds) to wait for `deployCommand` to exit. Ignored if `persistent: false`.
-
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `600`   | No       |
 
 ### `spec.statusTimeout`
 

@@ -22,7 +22,6 @@ import {
 } from "../../config/common"
 import { ArtifactSpec } from "../../config/validation"
 import { dedent } from "../../util/string"
-import { DEFAULT_RUN_TIMEOUT_SEC } from "../../constants"
 
 const execPathDoc = dedent`
   Note that if a Build is referenced in the \`build\` field, the command will be run from the build directory for that Build action. If that Build has \`buildAtSource: true\` set, the command will be run from the source directory of the Build action. If no \`build\` reference is set, the command is run from the source directory of this action.
@@ -100,7 +99,6 @@ export interface ExecDeployActionSpec extends CommonKeys {
   cleanupCommand?: string[]
   deployCommand: string[]
   statusCommand?: string[]
-  timeout: number
   statusTimeout: number
   env: StringMap
 }
@@ -162,9 +160,6 @@ export const execDeployActionSchema = createSchema({
         ${execPathDoc}
         `
       ),
-    timeout: joi.number().integer().min(1).default(DEFAULT_RUN_TIMEOUT_SEC).description(dedent`
-      The maximum duration (in seconds) to wait for \`deployCommand\` to exit. Ignored if \`persistent: false\`.
-    `),
     statusTimeout: joi.number().default(defaultStatusTimeout).description(dedent`
       The maximum duration (in seconds) to wait for a for the \`statusCommand\` to return a zero exit code. Ignored if no \`statusCommand\` is set.
     `),

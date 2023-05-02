@@ -60,7 +60,6 @@ describe("getForwardablePorts", () => {
               localPort: 9999,
             },
           ],
-          timeout: KUBECTL_DEFAULT_TIMEOUT,
         }
       },
     }

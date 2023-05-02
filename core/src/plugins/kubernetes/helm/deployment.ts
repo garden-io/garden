@@ -11,7 +11,7 @@ import { waitForResources } from "../status/status"
 import { helm } from "./helm-cli"
 import { filterManifests, getReleaseName, getValueArgs, prepareManifests, prepareTemplates } from "./common"
 import { gardenCloudAECPauseAnnotation, getPausedResources, getReleaseStatus, getRenderedResources } from "./status"
-import { apply, deleteResources } from "../kubectl"
+import { apply, deleteResources, KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 import { KubernetesPluginContext } from "../config"
 import { getForwardablePorts, killPortForwards } from "../port-forward"
 import { getActionNamespace, getActionNamespaceStatus } from "../namespace"
@@ -48,11 +48,12 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
   const releaseName = getReleaseName(action)
   const releaseStatus = await getReleaseStatus({ ctx: k8sCtx, action, releaseName, log })
 
+  const timeout = action.getConfig("timeout") || KUBECTL_DEFAULT_TIMEOUT
   const commonArgs = [
     "--namespace",
     namespace,
     "--timeout",
-    spec.timeout.toString(10) + "s",
+    timeout.toString(10) + "s",
     ...(await getValueArgs({ action, valuesPath: preparedTemplates.valuesPath })),
   ]
 
@@ -143,7 +144,7 @@ export const helmDeploy: DeployActionHandler<"deploy", HelmDeployAction> = async
     actionName: action.key(),
     resources: manifests,
     log,
-    timeoutSec: spec.timeout,
+    timeoutSec: timeout,
   })
 
   // Local mode has its own port-forwarding configuration

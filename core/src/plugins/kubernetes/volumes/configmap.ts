@@ -167,11 +167,11 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
       basePath: action.basePath(),
     },
     include: [],
+    timeout: KUBECTL_DEFAULT_TIMEOUT,
     spec: {
       namespace: action.getSpec("namespace"),
       files: [],
       manifests: [configMapManifest],
-      timeout: KUBECTL_DEFAULT_TIMEOUT,
     },
   }
 
