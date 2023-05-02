@@ -34,7 +34,7 @@ describe("Logger", () => {
     describe("log", () => {
       it("should emit a loggerEvent event when an entry is created", () => {
         const now = freezeTime()
-        const log = logger.createLog()
+        const log = logger.createLog({ name: "log-context-name" })
         log.info({
           msg: "hello",
           symbol: "success",
@@ -54,6 +54,7 @@ describe("Logger", () => {
           level: 2,
           message: {
             msg: "hello",
+            section: "log-context-name",
             symbol: "success",
             dataFormat: "json",
             data: { foo: "bar" },
@@ -80,7 +81,7 @@ describe("Logger", () => {
       const entries = logger.getLogEntries()
       expect(entries).to.have.lengthOf(6)
       const messages = entries.map((e) => e.msg)
-      expect(messages).to.eql([chalk.red("error"), "warn", "info", "verbose", "debug", "silly"])
+      expect(messages).to.eql(["error", "warn", "info", "verbose", "debug", "silly"])
     })
     it("should not store entries if storeEntries=false", () => {
       const logWriterB = RootLogger._createInstanceForTests({
