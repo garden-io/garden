@@ -20,7 +20,7 @@ beforeEach(() => {
   logger["entries"] = []
 })
 
-describe.only("Log", () => {
+describe("Log", () => {
   let log: Log
   beforeEach(() => {
     log = logger.createLog()
@@ -249,7 +249,7 @@ describe("CoreLog", () => {
   })
 })
 
-describe.only("ActionLog", () => {
+describe("ActionLog", () => {
   let log: Log
   beforeEach(() => {
     log = logger.createLog()
