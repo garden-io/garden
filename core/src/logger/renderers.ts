@@ -53,7 +53,7 @@ export function renderError(entry: LogEntry): string {
 }
 
 export function renderSymbol(entry: LogEntry): string {
-  const section = renderSection(entry)
+  const section = getSection(entry)
 
   let symbol = entry.symbol
 
@@ -78,6 +78,15 @@ export function renderTimestamp(entry: LogEntry, logger: Logger): string {
 
 export function getTimestamp(entry: LogEntry): string {
   return entry.timestamp
+}
+
+export function getSection(entry: LogEntry): string | null {
+  if (entry.context.type === "actionLog") {
+    return `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
+  } else if (entry.context.type === "coreLog" && entry.context.name) {
+    return entry.context.name
+  }
+  return null
 }
 
 export function renderMsg(entry: LogEntry): string {
@@ -108,13 +117,7 @@ export function renderData(entry: LogEntry): string {
 export function renderSection(entry: LogEntry): string {
   const style = chalk.cyan.italic
   const { msg } = entry
-  let section = ""
-
-  if (entry.context.type === "actionLog") {
-    section = `${entry.context.actionKind.toLowerCase()}.${entry.context.actionName}`
-  } else if (entry.context.type === "coreLog" && entry.context.name) {
-    section = entry.context.name
-  }
+  let section = getSection(entry)
 
   // For log levels higher than "info" we print the log level name.
   // This should technically happen when we render the symbol but it's harder

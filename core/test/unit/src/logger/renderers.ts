@@ -128,7 +128,7 @@ describe("renderers", () => {
       const entry = logger.createLog().debug({ msg: "hello world" }).getLatestEntry()
 
       expect(formatForTerminal(entry, logger)).to.equal(
-        `${logSymbols["info"]} ${chalk.gray("[debug]")} ${msgStyle("hello world")}\n`
+        `${chalk.gray("[debug]")} ${msgStyle("hello world")}\n`
       )
     })
     it("should print the log level if it's higher then 'info' after the section if there is one", () => {

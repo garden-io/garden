@@ -264,6 +264,7 @@ export abstract class LoggerBase implements Logger {
     metadata,
     fixLevel,
     name,
+    origin,
   }: {
     metadata?: LogMetadata
     fixLevel?: LogLevel
@@ -272,6 +273,7 @@ export abstract class LoggerBase implements Logger {
      * belonging to this context.
      */
     name?: string
+    origin?: string
   } = {}): CoreLog {
     return new CoreLog({
       parentConfigs: [],
@@ -280,6 +282,7 @@ export abstract class LoggerBase implements Logger {
       context: {
         type: "coreLog",
         name,
+        origin,
       },
       root: this,
     })
@@ -295,6 +298,18 @@ export abstract class LoggerBase implements Logger {
       throw new InternalError(`Cannot get entries when storeEntries=false`, {})
     }
     return this.entries
+  }
+
+  /**
+   * Returns latest log entry. Throws if storeEntries=false
+   *
+   * @throws(InternalError)
+   */
+  getLatestEntry() {
+    if (!this.storeEntries) {
+      throw new InternalError(`Cannot get entries when storeEntries=false`, {})
+    }
+    return this.entries.slice(-1)[0]
   }
 }
 

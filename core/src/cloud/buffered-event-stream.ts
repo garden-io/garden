@@ -15,7 +15,7 @@ import { got } from "../util/http"
 import { LogLevel } from "../logger/logger"
 import { Garden } from "../garden"
 import { CloudApi, makeAuthHeader } from "./api"
-import { renderSection } from "../logger/renderers"
+import { getSection } from "../logger/renderers"
 
 export type StreamEvent = {
   name: EventName
@@ -38,7 +38,7 @@ export interface LogEntryEventPayload {
 // TODO @eysi: Add log context to payload
 export function formatLogEntryForEventStream(entry: LogEntry): LogEntryEventPayload {
   // TODO @eysi: We're sending the section for backwards compatibility but it shouldn't really be needed.
-  const section = renderSection(entry)
+  const section = getSection(entry) ||  ""
   return {
     key: entry.key,
     metadata: entry.metadata,

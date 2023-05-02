@@ -121,20 +121,22 @@ describe("util", () => {
 
     it("should optionally pipe stdout to an output stream", async () => {
       const logger = getRootLogger()
+      logger.entries = []
       const log = logger.createLog()
 
       await exec("echo", ["hello"], { stdout: createOutputStream(log) })
 
-      expect(log.getLatestEntry().msg).to.equal("hello")
+      expect(logger.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should optionally pipe stderr to an output stream", async () => {
       const logger = getRootLogger()
+      logger.entries = []
       const log = logger.createLog()
 
       await exec("sh", ["-c", "echo hello 1>&2"], { stderr: createOutputStream(log) })
 
-      expect(log.getLatestEntry().msg).to.equal("hello")
+      expect(logger.getLatestEntry().msg).to.equal("hello")
     })
 
     it("should buffer outputs when piping to stream", async () => {

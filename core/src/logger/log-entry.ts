@@ -437,6 +437,8 @@ export class CoreLog extends Log<CoreLogContext> {
         ...this.context,
         // Allow overwriting name
         name: params.name || this.context.name,
+        // Allow overwriting origin
+        origin: params.origin || this.context.origin,
       },
     })
   }
