@@ -114,6 +114,9 @@ export class ServeCommand<
       })
     }
 
+    // Ensure we emit stack graph for Cloud
+    await garden.getConfigGraph({ log, emit: true })
+
     this.autocompleter = new Autocompleter({ log, commands: [], configDump: undefined })
 
     return new Promise((resolve, reject) => {

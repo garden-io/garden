@@ -414,6 +414,8 @@ export class GardenServer extends EventEmitter {
         for (const [id, req] of Object.entries(this.activePersistentRequests)) {
           if (connectionId === req.connectionId) {
             req.command.terminate()
+
+
             delete this.activePersistentRequests[id]
           }
         }
@@ -535,7 +537,11 @@ export class GardenServer extends EventEmitter {
                 errors: result.errors,
               })
             )
-            delete this.activePersistentRequests[requestId]
+            // TODO @eysi: Validate this approach
+            // We treat persistent commands as active, even if they return
+            if (!persistent || (result.errors && result.errors.length > 0)) {
+              delete this.activePersistentRequests[requestId]
+            }
           })
           .catch((err) => {
             send("error", { message: err.message, requestId })
