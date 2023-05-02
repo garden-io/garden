@@ -40,7 +40,7 @@ export interface KubernetesTypeCommonDeploySpec {
   manifests: KubernetesResource[]
   namespace?: string
   portForwards?: PortForwardSpec[]
-  timeout?: number
+  timeout: number
 }
 
 export interface KubernetesDeployActionSpec extends KubernetesTypeCommonDeploySpec {

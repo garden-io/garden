@@ -22,6 +22,7 @@ import { DeployAction, DeployActionConfig, ResolvedDeployAction } from "../../..
 import { KubernetesDeployActionConfig } from "../kubernetes-type/config"
 import { Resolved } from "../../../actions/types"
 import { makeDocsLink } from "../../../docs/common"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../kubectl"
 
 // TODO: If we make a third one in addition to this and `persistentvolumeclaim`, we should dedupe some code.
 
@@ -41,6 +42,7 @@ const commonSpecKeys = () => ({
 export interface ConfigMapSpec extends ConfigmapDeploySpec {
   dependencies: string[]
 }
+
 type ConfigMapModule = GardenModule<ConfigMapSpec, ConfigMapSpec>
 
 type ConfigmapActionConfig = DeployActionConfig<"configmap", ConfigmapDeploySpec>
@@ -169,6 +171,7 @@ function getKubernetesAction(action: Resolved<ConfigmapAction>) {
       namespace: action.getSpec("namespace"),
       files: [],
       manifests: [configMapManifest],
+      timeout: KUBECTL_DEFAULT_TIMEOUT,
     },
   }
 

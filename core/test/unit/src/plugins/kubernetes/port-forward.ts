@@ -13,6 +13,7 @@ import {
   KubernetesDeployActionSpec,
 } from "../../../../../src/plugins/kubernetes/kubernetes-type/config"
 import { ResolvedDeployAction } from "../../../../../src/actions/deploy"
+import { KUBECTL_DEFAULT_TIMEOUT } from "../../../../../src/plugins/kubernetes/kubectl"
 
 describe("getForwardablePorts", () => {
   it("returns all ports for Service resources", () => {
@@ -59,6 +60,7 @@ describe("getForwardablePorts", () => {
               localPort: 9999,
             },
           ],
+          timeout: KUBECTL_DEFAULT_TIMEOUT,
         }
       },
     }
