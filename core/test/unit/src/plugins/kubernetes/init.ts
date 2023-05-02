@@ -138,7 +138,15 @@ describe("kubernetes init", () => {
       beforeEach(async () => {
         const core = td.replace(api, "core")
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [
+            {
+              apiVersion: "v1",
+              kind: "Namepsace",
+              status: { phase: "Active" },
+              metadata: { name: "default" },
+              spec: {},
+            },
+          ],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(dockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(dockerCredentialHelperSecret)
@@ -182,7 +190,15 @@ describe("kubernetes init", () => {
           },
         }
         td.when(core.listNamespace()).thenResolve({
-          items: [{ status: { phase: "Active" }, metadata: { name: "default" } }],
+          items: [
+            {
+              apiVersion: "v1",
+              kind: "Namepsace",
+              status: { phase: "Active" },
+              metadata: { name: "default" },
+              spec: {},
+            },
+          ],
         })
         td.when(core.readNamespacedSecret("test-docker-auth", "default")).thenResolve(emptyDockerSimpleAuthSecret)
         td.when(core.readNamespacedSecret("test-cred-helper-auth", "default")).thenResolve(

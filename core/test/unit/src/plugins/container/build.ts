@@ -7,7 +7,7 @@
  */
 
 import { expect } from "chai"
-import td from "testdouble"
+import sinon from "sinon"
 import { ResolvedBuildAction, BuildActionConfig } from "../../../../../src/actions/build"
 import { ConfigGraph } from "../../../../../src/graph/config-graph"
 import { ActionLog, createActionLog, Log } from "../../../../../src/logger/log-entry"
@@ -16,7 +16,7 @@ import { buildContainer, getContainerBuildStatus } from "../../../../../src/plug
 import { ContainerProvider, gardenPlugin } from "../../../../../src/plugins/container/container"
 import { containerHelpers } from "../../../../../src/plugins/container/helpers"
 import { joinWithPosix } from "../../../../../src/util/fs"
-import { getDataDir, TestGarden, makeTestGarden, getPropertyName } from "../../../../helpers"
+import { getDataDir, TestGarden, makeTestGarden } from "../../../../helpers"
 
 context("build.ts", () => {
   const projectRoot = getDataDir("test-project-container")
@@ -30,7 +30,7 @@ context("build.ts", () => {
   beforeEach(async () => {
     garden = await makeTestGarden(projectRoot, { plugins: [gardenPlugin()] })
     log = garden.log
-    actionLog = createActionLog({ log: log, actionName: "", actionKind: "" })
+    actionLog = createActionLog({ log, actionName: "", actionKind: "" })
     containerProvider = await garden.resolveProvider(garden.log, "container")
     ctx = await garden.getPluginContext({ provider: containerProvider, templateContext: undefined, events: undefined })
     graph = await garden.getConfigGraph({ log, emit: false })
@@ -41,11 +41,7 @@ context("build.ts", () => {
   describe("getContainerBuildStatus", () => {
     it("should return ready if build exists locally", async () => {
       const action = await getAction()
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (c) => c.imageExistsLocally),
-        async () => "fake image identifier string"
-      )
+      sinon.replace(containerHelpers, "imageExistsLocally", async () => "fake image identifier string")
 
       const result = await getContainerBuildStatus({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")
@@ -53,11 +49,7 @@ context("build.ts", () => {
 
     it("should return not-ready if build does not exist locally", async () => {
       const action = await getAction()
-      td.replace(
-        containerHelpers,
-        getPropertyName(containerHelpers, (c) => c.imageExistsLocally),
-        async () => null
-      )
+      sinon.replace(containerHelpers, "imageExistsLocally", async () => null)
 
       const result = await getContainerBuildStatus({ ctx, log: actionLog, action })
       expect(result.state).to.eql("not-ready")
@@ -66,7 +58,7 @@ context("build.ts", () => {
 
   describe("buildContainer", () => {
     beforeEach(() => {
-      td.replace(containerHelpers, "checkDockerServerVersion", () => null)
+      sinon.replace(containerHelpers, "checkDockerServerVersion", () => null)
     })
 
     function getCmdArgs(action: ResolvedBuildAction<BuildActionConfig<any, any>, any>, buildPath: string) {
@@ -87,16 +79,16 @@ context("build.ts", () => {
     it("should build image if module contains Dockerfile", async () => {
       const action = await getAction()
 
-      td.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
+      sinon.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 
       const buildPath = action.getBuildPath()
 
       const cmdArgs = getCmdArgs(action, buildPath)
-      td.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
+      sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(buildPath)
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
-        return { all: "log" }
+        return { all: "log", stdout: "", stderr: "", code: 0, proc: <any>null }
       })
       const result = await buildContainer({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")
@@ -109,16 +101,16 @@ context("build.ts", () => {
       const action = await getAction()
       action.getSpec().dockerfile = "docker-dir/Dockerfile"
 
-      td.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
+      sinon.replace(action, "getOutputs", () => ({ localImageId: "some/image" }))
 
       const buildPath = action.getBuildPath()
 
       const cmdArgs = getCmdArgs(action, buildPath)
-      td.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
+      sinon.replace(containerHelpers, "dockerCli", async ({ cwd, args, ctx: _ctx }) => {
         expect(cwd).to.equal(buildPath)
         expect(args).to.eql(cmdArgs)
         expect(_ctx).to.exist
-        return { all: "log" }
+        return { all: "log", stdout: "", stderr: "", code: 0, proc: <any>null }
       })
       const result = await buildContainer({ ctx, log: actionLog, action })
       expect(result.state).to.eql("ready")
