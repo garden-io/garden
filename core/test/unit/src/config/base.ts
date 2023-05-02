@@ -249,7 +249,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a",
         type: "test",
@@ -393,7 +393,7 @@ describe("loadConfigResources", () => {
         variables: { some: "variable" },
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
@@ -428,7 +428,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a1",
         type: "test",
@@ -460,7 +460,7 @@ describe("loadConfigResources", () => {
         varfile: undefined,
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a2",
         type: "test",

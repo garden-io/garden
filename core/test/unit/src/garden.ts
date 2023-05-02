@@ -4564,9 +4564,9 @@ describe("Garden", () => {
     })
 
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-294c5e9ae2"
-      const moduleBVersionString = "v-e84ffd879b"
-      const moduleCVersionString = "v-8e7923d3a5"
+      const moduleAVersionString = "v-0a4dda85e8"
+      const moduleBVersionString = "v-0ab7a050db"
+      const moduleCVersionString = "v-958ee38dd2"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
