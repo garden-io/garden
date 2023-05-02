@@ -14,7 +14,7 @@ import { join, resolve } from "path"
 import { createWriteStream, WriteStream } from "fs"
 import { getPackages, yarnPath } from "./script-utils"
 
-const colors = [chalk.red, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
+const colors = [chalk.blueBright, chalk.green, chalk.yellow, chalk.magenta, chalk.cyan]
 
 const lineChar = "┄"
 

@@ -21,7 +21,7 @@ import { waitForOutputFlush } from "../process"
 import { DeployLogEntry } from "../types/service"
 import { MonitorBaseParams, Monitor } from "./base"
 
-export const logMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "red"]
+export const logMonitorColors = ["green", "cyan", "magenta", "yellow", "blueBright", "blue"]
 
 // Track these globally, across many monitors
 let colorMap: { [name: string]: string } = {}
