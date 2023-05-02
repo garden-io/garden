@@ -171,7 +171,7 @@ describe("helmDeploy", () => {
   it("should deploy a chart from a converted Helm module referencing a container module version in its image tag", async () => {
     graph = await garden.getConfigGraph({ log: garden.log, emit: false })
     const action = await garden.resolveAction<HelmDeployAction>({
-      action: graph.getDeploy("api-helm-module"),
+      action: graph.getDeploy("api-module"),
       log: garden.log,
       graph,
     })
@@ -194,7 +194,7 @@ describe("helmDeploy", () => {
 
     expect(releaseStatus.state).to.equal("ready")
     expect(releaseStatus.detail["values"][".garden"]).to.eql({
-      moduleName: "api-helm-module",
+      moduleName: "api-module",
       projectName: garden.projectName,
       version: action.versionString(),
       mode: "default",

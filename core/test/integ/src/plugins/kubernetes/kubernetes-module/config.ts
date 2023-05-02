@@ -97,7 +97,7 @@ describe("configureKubernetesModule", () => {
                       {
                         name: "busybox",
                         image: "busybox:1.31.1",
-                        args: ["sleep", "100"],
+                        args: ["sh", "-c", "while :; do sleep 2073600; done"],
                         env: [
                           { name: "FOO", value: "banana" },
                           { name: "BAR", value: "" },

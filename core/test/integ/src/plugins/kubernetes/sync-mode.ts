@@ -330,6 +330,7 @@ describe("sync mode deployments and sync behavior", () => {
               kind: "Deployment",
               name: "some-deployment",
               containerName: undefined,
+              podSelector: undefined,
             },
             command: ["cmd"],
             args: ["arg1", "arg2"],
