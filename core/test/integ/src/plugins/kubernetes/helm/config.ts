@@ -65,7 +65,7 @@ describe("configureHelmModule", () => {
         ],
       },
       dependencies: [],
-      releaseName: "api-release",
+      releaseName: "api-module-release",
       serviceResource: {
         kind: "Deployment",
         containerModule: "api-image",
