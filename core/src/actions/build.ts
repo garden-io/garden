@@ -52,7 +52,6 @@ export interface BuildActionConfig<T extends string = string, S extends object =
   allowPublish?: boolean
   buildAtSource?: boolean
   copyFrom?: BuildCopyFrom[]
-  timeout?: number
 }
 
 export const copyFromSchema = createSchema({

@@ -19,9 +19,7 @@ import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_TEST_TIMEOUT_SEC } from "../constants"
 
 export interface TestActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Test", N, S> {
-  timeout?: number
-}
+  extends BaseRuntimeActionConfig<"Test", N, S> {}
 
 export const testActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({

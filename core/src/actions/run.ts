@@ -19,9 +19,7 @@ import { Action, BaseActionConfig } from "./types"
 import { DEFAULT_RUN_TIMEOUT_SEC } from "../constants"
 
 export interface RunActionConfig<N extends string = any, S extends object = any>
-  extends BaseRuntimeActionConfig<"Run", N, S> {
-  timeout?: number
-}
+  extends BaseRuntimeActionConfig<"Run", N, S> {}
 
 export const runActionConfigSchema = memoize(() =>
   baseRuntimeActionConfigSchema().keys({
