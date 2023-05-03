@@ -208,6 +208,8 @@ commands:
       - run:
           name: Configure kubectl context via gcloud and authenticate to Google Container Registry
           command: |
+            export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+            echo "export USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $BASH_ENV
             export GOOGLE_APPLICATION_CREDENTIALS=$HOME/gcloud-key.json
             echo "export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS" >> $BASH_ENV
             echo $GCLOUD_SERVICE_KEY > $GOOGLE_APPLICATION_CREDENTIALS
@@ -766,6 +768,7 @@ jobs:
             choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
             $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
             gcloud components install gke-gcloud-auth-plugin --quiet
+            $Env:USE_GKE_GCLOUD_AUTH_PLUGIN = True
             refreshenv
       - run:
           name: Write gcloud credentials to file
