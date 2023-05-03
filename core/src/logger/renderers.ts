@@ -23,7 +23,7 @@ type RenderFn = (entry: LogEntry, logger: Logger) => string
 
 /*** STYLE HELPERS ***/
 
-export const SECTION_PADDING = 25
+export const SECTION_PADDING = 20
 
 export function padSection(section: string, width: number = SECTION_PADDING) {
   const diff = width - stringWidth(section)
