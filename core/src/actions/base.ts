@@ -60,6 +60,7 @@ import { DeployAction } from "./deploy"
 import { TestAction } from "./test"
 import { RunAction } from "./run"
 import { uuidv4 } from "../util/random"
+import { createActionLog, Log } from "../logger/log-entry"
 
 // TODO: split this file
 
@@ -581,6 +582,18 @@ export abstract class BaseAction<C extends BaseActionConfig = BaseActionConfig, 
       treeVersion: this.treeVersion(),
       version: this.getFullVersion(),
     }
+  }
+
+  /**
+   * Creates an ActionLog instance with this action as the log context.
+   * Mainly used as a convenience during testing.
+   */
+  createLog(log: Log) {
+    return createActionLog({
+      log,
+      actionKind: this.kind,
+      actionName: this.name,
+    })
   }
 }
 

@@ -7,7 +7,7 @@
  */
 
 import Bluebird from "bluebird"
-import { Log, PluginContext } from "@garden-io/sdk/types"
+import type { Log, PluginContext } from "@garden-io/sdk/types"
 import { makeTestGarden, TestGarden } from "@garden-io/sdk/testing"
 import execa from "execa"
 import { pathExists } from "fs-extra"
@@ -43,8 +43,8 @@ const ensureNodeModules = async () => {
 describe.skip("pulumi plugin handlers", () => {
   let garden: TestGarden
   let graph: ResolvedConfigGraph
-  let log: Log
   let ctx: PluginContext
+  let log: Log
   let provider: PulumiProvider
 
   before(async () => {
@@ -66,13 +66,14 @@ describe.skip("pulumi plugin handlers", () => {
   describe("deployPulumiService", () => {
     it("deploys a pulumi stack and tags it with the service version", async () => {
       const action = graph.getDeploy("k8s-namespace")
+      const actionLog = action.createLog(log)
       const status = await deployPulumi!({
         ctx,
-        log,
+        log: actionLog,
         action,
         force: false,
       })
-      const versionTag = await getStackVersionTag({ log, ctx, provider, action })
+      const versionTag = await getStackVersionTag({ log: actionLog, ctx, provider, action })
       expect(status.state).to.eql("ready")
 
       // The service outputs should include all pulumi stack outputs for the deployed stack.
@@ -88,7 +89,7 @@ describe.skip("pulumi plugin handlers", () => {
       const action = graph.getDeploy("k8s-deployment")
       const status = await getPulumiDeployStatus!({
         ctx,
-        log,
+        log: action.createLog(log),
         action,
       })
       expect(status.state).to.eql("outdated")
@@ -99,7 +100,7 @@ describe.skip("pulumi plugin handlers", () => {
       const action = graph.getDeploy("k8s-namespace")
       const status = await getPulumiDeployStatus!({
         ctx,
-        log,
+        log: action.createLog(log),
         action,
       })
       expect(status.state).to.eql("ready")
