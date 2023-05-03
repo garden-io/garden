@@ -74,13 +74,13 @@ export class DeployTask extends ExecuteActionTask<DeployAction, DeployStatus> {
       status.state = "not-ready"
     }
 
-    if (!statusOnly) {
+    if (!statusOnly && !this.force) {
       if (status.state === "ready") {
-        log.info(chalk.green(`${action.longDescription()} is already deployed.`))
+        log.info("Already deployed")
         printIngresses(status, log)
       } else {
         const state = status.detail?.state || displayState(status.state)
-        log.info(chalk.green(`${action.longDescription()} is ${state}.`))
+        log.info(state)
       }
     }
 

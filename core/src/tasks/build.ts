@@ -29,8 +29,8 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
     const output = await router.build.getStatus({ log: this.log, graph: this.graph, action })
     const status = output.result
 
-    if (status.state === "ready" && !statusOnly) {
-      this.log.info(`${action.longDescription()} already complete, nothing to do.`)
+    if (status.state === "ready" && !statusOnly && !this.force) {
+      this.log.info(`Already built`)
     }
 
     return { ...status, version: action.versionString(), executedAction: resolvedActionToExecuted(action, { status }) }
@@ -46,18 +46,7 @@ export class BuildTask extends ExecuteActionTask<BuildAction, BuildStatus> {
       )
     }
 
-    const log = this.log.info(`Building version ${action.versionString()}...`)
-    // const newActionLog = log.createLog()
-
-    // const newCoreLog = log.createLog({ name: "foo" })
-    // const anotherCoreLog = newCoreLog.createLog()
-    // const anotherActionLog = anotherCoreLog.createLog({ actionKind: "build", actionName: "api" })
-
-    // const newActionLog = log.new({})
-    // const newCoreLog = log.new({ name: "foo" })
-    // const anotherCoreLog = newCoreLog.new({})
-    // const anotherActionLog = anotherCoreLog.new({ actionKind: "build", actionName: "api" })
-
+    const log = this.log
     const files = action.getFullVersion().files
 
     if (files.length > 0) {
