@@ -1274,7 +1274,7 @@ export class Garden {
         // This is only available with apiVersion `garden.io/v1` or newer.
         if (this.projectApiVersion !== DEFAULT_API_VERSION) {
           throw new ConfigurationError(
-            `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}". A detailed migration guide is available at https://docs.garden.io/v/bonsai-release/tutorials/migrating-to-bonsai.`,
+            `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}". A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`,
             {}
           )
         }

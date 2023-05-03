@@ -23,6 +23,7 @@ import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
 import { getRootLogger } from "../../../../src/logger/logger"
 import { ConfigurationError } from "../../../../src/exceptions"
+import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -46,6 +47,12 @@ describe("prepareProjectResource", () => {
     providers: [{ name: "foo" }],
     variables: {},
   }
+
+  beforeEach(() => {
+    // we reset the non repeatable warning before each test to make sure that a
+    // previously displayed warning is logged in all tests
+    resetNonRepeatableWarningHistory()
+  })
 
   it("no changes if new `dotIgnoreFile` field is provided explicitly", () => {
     const projectResource = {
