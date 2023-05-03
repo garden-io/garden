@@ -18,7 +18,7 @@ import { apply } from "json-merge-patch"
 import { getHelmTestGarden } from "./common"
 import { defaultHelmTimeout } from "../../../../../../src/plugins/kubernetes/helm/module-config"
 import stripAnsi = require("strip-ansi")
-import { DEFAULT_API_VERSION } from "../../../../../../src/constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../../../../../../src/constants"
 
 describe("configureHelmModule", () => {
   let garden: TestGarden
@@ -88,7 +88,7 @@ describe("configureHelmModule", () => {
     }
 
     expect(module._config).to.eql({
-      apiVersion: DEFAULT_API_VERSION,
+      apiVersion: PREVIOUS_API_VERSION,
       kind: "Module",
       allowPublish: true,
       build: {
