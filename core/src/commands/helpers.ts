@@ -15,6 +15,10 @@ import type { WorkflowConfig } from "../config/workflow"
 import type { Log } from "../logger/log-entry"
 import { BooleanParameter } from "../cli/params"
 import type { Garden } from "../garden"
+import { ActionKind } from "../actions/types"
+import isGlob from "is-glob"
+import { ParameterError } from "../exceptions"
+import { naturalList } from "../util/string"
 
 export function makeGetTestOrTaskLog(actions: (TestAction | RunAction)[]) {
   return actions.map((t) => prettyPrintTestOrTask(t)).join("\n")
@@ -72,4 +76,41 @@ export async function watchRemovedWarning(garden: Garden, log: Log) {
       "The -w/--watch flag has been removed. Please use other options instead, such as the --sync option for Deploy actions. If you need this feature and would like it re-introduced, please don't hesitate to reach out: https://garden.io/community"
     ),
   })
+}
+
+/**
+ * Throws if an action by name is not found.
+ * Logs a warning if no actions are found matching wildcard arguments.
+ *
+ */
+export const validateActionSearchResults = ({
+  log,
+  names,
+  actions,
+  errData,
+  actionKind,
+}: {
+  log: Log
+  names: string[] | undefined
+  actions: { name: string }[]
+  errData: any
+  actionKind: ActionKind
+}): { shouldAbort: boolean } => {
+  names?.forEach((n) => {
+    if (!isGlob(n) && !actions.find((a) => a.name === n)) {
+      throw new ParameterError(`${actionKind} action "${n}" was not found.`, { ...errData })
+    }
+  })
+
+  if (actions.length === 0) {
+    let argumentsMsg = ""
+    if (names) {
+      argumentsMsg = ` (matching argument(s) ${naturalList(names.map((n) => `'${n}'`))})`
+    }
+    log.warn({
+      msg: `No ${actionKind} actions found${argumentsMsg}. Aborting.`,
+    })
+    return { shouldAbort: true }
+  }
+  return { shouldAbort: false }
 }

@@ -13,7 +13,7 @@ import { printHeader, renderDivider } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
-import { watchParameter, watchRemovedWarning } from "./helpers"
+import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
 
 // TODO: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 
@@ -133,12 +133,22 @@ export class RunCommand extends Command<Args, Opts> {
     }
 
     let actions = graph.getActionsByKind("Run", {
-      names,
+      includeNames: names,
       moduleNames: opts.module,
       excludeNames: opts.skip,
       includeDisabled: true,
-      ignoreMissing: false,
     })
+
+    const { shouldAbort } = validateActionSearchResults({
+      log,
+      actionKind: "Test",
+      actions,
+      names,
+      errData: { params, args },
+    })
+    if (shouldAbort) {
+      return {}
+    }
 
     for (const action of actions) {
       if (action.isDisabled() && !opts.force) {

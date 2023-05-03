@@ -20,8 +20,8 @@ import { printHeader } from "../logger/util"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { dedent, deline } from "../util/string"
 import { ParameterError } from "../exceptions"
-import { watchParameter, watchRemovedWarning } from "./helpers"
 import { warnOnLinkedActions } from "../actions/helpers"
+import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
 
 export const testArgs = {
   names: new StringsParameter({
@@ -162,13 +162,23 @@ export class TestCommand extends Command<Args, Opts> {
     }
 
     const actions = graph.getActionsByKind("Test", {
-      names,
+      includeNames: names,
       moduleNames: opts.module,
       excludeNames: opts.skip,
-      ignoreMissing: false,
     })
 
     await warnOnLinkedActions(garden, log, actions)
+
+    const { shouldAbort } = validateActionSearchResults({
+      log,
+      actionKind: "Test",
+      actions,
+      names,
+      errData: { params, args },
+    })
+    if (shouldAbort) {
+      return {}
+    }
 
     const tasks = actions.map(
       (action) =>
