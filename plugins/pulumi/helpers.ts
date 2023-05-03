@@ -274,8 +274,7 @@ export async function applyConfig(params: PulumiParams & { previewDirPath?: stri
   log.debug(`merged vars: ${JSON.stringify(vars, null, 2)}`)
   stackConfig.config = vars
 
-  const backendUrl = getBackendUrl(params.provider, params.module)
-  stackConfig.backend = { url: backendUrl }
+  stackConfig.backend = { url: params.provider.config.backendURL }
 
   if (stackConfigFileExists && isEmpty(vars)) {
     log.debug(deline`
@@ -409,23 +408,14 @@ export async function reimportStack(params: PulumiParams): Promise<void> {
 
 // Lower-level helpers
 
-function getBackendUrl(provider: PulumiProvider, module: PulumiModule): string {
-  if (module.spec.backendURL) {
-    return module.spec.backendURL
-  } else {
-    return provider.config.backendURL
-  }
-}
-
 export function ensureEnv(pulumiParams: PulumiParams): { [key: string]: string } {
-  const backendUrl = getBackendUrl(pulumiParams.provider, pulumiParams.module)
+  const backendUrl = pulumiParams.provider.config.backendURL
   return { PULUMI_BACKEND_URL: backendUrl, ...defaultPulumiEnv }
 }
 
 export async function selectStack({ module, ctx, provider, log }: PulumiParams) {
   const root = getModuleStackRoot(module)
   const stackName = module.spec.stack || ctx.environmentName
-
   const orgName = getOrgName(<PulumiProvider>ctx.provider, module)
   const qualifiedStackName = orgName ? `${orgName}/${stackName}` : stackName
   const args = ["stack", "select", qualifiedStackName]
@@ -435,11 +425,11 @@ export async function selectStack({ module, ctx, provider, log }: PulumiParams) 
   return stackName
 }
 
-function getOrgName(provider: PulumiProvider, module: PulumiModule): string | null {
-  if (module.spec.orgName || module.spec.orgName === null) {
+function getOrgName(provider: PulumiProvider, module: PulumiModule): string | undefined {
+  if (module.spec.orgName) {
     return module.spec.orgName
   } else {
-    return provider.config.orgName || null
+    return provider.config.orgName
   }
 }
 

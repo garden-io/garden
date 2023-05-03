@@ -208,11 +208,6 @@ pulumiVarfiles: []
 # To use the default org, set to null.
 orgName:
 
-# The name of the Pulumi backend URL to use. Overrides the `backendURL` set on the pulumi provider (if any).
-# Set this option as per list of available self-managed state backends on
-# https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
-backendURL:
-
 # When set to true, the pulumi stack will be tagged with the Garden service version when deploying. The tag
 # will then be used for service status checks for this service. If the version doesn't change between deploys,
 # the subsequent deploy is skipped.
@@ -621,16 +616,6 @@ config. Simply specify all the config variables at the top level.
 
 The name of the pulumi organization to use. Overrides the `orgName` set on the pulumi provider (if any).
 To use the default org, set to null.
-
-| Type     | Required |
-| -------- | -------- |
-| `string` | No       |
-
-### `backendURL`
-
-The name of the Pulumi backend URL to use. Overrides the `backendURL` set on the pulumi provider (if any).
-Set this option as per list of available self-managed state backends on
-https://www.pulumi.com/docs/intro/concepts/state/#using-a-self-managed-backend
 
 | Type     | Required |
 | -------- | -------- |
