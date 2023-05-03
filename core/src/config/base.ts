@@ -28,6 +28,7 @@ import { mayContainTemplateString } from "../template-string/template-string"
 import { Log } from "../logger/log-entry"
 import { deline } from "../util/string"
 import { LineCounter, Parser, Composer, Document, ParsedNode, Scalar } from "yaml"
+import { YamlConfig } from "./yaml-config"
 
 export const configTemplateKind = "ConfigTemplate"
 export const renderTemplateKind = "RenderTemplate"
@@ -81,7 +82,7 @@ export type ConfigKind = "Module" | "Workflow" | "Project" | ConfigTemplateKind 
 
 export const allConfigKinds = ["Module", "Workflow", "Project", configTemplateKind, renderTemplateKind, ...actionKinds]
 
-function parseYamlWithContext(content: string): any[] {
+function parseYamlWithContext(content: string, filePath: string): any[] {
   const lineCounter = new LineCounter()
   const parser = new Parser(lineCounter.addNewLine)
 
@@ -100,9 +101,8 @@ function parseYamlWithContext(content: string): any[] {
   const objectCaches: Map<Document.Parsed<ParsedNode>, any> = new Map()
 
   const makeYamlProxyObject = (
-    lineCounter: LineCounter,
     doc: Document.Parsed<ParsedNode>,
-    currentPath: (string | symbol)[] = []
+    currentPath: (string | number | symbol)[] = []
   ): any => {
     // We need to cache the JS objects for performance,
     // but also because the objects are mutable
@@ -116,29 +116,43 @@ function parseYamlWithContext(content: string): any[] {
       return undefined
     }
 
+    function getContextForPath (fullPath: (string | symbol | number)[]) {
+      const node = doc.getIn(fullPath, true) as Scalar
+      const [rangeStart, rangeEnd] = node.range!
+      const length = rangeEnd - rangeStart
+      const startPos = lineCounter.linePos(rangeStart)
+      const endPos = lineCounter.linePos(rangeEnd)
+
+      return {
+        start: startPos,
+        end: endPos,
+        length,
+        absolutePath: filePath,
+      }
+    }
+
     const proxy = new Proxy(jsDoc, {
       get: (_target, key) => {
         const keyString = key.toString()
+
+        if (keyString === "__isYamlContextProxy") {
+          return true
+        }
+
+        if (keyString === "__getContextForPath") {
+          return getContextForPath
+        }
+
         if (keyString.endsWith("__context")) {
           const cleanedKey = keyString.replace("__context", "")
-          const node = doc.getIn([...currentPath, cleanedKey], true) as Scalar
-          const [rangeStart, rangeEnd] = node.range!
-          const length = rangeEnd - rangeStart
-          const startPos = lineCounter.linePos(rangeStart)
-          const endPos = lineCounter.linePos(rangeEnd)
-
-          return {
-            value: jsDoc[cleanedKey],
-            start: startPos,
-            end: endPos,
-            length,
-          }
+          return getContextForPath([...currentPath, cleanedKey])
         }
+
         const value = jsDoc[key]
         const isDeeperObject = Array.isArray(value) || isPlainObject(value)
 
         if (isDeeperObject) {
-          return makeYamlProxyObject(lineCounter, doc, [...currentPath, key])
+          return makeYamlProxyObject(doc, [...currentPath, key])
         }
         return jsDoc[key]
       },
@@ -147,7 +161,7 @@ function parseYamlWithContext(content: string): any[] {
     return proxy
   }
 
-  return docs.map((doc) => makeYamlProxyObject(lineCounter, doc))
+  return docs.map((doc) => makeYamlProxyObject(doc))
 }
 /**
  * Attempts to parse content as YAML, and applies a linter to produce more informative error messages when
@@ -158,7 +172,11 @@ function parseYamlWithContext(content: string): any[] {
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
   try {
-    return parseYamlWithContext(content) || []
+
+    const yamlConfigs = YamlConfig.parseYamlWithContext(content, path)
+    console.log((yamlConfigs[0] as any).object)
+    const configData = yamlConfigs.map((config) => config.object)
+    return configData || []
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
@@ -322,7 +340,7 @@ export function prepareResource({
     throw new ConfigurationError(`Unknown kind ${kind} in ${description}`, {
       kind,
       path: relPath,
-      absolutePath: configFilePath,
+      absolutePath: context.absolutePath,
       start: context.start,
       end: context.end
     })

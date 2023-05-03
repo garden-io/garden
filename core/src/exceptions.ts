@@ -209,6 +209,23 @@ const getLineWithContext = function (fileLines: string[], linesStart: number, li
   }
 }
 
+function getYamlFileContext(error: GardenError, contextLines = 2): string | undefined {
+  if (hasYamlFileContext(error.detail)) {
+    const yamlFile = readFileSync(error.detail.absolutePath, "utf-8")
+    const highlighted = highlightYaml(yamlFile)
+    const fileLines = highlighted.split("\n")
+    const context = getLineWithContext(fileLines, error.detail.start.line, error.detail.end.line, contextLines)
+
+    const logLines = [...context.before, ...context.lines.map((line) => chalk.underline.bgRed(line)), ...context.after]
+    const logLinesWithLineNumbers = logLines.map(
+      (line, index) => `${chalk.dim.italic(error.detail.start.line - contextLines + index + 1)} ${line}`
+    )
+    return logLinesWithLineNumbers.join("\n")
+  }
+
+  return undefined
+}
+
 export function formatGardenErrorWithDetail(error: GardenError) {
   const { detail, message, stack } = error
   let out = stack || message || ""
@@ -225,17 +242,9 @@ export function formatGardenErrorWithDetail(error: GardenError) {
     }
   }
 
-  if (hasYamlFileContext(error.detail)) {
-    const yamlFile = readFileSync(error.detail.absolutePath, "utf-8")
-    const highlighted = highlightYaml(yamlFile)
-    const fileLines = highlighted.split("\n")
-    const contextSize = 2
-    const context = getLineWithContext(fileLines, error.detail.start.line, error.detail.end.line, contextSize)
-
-    const logLines = [...context.before, ...context.lines.map((line) => chalk.underline.bgRed(line)), ...context.after]
-    const logLinesWithLineNumbers = logLines.map((line, index) => `${chalk.dim.italic(error.detail.start.line - contextSize + index + 1)} ${line}`)
-    console.log(logLinesWithLineNumbers.join("\n"))
-    out += `\n\n${logLinesWithLineNumbers.join("\n")}`
+  const yamlFileContext = getYamlFileContext(error)
+  if (yamlFileContext) {
+    out += `\n\n${yamlFileContext}`
   }
 
   return out

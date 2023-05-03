@@ -51,6 +51,20 @@ export interface ValidateWithPathParams<T> {
   ErrorClass?: typeof ConfigurationError | typeof LocalConfigError
 }
 
+export type YamlFileContext = {
+  start: number
+  end: number
+  length: number
+  absolutePath: string
+}
+
+export function getYamlContextAtPath(object: any, path: (string | number)[]): YamlFileContext | undefined {
+  if (object.__isYamlContextProxy) {
+    return object.__getContextForPath(path)
+  }
+  return undefined
+}
+
 /**
  * Should be used whenever a path to the corresponding config file is available while validating config
  * files.
@@ -125,6 +139,9 @@ export function validateSchema<T>(
       e.message = e.message.replace(joiPathPlaceholderRegex, chalk.underline(renderedPath || "."))
       // FIXME: remove once we've customized the error output from AJV in customObject.jsonSchema()
       e.message = e.message.replace(/should NOT have/g, "should not have")
+
+      const yamlContext = getYamlContextAtPath(value, e.path)
+      console.log(yamlContext)
 
       return e
     })
