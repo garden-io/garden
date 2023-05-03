@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,17 +7,21 @@
  */
 
 import { CommandError, ConfigurationError } from "../../../exceptions"
-import { CreateUserBulkRequest, CreateUserBulkResponse, UserResponse } from "@garden-io/platform-api-types"
-import dotenv = require("dotenv")
+import {
+  CreateUserBulkRequest,
+  CreateUserBulkResponse,
+  UserResult as UserResultApi,
+} from "@garden-io/platform-api-types"
 import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, handleBulkOperationResult, makeUserFromResponse, noApiMsg, UserResult } from "../helpers"
 import { dedent, deline } from "../../../util/string"
-import { StringsParameter, PathParameter } from "../../../cli/params"
+import { PathParameter, StringsParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
 import { chunk } from "lodash"
+import dotenv = require("dotenv")
 import Bluebird = require("bluebird")
 
 // This is the limit set by the API.
@@ -47,7 +51,7 @@ type Opts = typeof secretsCreateOpts
 
 export class UsersCreateCommand extends Command<Args, Opts> {
   name = "create"
-  help = "[EXPERIMENTAL] Create users"
+  help = "Create users"
   description = dedent`
     Create users in Garden Cloud and optionally add the users to specific groups.
     You can get the group IDs from the \`garden cloud users list\` command.
@@ -75,7 +79,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
   }
 
   async action({ garden, log, opts, args }: CommandParams<Args, Opts>): Promise<CommandResult<UserResult[]>> {
-    const addToGroups = (opts["add-to-groups"] || []).map((groupId) => parseInt(groupId, 10))
+    const addToGroups: string[] = opts["add-to-groups"] || []
     const fromFile = opts["from-file"] as string | undefined
     let users: StringMap
 
@@ -90,9 +94,16 @@ export class UsersCreateCommand extends Command<Args, Opts> {
       }
     } else if (args.users) {
       users = args.users.reduce((acc, keyValPair) => {
-        const parts = keyValPair.split("=")
-        acc[parts[0]] = parts[1]
-        return acc
+        try {
+          const user = dotenv.parse(keyValPair)
+          Object.assign(acc, user)
+          return acc
+        } catch (err) {
+          throw new CommandError(`Unable to read user from argument ${keyValPair}: ${err.message}`, {
+            args,
+            opts,
+          })
+        }
       }, {})
     } else {
       throw new CommandError(
@@ -113,6 +124,7 @@ export class UsersCreateCommand extends Command<Args, Opts> {
     const usersToCreate = Object.entries(users).map(([vcsUsername, name]) => ({
       name,
       vcsUsername,
+      serviceAccount: false,
     }))
     const batches = chunk(usersToCreate, MAX_USERS_PER_REQUEST)
     // This pretty arbitrary, but the bulk action can create 100 users at a time
@@ -139,14 +151,14 @@ export class UsersCreateCommand extends Command<Args, Opts> {
             addToGroups,
           }
           const res = await api.post<CreateUserBulkResponse>(`/users/bulk`, { body })
-          const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResponse[]
+          const successes = res.data.filter((d) => d.statusCode === 200).map((d) => d.user) as UserResultApi[]
           results.push(...successes.map((s) => makeUserFromResponse(s)))
 
           const failures = res.data
             .filter((d) => d.statusCode !== 200)
             .map((d) => ({
               message: d.message,
-              identifier: d.user.vcsUsername,
+              identifier: d.user.vcsUsername || "",
             }))
           errors.push(...failures)
         } catch (err) {

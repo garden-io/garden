@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -88,31 +88,6 @@ describe("pull-image plugin command", () => {
     })
   })
 
-  grouped("kaniko").context("using the in cluster registry with kaniko", () => {
-    let module: GardenModule
-
-    before(async () => {
-      await init("kaniko")
-
-      module = graph.getModule("simple-service")
-
-      // build the image
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
-    })
-
-    it("should pull the image", async () => {
-      await removeImage(module)
-      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
-      await ensureImagePulled(module)
-    })
-  })
-
   grouped("cluster-buildkit", "remote-only").context("using an external cluster registry with buildkit", () => {
     let module: GardenModule
 
@@ -120,31 +95,6 @@ describe("pull-image plugin command", () => {
       await init("cluster-buildkit-remote-registry")
 
       module = graph.getModule("remote-registry-test")
-
-      // build the image
-      await garden.buildStaging.syncFromSrc(module, garden.log)
-
-      await k8sBuildContainer({
-        ctx,
-        log: garden.log,
-        module,
-      })
-    })
-
-    it("should pull the image", async () => {
-      await removeImage(module)
-      await pullModule(ctx as KubernetesPluginContext, module, garden.log)
-      await ensureImagePulled(module)
-    })
-  })
-
-  grouped("cluster-buildkit").context("using the in cluster registry with buildkit", () => {
-    let module: GardenModule
-
-    before(async () => {
-      await init("cluster-buildkit")
-
-      module = graph.getModule("simple-service")
 
       // build the image
       await garden.buildStaging.syncFromSrc(module, garden.log)

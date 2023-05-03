@@ -1,46 +1,43 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dotenv = require("dotenv")
 import { apply, merge } from "json-merge-patch"
-import { deline, dedent } from "../util/string"
+import { dedent, deline } from "../util/string"
 import {
+  apiVersionSchema,
+  DeepPrimitiveMap,
+  includeGuideLink,
+  joi,
   joiArray,
   joiIdentifier,
-  joiVariables,
-  Primitive,
-  joiRepositoryUrl,
-  joiUserIdentifier,
-  joi,
-  includeGuideLink,
   joiPrimitive,
-  DeepPrimitiveMap,
-  joiVariablesDescription,
-  apiVersionSchema,
+  joiRepositoryUrl,
   joiSparseArray,
+  joiUserIdentifier,
+  joiVariables,
+  joiVariablesDescription,
+  Primitive,
+  PrimitiveMap,
 } from "./common"
 import { validateWithPath } from "./validation"
 import { resolveTemplateStrings } from "../template-string/template-string"
-import { ProjectConfigContext, EnvironmentConfigContext } from "./template-contexts/project"
+import { EnvironmentConfigContext, ProjectConfigContext } from "./template-contexts/project"
 import { findByName, getNames } from "../util/util"
 import { ConfigurationError, ParameterError, ValidationError } from "../exceptions"
-import { PrimitiveMap } from "./common"
-import { cloneDeep, omit, isPlainObject } from "lodash"
-import { providerConfigBaseSchema, GenericProviderConfig } from "./provider"
+import { cloneDeep, omit } from "lodash"
+import { GenericProviderConfig, providerConfigBaseSchema } from "./provider"
 import { DOCS_BASE_URL } from "../constants"
 import { defaultDotIgnoreFiles } from "../util/fs"
-import { pathExists, readFile } from "fs-extra"
-import { resolve, basename, relative } from "path"
-import chalk = require("chalk")
-import { safeLoad } from "js-yaml"
 import { CommandInfo } from "../plugin-context"
 import { VcsInfo } from "../vcs/vcs"
 import { profileAsync } from "../util/profiling"
+import { loadVarfile } from "./base"
+import chalk = require("chalk")
 
 export const defaultVarfilePath = "garden.env"
 export const defaultEnvVarfilePath = (environmentName: string) => `garden.${environmentName}.env`
@@ -99,8 +96,8 @@ export const environmentSchema = () =>
         dedent`
       Flag the environment as a production environment.
 
-      Setting this flag to \`true\` will activate the protection on the \`deploy\`, \`test\`, \`task\`, \`build\`,
-      and \`dev\` commands. A protected command will ask for a user confirmation every time is run against
+      Setting this flag to \`true\` will activate the protection on the \`build\`, \`delete\`, \`deploy\`, \`dev\`, and
+      \`test\` commands. A protected command will ask for a user confirmation every time is run against
       an environment marked as production.
       Run the command with the "--yes" flag to skip the check (e.g. when running Garden in CI).
 
@@ -174,6 +171,10 @@ export interface OutputSpec {
   value: Primitive
 }
 
+export interface ProxyConfig {
+  hostname: string
+}
+
 export interface ProjectConfig {
   apiVersion: string
   kind: "Project"
@@ -182,6 +183,7 @@ export interface ProjectConfig {
   id?: string
   domain?: string
   configPath?: string
+  proxy?: ProxyConfig
   defaultEnvironment: string
   dotIgnoreFiles: string[]
   environments: EnvironmentConfig[]
@@ -322,6 +324,19 @@ export const projectDocsSchema = () =>
       `
         )
         .example([".gardenignore", ".gitignore"]),
+      proxy: joi.object().keys({
+        hostname: joi
+          .string()
+          .default("localhost")
+          .description(
+            dedent`
+        The URL that Garden uses when creating port forwards. Defaults to "localhost".
+
+        Note that the \`GARDEN_PROXY_DEFAULT_ADDRESS\` environment variable takes precedence over this value.
+        `
+          )
+          .example(["127.0.0.1"]),
+      }),
       modules: projectModulesSchema().description("Control where to scan for modules in the project."),
       outputs: joiSparseArray(projectOutputSchema())
         .unique("name")
@@ -660,66 +675,5 @@ export function parseEnvironment(env: string): ParsedEnvironment {
     return { environment: env }
   } else {
     return { environment: split[1], namespace: split[0] }
-  }
-}
-
-export async function loadVarfile({
-  configRoot,
-  path,
-  defaultPath,
-}: {
-  // project root (when resolving project config) or module root (when resolving module config)
-  configRoot: string
-  path: string | undefined
-  defaultPath: string | undefined
-}): Promise<PrimitiveMap> {
-  if (!path && !defaultPath) {
-    throw new ParameterError(`Neither a path nor a defaultPath was provided.`, { configRoot, path, defaultPath })
-  }
-  const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
-  const exists = await pathExists(resolvedPath)
-
-  if (!exists && path && path !== defaultPath) {
-    throw new ConfigurationError(`Could not find varfile at path '${path}'`, {
-      path,
-      resolvedPath,
-    })
-  }
-
-  if (!exists) {
-    return {}
-  }
-
-  try {
-    const data = await readFile(resolvedPath)
-    const relPath = relative(configRoot, resolvedPath)
-    const filename = basename(resolvedPath.toLowerCase())
-
-    if (filename.endsWith(".json")) {
-      const parsed = JSON.parse(data.toString())
-      if (!isPlainObject(parsed)) {
-        throw new ConfigurationError(`Configured variable file ${relPath} must be a valid plain JSON object`, {
-          parsed,
-        })
-      }
-      return parsed
-    } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
-      const parsed = safeLoad(data.toString())
-      if (!isPlainObject(parsed)) {
-        throw new ConfigurationError(`Configured variable file ${relPath} must be a single plain YAML mapping`, {
-          parsed,
-        })
-      }
-      return parsed as PrimitiveMap
-    } else {
-      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
-      // validate the extension for that.
-      return dotenv.parse(await readFile(resolvedPath))
-    }
-  } catch (error) {
-    throw new ConfigurationError(`Unable to load varfile at '${path}': ${error}`, {
-      error,
-      path,
-    })
   }
 }

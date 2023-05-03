@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +18,7 @@ export interface DeployServiceParams<M extends GardenModule = GardenModule, S ex
   devMode: boolean
   force: boolean
   hotReload: boolean
+  localMode: boolean
   runtimeContext: RuntimeContext
 }
 
@@ -33,6 +34,7 @@ export const deployService = () => ({
     force: joi.boolean().description("Whether to force a re-deploy, even if the service is already deployed."),
     runtimeContext: runtimeContextSchema(),
     hotReload: joi.boolean().default(false).description("Whether to configure the service for hot-reloading."),
+    localMode: joi.boolean().default(false).description("Whether the service should be configured in local mode."),
   }),
   resultSchema: serviceStatusSchema(),
 })

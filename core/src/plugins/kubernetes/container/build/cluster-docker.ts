@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,7 +25,6 @@ import {
 import { posix } from "path"
 import split2 = require("split2")
 import { LogLevel } from "../../../../logger/logger"
-import { renderOutputStream } from "../../../../util/util"
 import { getDockerBuildFlags } from "../../../container/build"
 
 export const getClusterDockerBuildStatus: BuildStatusHandler = async (params) => {
@@ -89,16 +88,16 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
 
   log.setState(`Building image ${localId}...`)
 
-  let buildLog = ""
+  const logEventContext = {
+    origin: "cluster-docker",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
 
   // Stream verbose logs to a status line
   const stdout = split2()
-  const statusLine = log.placeholder({ level: LogLevel.verbose })
-
   stdout.on("error", () => {})
   stdout.on("data", (line: Buffer) => {
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: line })
-    statusLine.setState(renderOutputStream(line.toString()))
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
   })
 
   // Prepare the build command
@@ -134,7 +133,7 @@ export const clusterDockerBuild: BuildHandler = async (params) => {
     buffer: true,
   })
 
-  buildLog = buildRes.log
+  let buildLog = buildRes.log
 
   // Push the image to the registry
   log.info({ msg: `→ Pushing image ${localId} to registry...` })

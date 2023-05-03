@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,8 +14,8 @@ import { sleep, deepMap } from "../../../util/util"
 import { KubeApi } from "../api"
 import { getAppNamespace } from "../namespace"
 import Bluebird from "bluebird"
-import { KubernetesResource, KubernetesServerResource, BaseResource } from "../types"
-import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit } from "lodash"
+import { KubernetesResource, KubernetesServerResource, BaseResource, KubernetesWorkload } from "../types"
+import { zip, isArray, isPlainObject, pickBy, mapValues, flatten, cloneDeep, omit, isEqual, keyBy } from "lodash"
 import { KubernetesProvider, KubernetesPluginContext } from "../config"
 import { isSubset } from "../../../util/is-subset"
 import { LogEntry } from "../../../logger/log-entry"
@@ -26,13 +26,15 @@ import {
   V1PersistentVolumeClaim,
   V1Service,
   V1Container,
+  KubernetesObject,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
-import { getPods, hashManifest } from "../util"
+import { getPods, getResourceKey, hashManifest } from "../util"
 import { checkWorkloadStatus } from "./workload"
 import { checkWorkloadPodStatus } from "./pod"
 import { deline, gardenAnnotationKey, stableStringify } from "../../../util/string"
-import { HotReloadableResource } from "../hot-reload/hot-reload"
+import { SyncableResource } from "../hot-reload/hot-reload"
+import { LogLevel } from "../../../logger/logger"
 
 export interface ResourceStatus<T = BaseResource> {
   state: ServiceState
@@ -186,8 +188,14 @@ export async function waitForResources({
   let loops = 0
   let lastMessage: string | undefined
   const startTime = new Date().getTime()
+
+  const logEventContext = {
+    origin: "kubernetes-plugin",
+    log: log.placeholder({ level: LogLevel.verbose }),
+  }
+
   const emitLog = (msg: string) =>
-    ctx.events.emit("log", { timestamp: new Date().getTime(), data: Buffer.from(msg, "utf-8") })
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: Buffer.from(msg, "utf-8"), ...logEventContext })
 
   const waitingMsg = `Waiting for resources to be ready...`
   const statusLine = log.info({
@@ -277,6 +285,12 @@ interface ComparisonResult {
   remoteResources: KubernetesResource[]
   deployedWithDevMode: boolean
   deployedWithHotReloading: boolean
+  deployedWithLocalMode: boolean
+  /**
+   * These resources have changes in `spec.selector`, and would need to be deleted before redeploying (since Kubernetes
+   * doesn't allow updates to immutable fields).
+   */
+  selectorChangedResourceKeys: string[]
 }
 
 /**
@@ -297,19 +311,22 @@ export async function compareDeployedResources(
     getDeployedResource(ctx, ctx.provider, resource, log)
   )
   const deployedResources = <KubernetesResource[]>maybeDeployedObjects.filter((o) => o !== null)
+  const manifestsMap = keyBy(manifests, (m) => getResourceKey(m))
+  const manifestKeys = Object.keys(manifestsMap)
+  const deployedMap = keyBy(deployedResources, (m) => getResourceKey(m))
 
   const result: ComparisonResult = {
     state: "unknown",
     remoteResources: <KubernetesResource[]>deployedResources.filter((o) => o !== null),
     deployedWithDevMode: false,
     deployedWithHotReloading: false,
+    deployedWithLocalMode: false,
+    selectorChangedResourceKeys: detectChangedSpecSelector(manifestsMap, deployedMap),
   }
 
-  const logDescription = (resource: KubernetesResource) => `${resource.kind}/${resource.metadata.name}`
+  const logDescription = (resource: KubernetesResource) => getResourceKey(resource)
 
-  const missingObjectNames = zip(manifests, maybeDeployedObjects)
-    .filter(([_, deployed]) => !deployed)
-    .map(([resource, _]) => logDescription(resource!))
+  const missingObjectNames = manifestKeys.filter((k) => !deployedMap[k]).map((k) => logDescription(manifestsMap[k]))
 
   if (missingObjectNames.length === manifests.length) {
     // All resources missing.
@@ -350,8 +367,9 @@ export async function compareDeployedResources(
 
   log.verbose(`Comparing expected and deployed resources...`)
 
-  for (let [newManifest, deployedResource] of zip(manifests, deployedResources) as KubernetesResource[][]) {
-    let manifest = cloneDeep(newManifest)
+  for (const key of Object.keys(manifestsMap)) {
+    let manifest = cloneDeep(manifestsMap[key])
+    let deployedResource = deployedMap[key]
 
     if (!manifest.metadata.annotations) {
       manifest.metadata.annotations = {}
@@ -362,12 +380,15 @@ export async function compareDeployedResources(
       delete manifest.metadata.annotations[gardenAnnotationKey("manifest-hash")]
     }
 
-    if (manifest.kind === "DaemonSet" || manifest.kind === "Deployment" || manifest.kind === "StatefulSet") {
-      if (isConfiguredForDevMode(<HotReloadableResource>manifest)) {
+    if (isWorkloadResource(manifest)) {
+      if (isConfiguredForDevMode(manifest)) {
         result.deployedWithDevMode = true
       }
-      if (isConfiguredForHotReloading(<HotReloadableResource>manifest)) {
+      if (isConfiguredForHotReloading(manifest)) {
         result.deployedWithHotReloading = true
+      }
+      if (isConfiguredForLocalMode(manifest)) {
+        result.deployedWithLocalMode = true
       }
     }
 
@@ -425,8 +446,8 @@ export async function compareDeployedResources(
       }
     }
 
-    // clean null values
-    manifest = <KubernetesResource>removeNull(manifest)
+    // clean null and undefined values
+    manifest = <KubernetesResource>removeNullAndUndefined(manifest)
     // The Kubernetes API currently strips out environment variables values so we remove them
     // from the manifests as well
     manifest = removeEmptyEnvValues(manifest)
@@ -435,7 +456,7 @@ export async function compareDeployedResources(
 
     if (!isSubset(deployedResource, manifest)) {
       if (manifest) {
-        log.verbose(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
+        log.debug(`Resource ${manifest.metadata.name} is not a superset of deployed resource`)
         log.silly(diffString(deployedResource, manifest))
       }
       // console.log(JSON.stringify(resource, null, 4))
@@ -447,32 +468,66 @@ export async function compareDeployedResources(
     }
   }
 
-  log.verbose(`All resources match.`)
+  log.debug(`All resources match.`)
 
   result.state = "ready"
   return result
 }
 
-export function isConfiguredForDevMode(resource: HotReloadableResource): boolean {
+export function isConfiguredForDevMode(resource: SyncableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("dev-mode")] === "true"
 }
 
-export function isConfiguredForHotReloading(resource: HotReloadableResource): boolean {
+export function isConfiguredForHotReloading(resource: SyncableResource): boolean {
   return resource.metadata.annotations?.[gardenAnnotationKey("hot-reload")] === "true"
 }
 
-export async function getDeployedResource(
+export function isConfiguredForLocalMode(resource: SyncableResource): boolean {
+  return resource.metadata.annotations?.[gardenAnnotationKey("local-mode")] === "true"
+}
+
+function isWorkloadResource(resource: KubernetesResource): resource is KubernetesWorkload {
+  return (
+    resource.kind === "Deployment" ||
+    resource.kind === "DaemonSet" ||
+    resource.kind === "StatefulSet" ||
+    resource.kind === "ReplicaSet"
+  )
+}
+
+type KubernetesResourceMap = { [key: string]: KubernetesResource }
+
+function detectChangedSpecSelector(manifestsMap: KubernetesResourceMap, deployedMap: KubernetesResourceMap): string[] {
+  const manifestKeys = Object.keys(manifestsMap)
+  const changedKeys: string[] = []
+  for (const k of manifestKeys) {
+    const manifest = manifestsMap[k]
+    const deployedResource = deployedMap[k]
+    if (
+      // If no corresponding resource to the local manifest has been deployed, this will be undefined.
+      deployedResource &&
+      isWorkloadResource(manifest) &&
+      isWorkloadResource(deployedResource) &&
+      !isEqual(manifest.spec.selector, deployedResource.spec.selector)
+    ) {
+      changedKeys.push(getResourceKey(manifest))
+    }
+  }
+  return changedKeys
+}
+
+export async function getDeployedResource<ResourceKind extends KubernetesObject>(
   ctx: PluginContext,
   provider: KubernetesProvider,
-  resource: KubernetesResource,
+  resource: KubernetesResource<ResourceKind>,
   log: LogEntry
-): Promise<KubernetesResource | null> {
+): Promise<KubernetesResource<ResourceKind> | null> {
   const api = await KubeApi.factory(log, ctx, provider)
   const namespace = resource.metadata?.namespace || (await getAppNamespace(ctx, log, provider))
 
   try {
     const res = await api.readBySpec({ namespace, manifest: resource, log })
-    return <KubernetesResource>res
+    return <KubernetesResource<ResourceKind>>res
   } catch (err) {
     if (err.statusCode === 404) {
       return null
@@ -483,15 +538,15 @@ export async function getDeployedResource(
 }
 
 /**
- * Recursively removes all null value properties from objects
+ * Recursively removes all null and undefined value properties from objects
  */
-function removeNull<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof T]: T[K] } {
+function removeNullAndUndefined<T>(value: T | Iterable<T>): T | Iterable<T> | { [K in keyof T]: T[K] } {
   if (isArray(value)) {
-    return value.map(removeNull)
+    return value.map(removeNullAndUndefined)
   } else if (isPlainObject(value)) {
     return <{ [K in keyof T]: T[K] }>mapValues(
-      pickBy(<any>value, (v) => v !== null),
-      removeNull
+      pickBy(<any>value, (v) => v !== null && v !== undefined),
+      removeNullAndUndefined
     )
   } else {
     return value

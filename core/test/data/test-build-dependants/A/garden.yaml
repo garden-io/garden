@@ -1,0 +1,4 @@
+kind: Module
+type: templated
+template: test-template
+name: aaa

@@ -1,0 +1,12 @@
+kind: Module
+type: pulumi
+name: k8s-namespace
+description: Creates a Namespace
+pulumiVarfiles: [varfile1.yaml, varfile2.yaml]
+createStack: true
+allowDestroy: true
+pulumiVariables:
+  pulumi-k8s-test:orgName: gordon-garden-bot # <--- replace with your own org
+  pulumi-k8s-test:namespace: pulumi-test
+  pulumi-k8s-test:appName: api-pulumi-variables-override
+  pulumi-k8s-test:isMinikube: "true"

@@ -7,7 +7,7 @@ tocTitle: "`jib-container`"
 
 ## Description
 
-Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.40/examples/jib-container) to see it in action.
+Extends the [container module type](./container.md) to build the image with [Jib](https://github.com/GoogleContainerTools/jib). Use this to efficiently build container images for Java services. Check out the [jib example](https://github.com/garden-io/garden/tree/0.12.55/examples/jib-container) to see it in action.
 
 The image is always built locally, directly from the module source directory (see the note on that below), before shipping the container image to the right place. You can set `build.tarOnly: true` to only build the image as a tarball.
 
@@ -57,8 +57,8 @@ build:
           source:
 
           # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-          # Defaults to to same as source path.
-          target: ''
+          # Defaults to the same as source path.
+          target:
 
   # Maximum time in seconds to wait for build to finish.
   timeout: 1200
@@ -68,7 +68,17 @@ build:
   projectType: auto
 
   # The JDK version to use.
+  #
+  # The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and
+  # Maven.
+  #
+  # To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
   jdkVersion: 11
+
+  # The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+  #
+  # The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+  jdkPath:
 
   # Build the image and push to a local Docker daemon (i.e. use the `jib:dockerBuild` / `jibDockerBuild` target).
   dockerBuild: false
@@ -79,6 +89,28 @@ build:
   # Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
   tarFormat: docker
 
+  # Defines the location of the custom executable Gradle binary.
+  #
+  # If not provided, then the Gradle binary available in the working directory will be used.
+  # If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Gradle.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+  gradlePath:
+
+  # Defines the location of the custom executable Maven binary.
+  #
+  # If not provided, then Maven 3.8.5 will be downloaded and used.
+  #
+  # **Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom
+  # Maven.
+  # To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+  mavenPath:
+
+  # Defines the Maven phases to be executed during the Garden build step.
+  mavenPhases:
+
   # Specify extra flags to pass to maven/gradle when building the container image.
   extraFlags:
 
@@ -86,7 +118,7 @@ build:
 description:
 
 # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-# based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`).
+# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
 # This can be handy when you only need certain modules for specific environments, e.g. only for development.
 #
 # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also
@@ -185,7 +217,7 @@ variables:
 # objects and arrays._
 #
 # To use different module-level varfiles in different environments, you can template in the environment name
-# to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+# to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 # varfiles exist).
 varfile:
 
@@ -235,8 +267,8 @@ services:
     dependencies: []
 
     # Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable
-    # services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
-    # != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
+    # services based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name !=
+    # "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for
     # development.
     #
     # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime
@@ -282,11 +314,7 @@ services:
 
       # Specify one or more source files or directories to automatically sync with the running container.
       sync:
-        - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory.
-          # Must be a relative path. Defaults to the module's top-level directory if no value is provided.
-          source: .
-
-          # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
+        - # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
           # allowed.
           target:
 
@@ -294,6 +322,10 @@ services:
           #
           # `.git` directories and `.garden` directories are always ignored.
           exclude:
+
+          # POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
+          # Defaults to the module's top-level directory if no value is provided.
+          source: .
 
           # The sync mode to use for the given paths. See the [Dev Mode
           # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
@@ -320,6 +352,43 @@ services:
           # docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more
           # information.
           defaultGroup:
+
+    # [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the
+    # target resource.
+    #
+    # The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
+    # Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
+    #
+    # Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+    # Local mode always takes the precedence over dev mode if there are any conflicting service names.
+    #
+    # Health checks are disabled for services running in local mode.
+    #
+    # See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+    #
+    # Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental
+    # release.
+    localMode:
+      # The reverse port-forwards configuration for the local application.
+      ports:
+        - # The local port to be used for reverse port-forward.
+          local:
+
+          # The remote port to be used for reverse port-forward.
+          remote:
+
+      # The command to run the local application. If not present, then the local application should be started
+      # manually.
+      command:
+
+      # Specifies restarting policy for the local application. By default, the local application will be restarting
+      # infinitely with 1000ms between attempts.
+      restart:
+        # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+        delayMsec: 1000
+
+        # Max number of the local application restarts. Unlimited by default.
+        max: .inf
 
     # List of ingress endpoints that the service exposes.
     ingresses:
@@ -391,7 +460,8 @@ services:
       # CPU)
       min: 10
 
-      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in
+      # no limit being set.
       max: 1000
 
     memory:
@@ -399,8 +469,9 @@ services:
       # GB)
       min: 90
 
-      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in
+      # no limit being set.
+      max: 1024
 
     # List of ports that the service container exposes.
     ports:
@@ -480,11 +551,17 @@ services:
     # equivalent to root on the host. Defaults to false.
     privileged:
 
+    # Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+    tty: false
+
     # POSIX capabilities to add to the running service's main container.
     addCapabilities:
 
     # POSIX capabilities to remove from the running service's main container.
     dropCapabilities:
+
+    # Specifies the container's deployment strategy.
+    deploymentStrategy: RollingUpdate
 
 # A list of tests to run in the module.
 tests:
@@ -497,7 +574,7 @@ tests:
 
     # Set this to `true` to disable the test. You can use this with conditional template strings to
     # enable/disable tests based on, for example, the current environment or other variables (e.g.
-    # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+    # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
     # specific environments, e.g. only during CI.
     disabled: false
 
@@ -532,7 +609,8 @@ tests:
       # CPU)
       min: 10
 
-      # The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no
+      # limit being set.
       max: 1000
 
     memory:
@@ -540,8 +618,9 @@ tests:
       # GB)
       min: 90
 
-      # The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no
+      # limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when deploying the test.
     #
@@ -597,7 +676,7 @@ tasks:
     dependencies: []
 
     # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-    # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name !=
+    # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name !=
     # "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for
     # development.
     #
@@ -645,7 +724,8 @@ tasks:
       # CPU)
       min: 10
 
-      # The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
+      # The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no
+      # limit being set.
       max: 1000
 
     memory:
@@ -653,8 +733,9 @@ tasks:
       # GB)
       min: 90
 
-      # The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
-      max: 90
+      # The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no
+      # limit being set.
+      max: 1024
 
     # List of volumes that should be mounted when deploying the task.
     #
@@ -803,11 +884,11 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+Defaults to the same as source path.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `""`    | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `build.timeout`
 
@@ -825,9 +906,9 @@ Maximum time in seconds to wait for build to finish.
 
 The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
 
-| Type     | Default  | Required |
-| -------- | -------- | -------- |
-| `string` | `"auto"` | No       |
+| Type     | Allowed Values                             | Default  | Required |
+| -------- | ------------------------------------------ | -------- | -------- |
+| `string` | "gradle", "maven", "jib", "auto", "mavend" | `"auto"` | Yes      |
 
 ### `build.jdkVersion`
 
@@ -835,9 +916,33 @@ The type of project to build. Defaults to auto-detecting between gradle and mave
 
 The JDK version to use.
 
-| Type     | Default | Required |
-| -------- | ------- | -------- |
-| `number` | `11`    | No       |
+The chosen version will be downloaded by Garden and used to define `JAVA_HOME` environment variable for Gradle and Maven.
+
+To use an arbitrary JDK distribution, please use the `jdkPath` configuration option.
+
+| Type     | Allowed Values | Default | Required |
+| -------- | -------------- | ------- | -------- |
+| `number` | 8, 11, 13, 17  | `11`    | Yes      |
+
+### `build.jdkPath`
+
+[build](#build) > jdkPath
+
+The JDK home path. This **always overrides** the JDK defined in `jdkVersion`.
+
+The value will be used as `JAVA_HOME` environment variable for Gradle and Maven.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+Example:
+
+```yaml
+build:
+  ...
+  jdkPath: "${local.env.JAVA_HOME}"
+```
 
 ### `build.dockerBuild`
 
@@ -865,9 +970,50 @@ Don't load or push the resulting image to a Docker daemon or registry, only buil
 
 Specify the image format in the resulting tar file. Only used if `tarOnly: true`.
 
-| Type     | Default    | Required |
-| -------- | ---------- | -------- |
-| `string` | `"docker"` | No       |
+| Type     | Allowed Values  | Default    | Required |
+| -------- | --------------- | ---------- | -------- |
+| `string` | "docker", "oci" | `"docker"` | Yes      |
+
+### `build.gradlePath`
+
+[build](#build) > gradlePath
+
+Defines the location of the custom executable Gradle binary.
+
+If not provided, then the Gradle binary available in the working directory will be used.
+If no Gradle binary found in the working dir, then Gradle 7.5.1 will be downloaded and used.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Gradle.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `build.mavenPath`
+
+[build](#build) > mavenPath
+
+Defines the location of the custom executable Maven binary.
+
+If not provided, then Maven 3.8.5 will be downloaded and used.
+
+**Note!** Either `jdkVersion` or `jdkPath` will be used to define `JAVA_HOME` environment variable for the custom Maven.
+To ensure a system JDK usage, please set `jdkPath` to `${local.env.JAVA_HOME}`.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `build.mavenPhases[]`
+
+[build](#build) > mavenPhases
+
+Defines the Maven phases to be executed during the Garden build step.
+
+| Type            | Default       | Required |
+| --------------- | ------------- | -------- |
+| `array[string]` | `["compile"]` | No       |
 
 ### `build.extraFlags[]`
 
@@ -889,7 +1035,7 @@ A description of the module.
 
 ### `disabled`
 
-Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
+Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
 Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
 
@@ -952,9 +1098,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | No       |
 
 Example:
 
@@ -1043,7 +1189,7 @@ The format of the files is determined by the configured file's extension:
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
 To use different module-level varfiles in different environments, you can template in the environment name
-to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 varfiles exist).
 
 | Type        | Required |
@@ -1197,7 +1343,7 @@ The names of any services that this service depends on at runtime, and the names
 
 [services](#services) > disabled
 
-Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
+Set this to `true` to disable the service. You can use this with conditional template strings to enable/disable services based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name != "prod"}`). This can be handy when you only need certain services for specific environments, e.g. only for development.
 
 Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
@@ -1319,26 +1465,6 @@ Specify one or more source files or directories to automatically sync with the r
 | --------------- | -------- |
 | `array[object]` | No       |
 
-### `services[].devMode.sync[].source`
-
-[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > source
-
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-services:
-  - devMode:
-      ...
-      sync:
-        - source: "src"
-```
-
 ### `services[].devMode.sync[].target`
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > target
@@ -1383,6 +1509,26 @@ services:
             - '*.log'
 ```
 
+### `services[].devMode.sync[].source`
+
+[services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > source
+
+POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path. Defaults to the module's top-level directory if no value is provided.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+services:
+  - devMode:
+      ...
+      sync:
+        - source: "src"
+```
+
 ### `services[].devMode.sync[].mode`
 
 [services](#services) > [devMode](#servicesdevmode) > [sync](#servicesdevmodesync) > mode
@@ -1419,9 +1565,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `services[].devMode.sync[].defaultGroup`
 
@@ -1429,9 +1575,101 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
+
+### `services[].localMode`
+
+[services](#services) > localMode
+
+[EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
+
+The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
+Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
+
+Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+Health checks are disabled for services running in local mode.
+
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `services[].localMode.ports[]`
+
+[services](#services) > [localMode](#serviceslocalmode) > ports
+
+The reverse port-forwards configuration for the local application.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `services[].localMode.ports[].local`
+
+[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > local
+
+The local port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].localMode.ports[].remote`
+
+[services](#services) > [localMode](#serviceslocalmode) > [ports](#serviceslocalmodeports) > remote
+
+The remote port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `services[].localMode.command[]`
+
+[services](#services) > [localMode](#serviceslocalmode) > command
+
+The command to run the local application. If not present, then the local application should be started manually.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `services[].localMode.restart`
+
+[services](#services) > [localMode](#serviceslocalmode) > restart
+
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
+
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `services[].localMode.restart.delayMsec`
+
+[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `services[].localMode.restart.max`
+
+[services](#services) > [localMode](#serviceslocalmode) > [restart](#serviceslocalmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
 
 ### `services[].ingresses[]`
 
@@ -1743,7 +1981,7 @@ The minimum amount of CPU the service needs to be available for it to be deploye
 
 [services](#services) > [cpu](#servicescpu) > max
 
-The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the service can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -1771,11 +2009,11 @@ The minimum amount of RAM the service needs to be available for it to be deploye
 
 [services](#services) > [memory](#servicesmemory) > max
 
-The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the service can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `services[].ports[]`
 
@@ -1981,6 +2219,16 @@ If true, run the service's main container in privileged mode. Processes in privi
 | --------- | -------- |
 | `boolean` | No       |
 
+### `services[].tty`
+
+[services](#services) > tty
+
+Specify if containers in this module have TTY support enabled (which implies having stdin support enabled).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
 ### `services[].addCapabilities[]`
 
 [services](#services) > addCapabilities
@@ -2000,6 +2248,16 @@ POSIX capabilities to remove from the running service's main container.
 | Type            | Required |
 | --------------- | -------- |
 | `array[string]` | No       |
+
+### `services[].deploymentStrategy`
+
+[services](#services) > deploymentStrategy
+
+Specifies the container's deployment strategy.
+
+| Type     | Allowed Values              | Default           | Required |
+| -------- | --------------------------- | ----------------- | -------- |
+| `string` | "RollingUpdate", "Recreate" | `"RollingUpdate"` | Yes      |
 
 ### `tests[]`
 
@@ -2035,7 +2293,7 @@ The names of any services that must be running, and the names of any tasks that 
 
 Set this to `true` to disable the test. You can use this with conditional template strings to
 enable/disable tests based on, for example, the current environment or other variables (e.g.
-`enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+`enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
 specific environments, e.g. only during CI.
 
 | Type      | Default | Required |
@@ -2193,7 +2451,7 @@ The minimum amount of CPU the test needs to be available for it to be deployed, 
 
 [tests](#tests) > [cpu](#testscpu) > max
 
-The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the test can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2221,11 +2479,11 @@ The minimum amount of RAM the test needs to be available for it to be deployed, 
 
 [tests](#tests) > [memory](#testsmemory) > max
 
-The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the test can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tests[].volumes[]`
 
@@ -2367,7 +2625,7 @@ The names of any tasks that must be executed, and the names of any services that
 
 [tasks](#tasks) > disabled
 
-Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
+Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
 
 Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
@@ -2538,7 +2796,7 @@ The minimum amount of CPU the task needs to be available for it to be deployed, 
 
 [tasks](#tasks) > [cpu](#taskscpu) > max
 
-The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU)
+The maximum amount of CPU the task can use, in millicpus (i.e. 1000 = 1 CPU). If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
@@ -2566,11 +2824,11 @@ The minimum amount of RAM the task needs to be available for it to be deployed, 
 
 [tasks](#tasks) > [memory](#tasksmemory) > max
 
-The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB)
+The maximum amount of RAM the task can use, in megabytes (i.e. 1024 = 1 GB) If set to null will result in no limit being set.
 
 | Type     | Default | Required |
 | -------- | ------- | -------- |
-| `number` | `90`    | No       |
+| `number` | `1024`  | No       |
 
 ### `tasks[].volumes[]`
 
@@ -2724,9 +2982,9 @@ A map of all variables defined in the module.
 
 ### `${modules.<module-name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${modules.<module-name>.version}`
 

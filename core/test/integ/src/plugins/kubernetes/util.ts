@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -97,6 +97,7 @@ describe("util", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const resource = await createWorkloadManifest({
@@ -107,6 +108,7 @@ describe("util", () => {
           namespace: provider.config.namespace!.name!,
           enableDevMode: false,
           enableHotReload: false,
+          enableLocalMode: false,
           log: garden.log,
           production: false,
           blueGreen: false,
@@ -137,6 +139,7 @@ describe("util", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const provider = (await garden.resolveProvider(garden.log, "local-kubernetes")) as Provider<KubernetesConfig>
@@ -225,6 +228,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -247,6 +251,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -277,6 +282,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -305,6 +311,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -333,6 +340,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -364,10 +372,11 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
-      module.spec.serviceResource.name = `{{ template "postgresql.master.fullname" . }}`
+      module.spec.serviceResource.name = `{{ template "postgresql.primary.fullname" . }}`
       const result = await getServiceResource({
         ctx,
         log,
@@ -393,6 +402,7 @@ describe("util", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await helmGarden.processTasks([deployTask], { throwOnError: true })
@@ -504,6 +514,7 @@ describe("util", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })

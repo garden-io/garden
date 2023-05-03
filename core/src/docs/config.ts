@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -123,6 +123,8 @@ interface RenderYamlOpts {
   renderEllipsisBetweenKeys?: boolean
   renderValue?: "none" | "default" | "example" | "preferDefault" | "preferExample"
 }
+
+const normalizeTemplateStrings = (s: string | undefined) => (!!s ? s.replace(/\\\$\{/g, "${") : undefined)
 
 export function renderSchemaDescriptionYaml(
   schemaDescriptions: BaseKeyDescription[],
@@ -347,7 +349,9 @@ export function renderConfigReference(
     name: undefined,
     level: 0,
   })
+
   const normalizedDescriptions = flattenSchema(desc, normalizeOpts)
+  normalizedDescriptions.forEach((d) => (d.description = normalizeTemplateStrings(d.description)))
 
   const yaml = renderSchemaDescriptionYaml(
     // Skip deprecated fields in the YAML description

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,21 +9,29 @@
 import { IncomingHttpHeaders } from "http"
 
 import { got, GotHeaders, GotHttpError, GotJsonOptions, GotResponse } from "../util/http"
-import { findProjectConfig } from "../config/base"
-import { CommandError, EnterpriseApiError } from "../exceptions"
+import { CloudApiError } from "../exceptions"
 import { LogEntry } from "../logger/log-entry"
-import { gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
 import type { ClientAuthToken as ClientAuthTokenType } from "../db/entities/client-auth-token"
 import { Cookie } from "tough-cookie"
 import { isObject } from "lodash"
 import { deline } from "../util/string"
 import chalk from "chalk"
-import { GetProjectResponse } from "@garden-io/platform-api-types"
-import { getCloudDistributionName, getPackageVersion } from "../util/util"
+import {
+  GetProjectResponse,
+  GetProfileResponse,
+  CreateProjectsForRepoResponse,
+  ListProjectsResponse,
+} from "@garden-io/platform-api-types"
+import { getCloudDistributionName, getCloudLogSectionName, getPackageVersion } from "../util/util"
 import { CommandInfo } from "../plugin-context"
+import { ProjectResource } from "../config/project"
 
 const gardenClientName = "garden-core"
 const gardenClientVersion = getPackageVersion()
+
+export class CloudApiDuplicateProjectsError extends CloudApiError {}
+export class CloudApiTokenRefreshError extends CloudApiError {}
 
 // If a GARDEN_AUTH_TOKEN is present and Garden is NOT running from a workflow runner pod,
 // switch to ci-token authentication method.
@@ -94,25 +102,51 @@ export interface RegisterSessionResponse {
   namespaceId: number
 }
 
+// Represents a cloud environment
+export interface CloudEnvironment {
+  id: string
+  name: string
+}
+
+// Represents a cloud project
+export interface CloudProject {
+  id: string
+  name: string
+  repositoryUrl: string
+  environments: CloudEnvironment[]
+}
+
+function toCloudProject(
+  project: GetProjectResponse["data"] | ListProjectsResponse["data"][0] | CreateProjectsForRepoResponse["data"][0]
+): CloudProject {
+  const environments: CloudEnvironment[] = []
+
+  for (const environment of project.environments) {
+    environments.push({ id: environment.id, name: environment.name })
+  }
+
+  return {
+    id: project.id,
+    name: project.name,
+    repositoryUrl: project.repositoryUrl,
+    environments,
+  }
+}
+
 /**
- * A helper function that finds a project without resolving template strings and returns the enterprise
- * config. Needed since the EnterpriseApi is generally used before initializing the Garden class.
+ * A helper function to get the cloud domain from a project config. Uses the env var
+ * GARDEN_CLOUD_DOMAIN to override a configured domain.
  */
-export async function getEnterpriseConfig(currentDirectory: string) {
-  const projectConfig = await findProjectConfig(currentDirectory)
-  if (!projectConfig) {
-    throw new CommandError(`Not a project directory (or any of the parent directories): ${currentDirectory}`, {
-      currentDirectory,
-    })
+export function getGardenCloudDomain(projectConfig?: ProjectResource): string {
+  let cloudDomain: string | undefined
+
+  if (gardenEnv.GARDEN_CLOUD_DOMAIN) {
+    cloudDomain = new URL(gardenEnv.GARDEN_CLOUD_DOMAIN).origin
+  } else if (projectConfig?.domain) {
+    cloudDomain = new URL(projectConfig.domain).origin
   }
 
-  const projectId = projectConfig.id
-  if (!projectId || !projectConfig.domain) {
-    return
-  }
-
-  const domain = new URL(projectConfig.domain).origin
-  return { domain, projectId }
+  return cloudDomain || DEFAULT_GARDEN_CLOUD_DOMAIN
 }
 
 /**
@@ -126,23 +160,24 @@ export class CloudApi {
   private log: LogEntry
   private intervalMsec = 4500 // Refresh interval in ms, it needs to be less than refreshThreshold/2
   private apiPrefix = "api"
-  private _project?: GetProjectResponse["data"]
+  private _project?: CloudProject
+  private _profile?: GetProfileResponse["data"]
   public domain: string
-  public projectId: string
+  public projectId: string | undefined
 
   // Set when/if the Core session is registered with Cloud
   public environmentId?: number
   public namespaceId?: number
   public sessionRegistered = false
 
-  constructor(log: LogEntry, enterpriseDomain: string, projectId: string) {
+  constructor(log: LogEntry, enterpriseDomain: string) {
     this.log = log
+    // TODO: Replace all instances of "enterpriseDomain" with "cloudDomain".
     this.domain = enterpriseDomain
-    this.projectId = projectId
   }
 
   /**
-   * Initialize the Enterprise API.
+   * Initialize the Cloud API.
    *
    * Returns null if the project is not configured for Garden Cloud or if the user is not logged in.
    * Throws if the user is logged in but the token is invalid and can't be refreshed.
@@ -152,39 +187,36 @@ export class CloudApi {
    */
   static async factory({
     log,
-    currentDirectory,
+    cloudDomain,
     skipLogging = false,
   }: {
     log: LogEntry
-    currentDirectory: string
+    cloudDomain: string
     skipLogging?: boolean
   }) {
     log.debug("Initializing Garden Cloud API client.")
 
-    const config = await getEnterpriseConfig(currentDirectory)
-    if (!config) {
-      log.debug("Cloud/Enterprise domain and/or project ID missing. Aborting.")
-      return null
-    }
-
     const token = await CloudApi.getClientAuthTokenFromDb(log)
+    const distroName = getCloudDistributionName(cloudDomain)
+
     if (!token && !gardenEnv.GARDEN_AUTH_TOKEN) {
-      log.debug("User is not logged in. Aborting.")
+      log.debug(
+        `No auth token found, proceeding without access to ${distroName}. Command results for this command run will not be available in ${distroName}.`
+      )
       return null
     }
 
-    const api = new CloudApi(log, config.domain, config.projectId)
+    const api = new CloudApi(log, cloudDomain)
     const tokenIsValid = await api.checkClientAuthToken()
 
-    const distroName = getCloudDistributionName(config.domain)
-    const section = distroName === "Garden Enterprise" ? "garden-enterprise" : "garden-cloud"
+    const section = getCloudLogSectionName(distroName)
 
     const enterpriseLog = skipLogging ? null : log.info({ section, msg: "Authorizing...", status: "active" })
 
     if (gardenEnv.GARDEN_AUTH_TOKEN) {
       // Throw if using an invalid "CI" access token
       if (!tokenIsValid) {
-        throw new EnterpriseApiError(
+        throw new CloudApiError(
           deline`
             The provided access token is expired or has been revoked, please create a new
             one from the ${distroName} UI.`,
@@ -195,18 +227,9 @@ export class CloudApi {
       // Refresh the token if it's invalid.
       if (!tokenIsValid) {
         enterpriseLog?.debug({ msg: `Current auth token is invalid, refreshing` })
-        try {
-          // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
-          await api.refreshToken(token!)
-        } catch (err) {
-          enterpriseLog?.setError({ msg: `Invalid session`, append: true })
-          enterpriseLog?.warn(deline`
-          Your session is invalid and could not be refreshed. If you were previously logged
-          in to another instance of ${distroName}, please log out first and then
-          log back in again.
-        `)
-          throw err
-        }
+
+        // We can assert the token exsists since we're not using GARDEN_AUTH_TOKEN
+        await api.refreshToken(token!)
       }
 
       // Start refresh interval if using JWT
@@ -215,13 +238,7 @@ export class CloudApi {
     }
 
     enterpriseLog?.setSuccess({ msg: chalk.green("Done"), append: true })
-    try {
-      const project = await api.getProject()
-      const url = new URL(`/projects/${project.id}`, api.domain)
-      enterpriseLog?.info({ symbol: "info", msg: `Visit project at ${url.href}` })
-    } catch (err) {
-      log.debug(`Getting project from API failed with error: err.message`)
-    }
+
     return api
   }
 
@@ -232,7 +249,7 @@ export class CloudApi {
         yet been created in Garden Cloud, or that there's a problem with your account's VCS username / login
         credentials.
       `
-      throw new EnterpriseApiError(errMsg, { tokenResponse })
+      throw new CloudApiError(errMsg, { tokenResponse })
     }
     try {
       // Note: lazy-loading for startup performance
@@ -253,7 +270,7 @@ export class CloudApi {
       })
       log.debug("Saved client auth token to local config db")
     } catch (error) {
-      throw new EnterpriseApiError(
+      throw new CloudApiError(
         `An error occurred while saving client auth token to local config db:\n${error.message}`,
         { tokenResponse }
       )
@@ -335,6 +352,98 @@ export class CloudApi {
     }
   }
 
+  /**
+   * Verifies the projectId against Garden Cloud and assigns it
+   * to the active API instance. Returns the project metadata or throws
+   * an error if the project does not exist.
+   */
+  async verifyAndConfigureProject(projectId: string): Promise<CloudProject> {
+    let project: CloudProject | undefined
+    try {
+      this.projectId = projectId
+      project = await this.getProject()
+    } catch (err) {
+      this.projectId = undefined
+      throw err
+    }
+
+    if (!project) {
+      throw new CloudApiError(`Garden Cloud has no project with ${projectId}`, {})
+    }
+
+    return project
+  }
+
+  async getProjectByName(projectName: string): Promise<CloudProject | undefined> {
+    let response: ListProjectsResponse
+
+    try {
+      response = await this.get<ListProjectsResponse>(`/projects`)
+    } catch (err) {
+      this.log.debug(`Attempt to list all projects failed with ${err}`)
+      throw err
+    }
+
+    let projects: ListProjectsResponse["data"] = response.data
+
+    projects = projects.filter((p) => p.name === projectName)
+
+    // Expect a single project, otherwise we fail with an error
+    if (projects.length > 1) {
+      throw new CloudApiDuplicateProjectsError(
+        deline`Found an unexpected state with multiple projects using the same name, ${projectName}.
+        Please make sure there is only one project with the given name.
+        Projects can be deleted through the Garden Cloud UI at ${this.domain}`,
+        {}
+      )
+    }
+
+    let project: ListProjectsResponse["data"][0] | undefined = projects[0]
+
+    if (!project) {
+      return undefined
+    }
+
+    return toCloudProject(project)
+  }
+
+  async createProject(projectName: string): Promise<CloudProject> {
+    let response: CreateProjectsForRepoResponse
+
+    try {
+      const createRequest = {
+        name: projectName,
+        repositoryUrl: "",
+        relativeProjectRootPath: "",
+        importFromVcsProvider: false,
+      }
+
+      response = await this.post<CreateProjectsForRepoResponse>(`/projects/`, {
+        body: createRequest,
+      })
+    } catch (err) {
+      this.log.debug(`Create project request failed with error, ${err}`)
+      throw err
+    }
+
+    const project: CreateProjectsForRepoResponse["data"][0] = response.data[0]
+    return toCloudProject(project)
+  }
+
+  async getOrCreateProject(projectName: string): Promise<CloudProject> {
+    let project: CloudProject | undefined = await this.getProjectByName(projectName)
+
+    if (!project) {
+      project = await this.createProject(projectName)
+    }
+
+    // This is necessary to internally configure the project for this instance
+    this._project = project
+    this.projectId = project.id
+
+    return project
+  }
+
   private async refreshTokenIfExpired() {
     // Note: lazy-loading for startup performance
     const { ClientAuthToken } = require("../db/entities/client-auth-token")
@@ -378,7 +487,7 @@ export class CloudApi {
     } catch (err) {
       this.log.debug({ msg: `Failed to refresh the token.` })
       const detail = is401Error(err) ? { statusCode: err.response.statusCode } : {}
-      throw new EnterpriseApiError(
+      throw new CloudApiTokenRefreshError(
         `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
           err.message
         }`,
@@ -464,7 +573,7 @@ export class CloudApi {
     const res = await got<T>(url.href, requestOptions)
 
     if (!isObject(res.body)) {
-      throw new EnterpriseApiError(`Unexpected API response`, {
+      throw new CloudApiError(`Unexpected API response`, {
         path,
         body: res?.body,
       })
@@ -532,7 +641,7 @@ export class CloudApi {
         environment,
         namespace,
       }
-      this.log.debug("Registering session with Garden Cloud.")
+      this.log.debug(`Registering session with Garden Cloud for ${this.projectId} in ${environment}/${namespace}.`)
       const res: RegisterSessionResponse = await this.post("sessions", {
         body,
         retry: true,
@@ -558,14 +667,36 @@ export class CloudApi {
     this.sessionRegistered = true
   }
 
-  async getProject() {
-    if (this._project) {
+  async getProject(): Promise<CloudProject | undefined> {
+    if (!this.projectId) {
+      this.log.debug(`No project ID set. Will not fetch project.`)
+      return
+    }
+
+    // If we are using a new project ID, retrieve again from the API
+    // NOTE: If we wan't to use this with multiple project IDs we need
+    // a cache supporting that + check if the remote project metadata
+    // was updated.
+    if (this._project && this._project.id === this.projectId) {
       return this._project
     }
 
     const res = await this.get<GetProjectResponse>(`/projects/uid/${this.projectId}`)
-    this._project = res.data
+    const project: GetProjectResponse["data"] = res.data
+
+    this._project = toCloudProject(project)
+
     return this._project
+  }
+
+  async getProfile() {
+    if (this._profile) {
+      return this._profile
+    }
+
+    const res = await this.get<GetProfileResponse>(`/profile`)
+    this._profile = res.data
+    return this._profile
   }
 
   /**
@@ -580,7 +711,7 @@ export class CloudApi {
       valid = true
     } catch (err) {
       if (!is401Error(err)) {
-        throw new EnterpriseApiError(
+        throw new CloudApiError(
           `An error occurred while verifying client auth token with ${getCloudDistributionName(this.domain)}: ${
             err.message
           }`,
@@ -590,5 +721,14 @@ export class CloudApi {
     }
     this.log.debug(`Checked client auth token with ${getCloudDistributionName(this.domain)} - valid: ${valid}`)
     return valid
+  }
+
+  getProjectUrl() {
+    return new URL(`/projects/${this.projectId}`, this.domain)
+  }
+
+  getCommandResultUrl({ sessionId, userId }: { sessionId: string; userId: string }) {
+    const path = `/projects/${this.projectId}?sessionId=${sessionId}&userId=${userId}`
+    return new URL(path, this.domain)
   }
 }

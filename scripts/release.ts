@@ -8,7 +8,7 @@ import parseArgs = require("minimist")
 import deline = require("deline")
 import { resolve, relative } from "path"
 import { readFile, createWriteStream, writeFile } from "fs-extra"
-import { getPackages } from "./run-script"
+import { getPackages } from "./script-utils"
 import Bluebird = require("bluebird")
 const replace = require("replace-in-file")
 
@@ -221,7 +221,7 @@ async function release() {
       https://github.com/garden-io/garden/pull/new/${branchName}\n
 
     Please refer to our contributing docs for the next steps:
-    https://github.com/garden-io/garden/blob/master/CONTRIBUTING.md
+    https://github.com/garden-io/garden/blob/main/CONTRIBUTING.md
   `);
   }
 }

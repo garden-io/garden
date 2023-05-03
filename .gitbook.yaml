@@ -35,3 +35,9 @@ redirects:
   module-types/openfaas: ./reference/module-types/openfaas.md
   module-types/persistentvolumeclaim: ./reference/module-types/persistentvolumeclaim.md
   module-types/terraform: ./reference/module-types/terraform.md
+  # Redirects after docs restructure (https://github.com/garden-io/garden/pull/3467)
+  advanced/terraform: ./terraform-plugin/about.md
+  advanced/pulumi: ./pulumi-plugin/about.md
+  getting-started/1-installation.md: ./guides/installation.md
+  basics/5-min-quickstart: ./basics/quickstart.md
+  guides/remote-kubernetes: ./k8s-plugins/about.md

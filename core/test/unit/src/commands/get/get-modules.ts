@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,9 +7,10 @@
  */
 
 import { expect } from "chai"
-import { keyBy, omit, mapValues } from "lodash"
+import { keyBy, mapValues } from "lodash"
 import { makeTestGardenA, withDefaultGlobalOpts } from "../../../../helpers"
 import { GetModulesCommand } from "../../../../../src/commands/get/get-modules"
+import { withoutInternalFields } from "../../../../../src/logger/util"
 
 describe("GetModulesCommand", () => {
   const command = new GetModulesCommand()
@@ -24,12 +25,12 @@ describe("GetModulesCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { modules: undefined },
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
 
-    const expected = mapValues(keyBy(await garden.resolveModules({ log }), "name"), (m) => omit(m, ["_config"]))
+    const expected = mapValues(keyBy(await garden.resolveModules({ log }), "name"), withoutInternalFields)
 
     expect(res.result).to.eql({ modules: expected })
   })
@@ -47,7 +48,7 @@ describe("GetModulesCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { modules: undefined },
-      opts: withDefaultGlobalOpts({ "exclude-disabled": true }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": true, "full": false }),
     })
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
@@ -66,7 +67,7 @@ describe("GetModulesCommand", () => {
       headerLog: log,
       footerLog: log,
       args: { modules: ["module-a"] },
-      opts: withDefaultGlobalOpts({ "exclude-disabled": false }),
+      opts: withDefaultGlobalOpts({ "exclude-disabled": false, "full": false }),
     })
 
     expect(command.outputsSchema().validate(res.result).error).to.be.undefined
@@ -74,6 +75,8 @@ describe("GetModulesCommand", () => {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const moduleA = graph.getModule("module-a")
 
-    expect(res.result).to.eql({ modules: { "module-a": omit(moduleA, ["_config"]) } })
+    expect(res.result).to.eql({ modules: { "module-a": withoutInternalFields(moduleA) } })
+    expect(res.result.modules["module-a"]["buildDependencies"]).to.be.undefined
+    expect(res.result.modules["module-a"].version.dependencyVersions).to.be.undefined
   })
 })

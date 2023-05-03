@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,6 +23,8 @@ import { BuildTask } from "./build"
 import { GraphResults } from "../task-graph"
 import { Profile } from "../util/profiling"
 import { GardenTest, testFromConfig } from "../types/test"
+import { ModuleConfig } from "../config/module"
+import { pMemoizeDecorator } from "../lib/p-memoize"
 
 class TestError extends Error {
   toString() {
@@ -41,6 +43,7 @@ export interface TestTaskParams {
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   silent?: boolean
   interactive?: boolean
 }
@@ -55,6 +58,7 @@ export class TestTask extends BaseTask {
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   silent: boolean
 
   constructor({
@@ -68,6 +72,7 @@ export class TestTask extends BaseTask {
     skipRuntimeDependencies = false,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
     silent = true,
     interactive = false,
   }: TestTaskParams) {
@@ -80,6 +85,7 @@ export class TestTask extends BaseTask {
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
+    this.localModeServiceNames = localModeServiceNames
     this.silent = silent
     this.interactive = interactive
   }
@@ -150,7 +156,7 @@ export class TestTask extends BaseTask {
 
     const dependencies = this.graph.getDependencies({
       nodeType: "test",
-      name: this.test.name,
+      name: this.getName(),
       recursive: false,
     })
     const serviceStatuses = getServiceStatuses(dependencyResults)
@@ -189,8 +195,9 @@ export class TestTask extends BaseTask {
         append: true,
       })
     } else {
+      const failedMsg = !!result.exitCode ? `Failed with code ${result.exitCode}!` : `Failed!`
       log.setError({
-        msg: chalk.red(`Failed! (took ${log.getDuration(1)} sec)`),
+        msg: `${failedMsg} (took ${log.getDuration(1)} sec)`,
         append: true,
       })
       throw new TestError(result.log)
@@ -199,6 +206,9 @@ export class TestTask extends BaseTask {
     return result
   }
 
+  // We memoize this method for performance and to avoid emitting two `testStatus` events when the task is added
+  // and processed (since this method is called in `resolveDependencies` and `process`).
+  @pMemoizeDecorator()
   private async getTestResult(): Promise<TestResult | null> {
     if (this.force) {
       return null
@@ -223,6 +233,7 @@ export async function getTestTasks({
   filterNames,
   devModeServiceNames,
   hotReloadServiceNames,
+  localModeServiceNames,
   force = false,
   forceBuild = false,
   fromWatch = false,
@@ -235,21 +246,14 @@ export async function getTestTasks({
   filterNames?: string[]
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
   force?: boolean
   forceBuild?: boolean
   fromWatch?: boolean
   skipRuntimeDependencies?: boolean
 }) {
-  // If there are no filters we return the test otherwise
-  // we check if the test name matches against the filterNames array
-  const configs = module.testConfigs.filter(
-    (test) =>
-      !test.disabled &&
-      (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
-  )
-
   return Bluebird.map(
-    configs,
+    filterTestConfigs(module.testConfigs, filterNames),
     (testConfig) =>
       new TestTask({
         garden,
@@ -261,7 +265,19 @@ export async function getTestTasks({
         test: testFromConfig(module, testConfig, graph),
         devModeServiceNames,
         hotReloadServiceNames,
+        localModeServiceNames,
         skipRuntimeDependencies,
       })
+  )
+}
+
+export function filterTestConfigs(
+  configs: ModuleConfig["testConfigs"],
+  filterNames?: string[]
+): ModuleConfig["testConfigs"] {
+  return configs.filter(
+    (test) =>
+      !test.disabled &&
+      (!filterNames || filterNames.length === 0 || find(filterNames, (n: string) => minimatch(test.name, n)))
   )
 }

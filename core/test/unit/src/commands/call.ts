@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@ const testStatusesA: { [key: string]: ServiceStatus } = {
     state: "ready",
     ingresses: [
       {
-        hostname: "service-a.test-project-b.local.app.garden",
+        hostname: "service-a.test-project-b.local.demo.garden",
         path: "/path-a",
         protocol: "http",
         port: 32000,
@@ -38,7 +38,7 @@ const testStatusesA: { [key: string]: ServiceStatus } = {
     state: "ready",
     ingresses: [
       {
-        hostname: "service-b.test-project-b.local.app.garden",
+        hostname: "service-b.test-project-b.local.demo.garden",
         path: "/",
         port: 32000,
         protocol: "http",
@@ -57,7 +57,7 @@ const testStatusesB: { [key: string]: ServiceStatus } = {
     state: "ready",
     ingresses: [
       {
-        hostname: "service-a.test-project-b.local.app.garden",
+        hostname: "service-a.test-project-b.local.demo.garden",
         linkUrl: "https://www.example.com",
         path: "/path-a",
         protocol: "http",
@@ -70,7 +70,7 @@ const testStatusesB: { [key: string]: ServiceStatus } = {
     state: "ready",
     ingresses: [
       {
-        hostname: "service-b.test-project-b.local.app.garden",
+        hostname: "service-b.test-project-b.local.demo.garden",
         linkUrl: "https://www.example.com/hello",
         path: "/path-b",
         protocol: "http",
@@ -121,7 +121,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("http://service-a.test-project-b.local.app.garden:32000").get("/path-a").reply(200, "bla")
+    nock("http://service-a.test-project-b.local.demo.garden:32000").get("/path-a").reply(200, "bla")
 
     const { result } = await command.action({
       garden,
@@ -132,7 +132,7 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result!.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
+    expect(result!.url).to.equal("http://service-a.test-project-b.local.demo.garden:32000/path-a")
     expect(result!.serviceName).to.equal("service-a")
     expect(result!.path).to.equal("/path-a")
     expect(result!.response.status).to.equal(200)
@@ -144,7 +144,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("http://service-a.test-project-b.local.app.garden:32000").get("/path-a").reply(200, "bla")
+    nock("http://service-a.test-project-b.local.demo.garden:32000").get("/path-a").reply(200, "bla")
 
     const { result } = await command.action({
       garden,
@@ -155,7 +155,7 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result!.url).to.equal("http://service-a.test-project-b.local.app.garden:32000/path-a")
+    expect(result!.url).to.equal("http://service-a.test-project-b.local.demo.garden:32000/path-a")
     expect(result!.serviceName).to.equal("service-a")
     expect(result!.path).to.equal("/path-a")
     expect(result!.response.status).to.equal(200)
@@ -167,7 +167,7 @@ describe("commands.call", () => {
     const log = garden.log
     const command = new CallCommand()
 
-    nock("http://service-b.test-project-b.local.app.garden:32000").get("/").reply(200, "bla")
+    nock("http://service-b.test-project-b.local.demo.garden:32000").get("/").reply(200, "bla")
 
     const { result } = await command.action({
       garden,
@@ -178,7 +178,7 @@ describe("commands.call", () => {
       opts: withDefaultGlobalOpts({}),
     })
 
-    expect(result!.url).to.equal("http://service-b.test-project-b.local.app.garden:32000/")
+    expect(result!.url).to.equal("http://service-b.test-project-b.local.demo.garden:32000/")
     expect(result!.serviceName).to.equal("service-b")
     expect(result!.path).to.equal("/")
     expect(result!.response.status).to.equal(200)

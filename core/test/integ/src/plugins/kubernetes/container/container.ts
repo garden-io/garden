@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -89,7 +89,7 @@ export async function getContainerTestGarden(environmentName: string = defaultEn
 
   if (needsInit) {
     // Run cluster-init
-    await clusterInit.handler({ ctx, log: garden.log, args: [], modules: [] })
+    await clusterInit.handler({ garden, ctx, log: garden.log, args: [], modules: [] })
     initializedEnvs.push(environmentName)
   }
 
@@ -192,6 +192,7 @@ describe("kubernetes container module handlers", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       garden.events.eventLog = []
@@ -223,6 +224,7 @@ describe("kubernetes container module handlers", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await expectError(
@@ -258,6 +260,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -280,6 +283,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -304,6 +308,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await emptyDir(garden.artifactsPath)
@@ -326,6 +331,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])
@@ -333,7 +339,7 @@ describe("kubernetes container module handlers", () => {
         const key = "test.missing-sh.missing-sh-test"
         expect(result).to.have.property(key)
         expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
+        expect(result[key]!.error!.message).to.include(deline`
           Test 'missing-sh-test' in container module 'missing-sh' specifies artifacts to export, but the image doesn't
           contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
           to be installed in the image.
@@ -352,6 +358,7 @@ describe("kubernetes container module handlers", () => {
           forceBuild: false,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const result = await garden.processTasks([testTask])
@@ -359,7 +366,7 @@ describe("kubernetes container module handlers", () => {
         const key = "test.missing-tar.missing-tar-test"
         expect(result).to.have.property(key)
         expect(result[key]!.error).to.exist
-        expect(result[key]!.error!.message).to.equal(deline`
+        expect(result[key]!.error!.message).to.include(deline`
           Test 'missing-tar-test' in container module 'missing-tar' specifies artifacts to export, but the
           image doesn't contain the tar binary. In order to copy artifacts out of Kubernetes containers, both
           sh and tar need to be installed in the image.

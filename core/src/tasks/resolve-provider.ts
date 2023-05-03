@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -253,7 +253,6 @@ export class ResolveProviderTask extends BaseTask {
     return getProviderStatusCachePath({
       gardenDirPath: this.garden.gardenDirPath,
       pluginName: this.plugin.name,
-      environmentName: this.garden.environmentName,
     })
   }
 
@@ -381,11 +380,9 @@ export class ResolveProviderTask extends BaseTask {
 export function getProviderStatusCachePath({
   gardenDirPath,
   pluginName,
-  environmentName,
 }: {
   gardenDirPath: string
   pluginName: string
-  environmentName: string
 }) {
-  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.${environmentName}.json`)
+  return join(gardenDirPath, "cache", "provider-statuses", `${pluginName}.json`)
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,6 +25,30 @@ describe("TestTask", () => {
     log = garden.log
   })
 
+  describe("process", () => {
+    it("should correctly resolve runtime outputs from tasks", async () => {
+      const moduleA = graph.getModule("module-a")
+      const testConfig = moduleA.testConfigs[0]
+
+      const testTask = new TestTask({
+        garden,
+        log,
+        graph,
+        test: testFromConfig(moduleA, testConfig, graph),
+        force: true,
+        forceBuild: false,
+        devModeServiceNames: [],
+        hotReloadServiceNames: [],
+        localModeServiceNames: [],
+      })
+
+      const key = testTask.getKey()
+      const { [key]: result } = await garden.processTasks([testTask], { throwOnError: true })
+
+      expect(result!.output.log).to.eql("echo task-a-ok")
+    })
+  })
+
   describe("getDependencies", () => {
     it("should include task dependencies", async () => {
       const moduleA = graph.getModule("module-a")
@@ -39,6 +63,7 @@ describe("TestTask", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const deps = await task.resolveDependencies()
@@ -61,6 +86,7 @@ describe("TestTask", () => {
           skipRuntimeDependencies: true, // <-----
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const deps = await task.resolveDependencies()

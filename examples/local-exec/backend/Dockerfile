@@ -1,4 +1,4 @@
-FROM golang:1.8.3-alpine
+FROM golang:1.18.3-alpine3.16
 
 WORKDIR /server/
 COPY bin/backend .

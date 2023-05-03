@@ -11,7 +11,7 @@ This guide introduces the templating capabilities available in Garden configurat
 
 String configuration values in `garden.yml` can be templated to inject variables, information about the user's environment, references to other modules/services and more.
 
-The basic syntax for templated strings is `${some.key}`. The key is looked up from the context available when resolving the string. The context depends on which top-level key the configuration value belongs to (`project` or `module`).
+The basic syntax for templated strings is `${some.key}`. The key is looked up from the _template context_ available when resolving the string. The available context depends on what is being resolved, i.e. a _project_, _module_, _provider_ etc.
 
 For example, for one service you might want to reference something from another module and expose it as an environment variable:
 
@@ -36,6 +36,18 @@ version as part of a URI:
 
 Note that while this syntax looks similar to template strings in Javascript, we don't allow arbitrary JS expressions. See the next section for the available expression syntax.
 
+### Literals
+
+In addition to referencing variables from template contexts, you can include a variety of _literals_ in template strings:
+
+* _Strings_, including concatenated ones, enclosed with either double or single quotes: `${"foo"}`, `${'bar'}`, `${'bar' + 'foo}`.
+* _Numbers_: `${123}`
+* _Booleans_: `${true}`, `${false}`
+* _Null_: `${null}`
+* _Arrays_: `${[1, 2, 3]}`, `${["foo", "bar"]}`, `${[var.someKey, var.someOtherKey]}`, `${concat(["foo", "bar"], ["baz"])}`, `${join(["foo", "bar"], ",")}`
+
+These can be used with [operators](#operators), as [helper function arguments](#helper-functions) and more.
+
 ### Operators
 
 You can use a variety of operators in template string expressions:
@@ -47,8 +59,9 @@ You can use a variety of operators in template string expressions:
 * Unary: `!` (negation), `typeof` (returns the type of the following value as a string, e.g. `"boolean"` or `"number"`)
 * Relational: `contains` (to see if an array contains a value, an object contains a key, or a string contains a substring)
 * Arrays: `+`
+* Strings: `+`
 
-The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers, except the `+` operator which can be used to concatenate two array references. The equality and logical operators work with any term (but be warned that arrays and complex objects aren't currently compared in-depth).
+The arithmetic and numeric comparison operators can only be used for numeric literals and keys that resolve to numbers, except the `+` operator which can be used to concatenate two strings or array references. The equality and logical operators work with any term (but be warned that arrays and complex objects aren't currently compared in-depth).
 
 Clauses are evaluated in standard precedence order, but you can also use parentheses to control evaluation order (e.g. `${(1 + 2) * (3 + 4)}` evaluates to 21).
 
@@ -118,7 +131,7 @@ services:
   ...
 ```
 
-And the `+` operator can also be used to concatenate two arrays:
+And the `+` operator can also be used to concatenate two arrays or strings:
 
 ```yaml
 kind: Project
@@ -126,12 +139,15 @@ kind: Project
 variables:
   some-values: ["a", "b"]
   other-values: ["c", "d"]
+  str1: "foo"
+  str2: "bar"
 ---
 kind: Module
 type: helm
 # ...
 values:
   some-array: ${var.some-values + var.other-values}
+  str12: ${var.str1 + var.str2}
   ...
 ```
 
@@ -492,11 +508,12 @@ On top of that, you can reference the resolved module variables in other modules
 
 You can also provide variables using "variable files" or _varfiles_. These work mostly like "dotenv" files or envfiles. However, they don't implicitly affect the environment of the Garden process and the configured services, but rather are added on top of the `variables` you define in your project configuration (or module variables defined in the `variables` of your individual module configurations).
 
-This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://git-secret.io/) to securely store the files in your Git repo.
+This can be very useful when you need to provide secrets and other contextual values to your stack. You could add your varfiles to your `.gitignore` file to keep them out of your repository, or use e.g. [git-crypt](https://github.com/AGWA/git-crypt), [BlackBox](https://github.com/StackExchange/blackbox) or [git-secret](https://github.com/sobolevn/git-secret) to securely store the files in your Git repo.
 
 By default, Garden will look for a `garden.env` file in your project root for project-wide variables, and a `garden.<env-name>.env` file for environment-specific variables. You can override the filename for each as well.
 
 To use a module-level varfile, simply configure the `module.varfile` field to be the relative path (from module root) to the varfile you want to use for that module. For example:
+
 ```yaml
 # my-service/garden.yml
 kind: Module
@@ -504,7 +521,7 @@ name: my-service
 # Here, we use per-environment module varfiles as an optional override for variables (these have a higher precedence
 # than those in the `variables` field below).
 #
-# If no varfile exists, no error is thrown (we simply don't override any variables).
+# If a varfile is defined but not found, an error is thrown in order to prevent misconfigurations silently passing.
 varfile: my-service.${environment.name}.yaml
 variables:
   # This overrides the project-level hostname variable
@@ -529,6 +546,7 @@ tests:
     # Re-using the envVar module variable
     env: ${var.envVars}
 ```
+
 Module varfiles must be located inside the module root directory. That is, they must be in the same directory as the module configuration, or in a subdirectory of that directory.
 
 Note that variables defined in module varfiles override variables defined in project-level variables and varfiles (see the section on variable precedence order below).
@@ -553,7 +571,6 @@ garden run task my-task --var my-task-arg=foo,some-numeric-var=123
 ```
 
 Multiple variables are separated with a comma, and each part is parsed using [dotenv](https://github.com/motdotla/dotenv#rules) syntax.
-
 
 ## Variable precedence order
 
@@ -620,7 +637,7 @@ values:
   namespace: `${providers.kubernetes.outputs.app-namespace}`
 ```
 
-Another good example is referencing outputs from Terraform stacks, via the [Terraform provider](../advanced/terraform.md):
+Another good example is referencing outputs from Terraform stacks, via the [Terraform provider](../terraform-plugin/README.md):
 
 ```yaml
 kind: Module
@@ -669,12 +686,12 @@ type: container
 name: my-container
 services:
   - name: my-service
-    dependencies: [task-a]
+    dependencies: [prep-task]
     env:
       PREP_TASK_OUTPUT: ${runtime.tasks.prep-task.outputs.log}  # <- resolves to "my task output"
 ```
 
-Here the output from `prep-task` is copied to an environment variable for `my-service`. _Note that you currently need to explicitly declare `task-a` as a dependency for this to work._
+Here the output from `prep-task` is copied to an environment variable for `my-service`. _Note that you currently need to explicitly declare `prep-task` as a dependency for this to work._
 
 For a practical use case, you might for example make a task that provisions some infrastructure or prepares some data, and then passes information about it to services.
 

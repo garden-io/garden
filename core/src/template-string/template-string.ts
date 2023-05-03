@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,7 +15,7 @@ import {
   ContextKeySegment,
   GenericContext,
 } from "../config/template-contexts/base"
-import { difference, uniq, isPlainObject, isNumber, cloneDeep } from "lodash"
+import { difference, uniq, isPlainObject, isNumber, isString, cloneDeep } from "lodash"
 import {
   Primitive,
   StringMap,
@@ -28,7 +28,7 @@ import {
 } from "../config/common"
 import { profile } from "../util/profiling"
 import { dedent, deline, naturalList, truncate } from "../util/string"
-import { ObjectWithName } from "../util/util"
+import { deepMap, ObjectWithName } from "../util/util"
 import { LogEntry } from "../logger/log-entry"
 import { ModuleConfigContext } from "../config/template-contexts/module"
 import { callHelperFunction } from "./functions"
@@ -63,7 +63,7 @@ interface ResolvedClause extends ContextResolveOutput {
 }
 
 interface ConditionalTree {
-  type: "root" | "if" | "if" | "else" | "value"
+  type: "root" | "if" | "else" | "value"
   value?: any
   children: ConditionalTree[]
   parent?: ConditionalTree
@@ -82,7 +82,8 @@ function getValue(v: Primitive | undefined | ResolvedClause) {
  * dependencies when resolving context variables.
  */
 export function resolveTemplateString(string: string, context: ConfigContext, opts: ContextResolveOpts = {}): any {
-  if (!string) {
+  // Just return immediately if this is definitely not a template string
+  if (!maybeTemplateString(string)) {
     return string
   }
 
@@ -344,8 +345,11 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
     // Have to override the cache in the parent context here
     // TODO: make this a little less hacky :P
-    delete loopContext["_resolvedValues"]["item.key"]
-    delete loopContext["_resolvedValues"]["item.value"]
+    const resolvedValues = loopContext["_resolvedValues"]
+    delete resolvedValues["item.key"]
+    delete resolvedValues["item.value"]
+    const subValues = Object.keys(resolvedValues).filter((k) => k.match(/item\.value\.*/))
+    subValues.forEach((v) => delete resolvedValues[v])
 
     // Check $filter clause output, if applicable
     if (filterExpression !== undefined) {
@@ -370,6 +374,32 @@ function handleForEachObject(value: any, context: ConfigContext, opts: ContextRe
 
   // Need to resolve once more to handle e.g. $concat expressions
   return resolveTemplateStrings(output, context, opts)
+}
+
+/**
+ * Returns `true` if the given value is a string and looks to contain a template string.
+ */
+export function maybeTemplateString(value: Primitive) {
+  return !!value && typeof value === "string" && value.includes("${")
+}
+
+/**
+ * Returns `true` if the given value or any value in a given object or array seems to contain a template string.
+ */
+export function mayContainTemplateString(obj: any): boolean {
+  let out = false
+
+  if (isPrimitive(obj)) {
+    return maybeTemplateString(obj)
+  }
+
+  deepMap(obj, (v) => {
+    if (maybeTemplateString(v)) {
+      out = true
+    }
+  })
+
+  return out
 }
 
 /**
@@ -513,11 +543,13 @@ function buildBinaryExpression(head: any, tail: any) {
     if (operator === "+") {
       if (isNumber(left) && isNumber(right)) {
         return left + right
+      } else if (isString(left) && isString(right)) {
+        return left + right
       } else if (Array.isArray(left) && Array.isArray(right)) {
         return left.concat(right)
       } else {
         const err = new TemplateStringError(
-          `Both terms need to be either arrays or numbers for + operator (got ${typeof left} and ${typeof right}).`,
+          `Both terms need to be either arrays or strings or numbers for + operator (got ${typeof left} and ${typeof right}).`,
           { left, right, operator }
         )
         return { _error: err }

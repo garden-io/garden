@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,16 +15,17 @@ import { getCloudDistributionName } from "../util/util"
 
 export interface GetSecretsParams {
   log: LogEntry
+  projectId: string
   environmentName: string
   cloudApi: CloudApi
 }
 
-export async function getSecrets({ log, environmentName, cloudApi }: GetSecretsParams): Promise<StringMap> {
+export async function getSecrets({ log, projectId, environmentName, cloudApi }: GetSecretsParams): Promise<StringMap> {
   let secrets: StringMap = {}
   const distroName = getCloudDistributionName(cloudApi.domain)
 
   try {
-    const res = await cloudApi.get<BaseResponse>(`/secrets/projectUid/${cloudApi.projectId}/env/${environmentName}`)
+    const res = await cloudApi.get<BaseResponse>(`/secrets/projectUid/${projectId}/env/${environmentName}`)
     secrets = res.data
   } catch (err) {
     if (isGotError(err, 404)) {
@@ -40,7 +41,6 @@ export async function getSecrets({ log, environmentName, cloudApi }: GetSecretsP
         in the system.
       `)
     } else {
-      log.error("An error occurred while fetching secrets for the project.")
       throw err
     }
   }

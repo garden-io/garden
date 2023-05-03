@@ -5,7 +5,7 @@ remotely but frontend services locally.
 
 ## Project Structure
 
-This project is based on the [demo-project](https://github.com/garden-io/garden/tree/master/examples/demo-project) and contains a `backend` module, a
+This project is based on the [demo-project](https://github.com/garden-io/garden/tree/main/examples/demo-project) and contains a `backend` module, a
 `frontend` module and a `frontend-local` module.
 
 Here's an excerpt from the `frontend` config:
@@ -23,7 +23,6 @@ variables:
 # ...
 
 ---
-
 kind: Module
 name: frontend-local
 type: exec # <--- This is a "local exec module"
@@ -44,7 +43,15 @@ You could e.g. use [command line variables](https://docs.garden.io/using-garden/
 
 ## Usage
 
-Assuming you've [set _your_ K8s context](https://docs.garden.io/getting-started/3-connect-to-a-cluster), you can start the project with:
+If you want to run the frontend service locally you'll need to have yarn installed and also have to install the packages for the frontend project
+
+```console
+cd frontend
+yarn install
+cd ..
+```
+
+Assuming you've [set _your_ K8s context](https://docs.garden.io/kubernetes-plugins/remote-k8s), you can start the project with:
 
 ```console
 garden dev
@@ -57,4 +64,3 @@ You can now stream logs from both the local and remote services with the logs co
 ```console
 garden logs --follow
 ```
-

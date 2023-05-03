@@ -9,9 +9,9 @@ tocTitle: "`local-kubernetes`"
 
 The `local-kubernetes` provider is a specialized version of the [`kubernetes` provider](./kubernetes.md) that automates and simplifies working with local Kubernetes clusters.
 
-For general Kubernetes usage information, please refer to the [guides section](https://docs.garden.io/guides). For local clusters a good place to start is the [Local Kubernetes guide](https://docs.garden.io/guides/local-kubernetes) guide. The [Getting Started](https://docs.garden.io/getting-started/0-introduction) guide is also helpful as an introduction.
+For general Kubernetes usage information, please refer to the [Kubernetes guides](https://docs.garden.io/kubernetes-plugins/about). For local clusters a good place to start is the [Local Kubernetes](https://docs.garden.io/kubernetes-plugins/local-k8s) guide. The [Quickstart Guide](https://docs.garden.io/basics/quickstart) guide is also helpful as an introduction.
 
-If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/guides/remote-kubernetes) guide.
+If you're working with a remote Kubernetes cluster, please refer to the [`kubernetes` provider](./kubernetes.md) docs, and the [Remote Kubernetes guide](https://docs.garden.io/kubernetes-plugins/remote-k8s) guide.
 
 Below is the full schema reference for the provider configuration. For an introduction to configuring a Garden project with providers, please look at our [configuration guide](../../using-garden/configuration-overview.md).
 
@@ -36,13 +36,128 @@ providers:
     # between multiple developers, as well as between your development and CI workflows.
     #
     # For more details on all the different options and what makes sense to use for your setup, please check out the
-    # [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+    # [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
     #
     # **Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
     buildMode: local-docker
 
     # Configuration options for the `cluster-buildkit` build mode.
-    clusterBuildkit:
+    clusterBuildkit: {}
+      # Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
+      #
+      # The default value is:
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       mode: auto
+      #
+      # For every build, this will
+      # - import cached layers from a docker image tag named `_buildcache`
+      # - when the build is finished, upload cache information to `_buildcache`
+      #
+      # For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
+      # option.
+      #
+      # See the following table for details on our detection mechanism:
+      #
+      # | Registry Name                   | Registry Domain         | Assumed `mode=max` support |
+      # |---------------------------------|-------------------------|------------------------------|
+      # | Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
+      # | Azure Container Registry        | `azurecr.io`          | Yes                          |
+      # | GitHub Container Registry       | `ghcr.io`             | Yes                          |
+      # | DockerHub                       | `hub.docker.com`     | Yes                          |
+      # | Garden In-Cluster Registry      |                         | Yes                          |
+      # | Any other registry              |                         | No                           |
+      #
+      # In case you need to override the defaults for your registry, you can do it like so:
+      #
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       mode: max
+      #
+      # When you add multiple caches, we will make sure to pass the `--import-cache` options to buildkit in the same
+      # order as provided in the cache configuration. This is because buildkit will not actually use all imported
+      # caches
+      # for every build, but it will stick with the first cache that yields a cache hit for all the following layers.
+      #
+      # An example for this is the following:
+      #
+      # clusterBuildkit:
+      #   cache:
+      #     - type: registry
+      #       tag: _buildcache-${slice(kebabCase(git.branch), "0", "30")}
+      #     - type: registry
+      #       tag: _buildcache-main
+      #       export: false
+      #
+      # Using this cache configuration, every build will first look for a cache specific to your feature branch.
+      # If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
+      # When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main`
+      # branch caches.
+      # A configuration like that may improve your cache hit rate and thus save time.
+      #
+      # If you need to disable caches completely you can achieve that with the following configuration:
+      #
+      # clusterBuildkit:
+      #   cache: []
+      cache:
+        - # Use the Docker registry configured at `deploymentRegistry` to retrieve and store buildkit cache
+          # information.
+          #
+          # See also the [buildkit registry cache
+          # documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+          type:
+
+          # The registry from which the cache should be imported from, or which it should be exported to.
+          #
+          # If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the
+          # internal in-cluster registry in case `deploymentRegistry` is not set.
+          #
+          # Important: You must make sure `imagePullSecrets` includes authentication with the specified cache
+          # registry, that has the appropriate write privileges (usually full write access to the configured
+          # `namespace`).
+          registry:
+            # The hostname (and optionally port, if not the default port) of the registry.
+            hostname:
+
+            # The port where the registry listens on, if not the default.
+            port:
+
+            # The registry namespace. Will be placed between hostname and image name, like so:
+            # <hostname>/<namespace>/<image name>
+            namespace: _
+
+            # Set to true to allow insecure connections to the registry (without SSL).
+            insecure: false
+
+          # This is the buildkit cache mode to be used.
+          #
+          # The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache
+          # information will be inlined and co-located with the Docker image itself.
+          #
+          # The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the
+          # buildkit `--export-cache` option. Cache manifests will only be
+          # stored stored in the configured `tag`.
+          #
+          # `auto` is the same as `max` for some registries that are known to support it. Garden will fall back to
+          # `inline` for all other registries.
+          #  See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the
+          # detection mechanism.
+          #
+          # See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+          mode: auto
+
+          # This is the Docker registry tag name buildkit should use for the registry build cache. Default is
+          # `_buildcache`
+          #
+          # **NOTE**: `tag` can only be used together with the `registry` cache type
+          tag: _buildcache
+
+          # If this is false, only pass the `--import-cache` option to buildkit, and not the `--export-cache` option.
+          # Defaults to true.
+          export: true
+
       # Enable rootless mode for the cluster-buildkit daemon, which runs the daemon with decreased privileges.
       # Please see [the buildkit docs](https://github.com/moby/buildkit/blob/master/docs/rootless.md) for caveats when
       # using this mode.
@@ -55,37 +170,8 @@ providers:
       # guide to assigning Pods to nodes.
       nodeSelector: {}
 
-    # Setting related to Jib image builds.
-    jib:
-      # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
-      # if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true,
-      # but do note that the build will take considerably take longer to complete! Only applies when using in-cluster
-      # building.
-      pushViaCluster: false
-
-    # Configuration options for the `kaniko` build mode.
-    kaniko:
-      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules
-      # take precedence over these.
-      extraFlags:
-
-      # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
-      image: 'gcr.io/kaniko-project/executor:v1.6.0-debug'
-
-      # Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
-      #
-      # **IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace
-      # in an upcoming release!**
-      namespace: garden-system
-
-      # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
-      # pods to only run on particular nodes.
-      #
-      # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
-      # guide to assigning Pods to nodes.
-      nodeSelector:
-
-      # Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds.
+      # Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run
+      # builds.
       tolerations:
         - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
           # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
@@ -111,6 +197,109 @@ providers:
           # empty,
           # otherwise just a regular string.
           value:
+
+      # Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit.
+      # Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+      annotations:
+
+    # Setting related to Jib image builds.
+    jib:
+      # In some cases you may need to push images built with Jib to the remote registry via Kubernetes cluster, e.g.
+      # if you don't have connectivity or access from where Garden is being run. In that case, set this flag to true,
+      # but do note that the build will take considerably take longer to complete! Only applies when using in-cluster
+      # building.
+      pushViaCluster: false
+
+    # Configuration options for the `kaniko` build mode.
+    kaniko:
+      # Specify extra flags to use when building the container image with kaniko. Flags set on `container` modules
+      # take precedence over these.
+      extraFlags:
+
+      # Change the kaniko image (repository/image:tag) to use when building in kaniko mode.
+      image: 'gcr.io/kaniko-project/executor:v1.8.1-debug'
+
+      # Choose the namespace where the Kaniko pods will be run. Set to `null` to use the project namespace.
+      #
+      # **IMPORTANT: The default namespace will change to the project namespace instead of the garden-system namespace
+      # in an upcoming release!**
+      namespace: garden-system
+
+      # Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko
+      # pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are
+      # specifically set under `util.nodeSelector`.
+      #
+      # [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes
+      # guide to assigning pods to nodes.
+      nodeSelector:
+
+      # Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run
+      # builds. The same tolerations will be used for each util pod unless they are specifically set under
+      # `util.tolerations`
+      tolerations:
+        - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+          # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+          effect:
+
+          # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+          # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+          key:
+
+          # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal".
+          # Defaults to
+          # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+          # particular category.
+          operator: Equal
+
+          # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+          # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+          # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+          # by the system.
+          tolerationSeconds:
+
+          # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
+          # empty,
+          # otherwise just a regular string.
+          value:
+
+      # Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of
+      # certain components, for example autoscalers. The same annotations will be used for each util pod unless they
+      # are specifically set under `util.annotations`
+      annotations:
+
+      util:
+        # Specify tolerations to apply to each garden-util pod.
+        tolerations:
+          - # "Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+            # allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+            effect:
+
+            # "Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+            # If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+            key:
+
+            # "Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal".
+            # Defaults to
+            # "Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+            # particular category.
+            operator: Equal
+
+            # "TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+            # otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+            # the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+            # by the system.
+            tolerationSeconds:
+
+            # "Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be
+            # empty,
+            # otherwise just a regular string.
+            value:
+
+        # Specify annotations to apply to each garden-util pod and deployments.
+        annotations:
+
+        # Specify the nodeSelector constraints for each garden-util pod.
+        nodeSelector:
 
     # A default hostname to use when no hostname is explicitly configured for a service.
     defaultHostname:
@@ -253,6 +442,31 @@ providers:
           # Ephemeral storage request in megabytes.
           ephemeralStorage:
 
+      # Resource requests and limits for the util pod for in-cluster builders.
+      # This pod is used to get, start, stop and inquire the status of the builds.
+      #
+      # This pod is created in each garden namespace.
+      util:
+        limits:
+          # CPU limit in millicpu.
+          cpu: 256
+
+          # Memory limit in megabytes.
+          memory: 512
+
+          # Ephemeral storage limit in megabytes.
+          ephemeralStorage:
+
+        requests:
+          # CPU request in millicpu.
+          cpu: 256
+
+          # Memory request in megabytes.
+          memory: 512
+
+          # Ephemeral storage request in megabytes.
+          ephemeralStorage:
+
     # Storage parameters to set for the in-cluster builder, container registry and code sync persistent volumes
     # (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
     #
@@ -287,32 +501,6 @@ providers:
           # The namespace where the secret is stored. If necessary, the secret may be copied to the appropriate
           # namespace before use.
           namespace: default
-
-        # Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
-        # certificate. See our
-        # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-        managedBy:
-
-    # cert-manager configuration, for creating and managing TLS certificates. See the
-    # [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-    certManager:
-      # Automatically install `cert-manager` on initialization. See the
-      # [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-      install: false
-
-      # The email to use when requesting Let's Encrypt certificates.
-      email:
-
-      # The type of issuer for the certificate (only ACME is supported for now).
-      issuer: acme
-
-      # Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are
-      # supported.
-      acmeServer: letsencrypt-staging
-
-      # The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported
-      # for now).
-      acmeChallengeType: HTTP-01
 
     # Exposes the `nodeSelector` field on the PodSpec of system services. This allows you to constrain the system
     # services to only run on particular nodes.
@@ -426,13 +614,13 @@ providers:
 
 Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to `cluster-buildkit` or `kaniko` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
 
 **Note:** The `cluster-docker` mode has been deprecated and will be removed in a future release!
 
-| Type     | Default          | Required |
-| -------- | ---------------- | -------- |
-| `string` | `"local-docker"` | No       |
+| Type     | Allowed Values                                                 | Default          | Required |
+| -------- | -------------------------------------------------------------- | ---------------- | -------- |
+| `string` | "local-docker", "cluster-docker", "kaniko", "cluster-buildkit" | `"local-docker"` | Yes      |
 
 ### `providers[].clusterBuildkit`
 
@@ -440,9 +628,214 @@ For more details on all the different options and what makes sense to use for yo
 
 Configuration options for the `cluster-buildkit` build mode.
 
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
+
+### `providers[].clusterBuildkit.cache[]`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > cache
+
+Use the `cache` configuration to customize the default cluster-buildkit cache behaviour.
+
+The default value is:
+```yaml
+clusterBuildkit:
+  cache:
+    - type: registry
+      mode: auto
+```
+
+For every build, this will
+- import cached layers from a docker image tag named `_buildcache`
+- when the build is finished, upload cache information to `_buildcache`
+
+For registries that support it, `mode: auto` (the default) will enable the buildkit `mode=max`
+option.
+
+See the following table for details on our detection mechanism:
+
+| Registry Name                   | Registry Domain         | Assumed `mode=max` support |
+|---------------------------------|-------------------------|------------------------------|
+| Google Cloud Artifact Registry  | `pkg.dev`             | Yes                          |
+| Azure Container Registry        | `azurecr.io`          | Yes                          |
+| GitHub Container Registry       | `ghcr.io`             | Yes                          |
+| DockerHub                       | `hub.docker.com`     | Yes                          |
+| Garden In-Cluster Registry      |                         | Yes                          |
+| Any other registry              |                         | No                           |
+
+In case you need to override the defaults for your registry, you can do it like so:
+
+```yaml
+clusterBuildkit:
+  cache:
+    - type: registry
+      mode: max
+```
+
+When you add multiple caches, we will make sure to pass the `--import-cache` options to buildkit in the same
+order as provided in the cache configuration. This is because buildkit will not actually use all imported caches
+for every build, but it will stick with the first cache that yields a cache hit for all the following layers.
+
+An example for this is the following:
+
+```yaml
+clusterBuildkit:
+  cache:
+    - type: registry
+      tag: _buildcache-${slice(kebabCase(git.branch), "0", "30")}
+    - type: registry
+      tag: _buildcache-main
+      export: false
+```
+
+Using this cache configuration, every build will first look for a cache specific to your feature branch.
+If it does not exist yet, it will import caches from the main branch builds (`_buildcache-main`).
+When the build is finished, it will only export caches to your feature branch, and avoid polluting the `main` branch caches.
+A configuration like that may improve your cache hit rate and thus save time.
+
+If you need to disable caches completely you can achieve that with the following configuration:
+
+```yaml
+clusterBuildkit:
+  cache: []
+```
+
+| Type            | Default                                                                 | Required |
+| --------------- | ----------------------------------------------------------------------- | -------- |
+| `array[object]` | `[{"type":"registry","mode":"auto","tag":"_buildcache","export":true}]` | No       |
+
+### `providers[].clusterBuildkit.cache[].type`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > type
+
+Use the Docker registry configured at `deploymentRegistry` to retrieve and store buildkit cache information.
+
+See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+
+| Type     | Allowed Values | Required |
+| -------- | -------------- | -------- |
+| `string` | "registry"     | Yes      |
+
+### `providers[].clusterBuildkit.cache[].registry`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > registry
+
+The registry from which the cache should be imported from, or which it should be exported to.
+
+If not specified, use the configured `deploymentRegistry` in your kubernetes provider config, or the internal in-cluster registry in case `deploymentRegistry` is not set.
+
+Important: You must make sure `imagePullSecrets` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured `namespace`).
+
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+### `providers[].clusterBuildkit.cache[].registry.hostname`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > hostname
+
+The hostname (and optionally port, if not the default port) of the registry.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | Yes      |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      cache:
+        - registry:
+            ...
+            hostname: "gcr.io"
+```
+
+### `providers[].clusterBuildkit.cache[].registry.port`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > port
+
+The port where the registry listens on, if not the default.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `providers[].clusterBuildkit.cache[].registry.namespace`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > namespace
+
+The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `string` | `"_"`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      cache:
+        - registry:
+            ...
+            namespace: "my-project"
+```
+
+### `providers[].clusterBuildkit.cache[].registry.insecure`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > [registry](#providersclusterbuildkitcacheregistry) > insecure
+
+Set to true to allow insecure connections to the registry (without SSL).
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `false` | No       |
+
+### `providers[].clusterBuildkit.cache[].mode`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > mode
+
+This is the buildkit cache mode to be used.
+
+The value `inline` ensures that garden is using the buildkit option `--export-cache inline`. Cache information will be inlined and co-located with the Docker image itself.
+
+The values `min` and `max` ensure that garden passes the `mode=max` or `mode=min` modifiers to the buildkit `--export-cache` option. Cache manifests will only be
+stored stored in the configured `tag`.
+
+`auto` is the same as `max` for some registries that are known to support it. Garden will fall back to `inline` for all other registries.
+ See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+
+See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+
+| Type     | Allowed Values                 | Default  | Required |
+| -------- | ------------------------------ | -------- | -------- |
+| `string` | "auto", "min", "max", "inline" | `"auto"` | Yes      |
+
+### `providers[].clusterBuildkit.cache[].tag`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > tag
+
+This is the Docker registry tag name buildkit should use for the registry build cache. Default is `_buildcache`
+
+**NOTE**: `tag` can only be used together with the `registry` cache type
+
+| Type     | Default         | Required |
+| -------- | --------------- | -------- |
+| `string` | `"_buildcache"` | No       |
+
+### `providers[].clusterBuildkit.cache[].export`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [cache](#providersclusterbuildkitcache) > export
+
+If this is false, only pass the `--import-cache` option to buildkit, and not the `--export-cache` option. Defaults to true.
+
+| Type      | Default | Required |
+| --------- | ------- | -------- |
+| `boolean` | `true`  | No       |
 
 ### `providers[].clusterBuildkit.rootless`
 
@@ -477,6 +870,94 @@ providers:
           disktype: ssd
 ```
 
+### `providers[].clusterBuildkit.tolerations[]`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > tolerations
+
+Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].clusterBuildkit.tolerations[].effect`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].key`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].operator`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"Equal"` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].tolerationSeconds`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.tolerations[].value`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > [tolerations](#providersclusterbuildkittolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].clusterBuildkit.annotations`
+
+[providers](#providers) > [clusterBuildkit](#providersclusterbuildkit) > annotations
+
+Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - clusterBuildkit:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
 ### `providers[].clusterDocker`
 
 [providers](#providers) > clusterDocker
@@ -487,9 +968,9 @@ providers:
 
 Configuration options for the `cluster-docker` build mode.
 
-| Type     | Required |
-| -------- | -------- |
-| `object` | No       |
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `object` | `{}`    | No       |
 
 ### `providers[].clusterDocker.enableBuildKit`
 
@@ -553,7 +1034,7 @@ Change the kaniko image (repository/image:tag) to use when building in kaniko mo
 
 | Type     | Default                                         | Required |
 | -------- | ----------------------------------------------- | -------- |
-| `string` | `"gcr.io/kaniko-project/executor:v1.6.0-debug"` | No       |
+| `string` | `"gcr.io/kaniko-project/executor:v1.8.1-debug"` | No       |
 
 ### `providers[].kaniko.namespace`
 
@@ -571,9 +1052,9 @@ Choose the namespace where the Kaniko pods will be run. Set to `null` to use the
 
 [providers](#providers) > [kaniko](#providerskaniko) > nodeSelector
 
-Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under `util.nodeSelector`.
 
-[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+[See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
 
 | Type     | Required |
 | -------- | -------- |
@@ -583,7 +1064,7 @@ Exposes the `nodeSelector` field on the PodSpec of the Kaniko pods. This allows 
 
 [providers](#providers) > [kaniko](#providerskaniko) > tolerations
 
-Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds.
+Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds. The same tolerations will be used for each util pod unless they are specifically set under `util.tolerations`
 
 | Type            | Default | Required |
 | --------------- | ------- | -------- |
@@ -646,6 +1127,134 @@ otherwise just a regular string.
 | Type     | Required |
 | -------- | -------- |
 | `string` | No       |
+
+### `providers[].kaniko.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > annotations
+
+Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers. The same annotations will be used for each util pod unless they are specifically set under `util.annotations`
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].kaniko.util`
+
+[providers](#providers) > [kaniko](#providerskaniko) > util
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `providers[].kaniko.util.tolerations[]`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > tolerations
+
+Specify tolerations to apply to each garden-util pod.
+
+| Type            | Default | Required |
+| --------------- | ------- | -------- |
+| `array[object]` | `[]`    | No       |
+
+### `providers[].kaniko.util.tolerations[].effect`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > effect
+
+"Effect" indicates the taint effect to match. Empty means match all taint effects. When specified,
+allowed values are "NoSchedule", "PreferNoSchedule" and "NoExecute".
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.tolerations[].key`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > key
+
+"Key" is the taint key that the toleration applies to. Empty means match all taint keys.
+If the key is empty, operator must be "Exists"; this combination means to match all values and all keys.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.tolerations[].operator`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > operator
+
+"Operator" represents a key's relationship to the value. Valid operators are "Exists" and "Equal". Defaults to
+"Equal". "Exists" is equivalent to wildcard for value, so that a pod can tolerate all taints of a
+particular category.
+
+| Type     | Default   | Required |
+| -------- | --------- | -------- |
+| `string` | `"Equal"` | No       |
+
+### `providers[].kaniko.util.tolerations[].tolerationSeconds`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > tolerationSeconds
+
+"TolerationSeconds" represents the period of time the toleration (which must be of effect "NoExecute",
+otherwise this field is ignored) tolerates the taint. By default, it is not set, which means tolerate
+the taint forever (do not evict). Zero and negative values will be treated as 0 (evict immediately)
+by the system.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.tolerations[].value`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > [tolerations](#providerskanikoutiltolerations) > value
+
+"Value" is the taint value the toleration matches to. If the operator is "Exists", the value should be empty,
+otherwise just a regular string.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `providers[].kaniko.util.annotations`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > annotations
+
+Specify annotations to apply to each garden-util pod and deployments.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - kaniko:
+      ...
+      util:
+        ...
+        annotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
+
+### `providers[].kaniko.util.nodeSelector`
+
+[providers](#providers) > [kaniko](#providerskaniko) > [util](#providerskanikoutil) > nodeSelector
+
+Specify the nodeSelector constraints for each garden-util pod.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
 
 ### `providers[].defaultHostname`
 
@@ -761,9 +1370,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].devMode.defaults.group`
 
@@ -771,9 +1380,9 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `providers[].forceSsl`
 
@@ -870,9 +1479,9 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 Resource requests and limits for the in-cluster builder, container registry and code sync service. (which are automatically installed and used when `buildMode` is `cluster-docker` or `kaniko`).
 
-| Type     | Default                                                                                                                                                                                                                                                    | Required |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}}}` | No       |
+| Type     | Default                                                                                                                                                                                                                                                                                                                                   | Required |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `object` | `{"builder":{"limits":{"cpu":4000,"memory":8192},"requests":{"cpu":100,"memory":512}},"registry":{"limits":{"cpu":2000,"memory":4096},"requests":{"cpu":200,"memory":512}},"sync":{"limits":{"cpu":500,"memory":512},"requests":{"cpu":100,"memory":90}},"util":{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}}` | No       |
 
 ### `providers[].resources.builder`
 
@@ -1206,6 +1815,173 @@ providers:
   - resources:
       ...
       registry:
+        ...
+        requests:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.util`
+
+[providers](#providers) > [resources](#providersresources) > util
+
+Resource requests and limits for the util pod for in-cluster builders.
+This pod is used to get, start, stop and inquire the status of the builds.
+
+This pod is created in each garden namespace.
+
+| Type     | Default                                                                   | Required |
+| -------- | ------------------------------------------------------------------------- | -------- |
+| `object` | `{"limits":{"cpu":256,"memory":512},"requests":{"cpu":256,"memory":512}}` | No       |
+
+### `providers[].resources.util.limits`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > limits
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":256,"memory":512}` | No       |
+
+### `providers[].resources.util.limits.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > cpu
+
+CPU limit in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `256`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          cpu: 256
+```
+
+### `providers[].resources.util.limits.memory`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > memory
+
+Memory limit in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.util.limits.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [limits](#providersresourcesutillimits) > ephemeralStorage
+
+Ephemeral storage limit in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        limits:
+          ...
+          ephemeralStorage: 8192
+```
+
+### `providers[].resources.util.requests`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > requests
+
+| Type     | Default                    | Required |
+| -------- | -------------------------- | -------- |
+| `object` | `{"cpu":256,"memory":512}` | No       |
+
+### `providers[].resources.util.requests.cpu`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > cpu
+
+CPU request in millicpu.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `256`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        requests:
+          ...
+          cpu: 256
+```
+
+### `providers[].resources.util.requests.memory`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > memory
+
+Memory request in megabytes.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `512`   | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
+        ...
+        requests:
+          ...
+          memory: 512
+```
+
+### `providers[].resources.util.requests.ephemeralStorage`
+
+[providers](#providers) > [resources](#providersresources) > [util](#providersresourcesutil) > [requests](#providersresourcesutilrequests) > ephemeralStorage
+
+Ephemeral storage request in megabytes.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+Example:
+
+```yaml
+providers:
+  - resources:
+      ...
+      util:
         ...
         requests:
           ...
@@ -1688,6 +2464,10 @@ The namespace where the secret is stored. If necessary, the secret may be copied
 
 [providers](#providers) > [tlsCertificates](#providerstlscertificates) > managedBy
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Set to `cert-manager` to configure [cert-manager](https://github.com/jetstack/cert-manager) to manage this
 certificate. See our
 [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
@@ -1708,6 +2488,10 @@ providers:
 
 [providers](#providers) > certManager
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 cert-manager configuration, for creating and managing TLS certificates. See the
 [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
@@ -1719,6 +2503,10 @@ cert-manager configuration, for creating and managing TLS certificates. See the
 
 [providers](#providers) > [certManager](#providerscertmanager) > install
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Automatically install `cert-manager` on initialization. See the
 [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
 
@@ -1729,6 +2517,10 @@ Automatically install `cert-manager` on initialization. See the
 ### `providers[].certManager.email`
 
 [providers](#providers) > [certManager](#providerscertmanager) > email
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The email to use when requesting Let's Encrypt certificates.
 
@@ -1749,6 +2541,10 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > issuer
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 The type of issuer for the certificate (only ACME is supported for now).
 
 | Type     | Default  | Required |
@@ -1768,6 +2564,10 @@ providers:
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeServer
 
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
+
 Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod servers are supported.
 
 | Type     | Default                 | Required |
@@ -1786,6 +2586,10 @@ providers:
 ### `providers[].certManager.acmeChallengeType`
 
 [providers](#providers) > [certManager](#providerscertmanager) > acmeChallengeType
+
+{% hint style="warning" %}
+**Deprecated**: This field will be removed in a future release.
+{% endhint %}
 
 The type of ACME challenge used to validate hostnames and generate the certificates (only HTTP-01 is supported for now).
 
@@ -1934,9 +2738,9 @@ providers:
 
 Specify which namespace to deploy services to (defaults to the project name). Note that the framework generates other namespaces as well with this name as a prefix.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `object | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `object \| string` | No       |
 
 ### `providers[].namespace.name`
 
@@ -1957,6 +2761,16 @@ Map of annotations to apply to the namespace when creating it.
 | Type     | Required |
 | -------- | -------- |
 | `object` | No       |
+
+Example:
+
+```yaml
+providers:
+  - namespace: ''
+      ...
+      annotations:
+          cluster-autoscaler.kubernetes.io/safe-to-evict: 'false'
+```
 
 ### `providers[].namespace.labels`
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,9 +43,12 @@ const copySchema = () =>
       .subPathOnly()
       .required()
       .description("POSIX-style path or filename of the directory or file(s) to copy to the target."),
-    target: joi.posixPath().subPathOnly().default("").description(dedent`
+    target: joi
+      .posixPath()
+      .subPathOnly()
+      .default((parent) => parent.source).description(dedent`
         POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-        Defaults to to same as source path.
+        Defaults to the same as source path.
       `),
   })
 
@@ -242,7 +245,7 @@ export const baseModuleSpecKeys = () => ({
       ${varfileDescription}
 
       To use different module-level varfiles in different environments, you can template in the environment name
-      to the varfile name, e.g. \`varfile: "my-module.\$\{environment.name\}.env\` (this assumes that the corresponding
+      to the varfile name, e.g. \`varfile: "my-module.\${environment.name}.env\` (this assumes that the corresponding
       varfiles exist).
     `
     )

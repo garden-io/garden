@@ -51,6 +51,20 @@ The environment variable value.
 | -------- |
 | `string` |
 
+### `${local.arch}`
+
+A string indicating the architecture that the framework is running on (see https://nodejs.org/api/process.html#process_process_arch)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.arch}
+```
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -301,9 +315,9 @@ A map of all variables defined in the project configuration, including environme
 
 ### `${variables.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${var.*}`
 
@@ -317,9 +331,9 @@ Alias for the variables field.
 
 Number, string or boolean
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${environment.*}`
 
@@ -391,9 +405,9 @@ The resolved configuration for the provider.
 
 The provider config key value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${providers.<provider-name>.outputs.*}`
 
@@ -407,9 +421,9 @@ The outputs defined by the provider (see individual plugin docs for details).
 
 The provider output value. Refer to individual [provider references](https://docs.garden.io/reference/providers) for details.
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${modules.*}`
 
@@ -467,9 +481,9 @@ The outputs defined by the module (see individual module type [references](https
 
 The module output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${modules.<module-name>.var.*}`
 
@@ -481,9 +495,9 @@ A map of all variables defined in the module.
 
 ### `${modules.<module-name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${modules.<module-name>.version}`
 
@@ -527,9 +541,9 @@ The runtime outputs defined by the service (see individual module type [referenc
 
 The service output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${runtime.services.<service-name>.version}`
 
@@ -565,9 +579,9 @@ The runtime outputs defined by the task (see individual module type [references]
 
 The task output value. Refer to individual [module type references](https://docs.garden.io/reference/module-types) for details.
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${runtime.tasks.<task-name>.version}`
 

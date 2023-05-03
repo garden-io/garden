@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,8 +11,9 @@ import { createGardenPlugin } from "@garden-io/sdk"
 import { dedent } from "@garden-io/sdk/util/string"
 
 import { openJdkSpecs } from "./openjdk"
-import { mavenSpec, mvn } from "./maven"
-import { gradle, gradleSpec } from "./gradle"
+import { mavenSpec, mvn, mvnVersion } from "./maven"
+import { mavendSpec, mvnd } from "./mavend"
+import { gradle, gradleSpec, gradleVersion } from "./gradle"
 
 // TODO: gradually get rid of these core dependencies, move some to SDK etc.
 import { providerConfigBaseSchema, GenericProviderConfig, Provider } from "@garden-io/core/build/src/config/provider"
@@ -27,27 +28,55 @@ import { containerHelpers } from "@garden-io/core/build/src/plugins/container/he
 import { cloneDeep } from "lodash"
 import { LogLevel } from "@garden-io/core/build/src/logger/logger"
 import { detectProjectType, getBuildFlags, JibContainerModule } from "./util"
+import { PluginEventLogContext } from "@garden-io/core/src/plugin-context"
 
 export interface JibProviderConfig extends GenericProviderConfig {}
+
 export interface JibProvider extends Provider<JibProviderConfig> {}
 
 export const configSchema = () => providerConfigBaseSchema().unknown(false)
 
 const exampleUrl = getGitHubUrl("examples/jib-container")
 
+const systemJdkGardenEnvVar = "${local.env.JAVA_HOME}"
+
 const jibModuleSchema = () =>
   containerModuleSpecSchema().keys({
     build: baseBuildSpecSchema().keys({
       projectType: joi
         .string()
-        .allow("gradle", "maven", "jib", "auto")
+        .valid("gradle", "maven", "jib", "auto", "mavend")
         .default("auto")
         .description(
           dedent`
             The type of project to build. Defaults to auto-detecting between gradle and maven (based on which files/directories are found in the module root), but in some cases you may need to specify it.
             `
         ),
-      jdkVersion: joi.number().integer().allow(8, 11).default(11).description("The JDK version to use."),
+      jdkVersion: joi
+        .number()
+        .integer()
+        .valid(8, 11, 13, 17)
+        .default(11)
+        .description(
+          dedent`
+            The JDK version to use.
+
+            The chosen version will be downloaded by Garden and used to define \`JAVA_HOME\` environment variable for Gradle and Maven.
+
+            To use an arbitrary JDK distribution, please use the \`jdkPath\` configuration option.
+            `
+        ),
+      jdkPath: joi
+        .string()
+        .optional()
+        .description(
+          dedent`
+            The JDK home path. This **always overrides** the JDK defined in \`jdkVersion\`.
+
+            The value will be used as \`JAVA_HOME\` environment variable for Gradle and Maven.
+            `
+        )
+        .example(systemJdkGardenEnvVar),
       dockerBuild: joi
         .boolean()
         .default(false)
@@ -62,9 +91,31 @@ const jibModuleSchema = () =>
         ),
       tarFormat: joi
         .string()
-        .allow("docker", "oci")
+        .valid("docker", "oci")
         .default("docker")
         .description("Specify the image format in the resulting tar file. Only used if `tarOnly: true`."),
+      gradlePath: joi.string().optional().description(dedent`
+        Defines the location of the custom executable Gradle binary.
+
+        If not provided, then the Gradle binary available in the working directory will be used.
+        If no Gradle binary found in the working dir, then Gradle ${gradleVersion} will be downloaded and used.
+
+        **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Gradle.
+        To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
+      `),
+      mavenPath: joi.string().optional().description(dedent`
+        Defines the location of the custom executable Maven binary.
+
+        If not provided, then Maven ${mvnVersion} will be downloaded and used.
+
+        **Note!** Either \`jdkVersion\` or \`jdkPath\` will be used to define \`JAVA_HOME\` environment variable for the custom Maven.
+        To ensure a system JDK usage, please set \`jdkPath\` to \`${systemJdkGardenEnvVar}\`.
+      `),
+      mavenPhases: joi
+        .array()
+        .items(joi.string())
+        .default(["compile"])
+        .description("Defines the Maven phases to be executed during the Garden build step."),
       extraFlags: joi
         .sparseArray()
         .items(joi.string())
@@ -110,7 +161,7 @@ export const gardenPlugin = () =>
 
             // The base handler will either auto-detect or set include if there's no Dockerfile, so we need to
             // override that behavior.
-            const include = moduleConfig.include || []
+            const include = moduleConfig.include
             moduleConfig.include = []
 
             const configured = await base!({ ...params, moduleConfig: cloneDeep(moduleConfig) })
@@ -121,7 +172,7 @@ export const gardenPlugin = () =>
             moduleConfig.buildConfig!.jdkVersion = moduleConfig.spec.build.jdkVersion
 
             // FIXME: for now we need to set this value because various code paths decide if the module is built (as
-            // opposed to just fetched) by checking if a Dockerfile is found or specified.
+            //        opposed to just fetched) by checking if a Dockerfile is found or specified.
             moduleConfig.buildConfig!.dockerfile = moduleConfig.spec.dockerfile = "_jib"
 
             return { moduleConfig }
@@ -162,10 +213,17 @@ export const gardenPlugin = () =>
 
           async build(params: BuildModuleParams<JibContainerModule>) {
             const { ctx, log, module } = params
-            const { jdkVersion } = module.spec.build
+            const { jdkVersion, jdkPath, mavenPhases } = module.spec.build
 
-            const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
-            const openJdkPath = await openJdk.getPath(log)
+            let openJdkPath: string
+            if (!!jdkPath) {
+              log.verbose(`Using explicitly specified JDK from ${jdkPath}`)
+              openJdkPath = jdkPath
+            } else {
+              log.verbose(`The JDK path hasn't been specified explicitly. JDK ${jdkVersion} will be used by default.`)
+              const openJdk = ctx.tools["jib.openjdk-" + jdkVersion]
+              openJdkPath = await openJdk.getPath(log)
+            }
 
             const statusLine = log.placeholder({ level: LogLevel.verbose, childEntriesInheritLevel: true })
 
@@ -176,14 +234,18 @@ export const gardenPlugin = () =>
               statusLine.setState(renderOutputStream(`Detected project type ${projectType}`))
             }
 
-            const outputStream = split2()
             let buildLog = ""
 
+            const logEventContext: PluginEventLogContext = {
+              origin: ["maven", "mavend", "gradle"].includes(projectType) ? projectType : "gradle",
+              log: log.placeholder({ level: LogLevel.verbose }),
+            }
+
+            const outputStream = split2()
             outputStream.on("error", () => {})
-            outputStream.on("data", (line: Buffer) => {
-              const str = line.toString()
-              statusLine.setState({ section: module.name, msg: str })
-              buildLog += str
+            outputStream.on("data", (data: Buffer) => {
+              ctx.events.emit("log", { timestamp: new Date().toISOString(), data, ...logEventContext })
+              buildLog += data.toString()
             })
 
             statusLine.setState({ section: module.name, msg: `Using JAVA_HOME=${openJdkPath}` })
@@ -195,7 +257,17 @@ export const gardenPlugin = () =>
                 ctx,
                 log,
                 cwd: module.path,
-                args: ["compile", ...args],
+                args: [...mavenPhases, ...args],
+                openJdkPath,
+                mavenPath: module.spec.build.mavenPath,
+                outputStream,
+              })
+            } else if (projectType === "mavend") {
+              await mvnd({
+                ctx,
+                log,
+                cwd: module.path,
+                args: [...mavenPhases, ...args],
                 openJdkPath,
                 outputStream,
               })
@@ -206,6 +278,7 @@ export const gardenPlugin = () =>
                 cwd: module.path,
                 args,
                 openJdkPath,
+                gradlePath: module.spec.build.gradlePath,
                 outputStream,
               })
             }
@@ -221,5 +294,5 @@ export const gardenPlugin = () =>
         },
       },
     ],
-    tools: [mavenSpec, gradleSpec, ...openJdkSpecs],
+    tools: [mavenSpec, gradleSpec, mavendSpec, ...openJdkSpecs],
   })

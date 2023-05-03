@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,15 +7,7 @@
  */
 
 import { exec, getPlatform, getArchitecture } from "../../../../src/util/util"
-import {
-  makeTempDir,
-  TempDirectory,
-  TestGarden,
-  withDefaultGlobalOpts,
-  dataDir,
-  getLogMessages,
-  expectError,
-} from "../../../helpers"
+import { makeTempDir, TempDirectory, TestGarden, withDefaultGlobalOpts, dataDir, expectError } from "../../../helpers"
 import { expect } from "chai"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { createGardenPlugin } from "../../../../src/types/plugin/plugin"
@@ -26,6 +18,7 @@ import { dedent } from "../../../../src/util/string"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { defaultNamespace } from "../../../../src/config/project"
+import { getLogMessages } from "../../../../src/util/testing"
 
 describe("ToolsCommand", () => {
   let tmpDir: TempDirectory
@@ -92,7 +85,7 @@ describe("ToolsCommand", () => {
 
   before(async () => {
     tmpDir = await makeTempDir()
-    await exec("git", ["init"], { cwd: tmpDir.path })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
     garden = await TestGarden.factory(tmpDir.path, {
       plugins: [pluginA, pluginB],

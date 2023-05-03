@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,7 +24,7 @@ export class ScanCommand extends Command {
     const graph = await garden.getConfigGraph({ log, emit: false })
     const modules = graph.getModules().map((m) => {
       return {
-        ...omit(m, ["_config", "cacheContext", "serviceNames", "taskNames"]),
+        ...omit(m, ["_config", "cacheContext", "serviceNames", "taskNames", "buildDependencies"]),
         version: omit(m.version, ["dependencyVersions"]),
       }
     })

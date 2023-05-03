@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,10 +14,14 @@ import { ContainerBuildSpec, ContainerModuleSpec } from "@garden-io/core/build/s
 
 interface JibModuleBuildSpec extends ContainerBuildSpec {
   dockerBuild?: boolean
-  projectType: "gradle" | "maven" | "auto"
+  projectType: "gradle" | "maven" | "mavend" | "auto"
   jdkVersion: number
+  jdkPath?: string
   tarOnly?: boolean
   tarFormat: "docker" | "oci"
+  mavenPath?: string
+  mavenPhases: string[]
+  gradlePath?: string
 }
 
 interface JibModuleSpec extends ContainerModuleSpec {
@@ -66,7 +70,7 @@ export function getBuildFlags(module: JibContainerModule, projectType: JibModule
   let targetDir: string
   let target: string
 
-  if (projectType === "maven") {
+  if (projectType === "maven" || projectType === "mavend") {
     targetDir = "target"
     if (tarOnly) {
       target = "jib:buildTar"

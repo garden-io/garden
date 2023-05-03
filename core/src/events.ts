@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -68,14 +68,38 @@ export type LoggerEventName = keyof LoggerEvents
 export type GraphResultEventPayload = Omit<GraphResult, "dependencyResults">
 
 export interface ServiceStatusPayload extends Omit<ServiceStatus, "detail"> {
-  deployStartedAt?: Date
-  deployCompletedAt?: Date
+  /**
+   * ISO format date string
+   */
+  deployStartedAt?: string
+  /**
+   * ISO format date string
+   */
+  deployCompletedAt?: string
+}
+
+export interface CommandInfoPayload extends CommandInfo {
+  // Contains additional context for the command info available during init
+  environmentName: string
+  environmentId: number | undefined
+  projectName: string
+  projectId: string
+  namespaceName: string
+  namespaceId: number | undefined
+  coreVersion: string
+  vcsBranch: string
+  vcsCommitHash: string
+  vcsOriginUrl: string
 }
 
 export function toGraphResultEventPayload(result: GraphResult): GraphResultEventPayload {
   const payload = sanitizeObject(omit(result, "dependencyResults"))
+
+  // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
+  if (result.error) {
+    payload.error = omit(result.error, "detail")
+  }
   if (result.output) {
-    // TODO: Use a combined blacklist of fields from all task types instead of hardcoding here.
     payload.output = omit(result.output, "dependencyResults", "log", "buildLog", "detail")
     if (result.output.version) {
       payload.output.version = result.output.version.versionString || null
@@ -100,6 +124,7 @@ export interface Events extends LoggerEvents {
   serversUpdated: {
     servers: { host: string; command: string; serverAuthKey: string }[]
   }
+  serverReady: {}
   receivedToken: AuthTokenResponse
 
   // Session events - one of these is emitted when the command process ends
@@ -130,21 +155,27 @@ export interface Events extends LoggerEvents {
   moduleRemoved: {}
 
   // Command/project metadata events
-  commandInfo: CommandInfo
+  commandInfo: CommandInfoPayload
 
   // Stack Graph events
   stackGraph: RenderedActionGraph
 
   // TaskGraph events
   taskPending: {
-    addedAt: Date
+    /**
+     * ISO format date string
+     */
+    addedAt: string
     batchId: string
     key: string
     type: string
     name: string
   }
   taskProcessing: {
-    startedAt: Date
+    /**
+     * ISO format date string
+     */
+    startedAt: string
     batchId: string
     key: string
     type: string
@@ -154,21 +185,33 @@ export interface Events extends LoggerEvents {
   taskComplete: GraphResultEventPayload
   taskError: GraphResultEventPayload
   taskCancelled: {
-    cancelledAt: Date
+    /**
+     * ISO format date string
+     */
+    cancelledAt: string
     batchId: string
     type: string
     key: string
     name: string
   }
   taskGraphProcessing: {
-    startedAt: Date
+    /**
+     * ISO format date string
+     */
+    startedAt: string
   }
   taskGraphComplete: {
-    completedAt: Date
+    /**
+     * ISO format date string
+     */
+    completedAt: string
   }
   watchingForChanges: {}
   log: {
-    timestamp: number
+    /**
+     * ISO format date string
+     */
+    timestamp: string
     actionUid: string
     entity: {
       moduleName: string
@@ -205,8 +248,14 @@ export interface Events extends LoggerEvents {
     actionUid?: string
     status: {
       state: BuildState
-      startedAt?: Date
-      completedAt?: Date
+      /**
+       * ISO format date string
+       */
+      startedAt?: string
+      /**
+       * ISO format date string
+       */
+      completedAt?: string
     }
   }
   taskStatus: {
@@ -266,9 +315,15 @@ export interface Events extends LoggerEvents {
     index: number
     durationMsec: number
   }
+
+  // Cloud UI events
 }
 
 export type EventName = keyof Events
+
+/**
+ * These events indicate a request from Cloud to Core.
+ */
 
 // Note: Does not include logger events.
 export const pipedEventNames: EventName[] = [

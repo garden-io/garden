@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -16,8 +16,6 @@ import {
   V1Pod,
   V1ListMeta,
   V1Ingress,
-  NetworkingV1beta1Ingress,
-  ExtensionsV1beta1Ingress,
 } from "@kubernetes/client-node"
 
 import { Omit } from "../../util/util"
@@ -42,15 +40,15 @@ export type KubernetesResource<T extends BaseResource | KubernetesObject = BaseR
       name: string
     }
   } & Omit<T, "apiVersion" | "kind" | "metadata"> &
-    // Make sure these are required if they're on the provided type
     {
+      // Make sure these are required if they're on the provided type
       [P in Extract<keyof T, "spec">]: Exclude<T[P], undefined>
     }
 
 // Server-side resources always have some fields set if they're in the schema, e.g. status
 export type KubernetesServerResource<T extends BaseResource | KubernetesObject = BaseResource> = KubernetesResource<T> &
-  // Make sure these are required if they're on the provided type
   {
+    // Make sure these are required if they're on the provided type
     [P in Extract<keyof T, "status">]: Exclude<T[P], undefined>
   }
 
@@ -80,7 +78,7 @@ export type KubernetesStatefulSet = KubernetesResource<V1StatefulSet>
 export type KubernetesPod = KubernetesResource<V1Pod>
 
 export type KubernetesWorkload = KubernetesResource<V1DaemonSet | V1Deployment | V1ReplicaSet | V1StatefulSet>
-export type KubernetesIngress = KubernetesResource<V1Ingress | NetworkingV1beta1Ingress | ExtensionsV1beta1Ingress>
+export type KubernetesIngress = KubernetesResource<V1Ingress>
 
 export function isPodResource(resource: KubernetesWorkload | KubernetesPod): resource is KubernetesPod {
   return resource.kind === "Pod"

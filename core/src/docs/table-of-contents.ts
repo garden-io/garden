@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,6 +30,7 @@ import { resolve } from "path"
 import { cloneDeep, repeat } from "lodash"
 import titleize = require("titleize")
 import humanizeString = require("humanize-string")
+import { dedent } from "../util/string"
 
 interface Metadata {
   order: number
@@ -123,7 +124,7 @@ function sortTree(tree: FileTree) {
   }
 }
 
-const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷"]
+const emojiList = ["🌸", "🌳", "🌻", "💐", "🌿", "🌺", "☘️", "🌹", "🌼", "🌷", "🪷", "🎋"]
 
 function generateMarkdown(tree: FileTree, docsRoot: string, depth: number, emojis: Set<string>) {
   const path = tree.path.replace(docsRoot, ".")
@@ -162,7 +163,15 @@ export function generateTableOfContents(docsRoot: string): string {
   rawTree.topLevel = true
   const treeWithMetadata = createNewTree(rawTree, attachMetadata)
   const preparedTree = createNewTree(treeWithMetadata, sortTree)
-  return "# Table of Contents\n" + generateMarkdown(preparedTree, docsRoot, 0, new Set(emojiList))
+  return (
+    dedent`
+    # Table of Contents
+
+    * [Welcome!](welcome.md)
+    ` +
+    "\n" +
+    generateMarkdown(preparedTree, docsRoot, 0, new Set(emojiList))
+  )
 }
 
 export async function writeTableOfContents(docsRoot: string, outputFileName: string) {

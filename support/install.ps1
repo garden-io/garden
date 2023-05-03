@@ -7,7 +7,7 @@
 # 3. Installs or updates the garden binary.
 #
 # To execute it run the following command in PowerShell:
-# Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/master/support/install.ps1'))
+# Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/garden-io/garden/main/support/install.ps1'))
 #
 # For more information visit https://docs.garden.io/
 
@@ -98,7 +98,7 @@ $latestRelease = Invoke-WebRequest "https://github.com/garden-io/garden/releases
 $json = $latestRelease.Content | ConvertFrom-Json
 $latestVersion = $json.tag_name
 
-$url = "https://github.com/garden-io/garden/releases/download/$latestVersion/garden-$latestVersion-windows-amd64.zip"
+$url = "https://download.garden.io/core/$latestVersion/garden-$latestVersion-windows-amd64.zip"
 $zipPath = "$gardenTmpPath\garden-$latestVersion-windows-amd64.zip"
 
 Write-Host "-> Downloading $url..."

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,6 @@
 // No idea why tslint complains over this line
 // tslint:disable-next-line:no-unused
 import { IncomingMessage } from "http"
-import { Agent } from "https"
 import { ReadStream } from "tty"
 import Bluebird from "bluebird"
 import chalk from "chalk"
@@ -23,25 +22,24 @@ import {
   V1APIVersions,
   V1APIResource,
   CoreV1Api,
-  ExtensionsV1beta1Api,
   RbacAuthorizationV1Api,
   AppsV1Api,
-  ApiextensionsV1beta1Api,
-  PolicyV1beta1Api,
+  PolicyV1Api,
   KubernetesObject,
   Exec,
-  Attach,
   V1Deployment,
   V1Service,
   Log,
   NetworkingV1Api,
+  ApiextensionsV1Api,
+  HttpError,
 } from "@kubernetes/client-node"
 import AsyncLock = require("async-lock")
 import request = require("request-promise")
 import requestErrors = require("request-promise/errors")
 import { safeLoad } from "js-yaml"
 import { readFile } from "fs-extra"
-import { lookup } from "dns-lookup-cache"
+import WebSocket from "isomorphic-ws"
 
 import { Omit, safeDumpYaml, StringCollector, sleep } from "../../util/util"
 import { omitBy, isObject, isPlainObject, keyBy, flatten } from "lodash"
@@ -60,7 +58,6 @@ import { KubernetesProvider } from "./config"
 import { StringMap } from "../../config/common"
 import { PluginContext } from "../../plugin-context"
 import { Writable, Readable, PassThrough } from "stream"
-import { WebSocketHandler } from "@kubernetes/client-node/dist/web-socket-handler"
 import { getExecExitCode } from "./status/pod"
 import { labelSelectorToString } from "./util"
 
@@ -83,30 +80,26 @@ const cachedApiInfo: { [context: string]: ApiInfo } = {}
 const cachedApiResourceInfo: { [context: string]: ApiResourceMap } = {}
 const apiInfoLock = new AsyncLock()
 
-const requestAgent = new Agent({ lookup })
-
 // NOTE: be warned, the API of the client library is very likely to change
 
 type K8sApi =
-  | ApiextensionsV1beta1Api
+  | ApiextensionsV1Api
   | AppsV1Api
   | CoreApi
   | CoreV1Api
-  | ExtensionsV1beta1Api
   | NetworkingV1Api
-  | PolicyV1beta1Api
+  | PolicyV1Api
   | RbacAuthorizationV1Api
 type K8sApiConstructor<T extends K8sApi> = new (basePath?: string) => T
 
 const apiTypes: { [key: string]: K8sApiConstructor<any> } = {
-  apiExtensions: ApiextensionsV1beta1Api,
   apis: ApisApi,
   apps: AppsV1Api,
   core: CoreV1Api,
   coreApi: CoreApi,
-  extensions: ExtensionsV1beta1Api,
+  extensions: ApiextensionsV1Api,
   networking: NetworkingV1Api,
-  policy: PolicyV1beta1Api,
+  policy: PolicyV1Api,
   rbac: RbacAuthorizationV1Api,
 }
 
@@ -175,15 +168,22 @@ type WrappedApi<T> = {
   T[P]
 }
 
+export interface ExecInPodResult {
+  exitCode?: number
+  allLogs: string
+  stdout: string
+  stderr: string
+  timedOut: boolean
+}
+
 export class KubeApi {
-  public apiExtensions: WrappedApi<ApiextensionsV1beta1Api>
   public apis: WrappedApi<ApisApi>
   public apps: WrappedApi<AppsV1Api>
   public core: WrappedApi<CoreV1Api>
   public coreApi: WrappedApi<CoreApi>
-  public extensions: WrappedApi<ExtensionsV1beta1Api>
+  public extensions: WrappedApi<ApiextensionsV1Api>
   public networking: WrappedApi<NetworkingV1Api>
-  public policy: WrappedApi<PolicyV1beta1Api>
+  public policy: WrappedApi<PolicyV1Api>
   public rbac: WrappedApi<RbacAuthorizationV1Api>
 
   constructor(public log: LogEntry, public context: string, private config: KubeConfig) {
@@ -331,7 +331,6 @@ export class KubeApi {
       method: "get",
       json: true,
       resolveWithFullResponse: true,
-      agent: requestAgent,
       ...opts,
     }
 
@@ -643,10 +642,6 @@ export class KubeApi {
   private wrapApi<T extends K8sApi>(log: LogEntry, api: T, config: KubeConfig): T {
     api.setDefaultAuthentication(config)
 
-    api.addInterceptor((opts) => {
-      opts.agent = requestAgent
-    })
-
     return new Proxy(api, {
       get: (target: T, name: string, receiver) => {
         if (!(name in Object.getPrototypeOf(target))) {
@@ -705,6 +700,7 @@ export class KubeApi {
    * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
    */
   async execInPod({
+    log,
     buffer,
     namespace,
     podName,
@@ -716,6 +712,7 @@ export class KubeApi {
     tty,
     timeoutSec,
   }: {
+    log: LogEntry
     buffer: boolean
     namespace: string
     podName: string
@@ -726,7 +723,7 @@ export class KubeApi {
     stdin?: Readable
     tty: boolean
     timeoutSec?: number
-  }): Promise<{ exitCode?: number; allLogs: string; stdout: string; stderr: string; timedOut: boolean }> {
+  }): Promise<ExecInPodResult> {
     const stdoutCollector = new StringCollector()
     const stderrCollector = new StringCollector()
     const combinedCollector = new StringCollector()
@@ -774,13 +771,11 @@ export class KubeApi {
       }
     }
 
-    const execHandler = new Exec(this.config, new WebSocketHandler(this.config))
-
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       let done = false
 
       const finish = (timedOut: boolean, exitCode?: number) => {
-        !done &&
+        if (!done) {
           resolve({
             allLogs: combinedCollector.getString(),
             stdout: stdoutCollector.getString(),
@@ -788,53 +783,54 @@ export class KubeApi {
             timedOut,
             exitCode,
           })
-        done = true
+          done = true
+        }
+      }
+
+      const execWithRetry = async () => {
+        const execHandler = new Exec(this.config)
+        const description = "Pod exec"
+
+        try {
+          return await requestWithRetry(log, description, () =>
+            execHandler.exec(
+              namespace,
+              podName,
+              containerName,
+              command,
+              _stdout,
+              _stderr,
+              stdin || null,
+              tty,
+              (status) => {
+                finish(false, getExecExitCode(status))
+              }
+            )
+          )
+        } catch (err) {
+          throw wrapError(description, err)
+        }
       }
 
       if (timeoutSec) {
         setTimeout(() => {
-          !done && finish(true)
+          if (!done) {
+            finish(true)
+          }
         }, timeoutSec * 1000)
       }
 
-      execHandler
-        .exec(namespace, podName, containerName, command, _stdout, _stderr, stdin || null, tty, (status) => {
-          finish(false, getExecExitCode(status))
-        })
-        .then((ws) => {
-          ws.on("error", (err) => {
-            !done && reject(err)
-            done = true
-          })
-        })
-        .catch(reject)
-    })
-  }
+      try {
+        const ws = attachWebsocketKeepalive(await execWithRetry())
 
-  /**
-   * Attach to the specified Pod and container.
-   *
-   * Warning: Do not use tty=true unless you're actually attaching to a terminal, since collecting output will not work.
-   */
-  async attachToPod({
-    namespace,
-    podName,
-    containerName,
-    stdout,
-    stderr,
-    stdin,
-    tty,
-  }: {
-    namespace: string
-    podName: string
-    containerName: string
-    stdout?: Writable
-    stderr?: Writable
-    stdin?: Readable
-    tty: boolean
-  }) {
-    const handler = new Attach(this.config, new WebSocketHandler(this.config))
-    return handler.attach(namespace, podName, containerName, stdout || null, stderr || null, stdin || null, tty)
+        ws.on("error", (err) => {
+          done = true
+          reject(err)
+        })
+      } catch (err) {
+        reject(err)
+      }
+    })
   }
 
   getLogger() {
@@ -843,6 +839,7 @@ export class KubeApi {
 
   /**
    * Create an ad-hoc Pod. Use this method to handle race-condition cases when creating Pods.
+   * @throws {KubernetesError}
    */
   async createPod(namespace: string, pod: KubernetesPod) {
     try {
@@ -857,6 +854,53 @@ export class KubeApi {
       }
     }
   }
+}
+
+const WEBSOCKET_KEEPALIVE_INTERVAL = 5_000
+const WEBSOCKET_PING_TIMEOUT = 30_000
+
+function attachWebsocketKeepalive(ws: WebSocket): WebSocket {
+  let keepAlive: NodeJS.Timeout = setInterval(() => {
+    ws.ping()
+  }, WEBSOCKET_KEEPALIVE_INTERVAL)
+
+  let pingTimeout: NodeJS.Timeout | undefined
+
+  function heartbeat() {
+    if (pingTimeout) {
+      clearTimeout(pingTimeout)
+    }
+    pingTimeout = setTimeout(() => {
+      ws.emit(
+        "error",
+        new Error(`Lost connection to the Kubernetes WebSocket API (Timed out after ${WEBSOCKET_PING_TIMEOUT / 1000}s)`)
+      )
+      ws.terminate()
+    }, WEBSOCKET_PING_TIMEOUT)
+  }
+
+  function clear() {
+    if (pingTimeout) {
+      clearTimeout(pingTimeout)
+    }
+    clearInterval(keepAlive)
+  }
+
+  ws.on("pong", () => {
+    heartbeat()
+  })
+
+  ws.on("error", () => {
+    clear()
+  })
+
+  ws.on("close", () => {
+    clear()
+  })
+
+  heartbeat()
+
+  return ws
 }
 
 function getGroupBasePath(apiVersion: string) {
@@ -895,8 +939,12 @@ async function getContextConfig(log: LogEntry, ctx: PluginContext, provider: Kub
   const kc = new KubeConfig()
 
   // There doesn't appear to be a method to just load the parsed config :/
-  kc.loadFromString(safeDumpYaml(rawConfig))
-  kc.setCurrentContext(context)
+  try {
+    kc.loadFromString(safeDumpYaml(rawConfig))
+    kc.setCurrentContext(context)
+  } catch (err) {
+    throw new Error("Could not parse kubeconfig, " + err)
+  }
 
   cachedConfigs[cacheKey] = kc
 
@@ -960,7 +1008,7 @@ async function requestWithRetry<R>(
         if (usedRetries <= maxRetries) {
           const sleepMsec = minTimeoutMs + usedRetries * minTimeoutMs
           retryLog.setState(deline`
-            ${description} failed with error ${err.message}, retrying in ${sleepMsec}ms
+            ${description} failed with error '${err.message}', retrying in ${sleepMsec}ms
             (${usedRetries}/${maxRetries})
           `)
           await sleep(sleepMsec)
@@ -992,23 +1040,39 @@ async function requestWithRetry<R>(
 function shouldRetry(err: any): boolean {
   const msg = err.message || ""
   let code: number | undefined = undefined
-  if (err instanceof requestErrors.StatusCodeError || err instanceof KubernetesError) {
+
+  if (err instanceof requestErrors.StatusCodeError || err instanceof KubernetesError || err instanceof HttpError) {
     code = err.statusCode
   }
+
   return (code && statusCodesForRetry.includes(code)) || !!errorMessageRegexesForRetry.find((regex) => msg.match(regex))
 }
 
 const statusCodesForRetry: number[] = [
   httpStatusCodes.REQUEST_TIMEOUT,
   httpStatusCodes.TOO_MANY_REQUESTS,
+
+  httpStatusCodes.INTERNAL_SERVER_ERROR,
   httpStatusCodes.BAD_GATEWAY,
   httpStatusCodes.SERVICE_UNAVAILABLE,
   httpStatusCodes.GATEWAY_TIMEOUT,
 
-  // Clouflare-specific status codes
+  // Cloudflare-specific status codes
   521, // Web Server Is Down
   522, // Connection Timed Out
   524, // A Timeout Occurred
 ]
 
-const errorMessageRegexesForRetry = [/ETIMEDOUT/, /ENOTFOUND/, /EAI_AGAIN/]
+const errorMessageRegexesForRetry = [
+  /ETIMEDOUT/,
+  /ENOTFOUND/,
+  /EAI_AGAIN/,
+  // This usually isn't retryable
+  // However on github actions there seems to be flakiness
+  // And connections get refused temporarily only
+  // So we retry those as well
+  /ECONNREFUSED/,
+  // This can happen if etcd is overloaded
+  // (rpc error: code = ResourceExhausted desc = etcdserver: throttle: too many requests)
+  /too many requests/,
+]

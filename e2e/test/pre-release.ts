@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -40,29 +40,37 @@ describe("PreReleaseTests", () => {
   const env = parsedArgs["env"]
   const project = parsedArgs["project"]
 
+  const userId = process.env.CIRCLE_BUILD_NUM ? "ci-" + process.env.CIRCLE_BUILD_NUM : username.sync()
+
   if (!project) {
     throw new Error(`Must specify project name with --project parameter`)
   }
 
   function getProjectNamespaces() {
-    const ns = `${project}-testing-${process.env.CIRCLE_BUILD_NUM || username.sync()}`
+    const ns = `${project}-testing-${userId}`
     return [ns]
+  }
+
+  function getCommand(command: string[]) {
+    command = [...command]
+    if (env) {
+      command.push("--env", env)
+    }
+    // Override the userId variable
+    if (process.env.CIRCLE_BUILD_NUM) {
+      command.push("--var", "userId=" + userId)
+    }
+    return command
   }
 
   async function runWithEnv(command: string[]) {
     const dir = resolve(examplesDir, project)
-    if (env) {
-      command.push("--env", env)
-    }
-    return runGarden(dir, command)
+    return runGarden(dir, getCommand(command))
   }
 
   function watchWithEnv(command: string[]) {
     const dir = resolve(examplesDir, project)
-    if (env) {
-      command.push("--env", env)
-    }
-    return new GardenWatch(dir, command)
+    return new GardenWatch(dir, getCommand(command))
   }
 
   const namespaces = getProjectNamespaces()
@@ -161,11 +169,11 @@ describe("PreReleaseTests", () => {
     })
   }
 
-  if (project === "hot-reload") {
-    describe("hot-reload", () => {
-      it("runs the deploy command with hot reloading enabled", async () => {
-        const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
-        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
+  if (project === "code-synchronization") {
+    describe("code-synchronization", () => {
+      it("runs the dev command with code-synchronization enabled", async () => {
+        const currentProjectPath = resolve(examplesDir, "code-synchronization")
+        const gardenWatch = watchWithEnv(["dev"])
 
         const testSteps = [
           waitingForChangesStep(),
@@ -174,7 +182,7 @@ describe("PreReleaseTests", () => {
             description: "change 'Node' -> 'foo' in node-service/app.js",
             action: async () => {
               await replaceInFile({
-                files: resolve(hotReloadProjectPath, "node-service/app.js"),
+                files: resolve(currentProjectPath, "node-service/src/app.js"),
                 from: /Hello from Node/,
                 to: "Hello from foo",
               })
@@ -194,9 +202,9 @@ describe("PreReleaseTests", () => {
         await gardenWatch.run({ testSteps })
       })
 
-      it("should get logs after a hot reload event", async () => {
-        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
-        const hotReloadProjectPath = resolve(examplesDir, "hot-reload")
+      it("should get logs after code-synchronization", async () => {
+        const gardenWatch = watchWithEnv(["dev"])
+        const currentProjectPath = resolve(examplesDir, "code-synchronization")
 
         const testSteps = [
           waitingForChangesStep(),
@@ -207,47 +215,12 @@ describe("PreReleaseTests", () => {
               return searchLog(logEntries, /App started/)
             },
           },
-          changeFileStep(resolve(hotReloadProjectPath, "node-service/app.js"), "change node-service/app.js"),
+          changeFileStep(resolve(currentProjectPath, "node-service/src/app.js"), "change node-service/src/app.js"),
           {
-            description: "get logs for node-service after hot reload event",
+            description: "get logs for node-service after code-synchronization event",
             condition: async () => {
               const logEntries = await runWithEnv(["logs", "node-service"])
               return searchLog(logEntries, /App started/)
-            },
-          },
-        ]
-
-        await gardenWatch.run({ testSteps })
-      })
-      it("runs the deploy command with hot reloading enabled, using a post-sync command", async () => {
-        const hotReloadProjectPath = resolve(examplesDir, "hot-reload-post-sync-command")
-        const gardenWatch = watchWithEnv(["deploy", "--hot=node-service"])
-
-        const testSteps = [
-          waitingForChangesStep(),
-          sleepStep(2000),
-          {
-            description: "change 'Node' -> 'foo' in node-service/app.js",
-            action: async () => {
-              await replaceInFile({
-                files: resolve(hotReloadProjectPath, "node-service/app.js"),
-                from: /Hello from Node/,
-                to: "Hello from foo",
-              })
-            },
-          },
-          sleepStep(2000),
-          {
-            description: "node-service returns the updated response text",
-            condition: async () => {
-              const callLogEntries = await runWithEnv(["call", "node-service"])
-              console.log(
-                callLogEntries
-                  .filter((l) => l.level !== "silly")
-                  .map((l) => stringifyJsonLog(l))
-                  .join("\n")
-              )
-              return searchLog(callLogEntries, /Hello from foo/)
             },
           },
         ]

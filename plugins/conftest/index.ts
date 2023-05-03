@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -123,6 +123,7 @@ export const gardenPlugin = () =>
         handlers: {
           configure: async ({ moduleConfig }) => {
             if (moduleConfig.spec.sourceModule) {
+              // TODO-G2: change this to validation instead, require explicit dependency
               moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
             }
 
@@ -194,6 +195,7 @@ export const gardenPlugin = () =>
         }),
         handlers: {
           configure: async ({ moduleConfig }) => {
+            // TODO-G2: change this to validation instead, require explicit dependency
             moduleConfig.build.dependencies.push({ name: moduleConfig.spec.sourceModule, copy: [] })
             moduleConfig.include = []
             moduleConfig.testConfigs = [
@@ -229,6 +231,7 @@ export const gardenPlugin = () =>
               module: sourceModule,
               devMode: false,
               hotReload: false,
+              localMode: false,
               log,
               version: sourceModule.version.versionString,
             })
@@ -269,6 +272,7 @@ export const gardenPlugin = () =>
         type: "binary",
         _includeInGardenImage: true,
         builds: [
+          // this version has no arm support yet. If you add a later release, please add the "arm64" architecture.
           {
             platform: "darwin",
             architecture: "amd64",

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -14,7 +14,7 @@ import { LogEntry } from "../../../../../src/logger/log-entry"
 import { ContainerService } from "../../../../../src/plugins/container/config"
 import { KubernetesPluginContext, KubernetesProvider } from "../../../../../src/plugins/kubernetes/config"
 import { getContainerServiceStatus } from "../../../../../src/plugins/kubernetes/container/status"
-import { flushAllMutagenSyncs, killSyncDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
+import { MutagenDaemon } from "../../../../../src/plugins/kubernetes/mutagen"
 import { KubernetesWorkload } from "../../../../../src/plugins/kubernetes/types"
 import { execInWorkload } from "../../../../../src/plugins/kubernetes/util"
 import { emptyRuntimeContext } from "../../../../../src/runtime-context"
@@ -54,7 +54,7 @@ describe("dev mode deployments and sync behavior", () => {
   afterEach(async () => {
     if (garden) {
       await garden.close()
-      await killSyncDaemon(true)
+      await MutagenDaemon.clearInstance()
     }
   })
 
@@ -79,6 +79,7 @@ describe("dev mode deployments and sync behavior", () => {
       forceBuild: false,
       devModeServiceNames: [service.name],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
@@ -90,6 +91,7 @@ describe("dev mode deployments and sync behavior", () => {
       log,
       devMode: true,
       hotReload: false,
+      localMode: false,
     })
     expect(status.devMode).to.eql(true)
 
@@ -142,6 +144,7 @@ describe("dev mode deployments and sync behavior", () => {
       forceBuild: false,
       devModeServiceNames: [service.name],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await garden.processTasks([deployTask], { throwOnError: true })
@@ -153,6 +156,7 @@ describe("dev mode deployments and sync behavior", () => {
       log,
       devMode: true,
       hotReload: false,
+      localMode: false,
     })
 
     const workload = status.detail.workload!
@@ -170,7 +174,8 @@ describe("dev mode deployments and sync behavior", () => {
     await writeFile(join(module.path, "nested", "prefix-b", "file"), "foo")
 
     await sleep(1000)
-    await flushAllMutagenSyncs(ctx, log)
+    const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+    await mutagenDaemon.flushAllSyncs()
 
     const ignoreExecRes = await execInPod(["/bin/sh", "-c", "ls -a /tmp /tmp/nested"], log, workload)
     // Clean up the files we created locally

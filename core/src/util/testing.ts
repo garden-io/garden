@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,9 +21,11 @@ import { EventBus, Events } from "../events"
 import { dedent } from "./string"
 import pathIsInside from "path-is-inside"
 import { resolve } from "path"
-import { GARDEN_CORE_ROOT } from "../constants"
+import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT } from "../constants"
 import { getLogger } from "../logger/logger"
 import { ConfigGraph } from "../config-graph"
+import stripAnsi from "strip-ansi"
+import { VcsHandler } from "../vcs/vcs"
 
 export class TestError extends GardenBaseError {
   type = "_test"
@@ -32,6 +34,48 @@ export class TestError extends GardenBaseError {
 export interface EventLogEntry {
   name: string
   payload: ValueOf<Events>
+}
+
+/**
+ * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
+ * stripped of ANSI characters. Useful to check if a particular message was logged.
+ */
+export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolean) {
+  return log
+    .getChildEntries()
+    .filter((entry) => (filter ? filter(entry) : true))
+    .flatMap((entry) => entry.getMessages()?.map((state) => stripAnsi(state.msg || "")) || [])
+}
+
+type PartialModuleConfig = Partial<ModuleConfig> & { name: string; path: string }
+
+const moduleConfigDefaults: ModuleConfig = {
+  allowPublish: false,
+  apiVersion: DEFAULT_API_VERSION,
+  build: {
+    dependencies: [],
+  },
+  disabled: false,
+  name: "foo",
+  path: "/tmp/foo",
+  serviceConfigs: [],
+  spec: {},
+  taskConfigs: [],
+  testConfigs: [],
+  type: "test",
+}
+
+export function moduleConfigWithDefaults(partial: PartialModuleConfig) {
+  const defaults = cloneDeep(moduleConfigDefaults)
+
+  return {
+    ...defaults,
+    ...partial,
+    build: {
+      ...defaults.build,
+      ...(partial.build || {}),
+    },
+  }
 }
 
 /**
@@ -82,6 +126,7 @@ export type TestGardenOpts = Partial<GardenOpts> & { noCache?: boolean; noTempDi
 
 export class TestGarden extends Garden {
   events: TestEventBus
+  public vcs: VcsHandler // Not readonly, to allow overriding with a mocked handler in tests
   public secrets: StringMap // Not readonly, to allow setting secrets in tests
   public variables: DeepPrimitiveMap // Not readonly, to allow setting variables in tests
   private repoRoot: string
@@ -170,9 +215,9 @@ export class TestGarden extends Garden {
     return await super.getRepoRoot()
   }
 
-  setModuleConfigs(moduleConfigs: ModuleConfig[]) {
+  setModuleConfigs(moduleConfigs: PartialModuleConfig[]) {
     this.configsScanned = true
-    this.moduleConfigs = keyBy(moduleConfigs, "name")
+    this.moduleConfigs = keyBy(moduleConfigs.map(moduleConfigWithDefaults), "name")
   }
 
   setWorkflowConfigs(workflowConfigs: WorkflowConfig[]) {

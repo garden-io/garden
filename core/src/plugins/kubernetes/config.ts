@@ -1,46 +1,138 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import dedent = require("dedent")
-
 import {
+  joi,
   joiArray,
   joiIdentifier,
+  joiIdentifierDescription,
   joiProviderName,
-  joi,
+  joiSparseArray,
   joiStringMap,
   StringMap,
-  joiIdentifierDescription,
-  joiSparseArray,
 } from "../../config/common"
-import { Provider, providerConfigBaseSchema, BaseProviderConfig } from "../../config/provider"
+import { BaseProviderConfig, Provider, providerConfigBaseSchema } from "../../config/provider"
 import {
-  containerRegistryConfigSchema,
-  ContainerRegistryConfig,
-  commandExample,
-  containerEnvVarsSchema,
-  containerArtifactSchema,
-  ContainerEnvVars,
   artifactsDescription,
+  commandExample,
+  containerArtifactSchema,
+  containerDevModeSchema,
+  ContainerDevModeSpec,
+  ContainerEnvVars,
+  containerEnvVarsSchema,
+  containerLocalModeSchema,
+  ContainerLocalModeSpec,
+  ContainerRegistryConfig,
+  containerRegistryConfigSchema,
+  syncDefaultDirectoryModeSchema,
+  syncDefaultFileModeSchema,
+  syncDefaultGroupSchema,
+  syncDefaultOwnerSchema,
+  syncExcludeSchema,
 } from "../container/config"
 import { PluginContext } from "../../plugin-context"
-import { deline } from "../../util/string"
+import { dedent, deline } from "../../util/string"
 import { defaultSystemNamespace } from "./system"
-import { hotReloadableKinds, HotReloadableKind } from "./hot-reload/hot-reload"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
+import { SyncableKind, syncableKinds } from "./hot-reload/hot-reload"
+import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
+import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { ArtifactSpec } from "../../config/validation"
 import { V1Toleration } from "@kubernetes/client-node"
 import { runPodSpecIncludeFields } from "./run"
-import { KubernetesDevModeDefaults, kubernetesDevModeDefaultsSchema } from "./dev-mode"
 import { KUBECTL_DEFAULT_TIMEOUT } from "./kubectl"
+import { devModeGuideLink } from "./dev-mode"
+import { localModeGuideLink } from "./local-mode"
 
-export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.6.0-debug"
+export const DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:v1.8.1-debug"
+
+export interface KubernetesDevModeSpec extends ContainerDevModeSpec {
+  containerName?: string
+}
+
+export interface KubernetesDevModeDefaults {
+  exclude?: string[]
+  fileMode?: number
+  directoryMode?: number
+  owner?: number | string
+  group?: number | string
+}
+
+export const kubernetesDevModeSchema = () =>
+  containerDevModeSchema().keys({
+    containerName: joiIdentifier().description(
+      `Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.`
+    ),
+  }).description(dedent`
+    Specifies which files or directories to sync to which paths inside the running containers of the service when it's in dev mode, and overrides for the container command and/or arguments.
+
+    Note that \`serviceResource\` must also be specified to enable dev mode.
+
+    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+
+    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+  `)
+/**
+ * Provider-level dev mode settings for the local and remote k8s providers.
+ */
+export const kubernetesDevModeDefaultsSchema = () =>
+  joi.object().keys({
+    exclude: syncExcludeSchema().description(dedent`
+        Specify a list of POSIX-style paths or glob patterns that should be excluded from the sync.
+
+        Any exclusion patterns defined in individual dev mode sync specs will be applied in addition to these patterns.
+
+        \`.git\` directories and \`.garden\` directories are always ignored.
+      `),
+    fileMode: syncDefaultFileModeSchema(),
+    directoryMode: syncDefaultDirectoryModeSchema(),
+    owner: syncDefaultOwnerSchema(),
+    group: syncDefaultGroupSchema(),
+  }).description(dedent`
+    Specifies default settings for dev mode syncs (e.g. for \`container\`, \`kubernetes\` and \`helm\` services).
+
+    These are overridden/extended by the settings of any individual dev mode sync specs for a given module or service.
+
+    Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
+
+    See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+  `)
+
+export interface KubernetesLocalModeSpec extends ContainerLocalModeSpec {
+  containerName?: string
+}
+
+export const kubernetesLocalModeSchema = () =>
+  containerLocalModeSchema().keys({
+    containerName: joi
+      .string()
+      .optional()
+      .description(
+        "The name of the target container. The first available container will be used if this field is not defined."
+      ),
+  }).description(dedent`
+    Configures the local application which will send and receive network requests instead of the target resource specified by \`serviceResource\`.
+
+    Note that \`serviceResource\` must also be specified to enable local mode. Local mode configuration for the \`kubernetes\` module type relies on the \`serviceResource.kind\` and \`serviceResource.name\` fields to select a target Kubernetes resource.
+
+    The \`serviceResource.containerName\` field is not used by local mode configuration.
+    Note that \`localMode\` uses its own field \`containerName\` to specify a target container name explicitly.
+
+    The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+    Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
+
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
+    Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+    Health checks are disabled for services running in local mode.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
+  `)
+
 export interface ProviderSecretRef {
   name: string
   namespace: string
@@ -66,23 +158,22 @@ export interface CertManagerConfig {
   acmeServer?: LetsEncryptServerType
 }
 
-interface KubernetesResourceSpec {
-  limits: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
-  requests: {
-    cpu: number
-    memory: number
-    ephemeralStorage?: number
-  }
+export interface KuberetesResourceConfig {
+  cpu: number
+  memory: number
+  ephemeralStorage?: number
+}
+
+export interface KubernetesResourceSpec {
+  limits: KuberetesResourceConfig
+  requests: KuberetesResourceConfig
 }
 
 interface KubernetesResources {
   builder: KubernetesResourceSpec
   registry: KubernetesResourceSpec
   sync: KubernetesResourceSpec
+  util: KubernetesResourceSpec
 }
 
 interface KubernetesStorageSpec {
@@ -108,11 +199,22 @@ export interface NamespaceConfig {
   labels?: StringMap
 }
 
+export interface ClusterBuildkitCacheConfig {
+  type: "registry"
+  mode: "min" | "max" | "inline" | "auto"
+  tag: string
+  export: boolean
+  registry?: ContainerRegistryConfig
+}
+
 export interface KubernetesConfig extends BaseProviderConfig {
   buildMode: ContainerBuildMode
   clusterBuildkit?: {
+    cache: ClusterBuildkitCacheConfig[]
     rootless?: boolean
     nodeSelector?: StringMap
+    tolerations?: V1Toleration[]
+    annotations?: StringMap
   }
   clusterDocker?: {
     enableBuildKit?: boolean
@@ -126,6 +228,12 @@ export interface KubernetesConfig extends BaseProviderConfig {
     namespace?: string | null
     nodeSelector?: StringMap
     tolerations?: V1Toleration[]
+    annotations?: StringMap
+    util?: {
+      tolerations?: V1Toleration[]
+      annotations?: StringMap
+      nodeSelector?: StringMap
+    }
   }
   context: string
   defaultHostname?: string
@@ -188,6 +296,16 @@ export const defaultResources: KubernetesResources = {
     requests: {
       cpu: 100,
       memory: 90,
+    },
+  },
+  util: {
+    limits: {
+      cpu: 256,
+      memory: 512,
+    },
+    requests: {
+      cpu: 256,
+      memory: 512,
     },
   },
 }
@@ -352,20 +470,82 @@ const tlsCertificateSchema = () =>
     `
       )
       .allow("cert-manager")
-      .example("cert-manager"),
+      .example("cert-manager")
+      .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
+  })
+
+const buildkitCacheConfigurationSchema = () =>
+  joi.object().keys({
+    type: joi
+      .string()
+      .valid("registry")
+      .required()
+      .description(
+        dedent`
+          Use the Docker registry configured at \`deploymentRegistry\` to retrieve and store buildkit cache information.
+
+          See also the [buildkit registry cache documentation](https://github.com/moby/buildkit#registry-push-image-and-cache-separately)
+        `
+      ),
+    registry: containerRegistryConfigSchema().description(
+      dedent`
+      The registry from which the cache should be imported from, or which it should be exported to.
+
+      If not specified, use the configured \`deploymentRegistry\` in your kubernetes provider config, or the internal in-cluster registry in case \`deploymentRegistry\` is not set.
+
+      Important: You must make sure \`imagePullSecrets\` includes authentication with the specified cache registry, that has the appropriate write privileges (usually full write access to the configured \`namespace\`).
+    `
+    ),
+    mode: joi
+      .string()
+      .valid("auto", "min", "max", "inline")
+      .default("auto")
+      .description(
+        dedent`
+        This is the buildkit cache mode to be used.
+
+        The value \`inline\` ensures that garden is using the buildkit option \`--export-cache inline\`. Cache information will be inlined and co-located with the Docker image itself.
+
+        The values \`min\` and \`max\` ensure that garden passes the \`mode=max\` or \`mode=min\` modifiers to the buildkit \`--export-cache\` option. Cache manifests will only be
+        stored stored in the configured \`tag\`.
+
+        \`auto\` is the same as \`max\` for some registries that are known to support it. Garden will fall back to \`inline\` for all other registries.
+         See the [clusterBuildkit cache option](#providers-.clusterbuildkit.cache) for a description of the detection mechanism.
+
+        See also the [buildkit export cache documentation](https://github.com/moby/buildkit#export-cache)
+      `
+      ),
+    tag: joi
+      .string()
+      .default("_buildcache")
+      .description(
+        dedent`
+        This is the Docker registry tag name buildkit should use for the registry build cache. Default is \`_buildcache\`
+
+        **NOTE**: \`tag\` can only be used together with the \`registry\` cache type
+      `
+      ),
+    export: joi
+      .boolean()
+      .default(true)
+      .description(
+        dedent`
+        If this is false, only pass the \`--import-cache\` option to buildkit, and not the \`--export-cache\` option. Defaults to true.
+      `
+      ),
   })
 
 export const kubernetesConfigBase = () =>
   providerConfigBaseSchema().keys({
     buildMode: joi
       .string()
-      .allow("local-docker", "cluster-docker", "kaniko", "cluster-buildkit")
+      .valid("local-docker", "cluster-docker", "kaniko", "cluster-buildkit")
       .default("local-docker")
       .description(
         dedent`
         Choose the mechanism for building container images before deploying. By default your local Docker daemon is used, but you can set it to \`cluster-buildkit\` or \`kaniko\` to sync files to the cluster, and build container images there. This removes the need to run Docker locally, and allows you to share layer and image caches between multiple developers, as well as between your development and CI workflows.
 
-        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/guides/in-cluster-building).
+        For more details on all the different options and what makes sense to use for your setup, please check out the [in-cluster building guide](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
 
         **Note:** The \`cluster-docker\` mode has been deprecated and will be removed in a future release!
         `
@@ -373,6 +553,78 @@ export const kubernetesConfigBase = () =>
     clusterBuildkit: joi
       .object()
       .keys({
+        cache: joi
+          .array()
+          .items(buildkitCacheConfigurationSchema())
+          .default([{ type: "registry", mode: "auto", tag: "_buildcache", export: true }])
+          .description(
+            dedent`
+            Use the \`cache\` configuration to customize the default cluster-buildkit cache behaviour.
+
+            The default value is:
+            \`\`\`yaml
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  mode: auto
+            \`\`\`
+
+            For every build, this will
+            - import cached layers from a docker image tag named \`_buildcache\`
+            - when the build is finished, upload cache information to \`_buildcache\`
+
+            For registries that support it, \`mode: auto\` (the default) will enable the buildkit \`mode=max\`
+            option.
+
+            See the following table for details on our detection mechanism:
+
+            | Registry Name                   | Registry Domain         | Assumed \`mode=max\` support |
+            |---------------------------------|-------------------------|------------------------------|
+            | Google Cloud Artifact Registry  | \`pkg.dev\`             | Yes                          |
+            | Azure Container Registry        | \`azurecr.io\`          | Yes                          |
+            | GitHub Container Registry       | \`ghcr.io\`             | Yes                          |
+            | DockerHub                       | \`hub.docker.com\`     | Yes                          |
+            | Garden In-Cluster Registry      |                         | Yes                          |
+            | Any other registry              |                         | No                           |
+
+            In case you need to override the defaults for your registry, you can do it like so:
+
+            \`\`\`yaml
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  mode: max
+            \`\`\`
+
+            When you add multiple caches, we will make sure to pass the \`--import-cache\` options to buildkit in the same
+            order as provided in the cache configuration. This is because buildkit will not actually use all imported caches
+            for every build, but it will stick with the first cache that yields a cache hit for all the following layers.
+
+            An example for this is the following:
+
+            \`\`\`yaml
+            clusterBuildkit:
+              cache:
+                - type: registry
+                  tag: _buildcache-\${slice(kebabCase(git.branch), "0", "30")}
+                - type: registry
+                  tag: _buildcache-main
+                  export: false
+            \`\`\`
+
+            Using this cache configuration, every build will first look for a cache specific to your feature branch.
+            If it does not exist yet, it will import caches from the main branch builds (\`_buildcache-main\`).
+            When the build is finished, it will only export caches to your feature branch, and avoid polluting the \`main\` branch caches.
+            A configuration like that may improve your cache hit rate and thus save time.
+
+            If you need to disable caches completely you can achieve that with the following configuration:
+
+            \`\`\`yaml
+            clusterBuildkit:
+              cache: []
+            \`\`\`
+            `
+          ),
         rootless: joi
           .boolean()
           .default(false)
@@ -392,8 +644,14 @@ export const kubernetesConfigBase = () =>
           )
           .example({ disktype: "ssd" })
           .default(() => ({})),
+        tolerations: joiSparseArray(tolerationSchema()).description(
+          "Specify tolerations to apply to cluster-buildkit daemon. Useful to control which nodes in a cluster can run builds."
+        ),
+        annotations: annotationsSchema().description(
+          "Specify annotations to apply to both the Pod and Deployment resources associated with cluster-buildkit. Annotations may have an effect on the behaviour of certain components, for example autoscalers."
+        ),
       })
-      .default(() => {})
+      .default(() => ({}))
       .description("Configuration options for the `cluster-buildkit` build mode."),
     clusterDocker: joi
       .object()
@@ -409,7 +667,7 @@ export const kubernetesConfigBase = () =>
           )
           .meta({ deprecated: true }),
       })
-      .default(() => {})
+      .default(() => ({}))
       .description("Configuration options for the `cluster-docker` build mode.")
       .meta({ deprecated: "The cluster-docker build mode has been deprecated." }),
     jib: joi
@@ -449,14 +707,30 @@ export const kubernetesConfigBase = () =>
           ),
         nodeSelector: joiStringMap(joi.string()).description(
           dedent`
-            Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes.
+            Exposes the \`nodeSelector\` field on the PodSpec of the Kaniko pods. This allows you to constrain the Kaniko pods to only run on particular nodes. The same nodeSelector will be used for each util pod unless they are specifically set under \`util.nodeSelector\`.
 
-            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning Pods to nodes.
+            [See here](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for the official Kubernetes guide to assigning pods to nodes.
           `
         ),
         tolerations: joiSparseArray(tolerationSchema()).description(
-          "Specify tolerations to apply to each Kaniko Pod. Useful to control which nodes in a cluster can run builds."
+          deline`Specify tolerations to apply to each Kaniko builder pod. Useful to control which nodes in a cluster can run builds.
+          The same tolerations will be used for each util pod unless they are specifically set under \`util.tolerations\``
         ),
+        annotations: annotationsSchema().description(
+          deline`Specify annotations to apply to each Kaniko builder pod. Annotations may have an effect on the behaviour of certain components, for example autoscalers.
+          The same annotations will be used for each util pod unless they are specifically set under \`util.annotations\``
+        ),
+        util: joi.object().keys({
+          tolerations: joiSparseArray(tolerationSchema()).description(
+            "Specify tolerations to apply to each garden-util pod."
+          ),
+          annotations: annotationsSchema().description(
+            "Specify annotations to apply to each garden-util pod and deployments."
+          ),
+          nodeSelector: joiStringMap(joi.string()).description(
+            "Specify the nodeSelector constraints for each garden-util pod."
+          ),
+        }),
       })
       .default(() => {})
       .description("Configuration options for the `kaniko` build mode."),
@@ -524,6 +798,12 @@ export const kubernetesConfigBase = () =>
 
             This is shared across all users and builds, so it should be resourced accordingly, factoring
             in how many concurrent builds you expect and how large your images tend to be.
+          `),
+        util: resourceSchema(defaultResources.util, false).description(dedent`
+            Resource requests and limits for the util pod for in-cluster builders.
+            This pod is used to get, start, stop and inquire the status of the builds.
+
+            This pod is created in each garden namespace.
           `),
         sync: resourceSchema(defaultResources.sync, true)
           .description(
@@ -615,21 +895,29 @@ export const kubernetesConfigBase = () =>
       .object()
       .optional()
       .keys({
-        install: joi.bool().default(false).description(dedent`
+        install: joi
+          .bool()
+          .default(false)
+          .description(
+            dedent`
           Automatically install \`cert-manager\` on initialization. See the
           [cert-manager integration guide](https://docs.garden.io/advanced/cert-manager-integration) for details.
-        `),
+        `
+          )
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         email: joi
           .string()
           .required()
           .description("The email to use when requesting Let's Encrypt certificates.")
-          .example("yourname@example.com"),
+          .example("yourname@example.com")
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         issuer: joi
           .string()
           .allow("acme")
           .default("acme")
           .description("The type of issuer for the certificate (only ACME is supported for now).")
-          .example("acme"),
+          .example("acme")
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         acmeServer: joi
           .string()
           .allow("letsencrypt-staging", "letsencrypt-prod")
@@ -638,7 +926,8 @@ export const kubernetesConfigBase = () =>
             deline`Specify which ACME server to request certificates from. Currently Let's Encrypt staging and prod
           servers are supported.`
           )
-          .example("letsencrypt-staging"),
+          .example("letsencrypt-staging")
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
         acmeChallengeType: joi
           .string()
           .allow("HTTP-01")
@@ -647,9 +936,14 @@ export const kubernetesConfigBase = () =>
             deline`The type of ACME challenge used to validate hostnames and generate the certificates
           (only HTTP-01 is supported for now).`
           )
-          .example("HTTP-01"),
-      }).description(dedent`cert-manager configuration, for creating and managing TLS certificates. See the
-        [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`),
+          .example("HTTP-01")
+          .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
+      })
+      .description(
+        dedent`cert-manager configuration, for creating and managing TLS certificates. See the
+        [cert-manager guide](https://docs.garden.io/advanced/cert-manager-integration) for details.`
+      )
+      .meta({ deprecated: "The cert-manager integration is deprecated and will be removed in the 0.13 release" }),
     _systemServices: joiArray(joiIdentifier()).meta({ internal: true }),
     systemNodeSelector: joiStringMap(joi.string())
       .description(
@@ -697,13 +991,18 @@ export const tolerationSchema = () =>
         `),
   })
 
+const annotationsSchema = () =>
+  joiStringMap(joi.string())
+    .example({
+      "cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+    })
+    .optional()
+
 export const namespaceSchema = () =>
   joi.alternatives(
     joi.object().keys({
       name: namespaceNameSchema(),
-      annotations: joiStringMap(joi.string()).description(
-        "Map of annotations to apply to the namespace when creating it."
-      ),
+      annotations: annotationsSchema().description("Map of annotations to apply to the namespace when creating it."),
       labels: joiStringMap(joi.string()).description("Map of labels to apply to the namespace when creating it."),
     }),
     namespaceNameSchema()
@@ -722,7 +1021,15 @@ export const configSchema = () =>
     .keys({
       name: joiProviderName("kubernetes"),
       context: k8sContextSchema().required(),
-      deploymentRegistry: containerRegistryConfigSchema().allow(null),
+      deploymentRegistry: containerRegistryConfigSchema()
+        .description(
+          dedent`
+      The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
+
+      Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
+    `
+        )
+        .allow(null),
       ingressClass: joi.string().description(dedent`
         The ingress class to use on configured Ingresses (via the \`kubernetes.io/ingress.class\` annotation)
         when deploying \`container\` services. Use this if you have multiple ingress controllers in your cluster.
@@ -753,7 +1060,7 @@ export const configSchema = () =>
     .unknown(false)
 
 export interface ServiceResourceSpec {
-  kind?: HotReloadableKind
+  kind?: SyncableKind
   name?: string
   containerName?: string
   podSelector?: { [key: string]: string }
@@ -789,7 +1096,7 @@ export const serviceResourceSchema = () =>
     .keys({
       kind: joi
         .string()
-        .valid(...hotReloadableKinds)
+        .valid(...syncableKinds)
         .default("Deployment")
         .description("The type of Kubernetes resource to sync files to."),
       name: joi.string().description(

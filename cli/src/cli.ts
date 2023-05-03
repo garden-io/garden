@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,6 +17,8 @@ export const getBundledPlugins = (): GardenPluginReference[] => [
   { name: "conftest-kubernetes", callback: () => require("@garden-io/garden-conftest-kubernetes").gardenPlugin() },
   { name: "jib", callback: () => require("@garden-io/garden-jib").gardenPlugin() },
   { name: "maven-container", callback: () => require("@garden-io/garden-maven-container").gardenPlugin() },
+  { name: "terraform", callback: () => require("@garden-io/garden-terraform").gardenPlugin() },
+  { name: "pulumi", callback: () => require("@garden-io/garden-pulumi").gardenPlugin() },
 ]
 
 export async function runCli({

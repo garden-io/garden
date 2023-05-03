@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -170,8 +170,8 @@ function formatType(joiDescription: JoiDescription) {
     const arrayType = items[0].type
     return `array[${arrayType}]`
   } else if (type === "alternatives") {
-    // returns e.g. "string|number"
-    return uniq(joiDescription.matches.map(({ schema }) => formatType(schema))).join(" | ")
+    // returns e.g. "string \| number". pipe escaped for semantically-correct markdown tables
+    return uniq(joiDescription.matches.map(({ schema }) => formatType(schema))).join(" \\| ")
   } else {
     return type || ""
   }

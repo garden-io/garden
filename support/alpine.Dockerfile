@@ -1,4 +1,4 @@
-ARG NODE_VERSION=14.19.0-alpine3.14
+ARG NODE_VERSION=18-alpine3.17
 FROM node:${NODE_VERSION}
 
 RUN apk add --no-cache \

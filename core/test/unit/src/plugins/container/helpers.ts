@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -541,6 +541,39 @@ describe("containerHelpers", () => {
         `
       )
       expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "Dockerfile"])
+    })
+
+    it("should handle COPY statements with multiple arguments in any order", async () => {
+      await writeFile(
+        dockerfilePath,
+        dedent`
+        FROM foo
+        ADD --chown=bla file-a /
+        COPY --chown=bla --from=bla /file-b file-c /
+        COPY --from=bla --chown=bla  /file-c file-d /
+        `
+      )
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql(["file-a", "Dockerfile"])
+    })
+
+    it("should ignore unknown flag arguments", async () => {
+      await writeFile(
+        dockerfilePath,
+        dedent`
+        FROM foo
+        ADD --foo=bla file-a /destination-a
+        COPY --bar=bla --keks file-b file-c file-d /destination-b
+        COPY --crazynewarg --yes  file-e /destination-c
+        `
+      )
+      expect(await helpers.autoResolveIncludes(config, log)).to.eql([
+        "file-a",
+        "file-b",
+        "file-c",
+        "file-d",
+        "file-e",
+        "Dockerfile",
+      ])
     })
 
     it("should ignore paths containing a template string", async () => {

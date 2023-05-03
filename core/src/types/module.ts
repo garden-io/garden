@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -63,9 +63,9 @@ export const moduleSchema = () =>
       .description("A list of types that this module is compatible with (i.e. the module type itself + all bases)."),
     configPath: joi.string().description("The path to the module config file, if applicable."),
     version: moduleVersionSchema().required(),
-    buildDependencies: joiIdentifierMap(joi.link("..."))
-      .required()
-      .description("A map of all modules referenced under `build.dependencies`."),
+    buildDependencies: joiIdentifierMap(joi.link("...")).description(
+      "A map of all modules referenced under `build.dependencies`."
+    ),
     needsBuild: joi
       .boolean()
       .required()
@@ -106,7 +106,7 @@ export async function moduleFromConfig({
   buildDependencies: GardenModule[]
   forceVersion?: boolean
 }): Promise<GardenModule> {
-  const version = await garden.resolveModuleVersion(log, config, config.build.dependencies, forceVersion)
+  const version = await garden.resolveModuleVersion(log, config, buildDependencies, forceVersion)
   const actions = await garden.getActionRouter()
   const { outputs } = await actions.getModuleOutputs({ log, moduleConfig: config, version })
   const moduleTypes = await garden.getModuleTypes()
@@ -115,8 +115,8 @@ export async function moduleFromConfig({
   const module: GardenModule = {
     ...cloneDeep(config),
 
-    buildPath: await garden.buildStaging.buildPath(config),
-    buildMetadataPath: await garden.buildStaging.buildMetadataPath(config.name),
+    buildPath: await garden.buildStaging.ensureBuildPath(config),
+    buildMetadataPath: await garden.buildStaging.ensureBuildMetadataPath(config.name),
 
     version,
     needsBuild: moduleNeedsBuild(config, moduleTypes[config.type]),
@@ -152,7 +152,7 @@ export function moduleNeedsBuild(moduleConfig: ModuleConfig, moduleType: ModuleT
   return moduleType.needsBuild || some(moduleConfig.build.dependencies, (d) => d.copy && d.copy.length > 0)
 }
 
-export function getModuleCacheContext(config: ModuleConfig) {
+export function getModuleCacheContext<M extends ModuleConfig>(config: M) {
   return pathToCacheContext(config.path)
 }
 

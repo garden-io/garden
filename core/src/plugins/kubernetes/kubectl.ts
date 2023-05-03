@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@ import { LogEntry } from "../../logger/log-entry"
 import { KubernetesProvider } from "./config"
 import { KubernetesResource } from "./types"
 import { gardenAnnotationKey } from "../../util/string"
-import { hashManifest } from "./util"
+import { getResourceKey, hashManifest } from "./util"
 import { PluginToolSpec } from "../../types/plugin/tools"
 import { PluginContext } from "../../plugin-context"
 import { KubeApi } from "./api"
@@ -132,14 +132,7 @@ export async function apply({
   }
 }
 
-export async function deleteResources({
-  log,
-  ctx,
-  provider,
-  namespace,
-  resources,
-  includeUninitialized = false,
-}: {
+export async function deleteResources(params: {
   log: LogEntry
   ctx: PluginContext
   provider: KubernetesProvider
@@ -147,12 +140,26 @@ export async function deleteResources({
   resources: KubernetesResource[]
   includeUninitialized?: boolean
 }) {
-  const args = [
-    "delete",
-    "--wait=true",
-    "--ignore-not-found=true",
-    ...resources.map((r) => `${r.kind}/${r.metadata.name}`),
-  ]
+  const keys = params.resources.map(getResourceKey)
+  return deleteResourceKeys({ ...params, keys })
+}
+
+export async function deleteResourceKeys({
+  log,
+  ctx,
+  provider,
+  namespace,
+  keys,
+  includeUninitialized = false,
+}: {
+  log: LogEntry
+  ctx: PluginContext
+  provider: KubernetesProvider
+  namespace: string
+  keys: string[]
+  includeUninitialized?: boolean
+}) {
+  const args = ["delete", "--wait=true", "--ignore-not-found=true", ...keys]
 
   includeUninitialized && args.push("--include-uninitialized")
 
@@ -299,6 +306,12 @@ export const kubectlSpec: PluginToolSpec = {
       architecture: "amd64",
       url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/darwin/amd64/kubectl",
       sha256: "ecc91cd2f92184630912f9dcd8c47443b50ebfa4b1da431fb28fa7b462dd70ab",
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url: "https://storage.googleapis.com/kubernetes-release/release/v1.23.3/bin/darwin/arm64/kubectl",
+      sha256: "e43303daa6e99de6e182f0c3b3113e45ea0015bc84abd2485f0dde5770163f63",
     },
     {
       platform: "linux",

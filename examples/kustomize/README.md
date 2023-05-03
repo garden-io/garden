@@ -9,7 +9,7 @@ The example includes two modules:
 
 See `hello-world/garden.yml` and `ldap/garden.yml` to see how to configure Garden to use kustomize.
 
-To run the example, simply run `garden deploy` with a local Kubernetes cluster running.
+To run the example, simply run `garden deploy` with a local Kubernetes cluster running. Also make sure your local k8s provider supports a loadbalancer service.
 
 ## Further reading
 

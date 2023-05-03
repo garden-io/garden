@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,7 +32,7 @@ describe("DeployTask", () => {
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
 
-    await execa("git", ["init"], { cwd: tmpDir.path })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
     config = {
       apiVersion: DEFAULT_API_VERSION,
@@ -158,6 +158,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect((await forcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -172,6 +173,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect((await unforcedDeployTask.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -186,6 +188,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       expect((await deployTaskFromWatch.resolveDependencies()).find((dep) => dep.type === "task")!.force).to.be.false
@@ -206,6 +209,7 @@ describe("DeployTask", () => {
           skipRuntimeDependencies: true, // <-----
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         const deps = await deployTask.resolveDependencies()
@@ -227,6 +231,7 @@ describe("DeployTask", () => {
         log: garden.log,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       const result = await garden.processTasks([deployTask], { throwOnError: true })

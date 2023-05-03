@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -136,7 +136,9 @@ export async function getPodLogs({
             timestamps
           )
         } catch (err) {
-          log = ""
+          log = `[Could not retrieve previous logs for deleted pod ${pod.metadata!.name!}: ${
+            err.message || "Unknown error occurred"
+          }]`
         }
       } else if (err instanceof KubernetesError && err.message.includes("waiting to start")) {
         log = ""
@@ -179,23 +181,18 @@ export async function getFormattedPodLogs(api: KubeApi, namespace: string, pods:
     .join("\n\n")
 }
 
-export function getExecExitCode(status: V1Status) {
-  if (!status) {
-    return 1
+export function getExecExitCode(status: V1Status): number {
+  // Status csn be either "Success" or "Failure"
+  if (status.status === "Success") {
+    return 0
   }
 
-  let exitCode = 0
+  const causes = status.details?.causes || []
+  const exitCodeCause = causes.find((c) => c.reason === "ExitCode")
 
-  if (status.status !== "Success") {
-    exitCode = 1
-
-    const causes = status.details?.causes || []
-    const exitCodeCause = causes.find((c) => c.reason === "ExitCode")
-
-    if (exitCodeCause && exitCodeCause.message) {
-      exitCode = parseInt(exitCodeCause.message, 10)
-    }
+  if (exitCodeCause && exitCodeCause.message) {
+    return parseInt(exitCodeCause.message, 10)
   }
 
-  return exitCode
+  return 1
 }

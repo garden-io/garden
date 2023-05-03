@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,11 +8,11 @@
 
 import { WorkflowConfig, makeRunConfig } from "../config/workflow"
 import { LogEntry } from "../logger/log-entry"
-import { EnterpriseApiError } from "../exceptions"
+import { CloudApiError } from "../exceptions"
 import { gardenEnv } from "../constants"
 import { Garden } from "../garden"
 import { ApiFetchResponse, isGotError } from "./api"
-import { RegisterWorkflowRunResponse } from "@garden-io/platform-api-types"
+import { CreateWorkflowRunResponse } from "@garden-io/platform-api-types"
 import { deline } from "../util/string"
 
 export interface RegisterWorkflowRunParams {
@@ -45,7 +45,7 @@ export async function registerWorkflowRun({
   }
   if (cloudApi) {
     // TODO: Use API types package here.
-    let res: ApiFetchResponse<RegisterWorkflowRunResponse>
+    let res: ApiFetchResponse<CreateWorkflowRunResponse>
     try {
       res = await cloudApi.post("workflow-runs", {
         body: requestData,
@@ -59,7 +59,7 @@ export async function registerWorkflowRun({
           CLI version is compatible with your version of Garden Cloud. See error.log for details
           on the failed registration request payload.
         `
-        throw new EnterpriseApiError(errMsg, {
+        throw new CloudApiError(errMsg, {
           requestData,
         })
       } else {
@@ -71,11 +71,11 @@ export async function registerWorkflowRun({
     if (res?.workflowRunUid && res?.status === "success") {
       return res.workflowRunUid
     } else {
-      throw new EnterpriseApiError(`Error while registering workflow run: Request failed with status ${res?.status}`, {
+      throw new CloudApiError(`Error while registering workflow run: Request failed with status ${res?.status}`, {
         status: res?.status,
         workflowRunUid: res?.workflowRunUid,
       })
     }
   }
-  throw new EnterpriseApiError("Error while registering workflow run: Couldn't initialize API.", {})
+  throw new CloudApiError("Error while registering workflow run: Couldn't initialize API.", {})
 }

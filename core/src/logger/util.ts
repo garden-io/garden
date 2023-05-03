@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -117,6 +117,21 @@ export function tailChildEntries(node: Logger | LogEntry, level: LogLevel, lines
   })
 
   return output
+}
+
+/**
+ * Returns the entry's section or first parent section it finds.
+ */
+export function findSection(entry: LogEntry): string | null {
+  const section = entry.getLatestMessage().section
+  if (section) {
+    return section
+  }
+  if (entry.parent) {
+    return findSection(entry.parent)
+  }
+
+  return null
 }
 
 /**
@@ -245,11 +260,18 @@ export function renderMessageWithDivider(prefix: string, msg: string, isError: b
   `
 }
 
-// Recursively filters out internal fields (i.e. having names starting with `_`).
+// Recursively filters out internal fields, including keys starting with _ and some specific fields found on Modules.
 export function withoutInternalFields(object: any): any {
   return deepFilter(sanitizeObject(object), (_val, key: string | number) => {
     if (typeof key === "string") {
-      return !key.startsWith("_")
+      return (
+        !key.startsWith("_") &&
+        // FIXME: this a little hacky and should be removable in 0.14 at the latest.
+        // The buildDependencies map on Module objects explodes outputs, as well as the dependencyVersions field on
+        // version objects.
+        key !== "dependencyVersions" &&
+        key !== "buildDependencies"
+      )
     }
     return true
   })

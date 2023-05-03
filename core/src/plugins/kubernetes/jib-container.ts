@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,7 +30,7 @@ import { loadToLocalK8s } from "./container/build/local"
 import { containerHandlers } from "./container/handlers"
 import { getNamespaceStatus } from "./namespace"
 import { PodRunner } from "./run"
-import { getRunningDeploymentPod, usingInClusterRegistry } from "./util"
+import { getRunningDeploymentPod } from "./util"
 
 export const jibContainerHandlers: Partial<ModuleActionHandlers> = {
   ...containerHandlers,
@@ -145,7 +145,7 @@ async function buildAndPushViaRemote(params: BuildModuleParams<GardenModule>) {
 
     const syncCommand = ["skopeo", `--command-timeout=${pushTimeout}s`, "copy", "--authfile", "/.docker/config.json"]
 
-    if (usingInClusterRegistry(provider)) {
+    if (provider.config.deploymentRegistry?.insecure === true) {
       syncCommand.push("--dest-tls-verify=false")
     }
 

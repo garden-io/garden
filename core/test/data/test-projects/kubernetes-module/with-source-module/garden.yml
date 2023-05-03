@@ -8,6 +8,11 @@ devMode:
     - source: "*"
       target: /app
 
+localMode:
+  ports:
+    - local: 8090
+      remote: 80
+
 manifests:
   - apiVersion: apps/v1
     kind: Deployment

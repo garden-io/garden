@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,12 +24,14 @@ import { STATIC_DIR, VERSION_CHECK_URL, gardenEnv } from "../constants"
 import { printWarningMessage } from "../logger/util"
 import { GlobalConfigStore, globalConfigKeys } from "../config-store"
 import { got } from "../util/http"
-import { getUserId } from "../analytics/analytics"
 import minimist = require("minimist")
-import { renderTable, tablePresets, naturalList } from "../util/string"
+import { renderTable, tablePresets, naturalList, dedent } from "../util/string"
 import { globalOptions, GlobalOptions } from "./params"
 import { BuiltinArgs, Command, CommandGroup } from "../commands/base"
 import { DeepPrimitiveMap } from "../config/common"
+import { validateGitInstall } from "../vcs/vcs"
+import { validateRsyncInstall } from "../build-staging/rsync"
+import { emoji as nodeEmoji } from "node-emoji"
 
 let _cliStyles: any
 
@@ -69,6 +71,14 @@ export async function checkForStaticDir() {
   }
 }
 
+/**
+ * checks if requirements to run garden are installed, throws if they are not
+ */
+export async function checkRequirements() {
+  await validateRsyncInstall()
+  await validateGitInstall()
+}
+
 export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntry) {
   if (gardenEnv.GARDEN_DISABLE_VERSION_CHECK) {
     return
@@ -80,9 +90,9 @@ export async function checkForUpdates(config: GlobalConfigStore, logger: LogEntr
     platformVersion: release(),
   }
 
-  const globalConfig = await config.get()
+  const userId = (await config.get())?.analytics?.anonymousUserId || "unknown"
   const headers = {}
-  headers["X-user-id"] = getUserId(globalConfig)
+  headers["X-user-id"] = userId
   headers["X-ci-check"] = ci.isCI
   if (ci.isCI) {
     headers["X-ci-name"] = ci.name
@@ -374,8 +384,15 @@ export function renderArguments(params: Parameters) {
 
 export function renderOptions(params: Parameters) {
   return renderParameters(params, (name, param) => {
-    const alias = param.alias ? `-${param.alias}, ` : ""
-    return chalk.green(` ${alias}--${name} `)
+    const renderAlias = (alias: string | undefined): string => {
+      if (!alias) {
+        return ""
+      }
+      const prefix = alias.length === 1 ? "-" : "--"
+      return `${prefix}${alias}, `
+    }
+    const renderedAlias = renderAlias(param.alias)
+    return chalk.green(` ${renderedAlias}--${name} `)
   })
 }
 
@@ -406,4 +423,16 @@ function renderParameters(params: Parameters, formatName: (name: string, param: 
     ...tablePresets["no-borders"],
     colWidths: [nameColWidth, textColWidth],
   })
+}
+
+export function renderCloudLinkForBasicLogger({
+  commandResultUrl,
+  distroName,
+}: {
+  commandResultUrl: string
+  distroName: string
+}) {
+  return dedent`${
+    nodeEmoji.cherry_blossom
+  } Connected to ${distroName}  View logs and command results at: \n\n${chalk.cyan(commandResultUrl)}\n`
 }

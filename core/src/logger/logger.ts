@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -83,10 +83,11 @@ export interface LoggerConfigBase {
   storeEntries?: boolean
   showTimestamps?: boolean
   useEmoji?: boolean
+  type: LoggerType
 }
 
 export interface LoggerConfig extends LoggerConfigBase {
-  type: LoggerType
+  storeEntries: boolean
 }
 
 export interface LoggerConstructor extends LoggerConfigBase {
@@ -134,6 +135,7 @@ export class Logger implements LogNode {
    * is required. Otherwise useful for testing.
    */
   public storeEntries: boolean
+  public type: LoggerType
 
   private writers: Writer[]
   private static instance?: Logger
@@ -186,11 +188,8 @@ export class Logger implements LogNode {
     }
 
     const writer = getWriterInstance(config.type, config.level)
-    // This should probably be a property on the writer itself but feels like an unncessary
-    // indirection for now.
-    const storeEntries = writer instanceof FancyTerminalWriter || config.storeEntries || false
 
-    instance = new Logger({ ...config, storeEntries, writers: writer ? [writer] : [] })
+    instance = new Logger({ ...config, storeEntries: config.storeEntries, writers: writer ? [writer] : [] })
 
     if (gardenEnv.GARDEN_LOG_LEVEL) {
       instance.debug(`Setting log level to ${gardenEnv.GARDEN_LOG_LEVEL} (from GARDEN_LOG_LEVEL)`)
@@ -218,6 +217,7 @@ export class Logger implements LogNode {
     this.showTimestamps = !!config.showTimestamps
     this.events = new EventBus()
     this.storeEntries = config.storeEntries
+    this.type = config.type
   }
 
   private addNode(params: CreateNodeParams): LogEntry {
@@ -315,7 +315,7 @@ export class Logger implements LogNode {
  */
 export class VoidLogger extends Logger {
   constructor() {
-    super({ writers: [], level: LogLevel.error, storeEntries: false })
+    super({ writers: [], level: LogLevel.error, storeEntries: false, type: "basic" })
   }
 }
 

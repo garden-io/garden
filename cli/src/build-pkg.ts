@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import { resolve, relative, join } from "path"
 import Bluebird from "bluebird"
 import { STATIC_DIR, GARDEN_CLI_ROOT, GARDEN_CORE_ROOT } from "@garden-io/core/build/src/constants"
 import { remove, mkdirp, copy, writeFile } from "fs-extra"
-import { exec, getPackageVersion } from "@garden-io/core/build/src/util/util"
+import { exec, getPackageVersion, sleep } from "@garden-io/core/build/src/util/util"
 import { randomString } from "@garden-io/core/build/src/util/string"
 import { pick } from "lodash"
 import minimist from "minimist"
@@ -24,7 +24,6 @@ const repoRoot = resolve(GARDEN_CLI_ROOT, "..")
 const tmpDir = resolve(repoRoot, "tmp", "pkg")
 const tmpStaticDir = resolve(tmpDir, "static")
 const pkgPath = resolve(repoRoot, "cli", "node_modules", ".bin", "pkg")
-const pkgFetchPath = resolve(repoRoot, "node_modules", ".bin", "pkg-fetch")
 const prebuildInstallPath = resolve(repoRoot, "node_modules", ".bin", "prebuild-install")
 const distPath = resolve(repoRoot, "dist")
 const sqliteBinFilename = "better_sqlite3.node"
@@ -48,10 +47,27 @@ interface TargetSpec {
 }
 
 const targets: { [name: string]: TargetSpec } = {
-  "macos-amd64": { pkgType: "node14-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
-  "linux-amd64": { pkgType: "node14-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
-  "windows-amd64": { pkgType: "node14-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
-  "alpine-amd64": { pkgType: "node14-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
+  "macos-amd64": { pkgType: "node18-macos-x64", handler: pkgMacos, nodeBinaryPlatform: "darwin" },
+  "linux-amd64": { pkgType: "node18-linux-x64", handler: pkgLinux, nodeBinaryPlatform: "linux" },
+  "windows-amd64": { pkgType: "node18-win-x64", handler: pkgWindows, nodeBinaryPlatform: "win32" },
+  "alpine-amd64": { pkgType: "node18-alpine-x64", handler: pkgAlpine, nodeBinaryPlatform: "linuxmusl" },
+}
+
+/**
+ * This function defines the filename format for release packages.
+ *
+ * The format SHOULD NOT be changed since other tools we use depend on it, unless you absolutely know what you're doing.
+ */
+function composePackageFilename(version: string, targetName: string, extension: string): string {
+  return `garden-${version}-${targetName}.${extension}`
+}
+
+export function getZipFilename(version: string, targetName: string): string {
+  return composePackageFilename(version, targetName, "zip")
+}
+
+export function getTarballFilename(version: string, targetName: string): string {
+  return composePackageFilename(version, targetName, "tar.gz")
 }
 
 async function buildBinaries(args: string[]) {
@@ -125,19 +141,12 @@ async function buildBinaries(args: string[]) {
   const cliPath = resolve(tmpDir, workspaces["@garden-io/cli"].location)
   await exec("yarn", ["--production"], { cwd: cliPath })
 
-  console.log(chalk.cyan("Fetching pkg base binaries"))
-
-  // Work around concurrency bug in pkg...
-  for (const [targetName, spec] of Object.entries(selected)) {
-    await exec(pkgFetchPath, spec.pkgType.split("-"))
-    console.log(chalk.green(" ✓ " + targetName))
-  }
-
   // Run pkg and pack up each platform binary
   console.log(chalk.cyan("Packaging garden binaries"))
 
   await Bluebird.map(Object.entries(selected), async ([targetName, spec]) => {
     await spec.handler({ targetName, sourcePath: cliPath, pkgType: spec.pkgType, version })
+    await sleep(5000) // Work around concurrency bug in pkg...
     console.log(chalk.green(" ✓ " + targetName))
   })
 
@@ -184,7 +193,8 @@ async function pkgWindows({ targetName, sourcePath, pkgType, version }: TargetHa
   })
 
   console.log(` - ${targetName} -> zip`)
-  await exec("zip", ["-q", "-r", `garden-${version}-${targetName}.zip`, targetName], { cwd: distPath })
+  const filename = getZipFilename(version, targetName)
+  await exec("zip", ["-q", "-r", filename, targetName], { cwd: distPath })
 }
 
 async function pkgAlpine({ targetName, version }: TargetHandlerParams) {
@@ -238,16 +248,26 @@ async function pkgCommon({
   await remove(targetPath)
   await mkdirp(targetPath)
 
+  const pkgFetchTmpDir = resolve(repoRoot, "tmp", "pkg-fetch", targetName)
+  await mkdirp(pkgFetchTmpDir)
+
   console.log(` - ${targetName} -> pkg`)
-  await exec(pkgPath, [
-    "--target",
-    pkgType,
-    sourcePath,
-    "--options",
-    nodeOptions.join(","),
-    "--output",
-    resolve(targetPath, binFilename),
-  ])
+  await exec(
+    pkgPath,
+    [
+      "--target",
+      pkgType,
+      sourcePath,
+      "--compress",
+      "Brotli",
+      "--public",
+      "--options",
+      nodeOptions.join(","),
+      "--output",
+      resolve(targetPath, binFilename),
+    ],
+    { env: { PKG_CACHE_PATH: pkgFetchTmpDir } }
+  )
 
   console.log(` - ${targetName} -> ${sqliteBinFilename}`)
 
@@ -281,7 +301,7 @@ async function copyStatic(targetName: string) {
 }
 
 async function tarball(targetName: string, version: string): Promise<void> {
-  const filename = `garden-${version}-${targetName}.tar.gz`
+  const filename = getTarballFilename(version, targetName)
   console.log(` - ${targetName} -> tar (${filename})`)
 
   await exec("tar", ["-czf", filename, targetName], { cwd: distPath })

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -45,6 +45,8 @@ import { configMapModuleDefinition } from "./volumes/configmap"
 import { jibContainerHandlers } from "./jib-container"
 import { emitWarning } from "../../warnings"
 import { kustomizeSpec } from "./kubernetes-module/kustomize"
+import { taskOutputsSchema } from "./task-results"
+import { syncPause, syncResume, syncStatus } from "./commands/sync"
 
 export async function configureProvider({
   log,
@@ -88,6 +90,8 @@ export async function configureProvider({
         // Default to use the project name as the namespace in the in-cluster registry, if none is explicitly
         // configured. This allows users to share builds for a project.
         namespace: config.deploymentRegistry?.namespace || projectName,
+        // The in-cluster registry is not exposed, so we don't configure TLS on it.
+        insecure: true,
       }
       config._systemServices.push("docker-registry", "registry-proxy")
     }
@@ -97,7 +101,7 @@ export async function configureProvider({
         key: "cluster-docker-deprecated",
         log,
         message:
-          "The cluster-docker build mode has been deprecated. Please see the docs for details: https://docs.garden.io/guides/in-cluster-building",
+          "The cluster-docker build mode has been deprecated. Please see the docs for details: https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building",
       })
 
       config._systemServices.push("build-sync", "util", "docker-daemon")
@@ -207,14 +211,22 @@ export const gardenPlugin = () =>
     [\`kubernetes\`](../module-types/kubernetes.md) module types.
 
     For usage information, please refer to the [guides section](${DOCS_BASE_URL}/guides). A good place to start is
-    the [Remote Kubernetes guide](../../guides/remote-kubernetes.md) guide if you're connecting to remote clusters.
-    The [Getting Started](../../getting-started/0-introduction.md) guide is also helpful as an introduction.
+    the [Remote Kubernetes guide](../../k8s-plugins/remote-k8s/README.md) guide if you're connecting to remote clusters.
+    The [Quickstart guide](../../basics/quickstart.md) guide is also helpful as an introduction.
 
     Note that if you're using a local Kubernetes cluster (e.g. minikube or Docker Desktop), the [local-kubernetes provider](./local-kubernetes.md) simplifies (and automates) the configuration and setup quite a bit.
   `,
     configSchema: configSchema(),
     outputsSchema,
-    commands: [cleanupClusterRegistry, clusterInit, uninstallGardenServices, pullImage],
+    commands: [
+      cleanupClusterRegistry,
+      clusterInit,
+      uninstallGardenServices,
+      pullImage,
+      syncStatus,
+      syncPause,
+      syncResume,
+    ],
     handlers: {
       configureProvider,
       getEnvironmentStatus,
@@ -230,10 +242,11 @@ export const gardenPlugin = () =>
         name: "helm",
         docs: dedent`
         Specify a Helm chart (either in your repository or remote from a registry) to deploy.
-        Refer to the [Helm guide](${DOCS_BASE_URL}/guides/using-helm-charts) for usage instructions.
+        Refer to the [Helm guide](${DOCS_BASE_URL}/kubernetes-plugins/module-types/helm) for usage instructions.
       `,
         moduleOutputsSchema: helmModuleOutputsSchema(),
         schema: helmModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: helmHandlers,
       },
       {
@@ -251,6 +264,7 @@ export const gardenPlugin = () =>
       `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: kubernetesModuleSpecSchema(),
+        taskOutputsSchema,
         handlers: kubernetesHandlers,
       },
       pvcModuleDefinition(),

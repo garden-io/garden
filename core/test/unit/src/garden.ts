@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,7 +29,7 @@ import {
 } from "../../helpers"
 import { getNames, findByName, omitUndefined, exec } from "../../../src/util/util"
 import { LinkedSource } from "../../../src/config-store"
-import { ModuleVersion } from "../../../src/vcs/vcs"
+import { getModuleVersionString, ModuleVersion, TreeVersion } from "../../../src/vcs/vcs"
 import { getModuleCacheContext } from "../../../src/types/module"
 import { createGardenPlugin, PluginDependency } from "../../../src/types/plugin/plugin"
 import { ConfigureProviderParams } from "../../../src/types/plugin/provider/configureProvider"
@@ -40,7 +40,7 @@ import {
   baseBuildSpecSchema,
   defaultBuildTimeout,
 } from "../../../src/config/module"
-import { DEFAULT_API_VERSION } from "../../../src/constants"
+import { DEFAULT_API_VERSION, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues } from "lodash"
 import stripAnsi from "strip-ansi"
@@ -52,6 +52,7 @@ import { ServiceState } from "../../../src/types/service"
 import execa from "execa"
 import { getLinkedSources, addLinkedSources } from "../../../src/util/ext-source-util"
 import { safeDump } from "js-yaml"
+import { TestVcsHandler } from "./vcs/vcs"
 
 describe("Garden", () => {
   let tmpDir: tmp.DirectoryResult
@@ -62,7 +63,7 @@ describe("Garden", () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
     pathFoo = tmpDir.path
 
-    await execa("git", ["init"], { cwd: pathFoo })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: pathFoo })
 
     projectConfigFoo = {
       apiVersion: DEFAULT_API_VERSION,
@@ -375,6 +376,103 @@ describe("Garden", () => {
       })
 
       expect(garden.variables).to.eql({ foo: "override", bar: "something" })
+    })
+
+    it("should set the default proxy config if non is specified", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentName: "default",
+        variables: { foo: "override" },
+      })
+
+      expect(garden.proxy).to.eql({ hostname: "localhost" })
+    })
+
+    it("should optionally read the proxy config from the project config", async () => {
+      const config: ProjectConfig = {
+        apiVersion: DEFAULT_API_VERSION,
+        kind: "Project",
+        name: "test",
+        path: pathFoo,
+        proxy: {
+          hostname: "127.0.0.1", // <--- Proxy config is set here
+        },
+        defaultEnvironment: "default",
+        dotIgnoreFiles: [],
+        environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+        providers: [{ name: "foo" }],
+        variables: { foo: "default", bar: "something" },
+      }
+
+      const garden = await TestGarden.factory(pathFoo, {
+        config,
+        environmentName: "default",
+        variables: { foo: "override" },
+      })
+
+      expect(garden.proxy).to.eql({ hostname: "127.0.0.1" })
+    })
+
+    it("should use the GARDEN_PROXY_DEFAULT_ADDRESS env variable if set", async () => {
+      const saveEnv = gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS
+      try {
+        gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = "example.com"
+        const configNoProxy: ProjectConfig = {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+          providers: [{ name: "foo" }],
+          variables: { foo: "default", bar: "something" },
+        }
+        const configWithProxy: ProjectConfig = {
+          apiVersion: DEFAULT_API_VERSION,
+          kind: "Project",
+          name: "test",
+          path: pathFoo,
+          proxy: {
+            hostname: "127.0.0.1", // <--- This should be overwritten
+          },
+          defaultEnvironment: "default",
+          dotIgnoreFiles: [],
+          environments: [{ name: "default", defaultNamespace: "foo", variables: {} }],
+          providers: [{ name: "foo" }],
+          variables: { foo: "default", bar: "something" },
+        }
+
+        const gardenWithProxyConfig = await TestGarden.factory(pathFoo, {
+          config: configWithProxy,
+          environmentName: "default",
+          variables: { foo: "override" },
+          noCache: true,
+        })
+        const gardenNoProxyConfig = await TestGarden.factory(pathFoo, {
+          config: configNoProxy,
+          environmentName: "default",
+          variables: { foo: "override" },
+          noCache: true,
+        })
+
+        expect(gardenWithProxyConfig.proxy).to.eql({ hostname: "example.com" })
+        expect(gardenNoProxyConfig.proxy).to.eql({ hostname: "example.com" })
+      } finally {
+        gardenEnv.GARDEN_PROXY_DEFAULT_ADDRESS = saveEnv
+      }
     })
   })
 
@@ -2346,11 +2444,11 @@ describe("Garden", () => {
         // Create a temporary git repo to clone
         const repoPath = resolve(_tmpDir.path, garden.projectName)
         await copy(localSourcePath, repoPath)
-        await exec("git", ["init"], { cwd: repoPath })
+        await exec("git", ["init", "--initial-branch=main"], { cwd: repoPath })
         await exec("git", ["add", "."], { cwd: repoPath })
         await exec("git", ["commit", "-m", "foo"], { cwd: repoPath })
 
-        garden.variables.sourceBranch = "master"
+        garden.variables.sourceBranch = "main"
 
         const _garden = garden as any
         _garden["projectSources"] = [
@@ -2503,15 +2601,10 @@ describe("Garden", () => {
       await expectError(
         () => garden.resolveModules({ log: garden.log }),
         (err) => {
-          expect(stripAnsi(err.message)).to.equal(dedent`
-          Missing include and/or exclude directives on modules with overlapping paths.
-          Setting includes/excludes is required when modules have the same path (i.e. are in the same garden.yml file),
-          or when one module is nested within another.
-
-          Module module-no-include-a overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-b (same path).
-
+          expect(stripAnsi(err.message)).to.include(dedent`
           Module module-no-include-b overlaps with module(s) module-a1 (nested), module-a2 (nested) and module-no-include-a (same path).
-          `)
+
+          If this was intentional, there are two options to resolve this error`)
         }
       )
     })
@@ -3293,7 +3386,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3358,7 +3451,7 @@ describe("Garden", () => {
             taskConfigs: [],
             testConfigs: [],
             spec: {},
-            repositoryUrl: "file://" + tmpRepo.path + "#master",
+            repositoryUrl: "file://" + tmpRepo.path + "#main",
             generateFiles: [
               {
                 sourcePath,
@@ -3425,7 +3518,7 @@ describe("Garden", () => {
             dotIgnoreFiles: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
@@ -3482,7 +3575,7 @@ describe("Garden", () => {
             dotIgnoreFiles: [],
             environments: [{ name: "default", defaultNamespace, variables: {} }],
             providers: [{ name: "test-plugin" }],
-            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#master" }],
+            sources: [{ name: "remote-module", repositoryUrl: "file://" + tmpRepo.path + "#main" }],
             variables: {},
           },
         })
@@ -4382,17 +4475,16 @@ describe("Garden", () => {
       expect(result).to.eql(version)
     })
 
-    it("should otherwise return version from VCS handler", async () => {
+    it("should otherwise calculate fresh version using VCS handler", async () => {
       const garden = await makeTestGardenA()
       await garden.scanAndAddConfigs()
 
       garden.cache.delete(garden.log, ["moduleVersions", "module-b"])
 
       const config = await garden.resolveModule("module-b")
-      const resolveStub = td.replace(garden.vcs, "resolveModuleVersion")
-      const version: ModuleVersion = {
-        versionString: "banana",
-        dependencyVersions: {},
+      const resolveStub = td.replace(garden.vcs, "resolveTreeVersion")
+      const version: TreeVersion = {
+        contentHash: "banana",
         files: [],
       }
 
@@ -4400,7 +4492,10 @@ describe("Garden", () => {
 
       const result = await garden.resolveModuleVersion(garden.log, config, [])
 
-      expect(result).to.eql(version)
+      expect(result.versionString).not.to.eql(
+        config.version.versionString,
+        "should be different from first versionstring as svc returned different version"
+      )
     })
 
     it("should ignore cache if force=true", async () => {
@@ -4418,10 +4513,123 @@ describe("Garden", () => {
       expect(result).to.not.eql(version)
     })
 
+    context("usage of TestVcsHandler", async () => {
+      let handlerA: TestVcsHandler
+      let gardenA: TestGarden
+
+      // note: module-a has a version file with this content
+      const treeVersionA: TreeVersion = {
+        contentHash: "1234567890",
+        files: [],
+      }
+
+      beforeEach(async () => {
+        gardenA = await makeTestGardenA()
+        handlerA = new TestVcsHandler(
+          gardenA.projectRoot,
+          join(gardenA.projectRoot, ".garden"),
+          defaultDotIgnoreFiles,
+          gardenA.cache
+        )
+      })
+      it("should return module version if there are no dependencies", async () => {
+        const module = await gardenA.resolveModule("module-a")
+        gardenA.vcs = handlerA
+        const result = await gardenA.resolveModuleVersion(gardenA.log, module, [])
+
+        expect(result).to.eql({
+          versionString: getModuleVersionString(module, { ...treeVersionA, name: "module-a" }, []),
+          dependencyVersions: {},
+          files: [],
+        })
+      })
+
+      it("should hash together the version of the module and all dependencies", async () => {
+        const moduleConfigs = await gardenA.resolveModules({
+          log: gardenA.log,
+        })
+        gardenA.vcs = handlerA
+
+        const moduleA = findByName(moduleConfigs, "module-a")!
+        const moduleB = findByName(moduleConfigs, "module-b")!
+        const moduleC = findByName(moduleConfigs, "module-c")!
+
+        gardenA.clearCaches()
+
+        const moduleVersionA: ModuleVersion = {
+          versionString: treeVersionA.contentHash,
+          files: [],
+          dependencyVersions: {},
+        }
+        moduleA.version = moduleVersionA
+        handlerA.setTestTreeVersion(moduleA.path, treeVersionA)
+
+        const versionStringB = "qwerty"
+        const moduleVersionB: ModuleVersion = {
+          versionString: versionStringB,
+          files: [],
+          dependencyVersions: { "module-a": moduleVersionA.versionString },
+        }
+        moduleB.version = moduleVersionB
+        const treeVersionB: TreeVersion = { contentHash: versionStringB, files: [] }
+        handlerA.setTestTreeVersion(moduleB.path, treeVersionB)
+
+        const versionStringC = "asdfgh"
+        const treeVersionC: TreeVersion = { contentHash: versionStringC, files: [] }
+        handlerA.setTestTreeVersion(moduleC.path, treeVersionC)
+
+        const gardenResolvedModuleVersion = await gardenA.resolveModuleVersion(gardenA.log, moduleC, [moduleA, moduleB])
+        const manuallyResolvedModuleVersion = {
+          versionString: getModuleVersionString(moduleC, { ...treeVersionC, name: "module-c" }, [
+            { ...moduleVersionA, name: "module-a" },
+            { ...moduleVersionB, name: "module-b" },
+          ]),
+          dependencyVersions: {
+            "module-a": moduleVersionA.versionString,
+            "module-b": moduleVersionB.versionString,
+          },
+          files: [],
+        }
+
+        expect(gardenResolvedModuleVersion).to.eql(manuallyResolvedModuleVersion)
+      })
+
+      it("should not include module's garden.yml in version file list", async () => {
+        const moduleConfig = await gardenA.resolveModule("module-a")
+        const version = await gardenA.resolveModuleVersion(gardenA.log, moduleConfig, [])
+        expect(version.files).to.not.include(moduleConfig.configPath!)
+      })
+
+      it("should be affected by changes to the module's config", async () => {
+        const moduleConfig = await gardenA.resolveModule("module-a")
+        const version1 = await gardenA.resolveModuleVersion(gardenA.log, moduleConfig, [])
+        moduleConfig.name = "foo"
+        const version2 = await gardenA.resolveModuleVersion(gardenA.log, moduleConfig, [])
+        expect(version1).to.not.eql(version2)
+      })
+
+      it("should not be affected by unimportant changes to the module's garden.yml", async () => {
+        const projectRoot = getDataDir("test-projects", "multiple-module-config")
+        const garden = await makeTestGarden(projectRoot)
+        const moduleConfigA1 = await garden.resolveModule("module-a1")
+        const configPath = moduleConfigA1.configPath!
+        const orgConfig = await readFile(configPath)
+
+        try {
+          const version1 = await gardenA.resolveModuleVersion(garden.log, moduleConfigA1, [])
+          await writeFile(configPath, orgConfig + "\n---")
+          const version2 = await gardenA.resolveModuleVersion(garden.log, moduleConfigA1, [])
+          expect(version1).to.eql(version2)
+        } finally {
+          await writeFile(configPath, orgConfig)
+        }
+      })
+    })
+
     context("test against fixed version hashes", async () => {
-      const moduleAVersionString = "v-3b072717eb"
-      const moduleBVersionString = "v-b9e3153900"
-      const moduleCVersionString = "v-371a6bbdec"
+      const moduleAVersionString = "v-6f85bdd407"
+      const moduleBVersionString = "v-6e138410f5"
+      const moduleCVersionString = "v-ea24adfffc"
 
       it("should return the same module versions between runtimes", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-1")
@@ -4440,7 +4648,7 @@ describe("Garden", () => {
         delete process.env.TEST_ENV_VAR
       })
 
-      it("should return the same module versions for identiclal modules in different projects", async () => {
+      it("should return the same module versions for identical modules in different projects", async () => {
         const projectRoot = getDataDir("test-projects", "fixed-version-hashes-2")
 
         process.env.MODULE_A_TEST_ENV_VAR = "foo"
@@ -4468,8 +4676,8 @@ describe("Garden", () => {
         const moduleB = graph.getModule("module-b")
         const moduleC = graph.getModule("module-c")
         expect(moduleA.version.versionString).to.not.equal(moduleAVersionString)
-        expect(moduleB.version.versionString).to.equal(moduleBVersionString)
-        expect(moduleC.version.versionString).to.equal(moduleCVersionString)
+        expect(moduleB.version.versionString).to.not.equal(moduleBVersionString) // B depends on A so it changes as well
+        expect(moduleC.version.versionString).to.not.equal(moduleCVersionString) // C depends on B so it changes as well
 
         delete process.env.MODULE_A_TEST_ENV_VAR
       })

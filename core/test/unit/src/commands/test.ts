@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,6 +31,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": true,
         "watch": false,
+        "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
       }),
@@ -166,6 +167,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": true,
         "watch": false,
+        "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
       }),
@@ -178,6 +180,58 @@ describe("TestCommand", () => {
           buildLog: "A",
         },
         "test.module-a.unit": {
+          success: true,
+          log: "OK",
+        },
+      })
+    ).to.be.true
+  })
+
+  it("should optionally skip tests by name", async () => {
+    const garden = await makeTestGardenA()
+    const log = garden.log
+
+    const { result } = await command.action({
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      args: { modules: ["module-a"] },
+      opts: withDefaultGlobalOpts({
+        "name": undefined,
+        "force": true,
+        "force-build": true,
+        "watch": false,
+        "skip": ["int*"],
+        "skip-dependencies": false,
+        "skip-dependants": false,
+      }),
+    })
+
+    expect(
+      isSubset(taskResultOutputs(result!), {
+        "build.module-a": {
+          fresh: true,
+          buildLog: "A",
+        },
+        "test.module-a.integration": {
+          success: true,
+          log: "OK",
+        },
+        "test.module-c.integ": {
+          success: true,
+          log: "OK",
+        },
+      })
+    ).to.be.false
+
+    expect(
+      isSubset(taskResultOutputs(result!), {
+        "test.module-a.unit": {
+          success: true,
+          log: "OK",
+        },
+        "test.module-c.unit": {
           success: true,
           log: "OK",
         },
@@ -199,6 +253,7 @@ describe("TestCommand", () => {
         "name": ["int*"],
         "force": true,
         "force-build": true,
+        "skip": [],
         "watch": false,
         "skip-dependencies": false,
         "skip-dependants": false,
@@ -258,6 +313,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": false,
         "watch": false,
+        "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
       }),
@@ -296,6 +352,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": false,
         "watch": false,
+        "skip": [],
         "skip-dependencies": false,
         "skip-dependants": false,
       }),
@@ -365,6 +422,7 @@ describe("TestCommand", () => {
           "force": true,
           "force-build": false,
           "watch": false,
+          "skip": [],
           "skip-dependencies": true, // <----
           "skip-dependants": false,
         }),
@@ -432,6 +490,7 @@ describe("TestCommand", () => {
         "force": true,
         "force-build": false,
         "watch": false,
+        "skip": [],
         "skip-dependencies": false,
         "skip-dependants": true, // <----
       }),

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -49,7 +49,7 @@ const testProvider = () => {
       state: "ready",
       ingresses: [
         {
-          hostname: "service-a.test-project-b.local.app.garden",
+          hostname: "service-a.test-project-b.local.demo.garden",
           path: "/path-a",
           port: 80,
           protocol: "http",
@@ -120,11 +120,13 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -469,11 +471,13 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -517,11 +521,13 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
           "skip": undefined,
           "skip-dependencies": true, // <-----
+          "skip-watch": false,
           "forward": false,
         }),
       })
@@ -575,11 +581,13 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -627,11 +635,13 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
         "skip": undefined,
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -672,11 +682,13 @@ describe("DeployCommand", () => {
       opts: withDefaultGlobalOpts({
         "dev-mode": undefined,
         "hot-reload": undefined,
+        "local-mode": undefined,
         "watch": false,
         "force": false,
         "force-build": true,
         "skip": ["service-b"],
         "skip-dependencies": false,
+        "skip-watch": false,
         "forward": false,
       }),
     })
@@ -702,11 +714,13 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": true,
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": false,
         }),
       })
@@ -726,11 +740,13 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": [],
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": false,
         }),
       })
@@ -750,16 +766,45 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": ["*"],
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": false,
         }),
       })
       expect(persistent).to.be.true
     })
+
+    it("should return persistent=true if --local-mode is set", async () => {
+      const cmd = new DeployCommand()
+      const log = getLogger().placeholder()
+      const persistent = cmd.isPersistent({
+        log,
+        headerLog: log,
+        footerLog: log,
+        args: {
+          services: undefined,
+        },
+        opts: withDefaultGlobalOpts({
+          "dev-mode": undefined,
+          "hot-reload": undefined,
+          "local-mode": [],
+          "watch": false,
+          "force": false,
+          "force-build": true,
+          "skip": ["service-b"],
+          "skip-dependencies": false,
+          "skip-watch": false,
+          "forward": false,
+        }),
+      })
+      expect(persistent).to.be.true
+    })
+
     it("should return persistent=true if --follow is set", async () => {
       const cmd = new DeployCommand()
       const log = getLogger().placeholder()
@@ -773,11 +818,13 @@ describe("DeployCommand", () => {
         opts: withDefaultGlobalOpts({
           "dev-mode": undefined,
           "hot-reload": undefined,
+          "local-mode": undefined,
           "watch": false,
           "force": false,
           "force-build": true,
           "skip": ["service-b"],
           "skip-dependencies": false,
+          "skip-watch": false,
           "forward": true,
         }),
       })

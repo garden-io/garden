@@ -16,7 +16,7 @@ orbs:
     GARDEN_LOGGER_TYPE: basic
 
   shared-machine-config: &shared-machine-config
-    image: 'ubuntu-2004:202010-01'
+    image: "ubuntu-2204:2022.10.2"
     docker_layer_caching: true
 
   remote-docker: &remote-docker
@@ -24,10 +24,13 @@ orbs:
       version: 20.10.11
       docker_layer_caching: true
 
+  runner-image: &runner-image
+    image: gardendev/circleci-runner:18.12.0
+
   # Configuration for our node jobs
   node-config: &node-config
     docker:
-      - image: gardendev/circleci-runner:14.19.0-1
+      - <<: *runner-image
         environment:
           <<: *shared-env-config
     resource_class: medium
@@ -35,19 +38,18 @@ orbs:
   # Configuration for release jobs
   release-config: &release-config
     docker:
-      # Image that contains ghr for publishing releases to Github
-      - image: cibuilds/github:0.12.2
+      - <<: *runner-image
 
   # Attaches the current saved workspace
   attach-workspace: &attach-workspace
     attach_workspace:
       at: ./
 
-  # Only run jobs on master
-  only-master: &only-master
+  # Only run jobs on main
+  only-main: &only-main
     filters:
       branches:
-        only: master
+        only: main
       tags:
         ignore: /.*/
 
@@ -81,13 +83,12 @@ commands:
     steps:
       - restore_cache:
           keys:
-          - yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
-          - yarn-v4-<<parameters.context>>
+            - yarn-v5-<<parameters.context>>-{{ checksum "yarn.lock" }}
 
       - run: yarn
 
       - save_cache:
-          key: yarn-v4-<<parameters.context>>-{{ checksum "yarn.lock" }}
+          key: yarn-v5-<<parameters.context>>-{{ checksum "yarn.lock" }}
           paths:
             - ~/.cache/yarn
 
@@ -96,10 +97,11 @@ commands:
     steps:
       - run:
           name: Configure git
+          # ensure that file transfer protocol is allowed, see https://vielmetti.typepad.com/logbook/2022/10/git-security-fixes-lead-to-fatal-transport-file-not-allowed-error-in-ci-systems-cve-2022-39253.html
           command: |
             git config --global user.name "Garden CI"
             git config --global user.email "admin@garden.io"
-
+            git config --global protocol.file.allow "always"
 
   install_kubectl:
     description: Install kubectl
@@ -180,15 +182,19 @@ commands:
             # ...export for subsequent runs...
             echo 'export NVM_DIR="/opt/circleci/.nvm"' >> $BASH_ENV
             echo "[ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"" >> $BASH_ENV
-            nvm install 14
-            nvm alias default 14
+            nvm install v18
+            nvm alias default v18
             nvm use default
             # ...and finally symlink for when calling Garden with sudo below
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/node" "/usr/local/bin/node"
             sudo ln -s "$NVM_DIR/versions/node/$(nvm version)/bin/npm" "/usr/local/bin/npm"
             sudo npm install -g yarn
+      - run:
+          name: "Enforce nvm use default"
+          command: |
+            echo "nvm use default" >> $BASH_ENV
 
-  configure_kubectl_context:
+  configure_remote_cluster:
     description: Configure the kubectl context via gcloud so that we can access our remote cluster. Used for e2e testing.
     steps:
       - run:
@@ -202,6 +208,19 @@ commands:
             gcloud --quiet config set compute/zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet container clusters get-credentials $GOOGLE_CLUSTER_ID --zone $GOOGLE_COMPUTE_ZONE
             gcloud --quiet auth configure-docker
+
+  cleanup_remote_cluster:
+    description: Clean up namespaces in the ci cluster on gcloud (to be used with configure_remote_cluster)
+    steps:
+      - run:
+          name: Delete current namespace
+          command: kubectl get ns | grep ${CIRCLE_BUILD_NUM} | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          when: always
+      - run:
+          name: Delete namespaces older than 1 hour
+          # hack: find namespaces that contain '-ci' and their age ends with h or d, e.g. 1d5h or 24h
+          command: kubectl get ns | grep -E '(d|h)$' | grep -- '-ci' | awk '{print $1}' | xargs -n 1 kubectl delete namespace --wait=false || true
+          when: always
 
   build_dist:
     description: Package built code into executables and persist to dist directory
@@ -218,8 +237,11 @@ commands:
       - checkout
       - npm_install
       - *attach-workspace
+      - restore_cache:
+          keys:
+            - pkg-v2-{{ checksum "yarn.lock" }}
       - run:
-          name: Run dist command with the appropriate argument
+          name: Run dist script
           command: yarn run dist --version "<<parameters.version>>"
       - persist_to_workspace:
           root: ./
@@ -227,6 +249,14 @@ commands:
             - dist/
             # Needed for the alpine docker build
             - tmp/pkg/
+      - save_cache:
+          key: pkg-v2-{{ checksum "yarn.lock" }}
+          paths:
+            - tmp/pkg-fetch
+      - run:
+          # No need to store the raw files as artifacts, we just want the archives
+          name: Cleanup
+          command: rm -rf dist/*-amd64
       - store_artifacts:
           path: dist
           destination: dist
@@ -274,6 +304,7 @@ jobs:
 
   lint:
     <<: *node-config
+    resource_class: large
     steps:
       - checkout
       - npm_install
@@ -332,7 +363,7 @@ jobs:
     steps:
       - checkout
       - npm_install
-      - configure_kubectl_context
+      - configure_remote_cluster
       - docker_login
       - *attach-workspace
       - run:
@@ -342,10 +373,7 @@ jobs:
           name: Run e2e test
           command: |
             yarn e2e-project --project=<<parameters.project>> --env=<<parameters.environment>>
-      - run:
-          name: Cleanup
-          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM) || true
-          when: always
+      - cleanup_remote_cluster
 
   build-docker-alpine:
     <<: *node-config
@@ -461,16 +489,13 @@ jobs:
     steps:
       # Need to checkout to run example project
       - checkout
-      - configure_kubectl_context
+      - configure_remote_cluster
       - *attach-workspace
       - run:
           name: Deploy demo-project with container
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker /garden/garden build --root examples/demo-project --env remote --logger-type basic
-      - run:
-          name: Cleanup
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-docker kubectl delete --wait=false $(kubectl get ns -o name | grep demo-project-$CIRCLE_BUILD_NUM) || true
-          when: always
+      - cleanup_remote_cluster
 
   release-service-docker:
     <<: *node-config
@@ -484,8 +509,8 @@ jobs:
       - deploy:
           name: Release docker images
           command: |
-            # Switches between git tag and master for releases
-            TAG=${CIRCLE_TAG:-master}
+            # Switches between git tag and main for releases
+            TAG=${CIRCLE_TAG:-main}
             # Push the container
             ./scripts/push-containers.sh $TAG
             # Push again with latest tag for non-pre-release tags
@@ -523,14 +548,26 @@ jobs:
       - run:
           name: Publish a pre-release on GitHub with the tag 'edge'
           command: |
+            # We assume that the tag already exists. We update the existing tag
+            # using the gh cli, and then we upload the artifacts using ghr.
+            # We do not create a new release here, as this would spam our fellow coder's
+            # GitHub timelines
             VERSION=edge
+
+            # Update the release hash
+            gh release edit ${VERSION} \
+              -R ${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME} \
+              --prerelease \
+              --target ${CIRCLE_SHA1}
+
+            # Replace release artifacts
             ghr \
               -t ${GITHUB_TOKEN} \
               -u ${CIRCLE_PROJECT_USERNAME} \
               -r ${CIRCLE_PROJECT_REPONAME} \
               -c ${CIRCLE_SHA1} \
               -n ${VERSION} \
-              -delete \
+              -replace \
               -prerelease \
               ${VERSION} ./dist
   test-dist:
@@ -538,7 +575,7 @@ jobs:
     steps:
       # Need to checkout to run example project
       - checkout
-      - configure_kubectl_context
+      - configure_remote_cluster
       - *attach-workspace
       - run:
           name: Test that the binary works with the fancy logger enabled
@@ -554,10 +591,7 @@ jobs:
           name: Deploy demo-project with binary
           # overriding CIRCLE_BUILD_NUM to avoid conflict with other tests
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist dist/linux-amd64/garden deploy --root examples/demo-project --env remote --logger-type basic
-      - run:
-          name: Cleanup
-          command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-dist kubectl delete --wait=false $(kubectl get ns -o name | grep demo-project-$CIRCLE_BUILD_NUM) || true
-          when: always
+      - cleanup_remote_cluster
 
   test-plugins:
     machine:
@@ -583,7 +617,7 @@ jobs:
       # Restore Maven cache
       - restore_cache:
           keys:
-          - m2-v1
+            - m2-v1
       # Run tests
       - run:
           name: Plugin tests
@@ -626,13 +660,11 @@ jobs:
       - run:
           name: Deploy demo-project
           command: ./bin/garden deploy --root examples/demo-project --logger-type basic
-      - run:
-          name: Deploy openfaas
-          command: ./bin/garden deploy --root examples/openfaas --logger-type basic
 
   test-microk8s:
     machine:
       <<: *shared-machine-config
+    resource_class: large
     parameters:
       kubernetesVersion:
         description: The Kubernetes version to run
@@ -652,6 +684,12 @@ jobs:
       - run:
           name: Install and start microk8s
           command: |
+            # create microk8s and snap_microk8s as group aliases for the circleci group
+            # https://github.com/canonical/microk8s/issues/3608#issuecomment-1383838198
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" microk8s
+            sudo groupadd --non-unique --gid "$(getent group circleci | cut -f3 -d:)" snap_microk8s
+
+            # install microk8s from snap
             sudo snap install microk8s --classic --channel=<<parameters.kubernetesVersion>>/stable
             sudo microk8s.status --wait-ready --timeout=300
 
@@ -660,7 +698,6 @@ jobs:
             sleep 10
             sudo microk8s.enable storage registry dns
 
-            sudo usermod -a -G microk8s circleci
             echo "********* microk8s ready! ************"
 
             # Set up kubeconfig and environment
@@ -680,16 +717,11 @@ jobs:
             cd core
             # Notes:
             # - We skip tests that only work for remote environments
-            # - Need to run with sudo to work with microk8s, because CircleCI doesn't allow us to log out
-            #   and back in to add the circleci user to the microk8s group.
             # - We currently don't support in-cluster building on microk8s.
-            sudo -E GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" npm run _integ
+            GARDEN_SKIP_TESTS="cluster-docker kaniko remote-only" npm run _integ
       - run:
           name: Deploy demo-project
-          command: sudo -E ./bin/garden deploy --root examples/demo-project --logger-type basic
-      - run:
-          name: Deploy openfaas
-          command: sudo -E ./bin/garden deploy --root examples/openfaas --logger-type basic
+          command: ./bin/garden deploy --root examples/demo-project --logger-type basic
 
   test-minikube:
     machine:
@@ -707,10 +739,6 @@ jobs:
         description: Integ test groups to skip
         type: string
         default: "cluster-docker kaniko remote-only"
-      testOpenfaas:
-        description: Whether to test the openfaas project
-        type: boolean
-        default: true
     environment:
       <<: *shared-env-config
       K8S_VERSION: <<parameters.kubernetesVersion>>
@@ -759,12 +787,6 @@ jobs:
       - run:
           name: Deploy demo-project
           command: sudo -E ./bin/garden deploy --root examples/demo-project
-      - when:
-          condition: <<parameters.testOpenfaas>>
-          steps:
-            - run:
-                name: Deploy openfaas
-                command: sudo -E ./bin/garden deploy --root examples/openfaas
       - run:
           name: Run cluster cleanup
           command: |
@@ -772,32 +794,41 @@ jobs:
 
   test-macos:
     macos:
-      xcode: "12.5.1"
+      xcode: "13.4.1"
     steps:
       - checkout
       - *attach-workspace
       # - run:
       #     name: Configure Node.js
-      #     command: nvm install 14 && nvm alias default 14
+      #     command: nvm install v18 && nvm alias default v18
       - run:
           name: brew install
-          command: brew install docker kubectl
+          command: brew install docker kubectl git rsync
+      # Garden has 2 main pre-requisites: git and rsync
+      # Upgrade rsync to the latest version.
+      # The default version is too old, Garden requires 3.1.0+.
+      # This step ensures that Garden is always tested to be compatible with the latest rsync.
+      - run:
+          name: Upgrade rsync
+          command: brew upgrade rsync
+      # Upgrade git to the latest version.
+      # This step ensures that Garden is always tested to be compatible with the latest git.
+      - run:
+          name: Upgrade git
+          command: brew upgrade git
       - run:
           name: Install gcloud SDK
           command: |
             cd $HOME
-            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-373.0.0-darwin-x86_64.tar.gz
-            tar xzf google-cloud-sdk-373.0.0-darwin-x86_64.tar.gz
+            curl -LO https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
+            tar xzf google-cloud-sdk-411.0.0-darwin-x86_64.tar.gz
             echo 'export PATH=$HOME/google-cloud-sdk/bin:$PATH' >> $BASH_ENV
       - docker_login
-      - configure_kubectl_context
+      - configure_remote_cluster
       - run:
           name: Deploy demo-project
           command: CIRCLE_BUILD_NUM=$CIRCLE_BUILD_NUM-macos dist/macos-amd64/garden deploy --root examples/demo-project --logger-type basic --env remote
-      - run:
-          name: Cleanup
-          command: kubectl delete --wait=false $(kubectl get ns -o name | grep $CIRCLE_BUILD_NUM-macos) || true
-          when: always
+      - cleanup_remote_cluster
 
   test-windows:
     executor: win/default
@@ -807,7 +838,11 @@ jobs:
       - run:
           name: Install Deps
           command: |
-            choco upgrade -y rsync gcloudsdk kubernetes-cli
+            choco install --limit-output --no-progress -y git
+            choco install --limit-output --no-progress -y rsync
+            choco upgrade --limit-output --no-progress -y git rsync gcloudsdk kubernetes-cli
+            $Env:CLOUDSDK_PYTHON = gcloud components copy-bundled-python
+            gcloud components install gke-gcloud-auth-plugin --quiet
             refreshenv
       - run:
           name: Write gcloud credentials to file
@@ -898,8 +933,14 @@ workflows:
 
       - e2e-project:
           <<: *only-internal-prs
+          name: e2e-code-synchronization
+          project: code-synchronization
+          requires: [build]
+      - e2e-project:
+          <<: *only-internal-prs
           name: e2e-demo-project
           project: demo-project
+          environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -920,8 +961,8 @@ workflows:
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
-          name: e2e-hot-reload
-          project: hot-reload
+          name: e2e-hadolint
+          project: hadolint
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -933,16 +974,6 @@ workflows:
           <<: *only-internal-prs
           name: e2e-kustomize
           project: kustomize
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-openfaas
-          project: openfaas
-          requires: [build]
-      - e2e-project:
-          <<: *only-internal-prs
-          name: e2e-project-variables
-          project: project-variables
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -963,6 +994,7 @@ workflows:
           <<: *only-internal-prs
           name: e2e-vote
           project: vote
+          environment: remote
           requires: [build]
       - e2e-project:
           <<: *only-internal-prs
@@ -977,74 +1009,72 @@ workflows:
       # tested, and that the most recent versions are broadly tested. The kind tests are the cheapest to run so we use many
       # of those, but they currently don't test in-cluster building, so we do need a range of versions on minikube as well.
       - test-minikube:
-          name: minikube-1.22
+          name: vm-1.22-minikube
           requires: [build]
           kubernetesVersion: "1.22.2"
-          minikubeVersion: "v1.23.2"
+          minikubeVersion: "v1.25.2"
           # cluster-buildkit works on other minikube versions, but the in-cluster registry has issues on the latest version
           # This is sort of fine, since we don't _really_ support in-cluster building on minikube, just been using it for
           # integration tests.
           skipTests: cluster-docker cluster-buildkit kaniko remote-only
-          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
-          # for most recent k8s versions.
-          testOpenfaas: false
       - test-minikube:
-          name: minikube-1.20
+          name: vm-1.23-minikube
           requires: [build]
-          kubernetesVersion: "1.20.2"
-          minikubeVersion: "v1.16.0"
-          # OpenFaaS project fails without ingress, which doesn't work in CircleCI on minikube v1.12+, which is necessary
-          # for most recent k8s versions.
-          testOpenfaas: false
+          kubernetesVersion: "1.23.3"
+          minikubeVersion: "v1.25.2"
       - test-minikube:
-          name: minikube-1.19
+          name: vm-1.19-minikube
           requires: [build]
           kubernetesVersion: "1.19.7"
           minikubeVersion: "v1.16.0"
-          testOpenfaas: false
       - test-microk8s:
+          name: vm-1.24-microk8s
           requires: [build]
-          kubernetesVersion: "1.19"
-      - test-kind:
-          name: kind-1.15
+          kubernetesVersion: "1.24"
+      - test-microk8s:
+          name: vm-1.25-microk8s
           requires: [build]
-          kindNodeImage: kindest/node:v1.15.12
-      - test-kind:
-          name: kind-1.16
+          kubernetesVersion: "1.25"
+      - test-microk8s:
+          name: vm-1.26-microk8s
           requires: [build]
-          kindNodeImage: kindest/node:v1.16.15
+          kubernetesVersion: "1.26"
       - test-kind:
-          name: kind-1.17
-          requires: [build]
-          kindNodeImage: kindest/node:v1.17.11
-      - test-kind:
-          name: kind-1.19
+          name: vm-1.19-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.19.4
       - test-kind:
-          name: kind-1.20
+          name: vm-1.20-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.20.2
       - test-kind:
-          name: kind-1.21
+          name: vm-1.21-kind
           requires: [build]
           kindNodeImage: kindest/node:v1.21.2
+      - test-kind:
+          name: vm-1.22-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105
+      - test-kind:
+          name: vm-1.23-kind
+          requires: [build]
+          kindNodeImage: kindest/node:v1.23.6@sha256:b1fa224cc6c7ff32455e0b1fd9cbfd3d3bc87ecaa8fcb06961ed1afb3db0f9ae
 
       - test-plugins:
           requires: [build]
           kindNodeImage: kindest/node:v1.21.2
 
-      ### MASTER ONLY ###
+      ### MAIN ONLY ###
 
       - build-dist-edge:
-          <<: *only-master
+          <<: *only-main
           requires: [build]
       - release-service-docker:
-          <<: *only-master
+          <<: *only-main
           context: docker
           requires: [build-dist-edge]
       - release-service-dist-edge:
-          <<: *only-master
+          <<: *only-main
           requires: [build-dist-edge]
 
   tags:

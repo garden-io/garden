@@ -4,6 +4,7 @@ type: helm
 name: redis
 repo: https://raw.githubusercontent.com/bitnami/charts/archive-full-index/bitnami
 chart: redis
-version: "10.5.7"
+version: "16.13.1"
 values:
-  usePassword: false
+  auth:
+    enabled: false

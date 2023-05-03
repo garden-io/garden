@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,6 +20,8 @@ export const STATIC_DIR = isPkg ? resolve(process.execPath, "..", "static") : re
 // We symlink to it the built dashboard to the core static directory during dev, and copy it there for dist builds
 export const DASHBOARD_STATIC_DIR = join(STATIC_DIR, "dashboard")
 export const DEFAULT_GARDEN_DIR_NAME = ".garden"
+export const MUTAGEN_DIR_NAME = "mutagen"
+export const LATEST_MUTAGEN_DATA_DIR_NAME = "latest"
 export const LOGS_DIR_NAME = "logs"
 export const GARDEN_GLOBAL_PATH = join(homedir(), DEFAULT_GARDEN_DIR_NAME)
 export const LOGS_DIR = join(DEFAULT_GARDEN_DIR_NAME, LOGS_DIR_NAME)
@@ -47,6 +49,8 @@ export const SEGMENT_PROD_API_KEY = "b6ovUD9A0YjQqT3ZWetWUbuZ9OmGxKMa" // ggigno
 
 export const DOCS_BASE_URL = "https://docs.garden.io"
 export const VERSION_CHECK_URL = "https://get.garden.io/version"
+
+export const DEFAULT_GARDEN_CLOUD_DOMAIN = "https://app.garden"
 
 /**
  * Environment variables, with defaults where appropriate.
@@ -76,4 +80,8 @@ export const gardenEnv = {
   GARDEN_HARD_CONCURRENCY_LIMIT: env.get("GARDEN_HARD_CONCURRENCY_LIMIT").required(false).default(50).asInt(),
   GARDEN_TASK_CONCURRENCY_LIMIT: env.get("GARDEN_TASK_CONCURRENCY_LIMIT").required(false).default(6).asInt(),
   GARDEN_WORKFLOW_RUN_UID: env.get("GARDEN_WORKFLOW_RUN_UID").required(false).asString(),
+  // Allow users to fallback to "legacy" fancy writer render logic in case recent changes introduce
+  // issues on terminals we haven't tested. We can remove again in v0.13.
+  GARDEN_LEGACY_FANCY_LOG_RENDER: env.get("GARDEN_LEGACY_FANCY_LOG_RENDER").required(false).asBool(),
+  GARDEN_CLOUD_DOMAIN: env.get("GARDEN_CLOUD_DOMAIN").required(false).asUrlString(),
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,6 +24,7 @@ import { dedent } from "../../util/string"
 import { Provider, GenericProviderConfig, providerConfigBaseSchema } from "../../config/provider"
 import { isSubdir } from "../../util/util"
 import { GetModuleOutputsParams } from "../../types/plugin/module/getModuleOutputs"
+import { taskOutputsSchema } from "../kubernetes/task-results"
 
 export interface ContainerProviderConfig extends GenericProviderConfig {}
 export type ContainerProvider = Provider<ContainerProviderConfig>
@@ -60,17 +61,6 @@ export const containerModuleOutputsSchema = () =>
       .description("The full ID of the image (incl. tag/version) that the module will use during deployment.")
       .example("my-deployment-registry.io/my-org/my-module:v-abf3f8dca"),
   })
-
-const taskOutputsSchema = joi.object().keys({
-  log: joi
-    .string()
-    .allow("")
-    .default("")
-    .description(
-      "The full log from the executed task. " +
-        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-    ),
-})
 
 export async function configureContainerModule({ log, moduleConfig }: ConfigureModuleParams<ContainerModule>) {
   // validate hot reload configuration
@@ -147,6 +137,7 @@ export async function configureContainerModule({ log, moduleConfig }: ConfigureM
 
     for (const volume of spec.volumes) {
       if (volume.module) {
+        // TODO-G2: change this to validation instead, require explicit dependency
         moduleConfig.build.dependencies.push({ name: volume.module, copy: [] })
         spec.dependencies.push(volume.module)
       }
@@ -301,8 +292,18 @@ export const gardenPlugin = () =>
           {
             platform: "darwin",
             architecture: "amd64",
-            url: "https://download.docker.com/mac/static/stable/x86_64/docker-19.03.6.tgz",
-            sha256: "82d279c6a2df05c2bb628607f4c3eacb5a7447be6d5f2a2f65643fbb6ed2f9af",
+            url: "https://download.docker.com/mac/static/stable/x86_64/docker-20.10.9.tgz",
+            sha256: "f045f816579a96a45deef25aaf3fc116257b4fb5782b51265ad863dcae21f879",
+            extract: {
+              format: "tar",
+              targetPath: "docker/docker",
+            },
+          },
+          {
+            platform: "darwin",
+            architecture: "arm64",
+            url: "https://download.docker.com/mac/static/stable/aarch64/docker-20.10.9.tgz",
+            sha256: "e41cc3b53b9907ee038c7a1ab82c5961815241180fefb49359d820d629658e6b",
             extract: {
               format: "tar",
               targetPath: "docker/docker",
@@ -311,8 +312,8 @@ export const gardenPlugin = () =>
           {
             platform: "linux",
             architecture: "amd64",
-            url: "https://download.docker.com/linux/static/stable/x86_64/docker-19.03.6.tgz",
-            sha256: "34ff89ce917796594cd81149b1777d07786d297ffd0fef37a796b5897052f7cc",
+            url: "https://download.docker.com/linux/static/stable/x86_64/docker-20.10.9.tgz",
+            sha256: "caf74e54b58c0b38bb4d96c8f87665f29b684371c9a325562a3904b8c389995e",
             extract: {
               format: "tar",
               targetPath: "docker/docker",
@@ -322,8 +323,8 @@ export const gardenPlugin = () =>
             platform: "windows",
             architecture: "amd64",
             url:
-              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v19.03.6/docker-19.03.6.zip",
-            sha256: "b4591baa2b7016af9ff3328a26146e4db3e6ce3fbe0503a7fd87363f29d63f5c",
+              "https://github.com/rgl/docker-ce-windows-binaries-vagrant/releases/download/v20.10.9/docker-20.10.9.zip",
+            sha256: "360ca42101d453022eea17747ae0328709c7512e71553b497b88b7242b9b0ee4",
             extract: {
               format: "zip",
               targetPath: "docker/docker.exe",

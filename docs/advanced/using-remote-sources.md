@@ -11,7 +11,7 @@ You can import **two** types of remote repositories with Garden:
 
 > **Remote _module_**: The source code for a single Garden module. In this case, the `garden.yml` config file is stored in the main project repository while the module code itself is in the remote repository.
 
-The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/0.12.40/examples/remote-sources).
+The code examples below are from our [remote sources example](https://github.com/garden-io/garden/tree/0.12.55/examples/remote-sources).
 
 ## Importing Remote Repositories
 
@@ -25,12 +25,13 @@ kind: Project
 name: remote-sources
 sources:
   - name: web-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git#v0.1.0
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-web-services.git
   - name: db-services
-    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#v0.1.0
+    # use #your-branch to specify a branch, #v0.3.0 for a tag or a full length commit SHA1
+    repositoryUrl: https://github.com/garden-io/garden-example-remote-sources-db-services.git#main
 ```
 
-Note that the URL must point to a specific branch or tag.
+Note that the URL must point to a specific branch, tag or commit hash.
 
 Use this when you want to import Garden modules from another repository. The repository can contain one or more modules along with their `garden.yml` config files. For example, this is the file tree for the remote `web-services` source:
 
@@ -52,7 +53,7 @@ $ tree .
 
 You can imagine that this file tree gets merged into the parent project.
 
-If you now run `garden get status` you will see all the services from the two remote repositories (`vote` and `result` from the [web-services repo](https://github.com/garden-io/garden-example-remote-sources-web-services) and `db` and `redis` from the [db-services repo](https://github.com/garden-io/garden-example-remote-sources-db-services)):
+If you now run `garden get status` you will see all the services from the two remote repositories (`vote`, `result` and `api` from the [web-services repo](https://github.com/garden-io/garden-example-remote-sources-web-services) and `db` and `redis` from the [db-services repo](https://github.com/garden-io/garden-example-remote-sources-db-services)):
 
 ```sh
 services:
@@ -77,10 +78,10 @@ You can import the source code for a _single_ Garden module from another reposit
 ```yaml
 # examples/remote-sources/worker/garden.yml
 kind: Module
-description: Java Worker
+description: The worker that collects votes and stores results in a postgres table
 type: container
-repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git#v0.1.0
 name: worker
+repositoryUrl: https://github.com/garden-io/garden-example-remote-module-jworker.git
 services:
   - name: worker
   ...
@@ -107,7 +108,7 @@ Notice that it only contains the `garden.yml` file, all the source code is in th
 You can also import sources and modules from your local file system by setting the `repositoryUrl` to a local file path:
 
 ```yaml
-repositoryUrl: file:///my/local/project/path#master
+repositoryUrl: file:///my/local/project/path#main
 ```
 
 As usual, the URL must point to a specific branch or tag.
@@ -136,7 +137,7 @@ garden unlink source web-services
 
 Garden will only update a remote source if explicitly asked to do so via the `update-remote sources|modules` command.
 
-For example, if we had pointed the repository URL of the `web-services` source from above to something like a `master` branch, and we now wanted to pull the latest code from the remote, we would run:
+For example, if we had pointed the repository URL of the `web-services` source from above to something like a `main` branch, and we now wanted to pull the latest code from the remote, we would run:
 
 ```console
 garden update-remote source web-services

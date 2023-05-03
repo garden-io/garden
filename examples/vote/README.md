@@ -26,29 +26,34 @@ Good afternoon! Let's get your environment wired up...
 
 **Note:** If you're running _minikube_, you may need to add the appropriate entries to your `/etc/hosts` file.
 Find the IP for your local cluster by running `minikube ip` and add an entry with that IP for each of
-`vote.local.app.garden`, `result.local.app.garden` and `api.local.app.garden`.
+`vote.vote.local.demo.garden`, `result.vote.local.demo.garden` and `api.vote.local.demo.garden`.
 This is not necessary when using Docker for Desktop, because your cluster will then be exposed directly on _localhost_.
 
 ### To Vote
 
-The voting UI is at http://vote.local.app.garden/. Open a browser tab, and try voting a few times.
+The voting UI is at http://vote.vote.local.demo.garden/. Open a browser tab, and try voting a few times.
 
 ### View Results
 
-In a separate tab, open http://result.local.app.garden. The results there will reflect in real-time your voting.
+In a separate tab, open http://result.vote.local.demo.garden. The results there will reflect in real-time your voting.
 
-### Try out hot-reloading
+### Try out code synchronization
 
-Hot-reloading needs to be enabled per service when starting `garden deploy` or `garden dev`:
-
+To start up the synchronization:
 ```sh
-garden dev --hot=vote
-# OR garden deploy --hot=vote
+garden dev
 ```
 
-Then try making a change to one of the source files in the `vote` service, to see it synchronize into the
-running container, instead of the normal build+deploy flow. Note that changing the file will _also_ trigger a
-build and some tests, but the hot-reloading should complete almost instantly while those take longer to complete.
+Make a change to one of the source files in the `vote` service to see it synchronize into the
+running container, instead of the normal build+deploy flow. The configuration for the synchronization can be found in
+the garden config for the service.
+
+### Run the tests
+
+After making some changes you can run the tests to see if they still pass after your modifications:
+```sh
+garden dev
+```
 
 ### Try out Workflows
 

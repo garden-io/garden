@@ -1,0 +1,9 @@
+kind: Module
+type: pulumi
+name: k8s-namespace
+description: Creates a k8s namespace.
+createStack: true
+cacheStatus: true
+pulumiVariables:
+  kubernetes:context: docker-desktop
+  pulumi-k8s:namespace: pulumi-k8s

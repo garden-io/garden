@@ -39,6 +39,18 @@ Examples:
 * `${camelCase("--foo-bar--")}` -> `"fooBar"`
 * `${camelCase("__FOO_BAR__")}` -> `"fooBar"`
 
+## concat
+
+Concatenates two arrays or strings.
+
+Usage: `concat(arg1, arg2)`
+
+Examples:
+
+* `${concat(["first","two"], ["second","list"])}` -> `["first","two","second","list"]`
+* `${concat([1,2,3], [4,5])}` -> `[1,2,3,4,5]`
+* `${concat("string1", "string2")}` -> `"string1string2"`
+
 ## indent
 
 Indents each line in the given string with the specified number of spaces.

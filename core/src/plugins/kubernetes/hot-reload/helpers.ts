@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,12 +23,12 @@ import { GardenModule } from "../../../types/module"
 import { getBaseModule } from "../helm/common"
 import { HelmModule, HelmService } from "../helm/config"
 import { KubernetesModule, KubernetesService } from "../kubernetes-module/config"
-import { HotReloadableKind, HotReloadableResource } from "./hot-reload"
+import { SyncableKind, SyncableResource } from "./hot-reload"
 import Bluebird from "bluebird"
 import normalizePath from "normalize-path"
 
 interface ConfigureHotReloadParams {
-  target: HotReloadableResource
+  target: SyncableResource
   hotReloadSpec: ContainerHotReloadSpec
   hotReloadCommand?: string[]
   hotReloadArgs?: string[]
@@ -48,7 +48,7 @@ export function configureHotReload({
   hotReloadArgs,
   containerName,
 }: ConfigureHotReloadParams): void {
-  const kind = <HotReloadableKind>target.kind
+  const kind = <SyncableKind>target.kind
   set(target, ["metadata", "annotations", gardenAnnotationKey("hot-reload")], "true")
   const mainContainer = getResourceContainer(target, containerName)
 
@@ -160,7 +160,22 @@ export function configureHotReload({
       timeoutSeconds: 3,
       successThreshold: 1,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+      tcpSocket: { port: rsyncPortName },
+    },
+    lifecycle: {
+      preStop: {
+        exec: {
+          // this preStop command makes sure that we wait for some time if an rsync is still ongoing, before
+          // actually killing the pod. If the transfer takes more than 30 seconds, which is unlikely, the pod
+          // will be killed anyway. The command works by counting the number of rsync processes. This works
+          // because rsync forks for every connection.
+          command: [
+            "/bin/sh",
+            "-c",
+            "until test $(pgrep -f '^[^ ]+rsync' | wc -l) = 1; do echo waiting for rsync to finish...; sleep 1; done",
+          ],
+        },
+      },
     },
   })
 }
@@ -275,7 +290,7 @@ interface SyncToServiceParams {
   service: GardenService
   hotReloadSpec: ContainerHotReloadSpec
   namespace: string
-  workload: HotReloadableResource
+  workload: SyncableResource
   log: LogEntry
 }
 

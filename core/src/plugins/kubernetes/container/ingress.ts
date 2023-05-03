@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,7 @@ import { ConfigurationError, PluginError } from "../../../exceptions"
 import { ensureSecret } from "../secrets"
 import { getHostnamesFromPem } from "../../../util/tls"
 import { KubernetesResource } from "../types"
-import { ExtensionsV1beta1Ingress, V1Ingress, V1IngressClass, V1Secret } from "@kubernetes/client-node"
+import { V1Ingress, V1Secret } from "@kubernetes/client-node"
 import { LogEntry } from "../../../logger/log-entry"
 import chalk from "chalk"
 
@@ -69,24 +69,6 @@ export async function createIngressResources(
   }
 
   const allIngresses = await getIngressesWithCert(service, api, provider)
-
-  if (apiVersion === "networking.k8s.io/v1") {
-    // Note: We do not create the IngressClass resource automatically here so add a warning if it's not there!
-    const ingressclasses = await api.listResources<KubernetesResource<V1IngressClass>>({
-      apiVersion,
-      kind: "IngressClass",
-      log,
-      namespace: "all",
-    })
-    const ingressclassWithCorrectName = ingressclasses.items.find(
-      (ic) => ic.metadata.name === provider.config.ingressClass
-    )
-    if (!ingressclassWithCorrectName) {
-      log.warn(
-        chalk.yellow(`ingressclass with name "${provider.config.ingressClass}" was not found, ingress might not work`)
-      )
-    }
-  }
 
   return Bluebird.map(allIngresses, async (ingress, index) => {
     const cert = ingress.certificate
@@ -147,7 +129,7 @@ export async function createIngressResources(
 
       extend(annotations, ingress.spec.annotations)
 
-      const ingressResource: KubernetesResource<ExtensionsV1beta1Ingress> = {
+      const ingressResource: KubernetesResource<any> = {
         apiVersion: apiVersion!,
         kind: "Ingress",
         metadata: {

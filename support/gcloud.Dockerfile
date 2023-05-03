@@ -1,7 +1,7 @@
 ARG TAG=latest
-FROM google/cloud-sdk:331.0.0-alpine as gcloud
+FROM google/cloud-sdk:411.0.0-alpine as gcloud
 
-RUN gcloud components install kubectl
+RUN gcloud components install kubectl gke-gcloud-auth-plugin --quiet
 
 FROM gardendev/garden:${TAG}
 

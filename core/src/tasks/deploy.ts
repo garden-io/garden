@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,6 +32,7 @@ export interface DeployTaskParams {
   skipRuntimeDependencies?: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 }
 
 @Profile()
@@ -45,6 +46,7 @@ export class DeployTask extends BaseTask {
   skipRuntimeDependencies: boolean
   devModeServiceNames: string[]
   hotReloadServiceNames: string[]
+  localModeServiceNames: string[]
 
   constructor({
     garden,
@@ -57,6 +59,7 @@ export class DeployTask extends BaseTask {
     skipRuntimeDependencies = false,
     devModeServiceNames,
     hotReloadServiceNames,
+    localModeServiceNames,
   }: DeployTaskParams) {
     super({ garden, log, force, version: service.version })
     this.graph = graph
@@ -66,6 +69,7 @@ export class DeployTask extends BaseTask {
     this.skipRuntimeDependencies = skipRuntimeDependencies
     this.devModeServiceNames = devModeServiceNames
     this.hotReloadServiceNames = hotReloadServiceNames
+    this.localModeServiceNames = localModeServiceNames
   }
 
   async resolveDependencies() {
@@ -89,6 +93,7 @@ export class DeployTask extends BaseTask {
       force: false,
       devModeServiceNames: this.devModeServiceNames,
       hotReloadServiceNames: this.hotReloadServiceNames,
+      localModeServiceNames: this.localModeServiceNames,
     })
 
     if (this.fromWatch && includes(skippedServiceDepNames, this.service.name)) {
@@ -129,6 +134,7 @@ export class DeployTask extends BaseTask {
 
     const devMode = includes(this.devModeServiceNames, this.service.name)
     const hotReload = !devMode && includes(this.hotReloadServiceNames, this.service.name)
+    const localMode = includes(this.localModeServiceNames, this.service.name)
 
     const dependencies = this.graph.getDependencies({
       nodeType: "deploy",
@@ -139,7 +145,7 @@ export class DeployTask extends BaseTask {
     const serviceStatuses = getServiceStatuses(dependencyResults)
     const taskResults = getRunTaskResults(dependencyResults)
 
-    // TODO: attach runtimeContext to GetServiceTask output
+    // TODO: attach runtimeContext to GetServiceStatusTask output
     const runtimeContext = await prepareRuntimeContext({
       garden: this.garden,
       graph: this.graph,
@@ -154,6 +160,7 @@ export class DeployTask extends BaseTask {
 
     let status = serviceStatuses[this.service.name]
     const devModeSkipRedeploy = status.devMode && (devMode || hotReload)
+    const localModeSkipRedeploy = status.localMode && localMode
 
     const log = this.log.info({
       status: "active",
@@ -161,7 +168,11 @@ export class DeployTask extends BaseTask {
       msg: `Deploying version ${version}...`,
     })
 
-    if (!this.force && status.state === "ready" && (version === status.version || devModeSkipRedeploy)) {
+    if (
+      !this.force &&
+      status.state === "ready" &&
+      (version === status.version || devModeSkipRedeploy || localModeSkipRedeploy)
+    ) {
       // already deployed and ready
       log.setSuccess({
         msg: chalk.green("Already deployed"),
@@ -177,6 +188,7 @@ export class DeployTask extends BaseTask {
           force: this.force,
           devMode,
           hotReload,
+          localMode,
         })
       } catch (err) {
         log.setError()
@@ -190,7 +202,7 @@ export class DeployTask extends BaseTask {
     }
 
     for (const ingress of status.ingresses || []) {
-      log.info(chalk.gray("→ Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
+      log.info(chalk.gray("Ingress: ") + chalk.underline.gray(getLinkUrl(ingress)))
     }
 
     if (this.garden.persistent) {
@@ -207,7 +219,7 @@ export class DeployTask extends BaseTask {
 
         log.info(
           chalk.gray(
-            `→ Forward: ` +
+            `Port forward: ` +
               chalk.underline(proxy.localUrl) +
               ` → ${targetHost}:${proxy.spec.targetPort}` +
               (proxy.spec.name ? ` (${proxy.spec.name})` : "")

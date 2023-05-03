@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -92,9 +92,34 @@ export const pluginContextSchema = () =>
       cloudApi: joi.any().optional(),
     })
 
-interface PluginEvents {
-  abort: { reason?: string }
-  log: { data: Buffer }
+export type PluginEventLogContext = {
+  /** entity that created the log message, e.g. tool that generated it */
+  origin: string
+
+  /**
+   * LogEntry placeholder to be used to stream the logs to the CLI
+   * It's recommended to pass a verbose placeholder created like this: `log.placeholder({ level: LogLevel.verbose })`
+   *
+   * @todo 0.13 consider removing this once we have the append-only logger (#3254)
+   */
+  log: LogEntry
+}
+
+export type PluginEventLogMessage = PluginEventLogContext & {
+  /**
+   * ISO format date string
+   */
+  timestamp: string
+
+  /** log message */
+  data: Buffer
+}
+
+// Define your emitter's types like that:
+// Key: Event name; Value: Listener function signature
+type PluginEvents = {
+  abort: (reason?: string) => void
+  log: (msg: PluginEventLogMessage) => void
 }
 
 type PluginEventType = keyof PluginEvents

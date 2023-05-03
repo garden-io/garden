@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -30,6 +30,7 @@ export async function execInHelmService(params: ExecInServiceParams<HelmModule>)
     },
     devMode: false,
     hotReload: false,
+    localMode: false,
   })
   const namespace = await getAppNamespace(k8sCtx, log, k8sCtx.provider)
 
@@ -40,6 +41,7 @@ export async function execInHelmService(params: ExecInServiceParams<HelmModule>)
     module,
     devMode: false,
     hotReload: false,
+    localMode: false,
     log,
     version: service.version,
   })

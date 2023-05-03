@@ -47,6 +47,20 @@ The environment variable value.
 | -------- |
 | `string` |
 
+### `${local.arch}`
+
+A string indicating the architecture that the framework is running on (see https://nodejs.org/api/process.html#process_process_arch)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.arch}
+```
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -297,9 +311,9 @@ A map of all variables defined in the project configuration, including environme
 
 ### `${variables.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${var.*}`
 
@@ -313,9 +327,9 @@ Alias for the variables field.
 
 Number, string or boolean
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${environment.*}`
 
@@ -397,7 +411,7 @@ for its output schema.
 
 ### `${steps.<step-name>.outputs.<output-key>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 

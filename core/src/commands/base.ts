@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -89,9 +89,6 @@ export abstract class Command<T extends Parameters = {}, U extends Parameters = 
   hidden: boolean = false
   noProject: boolean = false
   protected: boolean = false
-  // Set to true to disable post-execution logging of command errors by the CLI class (e.g. to avoid duplicate logging
-  // when the command does its own error logging/formatting in its action method).
-  skipCliErrorSummary: boolean = false
   streamEvents: boolean = false // Set to true to stream events for the command
   streamLogEntries: boolean = false // Set to true to stream log entries for the command
   server: GardenServer | undefined = undefined
@@ -532,7 +529,7 @@ export async function handleProcessResults(
   const failedCount = size(failed)
 
   if (failedCount > 0) {
-    const error = new RuntimeError(`${failedCount} ${taskType} task(s) failed!`, { results: failed })
+    const error = new RuntimeError(`${failedCount} ${taskType} action(s) failed!`, { results: failed })
     return { result, errors: [error], restartRequired: false }
   }
 

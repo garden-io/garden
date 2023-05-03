@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,7 @@ import { KubernetesServerResource, KubernetesWorkload } from "../types"
 interface ContainerStatusDetail {
   remoteResources: KubernetesServerResource[]
   workload: KubernetesWorkload | null
+  selectorChangedResourceKeys: string[]
 }
 
 export type ContainerServiceStatus = ServiceStatus<ContainerStatusDetail>
@@ -37,6 +38,7 @@ export async function getContainerServiceStatus({
   log,
   devMode,
   hotReload,
+  localMode,
 }: GetServiceStatusParams<ContainerModule>): Promise<ContainerServiceStatus> {
   const k8sCtx = <KubernetesPluginContext>ctx
   // TODO: hash and compare all the configuration files (otherwise internal changes don't get deployed)
@@ -44,6 +46,7 @@ export async function getContainerServiceStatus({
   const api = await KubeApi.factory(log, ctx, provider)
   const namespaceStatus = await getAppNamespaceStatus(k8sCtx, log, k8sCtx.provider)
   const namespace = namespaceStatus.namespaceName
+  const enableDevMode = devMode && !!service.spec.devMode
 
   // FIXME: [objects, matched] and ingresses can be run in parallel
   const { workload, manifests } = await createContainerManifests({
@@ -52,31 +55,36 @@ export async function getContainerServiceStatus({
     log,
     service,
     runtimeContext,
-    enableDevMode: devMode,
+    enableDevMode,
     enableHotReload: hotReload,
+    enableLocalMode: localMode,
     blueGreen: provider.config.deploymentStrategy === "blue-green",
   })
-  const { state, remoteResources, deployedWithDevMode, deployedWithHotReloading } = await compareDeployedResources(
-    k8sCtx,
-    api,
-    namespace,
-    manifests,
-    log
-  )
+  const {
+    state,
+    remoteResources,
+    deployedWithDevMode,
+    deployedWithHotReloading,
+    deployedWithLocalMode,
+    selectorChangedResourceKeys,
+  } = await compareDeployedResources(k8sCtx, api, namespace, manifests, log)
   const ingresses = await getIngresses(service, api, provider)
 
-  const forwardablePorts: ForwardablePort[] = service.spec.ports
-    .filter((p) => p.protocol === "TCP")
-    .map((p) => {
-      return {
-        name: p.name,
-        protocol: "TCP",
-        targetPort: p.servicePort,
-        preferredLocalPort: p.localPort,
-        // TODO: this needs to be configurable
-        // urlProtocol: "http",
-      }
-    })
+  // Local mode has its own port-forwarding configuration
+  const forwardablePorts: ForwardablePort[] = deployedWithLocalMode
+    ? []
+    : service.spec.ports
+        .filter((p) => p.protocol === "TCP")
+        .map((p) => {
+          return {
+            name: p.name,
+            protocol: "TCP",
+            targetPort: p.servicePort,
+            preferredLocalPort: p.localPort,
+            // TODO: this needs to be configurable
+            // urlProtocol: "http",
+          }
+        })
 
   const status = {
     forwardablePorts,
@@ -84,8 +92,9 @@ export async function getContainerServiceStatus({
     state,
     namespaceStatuses: [namespaceStatus],
     version: state === "ready" ? service.version : undefined,
-    detail: { remoteResources, workload },
+    detail: { remoteResources, workload, selectorChangedResourceKeys },
     devMode: deployedWithDevMode || deployedWithHotReloading,
+    localMode: deployedWithLocalMode,
   }
 
   if (state === "ready" && devMode) {
@@ -112,6 +121,7 @@ export async function waitForContainerService(
   service: GardenService,
   devMode: boolean,
   hotReload: boolean,
+  localMode: boolean,
   timeout = KUBECTL_DEFAULT_TIMEOUT
 ) {
   const startTime = new Date().getTime()
@@ -125,6 +135,7 @@ export async function waitForContainerService(
       module: service.module,
       devMode,
       hotReload,
+      localMode,
     })
 
     if (status.state === "ready" || status.state === "outdated") {

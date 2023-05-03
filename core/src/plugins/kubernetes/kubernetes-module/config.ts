@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,24 +13,27 @@ import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plu
 import { GardenService } from "../../../types/service"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { KubernetesResource } from "../types"
-import { deline, dedent } from "../../../util/string"
+import { dedent, deline } from "../../../util/string"
 import {
-  serviceResourceSchema,
-  kubernetesTaskSchema,
-  kubernetesTestSchema,
-  ServiceResourceSpec,
-  KubernetesTestSpec,
-  KubernetesTaskSpec,
-  namespaceNameSchema,
   containerModuleSchema,
   hotReloadArgsSchema,
-  serviceResourceDescription,
-  portForwardsSchema,
-  PortForwardSpec,
   k8sDeploymentTimeoutSchema,
+  kubernetesDevModeSchema,
+  KubernetesDevModeSpec,
+  kubernetesLocalModeSchema,
+  KubernetesLocalModeSpec,
+  kubernetesTaskSchema,
+  KubernetesTaskSpec,
+  kubernetesTestSchema,
+  KubernetesTestSpec,
+  namespaceNameSchema,
+  PortForwardSpec,
+  portForwardsSchema,
+  serviceResourceDescription,
+  serviceResourceSchema,
+  ServiceResourceSpec,
 } from "../config"
 import { ContainerModule } from "../../container/config"
-import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
 import { KubernetesKustomizeSpec, kustomizeSpecSchema } from "./kustomize"
 
 // A Kubernetes Module always maps to a single Service
@@ -38,11 +41,13 @@ export type KubernetesModuleSpec = KubernetesServiceSpec
 
 export interface KubernetesModule
   extends GardenModule<KubernetesModuleSpec, KubernetesServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
+
 export type KubernetesModuleConfig = KubernetesModule["_config"]
 
 export interface KubernetesServiceSpec {
   dependencies: string[]
   devMode?: KubernetesDevModeSpec
+  localMode?: KubernetesLocalModeSpec
   files: string[]
   kustomize?: KubernetesKustomizeSpec
   manifests: KubernetesResource[]
@@ -77,6 +82,7 @@ export const kubernetesModuleSpecSchema = () =>
     build: baseBuildSpecSchema(),
     dependencies: dependenciesSchema(),
     devMode: kubernetesDevModeSchema(),
+    localMode: kubernetesLocalModeSchema(),
     files: joiSparseArray(joi.posixPath().subPathOnly()).description(
       "POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any Garden template strings, which will be resolved before applying the manifests."
     ),
@@ -116,6 +122,8 @@ export async function configureKubernetesModule({
 }: ConfigureModuleParams<KubernetesModule>): Promise<ConfigureModuleResult<KubernetesModule>> {
   const { serviceResource, kustomize } = moduleConfig.spec
   const sourceModuleName = serviceResource ? serviceResource.containerModule : undefined
+
+  // TODO-G2: validate serviceResource.containerModule to be a build dependency
 
   moduleConfig.serviceConfigs = [
     {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -15,11 +15,12 @@ import { createGardenPlugin } from "../../../../../src/types/plugin/plugin"
 import { joi } from "../../../../../src/config/common"
 import { ServiceState } from "../../../../../src/types/service"
 import { GetServiceStatusParams } from "../../../../../src/types/plugin/service/getServiceStatus"
-import { TestGarden, getLogMessages } from "../../../../helpers"
+import { TestGarden } from "../../../../helpers"
 import { GetStatusCommand } from "../../../../../src/commands/get/get-status"
 import { withDefaultGlobalOpts } from "../../../../helpers"
 import { expect } from "chai"
 import { LogLevel } from "../../../../../src/logger/logger"
+import { getLogMessages } from "../../../../../src/util/testing"
 
 describe("GetStatusCommand", () => {
   let tmpDir: tmp.DirectoryResult
@@ -28,7 +29,7 @@ describe("GetStatusCommand", () => {
   before(async () => {
     tmpDir = await tmp.dir({ unsafeCleanup: true })
 
-    await execa("git", ["init"], { cwd: tmpDir.path })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
 
     config = {
       apiVersion: DEFAULT_API_VERSION,

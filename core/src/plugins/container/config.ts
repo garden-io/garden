@@ -1,35 +1,36 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GardenModule, FileCopySpec } from "../../types/module"
+import { FileCopySpec, GardenModule } from "../../types/module"
 import {
-  joiUserIdentifier,
-  PrimitiveMap,
-  joiPrimitive,
-  joi,
   envVarRegex,
-  Primitive,
-  joiModuleIncludeDirective,
+  joi,
   joiIdentifier,
+  joiModuleIncludeDirective,
+  joiPrimitive,
   joiSparseArray,
+  joiStringMap,
+  joiUserIdentifier,
+  Primitive,
+  PrimitiveMap,
 } from "../../config/common"
-import { ArtifactSpec } from "./../../config/validation"
+import { ArtifactSpec } from "../../config/validation"
 import { GardenService, ingressHostnameSchema, linkUrlSchema } from "../../types/service"
 import { DEFAULT_PORT_PROTOCOL } from "../../constants"
-import { ModuleSpec, ModuleConfig, baseBuildSpecSchema, BaseBuildSpec } from "../../config/module"
-import { CommonServiceSpec, ServiceConfig, baseServiceSpecSchema } from "../../config/service"
-import { baseTaskSpecSchema, BaseTaskSpec, cacheResultSchema } from "../../config/task"
-import { baseTestSpecSchema, BaseTestSpec } from "../../config/test"
-import { joiStringMap } from "../../config/common"
+import { BaseBuildSpec, baseBuildSpecSchema, ModuleConfig, ModuleSpec } from "../../config/module"
+import { baseServiceSpecSchema, CommonServiceSpec, ServiceConfig } from "../../config/service"
+import { BaseTaskSpec, baseTaskSpecSchema, cacheResultSchema } from "../../config/task"
+import { BaseTestSpec, baseTestSpecSchema } from "../../config/test"
 import { dedent, deline } from "../../util/string"
 import { ContainerModuleOutputs } from "./container"
 import { devModeGuideLink } from "../kubernetes/dev-mode"
 import { k8sDeploymentTimeoutSchema } from "../kubernetes/config"
+import { localModeGuideLink } from "../kubernetes/local-mode"
 
 export const defaultContainerLimits: ServiceLimitSpec = {
   cpu: 1000, // = 1000 millicpu = 1 CPU
@@ -98,11 +99,11 @@ export interface ServiceLimitSpec {
 export interface ContainerResourcesSpec {
   cpu: {
     min: number
-    max: number
+    max: number | null
   }
   memory: {
     min: number
-    max: number
+    max: number | null
   }
 }
 
@@ -110,12 +111,17 @@ interface Annotations {
   [name: string]: string
 }
 
+const deploymentStrategies = ["RollingUpdate", "Recreate"] as const
+export type DeploymentStrategy = typeof deploymentStrategies[number]
+export const defaultDeploymentStrategy: DeploymentStrategy = "RollingUpdate"
+
 export interface ContainerServiceSpec extends CommonServiceSpec {
   annotations: Annotations
   command?: string[]
   args: string[]
   daemon: boolean
   devMode?: ContainerDevModeSpec
+  localMode?: ContainerLocalModeSpec
   ingresses: ContainerIngressSpec[]
   env: PrimitiveMap
   healthCheck?: ServiceHealthCheckSpec
@@ -129,8 +135,10 @@ export interface ContainerServiceSpec extends CommonServiceSpec {
   replicas?: number
   volumes: ContainerVolumeSpec[]
   privileged?: boolean
+  tty?: boolean
   addCapabilities?: string[]
   dropCapabilities?: string[]
+  deploymentStrategy: DeploymentStrategy
 }
 
 export const commandExample = ["/bin/sh", "-c"]
@@ -250,6 +258,16 @@ export const syncDefaultGroupSchema = () =>
 const devModeSyncSchema = () =>
   hotReloadSyncSchema().keys({
     exclude: syncExcludeSchema(),
+    source: joi // same as hotReloadSyncSchema but no subPathOnly and relativeOnly
+      .posixPath()
+      .allowGlobs()
+      .default(".")
+      .description(
+        deline`
+      POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
+      Defaults to the module's top-level directory if no value is provided.`
+      )
+      .example("src"),
     mode: joi
       .string()
       .allow(
@@ -299,6 +317,101 @@ export const containerDevModeSchema = () =>
     Dev mode is enabled when running the \`garden dev\` command, and by setting the \`--dev\` flag on the \`garden deploy\` command.
 
     See the [Code Synchronization guide](${devModeGuideLink}) for more information.
+  `)
+
+const defaultLocalModeRestartDelayMsec = 1000
+const defaultLocalModeMaxRestarts = Number.POSITIVE_INFINITY
+
+export interface LocalModeRestartSpec {
+  delayMsec: number
+  max: number
+}
+
+export const localModeRestartSchema = () =>
+  joi
+    .object()
+    .keys({
+      delayMsec: joi
+        .number()
+        .integer()
+        .greater(-1)
+        .optional()
+        .default(defaultLocalModeRestartDelayMsec)
+        .description(
+          `Delay in milliseconds between the local application restart attempts. The default value is ${defaultLocalModeRestartDelayMsec}ms.`
+        ),
+      max: joi
+        .number()
+        .integer()
+        .greater(-1)
+        .optional()
+        .default(defaultLocalModeMaxRestarts)
+        .description("Max number of the local application restarts. Unlimited by default."),
+    })
+    .optional()
+    .default({
+      delayMsec: defaultLocalModeRestartDelayMsec,
+      max: defaultLocalModeMaxRestarts,
+    })
+    .description(
+      `Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with ${defaultLocalModeRestartDelayMsec}ms between attempts.`
+    )
+
+export interface LocalModePortsSpec {
+  local: number
+  remote: number
+}
+
+export const localModePortsSchema = () =>
+  joi.object().keys({
+    local: joi
+      .number()
+      .integer()
+      .greater(0)
+      .optional()
+      .description("The local port to be used for reverse port-forward."),
+    remote: joi
+      .number()
+      .integer()
+      .greater(0)
+      .optional()
+      .description("The remote port to be used for reverse port-forward."),
+  })
+
+export interface ContainerLocalModeSpec {
+  ports: LocalModePortsSpec[]
+  command?: string[]
+  restart: LocalModeRestartSpec
+}
+
+export const containerLocalModeSchema = () =>
+  joi.object().keys({
+    ports: joi
+      .array()
+      .items(localModePortsSchema())
+      .description("The reverse port-forwards configuration for the local application."),
+    command: joi
+      .sparseArray()
+      .optional()
+      .items(joi.string())
+      .description(
+        "The command to run the local application. If not present, then the local application should be started manually."
+      ),
+    restart: localModeRestartSchema(),
+  }).description(dedent`
+    [EXPERIMENTAL] Configures the local application which will send and receive network requests instead of the target resource.
+
+    The target service will be replaced by a proxy container which runs an SSH server to proxy requests.
+    Reverse port-forwarding will be automatically configured to route traffic to the local service and back.
+
+    Local mode is enabled by setting the \`--local\` option on the \`garden deploy\` or \`garden dev\` commands.
+    Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+    Health checks are disabled for services running in local mode.
+
+    See the [Local Mode guide](${localModeGuideLink}) for more information.
+
+    Note! This feature is still experimental. Some incompatible changes can be made until the first non-experimental release.
   `)
 
 export type ContainerServiceConfig = ServiceConfig<ContainerServiceSpec>
@@ -423,14 +536,14 @@ const limitsSchema = () =>
 export const containerCpuSchema = (targetType: string) =>
   joi.object().keys({
     min: joi.number().default(defaultContainerResources.cpu.min).description(deline`
-          The minimum amount of CPU the ${targetType} needs to be available for it to be deployed, in millicpus
-          (i.e. 1000 = 1 CPU)
-        `),
-    max: joi
-      .number()
-      .default(defaultContainerResources.cpu.max)
-      .min(10)
-      .description(`The maximum amount of CPU the ${targetType} can use, in millicpus (i.e. 1000 = 1 CPU)`),
+        The minimum amount of CPU the ${targetType} needs to be available for it to be deployed, in millicpus
+        (i.e. 1000 = 1 CPU)
+      `),
+    max: joi.number().default(defaultContainerResources.cpu.max).min(defaultContainerResources.cpu.min).allow(null)
+      .description(deline`
+        The maximum amount of CPU the ${targetType} can use, in millicpus (i.e. 1000 = 1 CPU).
+        If set to null will result in no limit being set.
+      `),
   })
 
 export const containerMemorySchema = (targetType: string) =>
@@ -439,11 +552,10 @@ export const containerMemorySchema = (targetType: string) =>
         The minimum amount of RAM the ${targetType} needs to be available for it to be deployed, in megabytes
         (i.e. 1024 = 1 GB)
       `),
-    max: joi
-      .number()
-      .default(defaultContainerResources.memory.min)
-      .min(64)
-      .description(`The maximum amount of RAM the ${targetType} can use, in megabytes (i.e. 1024 = 1 GB)`),
+    max: joi.number().default(defaultContainerResources.memory.max).allow(null).min(64).description(deline`
+        The maximum amount of RAM the ${targetType} can use, in megabytes (i.e. 1024 = 1 GB)
+        If set to null will result in no limit being set.
+      `),
   })
 
 export const portSchema = () =>
@@ -586,6 +698,7 @@ const containerServiceSchema = () =>
         May not be supported by all providers.
       `),
     devMode: containerDevModeSchema(),
+    localMode: containerLocalModeSchema(),
     ingresses: joiSparseArray(ingressSchema())
       .description("List of ingress endpoints that the service exposes.")
       .example([{ path: "/api", port: "http" }]),
@@ -625,14 +738,26 @@ const containerServiceSchema = () =>
     `),
     volumes: getContainerVolumesSchema("service"),
     privileged: containerPrivilegedSchema("service"),
+    tty: joi
+      .boolean()
+      .default(false)
+      .description(
+        "Specify if containers in this module have TTY support enabled (which implies having stdin support enabled)."
+      ),
     addCapabilities: containerAddCapabilitiesSchema("service"),
     dropCapabilities: containerDropCapabilitiesSchema("service"),
+    deploymentStrategy: joi
+      .string()
+      .default(defaultDeploymentStrategy)
+      .valid(...deploymentStrategies)
+      .description("Specifies the container's deployment strategy."),
   })
 
 export interface ContainerRegistryConfig {
   hostname: string
   port?: number
   namespace: string
+  insecure: boolean
 }
 
 export const containerRegistryConfigSchema = () =>
@@ -646,13 +771,15 @@ export const containerRegistryConfigSchema = () =>
     namespace: joi
       .string()
       .default("_")
-      .description("The namespace in the registry where images should be pushed.")
+      .description(
+        "The registry namespace. Will be placed between hostname and image name, like so: <hostname>/<namespace>/<image name>"
+      )
       .example("my-project"),
-  }).description(dedent`
-    The registry where built containers should be pushed to, and then pulled to the cluster when deploying services.
-
-    Important: If you specify this in combination with in-cluster building, you must make sure \`imagePullSecrets\` includes authentication with the specified deployment registry, that has the appropriate write privileges (usually full write access to the configured \`deploymentRegistry.namespace\`).
-  `)
+    insecure: joi
+      .boolean()
+      .default(false)
+      .description("Set to true to allow insecure connections to the registry (without SSL)."),
+  })
 
 export interface ContainerService extends GardenService<ContainerModule> {}
 

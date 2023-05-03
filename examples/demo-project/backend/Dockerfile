@@ -1,4 +1,4 @@
-FROM golang:1.17.7-alpine
+FROM golang:1.18.3-alpine3.16
 
 ENV PORT=8080
 EXPOSE ${PORT}

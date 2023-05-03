@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -116,8 +116,8 @@ export async function ensureNamespace(
 function namespaceNeedsUpdate(resource: KubernetesServerResource<V1Namespace> | undefined, config: NamespaceConfig) {
   return (
     resource &&
-    (!isSubset(resource.metadata?.annotations, config.annotations) ||
-      !isSubset(resource.metadata?.labels, config.labels))
+    (!isSubset(resource.metadata?.annotations || {}, config.annotations || {}) ||
+      !isSubset(resource.metadata?.labels || {}, config.labels || {}))
   )
 }
 
@@ -243,7 +243,7 @@ export async function prepareNamespaces({ ctx, log }: GetEnvironmentStatusParams
       dedent`
       Unable to connect to Kubernetes cluster. Got error:
 
-      ${err.message}
+      ${err.stack}
     `,
       { providerConfig: k8sCtx.provider.config }
     )

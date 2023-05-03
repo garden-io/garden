@@ -38,7 +38,7 @@ fi
 PLATFORM=${OS}-amd64
 
 filename="garden-${GARDEN_VERSION}-${PLATFORM}.tar.gz"
-url="https://github.com/garden-io/garden/releases/download/${GARDEN_VERSION}/${filename}"
+url="https://download.garden.io/core/${GARDEN_VERSION}/${filename}"
 
 tmp=$(mktemp -d /tmp/garden-install.XXXXXX)
 (

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,6 +13,15 @@ import { remove, pathExists } from "fs-extra"
 import { getChildDirNames } from "../../util/fs"
 import { ExternalSourceType, getRemoteSourcesDirname, getRemoteSourceRelPath } from "../../util/ext-source-util"
 import { SourceConfig } from "../../config/project"
+import { BooleanParameter } from "../../cli/params"
+
+export const updateRemoteSharedOptions = {
+  parallel: new BooleanParameter({
+    help:
+      "Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.",
+    defaultValue: false,
+  }),
+}
 
 export async function pruneRemoteSources({
   gardenDirPath,

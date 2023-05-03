@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -32,11 +32,36 @@ import { randomString } from "../util/string"
 import { authTokenHeader } from "../cloud/api"
 import { ApiEventBatch } from "../cloud/buffered-event-stream"
 import { LogLevel } from "../logger/logger"
+import { clientRequestNames, ClientRouter } from "./client-router"
 
 // Note: This is different from the `garden dashboard` default port.
 // We may no longer embed servers in watch processes from 0.13 onwards.
 export const defaultWatchServerPort = 9777
 const notReadyMessage = "Waiting for Garden instance to initialize"
+
+interface WebsocketCloseEvent {
+  code: number
+  message: string
+}
+
+interface WebsocketCloseEvents {
+  notReady: WebsocketCloseEvent
+  unauthorized: WebsocketCloseEvent
+}
+
+// Using the websocket closed private range (4000-4999) for the closed codes
+// and adding normal HTTP status codes. So something that would be a 503 HTTP code translates to 4503.
+// See also: https://www.iana.org/assignments/websocket/websocket.xhtml
+const websocketCloseEvents: WebsocketCloseEvents = {
+  notReady: {
+    code: 4503,
+    message: "Not ready",
+  },
+  unauthorized: {
+    code: 4401,
+    message: "Unauthorized",
+  },
+}
 
 /**
  * Start an HTTP server that exposes commands and events for the given Garden instance.
@@ -64,6 +89,7 @@ export class GardenServer {
   private debugLog: LogEntry
   private server: Server
   private garden: Garden | undefined
+  private clientRouter: ClientRouter | undefined
   private app: websockify.App
   private analytics: AnalyticsHandler
   private incomingEvents: EventBus
@@ -78,6 +104,7 @@ export class GardenServer {
     this.log = log
     this.debugLog = this.log.placeholder({ level: LogLevel.debug, childEntriesInheritLevel: true })
     this.garden = undefined
+    this.clientRouter = undefined
     this.port = port
     this.authKey = randomString(24)
     this.incomingEvents = new EventBus()
@@ -117,7 +144,6 @@ export class GardenServer {
       } while (!this.server)
     }
 
-    this.log.info("")
     this.statusLog = this.log.placeholder()
   }
 
@@ -130,10 +156,15 @@ export class GardenServer {
   }
 
   showUrl(url?: string) {
-    this.statusLog.setState({
-      emoji: "sunflower",
-      msg: chalk.cyan("Garden dashboard running at ") + chalk.blueBright(url || this.getUrl()),
-    })
+    const msg = chalk.white("Garden dashboard running at ") + chalk.blueBright(url || this.getUrl())
+    if (this.statusLog.root.type === "fancy") {
+      this.statusLog.setState({
+        emoji: "sunflower",
+        msg,
+      })
+    } else {
+      this.statusLog.info({ section: "garden", msg })
+    }
   }
 
   async close() {
@@ -147,6 +178,7 @@ export class GardenServer {
 
     this.garden = garden
     this.garden.log = this.debugLog
+    this.clientRouter = new ClientRouter(this.garden, this.log)
 
     // Serve artifacts as static assets
     this.app.use(mount("/artifacts", serve(garden.artifactsPath)))
@@ -299,14 +331,17 @@ export class GardenServer {
     const wsRouter = new Router()
 
     wsRouter.get("/ws", async (ctx) => {
+      // The typing for koa-websocket isn't working currently
+      const websocket: Koa.Context["ws"] = ctx["websocket"]
+
       if (!this.garden) {
-        return this.notReady(ctx)
+        this.log.debug("Server not ready.")
+        const wsNotReadyEvent = websocketCloseEvents.notReady
+        websocket.close(wsNotReadyEvent.code, wsNotReadyEvent.message)
+        return
       }
 
       const connId = uuidv4()
-
-      // The typing for koa-websocket isn't working currently
-      const websocket: Koa.Context["ws"] = ctx["websocket"]
 
       // Helper to make JSON messages, make them type-safe, and to log errors.
       const send = <T extends ServerWebsocketMessageType>(type: T, payload: ServerWebsocketMessages[T]) => {
@@ -327,13 +362,15 @@ export class GardenServer {
       // TODO: Only allow auth key authentication
       if (ctx.query.sessionId !== `${this.garden.sessionId}` && ctx.query.key !== `${this.authKey}`) {
         error(`401 Unauthorized`)
-        websocket.terminate()
+        const wsUnauthorizedEvent = websocketCloseEvents.unauthorized
+        websocket.close(wsUnauthorizedEvent.code, wsUnauthorizedEvent.message)
         return
       }
 
+      send("event", { name: "serverReady", payload: {} })
+
       // Set up heartbeat to detect dead connections
       let isAlive = true
-
       let heartbeatInterval = setInterval(() => {
         if (!isAlive) {
           this.log.debug(`Connection ${connId} timed out.`)
@@ -341,16 +378,14 @@ export class GardenServer {
         }
 
         isAlive = false
-        this.log.debug(`Connection ${connId} ping.`)
         websocket.ping(() => {})
       }, 1000)
 
       websocket.on("pong", () => {
-        this.log.debug(`Connection ${connId} pong.`)
         isAlive = true
       })
 
-      // Pipe everything from the event bus to the socket, as well as from the /events endpoint
+      // Pipe everything from the event bus to the socket, as well as from the /events endpoint.
       const eventListener = (name: EventName, payload: any) => send("event", { name, payload })
       this.garden.events.onAny(eventListener)
       this.incomingEvents.onAny(eventListener)
@@ -478,8 +513,10 @@ export class GardenServer {
           })
         } else if (request.type === "abortCommand") {
           const req = this.activePersistentRequests[requestId]
-          req.command.terminate()
+          req && req.command.terminate()
           delete this.activePersistentRequests[requestId]
+        } else if (clientRequestNames.find((e) => e === request.type)) {
+          this.clientRouter?.dispatch(request.type, request)
         } else {
           return send("error", {
             requestId,

@@ -1,6 +1,6 @@
 kind: Module
 name: module-a
-repositoryUrl: https://my-git-server.com/my-repo.git#master
+repositoryUrl: https://my-git-server.com/my-repo.git#main
 type: test
 services:
   - name: service-a

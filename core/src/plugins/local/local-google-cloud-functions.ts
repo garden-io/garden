@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -11,7 +11,7 @@ import { GcfModule, configureGcfModule } from "../google/google-cloud-functions"
 import { createGardenPlugin } from "../../types/plugin/plugin"
 import { STATIC_DIR, DEFAULT_API_VERSION } from "../../constants"
 import { ServiceConfig } from "../../config/service"
-import { ContainerModuleConfig } from "../container/config"
+import { ContainerModuleConfig, defaultDeploymentStrategy } from "../container/config"
 import { ContainerServiceSpec, ServicePortProtocol } from "../container/config"
 import { ConfigureProviderParams } from "../../types/plugin/provider/configureProvider"
 import { ConfigureModuleParams } from "../../types/plugin/module/configure"
@@ -107,6 +107,7 @@ export const gardenPlugin = () =>
                 ],
                 replicas: 1,
                 volumes: [],
+                deploymentStrategy: defaultDeploymentStrategy,
               }
 
               return {

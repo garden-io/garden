@@ -45,7 +45,7 @@ test_release() {
   # Mac doesn't have a timeout command so we alias to gtimeout (or exit if gtimeout is not installed).
   if [[ "$OSTYPE" == "darwin"* ]]; then
     if ! [ -x "$(command -v gtimeout)" ]; then
-      echo "Command gtimeout is missing - You can install it with 'brew install gtimeout' on macOS"
+      echo "Command gtimeout is missing - You can install it with 'brew install coreutils' on macOS"
       return 1
     else
       alias timeout=gtimeout
@@ -106,22 +106,22 @@ test_release() {
   cd disabled-configs
   timeout 1m ${garden_release} serve
 
-  echo ""
-  echo "→ Running 'garden deploy --hot=node-service' in hot-reload project - exits after 1 minute. Use the chance to test if hot-reload works"
-  echo "→ Try e.g. to update this file: ${garden_root}/examples/hot-reload/node-service/app.js"
-  echo ""
-  cd ..
-  cd hot-reload
-  timeout 1m ${garden_release} deploy --hot node-service
-
   # Remove the alias we set above
   if [[ "$OSTYPE" == "darwin"* ]]; then
     unalias timeout
   fi
 
   cd $garden_root
-  echo "Done! Make sure to revert any changes that were made during the test run."
+  echo "Done!"
+}
+
+cleanup() {
+  echo ""
+  echo "Reverting git changes"
+  git checkout .
+  echo "Done!"
 }
 
 download_release
 test_release
+cleanup

@@ -1,0 +1,5 @@
+config:
+  'pulumi-k8s:appName': api-pulumi-variables-override
+  'kubernetes:context': docker-desktop
+  'pulumi-k8s:orgName': gordon-garden-bot
+  'pulumi-k8s:isMinikube': 'true'

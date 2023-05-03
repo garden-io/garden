@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,7 +21,7 @@ import {
   V1DeploymentSpec,
 } from "@kubernetes/client-node"
 import dedent = require("dedent")
-import { getCurrentWorkloadPods } from "../util"
+import { getCurrentWorkloadPods, renderPodEvents } from "../util"
 import { getFormattedPodLogs, POD_LOG_LINES } from "./pod"
 import { ResourceStatus, StatusHandlerParams } from "./status"
 import { getResourceEvents } from "./events"
@@ -71,15 +71,7 @@ export async function checkWorkloadStatus({ api, namespace, resource }: StatusHa
     // List events
     const events = await getEvents()
     if (events.length > 0) {
-      logs += chalk.white("━━━ Events ━━━")
-      for (const event of events) {
-        const obj = event.involvedObject
-        const name = chalk.blueBright(`${obj.kind} ${obj.name}:`)
-        const msg = `${event.reason} - ${event.message}`
-        const colored =
-          event.type === "Error" ? chalk.red(msg) : event.type === "Warning" ? chalk.yellow(msg) : chalk.white(msg)
-        logs += `\n${name} ${colored}`
-      }
+      logs += renderPodEvents(events)
     }
 
     // Attach pod logs for debug output
@@ -227,7 +219,7 @@ async function getRolloutStatus(workload: Workload) {
     const status = <V1DeploymentStatus>workload.status
     const deploymentSpec = <V1DeploymentSpec>workload.spec
 
-    const desired = deploymentSpec.replicas || 1
+    const desired = deploymentSpec.replicas === undefined ? 1 : deploymentSpec.replicas
     const updated = status.updatedReplicas || 0
     const replicas = status.replicas || 0
     const available = status.availableReplicas || 0

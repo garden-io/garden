@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,7 +28,7 @@ describe("CreateModuleCommand", () => {
 
   beforeEach(async () => {
     tmp = await makeTempDir()
-    await exec("git", ["init"], { cwd: tmp.path })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmp.path })
     garden = await makeDummyGarden(tmp.path, { commandInfo: { name: "create module", args: {}, opts: {} } })
   })
 
@@ -269,11 +269,6 @@ describe("CreateModuleCommand", () => {
           name: "helm (based on found Chart.yaml, suggested by kubernetes)",
           short: "helm",
           value: { type: "helm", name: "test", chartPath: "." },
-        },
-        {
-          name: "terraform (based on found .tf files, suggested by terraform)",
-          short: "terraform",
-          value: { type: "terraform", name: "test", autoApply: false },
         },
         new inquirer.Separator(),
         ...Object.keys(moduleTypes).map((type) => ({ name: type, value: { kind: "Module", type, name: "test" } })),

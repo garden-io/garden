@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -45,6 +45,17 @@ export const kustomizeSpec: PluginToolSpec = {
       url:
         "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_darwin_amd64.tar.gz",
       sha256: "4b7dac92c8f2dd383651276c78d9e6d28031f50f3711cd987347a08edf0c8335",
+      extract: {
+        format: "tar",
+        targetPath: "kustomize",
+      },
+    },
+    {
+      platform: "darwin",
+      architecture: "arm64",
+      url:
+        "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv4.5.2/kustomize_v4.5.2_darwin_arm64.tar.gz",
+      sha256: "4ee7ef099b8f59d65cb393d9c1b8fa49a392529dbefcd469359cc51094dad517",
       extract: {
         format: "tar",
         targetPath: "kustomize",

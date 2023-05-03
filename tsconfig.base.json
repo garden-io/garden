@@ -27,7 +27,7 @@
     "preserveWatchOutput": true,
     "strictFunctionTypes": true,
     "strictNullChecks": true,
-    "sourceMap": true,
+    "inlineSourceMap": true,
     "target": "es2019"
   },
   "exclude": [

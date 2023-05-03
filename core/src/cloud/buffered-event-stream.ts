@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -112,8 +112,8 @@ export class BufferedEventStream {
   private workflowRunUid: string | undefined
 
   /**
-   * We maintain this map to facilitate unsubscribing from a previously connected event bus
-   * when a new event bus is connected.
+   * We maintain this map to facilitate unsubscribing from a previous Garden instance's event bus
+   * when a new Garden instance is connected.
    */
   private gardenEventListeners: { [eventName: string]: (payload: any) => void }
 

@@ -1,0 +1,4 @@
+kind: Module
+description: Image for the backend service
+type: container
+name: backend-image

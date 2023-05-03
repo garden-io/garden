@@ -1,12 +1,12 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { GetAllGroupsResponse } from "@garden-io/platform-api-types"
+import { ListGroupsResponse } from "@garden-io/platform-api-types"
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
@@ -18,7 +18,7 @@ import { noApiMsg, applyFilter } from "../helpers"
 
 // TODO: Add created at and updated at timestamps. Need to add it to the API response first.
 interface Groups {
-  id: number
+  id: string
   name: string
   description: string
   defaultAdminGroup: boolean
@@ -26,7 +26,7 @@ interface Groups {
 
 export class GroupsCommand extends CommandGroup {
   name = "groups"
-  help = "[EXPERIMENTAL] List groups."
+  help = "List groups."
 
   subCommands = [GroupsListCommand]
 }
@@ -41,7 +41,7 @@ type Opts = typeof groupsListOpts
 
 export class GroupsListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "[EXPERIMENTAL] List groups."
+  help = "List groups."
   description = dedent`
     List all groups from Garden Cloud. This is useful for getting the group IDs when creating
     users via the \`garden cloud users create\` command.
@@ -65,7 +65,7 @@ export class GroupsListCommand extends Command<{}, Opts> {
       throw new ConfigurationError(noApiMsg("list", "users"), {})
     }
 
-    const res = await api.get<GetAllGroupsResponse>(`/groups`)
+    const res = await api.get<ListGroupsResponse>(`/groups`)
     const groups: Groups[] = res.data.map((group) => ({
       name: group.name,
       id: group.id,

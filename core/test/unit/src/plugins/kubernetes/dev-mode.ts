@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,14 +7,35 @@
  */
 
 import { expect } from "chai"
-import { builtInExcludes, makeSyncConfig } from "../../../../../src/plugins/kubernetes/dev-mode"
+import { builtInExcludes, getLocalSyncPath, makeSyncConfig } from "../../../../../src/plugins/kubernetes/dev-mode"
 
 describe("k8s dev mode helpers", () => {
-  const localPath = "/path/to/module/src"
-  const remoteDestination = "exec:'various fun connection parameters'"
-  const source = "src"
-  const target = "/app/src"
+  describe("getLocalSyncPath", () => {
+    context("relative source path", () => {
+      it("should join the module root path with the source path", () => {
+        const relativeSourcePath = "../relative/path"
+        const moduleRoot = "/this/is/module/path"
+        const localPath = getLocalSyncPath(relativeSourcePath, moduleRoot)
+        expect(localPath).to.equal("/this/is/module/relative/path")
+      })
+    })
+
+    context("absolute source path", () => {
+      it("should ignore the module root path and return the absolute source path", () => {
+        const absoluteSourcePath = "/absolute/path"
+        const moduleRoot = "/this/is/module/path"
+        const localPath = getLocalSyncPath(absoluteSourcePath, moduleRoot)
+        expect(localPath).to.equal(absoluteSourcePath)
+      })
+    })
+  })
+
   describe("makeSyncConfig", () => {
+    const localPath = "/path/to/module/src"
+    const remoteDestination = "exec:'various fun connection parameters'"
+    const source = "src"
+    const target = "/app/src"
+
     it("should generate a simple sync config", () => {
       const config = makeSyncConfig({
         localPath,

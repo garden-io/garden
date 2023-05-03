@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { move } from "fs-extra"
 import tmp from "tmp-promise"
 import { HelmModule } from "./config"
-import { containsBuildSource, getChartPath, getBaseModule } from "./common"
+import { containsBuildSource, getBaseModule, getChartPath } from "./common"
 import { helm } from "./helm-cli"
 import { ConfigurationError } from "../../../exceptions"
 import { deline } from "../../../util/string"
@@ -41,8 +41,9 @@ export async function buildHelmModule({ ctx, module, log }: BuildModuleParams<He
         ctx: k8sCtx,
         log,
         args: ["repo", "add", "stable", "https://charts.helm.sh/stable", "--force-update"],
+        emitLogEvents: true,
       })
-      await helm({ ctx: k8sCtx, log, args: ["repo", "update"] })
+      await helm({ ctx: k8sCtx, log, args: ["repo", "update"], emitLogEvents: true })
       log.debug("Fetching chart (after updating)...")
       await pullChart(k8sCtx, log, module)
     }
@@ -67,7 +68,7 @@ async function pullChart(ctx: KubernetesPluginContext, log: LogEntry, module: He
       args.push("--repo", module.spec.repo)
     }
 
-    await helm({ ctx, log, args: [...args], cwd: tmpDir.path })
+    await helm({ ctx, log, args: [...args], cwd: tmpDir.path, emitLogEvents: true })
 
     await move(join(tmpDir.path, chartDir), chartPath, { overwrite: true })
   } finally {

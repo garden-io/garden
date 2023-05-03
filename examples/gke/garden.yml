@@ -21,25 +21,21 @@ environments:
       buildMode: cluster-buildkit
 providers:
   - name: kubernetes
-    context: ${var.gkeContext}
-    namespace: ${var.namespace}
-    defaultHostname: ${var.defaultHostname}
-    buildMode: ${var.buildMode}
-    deploymentRegistry: ${var.deploymentRegistry}
-    imagePullSecrets: ${var.imagePullSecrets}
-variables:
-  # Replace these values as appropriate
-  # > the kube context of the cluster
-  gkeContext: gke_garden-ci_europe-west1-b_core-ci
-  # > any hostname that points to your cluster's ingress controller
-  defaultHostname: ${local.env.CIRCLE_BUILD_NUM || local.username}-gke.dev-1.sys.garden
-  # > the namespace to deploy to in the cluster
-  namespace: gke-testing-${local.env.CIRCLE_BUILD_NUM || local.username}
-  deploymentRegistry:
     # Replace these values as appropriate
-    hostname: eu.gcr.io            # <- set this according to the region your cluster runs in
-    namespace: garden-ci   # <- set this to the project ID of the target cluster
-  imagePullSecrets:
-    # Make sure this matches the name and namespace of the imagePullSecret you've created
-    - name: gcr-config
-      namespace: default
+    # > the kube context of the cluster
+    context: gke_garden-ci_europe-west1-b_core-ci
+    # > the namespace to deploy to in the cluster
+    namespace: gke-testing-${var.userId}
+    # > any hostname that points to your cluster's ingress controller
+    defaultHostname: ${var.userId}-gke.dev-1.sys.garden
+    buildMode: ${var.buildMode} # <- set differently in each environment above
+    deploymentRegistry:
+      # Replace these values as appropriate
+      hostname: eu.gcr.io    # <- set this according to the region your cluster runs in
+      namespace: garden-ci   # <- set this to the project ID of the target cluster
+    imagePullSecrets:
+      # Make sure this matches the name and namespace of the imagePullSecret you've created
+      - name: gcr-config
+        namespace: default
+variables:
+  userId: ${local.username}

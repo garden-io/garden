@@ -2,11 +2,11 @@ kind: Project
 name: test-project-ext-project-sources
 sources:
   - name: source-a
-    repositoryUrl: https://my-git-server.com/my-repo.git#master
+    repositoryUrl: https://my-git-server.com/my-repo.git#main
   - name: source-b
-    repositoryUrl: https://my-git-server.com/my-repo.git#master
+    repositoryUrl: https://my-git-server.com/my-repo.git#main
   - name: source-c
-    repositoryUrl: https://my-git-server.com/my-repo.git#master
+    repositoryUrl: https://my-git-server.com/my-repo.git#main
 environments:
   - name: local
   - name: other

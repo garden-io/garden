@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@ import { BuildModuleParams, BuildResult } from "../../types/plugin/module/build"
 import { TestModuleParams } from "../../types/plugin/module/testModule"
 import { TestResult } from "../../types/plugin/module/getTestResult"
 import { RunTaskParams, RunTaskResult } from "../../types/plugin/task/runTask"
-import { createOutputStream, exec, ExecOpts, runScript, sleep } from "../../util/util"
+import { exec, ExecOpts, runScript, sleep } from "../../util/util"
 import { ConfigurationError, RuntimeError, TimeoutError } from "../../exceptions"
 import { LogEntry } from "../../logger/log-entry"
 import { providerConfigBaseSchema } from "../../config/provider"
@@ -47,6 +47,7 @@ import { GetServiceStatusParams } from "../../types/plugin/service/getServiceSta
 import { DeleteServiceParams } from "../../types/plugin/service/deleteService"
 import { PluginContext } from "../../plugin-context"
 import { ServiceStatus } from "../../types/service"
+import { taskOutputsSchema } from "../kubernetes/task-results"
 
 const execPathDoc = dedent`
   By default, the command is run inside the Garden build directory (under .garden/build/<module-name>).
@@ -147,7 +148,7 @@ export const execServiceSchema = () =>
           .items(joi.string().allow(""))
           .description(
             dedent`
-              The commmand to run to deploy the service in dev mode. When in dev mode, Garden assumes that
+              The command to run to deploy the service in dev mode. When in dev mode, Garden assumes that
               the command starts a persistent process and does not wait for it return. The logs from the process
               can be retrieved via the \`garden logs\` command as usual.
 
@@ -318,7 +319,8 @@ export async function configureExecModule({
     projectRoot: ctx.projectRoot,
   })
 
-  moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests"])
+  // All the config keys that affect the build version
+  moduleConfig.buildConfig = omit(moduleConfig.spec, ["tasks", "tests", "services"])
 
   moduleConfig.serviceConfigs = moduleConfig.spec.services.map((s) => ({
     name: s.name,
@@ -422,19 +424,31 @@ function runPersistent({
 async function run({
   command,
   module,
+  ctx,
   log,
   env,
   opts = {},
 }: {
   command: string[]
   module: ExecModule
+  ctx: PluginContext
   log: LogEntry
   env?: PrimitiveMap
   opts?: ExecOpts
 }) {
-  const stdout = createOutputStream(log.placeholder({ level: LogLevel.verbose }))
+  const logEventContext = {
+    origin: command[0],
+    log,
+  }
 
-  return exec(command.join(" "), [], {
+  const outputStream = split2()
+  outputStream.on("error", () => {})
+  outputStream.on("data", (line: Buffer) => {
+    ctx.events.emit("log", { timestamp: new Date().toISOString(), data: line, ...logEventContext })
+  })
+
+  const res = await exec(command.join(" "), [], {
+    ...opts,
     cwd: module.buildPath,
     env: {
       ...getDefaultEnvVars(module),
@@ -442,18 +456,18 @@ async function run({
     },
     // TODO: remove this in 0.13 and alert users to use e.g. sh -c '<script>' instead.
     shell: true,
-    stdout,
-    stderr: stdout,
-    ...opts,
+    stdout: outputStream,
+    stderr: outputStream,
   })
+  return res
 }
 
-export async function buildExecModule({ module, log }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
+export async function buildExecModule({ module, ctx, log }: BuildModuleParams<ExecModule>): Promise<BuildResult> {
   const output: BuildResult = {}
   const { command } = module.spec.build
 
   if (command.length) {
-    const result = await run({ command, module, log })
+    const result = await run({ command, module, ctx, log })
 
     output.fresh = true
     output.buildLog = result.stdout + result.stderr
@@ -473,13 +487,14 @@ export async function buildExecModule({ module, log }: BuildModuleParams<ExecMod
 export async function testExecModule({
   log,
   module,
+  ctx,
   test,
   artifactsPath,
 }: TestModuleParams<ExecModule>): Promise<TestResult> {
   const startedAt = new Date()
   const { command } = test.config.spec
 
-  const result = await run({ command, module, log, env: test.config.spec.env, opts: { reject: false } })
+  const result = await run({ command, module, ctx, log, env: test.config.spec.env, opts: { reject: false } })
 
   await copyArtifacts(log, test.config.spec.artifacts, module.buildPath, artifactsPath)
 
@@ -502,7 +517,7 @@ export async function testExecModule({
 }
 
 export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<RunTaskResult> {
-  const { artifactsPath, log, task } = params
+  const { artifactsPath, log, task, ctx } = params
   const module = task.module
   const command = task.spec.command
   const startedAt = new Date()
@@ -512,7 +527,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
   let success = true
 
   if (command && command.length) {
-    const commandResult = await run({ command, module, log, env: task.spec.env, opts: { reject: false } })
+    const commandResult = await run({ command, module, ctx, log, env: task.spec.env, opts: { reject: false } })
 
     completedAt = new Date()
     outputLog = (commandResult.stdout + commandResult.stderr).trim()
@@ -545,7 +560,7 @@ export async function runExecTask(params: RunTaskParams<ExecModule>): Promise<Ru
 }
 
 export async function runExecModule(params: RunModuleParams<ExecModule>): Promise<RunResult> {
-  const { module, args, interactive, log } = params
+  const { module, ctx, args, interactive, log } = params
   const startedAt = new Date()
 
   let completedAt: Date
@@ -556,6 +571,7 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
     const commandResult = await run({
       command: args,
       module,
+      ctx,
       log,
       env: module.spec.env,
       opts: { reject: false, stdio: interactive ? "inherit" : undefined },
@@ -585,12 +601,13 @@ export async function runExecModule(params: RunModuleParams<ExecModule>): Promis
 export const getExecServiceStatus: ServiceActionHandlers["getServiceStatus"] = async (
   params: GetServiceStatusParams<ExecModule>
 ) => {
-  const { module, service, log } = params
+  const { module, ctx, service, log } = params
 
   if (service.spec.statusCommand) {
     const result = await run({
       command: service.spec.statusCommand,
       module,
+      ctx,
       log,
       env: service.spec.env,
       opts: { reject: false },
@@ -645,6 +662,7 @@ export const deployExecService: ServiceActionHandlers["deployService"] = async (
     const result = await run({
       command: serviceSpec.deployCommand,
       module,
+      ctx,
       log,
       env,
       opts: { reject: true },
@@ -708,6 +726,7 @@ async function deployPersistentExecService({
 
   if (devModeSpec.statusCommand) {
     let ready = false
+    let lastStatusResult: execa.ExecaReturnBase<string> | undefined
 
     while (!ready) {
       await sleep(persistentLocalProcRetryIntervalMs)
@@ -716,22 +735,49 @@ async function deployPersistentExecService({
       const timeElapsedSec = (now.getTime() - startedAt.getTime()) / 1000
 
       if (timeElapsedSec > devModeSpec.timeout) {
-        throw new TimeoutError(`Timed out waiting for local service ${serviceName} to be ready`, {
-          serviceName,
-          statusCommand: devModeSpec.statusCommand,
-          pid: proc.pid,
-          timeout: devModeSpec.timeout,
-        })
+        let lastResultDescription = ""
+        if (lastStatusResult) {
+          lastResultDescription = dedent`\n\nThe last exit code was ${lastStatusResult.exitCode}.\n\n`
+          if (lastStatusResult.stderr) {
+            lastResultDescription += `Command error output:\n${lastStatusResult.stderr}\n\n`
+          }
+          if (lastStatusResult.stdout) {
+            lastResultDescription += `Command output:\n${lastStatusResult.stdout}\n\n`
+          }
+        }
+
+        throw new TimeoutError(
+          dedent`Timed out waiting for local service ${serviceName} to be ready.
+
+          Garden timed out waiting for the command ${chalk.gray(devModeSpec.statusCommand)}
+          to return status code 0 (success) after waiting for ${devModeSpec.timeout} seconds.
+          ${lastResultDescription}
+          Possible next steps:
+
+          Find out why the configured status command fails.
+
+          In case the service just needs more time to become ready, you can adjust the ${chalk.gray("timeout")} value
+          in your service definition to a value that is greater than the time needed for your service to become ready.
+          `,
+          {
+            serviceName,
+            statusCommand: devModeSpec.statusCommand,
+            pid: proc.pid,
+            timeout: devModeSpec.timeout,
+          }
+        )
       }
 
       const result = await run({
         command: devModeSpec.statusCommand,
         module,
+        ctx,
         log,
         env,
         opts: { reject: false },
       })
 
+      lastStatusResult = result
       ready = result.exitCode === 0
     }
   }
@@ -742,12 +788,13 @@ async function deployPersistentExecService({
 export const deleteExecService: ServiceActionHandlers["deleteService"] = async (
   params: DeleteServiceParams<ExecModule>
 ) => {
-  const { module, service, log } = params
+  const { module, ctx, service, log } = params
 
   if (service.spec.cleanupCommand) {
     const result = await run({
       command: service.spec.cleanupCommand,
       module,
+      ctx,
       log,
       env: service.spec.env,
       opts: { reject: true },
@@ -798,16 +845,7 @@ export const execPlugin = () =>
     `,
         moduleOutputsSchema: joi.object().keys({}),
         schema: execModuleSpecSchema(),
-        taskOutputsSchema: joi.object().keys({
-          log: joi
-            .string()
-            .allow("")
-            .default("")
-            .description(
-              "The full log from the executed task. " +
-                "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
-            ),
-        }),
+        taskOutputsSchema,
         handlers: {
           configure: configureExecModule,
           build: buildExecModule,

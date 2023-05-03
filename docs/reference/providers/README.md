@@ -18,3 +18,4 @@ title: Providers
 * [`octant`](./octant.md)
 * [`openfaas`](./openfaas.md)
 * [`terraform`](./terraform.md)
+* [`pulumi`](./pulumi.md)

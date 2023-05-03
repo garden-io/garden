@@ -112,6 +112,9 @@ deployments:
     # Whether the service was deployed with dev mode enabled.
     devMode:
 
+    # Whether the service was deployed with local mode enabled.
+    localMode:
+
     namespaceStatuses:
       - pluginName:
 
@@ -405,8 +408,13 @@ resources.
 
 #### Usage
 
-    garden delete environment 
+    garden delete environment [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dependants-first` |  | boolean | Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first. When this flag is not used, all services in the project are deleted simultaneously.
 
 #### Outputs
 
@@ -448,6 +456,9 @@ serviceStatuses:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -537,7 +548,7 @@ Examples:
 
 #### Usage
 
-    garden delete service [services] 
+    garden delete service [services] [options]
 
 #### Arguments
 
@@ -545,6 +556,12 @@ Examples:
 | -------- | -------- | ----------- |
   | `services` | No | The name(s) of the service(s) to delete. Use comma as a separator to specify multiple services.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--dependants-first` |  | boolean | Delete services in reverse dependency order. That is, if service-a has a dependency on service-b, service-a will be deleted before service-b when calling garden delete environment service-a,service-b --dependants-first. When this flag is not used, all services in the project are deleted simultaneously.
+  | `--with-dependants` |  | boolean | Also delete services that have service dependencies on one of the services specified as CLI arguments (recursively).  When used, this option implies --dependants-first. Note: This option has no effect unless a list of service names is specified as CLI arguments (since then, every service in the project will be deleted).
 
 #### Outputs
 
@@ -558,6 +575,9 @@ Examples:
 
   # Whether the service was deployed with dev mode enabled.
   devMode:
+
+  # Whether the service was deployed with local mode enabled.
+  localMode:
 
   namespaceStatuses:
     - pluginName:
@@ -651,8 +671,11 @@ Examples:
     garden deploy --watch              # watch for changes to code
     garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
     garden deploy --dev                # deploys all compatible services with dev mode enabled
+    garden deploy --local=my-service   # deploys all services, with local mode enabled for my-service
+    garden deploy --local              # deploys all compatible services with local mode enabled
     garden deploy --env stage          # deploy your services to an environment called stage
     garden deploy --skip service-b     # deploy all services except service-b
+    garden deploy --forward            # deploy all services and start port forwards without watching for changes
 
 #### Usage
 
@@ -671,11 +694,17 @@ Examples:
   | `--force` |  | boolean | Force redeploy of service(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-deploy.
-  | `--dev-mode` | `-dev` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+  | `--dev-mode` | `--dev` | array:string | The name(s) of the service(s) to deploy with dev mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with dev mode enabled. When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+  | `--hot-reload` | `--hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading). When this option is used, the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
+  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
+This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip` |  | array:string | The name(s) of services you&#x27;d like to skip when deploying.
-  | `--skip-dependencies` | `-no-deps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
+  | `--skip-dependencies` | `--nodeps` | boolean | Deploy the specified services, but don&#x27;t deploy any additional services that they depend on or run any tasks that they depend on. This option can only be used when a list of service names is passed as CLI arguments. This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in dev mode without redeploying any service dependencies that may have changed since you last deployed.
   | `--forward` |  | boolean | Create port forwards and leave process running without watching for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.
+  | `--skip-watch` |  | boolean | [EXPERIMENTAL] If set to &#x60;false&#x60; while in dev-mode (i.e. the --dev-mode/--dev flag is used) then file syncing will still work but Garden will ignore changes to config files and services that are not in dev mode.
+This can be a performance improvement for projects that have a large number of files and where only syncing is needed when in dev mode.
+Note that this flag cannot used if hot reloading is enabled.
+This behaviour will change in a future release in favour of a &quot;smarter&quot; watching mechanism.
 
 #### Outputs
 
@@ -721,6 +750,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -876,6 +908,8 @@ Examples:
     garden dev
     garden dev --hot=foo-service,bar-service  # enable hot reloading for foo-service and bar-service
     garden dev --hot=*                        # enable hot reloading for all compatible services
+    garden dev --local=service-1,service-2    # enable local mode for service-1 and service-2
+    garden dev --local=*                      # enable local mode for all compatible services
     garden dev --skip-tests=                  # skip running any tests
     garden dev --force                        # force redeploy of services when the command starts
     garden dev --name integ                   # run all tests with the name 'integ' in the project
@@ -896,9 +930,16 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--force` |  | boolean | Force redeploy of service(s).
-  | `--hot-reload` | `-hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
+  | `--hot-reload` | `--hot` | array:string | The name(s) of the service(s) to deploy with hot reloading enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with hot reloading enabled (ignores services belonging to modules that don&#x27;t support or haven&#x27;t configured hot reloading).
+  | `--local-mode` | `--local` | array:string | [EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled. Use comma as a separator to specify multiple services. Use * to deploy all services with local mode enabled. When this option is used, the command is run in persistent mode.
+This always takes the precedence over the dev mode if there are any conflicts, i.e. if the same services are passed to both &#x60;--dev&#x60; and &#x60;--local&#x60; options.
   | `--skip-tests` |  | boolean | Disable running the tests.
-  | `--test-names` | `-tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `--test-names` | `--tn` | array:string | Filter the tests to run by test name across all modules (leave unset to run all tests). Accepts glob patterns (e.g. integ* would run both &#x27;integ&#x27; and &#x27;integration&#x27;).
+  | `--skip-watch` |  | boolean | [EXPERIMENTAL] Watching is enabled by default but can be disabled by setting this flag to &#x60;false&#x60;.
+If set to &#x60;false&#x60; then file syncing will still work but Garden will ignore changes to config files and services that are not in dev mode.
+This can be a performance improvement for projects that have a large number of files and where only file syncing is needed when in dev mode.
+Note that this flag cannot be used if hot reloading is enabled.
+This flag will be removed in future release in favour of a &quot;smarter&quot; watching mechanism.
 
 
 ### garden exec
@@ -949,7 +990,7 @@ stderr:
 
 ### garden cloud secrets list
 
-**[EXPERIMENTAL] List secrets.**
+**List secrets.**
 
 List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
@@ -973,7 +1014,7 @@ Examples:
 
 ### garden cloud secrets create
 
-**[EXPERIMENTAL] Create secrets**
+**Create secrets**
 
 Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
 them to an environment, or an environment and a user.
@@ -1010,13 +1051,13 @@ Examples:
 
 ### garden cloud secrets delete
 
-**[EXPERIMENTAL] Delete secrets.**
+**Delete secrets.**
 
-Delete secrets in Garden Cloud. You will nee the IDs of the secrets you want to delete,
+Delete secrets in Garden Cloud. You will need the IDs of the secrets you want to delete,
 which you which you can get from the `garden cloud secrets list` command.
 
 Examples:
-    garden cloud secrets delete 1,2,3   # delete secrets with IDs 1,2, and 3.
+    garden cloud secrets delete <ID 1>,<ID 2>,<ID 3>   # delete three secrets with the given IDs.
 
 #### Usage
 
@@ -1032,7 +1073,7 @@ Examples:
 
 ### garden cloud users list
 
-**[EXPERIMENTAL] List users.**
+**List users.**
 
 List all users from Garden Cloud. Optionally filter on group names or user names.
 
@@ -1055,7 +1096,7 @@ Examples:
 
 ### garden cloud users create
 
-**[EXPERIMENTAL] Create users**
+**Create users**
 
 Create users in Garden Cloud and optionally add the users to specific groups.
 You can get the group IDs from the `garden cloud users list` command.
@@ -1094,13 +1135,14 @@ Examples:
 
 ### garden cloud users delete
 
-**[EXPERIMENTAL] Delete users.**
+**Delete users.**
 
-Delete users in Garden Cloud. You will nee the IDs of the users you want to delete,
-which you which you can get from the `garden cloud users list` command.
+Delete users in Garden Cloud. You will need the IDs of the users you want to delete,
+which you which you can get from the `garden cloud users list` command. Use a comma-
+separated list to delete multiple users.
 
 Examples:
-    garden cloud users delete 1,2,3   # delete users with IDs 1,2, and 3.
+    garden cloud users delete <ID 1>,<ID 2>,<ID 3>   # delete three users with the given IDs.
 
 #### Usage
 
@@ -1116,7 +1158,7 @@ Examples:
 
 ### garden cloud groups list
 
-**[EXPERIMENTAL] List groups.**
+**List groups.**
 
 List all groups from Garden Cloud. This is useful for getting the group IDs when creating
 users via the `garden cloud users create` command.
@@ -1223,7 +1265,7 @@ providers:
                   source:
 
                   # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-                  # Defaults to to same as source path.
+                  # Defaults to the same as source path.
                   target:
 
           # Maximum time in seconds to wait for build to finish.
@@ -1234,7 +1276,7 @@ providers:
 
         # Set this to `true` to disable the module. You can use this with conditional template strings to disable
         # modules based on, for example, the current environment or other variables (e.g. `disabled:
-        # \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific
+        # ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific
         # environments, e.g. only for development.
         #
         # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It
@@ -1305,8 +1347,7 @@ providers:
         # nested objects and arrays._
         #
         # To use different module-level varfiles in different environments, you can template in the environment name
-        # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the
-        # corresponding
+        # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
         # varfiles exist).
         varfile:
 
@@ -1339,7 +1380,7 @@ providers:
 
             # Set this to `true` to disable the service. You can use this with conditional template strings to
             # enable/disable services based on, for example, the current environment or other variables (e.g.
-            # `enabled: \${environment.name != "prod"}`). This can be handy when you only need certain services for
+            # `enabled: ${environment.name != "prod"}`). This can be handy when you only need certain services for
             # specific environments, e.g. only for development.
             #
             # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -1376,7 +1417,7 @@ providers:
 
             # Set this to `true` to disable the task. You can use this with conditional template strings to
             # enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled:
-            # \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific
+            # ${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific
             # environments, e.g. only for development.
             #
             # Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime
@@ -1410,7 +1451,7 @@ providers:
 
             # Set this to `true` to disable the test. You can use this with conditional template strings to
             # enable/disable tests based on, for example, the current environment or other variables (e.g.
-            # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+            # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
             # specific environments, e.g. only during CI.
             disabled:
 
@@ -1523,7 +1564,7 @@ moduleConfigs:
               source:
 
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-              # Defaults to to same as source path.
+              # Defaults to the same as source path.
               target:
 
       # Maximum time in seconds to wait for build to finish.
@@ -1533,7 +1574,7 @@ moduleConfigs:
     description:
 
     # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-    # based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name ==
+    # based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name ==
     # "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for
     # development.
     #
@@ -1604,7 +1645,7 @@ moduleConfigs:
     # nested objects and arrays._
     #
     # To use different module-level varfiles in different environments, you can template in the environment name
-    # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+    # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
     # varfiles exist).
     varfile:
 
@@ -1637,7 +1678,7 @@ moduleConfigs:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
         # enable/disable services based on, for example, the current environment or other variables (e.g. `enabled:
-        # \${environment.name != "prod"}`). This can be handy when you only need certain services for specific
+        # ${environment.name != "prod"}`). This can be handy when you only need certain services for specific
         # environments, e.g. only for development.
         #
         # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -1672,7 +1713,7 @@ moduleConfigs:
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-        # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+        # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name
         # != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only
         # for development.
         #
@@ -1707,7 +1748,7 @@ moduleConfigs:
 
         # Set this to `true` to disable the test. You can use this with conditional template strings to
         # enable/disable tests based on, for example, the current environment or other variables (e.g.
-        # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+        # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
         # specific environments, e.g. only during CI.
         disabled:
 
@@ -1820,7 +1861,7 @@ workflowConfigs:
         # <number of step> is the sequential number of the step (first step being number 1).
         #
         # This identifier is useful when referencing command outputs in following steps. For example, if you set this
-        # to "my-step", following steps can reference the \${steps.my-step.outputs.*} key in the `script` or `command`
+        # to "my-step", following steps can reference the ${steps.my-step.outputs.*} key in the `script` or `command`
         # fields.
         name:
 
@@ -1972,6 +2013,7 @@ Examples:
 
     garden get modules                                                # list all modules in the project
     garden get modules --exclude-disabled=true                        # skip disabled modules
+    garden get modules --full                                         # show resolved config for each module
     garden get modules -o=json | jq '.modules["my-module"].version'   # get version of my-module
 
 #### Usage
@@ -1988,6 +2030,7 @@ Examples:
 
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
+  | `--full` |  | boolean | Show the full config for each module, with template strings resolved. Has no effect when the --output option is used.
   | `--exclude-disabled` |  | boolean | Exclude disabled modules from output.
 
 #### Outputs
@@ -2021,7 +2064,7 @@ modules:
               source:
 
               # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-              # Defaults to to same as source path.
+              # Defaults to the same as source path.
               target:
 
       # Maximum time in seconds to wait for build to finish.
@@ -2031,7 +2074,7 @@ modules:
     description:
 
     # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-    # based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name ==
+    # based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name ==
     # "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for
     # development.
     #
@@ -2102,7 +2145,7 @@ modules:
     # nested objects and arrays._
     #
     # To use different module-level varfiles in different environments, you can template in the environment name
-    # to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+    # to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
     # varfiles exist).
     varfile:
 
@@ -2132,7 +2175,7 @@ modules:
 
         # Set this to `true` to disable the service. You can use this with conditional template strings to
         # enable/disable services based on, for example, the current environment or other variables (e.g. `enabled:
-        # \${environment.name != "prod"}`). This can be handy when you only need certain services for specific
+        # ${environment.name != "prod"}`). This can be handy when you only need certain services for specific
         # environments, e.g. only for development.
         #
         # Disabling a service means that it will not be deployed, and will also be ignored if it is declared as a
@@ -2167,7 +2210,7 @@ modules:
         dependencies:
 
         # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-        # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name
+        # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name
         # != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only
         # for development.
         #
@@ -2202,7 +2245,7 @@ modules:
 
         # Set this to `true` to disable the test. You can use this with conditional template strings to
         # enable/disable tests based on, for example, the current environment or other variables (e.g.
-        # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+        # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
         # specific environments, e.g. only during CI.
         disabled:
 
@@ -2261,12 +2304,8 @@ modules:
 
       # The version of each of the dependencies of the module.
       dependencyVersions:
+        # version hash of the dependency module
         <name>:
-          # The hash of all files belonging to the Garden module.
-          contentHash:
-
-          # List of file paths included in the version.
-          files:
 
       # List of file paths included in the version.
       files:
@@ -2345,6 +2384,9 @@ services:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -2625,17 +2667,20 @@ garden get debug-info --include-project  # include provider info for the project
 Note that this may include sensitive data, depending on the provider and your configuration.
 
 
-### garden get vaccine
+### garden get workflows
 
-**Get notifications and appointments open up at the Berlin vaccination centers.**
+**Lists the workflows defined in your project.**
 
-Check for openings at Berlin's vaccination centers at a 2
-second interval. If it finds one, you'll receive a notification
-with links to book an appointment.
 
 #### Usage
 
-    garden get vaccine 
+    garden get workflows [workflows] 
+
+#### Arguments
+
+| Argument | Required | Description |
+| -------- | -------- | ----------- |
+  | `workflows` | No | Specify workflow(s) to list. Use comma as a separator to specify multiple workflows.
 
 
 
@@ -2715,8 +2760,8 @@ sources:
 
 **Retrieves the most recent logs for the specified service(s).**
 
-Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults
-to getting logs from the last minute when in `--follow` mode. You can change this with the `--since` option.
+Outputs logs for all or specified services, and optionally waits for news logs to come in. Defaults to getting logs
+from the last minute when in `--follow` mode. You can change this with the `--since` or `--tail` options.
 
 Examples:
 
@@ -2742,7 +2787,7 @@ Examples:
 | Argument | Alias | Type | Description |
 | -------- | ----- | ---- | ----------- |
   | `--tag` |  | array:tag | Only show log lines that match the given tag, e.g. &#x60;--tag &#x27;container&#x3D;foo&#x27;&#x60;. If you specify multiple filters in a single tag option (e.g. &#x60;--tag &#x27;container&#x3D;foo,someOtherTag&#x3D;bar&#x27;&#x60;), they must all be matched. If you provide multiple &#x60;--tag&#x60; options (e.g. &#x60;--tag &#x27;container&#x3D;api&#x27; --tag &#x27;container&#x3D;frontend&#x27;&#x60;), they will be OR-ed together (i.e. if any of them match, the log line will be included). You can specify glob-style wildcards, e.g. &#x60;--tag &#x27;container&#x3D;prefix-*&#x27;&#x60;.
-  | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s).
+  | `--follow` | `-f` | boolean | Continuously stream new logs from the service(s). When the &#x60;--follow&#x60; option is set, we default to &#x60;--since 1m&#x60;.
   | `--tail` | `-t` | number | Number of lines to show for each service. Defaults to showing all log lines (up to a certain limit). Takes precedence over the &#x60;--since&#x60; flag if both are set. Note that we don&#x27;t recommend using a large value here when in follow mode.
   | `--show-container` |  | boolean | Show the name of the container with log output. May not apply to all providers
   | `--show-tags` |  | boolean | Show any tags attached to each log line. May not apply to all providers
@@ -2913,6 +2958,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -3349,7 +3397,11 @@ Examples:
 
 ### garden dashboard
 
-**Starts the Garden dashboard for the current project and environment.**
+**[DEPRECATED] Starts the Garden dashboard for the current project and environment.**
+
+Deprecation Warning: The Garden Dashboard will be deprecated in the next major Garden release (0.13). As an alternative you can try out a beta version of Garden Cloud Dashboard at https://app.garden.
+
+-------------
 
 Starts the Garden dashboard for the current project, and your selected environment+namespace. The dashboard can be used to monitor your Garden project, look at logs, provider-specific dashboard pages and more.
 
@@ -3380,7 +3432,9 @@ Examples:
 
    garden self-update          # update to the latest Garden CLI version
    garden self-update edge     # switch to the latest edge build (which is created anytime a PR is merged)
-   garden self-update 0.12.24  # switch to the 0.12.24 version of the CLI
+   garden self-update 0.12.24  # switch to the 0.12.24 stable version of the CLI
+   garden self-update 0.13.0-0 # switch to the 0.13.0-0 pre-release version of the CLI
+   garden self-update --major  # install the latest major version (if it exists) greater than the current one
    garden self-update --force  # re-install even if the same version is detected
    garden self-update --install-dir ~/garden  # install to ~/garden instead of detecting the directory
 
@@ -3392,7 +3446,7 @@ Examples:
 
 | Argument | Required | Description |
 | -------- | -------- | ----------- |
-  | `version` | No | Specify which version to switch/update to.
+  | `version` | No | Specify which version to switch/update to. It can be either a stable release, a pre-release, or an edge release version.
 
 #### Options
 
@@ -3401,6 +3455,9 @@ Examples:
   | `--force` |  | boolean | Install the Garden CLI even if the specified or detected latest version is the same as the current version.
   | `--install-dir` |  | string | Specify an installation directory, instead of using the directory of the Garden CLI being used. Implies --force.
   | `--platform` |  | `macos` `linux` `windows`  | Override the platform, instead of detecting it automatically.
+  | `--major` |  | boolean | Install the latest major version greater than the current one. Falls back to the current version if the greater major version does not exist.
+
+Note! If you use a non-stable version (i.e. pre-release, or draft, or edge), then the latest possible major version will be installed.
 
 
 ### garden test
@@ -3441,7 +3498,8 @@ Examples:
   | `--force` | `-f` | boolean | Force re-test of module(s).
   | `--force-build` |  | boolean | Force rebuild of module(s).
   | `--watch` | `-w` | boolean | Watch for changes in module(s) and auto-test.
-  | `--skip-dependencies` | `-no-deps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
+  | `--skip` |  | array:string | The name(s) of tests you&#x27;d like to skip. Accepts glob patterns (e.g. integ* would skip both &#x27;integ&#x27; and &#x27;integration&#x27;). Applied after the &#x27;name&#x27; filter.
+  | `--skip-dependencies` | `--nodeps` | boolean | Don&#x27;t deploy any services or run any tasks that the requested tests depend on. This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime dependencies without redeploying any service dependencies that may have changed since you last deployed. Warning: Take great care when using this option in CI, since Garden won&#x27;t ensure that the runtime dependencies of your test suites are up to date when this option is used.
   | `--skip-dependants` |  | boolean | When using the modules argument, only run tests for those modules (and skip tests in other modules with dependencies on those modules).
 
 #### Outputs
@@ -3488,6 +3546,9 @@ deployments:
 
     # Whether the service was deployed with dev mode enabled.
     devMode:
+
+    # Whether the service was deployed with local mode enabled.
+    localMode:
 
     namespaceStatuses:
       - pluginName:
@@ -3739,12 +3800,13 @@ Updates the remote sources declared in the project level `garden.yml` config fil
 
 Examples:
 
+    garden update-remote sources --parallel # update all remote sources in parallel mode
     garden update-remote sources            # update all remote sources
     garden update-remote sources my-source  # update remote source my-source
 
 #### Usage
 
-    garden update-remote sources [sources] 
+    garden update-remote sources [sources] [options]
 
 #### Arguments
 
@@ -3752,6 +3814,11 @@ Examples:
 | -------- | -------- | ----------- |
   | `sources` | No | The name(s) of the remote source(s) to update. Use comma as a separator to specify multiple sources.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 
@@ -3775,12 +3842,13 @@ in their `garden.yml` config that points to a remote repository.
 
 Examples:
 
+    garden update-remote modules --parallel # update all remote modules in parallel mode
     garden update-remote modules            # update all remote modules in the project
     garden update-remote modules my-module  # update remote module my-module
 
 #### Usage
 
-    garden update-remote modules [modules] 
+    garden update-remote modules [modules] [options]
 
 #### Arguments
 
@@ -3788,6 +3856,11 @@ Examples:
 | -------- | -------- | ----------- |
   | `modules` | No | The name(s) of the remote module(s) to update. Use comma as a separator to specify multiple modules.
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 
@@ -3808,12 +3881,18 @@ sources:
 
 Examples:
 
-    garden update-remote all # update all remote sources and modules in the project
+    garden update-remote all --parallel # update all remote sources and modules in the project in parallel mode
+    garden update-remote all            # update all remote sources and modules in the project
 
 #### Usage
 
-    garden update-remote all 
+    garden update-remote all [options]
 
+#### Options
+
+| Argument | Alias | Type | Description |
+| -------- | ----- | ---- | ----------- |
+  | `--parallel` |  | boolean | Allow git updates to happen in parallel. This will automatically reject any Git prompt, such as username / password.
 
 #### Outputs
 

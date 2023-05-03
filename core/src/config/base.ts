@@ -1,18 +1,19 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import dotenv = require("dotenv")
 import { sep, resolve, relative, basename, dirname, join } from "path"
-import yaml from "js-yaml"
+import { safeLoad, safeLoadAll } from "js-yaml"
 import yamlLint from "yaml-lint"
-import { readFile } from "fs-extra"
+import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { ModuleResource, coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig } from "./module"
-import { ConfigurationError, FilesystemError } from "../exceptions"
+import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
 import { DEFAULT_API_VERSION } from "../constants"
 import { ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
@@ -20,6 +21,8 @@ import { listDirectory } from "../util/fs"
 import { isConfigFilename } from "../util/fs"
 import { TemplateKind, templateKind } from "./module-template"
 import { isTruthy } from "../util/util"
+import { PrimitiveMap } from "./common"
+import { LogEntry } from "../logger/log-entry"
 
 export interface GardenResource {
   apiVersion: string
@@ -40,7 +43,7 @@ export type ConfigKind = "Module" | "Workflow" | "Project" | TemplateKind
  */
 export async function loadAndValidateYaml(content: string, path: string): Promise<any[]> {
   try {
-    return yaml.safeLoadAll(content) || []
+    return safeLoadAll(content) || []
   } catch (err) {
     // We try to find the error using a YAML linter
     try {
@@ -56,11 +59,17 @@ export async function loadAndValidateYaml(content: string, path: string): Promis
   }
 }
 
-export async function loadConfigResources(
-  projectRoot: string,
-  configPath: string,
-  allowInvalid = false
-): Promise<GardenResource[]> {
+export async function loadConfigResources({
+  log,
+  projectRoot,
+  configPath,
+  allowInvalid = false,
+}: {
+  log: LogEntry | undefined
+  projectRoot: string
+  configPath: string
+  allowInvalid?: boolean
+}): Promise<GardenResource[]> {
   let fileData: Buffer
 
   try {
@@ -75,7 +84,7 @@ export async function loadConfigResources(
   rawSpecs = rawSpecs.filter(Boolean)
 
   const resources = <GardenResource[]>(
-    rawSpecs.map((s) => prepareResource({ spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
+    rawSpecs.map((s) => prepareResource({ log, spec: s, configPath, projectRoot, allowInvalid })).filter(Boolean)
   )
 
   return resources
@@ -85,11 +94,13 @@ export async function loadConfigResources(
  * Each YAML document in a garden.yml file defines a project, a module or a workflow.
  */
 function prepareResource({
+  log,
   spec,
   configPath,
   projectRoot,
   allowInvalid = false,
 }: {
+  log: LogEntry | undefined
   spec: any
   configPath: string
   projectRoot: string
@@ -124,10 +135,8 @@ function prepareResource({
       path: relPath,
     })
   } else {
-    throw new ConfigurationError(`Unknown config kind ${kind} in ${relPath}`, {
-      kind,
-      path: relPath,
-    })
+    log?.warn(`Found config with unknown kind '${kind}' in config at ${relPath}. Ignoring.`)
+    return null
   }
 }
 
@@ -219,7 +228,12 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
     const configFiles = (await listDirectory(path, { recursive: false })).filter(isConfigFilename)
 
     for (const configFile of configFiles) {
-      const resources = await loadConfigResources(path, join(path, configFile), allowInvalid)
+      const resources = await loadConfigResources({
+        log: undefined,
+        projectRoot: path,
+        configPath: join(path, configFile),
+        allowInvalid,
+      })
 
       const projectSpecs = resources.filter((s) => s.kind === "Project")
 
@@ -236,4 +250,65 @@ export async function findProjectConfig(path: string, allowInvalid = false): Pro
   }
 
   return
+}
+
+export async function loadVarfile({
+  configRoot,
+  path,
+  defaultPath,
+}: {
+  // project root (when resolving project config) or module root (when resolving module config)
+  configRoot: string
+  path: string | undefined
+  defaultPath: string | undefined
+}): Promise<PrimitiveMap> {
+  if (!path && !defaultPath) {
+    throw new ParameterError(`Neither a path nor a defaultPath was provided.`, { configRoot, path, defaultPath })
+  }
+  const resolvedPath = resolve(configRoot, <string>(path || defaultPath))
+  const exists = await pathExists(resolvedPath)
+
+  if (!exists && path && path !== defaultPath) {
+    throw new ConfigurationError(`Could not find varfile at path '${path}'`, {
+      path,
+      resolvedPath,
+    })
+  }
+
+  if (!exists) {
+    return {}
+  }
+
+  try {
+    const data = await readFile(resolvedPath)
+    const relPath = relative(configRoot, resolvedPath)
+    const filename = basename(resolvedPath.toLowerCase())
+
+    if (filename.endsWith(".json")) {
+      const parsed = JSON.parse(data.toString())
+      if (!isPlainObject(parsed)) {
+        throw new ConfigurationError(`Configured variable file ${relPath} must be a valid plain JSON object`, {
+          parsed,
+        })
+      }
+      return parsed
+    } else if (filename.endsWith(".yml") || filename.endsWith(".yaml")) {
+      const parsed = safeLoad(data.toString())
+      if (!isPlainObject(parsed)) {
+        throw new ConfigurationError(`Configured variable file ${relPath} must be a single plain YAML mapping`, {
+          parsed,
+        })
+      }
+      return parsed as PrimitiveMap
+    } else {
+      // Note: For backwards-compatibility we fall back on using .env as a default format, and don't specifically
+      // validate the extension for that.
+      return dotenv.parse(await readFile(resolvedPath))
+    }
+  } catch (error) {
+    throw new ConfigurationError(`Unable to load varfile at '${path}': ${error}`, {
+      error,
+      path,
+    })
+  }
 }

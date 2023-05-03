@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,6 +22,7 @@ import { Profile } from "./util/profiling"
 import { renderMessageWithDivider } from "./logger/util"
 import { EventEmitter2 } from "eventemitter2"
 import { toGraphResultEventPayload } from "./events"
+import AsyncLock from "async-lock"
 
 class TaskGraphError extends GardenBaseError {
   type = "task-graph"
@@ -74,6 +75,7 @@ export class TaskGraph extends EventEmitter2 {
   private latestNodes: { [key: string]: TaskNode }
   private logEntryMap: LogEntryMap
   private resultCache: ResultCache
+  private lock: AsyncLock
 
   constructor(
     private garden: Garden,
@@ -91,15 +93,15 @@ export class TaskGraph extends EventEmitter2 {
     this.latestNodes = {}
     this.resultCache = new ResultCache()
     this.logEntryMap = {}
+    this.lock = new AsyncLock()
   }
 
   async process(tasks: BaseTask[], opts?: ProcessTasksOpts): Promise<GraphResults> {
-    let nodes: TaskNode[]
-    try {
-      nodes = await this.nodesWithDependencies({ tasks, dependencyCache: {}, stack: [] })
-    } catch (circularDepsErr) {
-      throw circularDepsErr
-    }
+    this.log.silly(`TaskGraph: Processing ${tasks.length} tasks: ${tasks.map((t) => t.getKey()).join(",")}`)
+
+    const nodes = await this.nodesWithDependencies({ tasks, nodeMap: {}, stack: [] })
+
+    this.log.silly(`TaskGraph: Partitioning into batches`)
 
     const batches = this.partition(nodes)
     for (const batch of batches) {
@@ -107,6 +109,8 @@ export class TaskGraph extends EventEmitter2 {
         this.latestNodes[node.key] = node
       }
     }
+
+    this.log.silly(`TaskGraph: Split into ${batches.length} batches`)
 
     this.pendingBatches.push(...batches)
     this.processGraph()
@@ -132,7 +136,7 @@ export class TaskGraph extends EventEmitter2 {
       if (failed.length > 0) {
         throw new TaskGraphError(
           dedent`
-            ${failed.length} task(s) failed:
+            ${failed.length} action(s) failed:
             ${failed.map(([key, result]) => `- ${key}: ${result?.error?.stack || result?.error?.message}`).join("\n")}
           `,
           { results }
@@ -145,37 +149,54 @@ export class TaskGraph extends EventEmitter2 {
 
   private async nodesWithDependencies({
     tasks,
-    dependencyCache,
+    nodeMap,
     stack,
   }: {
     tasks: BaseTask[]
-    dependencyCache: { [key: string]: BaseTask[] }
+    nodeMap: { [key: string]: TaskNode }
     stack: string[]
   }): Promise<TaskNode[]> {
     return Bluebird.map(tasks, async (task) => {
       const key = task.getKey()
 
-      // Detect circular dependencies
-      const previousOccurrence = stack.indexOf(key)
-      if (previousOccurrence !== -1) {
-        const cycle = stack.slice(previousOccurrence)
-        const description = cyclesToString([cycle])
-        const msg = `Circular task dependencies detected:\n\n${description}\n`
-        throw new CircularDependenciesError(msg, { description, cycle })
+      if (nodeMap[key]) {
+        return nodeMap[key]
       }
 
-      let depTasks = dependencyCache[key]
+      return this.lock.acquire("node-" + key, async () => {
+        if (nodeMap[key]) {
+          return nodeMap[key]
+        }
 
-      if (!depTasks) {
-        dependencyCache[key] = depTasks = await task.resolveDependencies()
-      }
+        const newStack = [...stack, key]
+        this.log.silly(`TaskGraph: Resolving dependencies for node ${task.getKey()}`)
+        const depTasks = await task.getDependencies()
+        this.log.silly(
+          `TaskGraph: Got ${depTasks.length} dependencies for node ${task.getKey()}: ${depTasks
+            .map((t) => t.getKey())
+            .join(",")}`
+        )
 
-      const depNodes = await this.nodesWithDependencies({
-        tasks: depTasks,
-        dependencyCache,
-        stack: [...stack, key],
+        // Detect circular dependencies
+        for (const dep of depTasks) {
+          const previousOccurrence = newStack.indexOf(dep.getKey())
+          if (previousOccurrence !== -1) {
+            const cycle = newStack.slice(previousOccurrence)
+            const description = cyclesToString([cycle])
+            const msg = `Circular task dependencies detected:\n\n${description}\n`
+            throw new CircularDependenciesError(msg, { description, cycle })
+          }
+        }
+
+        const depNodes = await this.nodesWithDependencies({
+          tasks: depTasks,
+          nodeMap,
+          stack: newStack,
+        })
+        nodeMap[key] = new TaskNode(task, depNodes)
+
+        return nodeMap[key]
       })
-      return new TaskNode(task, depNodes)
     })
   }
 
@@ -236,7 +257,7 @@ export class TaskGraph extends EventEmitter2 {
     if (this.index.contains(node)) {
       const task = node.task
       this.garden.events.emit("taskPending", {
-        addedAt: new Date(),
+        addedAt: new Date().toISOString(),
         batchId: node.batchId,
         key: node.key,
         name: task.getName(),
@@ -325,7 +346,7 @@ export class TaskGraph extends EventEmitter2 {
       this.log.silly(safeDumpYaml(this.index.inspect(), { noRefs: true }))
 
       this.garden.events.emit("taskGraphProcessing", {
-        startedAt: new Date(),
+        startedAt: new Date().toISOString(),
       })
     }
 
@@ -336,7 +357,7 @@ export class TaskGraph extends EventEmitter2 {
     if (this.index.length === 0 && this.pendingBatches.length === 0 && this.inProgressBatches.length === 0) {
       // done!
       this.logEntryMap.counter && this.logEntryMap.counter.setDone({ symbol: "info" })
-      this.garden.events.emit("taskGraphComplete", { completedAt: new Date() })
+      this.garden.events.emit("taskGraphComplete", { completedAt: new Date().toISOString() })
       return
     }
 
@@ -409,7 +430,7 @@ export class TaskGraph extends EventEmitter2 {
           type,
           key,
           batchId,
-          startedAt: new Date(),
+          startedAt: new Date().toISOString(),
           versionString: task.version,
         })
         result = await node.process(dependencyResults)
@@ -451,7 +472,7 @@ export class TaskGraph extends EventEmitter2 {
    * Recursively remove node's dependants, without removing node.
    */
   private cancelDependants(node: TaskNode) {
-    const cancelledAt = new Date()
+    const cancelledAt = new Date().toISOString()
     for (const dependant of this.getDependants(node)) {
       this.logTaskComplete(dependant, false)
       this.garden.events.emit("taskCancelled", {
@@ -584,7 +605,11 @@ export class TaskGraph extends EventEmitter2 {
         entry.setError({ msg: `Failed task ${idStr}`, metadata })
       }
     }
-    this.logEntryMap.counter.setState(remainingTasksToStr(this.index.length))
+    const currentMsg = this.logEntryMap.counter.getLatestMessage()?.msg
+    const msg = remainingTasksToStr(this.index.length)
+    if (currentMsg && msg !== currentMsg) {
+      this.logEntryMap.counter.setState(msg)
+    }
   }
 
   private initLogging() {

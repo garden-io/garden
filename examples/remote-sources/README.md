@@ -7,7 +7,7 @@ This example demonstrates how you can import remote sources and remote modules i
 This project is the same as the [vote example](https://github.com/garden-io/garden/tree/v0.9.0-docfix.2/examples/vote)—except that in this case the services live in their own repositories. The repositories are:
 
 * [Database services](https://github.com/garden-io/garden-example-remote-sources-db-services) (contains the Postgres and Redis services)
-* [Web services](https://github.com/garden-io/garden-example-remote-sources-web-services) (contains the Python Vote web service and the Node.js Result web service)
+* [Web services](https://github.com/garden-io/garden-example-remote-sources-web-services) (contains the Python Vote web service, Node.js Result web service and the api)
 * [Java worker module](https://github.com/garden-io/garden-example-remote-module-jworker)
 
 _This split is pretty arbitrary and doesn't necessarily reflect how you would normally separate services into different repositories._

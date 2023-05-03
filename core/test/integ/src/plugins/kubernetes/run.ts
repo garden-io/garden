@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -257,7 +257,7 @@ describe("kubernetes Pod runner functions", () => {
         expect(res.success).to.be.true
       })
 
-      it("returns success=false if Pod returns with non-zero exit code", async () => {
+      it("returns success=false if Pod returns with non-zero exit code when throwOnExitCode is not set", async () => {
         const pod = makePod(["sh", "-c", "echo foo && exit 1"])
 
         runner = new PodRunner({
@@ -272,6 +272,23 @@ describe("kubernetes Pod runner functions", () => {
 
         expect(res.log.trim()).to.equal("foo")
         expect(res.success).to.be.false
+      })
+
+      it("throws if Pod returns with non-zero exit code when throwOnExitCode=true", async () => {
+        const pod = makePod(["sh", "-c", "echo foo && exit 1"])
+
+        runner = new PodRunner({
+          ctx,
+          pod,
+          namespace,
+          api,
+          provider,
+        })
+
+        await expectError(
+          () => runner.runAndWait({ log, remove: true, tty: false, events: ctx.events, throwOnExitCode: true }),
+          (err) => expect(err.message.trim()).to.equal("Command exited with code 1:\nfoo")
+        )
       })
 
       it("throws if Pod is invalid", async () => {
@@ -559,6 +576,7 @@ describe("kubernetes Pod runner functions", () => {
         module: helmModule,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log: helmLog,
         version: helmModule.version.versionString,
       })
@@ -989,6 +1007,7 @@ describe("kubernetes Pod runner functions", () => {
       const task = graph.getTask("artifacts-task")
       const module = task.module
 
+      const timeout = 4
       const result = await runAndCopy({
         ctx: await garden.getPluginContext(provider),
         log: garden.log,
@@ -999,12 +1018,12 @@ describe("kubernetes Pod runner functions", () => {
         namespace,
         runtimeContext: { envVars: {}, dependencies: [] },
         image,
-        timeout: 4,
+        timeout,
         version: module.version.versionString,
       })
 
       // Note: Kubernetes doesn't always return the logs when commands time out.
-      expect(result.log.trim()).to.include("Command timed out.")
+      expect(result.log.trim()).to.include(`Command timed out after ${timeout} seconds.`)
       expect(result.success).to.be.false
     })
 
@@ -1160,6 +1179,7 @@ describe("kubernetes Pod runner functions", () => {
         const task = graph.getTask("artifacts-task")
         const module = task.module
 
+        const timeout = 3
         const result = await runAndCopy({
           ctx: await garden.getPluginContext(provider),
           log: garden.log,
@@ -1172,11 +1192,13 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          timeout: 3,
+          timeout,
           version: module.version.versionString,
         })
 
-        expect(result.log.trim()).to.equal("Command timed out. Here are the logs until the timeout occurred:\n\nbanana")
+        expect(result.log.trim()).to.equal(
+          `Command timed out after ${timeout} seconds. Here are the logs until the timeout occurred:\n\nbanana`
+        )
         expect(result.success).to.be.false
       })
 
@@ -1184,6 +1206,7 @@ describe("kubernetes Pod runner functions", () => {
         const task = graph.getTask("artifacts-task")
         const module = task.module
 
+        const timeout = 3
         const result = await runAndCopy({
           ctx: await garden.getPluginContext(provider),
           log: garden.log,
@@ -1196,11 +1219,11 @@ describe("kubernetes Pod runner functions", () => {
           artifacts: task.spec.artifacts,
           artifactsPath: tmpDir.path,
           image,
-          timeout: 3,
+          timeout,
           version: module.version.versionString,
         })
 
-        expect(result.log.trim()).to.equal("Command timed out.")
+        expect(result.log.trim()).to.equal(`Command timed out after ${timeout} seconds.`)
         expect(await pathExists(join(tmpDir.path, "task.txt"))).to.be.true
         expect(result.success).to.be.false
       })
@@ -1237,7 +1260,7 @@ describe("kubernetes Pod runner functions", () => {
               version: module.version.versionString,
             }),
           (err) =>
-            expect(err.message).to.equal(deline`
+            expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but the image doesn't
               contain the sh binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
               to be installed in the image.
@@ -1277,7 +1300,7 @@ describe("kubernetes Pod runner functions", () => {
               version: module.version.versionString,
             }),
           (err) =>
-            expect(err.message).to.equal(deline`
+            expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but the image doesn't
               contain the tar binary. In order to copy artifacts out of Kubernetes containers, both sh and tar need
               to be installed in the image.
@@ -1306,7 +1329,7 @@ describe("kubernetes Pod runner functions", () => {
               version: module.version.versionString,
             }),
           (err) =>
-            expect(err.message).to.equal(deline`
+            expect(err.message).to.include(deline`
               Foo specifies artifacts to export, but doesn't explicitly set a \`command\`.
               The kubernetes provider currently requires an explicit command to be set for tests and tasks that
               export artifacts, because the image's entrypoint cannot be inferred in that execution mode.

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,7 +17,11 @@ import { gardenPlugin, ContainerProvider } from "../../../../../src/plugins/cont
 import { dataDir, expectError, makeTestGarden } from "../../../../helpers"
 import { moduleFromConfig } from "../../../../../src/types/module"
 import { LogEntry } from "../../../../../src/logger/log-entry"
-import { ContainerModuleConfig, defaultContainerResources } from "../../../../../src/plugins/container/config"
+import {
+  ContainerModuleConfig,
+  defaultContainerResources,
+  defaultDeploymentStrategy,
+} from "../../../../../src/plugins/container/config"
 import {
   containerHelpers as helpers,
   minDockerVersion,
@@ -114,6 +118,7 @@ describe("plugins.container", () => {
             ports: [],
             replicas: 1,
             volumes: [],
+            deploymentStrategy: defaultDeploymentStrategy,
           },
         ],
         tasks: [
@@ -266,6 +271,7 @@ describe("plugins.container", () => {
             ],
             replicas: 1,
             volumes: [],
+            deploymentStrategy: defaultDeploymentStrategy,
           },
         ],
         tasks: [
@@ -360,6 +366,7 @@ describe("plugins.container", () => {
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 replicas: 1,
                 volumes: [],
+                deploymentStrategy: defaultDeploymentStrategy,
               },
             ],
             tasks: [
@@ -439,6 +446,7 @@ describe("plugins.container", () => {
                 ports: [{ name: "http", protocol: "TCP", containerPort: 8080, servicePort: 8080 }],
                 replicas: 1,
                 volumes: [],
+                deploymentStrategy: defaultDeploymentStrategy,
               },
             },
           ],
@@ -571,6 +579,7 @@ describe("plugins.container", () => {
                   module: "volume-module",
                 },
               ],
+              deploymentStrategy: defaultDeploymentStrategy,
             },
           ],
           tasks: [],
@@ -737,6 +746,7 @@ describe("plugins.container", () => {
               ports: [],
               replicas: 1,
               volumes: [],
+              deploymentStrategy: defaultDeploymentStrategy,
             },
           ],
           tasks: [
@@ -818,6 +828,7 @@ describe("plugins.container", () => {
               ports: [],
               replicas: 1,
               volumes: [],
+              deploymentStrategy: defaultDeploymentStrategy,
             },
           ],
           tasks: [
@@ -883,6 +894,7 @@ describe("plugins.container", () => {
               ports: [],
               replicas: 1,
               volumes: [],
+              deploymentStrategy: defaultDeploymentStrategy,
             },
           ],
           tasks: [

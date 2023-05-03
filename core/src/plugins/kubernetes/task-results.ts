@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,6 +25,18 @@ import { trimRunOutput } from "./helm/common"
 import { MAX_RUN_RESULT_LOG_LENGTH } from "./constants"
 import chalk from "chalk"
 import { GardenTask } from "../../types/task"
+import { joi } from "../../config/common"
+
+export const taskOutputsSchema = joi.object().keys({
+  log: joi
+    .string()
+    .allow("")
+    .default("")
+    .description(
+      "The full log from the executed task. " +
+        "(Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)"
+    ),
+})
 
 export async function getTaskResult({
   ctx,

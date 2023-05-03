@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -38,10 +38,20 @@ class LocalContext extends ConfigContext {
     joi
       .string()
       .description(
+        "A string indicating the architecture that the framework is running on " +
+          "(see https://nodejs.org/api/process.html#process_process_arch)"
+      )
+      .example("x64")
+  )
+  public arch: string
+  @schema(
+    joi
+      .string()
+      .description(
         "A string indicating the platform that the framework is running on " +
           "(see https://nodejs.org/api/process.html#process_process_platform)"
       )
-      .example("posix")
+      .example("linux")
   )
   public platform: string
 
@@ -72,6 +82,7 @@ class LocalContext extends ConfigContext {
   constructor(root: ConfigContext, artifactsPath: string, projectRoot: string, username?: string) {
     super(root)
     this.artifactsPath = artifactsPath
+    this.arch = process.arch
     this.env = process.env
     this.platform = process.platform
     this.projectPath = projectRoot

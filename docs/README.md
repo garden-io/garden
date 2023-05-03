@@ -1,18 +1,20 @@
 # Table of Contents
 
+* [Welcome!](welcome.md)
+
 ## 🌳 Basics
 
 * [How Garden Works](./basics/how-garden-works.md)
+* [Quickstart Guide](./basics/quickstart.md)
 * [The Stack Graph (Terminology)](./basics/stack-graph.md)
 
-## 🌻 Getting Started
+## 🌻 Tutorials
 
-* [0. Introduction](./getting-started/0-introduction.md)
-* [1. Installation](./getting-started/1-installation.md)
-* [2. Initialize a Project](./getting-started/2-initialize-a-project.md)
-* [3. Connect to a Cluster](./getting-started/3-connect-to-a-cluster.md)
-* [4. Deploy and Test](./getting-started/4-deploy-and-test.md)
-* [5. Configure Your Project](./getting-started/5-configure-your-project.md)
+* [Your First Project](./tutorials/your-first-project/README.md)
+  * [1. Initialize a Project](./tutorials/your-first-project/1-initialize-a-project.md)
+  * [2. Connect to a Cluster](./tutorials/your-first-project/2-connect-to-a-cluster.md)
+  * [3. Deploy and Test](./tutorials/your-first-project/3-deploy-and-test.md)
+  * [4. Configure Your Project](./tutorials/your-first-project/4-configure-your-project.md)
 
 ## 💐 Using Garden
 
@@ -27,27 +29,69 @@
 * [Module Templates](./using-garden/module-templates.md)
 * [Using the CLI](./using-garden/using-the-cli.md)
 
-## 🌿 Guides
+## 🌿 Kubernetes Plugins
 
-* [Cloud Provider Set-up](./guides/cloud-provider-setup.md)
+* [About](./k8s-plugins/about.md)
+* [Remote K8s Plugin Configuration](./k8s-plugins/remote-k8s/README.md)
+  * [1. Create a Cluster](./k8s-plugins/remote-k8s/create-cluster/README.md)
+    * [AWS](./k8s-plugins/remote-k8s/create-cluster/aws.md)
+    * [GCP](./k8s-plugins/remote-k8s/create-cluster/gcp.md)
+    * [Azure](./k8s-plugins/remote-k8s/create-cluster/azure.md)
+  * [2. Configure Container Registry (Optional)](./k8s-plugins/remote-k8s/configure-registry/README.md)
+    * [AWS](./k8s-plugins/remote-k8s/configure-registry/aws.md)
+    * [GCP](./k8s-plugins/remote-k8s/configure-registry/gcp.md)
+    * [Azure](./k8s-plugins/remote-k8s/configure-registry/azure.md)
+  * [3. Set Up Ingress, TLS and DNS](./k8s-plugins/remote-k8s/ingress-and-dns.md)
+  * [4. Configure the Provider](./k8s-plugins/remote-k8s/configure-provider.md)
+* [Local K8s Plugin Configuration](./k8s-plugins/local-k8s/README.md)
+  * [1. Install Local Kubernetes](./k8s-plugins/local-k8s/install.md)
+  * [2. Configure the Provider](./k8s-plugins/local-k8s/configure-provider.md)
+* [Module Configuration](./k8s-plugins/module-types/README.md)
+  * [Container](./k8s-plugins/module-types/container.md)
+  * [Kubernetes](./k8s-plugins/module-types/kubernetes.md)
+  * [Helm](./k8s-plugins/module-types/helm.md)
+  * [PersistentVolumeClaim](./k8s-plugins/module-types/persistentvolumeclaim.md)
+  * [ConfigMap](./k8s-plugins/module-types/configmap.md)
+* [Advanced](./k8s-plugins/advanced/README.md)
+  * [In-Cluster Building](./k8s-plugins/advanced/in-cluster-building.md)
+  * [Minimal RBAC Configuration for Development Clusters](./k8s-plugins/advanced/rbac-config.md)
+  * [Deploying to Production](./k8s-plugins/advanced/deploying-to-production.md)
+
+## 🌺 Terraform Plugin
+
+* [About](./terraform-plugin/about.md)
+* [Provider Configuration](./terraform-plugin/configure-provider.md)
+* [Module Configuration](./terraform-plugin/configure-modules.md)
+
+## ☘️ Pulumi Plugin
+
+* [About](./pulumi-plugin/about.md)
+* [Provider Configuration](./pulumi-plugin/configure-provider.md)
+* [Module Configuration](./pulumi-plugin/configure-modules.md)
+
+## 🌹 Other Plugins
+
+* [Container](./other-plugins/container.md)
+* [Exec (local scripts)](./other-plugins/exec.md)
+
+## 🌼 Guides
+
+* [Installing Garden](./guides/installation.md)
+* [Adopting Garden](./guides/adopting-garden.md)
 * [Code Synchronization (Dev Mode)](./guides/code-synchronization-dev-mode.md)
-* [Container Modules](./guides/container-modules.md)
-* [Helm Charts](./guides/using-helm-charts.md)
+* [Connecting a local service to a K8s cluster (Local Mode)](./guides/running-service-in-local-mode.md)
+* [Environments and namespaces](./guides/namespaces.md)
 * [Hot Reload](./guides/hot-reload.md)
-* [In-Cluster Building](./guides/in-cluster-building.md)
-* [Local Kubernetes](./guides/local-kubernetes.md)
-* [Remote Kubernetes](./guides/remote-kubernetes.md)
+* [Migrating from Docker Compose to Garden](./guides/migrating-from-docker-compose.md)
 * [Using Garden in CI](./guides/using-garden-in-ci.md)
 
-## 🌺 Advanced
+## 🌷 Advanced
 
 * [cert-manager Integration](./advanced/cert-manager-integration.md)
-* [Terraform](./advanced/terraform.md)
 * [Using Remote Sources](./advanced/using-remote-sources.md)
-* [Minimal RBAC Configuration for Development Clusters](./advanced/rbac-config.md)
 * [Custom Commands](./advanced/custom-commands.md)
 
-## ☘️ Reference
+## 🪷 Reference
 
 * [Providers](./reference/providers/README.md)
   * [`conftest-container`](./reference/providers/conftest-container.md)
@@ -62,6 +106,7 @@
   * [`maven-container`](./reference/providers/maven-container.md)
   * [`octant`](./reference/providers/octant.md)
   * [`openfaas`](./reference/providers/openfaas.md)
+  * [`pulumi`](./reference/providers/pulumi.md)
   * [`terraform`](./reference/providers/terraform.md)
 * [Module Types](./reference/module-types/README.md)
   * [`configmap`](./reference/module-types/configmap.md)
@@ -75,6 +120,7 @@
   * [`maven-container`](./reference/module-types/maven-container.md)
   * [`openfaas`](./reference/module-types/openfaas.md)
   * [`persistentvolumeclaim`](./reference/module-types/persistentvolumeclaim.md)
+  * [`pulumi`](./reference/module-types/pulumi.md)
   * [`templated`](./reference/module-types/templated.md)
   * [`terraform`](./reference/module-types/terraform.md)
 * [Template Strings](./reference/template-strings/README.md)
@@ -93,7 +139,7 @@
 * [Module Template Configuration](./reference/module-template-config.md)
 * [Workflow Configuration](./reference/workflow-config.md)
 
-## 🌹 Misc
+## 🎋 Misc
 
 * [FAQ](./misc/faq.md)
 * [Troubleshooting](./misc/troubleshooting.md)

@@ -53,8 +53,8 @@ build:
           source:
 
           # POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-          # Defaults to to same as source path.
-          target: ''
+          # Defaults to the same as source path.
+          target:
 
   # Maximum time in seconds to wait for build to finish.
   timeout: 1200
@@ -63,7 +63,7 @@ build:
 description:
 
 # Set this to `true` to disable the module. You can use this with conditional template strings to disable modules
-# based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`).
+# based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`).
 # This can be handy when you only need certain modules for specific environments, e.g. only for development.
 #
 # Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also
@@ -158,7 +158,7 @@ variables:
 # objects and arrays._
 #
 # To use different module-level varfiles in different environments, you can template in the environment name
-# to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+# to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 # varfiles exist).
 varfile:
 
@@ -185,11 +185,7 @@ devMode:
 
   # Specify one or more source files or directories to automatically sync with the running container.
   sync:
-    - # POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be
-      # a relative path. Defaults to the module's top-level directory if no value is provided.
-      source: .
-
-      # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
+    - # POSIX-style absolute path to sync the directory to inside the container. The root path (i.e. "/") is not
       # allowed.
       target:
 
@@ -197,6 +193,10 @@ devMode:
       #
       # `.git` directories and `.garden` directories are always ignored.
       exclude:
+
+      # POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path.
+      # Defaults to the module's top-level directory if no value is provided.
+      source: .
 
       # The sync mode to use for the given paths. See the [Dev Mode
       # guide](https://docs.garden.io/guides/code-synchronization-dev-mode) for details.
@@ -224,6 +224,51 @@ devMode:
 
   # Optionally specify the name of a specific container to sync to. If not specified, the first container in the
   # workload is used.
+  containerName:
+
+# Configures the local application which will send and receive network requests instead of the target resource
+# specified by `serviceResource`.
+#
+# Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the
+# `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target
+# Kubernetes resource.
+#
+# The `serviceResource.containerName` field is not used by local mode configuration.
+# Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
+#
+# The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH
+# server to proxy requests.
+# Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and
+# back.
+#
+# Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+# Local mode always takes the precedence over dev mode if there are any conflicting service names.
+#
+# Health checks are disabled for services running in local mode.
+#
+# See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+localMode:
+  # The reverse port-forwards configuration for the local application.
+  ports:
+    - # The local port to be used for reverse port-forward.
+      local:
+
+      # The remote port to be used for reverse port-forward.
+      remote:
+
+  # The command to run the local application. If not present, then the local application should be started manually.
+  command:
+
+  # Specifies restarting policy for the local application. By default, the local application will be restarting
+  # infinitely with 1000ms between attempts.
+  restart:
+    # Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+    delayMsec: 1000
+
+    # Max number of the local application restarts. Unlimited by default.
+    max: .inf
+
+  # The name of the target container. The first available container will be used if this field is not defined.
   containerName:
 
 # POSIX-style paths to YAML files to load manifests from. Each can contain multiple manifests, and can include any
@@ -326,7 +371,7 @@ tasks:
     dependencies: []
 
     # Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable
-    # tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name !=
+    # tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name !=
     # "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for
     # development.
     #
@@ -429,7 +474,7 @@ tests:
 
     # Set this to `true` to disable the test. You can use this with conditional template strings to
     # enable/disable tests based on, for example, the current environment or other variables (e.g.
-    # `enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+    # `enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
     # specific environments, e.g. only during CI.
     disabled: false
 
@@ -619,11 +664,11 @@ POSIX-style path or filename of the directory or file(s) to copy to the target.
 [build](#build) > [dependencies](#builddependencies) > [copy](#builddependenciescopy) > target
 
 POSIX-style path or filename to copy the directory or file(s), relative to the build directory.
-Defaults to to same as source path.
+Defaults to the same as source path.
 
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `""`    | No       |
+| Type        | Required |
+| ----------- | -------- |
+| `posixPath` | No       |
 
 ### `build.timeout`
 
@@ -645,7 +690,7 @@ A description of the module.
 
 ### `disabled`
 
-Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: \${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
+Set this to `true` to disable the module. You can use this with conditional template strings to disable modules based on, for example, the current environment or other variables (e.g. `disabled: ${environment.name == "prod"}`). This can be handy when you only need certain modules for specific environments, e.g. only for development.
 
 Disabling a module means that any services, tasks and tests contained in it will not be deployed or run. It also means that the module is not built _unless_ it is declared as a build dependency by another enabled module (in which case building this module is necessary for the dependant to be built).
 
@@ -704,9 +749,9 @@ A remote repository URL. Currently only supports git servers. Must contain a has
 
 Garden will import the repository source code into this module, but read the module's config from the local garden.yml file.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `gitUrl | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `gitUrl \| string` | No       |
 
 Example:
 
@@ -795,7 +840,7 @@ The format of the files is determined by the configured file's extension:
 _NOTE: The default varfile format will change to YAML in Garden v0.13, since YAML allows for definition of nested objects and arrays._
 
 To use different module-level varfiles in different environments, you can template in the environment name
-to the varfile name, e.g. `varfile: "my-module.\$\{environment.name\}.env` (this assumes that the corresponding
+to the varfile name, e.g. `varfile: "my-module.${environment.name}.env` (this assumes that the corresponding
 varfiles exist).
 
 | Type        | Required |
@@ -860,25 +905,6 @@ Specify one or more source files or directories to automatically sync with the r
 | --------------- | -------- |
 | `array[object]` | No       |
 
-### `devMode.sync[].source`
-
-[devMode](#devmode) > [sync](#devmodesync) > source
-
-POSIX-style path of the directory to sync to the target, relative to the module's top-level directory. Must be a relative path. Defaults to the module's top-level directory if no value is provided.
-
-| Type        | Default | Required |
-| ----------- | ------- | -------- |
-| `posixPath` | `"."`   | No       |
-
-Example:
-
-```yaml
-devMode:
-  ...
-  sync:
-    - source: "src"
-```
-
 ### `devMode.sync[].target`
 
 [devMode](#devmode) > [sync](#devmodesync) > target
@@ -921,6 +947,25 @@ devMode:
         - '*.log'
 ```
 
+### `devMode.sync[].source`
+
+[devMode](#devmode) > [sync](#devmodesync) > source
+
+POSIX-style path of the directory to sync to the target. Can be either a relative or an absolute path. Defaults to the module's top-level directory if no value is provided.
+
+| Type        | Default | Required |
+| ----------- | ------- | -------- |
+| `posixPath` | `"."`   | No       |
+
+Example:
+
+```yaml
+devMode:
+  ...
+  sync:
+    - source: "src"
+```
+
 ### `devMode.sync[].mode`
 
 [devMode](#devmode) > [sync](#devmodesync) > mode
@@ -957,9 +1002,9 @@ The default permission bits, specified as an octal, to set on directories at the
 
 Set the default owner of files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `devMode.sync[].defaultGroup`
 
@@ -967,15 +1012,118 @@ Set the default owner of files and directories at the target. Specify either an 
 
 Set the default group on files and directories at the target. Specify either an integer ID or a string name. See the [Mutagen docs](https://mutagen.io/documentation/synchronization/permissions#owners-and-groups) for more information.
 
-| Type              | Required |
-| ----------------- | -------- |
-| `number | string` | No       |
+| Type               | Required |
+| ------------------ | -------- |
+| `number \| string` | No       |
 
 ### `devMode.containerName`
 
 [devMode](#devmode) > containerName
 
 Optionally specify the name of a specific container to sync to. If not specified, the first container in the workload is used.
+
+| Type     | Required |
+| -------- | -------- |
+| `string` | No       |
+
+### `localMode`
+
+Configures the local application which will send and receive network requests instead of the target resource specified by `serviceResource`.
+
+Note that `serviceResource` must also be specified to enable local mode. Local mode configuration for the `kubernetes` module type relies on the `serviceResource.kind` and `serviceResource.name` fields to select a target Kubernetes resource.
+
+The `serviceResource.containerName` field is not used by local mode configuration.
+Note that `localMode` uses its own field `containerName` to specify a target container name explicitly.
+
+The selected container of the target Kubernetes resource will be replaced by a proxy container which runs an SSH server to proxy requests.
+Reverse port-forwarding will be automatically configured to route traffic to the locally deployed application and back.
+
+Local mode is enabled by setting the `--local` option on the `garden deploy` or `garden dev` commands.
+Local mode always takes the precedence over dev mode if there are any conflicting service names.
+
+Health checks are disabled for services running in local mode.
+
+See the [Local Mode guide](https://docs.garden.io/guides/running-service-in-local-mode) for more information.
+
+| Type     | Required |
+| -------- | -------- |
+| `object` | No       |
+
+### `localMode.ports[]`
+
+[localMode](#localmode) > ports
+
+The reverse port-forwards configuration for the local application.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[object]` | No       |
+
+### `localMode.ports[].local`
+
+[localMode](#localmode) > [ports](#localmodeports) > local
+
+The local port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `localMode.ports[].remote`
+
+[localMode](#localmode) > [ports](#localmodeports) > remote
+
+The remote port to be used for reverse port-forward.
+
+| Type     | Required |
+| -------- | -------- |
+| `number` | No       |
+
+### `localMode.command[]`
+
+[localMode](#localmode) > command
+
+The command to run the local application. If not present, then the local application should be started manually.
+
+| Type            | Required |
+| --------------- | -------- |
+| `array[string]` | No       |
+
+### `localMode.restart`
+
+[localMode](#localmode) > restart
+
+Specifies restarting policy for the local application. By default, the local application will be restarting infinitely with 1000ms between attempts.
+
+| Type     | Default                         | Required |
+| -------- | ------------------------------- | -------- |
+| `object` | `{"delayMsec":1000,"max":null}` | No       |
+
+### `localMode.restart.delayMsec`
+
+[localMode](#localmode) > [restart](#localmoderestart) > delayMsec
+
+Delay in milliseconds between the local application restart attempts. The default value is 1000ms.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `1000`  | No       |
+
+### `localMode.restart.max`
+
+[localMode](#localmode) > [restart](#localmoderestart) > max
+
+Max number of the local application restarts. Unlimited by default.
+
+| Type     | Default | Required |
+| -------- | ------- | -------- |
+| `number` | `null`  | No       |
+
+### `localMode.containerName`
+
+[localMode](#localmode) > containerName
+
+The name of the target container. The first available container will be used if this field is not defined.
 
 | Type     | Required |
 | -------- | -------- |
@@ -1003,9 +1151,9 @@ Resolve the specified kustomization and include the resulting resources. Note th
 
 The directory path where the desired kustomization.yaml is, or a git repository URL. This could be the path to an overlay directory, for example. If it's a path, must be a relative POSIX-style path and must be within the module root. Defaults to the module root. If you set this to null, kustomize will not be run.
 
-| Type                 | Default | Required |
-| -------------------- | ------- | -------- |
-| `posixPath | string` | `"."`   | No       |
+| Type                  | Default | Required |
+| --------------------- | ------- | -------- |
+| `posixPath \| string` | `"."`   | No       |
 
 ### `kustomize.extraArgs[]`
 
@@ -1253,7 +1401,7 @@ The names of any tasks that must be executed, and the names of any services that
 
 [tasks](#tasks) > disabled
 
-Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: \${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
+Set this to `true` to disable the task. You can use this with conditional template strings to enable/disable tasks based on, for example, the current environment or other variables (e.g. `enabled: ${environment.name != "prod"}`). This can be handy when you only want certain tasks to run in specific environments, e.g. only for development.
 
 Disabling a task means that it will not be run, and will also be ignored if it is declared as a runtime dependency for another service, test or task.
 
@@ -1507,7 +1655,7 @@ The names of any services that must be running, and the names of any tasks that 
 
 Set this to `true` to disable the test. You can use this with conditional template strings to
 enable/disable tests based on, for example, the current environment or other variables (e.g.
-`enabled: \${environment.name != "prod"}`). This is handy when you only want certain tests to run in
+`enabled: ${environment.name != "prod"}`). This is handy when you only want certain tests to run in
 specific environments, e.g. only during CI.
 
 | Type      | Default | Required |
@@ -1778,9 +1926,9 @@ A map of all variables defined in the module.
 
 ### `${modules.<module-name>.var.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${modules.<module-name>.version}`
 
@@ -1835,4 +1983,12 @@ Example:
 ```yaml
 my-variable: ${runtime.tasks.my-tasks.version}
 ```
+
+### `${runtime.tasks.<task-name>.outputs.log}`
+
+The full log from the executed task. (Pro-tip: Make it machine readable so it can be parsed by dependant tasks and services!)
+
+| Type     | Default |
+| -------- | ------- |
+| `string` | `""`    |
 

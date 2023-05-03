@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { platform } from "os"
 import { expect } from "chai"
 import td from "testdouble"
-import { HotReloadableResource } from "../../../../../src/plugins/kubernetes/hot-reload/hot-reload"
+import { SyncableResource } from "../../../../../src/plugins/kubernetes/hot-reload/hot-reload"
 
 import { setPlatform, makeTestGarden, TestGarden, getDataDir } from "../../../../helpers"
 import { ConfigGraph } from "../../../../../src/config-graph"
@@ -46,7 +46,7 @@ describe("configureHotReload", () => {
     }
 
     configureHotReload({
-      target: <HotReloadableResource>target,
+      target: <SyncableResource>target,
       hotReloadSpec: {
         sync: [
           {
@@ -101,6 +101,17 @@ describe("configureHotReload", () => {
                   successThreshold: 1,
                   failureThreshold: 5,
                   tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+                },
+                lifecycle: {
+                  preStop: {
+                    exec: {
+                      command: [
+                        "/bin/sh",
+                        "-c",
+                        "until test $(pgrep -f '^[^ ]+rsync' | wc -l) = 1; do echo waiting for rsync to finish...; sleep 1; done",
+                      ],
+                    },
+                  },
                 },
                 volumeMounts: [
                   {
@@ -166,7 +177,7 @@ describe("configureHotReload", () => {
     }
 
     configureHotReload({
-      target: <HotReloadableResource>target,
+      target: <SyncableResource>target,
       hotReloadSpec: {
         sync: [
           {
@@ -218,6 +229,21 @@ describe("configureHotReload", () => {
               successThreshold: 1,
               failureThreshold: 5,
               tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+            },
+            lifecycle: {
+              preStop: {
+                exec: {
+                  // this preStop command makes sure that we wait for some time if an rsync is still ongoing, before
+                  // actually killing the pod. If the transfer takes more than 30 seconds, which is unlikely, the pod
+                  // will be killed anyway. The command works by counting the number of rsync processes. This works
+                  // because rsync forks for every connection.
+                  command: [
+                    "/bin/sh",
+                    "-c",
+                    "until test $(pgrep -f '^[^ ]+rsync' | wc -l) = 1; do echo waiting for rsync to finish...; sleep 1; done",
+                  ],
+                },
+              },
             },
             volumeMounts: [
               {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,6 +9,7 @@
 import Bluebird from "bluebird"
 import { flatten } from "lodash"
 import dedent = require("dedent")
+import minimatch from "minimatch"
 
 import {
   Command,
@@ -55,13 +56,19 @@ export const testOpts = {
     alias: "w",
     cliOnly: true,
   }),
+  "skip": new StringsParameter({
+    help: deline`
+      The name(s) of tests you'd like to skip. Accepts glob patterns
+      (e.g. integ* would skip both 'integ' and 'integration'). Applied after the 'name' filter.
+    `,
+  }),
   "skip-dependencies": new BooleanParameter({
     help: deline`Don't deploy any services or run any tasks that the requested tests depend on.
     This can be useful e.g. when your stack has already been deployed, and you want to run tests with runtime
     dependencies without redeploying any service dependencies that may have changed since you last deployed.
     Warning: Take great care when using this option in CI, since Garden won't ensure that the runtime dependencies of
     your test suites are up to date when this option is used.`,
-    alias: "no-deps",
+    alias: "nodeps",
   }),
   "skip-dependants": new BooleanParameter({
     help: deline`
@@ -153,6 +160,7 @@ export class TestCommand extends Command<Args, Opts> {
     const force = opts.force
     const forceBuild = opts["force-build"]
     const skipRuntimeDependencies = opts["skip-dependencies"]
+    const skipped = opts.skip || []
 
     const initialTasks = flatten(
       await Bluebird.map(modules, (module) =>
@@ -166,9 +174,13 @@ export class TestCommand extends Command<Args, Opts> {
           forceBuild,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
           skipRuntimeDependencies,
         })
       )
+    ).filter(
+      (testTask) =>
+        skipped.length === 0 || !skipped.some((s) => minimatch(testTask.test.name.toLowerCase(), s.toLowerCase()))
     )
 
     const results = await processModules({
@@ -194,6 +206,7 @@ export class TestCommand extends Command<Args, Opts> {
               fromWatch: true,
               devModeServiceNames: [],
               hotReloadServiceNames: [],
+              localModeServiceNames: [],
             })
           )
         )

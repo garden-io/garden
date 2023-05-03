@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -22,13 +22,14 @@ export const deline = _deline
 export const urlJoin = _urlJoin as (...args: string[]) => string
 export const stableStringify = _stableStringify
 
-const gardenAnnotationPrefix = "garden.io/"
+export const gardenAnnotationPrefix = "garden.io/"
 
 export type GardenAnnotationKey =
   | "dev-mode"
   | "generated"
   | "helm-migrated"
   | "hot-reload"
+  | "local-mode"
   | "manifest-hash"
   | "module"
   | "moduleVersion"

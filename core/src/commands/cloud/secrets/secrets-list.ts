@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { stringify } from "query-string"
-import { ConfigurationError } from "../../../exceptions"
+import { ConfigurationError, CloudApiError } from "../../../exceptions"
 import { ListSecretsResponse } from "@garden-io/platform-api-types"
 
 import { printHeader } from "../../../logger/util"
@@ -17,6 +17,7 @@ import { applyFilter, makeSecretFromResponse, noApiMsg, SecretResult } from "../
 import chalk from "chalk"
 import { sortBy } from "lodash"
 import { StringsParameter } from "../../../cli/params"
+import { getCloudDistributionName } from "../../../util/util"
 
 const pageLimit = 100
 
@@ -37,7 +38,7 @@ type Opts = typeof secretsListOpts
 
 export class SecretsListCommand extends Command<{}, Opts> {
   name = "list"
-  help = "[EXPERIMENTAL] List secrets."
+  help = "List secrets."
   description = dedent`
     List all secrets from Garden Cloud. Optionally filter on environment, user IDs, or secret names.
 
@@ -64,6 +65,13 @@ export class SecretsListCommand extends Command<{}, Opts> {
     }
 
     const project = await api.getProject()
+
+    if (!project) {
+      throw new CloudApiError(
+        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        {}
+      )
+    }
 
     let page = 0
     let secrets: SecretResult[] = []

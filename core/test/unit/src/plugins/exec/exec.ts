@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -308,6 +308,7 @@ describe("exec plugin", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
     const results = await _garden.processTasks([taskTask])
 
@@ -333,6 +334,7 @@ describe("exec plugin", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -356,6 +358,7 @@ describe("exec plugin", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await emptyDir(_garden.artifactsPath)
@@ -559,6 +562,7 @@ describe("exec plugin", () => {
           devMode: false,
           force: false,
           hotReload: false,
+          localMode: false,
           log,
           service,
           graph,
@@ -577,6 +581,7 @@ describe("exec plugin", () => {
           devMode: false,
           force: false,
           hotReload: false,
+          localMode: false,
           log,
           service,
           graph,
@@ -597,6 +602,7 @@ describe("exec plugin", () => {
               devMode: false,
               force: false,
               hotReload: false,
+              localMode: false,
               log,
               service,
               graph,
@@ -645,6 +651,7 @@ describe("exec plugin", () => {
             devMode: true,
             force: false,
             hotReload: false,
+            localMode: false,
             log,
             service,
             graph,
@@ -666,6 +673,7 @@ describe("exec plugin", () => {
             devMode: true,
             force: false,
             hotReload: false,
+            localMode: false,
             log,
             service,
             graph,
@@ -733,6 +741,7 @@ describe("exec plugin", () => {
             devMode: true,
             force: false,
             hotReload: false,
+            localMode: false,
             log,
             service,
             graph,
@@ -804,6 +813,7 @@ describe("exec plugin", () => {
               devMode: true,
               force: false,
               hotReload: false,
+              localMode: false,
               log,
               service,
               graph,
@@ -820,9 +830,11 @@ describe("exec plugin", () => {
           expect(pid).to.be.a("number")
           expect(pid).to.be.greaterThan(0)
           expect(error.detail.serviceName).to.eql("dev-mode-timeout")
-          expect(error.detail.statusCommand).to.eql([`/bin/sh -c "exit 1"`])
-          expect(error.detail.timeout).to.eql(1)
-          expect(error.message).to.eql(`Timed out waiting for local service dev-mode-timeout to be ready`)
+          expect(error.detail.statusCommand).to.eql([`/bin/sh -c "echo Status command output; exit 1"`])
+          expect(error.detail.timeout).to.eql(3)
+          expect(error.message).to.include(`Timed out waiting for local service dev-mode-timeout to be ready.`)
+          expect(error.message).to.include(`The last exit code was 1.`)
+          expect(error.message).to.include(`Command output:\nStatus command output`)
         })
       })
     })
@@ -834,6 +846,7 @@ describe("exec plugin", () => {
         const res = await actions.getServiceStatus({
           devMode: false,
           hotReload: false,
+          localMode: false,
           log,
           service,
           graph,
@@ -851,6 +864,7 @@ describe("exec plugin", () => {
         await actions.deployService({
           devMode: false,
           hotReload: false,
+          localMode: false,
           force: false,
           log,
           service,
@@ -863,6 +877,7 @@ describe("exec plugin", () => {
         const res = await actions.getServiceStatus({
           devMode: false,
           hotReload: false,
+          localMode: false,
           log,
           service,
           graph,
@@ -882,6 +897,7 @@ describe("exec plugin", () => {
         const res = await actions.getServiceStatus({
           devMode: false,
           hotReload: false,
+          localMode: false,
           log,
           service,
           graph,
@@ -902,6 +918,7 @@ describe("exec plugin", () => {
         await actions.deployService({
           devMode: false,
           hotReload: false,
+          localMode: false,
           force: false,
           log,
           service,

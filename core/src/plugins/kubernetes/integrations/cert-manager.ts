@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,6 +26,7 @@ import { EnvironmentStatus } from "../../../types/plugin/provider/getEnvironment
 import { PrimitiveMap } from "../../../config/common"
 import chalk from "chalk"
 import { defaultIngressClass } from "../constants"
+import { emitWarning } from "../../../warnings"
 
 /**
  * Given an array of certificate names, check if they are all existing and Ready.
@@ -176,6 +177,12 @@ export async function checkCertManagerStatus({
   provider: KubernetesProvider
   namespace?: string
 }): Promise<ServiceState> {
+  await emitWarning({
+    key: "cert-manager-deprecated",
+    log,
+    message: "The cert-manager integration is deprecated and will be removed in the 0.13 release",
+  })
+
   const api = await KubeApi.factory(log, ctx, provider)
   const systemPods = await api.core.listNamespacedPod(namespace)
   const certManagerPods: KubernetesServerResource<V1Pod>[] = []

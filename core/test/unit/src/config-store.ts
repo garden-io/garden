@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,7 @@ import { resolve } from "path"
 
 type ExecConfig = {}
 
-class ExecConfigStore extends ConfigStore<ExecConfig> {
+export class ExecConfigStore extends ConfigStore<ExecConfig> {
   getConfigPath(gardenDirPath: string): string {
     return resolve(gardenDirPath, "local-config.yml")
   }
@@ -141,15 +141,9 @@ describe("ConfigStore", () => {
       throw new Error("Expected error, got " + res)
     })
 
-    it("should throw if key is not found", async () => {
-      let res
-      try {
-        res = await config.delete(["key"])
-      } catch (err) {
-        expect(err.type).to.equal("local-config")
-        return
-      }
-      throw new Error("Expected error, got " + res)
+    it("should return undefined if key is not found", async () => {
+      const res = await config.delete(["key"])
+      expect(res).to.be.undefined
     })
   })
 })

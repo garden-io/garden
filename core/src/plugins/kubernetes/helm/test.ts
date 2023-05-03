@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -10,16 +10,16 @@ import { DEFAULT_TEST_TIMEOUT } from "../../../constants"
 import { storeTestResult } from "../test-results"
 import { HelmModule } from "./config"
 import { runAndCopy } from "../run"
-import { getChartResources, getBaseModule } from "./common"
+import { getBaseModule, getChartResources } from "./common"
 import { KubernetesPluginContext } from "../config"
 import { TestModuleParams } from "../../../types/plugin/module/testModule"
 import { TestResult } from "../../../types/plugin/module/getTestResult"
 import {
-  getServiceResourceSpec,
-  getServiceResource,
   getResourceContainer,
-  makePodName,
   getResourcePodSpec,
+  getServiceResource,
+  getServiceResourceSpec,
+  makePodName,
 } from "../util"
 import { getModuleNamespaceStatus } from "../namespace"
 
@@ -33,6 +33,7 @@ export async function testHelmModule(params: TestModuleParams<HelmModule>): Prom
     module,
     devMode: false,
     hotReload: false,
+    localMode: false,
     log,
     version: test.version,
   })

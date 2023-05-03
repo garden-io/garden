@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -24,16 +24,18 @@ import { processModules } from "../process"
 import { printHeader } from "../logger/util"
 import { BaseTask } from "../tasks/base"
 import {
-  getDevModeModules,
-  getDevModeServiceNames,
+  getModulesByServiceNames,
+  getMatchingServiceNames,
   getHotReloadServiceNames,
   validateHotReloadServiceNames,
+  makeSkipWatchErrorMsg,
 } from "./helpers"
 import { startServer } from "../server/server"
 import { DeployTask } from "../tasks/deploy"
 import { naturalList } from "../util/string"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { Garden } from "../garden"
+import { ParameterError } from "../exceptions"
 
 export const deployArgs = {
   services: new StringsParameter({
@@ -51,7 +53,7 @@ export const deployOpts = {
     cliOnly: true,
   }),
   "dev-mode": new StringsParameter({
-    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to deploy with dev mode enabled.
+    help: deline`The name(s) of the service(s) to deploy with dev mode enabled.
       Use comma as a separator to specify multiple services. Use * to deploy all
       services with dev mode enabled. When this option is used,
       the command is run in watch mode (i.e. implicitly sets the --watch/-w flag).
@@ -67,6 +69,17 @@ export const deployOpts = {
     `,
     alias: "hot",
   }),
+  "local-mode": new StringsParameter({
+    help: deline`[EXPERIMENTAL] The name(s) of the service(s) to be started locally with local mode enabled.
+    Use comma as a separator to specify multiple services. Use * to deploy all
+    services with local mode enabled. When this option is used,
+    the command is run in persistent mode.
+
+    This always takes the precedence over the dev mode if there are any conflicts,
+    i.e. if the same services are passed to both \`--dev\` and \`--local\` options.
+    `,
+    alias: "local",
+  }),
   "skip": new StringsParameter({
     help: "The name(s) of services you'd like to skip when deploying.",
   }),
@@ -76,11 +89,24 @@ export const deployOpts = {
     This can be useful e.g. when your stack has already been deployed, and you want to deploy a subset of services in
     dev mode without redeploying any service dependencies that may have changed since you last deployed.
     `,
-    alias: "no-deps",
+    alias: "nodeps",
   }),
   "forward": new BooleanParameter({
     help: deline`Create port forwards and leave process running without watching
     for changes. Ignored if --watch/-w flag is set or when in dev or hot-reload mode.`,
+  }),
+  "skip-watch": new BooleanParameter({
+    help: deline`[EXPERIMENTAL] If set to \`false\` while in dev-mode
+    (i.e. the --dev-mode/--dev flag is used) then file syncing will still
+    work but Garden will ignore changes to config files and services that are not in dev mode.
+
+    This can be a performance improvement for projects that have a large number of files
+    and where only syncing is needed when in dev mode.
+
+    Note that this flag cannot used if hot reloading is enabled.
+
+    This behaviour will change in a future release in favour of a "smarter"
+    watching mechanism.`,
   }),
 }
 
@@ -110,8 +136,11 @@ export class DeployCommand extends Command<Args, Opts> {
         garden deploy --watch              # watch for changes to code
         garden deploy --dev=my-service     # deploys all services, with dev mode enabled for my-service
         garden deploy --dev                # deploys all compatible services with dev mode enabled
+        garden deploy --local=my-service   # deploys all services, with local mode enabled for my-service
+        garden deploy --local              # deploys all compatible services with local mode enabled
         garden deploy --env stage          # deploy your services to an environment called stage
         garden deploy --skip service-b     # deploy all services except service-b
+        garden deploy --forward            # deploy all services and start port forwards without watching for changes
   `
 
   arguments = deployArgs
@@ -122,7 +151,7 @@ export class DeployCommand extends Command<Args, Opts> {
   outputsSchema = () => processCommandResultSchema()
 
   isPersistent({ opts }: PrepareParams<Args, Opts>) {
-    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts.forward
+    return !!opts.watch || !!opts["hot-reload"] || !!opts["dev-mode"] || !!opts["local-mode"] || !!opts.forward
   }
 
   printHeader({ headerLog }) {
@@ -183,15 +212,20 @@ export class DeployCommand extends Command<Args, Opts> {
     }
 
     const modules = Array.from(new Set(services.map((s) => s.module)))
-    const devModeServiceNames = getDevModeServiceNames(opts["dev-mode"], initGraph)
+    const localModeServiceNames = getMatchingServiceNames(opts["local-mode"], initGraph)
+    const devModeServiceNames = getMatchingServiceNames(opts["dev-mode"], initGraph).filter(
+      (name) => !localModeServiceNames.includes(name)
+    )
     const hotReloadServiceNames = getHotReloadServiceNames(opts["hot-reload"], initGraph)
 
     let watch = opts.watch
 
-    if (devModeServiceNames.length > 0) {
-      watch = true
+    if (hotReloadServiceNames.length > 0 && opts["skip-watch"]) {
+      throw new ParameterError(makeSkipWatchErrorMsg(hotReloadServiceNames), {
+        hotReloadServiceNames,
+        options: opts,
+      })
     }
-
     if (hotReloadServiceNames.length > 0) {
       initGraph.getServices({ names: hotReloadServiceNames }) // validate the existence of these services
       const errMsg = validateHotReloadServiceNames(hotReloadServiceNames, initGraph)
@@ -200,6 +234,11 @@ export class DeployCommand extends Command<Args, Opts> {
         return { result: { builds: {}, deployments: {}, tests: {}, graphResults: {} } }
       }
       watch = true
+    }
+    if (devModeServiceNames.length > 0) {
+      watch = opts["skip-watch"]
+        ? false // In this case hotReloadServiceNames is empty, otherwise we throw above
+        : true
     }
 
     const force = opts.force
@@ -218,6 +257,7 @@ export class DeployCommand extends Command<Args, Opts> {
           skipRuntimeDependencies,
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
     )
 
@@ -228,7 +268,10 @@ export class DeployCommand extends Command<Args, Opts> {
       footerLog,
       modules,
       initialTasks,
-      skipWatchModules: getDevModeModules(devModeServiceNames, initGraph),
+      skipWatchModules: [
+        ...getModulesByServiceNames(devModeServiceNames, initGraph),
+        ...getModulesByServiceNames(localModeServiceNames, initGraph),
+      ],
       watch,
       changeHandler: async (graph, module) => {
         const tasks: BaseTask[] = await getModuleWatchTasks({
@@ -239,6 +282,7 @@ export class DeployCommand extends Command<Args, Opts> {
           servicesWatched: services.map((s) => s.name),
           devModeServiceNames,
           hotReloadServiceNames,
+          localModeServiceNames,
         })
 
         return tasks

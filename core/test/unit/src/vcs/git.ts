@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,11 +9,11 @@
 import execa = require("execa")
 import { expect } from "chai"
 import tmp from "tmp-promise"
-import { createFile, writeFile, realpath, mkdir, remove, symlink, ensureSymlink, lstat } from "fs-extra"
-import { join, resolve, basename, relative } from "path"
+import { createFile, ensureSymlink, lstat, mkdir, mkdirp, realpath, remove, symlink, writeFile } from "fs-extra"
+import { basename, join, relative, resolve } from "path"
 
 import { expectError, makeTestGardenA, TestGarden } from "../../../helpers"
-import { getCommitIdFromRefList, parseGitUrl, GitHandler } from "../../../../src/vcs/git"
+import { getCommitIdFromRefList, GitHandler, parseGitUrl } from "../../../../src/vcs/git"
 import { LogEntry } from "../../../../src/logger/log-entry"
 import { hashRepoUrl } from "../../../../src/util/ext-source-util"
 import { deline } from "../../../../src/util/string"
@@ -28,19 +28,24 @@ async function getCommitMsg(repoPath: string) {
 }
 
 async function commit(msg: string, repoPath: string) {
-  // Ensure master contains changes when commiting
+  // Ensure main contains changes when committing
   const uniqueFilename = `${uuidv4()}.txt`
   const filePath = join(repoPath, uniqueFilename)
   await createFile(filePath)
   await execa("git", ["add", filePath], { cwd: repoPath })
   await execa("git", ["commit", "-m", msg], { cwd: repoPath })
-  return uniqueFilename
+  const commitSHA = (await execa("git", ["rev-parse", "HEAD"], { cwd: repoPath })).stdout
+  return { uniqueFilename, commitSHA }
+}
+
+async function createGitTag(tag: string, message: string, repoPath: string) {
+  await execa("git", ["tag", "-a", tag, "-m", message], { cwd: repoPath })
 }
 
 async function makeTempGitRepo() {
   const tmpDir = await tmp.dir({ unsafeCleanup: true })
   const tmpPath = await realpath(tmpDir.path)
-  await execa("git", ["init"], { cwd: tmpPath })
+  await execa("git", ["init", "--initial-branch=main"], { cwd: tmpPath })
 
   return tmpDir
 }
@@ -76,6 +81,24 @@ describe("GitHandler", () => {
   async function getGitHash(path: string) {
     return (await git("hash-object", path))[0]
   }
+
+  describe("toGitConfigCompatiblePath", () => {
+    it("should return an unmodified path in Linux", async () => {
+      const path = "/home/user/repo"
+      expect(handler.toGitConfigCompatiblePath(path, "linux")).to.equal(path)
+    })
+
+    it("should return an unmodified path in macOS", async () => {
+      const path = "/Users/user/repo"
+      expect(handler.toGitConfigCompatiblePath(path, "darwin")).to.equal(path)
+    })
+
+    it("should return a modified and corrected path in Windows", async () => {
+      const path = "C:\\Users\\user\\repo"
+      const expectedPath = "C:/Users/user/repo"
+      expect(handler.toGitConfigCompatiblePath(path, "win32")).to.equal(expectedPath)
+    })
+  })
 
   describe("getRepoRoot", () => {
     it("should return the repo root if it is the same as the given path", async () => {
@@ -114,7 +137,7 @@ describe("GitHandler", () => {
       const path = tmpPath
       await commit("init", tmpPath)
       const { branch } = await handler.getPathInfo(log, path)
-      expect(branch).to.equal("master")
+      expect(branch).to.equal("main")
     })
 
     it("should return empty strings when given a path outside of a repo", async () => {
@@ -468,7 +491,7 @@ describe("GitHandler", () => {
       beforeEach(async () => {
         submodule = await makeTempGitRepo()
         submodulePath = await realpath(submodule.path)
-        initFile = await commit("init", submodulePath)
+        initFile = (await commit("init", submodulePath)).uniqueFilename
 
         await execa("git", ["submodule", "add", "--force", "--", submodulePath, "sub"], { cwd: tmpPath })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpPath })
@@ -616,7 +639,7 @@ describe("GitHandler", () => {
         beforeEach(async () => {
           submoduleB = await makeTempGitRepo()
           submodulePathB = await realpath(submoduleB.path)
-          initFileB = await commit("init", submodulePathB)
+          initFileB = (await commit("init", submodulePathB)).uniqueFilename
 
           await execa("git", ["submodule", "add", submodulePathB, "sub-b"], { cwd: join(tmpPath, "sub") })
           await execa("git", ["commit", "-m", "add submodule"], { cwd: join(tmpPath, "sub") })
@@ -732,8 +755,7 @@ describe("GitHandler", () => {
     // Some git repo that we set as a remote source
     let tmpRepoA: tmp.DirectoryResult
     let tmpRepoPathA: string
-    let repositoryUrlA: string
-
+    let repoUrl: string
     // Another git repo that we add as a submodule to tmpRepoA
     let tmpRepoB: tmp.DirectoryResult
     let tmpRepoPathB: string
@@ -741,99 +763,123 @@ describe("GitHandler", () => {
     // The path to which Garden clones the remote source, i.e.: `.garden/sources/modules/my-remote-module--hash`
     let clonePath: string
 
-    beforeEach(async () => {
-      tmpRepoA = await makeTempGitRepo()
-      tmpRepoPathA = await realpath(tmpRepoA.path)
-      await commit("test commit A", tmpRepoPathA)
-
-      repositoryUrlA = `file://${tmpRepoPathA}#master`
-
-      tmpRepoB = await makeTempGitRepo()
-      tmpRepoPathB = await realpath(tmpRepoB.path)
-      await commit("test commit B", tmpRepoPathB)
-
-      const hash = hashRepoUrl(repositoryUrlA)
-      clonePath = join(tmpPath, ".garden", "sources", "module", `foo--${hash}`)
-    })
-
     afterEach(async () => {
       await tmpRepoA.cleanup()
       await tmpRepoB.cleanup()
     })
 
-    describe("ensureRemoteSource", () => {
-      it("should clone the remote source", async () => {
-        await handler.ensureRemoteSource({
-          url: repositoryUrlA,
-          name: "foo",
-          sourceType: "module",
-          log,
-        })
+    async function createRepo(repoUrlMethod: "commit" | "branch" | "tag", withSubmodule = false) {
+      tmpRepoA = await makeTempGitRepo()
+      tmpRepoPathA = await realpath(tmpRepoA.path)
 
-        expect(await getCommitMsg(clonePath)).to.eql("test commit A")
-      })
-      it("should return the correct remote source path for module sources", async () => {
-        const res = await handler.ensureRemoteSource({
-          url: repositoryUrlA,
-          name: "foo",
-          sourceType: "module",
-          log,
-        })
+      tmpRepoB = await makeTempGitRepo()
+      tmpRepoPathB = await realpath(tmpRepoB.path)
+      await commit("test commit B", tmpRepoPathB)
 
-        expect(res).to.eql(clonePath)
-      })
-      it("should return the correct remote source path for project sources", async () => {
-        const res = await handler.ensureRemoteSource({
-          url: repositoryUrlA,
-          name: "foo",
-          sourceType: "project",
-          log,
-        })
-
-        const hash = hashRepoUrl(repositoryUrlA)
-        expect(res).to.eql(join(tmpPath, ".garden", "sources", "project", `foo--${hash}`))
-      })
-      it("should not error if source already cloned", async () => {
-        await handler.ensureRemoteSource({
-          url: repositoryUrlA,
-          name: "foo",
-          sourceType: "module",
-          log,
-        })
-
-        expect(
-          await handler.ensureRemoteSource({
-            url: repositoryUrlA,
-            name: "foo",
-            sourceType: "module",
-            log,
-          })
-        ).to.not.throw
-      })
-      it("should also clone submodules", async () => {
+      if (withSubmodule) {
         // Add repo B as a submodule to repo A
         await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpRepoPathA })
+      }
+      const { commitSHA } = await commit("test commit A", tmpRepoPathA)
+      const tag = "v1"
+      await createGitTag(tag, "a cool release", tmpRepoPathA)
 
-        await handler.ensureRemoteSource({
-          url: repositoryUrlA,
-          name: "foo",
-          sourceType: "module",
-          log,
+      switch (repoUrlMethod) {
+        case "commit":
+          repoUrl = `file://${tmpRepoPathA}#${commitSHA}`
+          break
+        case "branch":
+          repoUrl = `file://${tmpRepoPathA}#main`
+          break
+        case "tag":
+          repoUrl = `file://${tmpRepoPathA}#${tag}`
+          break
+      }
+
+      const hash = hashRepoUrl(repoUrl)
+      clonePath = join(tmpPath, ".garden", "sources", "module", `foo--${hash}`)
+    }
+
+    describe("ensureRemoteSource", () => {
+      for (const repoUrlMethod of ["commit", "branch", "tag"] as const) {
+        context(`from a ${repoUrlMethod}`, () => {
+          it("should clone the remote source", async () => {
+            await createRepo(repoUrlMethod)
+            await handler.ensureRemoteSource({
+              url: repoUrl,
+              name: "foo",
+              sourceType: "module",
+              log,
+            })
+
+            expect(await getCommitMsg(clonePath)).to.eql("test commit A")
+          })
+          it("should return the correct remote source path for module sources", async () => {
+            await createRepo(repoUrlMethod)
+            const res = await handler.ensureRemoteSource({
+              url: repoUrl,
+              name: "foo",
+              sourceType: "module",
+              log,
+            })
+
+            expect(res).to.eql(clonePath)
+          })
+          it("should return the correct remote source path for project sources", async () => {
+            await createRepo(repoUrlMethod)
+            const res = await handler.ensureRemoteSource({
+              url: repoUrl,
+              name: "foo",
+              sourceType: "project",
+              log,
+            })
+
+            const hash = hashRepoUrl(repoUrl)
+            expect(res).to.eql(join(tmpPath, ".garden", "sources", "project", `foo--${hash}`))
+          })
+          it("should not error if source already cloned", async () => {
+            await createRepo(repoUrlMethod)
+            await handler.ensureRemoteSource({
+              url: repoUrl,
+              name: "foo",
+              sourceType: "module",
+              log,
+            })
+
+            expect(
+              await handler.ensureRemoteSource({
+                url: repoUrl,
+                name: "foo",
+                sourceType: "module",
+                log,
+              })
+            ).to.not.throw
+          })
+          it("should also clone submodules", async () => {
+            await createRepo(repoUrlMethod, true)
+            await handler.ensureRemoteSource({
+              url: repoUrl,
+              name: "foo",
+              sourceType: "module",
+              log,
+            })
+
+            // Path to submodule inside cloned source
+            const submoduleFullPath = join(clonePath, basename(tmpRepoPathB))
+
+            expect(await getCommitMsg(submoduleFullPath)).to.eql("test commit B")
+            expect(await getCommitMsg(clonePath)).to.eql("test commit A")
+          })
         })
-
-        // Path to submodule inside cloned source
-        const submoduleFullPath = join(clonePath, basename(tmpRepoPathB))
-
-        expect(await getCommitMsg(submoduleFullPath)).to.eql("test commit B")
-        expect(await getCommitMsg(clonePath)).to.eql("add submodule")
-      })
+      }
     })
 
     describe("updateRemoteSource", () => {
+      beforeEach(async () => await createRepo("branch"))
       it("should work for remote module sources", async () => {
         await handler.updateRemoteSource({
-          url: repositoryUrlA,
+          url: repoUrl,
           name: "foo",
           sourceType: "module",
           log,
@@ -843,20 +889,20 @@ describe("GitHandler", () => {
       })
       it("should work for remote project sources", async () => {
         await handler.updateRemoteSource({
-          url: repositoryUrlA,
+          url: repoUrl,
           name: "foo",
           sourceType: "project",
           log,
         })
 
-        const hash = hashRepoUrl(repositoryUrlA)
+        const hash = hashRepoUrl(repoUrl)
         clonePath = join(tmpPath, ".garden", "sources", "project", `foo--${hash}`)
 
         expect(await getCommitMsg(clonePath)).to.eql("test commit A")
       })
       it("should update remote source", async () => {
         await handler.ensureRemoteSource({
-          url: repositoryUrlA,
+          url: repoUrl,
           name: "foo",
           sourceType: "module",
           log,
@@ -865,7 +911,7 @@ describe("GitHandler", () => {
         await commit("new commit", tmpRepoPathA)
 
         await handler.updateRemoteSource({
-          url: repositoryUrlA,
+          url: repoUrl,
           name: "foo",
           sourceType: "module",
           log,
@@ -873,13 +919,37 @@ describe("GitHandler", () => {
 
         expect(await getCommitMsg(clonePath)).to.eql("new commit")
       })
+
+      it("should exit on `failOnPrompt` when updating a remote source and prompting for user input", async () => {
+        await mkdirp(clonePath)
+        await execa("git", ["init", "--initial-branch=main"], { cwd: clonePath })
+        await execa("git", ["commit", "-m", "commit", "--allow-empty"], { cwd: clonePath })
+        await execa("git", ["remote", "add", "origin", "https://fake@github.com/private/private.git"], {
+          cwd: clonePath,
+        })
+        let error: Error | undefined
+        try {
+          await handler.updateRemoteSource({
+            url: repoUrl,
+            name: "foo",
+            sourceType: "module",
+            log,
+            failOnPrompt: true,
+          })
+        } catch (e) {
+          error = e
+        }
+        expect(error).to.be.instanceOf(Error)
+        expect(error?.message).to.contain("Invalid username or password.")
+      })
+
       it("should update submodules", async () => {
         // Add repo B as a submodule to repo A
         await execa("git", ["submodule", "add", tmpRepoPathB], { cwd: tmpRepoPathA })
         await execa("git", ["commit", "-m", "add submodule"], { cwd: tmpRepoPathA })
 
         await handler.ensureRemoteSource({
-          url: repositoryUrlA,
+          url: repoUrl,
           name: "foo",
           sourceType: "module",
           log,
@@ -894,7 +964,7 @@ describe("GitHandler", () => {
         await execa("git", ["commit", "-m", "update submodules"], { cwd: tmpRepoPathA })
 
         await handler.updateRemoteSource({
-          url: repositoryUrlA,
+          url: repoUrl,
           name: "foo",
           sourceType: "module",
           log,
@@ -910,7 +980,7 @@ describe("GitHandler", () => {
         await commit("update repo A again", tmpRepoPathA)
 
         await handler.updateRemoteSource({
-          url: repositoryUrlA,
+          url: repoUrl,
           name: "foo",
           sourceType: "module",
           log,
@@ -925,15 +995,15 @@ describe("GitHandler", () => {
 describe("git", () => {
   describe("getCommitIdFromRefList", () => {
     it("should get the commit id from a list of commit ids and refs", () => {
-      const refList = ["abcde	ref/heads/master", "1234	ref/heads/master", "foobar	ref/heads/master"]
+      const refList = ["abcde	ref/heads/main", "1234	ref/heads/main", "foobar	ref/heads/main"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a list of commit ids without refs", () => {
-      const refList = ["abcde", "1234	ref/heads/master", "foobar	ref/heads/master"]
+      const refList = ["abcde", "1234	ref/heads/main", "foobar	ref/heads/main"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from a single commit id / ref pair", () => {
-      const refList = ["abcde	ref/heads/master"]
+      const refList = ["abcde	ref/heads/main"]
       expect(getCommitIdFromRefList(refList)).to.equal("abcde")
     })
     it("should get the commit id from single commit id without a ref", () => {

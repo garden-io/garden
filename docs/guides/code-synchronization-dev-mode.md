@@ -1,3 +1,7 @@
+---
+title: Code Synchronization (Dev Mode)
+order: 3
+---
 # Code Synchronization (Dev Mode)
 
 You can synchronize your code (and other files) to and from running containers using _dev mode_.

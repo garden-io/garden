@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -81,7 +81,9 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -134,6 +136,7 @@ describe("DevCommand", () => {
       // we're implicitly verifying that tests with runtime dependencies on services being deployed with
       // hot reloading don't request non-hot-reload-enabled deploys for those same services.
       hotReloadServiceNames: ["service-a"],
+      localModeServiceNames: [],
       skipTests: false,
       forceDeploy: false,
     })
@@ -163,7 +166,9 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -185,7 +190,9 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -207,7 +214,9 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -229,7 +238,9 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -251,7 +262,9 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -273,7 +286,9 @@ describe("DevCommand", () => {
       "force-build": false,
       "force": false,
       "hot-reload": undefined,
+      "local-mode": undefined,
       "skip-tests": false,
+      "skip-watch": false,
       "test-names": undefined,
     })
 
@@ -300,6 +315,7 @@ describe("getDevCommandWatchTasks", () => {
       servicesWatched: graph.getServices().map((s) => s.name),
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
       testNames: undefined,
       skipTests: false,
     })

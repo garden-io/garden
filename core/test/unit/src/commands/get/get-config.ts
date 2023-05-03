@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,7 +13,11 @@ import { GetConfigCommand } from "../../../../../src/commands/get/get-config"
 import { sortBy } from "lodash"
 import { DEFAULT_API_VERSION } from "../../../../../src/constants"
 import { defaultWorkflowResources, WorkflowConfig } from "../../../../../src/config/workflow"
-import { defaultContainerLimits, defaultContainerResources } from "../../../../../src/plugins/container/config"
+import {
+  defaultContainerLimits,
+  defaultContainerResources,
+  defaultDeploymentStrategy,
+} from "../../../../../src/plugins/container/config"
 import { KUBECTL_DEFAULT_TIMEOUT } from "../../../../../src/plugins/kubernetes/kubectl"
 
 describe("GetConfigCommand", () => {
@@ -493,7 +497,9 @@ describe("GetConfigCommand", () => {
             memory: defaultContainerResources.memory,
             ports: [],
             timeout: KUBECTL_DEFAULT_TIMEOUT,
+            tty: false,
             volumes: [],
+            deploymentStrategy: defaultDeploymentStrategy,
           },
           hotReloadable: false,
         },

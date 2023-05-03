@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -130,7 +130,7 @@ describe("task-graph", () => {
     })
 
     it("should emit a taskPending event when adding a task", async () => {
-      const now = freezeTime()
+      const now = freezeTime().toISOString()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
@@ -183,7 +183,7 @@ describe("task-graph", () => {
     })
 
     it("should emit events when processing and completing a task", async () => {
-      const now = freezeTime()
+      const now = freezeTime().toISOString()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
@@ -207,7 +207,7 @@ describe("task-graph", () => {
     })
 
     it("should emit a taskError event when failing a task", async () => {
-      const now = freezeTime()
+      const now = freezeTime().toISOString()
 
       const garden = await getGarden()
       const graph = new TaskGraph(garden, garden.log)
@@ -264,7 +264,7 @@ describe("task-graph", () => {
 
       await expectError(
         () => graph.process([task], { throwOnError: true }),
-        (err) => expect(err.message).to.include("task(s) failed")
+        (err) => expect(err.message).to.include("action(s) failed")
       )
     })
 
@@ -906,7 +906,7 @@ describe("task-graph", () => {
         const tasks = [taskA, taskB, taskC, taskADep1, taskBDep, taskADep2]
         const taskNodes = await graph["nodesWithDependencies"]({
           tasks,
-          dependencyCache: {},
+          nodeMap: {},
           stack: [],
         })
         const batches = graph.partition(taskNodes)
@@ -955,7 +955,7 @@ describe("task-graph", () => {
 
         const taskNodes = await graph["nodesWithDependencies"]({
           tasks,
-          dependencyCache: {},
+          nodeMap: {},
           stack: [],
         })
         const batches = graph.partition(taskNodes)

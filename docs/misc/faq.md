@@ -33,7 +33,7 @@ Both, actually.
 
 We aim to change to this behavior and make it more user-friendly with our next major release.
 
-### When should I use the module-level `include`/`exclude` fields? How are they different from the project-level  `module.include/module.exclude` fields? What about ignore files?
+### When should I use the module-level `include`/`exclude` fields? How are they different from the project-level `module.include/module.exclude` fields? What about ignore files?
 
 Read all about it in [this section](https://docs.garden.io/using-garden/configuration-overview#including-excluding-files-and-directories) of our docs.
 
@@ -45,7 +45,7 @@ You can also deploy `kubernetes` and `helm` modules to their own namespaces.
 
 ### How do I share code between modules?
 
-You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.40/examples/build-dependencies).
+You can use the [copy directive](https://docs.garden.io/reference/module-types/container#build-dependencies-copy) of the `build.dependencies[]` field for that. See e.g. [this example project](https://github.com/garden-io/garden/tree/0.12.55/examples/build-dependencies).
 
 Alternatively you can hoist your `garden.yml` file so that it is at the same level or parent to all relevant build context and use the `include` field.
 
@@ -65,11 +65,11 @@ Use the [`targetImage` field](https://docs.garden.io/reference/module-types/cont
 
 ### How do I use base images?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.40/examples/base-image).
+See [this example project](https://github.com/garden-io/garden/tree/0.12.55/examples/base-image).
 
 ### Can I use runtime variables in container builds (e.g. from tasks)?
 
-No, only *modules* can be build dependencies and runtime outputs come from *tasks*, *tests*, and *services*.
+No, only _modules_ can be build dependencies and runtime outputs come from _tasks_, _tests_, and _services_.
 
 ### How do I view container build logs?
 
@@ -103,7 +103,6 @@ dockerfile: dockerfiles/api.Dockerfile
 include: [api/**/*]
 
 ---
-
 kind: Module
 name: frontend
 dockerfile: dockerfiles/frontend.Dockerfile
@@ -112,15 +111,15 @@ include: [frontend/**/*]
 
 Note that you can put multiple Garden configuration files in the same directory, e.g. `project.garden.yml`, `api.garden.yml` and `frontend.garden.yml`.
 
-If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.40/examples/base-image) for an example of this.
+If you need the Dockerfile outside of the module root because you want to share it with other modules, you should consider having a single base image instead and then let each module have its own Dockerfile that's built on the base image. See the [base image example project](https://github.com/garden-io/garden/tree/0.12.55/examples/base-image) for an example of this.
 
 ### How do I include files/dirs (e.g. shared libraries) from outside the module root with the build context?
 
-See [this example project](https://github.com/garden-io/garden/tree/0.12.40/examples/build-dependencies).
+See [this example project](https://github.com/garden-io/garden/tree/0.12.55/examples/build-dependencies).
 
 ### How do I add Docker specific flags to the build command?
 
-Use the module-level  [`extraFlags` field](https://docs.garden.io/module-types/container#extraflags).
+Use the module-level [`extraFlags` field](https://docs.garden.io/module-types/container#extraflags).
 
 ### How do I use different Dockerfiles for different environments?
 
@@ -130,7 +129,7 @@ You can use the `dockerfile` field. For example:
 dockerfile: "${environment.name == 'prod' ? Dockerfile.prod : Dockerfile.dev}"
 ```
 
-See also the [base image example project](https://github.com/garden-io/garden/tree/0.12.40/examples/base-image) for an example of this.
+See also the [base image example project](https://github.com/garden-io/garden/tree/0.12.55/examples/base-image) for an example of this.
 
 ## Remote Building
 
@@ -138,7 +137,7 @@ See also the [base image example project](https://github.com/garden-io/garden/tr
 
 Not currently. Besides, multiple Docker daemons would not be able to share image layer caches.
 
-You can, however, run multiple [Kaniko pods](https://docs.garden.io/guides/in-cluster-building#kaniko) in parallel. In some scenarios, that may scale better.
+You can, however, run multiple [Kaniko pods](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#kaniko) in parallel. In some scenarios, that may scale better.
 
 ### How do I delete the services in the `garden-system` namespace?
 
@@ -152,11 +151,11 @@ It removes all cluster-wide Garden services.
 
 ### How do I pull a base image (using the FROM directive) from a private registry in in-cluster build mode?
 
-See [this section](https://docs.garden.io/guides/in-cluster-building#pulling-base-images-from-private-registries) of our docs.
+See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#pulling-base-images-from-private-registries) of our docs.
 
 ### How do I use my own private registry in in-cluster build mode?
 
-See [this section](https://docs.garden.io/guides/in-cluster-building#configuring-a-deployment-registry) of our docs.
+See [this section](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building#configuring-a-deployment-registry) of our docs.
 
 ### How do I clean up the in-cluster registry and build sync volumes?
 
@@ -222,11 +221,11 @@ Note that due to a [known limitation](https://github.com/garden-io/garden/issues
 
 We plan on making `--interactive=false` the default with our next major release.
 
-## Secrets
+### Secrets
 
 ### How do I pass secrets to container modules?
 
-See [this section](https://docs.garden.io/guides/container-modules#secrets) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs.
 
 ### How do I mount secrets as volumes?
 
@@ -234,7 +233,7 @@ You'll need to use the [`kubernetes`](https://docs.garden.io/reference/module-ty
 
 ### Can I use Kubernetes secrets as `buildArgs`?
 
-No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/guides/container-modules#secrets) of our docs for more.
+No, Kubernetes secrets can only be used at runtime, by referencing them in the `environment` field of `tasks`, `services` and `tests`. See [the secrets section](https://docs.garden.io/k8s-plugins/module-types/container#secrets) of our docs for more.
 
 Also note that secrets as `buildArgs` are considered a bad practice and a security risk.
 
@@ -246,13 +245,13 @@ No, secrets have to be in the same namespace as the project. This is how Kuberne
 
 ### How do I mount persistent volumes?
 
-See [this section](https://docs.garden.io/guides/container-modules#mounting-volumes) of our docs.
+See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs.
 
 ### How do I access files that are generated at runtime (e.g. migration files that are checked into version control)?
 
 You can generate the files via a task, store them as artifacts, and copy them from the local artifacts directory. [Here's an example](https://docs.garden.io/using-garden/tests#test-artifacts) of this.
 
-You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/guides/container-modules#mounting-volumes) of our docs for more.
+You can also use the [`persistentvolumeclaim`](https://docs.garden.io/reference/module-types/persistentvolumeclaim) module type to store data and share it across modules. See [this section](https://docs.garden.io/k8s-plugins/module-types/container#mounting-volumes) of our docs for more.
 
 ## Kubernetes
 
@@ -292,17 +291,17 @@ We're exploring how we can release it incrementally. Please let us know if this 
 
 ### What system components does Garden install?
 
-The components installed when using the remote building functionality are discussed in the [In-cluster building docs](https://docs.garden.io/guides/in-cluster-building).
+The components installed when using the remote building functionality are discussed in the [In-cluster building docs](https://docs.garden.io/kubernetes-plugins/advanced/in-cluster-building).
 
 Garden also optionally installs Nginx. The `local-kubernetes` provider defaults to installing Nginx, but the (remote) `kubernetes` provider does not install it by default.
 
 Furthermore, the `openfaas` provider installs some components necessary for OpenFaas to work.
 
-Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/master/static) under `kubernetes/system` and `openfaas/system`.
+Of course, we use Garden to install these components, and you’ll find the Garden modules for them in [in our source code](https://github.com/garden-io/garden/tree/main/static) under `kubernetes/system` and `openfaas/system`.
 
-### How does Garden resolve the `*.local.app.garden` domain?
+### How does Garden resolve the `*.local.demo.garden` domain?
 
-The `*.local.app.garden` domain resolves to 127.0.0.1 via our DNS provider for convenience. If you want to use a different hostname for local development, you’ll have to add the corresponding entry to your hosts file.
+The `*.local.demo.garden` domain resolves to 127.0.0.1 via our DNS provider for convenience. If you want to use a different hostname for local development, you’ll have to add the corresponding entry to your hosts file.
 
 ### Does garden support bi-directional syncing?
 
@@ -312,7 +311,7 @@ No, it doesn't. See [this question](#how-do-i-access-files-that-are-generated-at
 
 Garden is currently in use by many teams. We don’t have a set date or plan to label it as 1.0, but we don't expect to do it anytime soon. For comparison, very widely used tools like Terraform are still not at 1.0.
 
-We have a team of people working on it full-time, and we make it a priority to address all non-trivial bugs. We’re also happy to help out and answer questions via our community Slack.
+We have a team of people working on it full-time, and we make it a priority to address all non-trivial bugs. We’re also happy to help out and answer questions via [our Discord community](https://discord.gg/FrmhuUjFs6).
 
 ### Does Garden work offline?
 

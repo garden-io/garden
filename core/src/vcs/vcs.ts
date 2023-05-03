@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,9 +7,8 @@
  */
 
 import Joi from "@hapi/joi"
-import Bluebird from "bluebird"
 import normalize = require("normalize-path")
-import { mapValues, keyBy, sortBy, omit } from "lodash"
+import { sortBy, omit } from "lodash"
 import { createHash } from "crypto"
 import { validateSchema } from "../config/validation"
 import { join, relative, isAbsolute } from "path"
@@ -29,6 +28,7 @@ import { TaskConfig } from "../config/task"
 import { TestConfig } from "../config/test"
 import { GardenModule } from "../types/module"
 import { emitWarning } from "../warnings"
+import { validateInstall } from "../util/validateInstall"
 
 const AsyncLock = require("async-lock")
 const scanLock = new AsyncLock()
@@ -36,6 +36,21 @@ const scanLock = new AsyncLock()
 export const versionStringPrefix = "v-"
 export const NEW_MODULE_VERSION = "0000000000"
 const fileCountWarningThreshold = 10000
+
+const minGitVersion = "2.14.0"
+export const gitVersionRegex = /git\s+version\s+v?(\d+.\d+.\d+)/
+
+/**
+ * throws if no git is installed or version is too old
+ */
+export async function validateGitInstall() {
+  await validateInstall({
+    minVersion: minGitVersion,
+    name: "git",
+    versionCommand: { cmd: "git", args: ["--version"] },
+    versionRegex: gitVersionRegex,
+  })
+}
 
 export interface TreeVersion {
   contentHash: string
@@ -48,11 +63,19 @@ export interface TreeVersions {
 
 export interface ModuleVersion {
   versionString: string
-  dependencyVersions: TreeVersions
+  dependencyVersions: DependencyVersions
   files: string[]
 }
 
-interface NamedTreeVersion extends TreeVersion {
+export interface NamedModuleVersion extends ModuleVersion {
+  name: string
+}
+
+export interface DependencyVersions {
+  [moduleName: string]: string
+}
+
+export interface NamedTreeVersion extends TreeVersion {
   name: string
 }
 
@@ -69,6 +92,7 @@ export interface GetFilesParams {
   include?: string[]
   exclude?: string[]
   filter?: (path: string) => boolean
+  failOnPrompt?: boolean
 }
 
 export interface RemoteSourceParams {
@@ -76,6 +100,7 @@ export interface RemoteSourceParams {
   name: string
   sourceType: ExternalSourceType
   log: LogEntry
+  failOnPrompt?: boolean
 }
 
 export interface VcsFile {
@@ -169,37 +194,6 @@ export abstract class VcsHandler {
     return fileVersion || (await this.getTreeVersion(log, projectName, moduleConfig))
   }
 
-  async resolveModuleVersion(
-    log: LogEntry,
-    projectName: string,
-    moduleConfig: ModuleConfig,
-    dependencies: ModuleConfig[]
-  ): Promise<ModuleVersion> {
-    const treeVersion = await this.resolveTreeVersion(log, projectName, moduleConfig)
-
-    validateSchema(treeVersion, treeVersionSchema(), {
-      context: `${this.name} tree version for module at ${moduleConfig.path}`,
-    })
-
-    const namedDependencyVersions = await Bluebird.map(dependencies, async (m: ModuleConfig) => ({
-      name: m.name,
-      ...(await this.resolveTreeVersion(log, projectName, m)),
-    }))
-    const dependencyVersions = mapValues(keyBy(namedDependencyVersions, "name"), (v) => omit(v, "name"))
-
-    const versionString = getModuleVersionString(
-      moduleConfig,
-      { name: moduleConfig.name, ...treeVersion },
-      namedDependencyVersions
-    )
-
-    return {
-      dependencyVersions,
-      versionString,
-      files: treeVersion.files,
-    }
-  }
-
   getRemoteSourcesDirname(type: ExternalSourceType) {
     return getRemoteSourcesDirname(type)
   }
@@ -273,10 +267,10 @@ export async function writeModuleVersionFile(path: string, version: ModuleVersio
 export function getModuleVersionString(
   moduleConfig: ModuleConfig,
   treeVersion: NamedTreeVersion,
-  dependencyTreeVersions: NamedTreeVersion[]
+  dependencyModuleVersions: NamedModuleVersion[]
 ) {
   // TODO: allow overriding the prefix
-  return `${versionStringPrefix}${hashModuleVersion(moduleConfig, treeVersion, dependencyTreeVersions)}`
+  return `${versionStringPrefix}${hashModuleVersion(moduleConfig, treeVersion, dependencyModuleVersions)}`
 }
 
 /**
@@ -286,7 +280,7 @@ export function getModuleVersionString(
 export function hashModuleVersion(
   moduleConfig: ModuleConfig,
   treeVersion: NamedTreeVersion,
-  dependencyTreeVersions: NamedTreeVersion[]
+  dependencyModuleVersions: NamedModuleVersion[]
 ) {
   // If a build config is provided, we use that.
   // Otherwise, we use the full module config, omitting the configPath, path, and outputs fields, as well as individual
@@ -298,9 +292,10 @@ export function hashModuleVersion(
 
   const configString = serializeConfig(configToHash)
 
-  const versionStrings = sortBy([treeVersion, ...dependencyTreeVersions], "name").map(
-    (v) => `${v.name}_${v.contentHash}`
-  )
+  const versionStrings = sortBy(
+    [[treeVersion.name, treeVersion.contentHash], ...dependencyModuleVersions.map((v) => [v.name, v.versionString])],
+    (vs) => vs[0]
+  ).map((vs) => vs[1])
 
   return hashStrings([configString, ...versionStrings])
 }

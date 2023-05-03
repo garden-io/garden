@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,7 +7,7 @@
  */
 
 import { getContainerTestGarden } from "../container"
-import { KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
+import { ClusterBuildkitCacheConfig, KubernetesProvider } from "../../../../../../../src/plugins/kubernetes/config"
 import { Garden } from "../../../../../../../src"
 import { PluginContext } from "../../../../../../../src/plugin-context"
 import {
@@ -28,6 +28,15 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
   let ctx: PluginContext
   let api: KubeApi
   let namespace: string
+
+  const defaultConfig: ClusterBuildkitCacheConfig[] = [
+    {
+      type: "registry",
+      mode: "auto",
+      tag: "_buildcache",
+      export: true,
+    },
+  ]
 
   before(async () => {
     garden = await getContainerTestGarden("cluster-buildkit")
@@ -82,7 +91,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
 
       const nodeSelector = { "kubernetes.io/os": "linux" }
 
-      provider.config.clusterBuildkit = { nodeSelector }
+      provider.config.clusterBuildkit = { nodeSelector, cache: defaultConfig }
 
       await ensureBuildkit({
         ctx,
@@ -144,6 +153,30 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
       })
       expect(updated).to.be.false
     })
+
+    it("returns false if buildkit is already deployed with annotations", async () => {
+      provider.config.clusterBuildkit = {
+        cache: [],
+        annotations: {
+          testAnnotation: "is-there",
+        },
+      }
+      await ensureBuildkit({
+        ctx,
+        provider,
+        log: garden.log,
+        api,
+        namespace,
+      })
+      const { updated } = await ensureBuildkit({
+        ctx,
+        provider,
+        log: garden.log,
+        api,
+        namespace,
+      })
+      expect(updated).to.be.false
+    })
   })
 
   grouped("cluster-buildkit-rootless").context("cluster-buildkit-rootless mode", () => {
@@ -152,7 +185,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
         await api.apps.deleteNamespacedDeployment(buildkitDeploymentName, namespace)
       } catch {}
 
-      provider.config.clusterBuildkit = { rootless: true }
+      provider.config.clusterBuildkit = { rootless: true, cache: defaultConfig }
 
       await ensureBuildkit({
         ctx,
@@ -176,7 +209,7 @@ grouped("cluster-buildkit").describe("ensureBuildkit", () => {
         namespace,
       })
 
-      provider.config.clusterBuildkit = { rootless: true }
+      provider.config.clusterBuildkit = { rootless: true, cache: defaultConfig }
 
       const { updated } = await ensureBuildkit({
         ctx,

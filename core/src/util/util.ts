@@ -1,33 +1,51 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { isArray, isPlainObject, extend, mapValues, pickBy, range, trimEnd, omit, groupBy, some } from "lodash"
-import split2 = require("split2")
-import Bluebird = require("bluebird")
+import {
+  difference,
+  extend,
+  find,
+  fromPairs,
+  groupBy,
+  isArray,
+  isPlainObject,
+  mapValues,
+  memoize,
+  omit,
+  pick,
+  pickBy,
+  range,
+  some,
+  trimEnd,
+  uniqBy,
+} from "lodash"
 import { ResolvableProps } from "bluebird"
 import exitHook from "async-exit-hook"
 import Cryo from "cryo"
 import _spawn from "cross-spawn"
 import { readFile, writeFile } from "fs-extra"
-import { find, pick, difference, fromPairs, uniqBy } from "lodash"
-import { TimeoutError, ParameterError, RuntimeError, GardenError } from "../exceptions"
+import { GardenError, ParameterError, RuntimeError, TimeoutError } from "../exceptions"
 import highlight from "cli-highlight"
 import chalk from "chalk"
-import { safeDump, safeLoad, DumpOptions } from "js-yaml"
+import { DumpOptions, safeDump, safeLoad } from "js-yaml"
 import { createHash } from "crypto"
-import { tailString, dedent } from "./string"
-import { Writable, Readable } from "stream"
+import { dedent, tailString } from "./string"
+import { Readable, Writable } from "stream"
 import { LogEntry } from "../logger/log-entry"
-import execa = require("execa")
 import { PrimitiveMap } from "../config/common"
 import { isAbsolute, relative } from "path"
 import { getDefaultProfiler } from "./profiling"
-import { gardenEnv } from "../constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../constants"
+import split2 = require("split2")
+import Bluebird = require("bluebird")
+import execa = require("execa")
+import { execSync } from "child_process"
+
 export { v4 as uuidv4 } from "uuid"
 
 export type HookCallback = (callback?: () => void) => void
@@ -87,17 +105,33 @@ export function getPackageVersion(): string {
   return version
 }
 
+type CloudDistroName = "Cloud Dashboard" | "Garden Enterprise" | "Garden Cloud"
+
 /**
  * Returns "Garden Cloud" if domain matches https://<some-subdomain>.app.garden,
  * otherwise "Garden Enterprise".
  *
  * TODO: Return the distribution type from the API and store on the CloudApi class.
  */
-export function getCloudDistributionName(domain: string) {
+export function getCloudDistributionName(domain: string): CloudDistroName {
+  if (domain === DEFAULT_GARDEN_CLOUD_DOMAIN) {
+    return "Cloud Dashboard"
+  }
+
   if (!domain.match(/^https:\/\/.+\.app\.garden$/i)) {
     return "Garden Enterprise"
   }
   return "Garden Cloud"
+}
+
+export function getCloudLogSectionName(distroName: CloudDistroName): string {
+  if (distroName === "Cloud Dashboard") {
+    return "cloud-dashboard"
+  } else if (distroName === "Garden Cloud") {
+    return "garden-cloud"
+  } else {
+    return "garden-enterprise"
+  }
 }
 
 export async function sleep(msec: number) {
@@ -121,8 +155,8 @@ export function defer<T>() {
 /**
  * Extracting to a separate function so that we can test output streams
  */
-export function renderOutputStream(msg: string) {
-  return chalk.gray("  → " + msg)
+export function renderOutputStream(msg: string, command?: string) {
+  return command ? chalk.gray(`[${command}]: ${msg}`) : chalk.gray(msg)
 }
 
 /**
@@ -687,6 +721,29 @@ export function getArchitecture() {
   return archMap[arch] || arch
 }
 
+export const isDarwinARM = memoize(() => {
+  if (process.platform !== "darwin") {
+    return false
+  }
+
+  if (process.arch === "arm64") {
+    return true
+  } else if (process.arch === "x64") {
+    // detect rosetta on Apple M cpu family macs
+    // see also https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment
+    // We use execSync here, because this function is called in a constructor
+    // otherwise we'd make the function async and call `spawn`
+    try {
+      execSync("sysctl -n -q sysctl.proc_translated", { encoding: "utf-8" })
+    } catch (err) {
+      return false
+    }
+    return true
+  }
+
+  return false
+})
+
 export function getDurationMsec(start: Date, end: Date): number {
   return Math.round(end.getTime() - start.getTime())
 }
@@ -867,4 +924,11 @@ export function getGitHubIssueLink(title: string, type: "bug" | "feature-request
   } else {
     return `https://github.com/garden-io/garden/issues/new?assignees=&labels=&template=BUG_REPORT.md&title=${title}`
   }
+}
+
+/**
+ * Check if a given date instance is valid.
+ */
+export function isValidDateInstance(d: any) {
+  return !isNaN(d) && d instanceof Date
 }

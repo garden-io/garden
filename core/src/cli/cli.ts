@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +19,7 @@ import {
   uuidv4,
   registerCleanupFunction,
   getCloudDistributionName,
+  getCloudLogSectionName,
 } from "../util/util"
 import { Command, CommandResult, CommandGroup, BuiltinArgs } from "../commands/base"
 import { PluginError, toGardenError, GardenBaseError } from "../exceptions"
@@ -35,6 +36,8 @@ import {
   parseCliArgs,
   optionsWithAliasValues,
   getCliStyles,
+  checkRequirements,
+  renderCloudLinkForBasicLogger,
 } from "./helpers"
 import { Parameters, globalOptions, OUTPUT_RENDERERS, GlobalOptions, ParameterValues } from "./params"
 import {
@@ -53,7 +56,7 @@ import type { GardenProcess } from "../db/entities/garden-process"
 import { DashboardEventStream } from "../server/dashboard-event-stream"
 import { GardenPluginReference } from "../types/plugin/plugin"
 import { renderError } from "../logger/renderers"
-import { CloudApi } from "../cloud/api"
+import { CloudApi, CloudApiTokenRefreshError, getGardenCloudDomain } from "../cloud/api"
 import { findProjectConfig } from "../config/base"
 import { pMemoizeDecorator } from "../lib/p-memoize"
 import { getCustomCommands } from "../commands/custom"
@@ -64,6 +67,7 @@ import { JsonFileWriter } from "../logger/writers/json-file-writer"
 import { dedent } from "../util/string"
 import { renderDivider } from "../logger/util"
 import { emoji as nodeEmoji } from "node-emoji"
+import { GlobalConfigStore, RequirementsCheck } from "../config-store"
 
 export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   const environments = gardenOpts.environmentName
@@ -86,27 +90,11 @@ export async function makeDummyGarden(root: string, gardenOpts: GardenOpts) {
   return DummyGarden.factory(root, { noEnterprise: true, ...gardenOpts })
 }
 
-function renderHeader({
-  environmentName,
-  namespaceName,
-  namespaceUrl,
-  distroName,
-}: {
-  environmentName: string
-  namespaceName: string
-  namespaceUrl?: string
-  distroName?: string
-}) {
+function renderHeader({ environmentName, namespaceName }: { environmentName: string; namespaceName: string }) {
   const divider = chalk.gray(renderDivider())
-  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName + "." + environmentName)}`
-
-  if (namespaceUrl) {
-    msg += dedent`
-      \n
-      ${nodeEmoji.lightning}   Connected to ${distroName}
-      ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
-    `
-  }
+  let msg = `${nodeEmoji.earth_africa}  Running in namespace ${chalk.cyan(namespaceName)} in environment ${chalk.cyan(
+    environmentName
+  )}`
 
   return dedent`
     ${divider}
@@ -277,7 +265,13 @@ ${renderCommands(commands)}
       loggerType = "quiet"
     }
 
-    const logger = Logger.initialize({ level, type: loggerType, useEmoji: emoji, showTimestamps })
+    const logger = Logger.initialize({
+      level,
+      storeEntries: loggerType === "fancy",
+      type: loggerType,
+      useEmoji: emoji,
+      showTimestamps,
+    })
 
     // Currently we initialise empty placeholder entries and pass those to the
     // framework as opposed to the logger itself. This is to give better control over where on
@@ -286,16 +280,43 @@ ${renderCommands(commands)}
     const log = logger.placeholder()
     const footerLog = logger.placeholder()
 
-    command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
+    await validateRuntimeRequirementsCached(logger, new GlobalConfigStore(), checkRequirements)
 
-    // Init enterprise API
+    command.printHeader({ headerLog, args: parsedArgs, opts: parsedOpts })
+    const sessionId = uuidv4()
+
+    // Init Cloud API
     let cloudApi: CloudApi | null = null
+
     if (!command.noProject) {
-      cloudApi = await CloudApi.factory({ log, currentDirectory: workingDir })
+      const config: ProjectResource | undefined = await this.getProjectConfig(workingDir)
+
+      const cloudDomain = getGardenCloudDomain(config)
+      const distroName = getCloudDistributionName(cloudDomain)
+
+      try {
+        cloudApi = await CloudApi.factory({ log, cloudDomain })
+      } catch (err) {
+        if (err instanceof CloudApiTokenRefreshError) {
+          log.warn(dedent`
+          ${chalk.yellow(`Unable to authenticate against ${distroName} with the current session token.`)}
+          Command results for this command run will not be available in ${distroName}. If this not a
+          ${distroName} project you can ignore this warning. Otherwise, please try logging out with
+          \`garden logout\` and back in again with \`garden login\`.
+        `)
+
+          // Project is configured for cloud usage => fail early to force re-auth
+          if (config && config.id) {
+            throw err
+          }
+        } else {
+          // unhandled error when creating the cloud api
+          throw err
+        }
+      }
     }
 
     // Init event & log streaming.
-    const sessionId = uuidv4()
     this.bufferedEventStream = new BufferedEventStream({
       log,
       cloudApi: cloudApi || undefined,
@@ -339,10 +360,10 @@ ${renderCommands(commands)}
       footerLog,
       args: parsedArgs,
       opts: parsedOpts,
+      cloudApi: cloudApi || undefined,
     }
 
     const persistent = command.isPersistent(prepareParams)
-
     await command.prepare(prepareParams)
 
     contextOpts.persistent = persistent
@@ -350,7 +371,7 @@ ${renderCommands(commands)}
     // Print header log before we know the namespace to prevent content from
     // jumping.
     // TODO: Link to Cloud namespace page here.
-    const nsLog = headerLog.info("")
+    const nsLog = headerLog.placeholder()
 
     do {
       try {
@@ -359,7 +380,26 @@ ${renderCommands(commands)}
         } else {
           garden = await this.getGarden(workingDir, contextOpts)
 
-          nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
+          if (logger.type === "fancy") {
+            nsLog.setState(renderHeader({ namespaceName: garden.namespace, environmentName: garden.environmentName }))
+          } else {
+            log.info({
+              section: "garden",
+              msg: `Running in namespace ${chalk.cyan(garden.namespace)} in environment ${chalk.cyan(
+                garden.environmentName
+              )}`,
+            })
+          }
+
+          if (!cloudApi && garden.projectId) {
+            log.warn({
+              symbol: "warning",
+              msg: `You are not logged in into Garden Cloud. Please log in via the ${chalk.green(
+                "garden login"
+              )} command.`,
+            })
+            log.info("")
+          }
 
           if (processRecord) {
             // Update the db record for the process
@@ -377,11 +417,15 @@ ${renderCommands(commands)}
           }
 
           // Connect the dashboard event streamer (making sure it doesn't stream to the local server)
-          const commandServerUrl = command.server?.getUrl() || undefined
-          dashboardEventStream.connect({ garden, ignoreHost: commandServerUrl, streamEvents, streamLogEntries })
+          dashboardEventStream.connect({
+            garden,
+            ignoreHost: command.server?.getBaseUrl(),
+            streamEvents,
+            streamLogEntries,
+          })
           const runningServers = await dashboardEventStream.updateTargets()
 
-          if (cloudApi && !cloudApi.sessionRegistered && command.streamEvents) {
+          if (cloudApi && garden.projectId && !cloudApi.sessionRegistered && command.streamEvents) {
             // Note: If a config change during a watch-mode command's execution results in the resolved environment
             // and/or namespace name changing, we don't change the session ID, environment ID or namespace ID used when
             // streaming events.
@@ -394,35 +438,25 @@ ${renderCommands(commands)}
             })
           }
 
-          let namespaceUrl: string | undefined
-          if (cloudApi && cloudApi.environmentId && cloudApi.namespaceId) {
-            const project = await cloudApi.getProject()
-            const path = `/projects/${project.id}/environments/${cloudApi.environmentId}/namespaces/${cloudApi.namespaceId}/stack`
-            const url = new URL(path, cloudApi.domain)
-            namespaceUrl = url.href
+          // Print a specific header and footer when connected to Garden Cloud.
+          if (cloudApi?.sessionRegistered) {
+            const distroName = getCloudDistributionName(cloudApi.domain)
+            const userId = (await cloudApi.getProfile()).id
+            const commandResultUrl = cloudApi.getCommandResultUrl({ sessionId, userId }).href
+            if (logger.type === "fancy") {
+              const msg = dedent`
+                \n${nodeEmoji.cherry_blossom}   ${chalk.cyan(
+                `Connected to ${distroName}! Click the link below to view logs and command results.`
+              )}
+                ${nodeEmoji.link}  ${chalk.blueBright.underline(commandResultUrl)}
+              `
+              footerLog.setState(msg)
+            } else {
+              const msg = renderCloudLinkForBasicLogger({ commandResultUrl, distroName })
+              log.info({ section: getCloudLogSectionName(distroName), msg })
+            }
           }
 
-          // Print a specific header and footer when persistent and connected to Garden Cloud.
-          if (persistent && namespaceUrl) {
-            const distroName = getCloudDistributionName(cloudApi?.domain || "")
-            nsLog.setState(
-              renderHeader({
-                namespaceName: garden.namespace,
-                environmentName: garden.environmentName,
-                namespaceUrl,
-                distroName,
-              })
-            )
-            const msg = dedent`
-              \n${nodeEmoji.lightning}   ${chalk.cyan(
-              `Connected to ${distroName}! Visit your namespace to stream logs and more.`
-            )}
-              ${nodeEmoji.link}  ${chalk.blueBright.underline(namespaceUrl)}
-            `
-            footerLog.setState(msg)
-          }
-
-          // TODO: "Tone down" dashboard link when connected to Garden Cloud.
           if (persistent && command.server) {
             // If there is an explicit `garden dashboard` process running for the current project+env, and a server
             // is started in this Command, we show the URL to the external dashboard. Otherwise the built-in one.
@@ -446,7 +480,7 @@ ${renderCommands(commands)}
           }
         }
 
-        if (cloudApi) {
+        if (cloudApi && garden.projectId) {
           log.silly(`Connecting Garden instance to GE BufferedEventStream`)
           const connectParams: ConnectBufferedEventStreamParams = {
             garden,
@@ -460,7 +494,20 @@ ${renderCommands(commands)}
           }
           this.bufferedEventStream.connect(connectParams)
           if (streamEvents) {
-            this.bufferedEventStream.streamEvent("commandInfo", commandInfo)
+            const commandInfoPayload = {
+              ...commandInfo,
+              environmentName: garden.environmentName,
+              environmentId: cloudApi.environmentId,
+              projectName: garden.projectName,
+              projectId: garden.projectId,
+              namespaceName: garden.namespace,
+              namespaceId: cloudApi.namespaceId,
+              coreVersion: getPackageVersion(),
+              vcsBranch: garden.vcsInfo.branch,
+              vcsCommitHash: garden.vcsInfo.commitHash,
+              vcsOriginUrl: garden.vcsInfo.originUrl,
+            }
+            this.bufferedEventStream.streamEvent("commandInfo", commandInfoPayload)
           }
         }
 
@@ -571,14 +618,10 @@ ${renderCommands(commands)}
       return done(1, chalk.red(`Could not find specified root path (${argv.root})`))
     }
 
-    if (argv._.length === 0 || argv._[0] === "help") {
-      return done(0, await this.renderHelp(workingDir))
-    }
-
     let projectConfig: ProjectResource | undefined
 
     // First look for native Garden commands
-    let { command, matchedPath } = pickCommand(Object.values(this.commands), argv._)
+    let { command, rest, matchedPath } = pickCommand(Object.values(this.commands), argv._)
 
     // Load custom commands from current project (if applicable) and see if any match the arguments
     if (!command) {
@@ -592,13 +635,10 @@ ${renderCommands(commands)}
       }
     }
 
+    // If we still haven't found a valid command, print help
     if (!command) {
-      const exitCode = argv.h || argv.help ? 0 : 1
+      const exitCode = argv._.length === 0 || argv._[0] === "help" ? 0 : 1
       return done(exitCode, await this.renderHelp(workingDir))
-    }
-
-    if (command instanceof CommandGroup) {
-      return done(0, command.renderHelp())
     }
 
     // Parse the arguments again with the Command set, to fully validate, and to ensure boolean options are
@@ -608,15 +648,19 @@ ${renderCommands(commands)}
     // Slice command name from the positional args
     argv._ = argv._.slice(command.getPath().length)
 
-    // handle -h/--help
-    if (argv.h || argv.help) {
-      if (command) {
-        // Show help for command
-        return done(0, command.renderHelp())
-      } else {
-        // Show general help text
-        return done(0, await this.renderHelp(workingDir))
+    // Handle -h, --help, and subcommand listings
+    if (argv.h || argv.help || command instanceof CommandGroup) {
+      // Try to show specific help for given subcommand
+      if (command instanceof CommandGroup) {
+        for (const subCommand of command.subCommands) {
+          const sub = new subCommand()
+          if (sub.name === rest[0]) {
+            return done(0, sub.renderHelp())
+          }
+        }
+        // If not found, falls through to general command help below
       }
+      return done(0, command.renderHelp())
     }
 
     let parsedArgs: BuiltinArgs & ParameterValues<any>
@@ -648,6 +692,8 @@ ${renderCommands(commands)}
 
     this.processRecord = processRecord!
 
+    const commandStartTime = new Date()
+
     try {
       const runResults = await this.runCommand({ command, parsedArgs, parsedOpts, processRecord, workingDir })
       commandResult = runResults.result
@@ -658,12 +704,14 @@ ${renderCommands(commands)}
 
     errors.push(...(commandResult.errors || []))
 
+    const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
+
+    analytics?.trackCommandResult(command.getFullName(), gardenErrors, commandStartTime)
+
     // Flushes the Analytics events queue in case there are some remaining events.
     if (analytics) {
       await analytics.flush()
     }
-
-    const gardenErrors: GardenBaseError[] = errors.map(toGardenError)
 
     // --output option set
     if (argv.output) {
@@ -687,22 +735,21 @@ ${renderCommands(commands)}
       logger = Logger.initialize({
         level: LogLevel.info,
         type: "basic",
+        storeEntries: false,
       })
     }
 
     let code = 0
     if (gardenErrors.length > 0) {
-      if (!command.skipCliErrorSummary) {
-        for (const error of gardenErrors) {
-          const entry = logger.error({
-            msg: error.message,
-            error,
-          })
-          // Output error details to console when log level is silly
-          logger.silly({
-            msg: renderError(entry),
-          })
-        }
+      for (const error of gardenErrors) {
+        const entry = logger.error({
+          msg: error.message,
+          error,
+        })
+        // Output error details to console when log level is silly
+        logger.silly({
+          msg: renderError(entry),
+        })
       }
 
       if (logger.getWriters().find((w) => w instanceof FileWriter)) {
@@ -731,7 +778,7 @@ ${renderCommands(commands)}
   }
 
   @pMemoizeDecorator()
-  private async getProjectConfig(workingDir: string): Promise<ProjectResource | undefined> {
+  async getProjectConfig(workingDir: string): Promise<ProjectResource | undefined> {
     return findProjectConfig(workingDir)
   }
 
@@ -745,5 +792,34 @@ ${renderCommands(commands)}
     }
 
     return await getCustomCommands(Object.values(this.commands), projectRoot)
+  }
+}
+
+export async function validateRuntimeRequirementsCached(
+  log: Logger,
+  globalConfig: GlobalConfigStore,
+  requirementCheckFunction: () => Promise<void>
+) {
+  let requirementsCheck: RequirementsCheck | undefined
+  try {
+    requirementsCheck = (await globalConfig.get(["requirementsCheck"])) as RequirementsCheck
+  } catch {} // throws if requirementsCheck not yet populated
+  if (!requirementsCheck || !requirementsCheck.passed) {
+    const setReqCheck = async (passed: boolean) => {
+      await globalConfig.set(["requirementsCheck"], {
+        lastRunDateUNIX: Date.now(),
+        lastRunGardenVersion: getPackageVersion(),
+        passed,
+      } as RequirementsCheck)
+    }
+    try {
+      log.debug("checking for garden runtime requirements")
+      await requirementCheckFunction()
+      // didn't throw means requirements are met
+      await setReqCheck(true)
+    } catch (err) {
+      await setReqCheck(false)
+      throw err
+    }
   }
 }

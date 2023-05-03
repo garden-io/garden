@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,8 +20,8 @@ import { GetLinkedReposCommand } from "./get-linked-repos"
 import { GetOutputsCommand } from "./get-outputs"
 import { GetDoddiCommand } from "./get-doddi"
 import { GetModulesCommand } from "./get-modules"
-import { GetVaccineCommand } from "./get-vaccine"
 import { GetTestsCommand } from "./get-tests"
+import { GetWorkflowsCommand } from "./get-workflows"
 
 export class GetCommand extends CommandGroup {
   name = "get"
@@ -42,6 +42,6 @@ export class GetCommand extends CommandGroup {
     GetTaskResultCommand,
     GetTestResultCommand,
     GetDebugInfoCommand,
-    GetVaccineCommand,
+    GetWorkflowsCommand,
   ]
 }

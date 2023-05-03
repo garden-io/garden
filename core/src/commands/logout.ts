@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,9 +8,11 @@
 
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
-import { CloudApi } from "../cloud/api"
+import { CloudApi, getGardenCloudDomain } from "../cloud/api"
 import { dedent } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
+import { ProjectResource } from "../config/project"
+import { ConfigurationError } from "../exceptions"
 
 export class LogOutCommand extends Command {
   name = "logout"
@@ -26,24 +28,39 @@ export class LogOutCommand extends Command {
     printHeader(headerLog, "Log out", "cloud")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult> {
+  async action({ cli, garden, log }: CommandParams): Promise<CommandResult> {
     // Note: lazy-loading for startup performance
     const { ClientAuthToken } = require("../db/entities/client-auth-token")
 
-    const token = await ClientAuthToken.findOne()
-    const distroName = getCloudDistributionName(garden.enterpriseDomain || "")
+    const projectConfig: ProjectResource | undefined = await cli!.getProjectConfig(garden.projectRoot)
 
-    if (!token) {
-      log.info({ msg: `You're already logged out from ${distroName}.` })
-      return {}
+    // Fail if this is not run within a garden project
+    if (!projectConfig) {
+      throw new ConfigurationError(
+        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+        {
+          root: garden.projectRoot,
+        }
+      )
     }
+
+    const cloudDomain: string = getGardenCloudDomain(projectConfig)
+    const distroName = getCloudDistributionName(cloudDomain)
 
     try {
       // The Enterprise API is missing from the Garden class for commands with noProject
       // so we initialize it here.
+
+      const token = await ClientAuthToken.findOne()
+
+      if (!token) {
+        log.info({ msg: `You're already logged out from ${cloudDomain}.` })
+        return {}
+      }
+
       const cloudApi = await CloudApi.factory({
         log,
-        currentDirectory: garden.projectRoot,
+        cloudDomain,
         skipLogging: true,
       })
 
@@ -62,8 +79,10 @@ export class LogOutCommand extends Command {
         msg,
       })
     } finally {
-      log.info({ msg: `Succesfully logged out from ${distroName}.` })
+      // always clear the auth token
       await CloudApi.clearAuthToken(log)
+
+      log.info({ msg: `Succesfully logged out from ${cloudDomain}.` })
     }
     return {}
   }

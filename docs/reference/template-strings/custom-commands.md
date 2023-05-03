@@ -45,6 +45,20 @@ The environment variable value.
 | -------- |
 | `string` |
 
+### `${local.arch}`
+
+A string indicating the architecture that the framework is running on (see https://nodejs.org/api/process.html#process_process_arch)
+
+| Type     |
+| -------- |
+| `string` |
+
+Example:
+
+```yaml
+my-variable: ${local.arch}
+```
+
 ### `${local.platform}`
 
 A string indicating the platform that the framework is running on (see https://nodejs.org/api/process.html#process_process_platform)
@@ -287,9 +301,9 @@ A map of all variables defined in the command configuration.
 
 ### `${variables.<variable-name>}`
 
-| Type                                             |
-| ------------------------------------------------ |
-| `string | number | boolean | link | array[link]` |
+| Type                                                 |
+| ---------------------------------------------------- |
+| `string \| number \| boolean \| link \| array[link]` |
 
 ### `${var.*}`
 
@@ -303,9 +317,9 @@ Alias for the variables field.
 
 Number, string or boolean
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${args.*}`
 
@@ -343,9 +357,9 @@ Every argument following -- on the command line.
 
 Number, string or boolean
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 
 ### `${opts.*}`
 
@@ -359,7 +373,7 @@ Map of all options, as defined in the Command spec.
 
 Number, string or boolean
 
-| Type                        |
-| --------------------------- |
-| `string | number | boolean` |
+| Type                          |
+| ----------------------------- |
+| `string \| number \| boolean` |
 

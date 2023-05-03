@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -124,7 +124,7 @@ async function pullFromInClusterRegistry(
     ...containerHelpers.parseImageId(imageId),
     // Note: using localhost directly here has issues with Docker for Mac.
     // https://github.com/docker/for-mac/issues/3611
-    host: `local.app.garden:${fwd.localPort}`,
+    host: `local.demo.garden:${fwd.localPort}`,
   })
 
   await containerHelpers.dockerCli({ cwd: module.buildPath, args: ["pull", pullImageId], log, ctx })
@@ -149,7 +149,7 @@ async function pullFromExternalRegistry(
   let namespace: string
   let authSecretName: string
 
-  if (buildMode === "cluster-buildkit") {
+  if (buildMode === "cluster-buildkit" || buildMode === "kaniko") {
     namespace = await getAppNamespace(ctx, log, ctx.provider)
 
     const { authSecret } = await ensureBuilderSecret({

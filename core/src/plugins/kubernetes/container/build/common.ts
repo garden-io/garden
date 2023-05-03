@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,14 +31,16 @@ import { InternalError, RuntimeError } from "../../../../exceptions"
 import { LogEntry } from "../../../../logger/log-entry"
 import { getInClusterRegistryHostname } from "../../init"
 import { prepareDockerAuth } from "../../init"
+import { prepareSecrets } from "../../secrets"
 import chalk from "chalk"
 import { gardenEnv } from "../../../../constants"
-import { ensureMutagenSync, flushMutagenSync, getKubectlExecDestination, terminateMutagenSync } from "../../mutagen"
+import { getKubectlExecDestination, MutagenDaemon } from "../../mutagen"
 import { randomString } from "../../../../util/string"
 import { V1Container, V1Service } from "@kubernetes/client-node"
 import { cloneDeep, isEmpty } from "lodash"
 import { compareDeployedResources, waitForResources } from "../../status/status"
 import { KubernetesDeployment, KubernetesResource } from "../../types"
+import { stringifyResources } from "../util"
 
 const inClusterRegistryPort = 5000
 
@@ -98,6 +100,8 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     namespace,
   })
 
+  const mutagenDaemon = await MutagenDaemon.start({ ctx, log })
+
   if (gardenEnv.GARDEN_K8S_BUILD_SYNC_MODE === "mutagen") {
     // Sync using mutagen
     const key = `build-sync-${module.name}-${randomString(8)}`
@@ -125,9 +129,7 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
       log.debug(`Syncing from ${sourcePath} to ${resourceName}`)
 
       // -> Create the sync
-      await ensureMutagenSync({
-        ctx,
-        log,
+      await mutagenDaemon.ensureSync({
         key,
         logSection: module.name,
         sourceDescription: `Module ${module.name} build path`,
@@ -148,11 +150,11 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
       })
 
       // -> Flush the sync once
-      await flushMutagenSync(ctx, log, key)
+      await mutagenDaemon.flushSync(key)
       log.debug(`Sync from ${sourcePath} to ${resourceName} completed`)
     } finally {
       // -> Terminate the sync
-      await terminateMutagenSync(ctx, log, key)
+      await mutagenDaemon.terminateSync(key)
       log.debug(`Sync connection terminated`)
     }
   } else {
@@ -178,10 +180,10 @@ export async function syncToBuildSync(params: SyncToSharedBuildSyncParams) {
     const syncArgs = [...commonSyncArgs, "--relative", "--delete", "--temp-dir", "/tmp", src, destination]
 
     log.debug(`Syncing from ${src} to ${destination}`)
-    // We retry a couple of times, because we may get intermittent connection issues or concurrency issues
+    // We retry a few times, because we may get intermittent connection issues or concurrency issues
     await pRetry(() => exec("rsync", syncArgs), {
-      retries: 3,
-      minTimeout: 500,
+      retries: 5,
+      minTimeout: 1000,
     })
   }
 
@@ -221,8 +223,7 @@ export async function skopeoBuildStatus({
   const remoteId = module.outputs["deployment-image-id"]
   const skopeoCommand = ["skopeo", "--command-timeout=30s", "inspect", "--raw", "--authfile", "/.docker/config.json"]
 
-  if (usingInClusterRegistry(provider)) {
-    // The in-cluster registry is not exposed, so we don't configure TLS on it.
+  if (deploymentRegistry?.insecure === true) {
     skopeoCommand.push("--tls-verify=false")
   }
 
@@ -332,8 +333,10 @@ export async function ensureUtilDeployment({
       namespace,
     })
 
+    const imagePullSecrets = await prepareSecrets({ api, namespace, secrets: provider.config.imagePullSecrets, log })
+
     // Check status of the util deployment
-    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name)
+    const { deployment, service } = getUtilManifests(provider, authSecret.metadata.name, imagePullSecrets)
     const status = await compareDeployedResources(
       ctx as KubernetesPluginContext,
       api,
@@ -447,7 +450,7 @@ function isLocalHostname(hostname: string) {
   return hostname === "localhost" || hostname.startsWith("127.")
 }
 
-export function getUtilContainer(authSecretName: string): V1Container {
+export function getUtilContainer(authSecretName: string, provider: KubernetesProvider): V1Container {
   return {
     name: utilContainerName,
     image: k8sUtilImageName,
@@ -486,15 +489,24 @@ export function getUtilContainer(authSecretName: string): V1Container {
       timeoutSeconds: 3,
       successThreshold: 2,
       failureThreshold: 5,
-      tcpSocket: { port: <object>(<unknown>rsyncPortName) },
+      tcpSocket: { port: rsyncPortName },
     },
-    resources: {
-      // This should be ample
-      limits: {
-        cpu: "256m",
-        memory: "512Mi",
+    lifecycle: {
+      preStop: {
+        exec: {
+          // this preStop command makes sure that we wait for some time if an rsync is still ongoing, before
+          // actually killing the pod. If the transfer takes more than 30 seconds, which is unlikely, the pod
+          // will be killed anyway. The command works by counting the number of rsync processes. This works
+          // because rsync forks for every connection.
+          command: [
+            "/bin/sh",
+            "-c",
+            "until test $(pgrep -f '^[^ ]+rsync' | wc -l) = 1; do echo waiting for rsync to finish...; sleep 1; done",
+          ],
+        },
       },
     },
+    resources: stringifyResources(provider.config.resources.util),
     securityContext: {
       runAsUser: 1000,
       runAsGroup: 1000,
@@ -502,8 +514,16 @@ export function getUtilContainer(authSecretName: string): V1Container {
   }
 }
 
-export function getUtilManifests(provider: KubernetesProvider, authSecretName: string) {
-  const kanikoTolerations = [...(provider.config.kaniko?.tolerations || []), builderToleration]
+export function getUtilManifests(
+  provider: KubernetesProvider,
+  authSecretName: string,
+  imagePullSecrets: { name: string }[]
+) {
+  const kanikoTolerations = [
+    ...(provider.config.kaniko?.util?.tolerations || provider.config.kaniko?.tolerations || []),
+    builderToleration,
+  ]
+  const kanikoAnnotations = provider.config.kaniko?.util?.annotations || provider.config.kaniko?.annotations
   const deployment: KubernetesDeployment = {
     apiVersion: "apps/v1",
     kind: "Deployment",
@@ -512,6 +532,7 @@ export function getUtilManifests(provider: KubernetesProvider, authSecretName: s
         app: utilDeploymentName,
       },
       name: utilDeploymentName,
+      annotations: kanikoAnnotations,
     },
     spec: {
       replicas: 1,
@@ -525,9 +546,11 @@ export function getUtilManifests(provider: KubernetesProvider, authSecretName: s
           labels: {
             app: utilDeploymentName,
           },
+          annotations: kanikoAnnotations,
         },
         spec: {
-          containers: [getUtilContainer(authSecretName)],
+          containers: [getUtilContainer(authSecretName, provider)],
+          imagePullSecrets,
           volumes: [
             {
               name: authSecretName,
@@ -560,8 +583,9 @@ export function getUtilManifests(provider: KubernetesProvider, authSecretName: s
   }
 
   // Set the configured nodeSelector, if any
-  if (!isEmpty(provider.config.kaniko?.nodeSelector)) {
-    deployment.spec!.template.spec!.nodeSelector = provider.config.kaniko?.nodeSelector
+  const nodeSelector = provider.config.kaniko?.util?.nodeSelector || provider.config.kaniko?.nodeSelector
+  if (!isEmpty(nodeSelector)) {
+    deployment.spec!.template.spec!.nodeSelector = nodeSelector
   }
 
   return { deployment, service }

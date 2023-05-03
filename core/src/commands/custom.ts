@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -71,7 +71,6 @@ export class CustomCommandWrapper extends Command {
   name = "<custom>"
   help = ""
 
-  noProject = true
   allowUndefinedArguments = true
 
   constructor(public spec: CommandResource) {
@@ -138,6 +137,7 @@ export class CustomCommandWrapper extends Command {
           PKG_EXECPATH: "",
           ...(exec.env || {}),
         },
+        cwd: garden.projectRoot,
         reject: false,
       })
       const completedAt = new Date()
@@ -229,7 +229,9 @@ export async function getCustomCommands(builtinCommands: (Command | CommandGroup
   const rootFiles = await listDirectory(projectRoot, { recursive: false })
   const paths = rootFiles.filter(isConfigFilename).map((p) => join(projectRoot, p))
 
-  const resources = flatten(await Bluebird.map(paths, (path) => loadConfigResources(projectRoot, path)))
+  const resources = flatten(
+    await Bluebird.map(paths, (path) => loadConfigResources({ log: undefined, projectRoot, configPath: path }))
+  )
 
   const builtinNames = builtinCommands.flatMap((c) => c.getPaths().map((p) => p.join(" ")))
 

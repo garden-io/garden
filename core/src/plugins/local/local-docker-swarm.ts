@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -116,6 +116,7 @@ export const gardenPlugin = () =>
               log,
               devMode: false,
               hotReload: false,
+              localMode: false,
             })
             let swarmServiceStatus
             let serviceId
@@ -172,7 +173,16 @@ export const gardenPlugin = () =>
               msg: `Ready`,
             })
 
-            return getServiceStatus({ ctx, module, service, runtimeContext, log, devMode: false, hotReload: false })
+            return getServiceStatus({
+              ctx,
+              module,
+              service,
+              runtimeContext,
+              log,
+              devMode: false,
+              hotReload: false,
+              localMode: false,
+            })
           },
 
           async execInService({ ctx, service, command, log }: ExecInServiceParams<ContainerModule>) {
@@ -188,6 +198,7 @@ export const gardenPlugin = () =>
               log,
               devMode: false,
               hotReload: false,
+              localMode: false,
             })
 
             if (!status.state || (status.state !== "ready" && status.state !== "outdated")) {

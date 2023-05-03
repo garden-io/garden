@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -55,6 +55,7 @@ describe("kubernetes", () => {
         service,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await garden.processTasks([deployTask], { throwOnError: true })
@@ -99,6 +100,7 @@ describe("kubernetes", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
 
         await garden.processTasks([deployTask], { throwOnError: true })
@@ -118,6 +120,7 @@ describe("kubernetes", () => {
             namespace,
             enableDevMode: false,
             enableHotReload: false,
+            enableLocalMode: false,
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",
@@ -134,8 +137,8 @@ describe("kubernetes", () => {
 
         setTimeout(() => {
           logsFollower.close()
-        }, 2500)
-        await logsFollower.followLogs({ limitBytes: null })
+        }, 5000)
+        await logsFollower.followLogs({})
 
         expect(ctx.log.toString()).to.match(/Connected to container 'simple-service'/)
 
@@ -164,6 +167,7 @@ describe("kubernetes", () => {
           service,
           devModeServiceNames: [],
           hotReloadServiceNames: [],
+          localModeServiceNames: [],
         })
         const deleteTask = new DeleteServiceTask({
           garden,
@@ -188,6 +192,7 @@ describe("kubernetes", () => {
             namespace,
             enableDevMode: false,
             enableHotReload: false,
+            enableLocalMode: false,
             production: ctx.production,
             log,
             blueGreen: provider.config.deploymentStrategy === "blue-green",
@@ -210,7 +215,7 @@ describe("kubernetes", () => {
         // Start following logs even when no services is deployed
         // (we don't wait for the Promise since it won't resolve unless we close the connection)
         // tslint:disable-next-line: no-floating-promises
-        logsFollower.followLogs({ limitBytes: null })
+        logsFollower.followLogs({})
         await sleep(1500)
 
         // Deploy the service
@@ -220,19 +225,19 @@ describe("kubernetes", () => {
         logsFollower.close()
 
         const missingContainerRegex = new RegExp(
-          `<No running containers found for service. Will retry in ${retryIntervalMs / 1000}s...>`
+          `<No running containers found for Deployment simple-service. Will retry in ${retryIntervalMs / 1000}s...>`
         )
         const connectedRegex = new RegExp("<Connected to container 'simple-service' in Pod")
         const serverRunningRegex = new RegExp("Server running...")
-        expect(ctx.log.toString()).to.match(missingContainerRegex)
-        expect(ctx.log.toString()).to.match(connectedRegex)
-        expect(ctx.log.toString()).to.match(serverRunningRegex)
 
         // First we expect to see a "missing container" entry because the service hasn't been deployed
+        expect(ctx.log.toString()).to.match(missingContainerRegex)
 
         // Then we expect to see a "container connected" entry when the service has been deployed
+        expect(ctx.log.toString()).to.match(connectedRegex)
 
-        // Finally we expect to see the service log
+        // Finally, we expect to see the service log
+        expect(ctx.log.toString()).to.match(serverRunningRegex)
       })
     })
   })

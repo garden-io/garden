@@ -1,29 +1,28 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { TestGarden, makeTestGarden, dataDir, expectError } from "../../../../../helpers"
+import { dataDir, expectError, makeTestGarden, TestGarden } from "../../../../../helpers"
 import { resolve } from "path"
 import { expect } from "chai"
 import { first, uniq } from "lodash"
-
 import {
   containsSource,
-  getChartResources,
-  getChartPath,
-  getReleaseName,
-  getGardenValuesPath,
   getBaseModule,
+  getChartPath,
+  getChartResources,
+  getGardenValuesPath,
+  getReleaseName,
   getValueArgs,
   renderTemplates,
 } from "../../../../../../src/plugins/kubernetes/helm/common"
 import { LogEntry } from "../../../../../../src/logger/log-entry"
 import { BuildTask } from "../../../../../../src/tasks/build"
-import { deline, dedent } from "../../../../../../src/util/string"
+import { dedent, deline } from "../../../../../../src/util/string"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { KubernetesPluginContext } from "../../../../../../src/plugins/kubernetes/config"
 import { safeLoadAll } from "js-yaml"
@@ -42,6 +41,21 @@ export async function getHelmTestGarden() {
   const garden = await makeTestGarden(projectRoot)
 
   helmTestGarden = garden
+
+  return garden
+}
+
+let helmLocalModeTestGarden: TestGarden
+
+export async function getHelmLocalModeTestGarden() {
+  if (helmLocalModeTestGarden) {
+    return helmLocalModeTestGarden
+  }
+
+  const projectRoot = resolve(dataDir, "test-projects", "helm-local-mode")
+  const garden = await makeTestGarden(projectRoot)
+
+  helmLocalModeTestGarden = garden
 
   return garden
 }
@@ -110,6 +124,7 @@ describe("Helm common functions", () => {
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -132,7 +147,7 @@ describe("Helm common functions", () => {
               app.kubernetes.io/managed-by: Helm
           spec:
             rules:
-              - host: "api.local.app.garden"
+              - host: "api.local.demo.garden"
                 http:
                   paths:
                     - path: /
@@ -157,7 +172,7 @@ describe("Helm common functions", () => {
               app.kubernetes.io/managed-by: Helm
           spec:
             rules:
-              - host: "api.local.app.garden"
+              - host: "api.local.demo.garden"
                 http:
                   paths:
                     - path: /
@@ -236,6 +251,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -258,6 +274,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -282,7 +299,7 @@ ${expectedIngressOutput}
           spec: {
             rules: [
               {
-                host: "api.local.app.garden",
+                host: "api.local.demo.garden",
                 http: {
                   paths: [
                     {
@@ -320,7 +337,7 @@ ${expectedIngressOutput}
           spec: {
             rules: [
               {
-                host: "api.local.app.garden",
+                host: "api.local.demo.garden",
                 http: {
                   paths: [
                     {
@@ -427,6 +444,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -447,6 +465,7 @@ ${expectedIngressOutput}
           module,
           devMode: false,
           hotReload: false,
+          localMode: false,
           log,
           version: module.version.versionString,
         })
@@ -460,6 +479,7 @@ ${expectedIngressOutput}
         module,
         devMode: false,
         hotReload: false,
+        localMode: false,
         log,
         version: module.version.versionString,
       })
@@ -569,14 +589,14 @@ ${expectedIngressOutput}
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, false)).to.eql(["--values", gardenValuesPath])
+      expect(await getValueArgs(module, false, false, false)).to.eql(["--values", gardenValuesPath])
     })
 
     it("should add a --set flag if devMode=true", async () => {
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, true, false)).to.eql([
+      expect(await getValueArgs(module, true, false, false)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
@@ -588,11 +608,35 @@ ${expectedIngressOutput}
       const module = graph.getModule("api")
       module.spec.valueFiles = []
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
-      expect(await getValueArgs(module, false, true)).to.eql([
+      expect(await getValueArgs(module, false, true, false)).to.eql([
         "--values",
         gardenValuesPath,
         "--set",
         "\\.garden.hotReload=true",
+      ])
+    })
+
+    it("should add a --set flag if localMode=true", async () => {
+      const module = graph.getModule("api")
+      module.spec.valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      expect(await getValueArgs(module, false, false, true)).to.eql([
+        "--values",
+        gardenValuesPath,
+        "--set",
+        "\\.garden.localMode=true",
+      ])
+    })
+
+    it("localMode should always take precedence over devMode when add a --set flag", async () => {
+      const module = graph.getModule("api")
+      module.spec.valueFiles = []
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+      expect(await getValueArgs(module, true, false, true)).to.eql([
+        "--values",
+        gardenValuesPath,
+        "--set",
+        "\\.garden.localMode=true",
       ])
     })
 
@@ -601,11 +645,24 @@ ${expectedIngressOutput}
       module.spec.valueFiles = ["foo.yaml", "bar.yaml"]
       const gardenValuesPath = getGardenValuesPath(module.buildPath)
 
-      expect(await getValueArgs(module, false, false)).to.eql([
+      expect(await getValueArgs(module, false, false, false)).to.eql([
         "--values",
         resolve(module.buildPath, "foo.yaml"),
         "--values",
         resolve(module.buildPath, "bar.yaml"),
+        "--values",
+        gardenValuesPath,
+      ])
+    })
+
+    it("should allow relative paths for valueFiles", async () => {
+      const module = graph.getModule("api")
+      module.spec.valueFiles = ["../relative.yaml"]
+      const gardenValuesPath = getGardenValuesPath(module.buildPath)
+
+      expect(await getValueArgs(module, false, false, false)).to.eql([
+        "--values",
+        resolve(module.buildPath, "../relative.yaml"),
         "--values",
         gardenValuesPath,
       ])

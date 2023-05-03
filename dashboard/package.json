@@ -1,6 +1,6 @@
 {
   "name": "@garden-io/dashboard",
-  "version": "0.12.40",
+  "version": "0.12.55",
   "private": true,
   "devDependencies": {
     "@garden-io/cli": "*",
@@ -8,7 +8,7 @@
     "@types/d3": "^5.7.2",
     "@types/eslint": "^6",
     "@types/lodash": "^4.14.153",
-    "@types/node": "^14.14.31",
+    "@types/node": "^18",
     "@types/react": "17.0.1",
     "@types/react-dom": "17.0.1",
     "@types/react-router-dom": "^5.1.5",
@@ -24,7 +24,7 @@
     "tslint-no-unused": "^0.2.0-alpha.1",
     "tslint-plugin-prettier": "^2.3.0",
     "tslint-react": "^5.0.0",
-    "typescript": "^4.3.5"
+    "typescript": "^4.7.4"
   },
   "dependencies": {
     "@emotion/core": "^10.0.28",
@@ -40,7 +40,7 @@
     "http-proxy-middleware": "^0.20.0",
     "immer": "^9.0.6",
     "lodash": "^4.17.15",
-    "moment": "^2.26.0",
+    "moment": "^2.29.4",
     "normalize-url": "4.5.0",
     "react": "^17.0.1",
     "react-content-loader": "^6.0.1",
@@ -51,8 +51,8 @@
     "sass": "^1.49.7"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "react-scripts --openssl-legacy-provider start",
+    "build": "react-scripts --openssl-legacy-provider build",
     "dev": "BROWSER=none EXTEND_ESLINT=true yarn run start",
     "fix-format": "prettier --write \"{src,test}/**/*.{ts,tsx}\"",
     "lint": "eslint \"{src,test}/**/*.{ts,tsx}\"",

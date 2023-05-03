@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,40 +7,43 @@
  */
 
 import {
-  joiPrimitive,
-  joiIdentifier,
-  joiUserIdentifier,
   DeepPrimitiveMap,
   joi,
+  joiIdentifier,
   joiModuleIncludeDirective,
+  joiPrimitive,
   joiSparseArray,
+  joiUserIdentifier,
 } from "../../../config/common"
 import { GardenModule } from "../../../types/module"
 import { containsSource } from "./common"
 import { ConfigurationError } from "../../../exceptions"
-import { deline, dedent } from "../../../util/string"
+import { dedent, deline } from "../../../util/string"
 import { GardenService } from "../../../types/service"
 import { ContainerModule } from "../../container/config"
 import { baseBuildSpecSchema } from "../../../config/module"
 import { ConfigureModuleParams, ConfigureModuleResult } from "../../../types/plugin/module/configure"
 import {
-  serviceResourceSchema,
-  kubernetesTaskSchema,
-  kubernetesTestSchema,
-  ServiceResourceSpec,
-  KubernetesTestSpec,
-  KubernetesTaskSpec,
-  namespaceNameSchema,
   containerModuleSchema,
   hotReloadArgsSchema,
-  serviceResourceDescription,
-  portForwardsSchema,
+  kubernetesDevModeSchema,
+  KubernetesDevModeSpec,
+  kubernetesLocalModeSchema,
+  KubernetesLocalModeSpec,
+  kubernetesTaskSchema,
+  KubernetesTaskSpec,
+  kubernetesTestSchema,
+  KubernetesTestSpec,
+  namespaceNameSchema,
   PortForwardSpec,
+  portForwardsSchema,
+  serviceResourceDescription,
+  serviceResourceSchema,
+  ServiceResourceSpec,
 } from "../config"
 import { posix } from "path"
 import { runPodSpecIncludeFields } from "../run"
 import { omit } from "lodash"
-import { kubernetesDevModeSchema, KubernetesDevModeSpec } from "../dev-mode"
 
 export const defaultHelmTimeout = 300
 
@@ -49,6 +52,7 @@ export type HelmModuleSpec = HelmServiceSpec
 
 export interface HelmModule
   extends GardenModule<HelmModuleSpec, HelmServiceSpec, KubernetesTestSpec, KubernetesTaskSpec> {}
+
 export type HelmModuleConfig = HelmModule["_config"]
 
 export interface HelmServiceSpec {
@@ -58,6 +62,7 @@ export interface HelmServiceSpec {
   chartPath: string
   dependencies: string[]
   devMode?: KubernetesDevModeSpec
+  localMode?: KubernetesLocalModeSpec
   namespace?: string
   portForwards?: PortForwardSpec[]
   releaseName?: string
@@ -172,6 +177,7 @@ export const helmModuleSpecSchema = () =>
       "List of names of services that should be deployed before this chart."
     ),
     devMode: kubernetesDevModeSchema(),
+    localMode: kubernetesLocalModeSchema(),
     include: joiModuleIncludeDirective(dedent`
       If neither \`include\` nor \`exclude\` is set, and the module has local chart sources, Garden
       automatically sets \`include\` to: \`["*", "charts/**/*", "templates/**/*"]\`.
@@ -219,7 +225,7 @@ export const helmModuleSpecSchema = () =>
       When specified, these take precedence over the values in the \`values.yaml\` file (or the files specified
       in \`valueFiles\`).
     `),
-    valueFiles: joiSparseArray(joi.posixPath().subPathOnly()).description(dedent`
+    valueFiles: joiSparseArray(joi.posixPath()).description(dedent`
       Specify value files to use when rendering the Helm chart. These will take precedence over the \`values.yaml\` file
       bundled in the Helm chart, and should be specified in ascending order of precedence. Meaning, the last file in
       this list will have the highest precedence.
@@ -269,6 +275,7 @@ export async function configureHelmModule({
     }
 
     // We copy the chart on build
+    // TODO-G2: change this to validation instead, require explicit dependency
     moduleConfig.build.dependencies.push({ name: base, copy: [{ source: "*", target: "." }] })
   }
 
@@ -282,6 +289,7 @@ export async function configureHelmModule({
 
   moduleConfig.taskConfigs = tasks.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
+      // TODO-G2: change this to validation instead, require explicit dependency
       moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 
@@ -297,6 +305,7 @@ export async function configureHelmModule({
 
   moduleConfig.testConfigs = tests.map((spec) => {
     if (spec.resource && spec.resource.containerModule) {
+      // TODO-G2: change this to validation instead, require explicit dependency
       moduleConfig.build.dependencies.push({ name: spec.resource.containerModule, copy: [] })
     }
 

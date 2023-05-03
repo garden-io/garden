@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -9,7 +9,7 @@
 import { v4 as uuidv4 } from "uuid"
 import { createHash } from "crypto"
 import { TemplateStringError } from "../exceptions"
-import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike } from "lodash"
+import { keyBy, mapValues, escapeRegExp, trim, isEmpty, camelCase, kebabCase, isArrayLike, isString } from "lodash"
 import { joi, JoiDescription, joiPrimitive, Primitive } from "../config/common"
 import Joi from "@hapi/joi"
 import { validateSchema } from "../config/validation"
@@ -69,6 +69,52 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
     fn: (str: string) => camelCase(str),
   },
   {
+    name: "concat",
+    description: "Concatenates two arrays or strings.",
+    arguments: {
+      arg1: joi
+        .alternatives(joi.array(), joi.string())
+        .allow("")
+        .required()
+        .description("The array or string to append to."),
+      arg2: joi
+        .alternatives(joi.array(), joi.string())
+        .allow("")
+        .required()
+        .description("The array or string to append."),
+    },
+    outputSchema: joi.string(),
+    exampleArguments: [
+      {
+        input: [
+          ["first", "two"],
+          ["second", "list"],
+        ],
+        output: ["first", "two", "second", "list"],
+      },
+      {
+        input: [
+          [1, 2, 3],
+          [4, 5],
+        ],
+        output: [1, 2, 3, 4, 5],
+      },
+      { input: ["string1", "string2"], output: "string1string2" },
+    ],
+    fn: (arg1: any, arg2: any) => {
+      if (isString(arg1) && isString(arg2)) {
+        return arg1 + arg2
+      } else if (Array.isArray(arg1) && Array.isArray(arg2)) {
+        return [...arg1, ...arg2]
+      } else {
+        throw new TemplateStringError(
+          `Both terms need to be either arrays or strings (got ${typeof arg1} and ${typeof arg2}).`,
+          { arg1, arg2 }
+        )
+      }
+    },
+  },
+  {
     name: "indent",
     description: "Indents each line in the given string with the specified number of spaces.",
     arguments: {
@@ -106,7 +152,7 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       "Takes an array of strings (or other primitives) and concatenates them into a string, with the given separator",
     arguments: {
       input: joi.array().items(joiPrimitive()).required().description("The array to concatenate."),
-      separator: joi.string().required().description("The string to place between each item in the array."),
+      separator: joi.string().allow("").required().description("The string to place between each item in the array."),
     },
     outputSchema: joi.string(),
     exampleArguments: [
@@ -205,9 +251,12 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       "Slices a string or array at the specified start/end offsets. Note that you can use a negative number for the end offset to count backwards from the end.",
     arguments: {
       input: joi.alternatives(joi.string(), joi.array()).required().description("The string or array to slice."),
-      start: joi.string().required().description("The first index you want from the string/array."),
+      start: joi
+        .alternatives(joi.number(), joi.string())
+        .required()
+        .description("The first index you want from the string/array."),
       end: joi
-        .string()
+        .alternatives(joi.number(), joi.string())
         .description(
           "The last index you want from the string/array. Specify a negative number to count backwards from the end."
         ),
@@ -217,7 +266,26 @@ const helperFunctionSpecs: TemplateHelperFunction[] = [
       { input: ["ThisIsALongStringThatINeedAPartOf", 11, -7], output: "StringThatINeed" },
       { input: [".foo", 1], output: "foo" },
     ],
-    fn: (stringOrArray: string | any[], start: number, end?: number) => stringOrArray.slice(start, end),
+    fn: (stringOrArray: string | any[], start: number | string, end?: number | string) => {
+      const parseInt = (value: number | string, name: string): number => {
+        if (typeof value === "number") {
+          return value
+        }
+
+        const result = Number.parseInt(value, 10)
+        if (Number.isNaN(result)) {
+          throw new TemplateStringError(`${name} index must be a number or a numeric string (got "${value}")`, {
+            name,
+            value,
+          })
+        }
+        return result
+      }
+
+      const startIdx = parseInt(start, "start")
+      const endIdx = !!end ? parseInt(end, "end") : undefined
+      return stringOrArray.slice(startIdx, endIdx)
+    },
   },
   {
     name: "split",

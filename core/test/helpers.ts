@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,29 +7,24 @@
  */
 
 import td from "testdouble"
-import Bluebird = require("bluebird")
-import { resolve, join, relative } from "path"
-import { extend, intersection, pick } from "lodash"
-import { remove, copy, mkdirp, pathExists, truncate, ensureDir } from "fs-extra"
-import execa = require("execa")
+import { join, relative, resolve } from "path"
+import { extend, intersection, mapValues, pick } from "lodash"
+import { copy, ensureDir, mkdirp, pathExists, remove, truncate } from "fs-extra"
 
-import { containerModuleSpecSchema, containerTestSchema, containerTaskSchema } from "../src/plugins/container/config"
-import { testExecModule, buildExecModule, execBuildSpecSchema } from "../src/plugins/exec/exec"
-import { joiArray, joi } from "../src/config/common"
+import { containerModuleSpecSchema, containerTaskSchema, containerTestSchema } from "../src/plugins/container/config"
+import { buildExecModule, execBuildSpecSchema, testExecModule } from "../src/plugins/exec/exec"
+import { joi, joiArray } from "../src/config/common"
 import {
-  PluginActionHandlers,
   createGardenPlugin,
-  RegisterPluginParam,
   ModuleAndRuntimeActionHandlers,
+  PluginActionHandlers,
+  RegisterPluginParam,
 } from "../src/types/plugin/plugin"
 import { Garden, GardenOpts } from "../src/garden"
 import { ModuleConfig } from "../src/config/module"
-import { mapValues } from "lodash"
 import { ModuleVersion } from "../src/vcs/vcs"
-import { GARDEN_CORE_ROOT, LOCAL_CONFIG_FILENAME, DEFAULT_API_VERSION, gardenEnv } from "../src/constants"
-import { LogEntry } from "../src/logger/log-entry"
-import timekeeper = require("timekeeper")
-import { ParameterValues, globalOptions, GlobalOptions, Parameters } from "../src/cli/params"
+import { DEFAULT_API_VERSION, GARDEN_CORE_ROOT, gardenEnv, LOCAL_CONFIG_FILENAME } from "../src/constants"
+import { globalOptions, GlobalOptions, Parameters, ParameterValues } from "../src/cli/params"
 import { RunModuleParams } from "../src/types/plugin/module/runModule"
 import { ConfigureModuleParams } from "../src/types/plugin/module/configure"
 import { RunServiceParams } from "../src/types/plugin/service/runService"
@@ -37,11 +32,10 @@ import { RunResult } from "../src/types/plugin/base"
 import { ExternalSourceType, getRemoteSourceRelPath, hashRepoUrl } from "../src/util/ext-source-util"
 import { ActionRouter } from "../src/actions"
 import { CommandParams, ProcessCommandResult } from "../src/commands/base"
-import stripAnsi from "strip-ansi"
 import { RunTaskParams, RunTaskResult } from "../src/types/plugin/task/runTask"
 import { SuiteFunction, TestFunction } from "mocha"
 import { AnalyticsGlobalConfig } from "../src/config-store"
-import { TestGarden, EventLogEntry, TestGardenOpts } from "../src/util/testing"
+import { EventLogEntry, TestGarden, TestGardenOpts } from "../src/util/testing"
 import { Logger, LogLevel } from "../src/logger/logger"
 import { ExecInServiceParams, ExecInServiceResult } from "../src/types/plugin/service/execInService"
 import { ClientAuthToken } from "../src/db/entities/client-auth-token"
@@ -50,6 +44,10 @@ import { profileAsync } from "../src/util/profiling"
 import { makeTempDir } from "../src/util/fs"
 import { DirectoryResult } from "tmp-promise"
 import { ConfigurationError } from "../src/exceptions"
+import { assert, expect } from "chai"
+import Bluebird = require("bluebird")
+import execa = require("execa")
+import timekeeper = require("timekeeper")
 
 export { TempDirectory, makeTempDir } from "../src/util/fs"
 export { TestGarden, TestError, TestEventBus, expectError } from "../src/util/testing"
@@ -64,7 +62,7 @@ export const testModuleVersion: ModuleVersion = {
 }
 
 // All test projects use this git URL
-export const testGitUrl = "https://my-git-server.com/my-repo.git#master"
+export const testGitUrl = "https://my-git-server.com/my-repo.git#main"
 export const testGitUrlHash = hashRepoUrl(testGitUrl)
 
 export function getDataDir(...names: string[]) {
@@ -100,6 +98,7 @@ async function runModule(params: RunModuleParams): Promise<RunResult> {
 }
 
 export const projectRootA = getDataDir("test-project-a")
+export const projectRootBuildDependants = getDataDir("test-build-dependants")
 export const projectTestFailsRoot = getDataDir("test-project-fails")
 
 const testModuleTestSchema = () => containerTestSchema().keys({ command: joi.sparseArray().items(joi.string()) })
@@ -366,6 +365,9 @@ export const testPlugins = () => [testPlugin(), testPluginB(), testPluginC()]
 
 export const testProjectTempDirs: { [root: string]: DirectoryResult } = {}
 
+/**
+ * Create a garden instance for testing and setup a project if it doesn't exist already.
+ */
 export const makeTestGarden = profileAsync(async function _makeTestGarden(
   projectRoot: string,
   opts: TestGardenOpts = {}
@@ -407,6 +409,13 @@ export const makeTestGardenA = profileAsync(async function _makeTestGardenA(
   opts?: TestGardenOpts
 ) {
   return makeTestGarden(projectRootA, { plugins: extraPlugins, forceRefresh: true, ...opts })
+})
+
+export const makeTestGardenBuildDependants = profileAsync(async function _makeTestGardenBuildDependants(
+  extraPlugins: RegisterPluginParam[] = [],
+  opts?: TestGardenOpts
+) {
+  return makeTestGarden(projectRootBuildDependants, { plugins: extraPlugins, forceRefresh: true, ...opts })
 })
 
 export async function stubAction<T extends keyof PluginActionHandlers>(
@@ -519,7 +528,7 @@ async function prepareRemoteGarden({
     const remoteSourceRelPath = getRemoteSourceRelPath({ name, url: testGitUrl, sourceType: type })
     const targetPath = join(garden.projectRoot, ".garden", remoteSourceRelPath)
     await copy(join(extSourcesRoot, name), targetPath)
-    await execa("git", ["init"], { cwd: targetPath })
+    await execa("git", ["init", "--initial-branch=main"], { cwd: targetPath })
   })
 
   return garden
@@ -533,17 +542,6 @@ export function trimLineEnds(str: string) {
     .split("\n")
     .map((line) => line.trimRight())
     .join("\n")
-}
-
-/**
- * Retrieves all the child log entries from the given LogEntry and returns a list of all the messages,
- * stripped of ANSI characters. Useful to check if a particular message was logged.
- */
-export function getLogMessages(log: LogEntry, filter?: (log: LogEntry) => boolean) {
-  return log
-    .getChildEntries()
-    .filter((entry) => (filter ? filter(entry) : true))
-    .flatMap((entry) => entry.getMessages()?.map((state) => stripAnsi(state.msg || "")) || [])
 }
 
 const skipGroups = gardenEnv.GARDEN_SKIP_TESTS.split(" ")
@@ -608,7 +606,6 @@ export async function enableAnalytics(garden: TestGarden) {
     originalAnalyticsConfig = { ...((await garden.globalConfigStore.get(["analytics"])) as AnalyticsGlobalConfig) }
   } catch {}
 
-  await garden.globalConfigStore.set(["analytics", "optedIn"], true)
   gardenEnv.GARDEN_DISABLE_ANALYTICS = false
   // Set the analytics mode to dev for good measure
   gardenEnv.ANALYTICS_DEV = true
@@ -657,21 +654,34 @@ export async function cleanupAuthTokens() {
 }
 
 export function makeCommandParams<T extends Parameters = {}, U extends Parameters = {}>({
+  cli,
   garden,
   args,
   opts,
 }: {
+  cli?: GardenCli
   garden: Garden
   args: T
   opts: U
 }): CommandParams<T, U> {
   const log = garden.log
   return {
+    cli,
     garden,
     log,
     headerLog: log,
     footerLog: log,
     args,
     opts: withDefaultGlobalOpts(opts),
+  }
+}
+
+export async function assertAsyncError(action: () => Promise<any>, ...expectedErrorMessages: string[]) {
+  try {
+    await action()
+    assert.fail("Illegal test state. The action must have failed with error.")
+  } catch (err) {
+    const errorString = !!err.message ? err.message : err.toString()
+    expectedErrorMessages.forEach((msg) => expect(errorString).to.contain(msg))
   }
 }

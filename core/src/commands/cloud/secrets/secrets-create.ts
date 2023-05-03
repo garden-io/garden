@@ -1,22 +1,23 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { CommandError, ConfigurationError, EnterpriseApiError } from "../../../exceptions"
+import { CommandError, ConfigurationError, CloudApiError } from "../../../exceptions"
 import { CreateSecretResponse } from "@garden-io/platform-api-types"
-import dotenv = require("dotenv")
 import { readFile } from "fs-extra"
 
 import { printHeader } from "../../../logger/util"
 import { Command, CommandParams, CommandResult } from "../../base"
 import { ApiCommandError, handleBulkOperationResult, makeSecretFromResponse, noApiMsg, SecretResult } from "../helpers"
 import { dedent, deline } from "../../../util/string"
-import { StringsParameter, PathParameter, IntegerParameter, StringParameter } from "../../../cli/params"
+import { IntegerParameter, PathParameter, StringParameter, StringsParameter } from "../../../cli/params"
 import { StringMap } from "../../../config/common"
+import dotenv = require("dotenv")
+import { getCloudDistributionName } from "../../../util/util"
 
 export const secretsCreateArgs = {
   secrets: new StringsParameter({
@@ -47,7 +48,7 @@ type Opts = typeof secretsCreateOpts
 
 export class SecretsCreateCommand extends Command<Args, Opts> {
   name = "create"
-  help = "[EXPERIMENTAL] Create secrets"
+  help = "Create secrets"
   description = dedent`
     Create secrets in Garden Cloud. You can create project wide secrets or optionally scope
     them to an environment, or an environment and a user.
@@ -100,9 +101,16 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
       }
     } else if (args.secrets) {
       secrets = args.secrets.reduce((acc, keyValPair) => {
-        const parts = keyValPair.split("=")
-        acc[parts[0]] = parts[1]
-        return acc
+        try {
+          const secret = dotenv.parse(keyValPair)
+          Object.assign(acc, secret)
+          return acc
+        } catch (err) {
+          throw new CommandError(`Unable to read secret from argument ${keyValPair}: ${err.message}`, {
+            args,
+            opts,
+          })
+        }
       }, {})
     } else {
       throw new CommandError(
@@ -119,12 +127,20 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     }
 
     const project = await api.getProject()
-    let environmentId: number | undefined
+
+    if (!project) {
+      throw new CloudApiError(
+        `Project ${garden.projectName} is not a ${getCloudDistributionName(api.domain)} project`,
+        {}
+      )
+    }
+
+    let environmentId: string | undefined
 
     if (envName) {
       const environment = project.environments.find((e) => e.name === envName)
       if (!environment) {
-        throw new EnterpriseApiError(`Environment with name ${envName} not found in project`, {
+        throw new CloudApiError(`Environment with name ${envName} not found in project`, {
           environmentName: envName,
           availableEnvironmentNames: project.environments.map((e) => e.name),
         })
@@ -136,7 +152,7 @@ export class SecretsCreateCommand extends Command<Args, Opts> {
     if (userId) {
       const user = await api.get(`/users/${userId}`)
       if (!user) {
-        throw new EnterpriseApiError(`User with ID ${userId} not found.`, {
+        throw new CloudApiError(`User with ID ${userId} not found.`, {
           userId,
         })
       }

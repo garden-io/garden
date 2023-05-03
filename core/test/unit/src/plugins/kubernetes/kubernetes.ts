@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -21,6 +21,11 @@ describe("kubernetes configureProvider", () => {
     buildMode: "local-docker",
     context: "my-cluster",
     defaultHostname: "my.domain.com",
+    deploymentRegistry: {
+      hostname: "eu.gcr.io",
+      namespace: "garden-ci",
+      insecure: false,
+    },
     forceSsl: false,
     gardenSystemNamespace: defaultSystemNamespace,
     imagePullSecrets: [],
@@ -116,12 +121,14 @@ describe("kubernetes configureProvider", () => {
   it("should set a default deploymentRegistry with projectName as namespace", async () => {
     const result = await configure({
       ...basicConfig,
+      deploymentRegistry: undefined,
       buildMode: "kaniko",
     })
 
     expect(result.config.deploymentRegistry).to.eql({
       hostname: "127.0.0.1:5000",
       namespace: garden.projectName,
+      insecure: true,
     })
   })
 
@@ -132,12 +139,14 @@ describe("kubernetes configureProvider", () => {
       deploymentRegistry: {
         hostname: "127.0.0.1:5000",
         namespace: "my-namespace",
+        insecure: true,
       },
     })
 
     expect(result.config.deploymentRegistry).to.eql({
       hostname: "127.0.0.1:5000",
       namespace: "my-namespace",
+      insecure: true,
     })
   })
 })

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,14 +8,14 @@
 
 import { expect } from "chai"
 
-import { TestGarden, expectError } from "../../../../../helpers"
+import { expectError, TestGarden } from "../../../../../helpers"
 import { ConfigGraph } from "../../../../../../src/config-graph"
 import { getHelmTestGarden } from "./common"
 import { TestTask } from "../../../../../../src/tasks/test"
 import { findByName } from "../../../../../../src/util/util"
 import { emptyDir, pathExists } from "fs-extra"
 import { join } from "path"
-import { testFromModule, testFromConfig } from "../../../../../../src/types/test"
+import { testFromConfig, testFromModule } from "../../../../../../src/types/test"
 
 describe("testHelmModule", () => {
   let garden: TestGarden
@@ -41,6 +41,7 @@ describe("testHelmModule", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -65,6 +66,7 @@ describe("testHelmModule", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     const key = testTask.getKey()
@@ -94,6 +96,7 @@ describe("testHelmModule", () => {
       forceBuild: false,
       devModeServiceNames: [],
       hotReloadServiceNames: [],
+      localModeServiceNames: [],
     })
 
     await expectError(
@@ -127,6 +130,7 @@ describe("testHelmModule", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -149,6 +153,7 @@ describe("testHelmModule", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)
@@ -173,6 +178,7 @@ describe("testHelmModule", () => {
         forceBuild: false,
         devModeServiceNames: [],
         hotReloadServiceNames: [],
+        localModeServiceNames: [],
       })
 
       await emptyDir(garden.artifactsPath)

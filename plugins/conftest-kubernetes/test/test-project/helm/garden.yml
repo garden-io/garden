@@ -3,8 +3,8 @@ description: Test Helm chart
 type: helm
 name: helm
 chart: postgresql
-repo: https://raw.githubusercontent.com/bitnami/charts/archive-full-index/bitnami
-version: "8.10.5"
+repo: https://charts.bitnami.com/bitnami
+version: "11.6.12"
 dependencies: [kubernetes]
 values:
   foo: ${runtime.services.kubernetes.outputs}

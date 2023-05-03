@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018-2022 Garden Technologies, Inc. <info@garden.io>
+ * Copyright (C) 2018-2023 Garden Technologies, Inc. <info@garden.io>
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -83,12 +83,15 @@ export function detectModuleOverlap({
   gardenDirPath: string
   moduleConfigs: ModuleConfig[]
 }): ModuleOverlap[] {
+  // Don't consider overlap between disabled modules, or where one of the modules is disabled
+  const enabledModules = moduleConfigs.filter((m) => !m.disabled)
+
   let overlaps: ModuleOverlap[] = []
-  for (const config of moduleConfigs) {
+  for (const config of enabledModules) {
     if (!!config.include || !!config.exclude) {
       continue
     }
-    const matches = moduleConfigs
+    const matches = enabledModules
       .filter(
         (compare) =>
           config.name !== compare.name &&
@@ -311,7 +314,7 @@ export async function makeTempDir({ git = false }: { git?: boolean } = {}): Prom
   tmpDir.path = await realpath(tmpDir.path)
 
   if (git) {
-    await exec("git", ["init"], { cwd: tmpDir.path })
+    await exec("git", ["init", "--initial-branch=main"], { cwd: tmpDir.path })
     await writeFile(join(tmpDir.path, "foo"), "bar")
     await exec("git", ["add", "."], { cwd: tmpDir.path })
     await exec("git", ["commit", "-m", "first commit"], { cwd: tmpDir.path })
