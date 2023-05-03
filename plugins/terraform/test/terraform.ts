@@ -81,7 +81,7 @@ describe("Terraform provider", () => {
         ctx,
         args: ["-auto-approve", "-input=false"],
         log: garden.log,
-        modules: [],
+        graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
       })
 
       const _garden = await makeTestGarden(testRoot, { environmentName: "prod", plugins: [gardenPlugin()] })
@@ -104,7 +104,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-auto-approve", "-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
       })
 
@@ -120,7 +120,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-auto-approve", "-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const testFileContent = await readFile(testFilePath)
@@ -139,7 +139,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
       })
 
@@ -155,7 +155,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: garden.log })
@@ -174,7 +174,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false", "-auto-approve"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
       })
 
@@ -190,7 +190,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-input=false", "-auto-approve"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: garden.log })
@@ -210,7 +210,7 @@ describe("Terraform provider", () => {
           ctx,
           args: ["-auto-approve", "-input=false"],
           log: garden.log,
-          modules: [],
+          graph: await garden.getConfigGraph({ log: garden.log, emit: false }),
         })
 
         const actions = await garden.getActionRouter()
@@ -371,7 +371,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
     })
 
@@ -396,7 +396,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const testFileContent = await readFile(testFilePath)
@@ -416,7 +416,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
     })
 
@@ -441,7 +441,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-input=false"],
         log: _garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
@@ -461,7 +461,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-input=false", "-auto-approve"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
     })
 
@@ -486,7 +486,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-input=false", "-auto-approve"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
@@ -512,7 +512,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const result = await runTestTask(false)
@@ -530,7 +530,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const resolvedAction = await resolveAction({
@@ -543,12 +543,11 @@ describe("Terraform module type", () => {
       const actions = await garden.getActionRouter()
       const status = await actions.deploy.getStatus({
         action: resolvedAction,
-
-        log: garden.log,
+        log: resolvedAction.createLog(garden.log),
         graph,
       })
 
-      expect(status.outputs).to.eql({
+      expect(status.result.outputs).to.eql({
         "map-output": {
           first: "second",
         },
@@ -573,7 +572,7 @@ describe("Terraform module type", () => {
         garden,
         args: ["tf", "-auto-approve", "-input=false"],
         log: _garden.log,
-        modules: graph.getModules(),
+        graph,
       })
 
       const resolvedAction = await resolveAction({
@@ -586,11 +585,11 @@ describe("Terraform module type", () => {
       const actions = await _garden.getActionRouter()
       const status = await actions.deploy.getStatus({
         action: resolvedAction,
-        log: _garden.log,
+        log: resolvedAction.createLog(_garden.log),
         graph,
       })
 
-      expect(status.outputs?.["my-output"]).to.equal("workspace: default, input: foo")
+      expect(status.result.outputs?.["my-output"]).to.equal("workspace: default, input: foo")
     })
   })
 
@@ -653,7 +652,7 @@ describe("Terraform module type", () => {
         action: graph.getDeploy("tf"),
         log: garden.log,
       })
-      await actions.deploy.delete({ action, log: garden.log, graph })
+      await actions.deploy.delete({ action, log: action.createLog(garden.log), graph })
 
       const testFileContent = await readFile(testFilePath)
       expect(testFileContent.toString()).to.equal("default")
@@ -673,7 +672,7 @@ describe("Terraform module type", () => {
         log: garden.log,
       })
 
-      await actions.deploy.delete({ action, log: garden.log, graph })
+      await actions.deploy.delete({ action, log: action.createLog(garden.log), graph })
 
       expect(await pathExists(testFilePath)).to.be.false
     })
@@ -702,7 +701,7 @@ describe("Terraform module type", () => {
 
       await setWorkspace({ ctx, provider, root: tfRoot, log: _garden.log, workspace: "default" })
 
-      await actions.deploy.delete({ action, log: _garden.log, graph: _graph })
+      await actions.deploy.delete({ action, log: action.createLog(garden.log), graph: _graph })
 
       const { selected } = await getWorkspaces({ ctx, provider, root: tfRoot, log: _garden.log })
       expect(selected).to.equal("foo")
