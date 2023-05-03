@@ -34,6 +34,11 @@ Then install the Garden CLI for your platform:
 ```sh
 brew tap garden-io/garden && brew install garden-cli
 ```
+
+{% hint style="info" %}
+For a Mac computer with Apple silicon, Garden needs [Rosetta](https://support.apple.com/en-us/HT211861).
+{% endhint %}
+
 {% endtab %}
 
 {% tab title="Linux" %}
