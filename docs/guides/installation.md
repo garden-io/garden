@@ -32,6 +32,10 @@ And if you'd like to build and run services locally, you need [a local installat
 For Mac, we recommend the following steps to install Garden. You can also follow the manual installation
 steps below if you prefer.
 
+{% hint style="info" %}
+For a Mac computer with Apple silicon, Garden needs [Rosetta](https://support.apple.com/en-us/HT211861).
+{% endhint %}
+
 ### Step 1: Install Homebrew
 
 If you haven't already set up Homebrew, please follow [their installation instructions](https://brew.sh/).
