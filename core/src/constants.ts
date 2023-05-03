@@ -23,7 +23,8 @@ export const ERROR_LOG_FILENAME = "error.log"
 export const GARDEN_VERSIONFILE_NAME = ".garden-version"
 export const DEFAULT_PORT_PROTOCOL = "TCP"
 
-export const DEFAULT_API_VERSION = "garden.io/v0"
+export const PREVIOUS_API_VERSION = "garden.io/v0"
+export const DEFAULT_API_VERSION = "garden.io/v1"
 
 export const DEFAULT_TEST_TIMEOUT = 60 * 1000
 export const DEFAULT_RUN_TIMEOUT = 60 * 1000

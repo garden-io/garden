@@ -18,10 +18,12 @@ import {
 } from "../../../../src/config/base"
 import { resolve, join } from "path"
 import { expectError, getDataDir, getDefaultProjectConfig } from "../../../helpers"
-import { DEFAULT_API_VERSION } from "../../../../src/constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../../../../src/constants"
 import { defaultDotIgnoreFile } from "../../../../src/util/fs"
 import { safeDumpYaml } from "../../../../src/util/serialization"
 import { getRootLogger } from "../../../../src/logger/logger"
+import { ConfigurationError } from "../../../../src/exceptions"
+import { resetNonRepeatableWarningHistory } from "../../../../src/warnings"
 
 const projectPathA = getDataDir("test-project-a")
 const modulePathA = resolve(projectPathA, "module-a")
@@ -30,7 +32,8 @@ const projectPathMultipleModules = getDataDir("test-projects", "multiple-module-
 const modulePathAMultiple = resolve(projectPathMultipleModules, "module-a")
 
 const projectPathDuplicateProjects = getDataDir("test-project-duplicate-project-config")
-const log = getRootLogger().createLog()
+const logger = getRootLogger()
+const log = logger.createLog()
 
 // TODO-0.14: remove this describe block in 0.14
 describe("prepareProjectResource", () => {
@@ -44,6 +47,12 @@ describe("prepareProjectResource", () => {
     providers: [{ name: "foo" }],
     variables: {},
   }
+
+  beforeEach(() => {
+    // we reset the non repeatable warning before each test to make sure that a
+    // previously displayed warning is logged in all tests
+    resetNonRepeatableWarningHistory()
+  })
 
   it("no changes if new `dotIgnoreFile` field is provided explicitly", () => {
     const projectResource = {
@@ -92,7 +101,7 @@ describe("prepareProjectResource", () => {
     expect(migratedProjectResource).to.eql(expectedProjectResource)
   })
 
-  it("throw an error is multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
+  it("throw an error if multi-valued `dotIgnoreFiles` array is defined in the project config", () => {
     const projectResource = {
       ...projectResourceTemplate,
       dotIgnoreFiles: [".somedotignore", ".gitignore"],
@@ -102,6 +111,48 @@ describe("prepareProjectResource", () => {
     expect(processConfigAction).to.throw(
       "Cannot auto-convert array-field `dotIgnoreFiles` to scalar `dotIgnoreFile`: multiple values found in the array [.somedotignore, .gitignore]"
     )
+  })
+
+  it("should throw an error if the apiVersion is not known", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: "unknown",
+    }
+
+    const processConfigAction = () => prepareProjectResource(log, projectResource)
+    expect(processConfigAction).to.throw(ConfigurationError, /"apiVersion: unknown" is unknown/)
+  })
+
+  it("should fall back to the previous apiVersion when not defined", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: undefined,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+
+    // The apiVersion is set to the previous version for backwards compatibility.
+    const expectedProjectResource = {
+      ...projectResource,
+      apiVersion: PREVIOUS_API_VERSION,
+    }
+    expect(returnedProjectResource).to.eql(expectedProjectResource)
+
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(`"apiVersion" is missing in the Project config`)
+  })
+
+  it("should log a warning if the apiVersion is against the previous version", async () => {
+    const projectResource = {
+      ...projectResourceTemplate,
+      apiVersion: PREVIOUS_API_VERSION,
+    }
+
+    const returnedProjectResource = prepareProjectResource(log, projectResource)
+    expect(returnedProjectResource).to.eql(projectResource)
+
+    const logEntry = log.getLatestEntry()
+    expect(logEntry.msg).to.include(`Project "apiVersion" running with backwards compatibility`)
   })
 })
 
@@ -203,7 +254,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a",
         type: "test",
@@ -263,7 +314,6 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
         kind: configTemplateKind,
         name: "combo",
 
@@ -348,7 +398,7 @@ describe("loadConfigResources", () => {
         variables: { some: "variable" },
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-from-project-config",
         type: "test",
@@ -383,7 +433,7 @@ describe("loadConfigResources", () => {
 
     expect(parsed).to.eql([
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a1",
         type: "test",
@@ -415,7 +465,7 @@ describe("loadConfigResources", () => {
         varfile: undefined,
       },
       {
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         name: "module-a2",
         type: "test",

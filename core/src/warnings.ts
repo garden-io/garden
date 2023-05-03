@@ -16,6 +16,10 @@ const loggerContext: LoggerContext = {
   history: new Set<string>(),
 }
 
+export function resetNonRepeatableWarningHistory() {
+  loggerContext.history.clear()
+}
+
 export function emitNonRepeatableWarning(log: Log, message: string) {
   if (loggerContext.history.has(message)) {
     return

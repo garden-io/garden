@@ -1,3 +1,4 @@
+apiVersion: garden.io/v1
 kind: Project
 name: templated-k8s-container-modules
 environments:

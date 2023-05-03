@@ -18,8 +18,8 @@ Also check out the [`RenderTemplate` reference](./render-template-config.md).
 The values in the schema below are the default values.
 
 ```yaml
-# The schema version of this config (currently not used).
-apiVersion: garden.io/v0
+# The schema version of this config.
+apiVersion: garden.io/v1
 
 kind: ConfigTemplate
 
@@ -45,8 +45,8 @@ inputsSchemaPath:
 # ${inputs.*}, ${parent.name} and ${template.name} keys. Other identifiers can also reference those, plus any other
 # keys available for module templates (see [the module context reference](./template-strings/modules.md)).**
 modules:
-  - # The schema version of this config (currently not used).
-    apiVersion: garden.io/v0
+  - # The schema version of this config.
+    apiVersion: garden.io/v1
 
     kind: Module
 
@@ -202,8 +202,8 @@ modules:
 #
 # Also note that template strings are not allowed in the following fields: `apiVersion` and `kind`
 configs:
-  - # The schema version of this config (currently not used).
-    apiVersion: garden.io/v0
+  - # The schema version of this config.
+    apiVersion: garden.io/v1
 
     # The kind of resource to create.
     kind:
@@ -219,11 +219,11 @@ configs:
 
 ### `apiVersion`
 
-The schema version of this config (currently not used).
+The schema version of this config.
 
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `kind`
 
@@ -263,11 +263,11 @@ In addition to any template strings you can normally use for modules (see [the r
 
 [modules](#modules) > apiVersion
 
-The schema version of this config (currently not used).
+The schema version of this config.
 
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `modules[].kind`
 
@@ -617,11 +617,11 @@ Also note that template strings are not allowed in the following fields: `apiVer
 
 [configs](#configs) > apiVersion
 
-The schema version of this config (currently not used).
+The schema version of this config.
 
-| Type     | Allowed Values | Default          | Required |
-| -------- | -------------- | ---------------- | -------- |
-| `string` | "garden.io/v0" | `"garden.io/v0"` | Yes      |
+| Type     | Allowed Values                 | Default          | Required |
+| -------- | ------------------------------ | ---------------- | -------- |
+| `string` | "garden.io/v0", "garden.io/v1" | `"garden.io/v1"` | Yes      |
 
 ### `configs[].kind`
 

@@ -38,7 +38,7 @@ import { createGardenPlugin, ProviderActionName } from "../../../src/plugin/plug
 import { ConfigureProviderParams } from "../../../src/plugin/handlers/Provider/configureProvider"
 import { ProjectConfig, defaultNamespace } from "../../../src/config/project"
 import { ModuleConfig, baseModuleSpecSchema } from "../../../src/config/module"
-import { DEFAULT_API_VERSION, gardenEnv } from "../../../src/constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION, gardenEnv } from "../../../src/constants"
 import { providerConfigBaseSchema } from "../../../src/config/provider"
 import { keyBy, set, mapValues, omit } from "lodash"
 import { joi } from "../../../src/config/common"
@@ -380,6 +380,7 @@ describe("Garden", () => {
         await writeFile(
           join(tmpPath, "garden.yml"),
           dedent`
+          apiVersion: garden.io/v1
           kind: Project
           name: foo
           environments:
@@ -2388,8 +2389,9 @@ describe("Garden", () => {
       const configA = (await garden.getRawModuleConfigs(["foo-test-a"]))[0]
       const configB = (await garden.getRawModuleConfigs(["foo-test-b"]))[0]
 
+      // note that module config versions should default to v0 (previous version)
       expect(omitUndefined(configA)).to.eql({
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         build: {
           dependencies: [],
@@ -2423,7 +2425,7 @@ describe("Garden", () => {
         },
       })
       expect(omitUndefined(configB)).to.eql({
-        apiVersion: DEFAULT_API_VERSION,
+        apiVersion: PREVIOUS_API_VERSION,
         kind: "Module",
         build: {
           dependencies: [{ name: "foo-test-a", copy: [] }],
@@ -2627,6 +2629,14 @@ describe("Garden", () => {
     it.skip("should throw an error if references to missing secrets are present in a module config", async () => {
       const garden = await makeTestGarden(getDataDir("missing-secrets", "module"))
       await expectError(() => garden.scanAndAddConfigs(), { contains: "Module module-a: missing" })
+    })
+
+    it("should throw when apiVersion v0 is set in a project with action configs", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-action-kind-v0"))
+
+      await expectError(() => garden.scanAndAddConfigs(), {
+        contains: `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}"`,
+      })
     })
   })
 

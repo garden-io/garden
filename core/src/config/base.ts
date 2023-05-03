@@ -14,7 +14,7 @@ import { pathExists, readFile } from "fs-extra"
 import { omit, isPlainObject, isArray } from "lodash"
 import { coreModuleSpecSchema, baseModuleSchemaKeys, BuildDependencyConfig, ModuleConfig } from "./module"
 import { ConfigurationError, FilesystemError, ParameterError } from "../exceptions"
-import { DEFAULT_API_VERSION } from "../constants"
+import { DEFAULT_API_VERSION, PREVIOUS_API_VERSION } from "../constants"
 import { ProjectConfig, ProjectResource } from "../config/project"
 import { validateWithPath } from "./validation"
 import { defaultDotIgnoreFile, listDirectory } from "../util/fs"
@@ -192,10 +192,6 @@ export function prepareResource({
 
   let kind = spec.kind
 
-  if (!spec.apiVersion) {
-    spec.apiVersion = DEFAULT_API_VERSION
-  }
-
   const basePath = dirname(configFilePath)
 
   if (!allowInvalid) {
@@ -309,7 +305,39 @@ function handleProjectModules(log: Log, projectSpec: ProjectResource): ProjectRe
   return projectSpec
 }
 
-const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [handleDotIgnoreFiles, handleProjectModules]
+function handleMissingApiVersion(log: Log, projectSpec: ProjectResource): ProjectResource {
+  // We conservatively set the apiVersion to be compatible with 0.12.
+  if (projectSpec["apiVersion"] === undefined) {
+    emitNonRepeatableWarning(
+      log,
+      `"apiVersion" is missing in the Project config. Assuming "${PREVIOUS_API_VERSION}" for backwards compatibility with 0.12. The "apiVersion"-field is mandatory when using the new action Kind-configs. A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`
+    )
+
+    return { ...projectSpec, apiVersion: PREVIOUS_API_VERSION }
+  } else {
+    if (projectSpec["apiVersion"] === PREVIOUS_API_VERSION) {
+      emitNonRepeatableWarning(
+        log,
+        `Project "apiVersion" running with backwards compatibility against "${PREVIOUS_API_VERSION}".`
+      )
+    } else if (projectSpec["apiVersion"] !== DEFAULT_API_VERSION) {
+      throw new ConfigurationError(
+        `Project "apiVersion: ${projectSpec["apiVersion"]}" is unknown. Valid values are ${DEFAULT_API_VERSION} or ${PREVIOUS_API_VERSION}.`,
+        {
+          projectSpec,
+        }
+      )
+    }
+  }
+
+  return projectSpec
+}
+
+const bonsaiDeprecatedConfigHandlers: DeprecatedConfigHandler[] = [
+  handleMissingApiVersion,
+  handleDotIgnoreFiles,
+  handleProjectModules,
+]
 
 export function prepareProjectResource(log: Log, spec: any): ProjectResource {
   let projectSpec = <ProjectResource>spec
@@ -346,7 +374,7 @@ export function prepareModuleResource(spec: any, configPath: string, projectRoot
   // Built-in keys are validated here and the rest are put into the `spec` field
   const path = dirname(configPath)
   const config: ModuleConfig = {
-    apiVersion: spec.apiVersion || DEFAULT_API_VERSION,
+    apiVersion: spec.apiVersion || PREVIOUS_API_VERSION,
     kind: "Module",
     allowPublish: spec.allowPublish,
     build: {
