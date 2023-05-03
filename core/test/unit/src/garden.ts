@@ -2642,8 +2642,9 @@ describe("Garden", () => {
     it("should not throw when apiVersion v0 is set in a project without action configs", async () => {
       const garden = await makeTestGarden(getDataDir("test-projects", "config-valid-v0"))
 
-      // don't throw
-      await garden.scanAndAddConfigs()
+      await expect(async () => {
+        await garden.scanAndAddConfigs()
+      }).to.not.throw()
     })
 
   })
