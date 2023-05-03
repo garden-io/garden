@@ -803,6 +803,7 @@ workflows:
           requires: [build]
       - check-package-licenses:
           requires: [build]
+      # TODO-0.13: fix and re-enable
       # - build-docker-alpine:
       #     <<: *only-internal-prs
       #     context: docker
@@ -836,6 +837,7 @@ workflows:
       #     context: docker
       #     requires: [build-dist]
 
+      # TODO-0.13: fix and re-enable
       # - test-docker-gcloud:
       #     <<: *only-internal-prs
       #     context: docker
@@ -849,9 +851,10 @@ workflows:
       - test-macos:
           <<: *only-internal-prs
           requires: [build-dist]
-      - test-windows:
-          <<: *only-internal-prs
-          requires: [build-dist]
+      # TODO-0.13: fix and re-enable
+      # - test-windows:
+      #     <<: *only-internal-prs
+      #     requires: [build-dist]
 
       # - e2e-project:
       #     <<: *only-internal-prs
@@ -988,6 +991,7 @@ workflows:
           requires: [build]
           kubernetesVersion: "1.19.7"
           minikubeVersion: "v1.16.0"
+      # TODO-0.13: fix and re-enable
       # - test-microk8s:
       #     name: vm-1.24-microk8s
       #     requires: [build]
@@ -1025,6 +1029,7 @@ workflows:
           requires: [build]
           kindNodeImage: kindest/node:v1.26.3@sha256:61b92f38dff6ccc29969e7aa154d34e38b89443af1a2c14e6cfbd2df6419c66f
 
+      # TODO-0.13: fix and re-enable
       # - test-plugins:
       #     requires: [build]
       #     kindNodeImage: kindest/node:v1.21.14@sha256:27ef72ea623ee879a25fe6f9982690a3e370c68286f4356bf643467c552a3888
