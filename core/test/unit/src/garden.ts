@@ -2638,6 +2638,15 @@ describe("Garden", () => {
         contains: `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}"`,
       })
     })
+
+    it("should not throw when apiVersion v0 is set in a project without action configs", async () => {
+      const garden = await makeTestGarden(getDataDir("test-projects", "config-valid-v0"))
+
+      await expect(async () => {
+        await garden.scanAndAddConfigs()
+      }).to.not.throw()
+    })
+
   })
 
   describe("resolveModules", () => {

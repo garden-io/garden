@@ -1270,16 +1270,18 @@ export class Garden {
       let actionsCount = 0
 
       for (const kind of actionKinds) {
+        const actionConfigs = groupedResources[kind] || []
+
         // Verify that the project apiVersion is defined as compatible with action kinds
         // This is only available with apiVersion `garden.io/v1` or newer.
-        if (this.projectApiVersion !== DEFAULT_API_VERSION) {
+        if (actionConfigs.length && this.projectApiVersion !== DEFAULT_API_VERSION) {
           throw new ConfigurationError(
             `Action kinds are only supported in project configurations with "apiVersion: ${DEFAULT_API_VERSION}". A detailed migration guide is available at https://docs.garden.io/tutorials/migrating-to-bonsai`,
             {}
           )
         }
 
-        for (const config of groupedResources[kind] || []) {
+        for (const config of actionConfigs) {
           this.addActionConfig(config as unknown as BaseActionConfig)
           actionsCount++
         }
