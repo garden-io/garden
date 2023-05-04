@@ -51,7 +51,7 @@ export class LoginCommand extends Command<{}, Opts> {
     printHeader(headerLog, "Login", "☁️")
   }
 
-  async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult> {
     // NOTE: The Cloud API is missing from the Garden class for commands with noProject
     // so we initialize it here. noProject also make sure that the project config is not
     // initialized in the garden class, so we need to read it in here to get the cloud
