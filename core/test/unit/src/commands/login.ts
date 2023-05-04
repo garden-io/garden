@@ -14,7 +14,6 @@ import {
   makeTempDir,
   makeTestGarden,
   TempDirectory,
-  TestGardenCli,
   withDefaultGlobalOpts,
 } from "../../../helpers"
 import { AuthRedirectServer } from "../../../../src/cloud/auth"
@@ -23,14 +22,14 @@ import { LoginCommand } from "../../../../src/commands/login"
 import { dedent, randomString } from "../../../../src/util/string"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
-import { gardenEnv } from "../../../../src/constants"
+import { DEFAULT_GARDEN_CLOUD_DOMAIN, gardenEnv } from "../../../../src/constants"
 import { CloudApiError } from "../../../../src/exceptions"
 import { getLogMessages } from "../../../../src/util/testing"
 import { GlobalConfigStore } from "../../../../src/config-store/global"
 import { makeDummyGarden } from "../../../../src/cli/cli"
 import { Garden } from "../../../../src"
 
-function makeCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
+function loginCommandParams({ garden, opts = { "disable-project-check": false } }: { garden: Garden; opts?: any }) {
   const log = garden.log
   return {
     garden,
@@ -81,7 +80,7 @@ describe("LoginCommand", () => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams({ garden }))
+    await command.action(loginCommandParams({ garden }))
 
     const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
@@ -107,7 +106,7 @@ describe("LoginCommand", () => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams({ garden }))
+    await command.action(loginCommandParams({ garden }))
 
     const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
@@ -134,14 +133,14 @@ describe("LoginCommand", () => {
     td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
     td.replace(CloudApi.prototype, "startInterval", async () => {})
 
-    await command.action(makeCommandParams({ garden }))
+    await command.action(loginCommandParams({ garden }))
 
     const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
     expect(savedToken).to.exist
 
     const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-    expect(logOutput).to.include("You're already logged in to http://example.invalid.")
+    expect(logOutput).to.include("You're already logged in to https://example.invalid.")
   })
 
   it("should log in if the project config uses secrets in project variables", async () => {
@@ -162,14 +161,14 @@ describe("LoginCommand", () => {
     })
 
     // Need to override the default because we're using DummyGarden
-    const cloudDomain = "http://example.invalid"
+    const cloudDomain = "https://example.invalid"
     Object.assign(garden, { cloudDomain })
 
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams({ garden }))
+    await command.action(loginCommandParams({ garden }))
     const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
@@ -192,9 +191,13 @@ describe("LoginCommand", () => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams({ garden }))
+    await command.action(loginCommandParams({ garden }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await CloudApi.getStoredAuthToken(
+      garden.log,
+      garden.globalConfigStore,
+      DEFAULT_GARDEN_CLOUD_DOMAIN
+    )
 
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
@@ -227,7 +230,7 @@ describe("LoginCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await expectError(async () => await command.action(makeCommandParams({ garden })), {
+    await expectError(async () => await command.action(loginCommandParams({ garden })), {
       contains: "bummer",
     })
   })
@@ -258,7 +261,7 @@ describe("LoginCommand", () => {
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
 
-    await expectError(async () => await command.action(makeCommandParams({ garden })), {
+    await expectError(async () => await command.action(loginCommandParams({ garden })), {
       contains: "bummer",
     })
 
@@ -284,8 +287,12 @@ describe("LoginCommand", () => {
       commandInfo: { name: "foo", args: {}, opts: {} },
     })
 
+    setTimeout(() => {
+      garden.events.emit("receivedToken", testToken)
+    }, 500)
+
     await expectError(
-      async () => await command.action(makeCommandParams({ garden, opts: { "disable-project-check": false } })),
+      async () => await command.action(loginCommandParams({ garden, opts: { "disable-project-check": false } })),
       {
         contains: "Not a project directory",
       }
@@ -303,16 +310,29 @@ describe("LoginCommand", () => {
 
     // this is a bit of a workaround to run outside of the garden root dir
     const garden = await makeDummyGarden(getDataDir("..", "..", "..", ".."), {
+      noEnterprise: false,
       commandInfo: { name: "foo", args: {}, opts: {} },
+      globalConfigStore,
     })
+
+    // Override the cloud domain so we don't use the default domain
+    const savedDomain = gardenEnv.GARDEN_CLOUD_DOMAIN
+    const cloudDomain = "https://example.invalid"
+    gardenEnv.GARDEN_CLOUD_DOMAIN = cloudDomain
+
+    // Need to override the default because we're using DummyGarden
+    Object.assign(garden, { cloudDomain })
 
     setTimeout(() => {
       garden.events.emit("receivedToken", testToken)
     }, 500)
 
-    await command.action(makeCommandParams({ garden, opts: { "disable-project-check": true } }))
+    await command.action(loginCommandParams({ garden, opts: { "disable-project-check": true } }))
 
-    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, cloudDomain)
+    // reset the cloud domain
+    gardenEnv.GARDEN_CLOUD_DOMAIN = savedDomain
+
     expect(savedToken).to.exist
     expect(savedToken!.token).to.eql(testToken.token)
     expect(savedToken!.refreshToken).to.eql(testToken.refreshToken)
@@ -334,16 +354,15 @@ describe("LoginCommand", () => {
 
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => true)
 
-      await command.action(makeCommandParams({ garden }))
+      await command.action(loginCommandParams({ garden }))
 
       const logOutput = getLogMessages(garden.log, (entry) => entry.level === LogLevel.info).join("\n")
 
-      expect(logOutput).to.include("You're already logged in to http://example.invalid.")
+      expect(logOutput).to.include("You're already logged in to https://example.invalid.")
     })
 
     it("should throw if the user has an invalid auth token in the environment", async () => {
       const command = new LoginCommand()
-      const cli = new TestGardenCli()
       const garden = await makeTestGarden(getDataDir("test-projects", "login", "has-domain-and-id"), {
         noEnterprise: false,
         commandInfo: { name: "foo", args: {}, opts: {} },
@@ -352,7 +371,7 @@ describe("LoginCommand", () => {
 
       td.replace(CloudApi.prototype, "checkClientAuthToken", async () => false)
 
-      await expectError(async () => await command.action(makeCommandParams({ garden })), {
+      await expectError(async () => await command.action(loginCommandParams({ garden })), {
         contains:
           "The provided access token is expired or has been revoked, please create a new one from the Garden Enterprise UI.",
       })
@@ -366,7 +385,7 @@ describe("LoginCommand", () => {
   context("GARDEN_CLOUD_DOMAIN set in env", () => {
     const saveEnv = gardenEnv.GARDEN_CLOUD_DOMAIN
     before(() => {
-      gardenEnv.GARDEN_CLOUD_DOMAIN = "https://gardencloud.example.com"
+      gardenEnv.GARDEN_CLOUD_DOMAIN = "https://example.invalid"
     })
 
     it("should log in even if the project config domain is empty", async () => {
@@ -387,7 +406,7 @@ describe("LoginCommand", () => {
         garden.events.emit("receivedToken", testToken)
       }, 500)
 
-      await command.action(makeCommandParams({ garden }))
+      await command.action(loginCommandParams({ garden }))
 
       const savedToken = await CloudApi.getStoredAuthToken(
         garden.log,
@@ -417,7 +436,7 @@ describe("LoginCommand", () => {
         garden.events.emit("receivedToken", testToken)
       }, 500)
 
-      await command.action(makeCommandParams({ garden }))
+      await command.action(loginCommandParams({ garden }))
 
       const savedToken = await CloudApi.getStoredAuthToken(
         garden.log,
