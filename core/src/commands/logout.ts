@@ -9,13 +9,23 @@
 import { Command, CommandParams, CommandResult } from "./base"
 import { printHeader } from "../logger/util"
 import { CloudApi, getGardenCloudDomain } from "../cloud/api"
-import { dedent } from "../util/string"
+import { dedent, deline } from "../util/string"
 import { getCloudDistributionName } from "../util/util"
 import { ConfigurationError } from "../exceptions"
 import { ProjectResource } from "../config/project"
 import { findProjectConfig } from "../config/base"
+import { BooleanParameter } from "../cli/params"
 
-export class LogOutCommand extends Command {
+export const logoutOpts = {
+  "disable-project-check": new BooleanParameter({
+    help: deline`Disables the check that this is run from within a Garden Project. Logs you out from the default Garden Cloud domain`,
+    defaultValue: false,
+  }),
+}
+
+type Opts = typeof logoutOpts
+
+export class LogOutCommand extends Command<{}, Opts> {
   name = "logout"
   help = "Log out of Garden Cloud."
   noProject = true
@@ -23,24 +33,31 @@ export class LogOutCommand extends Command {
   description = dedent`
     Logs you out of Garden Cloud.
   `
+  options = logoutOpts
 
   printHeader({ headerLog }) {
     printHeader(headerLog, "Log out", "☁️")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult> {
-    // The Enterprise API is missing from the Garden class for commands with noProject
-    // so we initialize it here.
-    const projectConfig: ProjectResource | undefined = await findProjectConfig(log, garden.projectRoot)
+  async action({ garden, log, opts }: CommandParams): Promise<CommandResult> {
+    // The Cloud API is missing from the Garden class for commands with noProject
+    // so we initialize it with a cloud domain derived from `getGardenCloudDomain`.
 
-    // Fail if this is not run within a garden project
-    if (!projectConfig) {
-      throw new ConfigurationError(
-        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        {
-          root: garden.projectRoot,
-        }
-      )
+    let projectConfig: ProjectResource | undefined = undefined
+    const forceProjectCheck = !opts["disable-project-check"]
+
+    if (forceProjectCheck) {
+      projectConfig = await findProjectConfig(log, garden.projectRoot)
+
+      // Fail if this is not run within a garden project
+      if (!projectConfig) {
+        throw new ConfigurationError(
+          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+          {
+            root: garden.projectRoot,
+          }
+        )
+      }
     }
 
     const cloudDomain: string | undefined = getGardenCloudDomain(projectConfig?.domain)

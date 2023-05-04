@@ -16,10 +16,11 @@ import {
   makeTestGarden,
   TempDirectory,
   TestGardenCli,
+  withDefaultGlobalOpts,
 } from "../../../helpers"
 import { AuthRedirectServer } from "../../../../src/cloud/auth"
 
-import { LoginCommand } from "../../../../src/commands/login"
+import { LoginCommand, loginOpts } from "../../../../src/commands/login"
 import { dedent, randomString } from "../../../../src/util/string"
 import { CloudApi } from "../../../../src/cloud/api"
 import { LogLevel } from "../../../../src/logger/logger"
@@ -260,6 +261,36 @@ describe("LoginCommand", () => {
       Looks like your session token is invalid. If you were previously logged into a different instance
       of Garden Enterprise, log out first before logging in.
     `)
+  })
+
+  it("should not login if outside project root and disable-project-check flag is false", async () => {
+    const postfix = randomString()
+    const testToken = {
+      token: `dummy-token-${postfix}`,
+      refreshToken: `dummy-refresh-token-${postfix}`,
+      tokenValidity: 60,
+    }
+    const command = new LoginCommand()
+    const cli = new TestGardenCli()
+
+    const garden = await makeDummyGarden(getDataDir("test-projects", "login"), {
+      commandInfo: { name: "foo", args: {}, opts: {} },
+    })
+
+    setTimeout(() => {
+      garden.events.emit("receivedToken", testToken)
+    }, 500)
+
+    /*await expectError(async () => await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} })), {
+      contains: "Not a project directory",
+    })*/
+
+    //await command.action(makeCommandParams({ cli, garden, args: {}, opts: {"disable-project-check": false} }))
+    await command.action(makeCommandParams({ cli, garden, args: {}, opts: { "disable-project-check": false } }))
+    //await command.action(makeCommandParams({ cli, garden, args: {}, opts: {} }))
+
+    const savedToken = await CloudApi.getStoredAuthToken(garden.log, garden.globalConfigStore, garden.cloudDomain!)
+    expect(savedToken).to.exist
   })
 
   context("GARDEN_AUTH_TOKEN set in env", () => {
