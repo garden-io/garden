@@ -451,6 +451,10 @@ export class Garden {
     return this.buildStaging.clear()
   }
 
+  clearTreeCache() {
+    this.vcs.clearTreeCache()
+  }
+
   clearCaches() {
     this.cache.clear()
     this.solver.clearCache()
