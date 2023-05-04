@@ -621,6 +621,9 @@ ${chalk.white.underline("Keys:")}
     }
     const failMessage = `Failed running the ${command.getFullName()} command. Please see above for the logs.`
 
+    // Clear the VCS handler's tree cache to make sure we pick up any changed sources.
+    this.garden.clearTreeCache()
+
     command
       .action(params)
       .then((output: CommandResult) => {

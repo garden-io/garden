@@ -146,6 +146,10 @@ export abstract class VcsHandler {
   abstract updateRemoteSource(params: RemoteSourceParams): Promise<void>
   abstract getPathInfo(log: Log, path: string): Promise<VcsInfo>
 
+  clearTreeCache() {
+    this.cache.clear()
+  }
+
   async getTreeVersion(
     log: Log,
     projectName: string,
