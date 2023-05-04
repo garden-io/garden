@@ -375,7 +375,7 @@ describe("processCliArgs", () => {
 
   it("parses args and opts for a TestCommand", async () => {
     const cmd = new TestCommand()
-    const { args, opts } = parseAndProcess(["module-a,module-b", "-n unit"], cmd)
+    const { args, opts } = parseAndProcess(["module-b-unit", "--module", "module-b"], cmd)
     await cmd.action({
       ...defaultActionParams,
       args,

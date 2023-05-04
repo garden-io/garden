@@ -13,7 +13,7 @@ import { printHeader, renderDivider } from "../logger/util"
 import { ParameterError } from "../exceptions"
 import { dedent, deline } from "../util/string"
 import { BooleanParameter, StringsParameter } from "../cli/params"
-import { watchParameter, watchRemovedWarning } from "./helpers"
+import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
 
 // TODO: support interactive execution for a single Run (needs implementation from RunTask through plugin handlers).
 
@@ -112,15 +112,15 @@ export class RunCommand extends Command<Args, Opts> {
 
     const graph = await garden.getConfigGraph({ log, emit: true })
 
-    let includeNames: string[] | undefined = undefined
+    let names: string[] | undefined = undefined
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
 
     if (args.names && args.names.length > 0) {
-      includeNames = args.names
+      names = args.names
     }
 
-    if (!includeNames && !opts.module) {
+    if (!names && !opts.module) {
       throw new ParameterError(
         `A name argument or --module must be specified. If you really want to perform every Run in the project, please specify '*' as an argument.`,
         { args, opts }
@@ -133,11 +133,22 @@ export class RunCommand extends Command<Args, Opts> {
     }
 
     let actions = graph.getActionsByKind("Run", {
-      includeNames,
+      includeNames: names,
       moduleNames: opts.module,
       excludeNames: opts.skip,
       includeDisabled: true,
     })
+
+    const { shouldAbort } = validateActionSearchResults({
+      log,
+      actionKind: "Test",
+      actions,
+      names,
+      errData: { params, args },
+    })
+    if (shouldAbort) {
+      return {}
+    }
 
     for (const action of actions) {
       if (action.isDisabled() && !opts.force) {

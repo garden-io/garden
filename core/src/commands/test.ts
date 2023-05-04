@@ -20,8 +20,8 @@ import { printHeader } from "../logger/util"
 import { StringsParameter, BooleanParameter } from "../cli/params"
 import { dedent, deline } from "../util/string"
 import { ParameterError } from "../exceptions"
-import { watchParameter, watchRemovedWarning } from "./helpers"
 import { warnOnLinkedActions } from "../actions/helpers"
+import { validateActionSearchResults, watchParameter, watchRemovedWarning } from "./helpers"
 
 export const testArgs = {
   names: new StringsParameter({
@@ -147,13 +147,13 @@ export class TestCommand extends Command<Args, Opts> {
 
     const graph = await garden.getConfigGraph({ log, emit: true })
 
-    let includeNames: string[] | undefined = undefined
+    let names: string[] | undefined = undefined
     const nameArgs = [...(args.names || []), ...(opts.name || [])]
     const force = opts.force
     const skipRuntimeDependencies = opts["skip-dependencies"]
 
     if (nameArgs.length > 0) {
-      includeNames = nameArgs
+      names = nameArgs
     }
 
     // Validate module names if specified.
@@ -162,12 +162,23 @@ export class TestCommand extends Command<Args, Opts> {
     }
 
     const actions = graph.getActionsByKind("Test", {
-      includeNames,
+      includeNames: names,
       moduleNames: opts.module,
       excludeNames: opts.skip,
     })
 
     await warnOnLinkedActions(garden, log, actions)
+
+    const { shouldAbort } = validateActionSearchResults({
+      log,
+      actionKind: "Test",
+      actions,
+      names,
+      errData: { params, args },
+    })
+    if (shouldAbort) {
+      return {}
+    }
 
     const tasks = actions.map(
       (action) =>
