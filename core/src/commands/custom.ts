@@ -39,6 +39,7 @@ function convertArgSpec(spec: CustomCommandOption) {
     name: spec.name,
     help: spec.description,
     required: spec.required,
+    spread: true,
   }
 
   if (spec.type === "string") {
