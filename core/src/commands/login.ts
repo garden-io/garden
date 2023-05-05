@@ -17,10 +17,21 @@ import { EventBus } from "../events"
 import { getCloudDistributionName } from "../util/util"
 import { ProjectResource } from "../config/project"
 import { findProjectConfig } from "../config/base"
+import { BooleanParameter } from "../cli/params"
+import { deline } from "../util/string"
 
 const loginTimeoutSec = 60
 
-export class LoginCommand extends Command {
+export const loginOpts = {
+  "disable-project-check": new BooleanParameter({
+    help: deline`Disables the check that this is run from within a Garden Project. Logs you in to the default Garden Cloud domain`,
+    defaultValue: false,
+  }),
+}
+
+type Opts = typeof loginOpts
+
+export class LoginCommand extends Command<{}, Opts> {
   name = "login"
   help = "Log in to Garden Cloud."
 
@@ -34,25 +45,32 @@ export class LoginCommand extends Command {
     Logs you in to Garden Cloud. Subsequent commands will have access to cloud features.
   `
 
+  options = loginOpts
+
   printHeader({ headerLog }) {
     printHeader(headerLog, "Login", "☁️")
   }
 
-  async action({ garden, log }: CommandParams): Promise<CommandResult> {
+  async action({ garden, log, opts }: CommandParams<{}, Opts>): Promise<CommandResult> {
     // NOTE: The Cloud API is missing from the Garden class for commands with noProject
     // so we initialize it here. noProject also make sure that the project config is not
     // initialized in the garden class, so we need to read it in here to get the cloud
     // domain.
-    const projectConfig: ProjectResource | undefined = await findProjectConfig(log, garden.projectRoot)
+    let projectConfig: ProjectResource | undefined = undefined
+    const forceProjectCheck = !opts["disable-project-check"]
 
-    // Fail if this is not run within a garden project
-    if (!projectConfig) {
-      throw new ConfigurationError(
-        `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
-        {
-          root: garden.projectRoot,
-        }
-      )
+    if (forceProjectCheck) {
+      projectConfig = await findProjectConfig(log, garden.projectRoot)
+
+      // Fail if this is not run within a garden project
+      if (!projectConfig) {
+        throw new ConfigurationError(
+          `Not a project directory (or any of the parent directories): ${garden.projectRoot}`,
+          {
+            root: garden.projectRoot,
+          }
+        )
+      }
     }
 
     const globalConfigStore = garden.globalConfigStore
