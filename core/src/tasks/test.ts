@@ -53,6 +53,7 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
   }
 
   async getStatus({ dependencyResults }: ActionTaskStatusParams<TestAction>) {
+    this.log.verbose("Checking status...")
     const action = this.getResolvedAction(this.action, dependencyResults)
     const router = await this.garden.getActionRouter()
 
@@ -62,10 +63,14 @@ export class TestTask extends ExecuteActionTask<TestAction, GetTestResult> {
       action,
     })
 
+    this.log.verbose("Status check complete")
+
     const testResult = status?.detail
 
     if (testResult && testResult.success) {
-      this.log.success("Already passed")
+      if (!this.force) {
+        this.log.success("Already passed")
+      }
       return {
         ...status,
         version: action.versionString(),
