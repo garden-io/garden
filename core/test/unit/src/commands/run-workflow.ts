@@ -18,6 +18,7 @@ import {
   expectFuzzyMatch,
   createProjectConfig,
   makeTempDir,
+  getDataDir,
 } from "../../../helpers"
 import { DEFAULT_API_VERSION } from "../../../../src/constants"
 import { RunWorkflowCommand, shouldBeDropped } from "../../../../src/commands/run-workflow"
@@ -1014,6 +1015,51 @@ describe("RunWorkflowCommand", () => {
 
     // This workflow should run without errors, despite a missing secret being referenced in a separate workflow config.
     await cmd.action({ ...defaultParams, args: { workflow: "workflow-to-run" } })
+  })
+})
+
+describe("Lazy provider initialization in RunWorkflowCommand", () => {
+  const cmd = new RunWorkflowCommand()
+  let garden: TestGarden
+  let defaultParams: any
+
+  before(async () => {
+    garden = await makeTestGarden(getDataDir("test-execprovider-fail"), { forceRefresh: true })
+    const log = garden.log
+    defaultParams = {
+      cli: new TestGardenCli(),
+      garden,
+      log,
+      headerLog: log,
+      footerLog: log,
+      opts: withDefaultGlobalOpts({}),
+    }
+  })
+
+  it("should run script steps before initializing providers", async () => {
+    garden.setWorkflowConfigs([
+      {
+        apiVersion: DEFAULT_API_VERSION,
+        name: "test",
+        kind: "Workflow",
+        envVars: {},
+        resources: defaultWorkflowResources,
+        internal: {
+          basePath: garden.projectRoot,
+        },
+        steps: [
+          { script: "echo Script step succeeds!", name: "step-1" }, // this should succeed
+          { command: ["build"] }, // this should fail
+        ],
+      },
+    ])
+
+    const result = await cmd.action({ ...defaultParams, args: { workflow: "test" } })
+
+    expect(result.result?.steps["step-1"].log).to.eql("Script step succeeds!")
+
+    // step 2 should fail, because initializing the exec provider fails.
+    expect(result.errors?.length).to.eql(1)
   })
 })
 
